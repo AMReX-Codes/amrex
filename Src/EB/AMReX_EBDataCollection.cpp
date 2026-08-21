@@ -144,14 +144,18 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         m_bndrynorm = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryNormFC(*m_bndrynorm, face_dir, m_geom);
 
+        // Index types follow the level's face-centered convention: face_dir is nodal, so that a
+        // box spans the staggered cells it owns, and the other directions carry the type the
+        // cell-centered path would give. See the comment in GShopLevel::buildFCData.
+        //
+        // The extra ghost layer on the area fractions is for callers that sweep a grown box and
+        // ask about the far face of its last cell, which is one index further still.
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_areafrac[idim] = new MultiCutFab(a_ba, a_dm, 1, m_ngrow[1]+1, *m_cellflags);
-            m_facecent[idim] = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
+            m_areafrac[idim] = new MultiCutFab(fc_grids, a_dm, 1, m_ngrow[1]+1, *m_cellflags);
+            m_facecent[idim] = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
             IntVect edge_type{1};
-            if (idim != face_dir) {
-                edge_type[face_dir] = 0;
-                edge_type[idim] = 0;
-            }
+            edge_type[idim] = 0;
+            edge_type[face_dir] = 1;  // set last: face_dir is nodal even for idim == face_dir
             m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
                                                1, ng, *m_cellflags);
         }

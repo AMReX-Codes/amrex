@@ -160,6 +160,7 @@ void main_main()
         const MultiFab& volfrac_fc = fc_factories[dir]->getVolFrac();
         const auto& ebflag = fc_factories[dir]->getMultiEBCellFlagFab();
         auto const& afrac = fc_factories[dir]->getAreaFrac();
+        auto const& ecent = fc_factories[dir]->getEdgeCent();
         const IntVect fdir = IntVect::TheDimensionVector(dir);
 
         ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
@@ -170,14 +171,18 @@ void main_main()
             auto const& vf    = volfrac_fc.const_array(mfi);
             auto const& flag  = ebflag[mfi].const_array();
             auto const& cflag = ccflag[mfi].const_array();
-            // the area fractions carry the cell-centered type, so enclosedCells of the
-            // face-centered valid box is exactly their valid range, and those indices are
-            // valid in the face-centered arrays too
-            const Box abx = amrex::enclosedCells(mfi.validbox());
+            // every face-centered array is indexed by the staggered cell, so one box covers
+            // all of them
+            const Box abx = mfi.validbox();
             const bool have_ap = afrac[0]->ok(mfi);
             AMREX_D_TERM(auto const& apx = have_ap ? afrac[0]->const_array(mfi) : Array4<Real const>{};,
                          auto const& apy = have_ap ? afrac[1]->const_array(mfi) : Array4<Real const>{};,
                          auto const& apz = have_ap ? afrac[2]->const_array(mfi) : Array4<Real const>{};);
+            const bool have_ec = ecent[0]->ok(mfi);
+            AMREX_D_TERM(auto const& ecx = have_ec ? ecent[0]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& ecy = have_ec ? ecent[1]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& ecz = have_ec ? ecent[2]->const_array(mfi) : Array4<Real const>{};);
+            const int ndj = (AMREX_SPACEDIM == 3) ? 2 : 1;
 
             reduce_op.eval(abx, reduce_data,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple {
@@ -192,6 +197,18 @@ void main_main()
                         if (AMREX_D_TERM(apx(i,j,k) != Real(0.0),
                                       || apy(i,j,k) != Real(0.0),
                                       || apz(i,j,k) != Real(0.0))) { nbad_ap = 1; }
+                    }
+                    // Every edge of a covered cell lies in the body and has to read -1. The
+                    // edges running along a direction sit at the corners of the other two, and
+                    // in the staggered direction the next index is this cell's far side: the
+                    // low edge of the next staggered cell is the high edge of this one.
+                    if (have_ec) {
+                        for (int di = 0; di < 2; ++di) {
+                        for (int dj = 0; dj < ndj; ++dj) {
+                            AMREX_D_TERM(if (ecx(i,j+di,k+dj) != Real(-1.0)) { ++nbad_ap; },
+                                         if (ecy(i+di,j,k+dj) != Real(-1.0)) { ++nbad_ap; },
+                                         if (ecz(i+di,j+dj,k) != Real(-1.0)) { ++nbad_ap; })
+                        }}
                     }
                     return {1, nbad_vf, nbad_flag, nbad_ap};
                 });
@@ -225,7 +242,7 @@ void main_main()
         if (nbad_ap > 0) {
             ++nerrors;
             amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ap << " of " << ncovered
-                           << " covered cells have a nonzero area fraction\n";
+                           << " covered cells have an open area fraction or edge\n";
         }
     }
 
