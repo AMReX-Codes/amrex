@@ -173,6 +173,20 @@ public:
         bool m_built = false;
     };
 
+    /**
+     * \brief Index type of the face-centered edge centroids for edge direction \p idim.
+     *
+     * The edge is cell-typed in the direction it runs along and nodal in the others, as in the
+     * cell-centered path, except that \p face_dir is always nodal: that is how a box spans the
+     * staggered cells it owns. Used for both the level's data and the factory's, which have to
+     * agree - fillEdgeCentFC copies one into the other.
+     */
+    [[nodiscard]] static IntVect fcEdgeType (int idim, int face_dir) noexcept {
+        IntVect edge_type{1};
+        if (idim != face_dir) { edge_type[idim] = 0; }
+        return edge_type;
+    }
+
     //! Check if face-centered data is available for face_dir (0=x, 1=y, 2=z).
     [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
         return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
@@ -999,10 +1013,8 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fc_areafrac[idim].define(fc_grids, fc_dmap, 1, ng);
         fc_facecent[idim].define(fc_grids, fc_dmap, AMREX_SPACEDIM-1, ng);
-        IntVect edge_type{1};
-        edge_type[idim] = 0;
-        edge_type[face_dir] = 1;   // set last: face_dir is nodal even for idim == face_dir
-        fc_edgecent[idim].define(amrex::convert(fc_base_grids, edge_type), fc_dmap, 1, ng);
+        fc_edgecent[idim].define(amrex::convert(fc_base_grids, Level::fcEdgeType(idim,face_dir)),
+                                 fc_dmap, 1, ng);
     }
 
     // **********************************************************************

@@ -153,11 +153,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_areafrac[idim] = new MultiCutFab(fc_grids, a_dm, 1, m_ngrow[1]+1, *m_cellflags);
             m_facecent[idim] = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
-            IntVect edge_type{1};
-            edge_type[idim] = 0;
-            edge_type[face_dir] = 1;  // set last: face_dir is nodal even for idim == face_dir
-            m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
-                                               1, ng, *m_cellflags);
+            m_edgecent[idim] = new MultiCutFab(
+                amrex::convert(a_ba, EB2::Level::fcEdgeType(idim,face_dir)), a_dm,
+                1, ng, *m_cellflags);
         }
 
         a_level.fillAreaFracFC(m_areafrac, face_dir, m_geom);

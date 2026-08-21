@@ -15,6 +15,7 @@
 #include <AMReX_Reduce.H>
 
 #include <cmath>
+#include <string>
 
 using namespace amrex;
 
@@ -149,6 +150,34 @@ void main_main()
         }
     }
 
+    // Index types. The convention is one rule - face_dir nodal, the other directions as in the
+    // cell-centered path - and most of it has no observable effect on the values, because the
+    // plane it puts back inside the valid box holds what the ghost region held before. A value
+    // check cannot see that, so state the contract directly. The rule is written out here rather
+    // than taken from Level::fcEdgeType, so that the test is an independent statement of it.
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+        const IndexType fc_type(IntVect::TheDimensionVector(dir));
+        auto check = [&] (IndexType t, IndexType expect, const std::string& what) {
+            if (t != expect) {
+                ++nerrors;
+                amrex::Print() << "ERROR: dir=" << dir << " " << what << " index type is "
+                               << t << ", expected " << expect << "\n";
+            }
+        };
+        check(fc_factories[dir]->getVolFrac().ixType(), fc_type, "volfrac");
+        check(fc_factories[dir]->getMultiEBCellFlagFab().ixType(), fc_type, "cellflag");
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            check(fc_factories[dir]->getAreaFrac()[idim]->boxArray().ixType(), fc_type,
+                  "areafrac[" + std::to_string(idim) + "]");
+            check(fc_factories[dir]->getFaceCent()[idim]->boxArray().ixType(), fc_type,
+                  "facecent[" + std::to_string(idim) + "]");
+            IntVect edge_type{1};
+            if (idim != dir) { edge_type[idim] = 0; }
+            check(fc_factories[dir]->getEdgeCent()[idim]->boxArray().ixType(),
+                  IndexType(edge_type), "edgecent[" + std::to_string(idim) + "]");
+        }
+    }
+
     // Covered regions. With eb2.max_grid_size small enough that whole boxes fall inside the
     // body, the EB level has covered boxes, and the face-centered data must report them as
     // covered rather than as regular fluid. A face-centered cell is covered exactly when both
@@ -163,9 +192,9 @@ void main_main()
         auto const& ecent = fc_factories[dir]->getEdgeCent();
         const IntVect fdir = IntVect::TheDimensionVector(dir);
 
-        ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
-        ReduceData<int,int,int,int> reduce_data(reduce_op);
-        using ReduceTuple = typename ReduceData<int,int,int,int>::Type;
+        ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
+        ReduceData<int,int,int,int,int> reduce_data(reduce_op);
+        using ReduceTuple = typename ReduceData<int,int,int,int,int>::Type;
 
         for (MFIter mfi(volfrac_fc); mfi.isValid(); ++mfi) {
             auto const& vf    = volfrac_fc.const_array(mfi);
@@ -188,7 +217,7 @@ void main_main()
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple {
                     const IntVect iv{AMREX_D_DECL(i,j,k)};
                     if (!(cflag(iv-fdir).isCovered() && cflag(iv).isCovered())) {
-                        return {0,0,0,0};
+                        return {0,0,0,0,0};
                     }
                     int nbad_vf   = (vf(i,j,k) != Real(0.0))     ? 1 : 0;
                     int nbad_flag = (!flag(i,j,k).isCovered())   ? 1 : 0;
@@ -201,16 +230,19 @@ void main_main()
                     // Every edge of a covered cell lies in the body and has to read -1. The
                     // edges running along a direction sit at the corners of the other two, and
                     // in the staggered direction the next index is this cell's far side: the
-                    // low edge of the next staggered cell is the high edge of this one.
+                    // low edge of the next staggered cell is the high edge of this one. Those
+                    // +1 offsets reach one layer into the ghost region, which the factory's
+                    // ghost cells cover and the fill's ParallelCopy writes.
+                    int nbad_ec = 0;
                     if (have_ec) {
                         for (int di = 0; di < 2; ++di) {
                         for (int dj = 0; dj < ndj; ++dj) {
-                            AMREX_D_TERM(if (ecx(i,j+di,k+dj) != Real(-1.0)) { ++nbad_ap; },
-                                         if (ecy(i+di,j,k+dj) != Real(-1.0)) { ++nbad_ap; },
-                                         if (ecz(i+di,j+dj,k) != Real(-1.0)) { ++nbad_ap; })
+                            AMREX_D_TERM(if (ecx(i,j+di,k+dj) != Real(-1.0)) { nbad_ec = 1; },
+                                         if (ecy(i+di,j,k+dj) != Real(-1.0)) { nbad_ec = 1; },
+                                         if (ecz(i+di,j+dj,k) != Real(-1.0)) { nbad_ec = 1; })
                         }}
                     }
-                    return {1, nbad_vf, nbad_flag, nbad_ap};
+                    return {1, nbad_vf, nbad_flag, nbad_ap, nbad_ec};
                 });
         }
 
@@ -219,10 +251,12 @@ void main_main()
         int nbad_vf   = amrex::get<1>(rv);
         int nbad_flag = amrex::get<2>(rv);
         int nbad_ap   = amrex::get<3>(rv);
+        int nbad_ec   = amrex::get<4>(rv);
         ParallelDescriptor::ReduceIntSum(ncovered);
         ParallelDescriptor::ReduceIntSum(nbad_vf);
         ParallelDescriptor::ReduceIntSum(nbad_flag);
         ParallelDescriptor::ReduceIntSum(nbad_ap);
+        ParallelDescriptor::ReduceIntSum(nbad_ec);
 
         if (ncovered == 0) {
             ++nerrors;
@@ -242,7 +276,12 @@ void main_main()
         if (nbad_ap > 0) {
             ++nerrors;
             amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ap << " of " << ncovered
-                           << " covered cells have an open area fraction or edge\n";
+                           << " covered cells have a nonzero area fraction\n";
+        }
+        if (nbad_ec > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ec << " of " << ncovered
+                           << " covered cells have an edge that is not covered\n";
         }
     }
 

@@ -1111,7 +1111,8 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
     {
         const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            // FC areafrac is cell-typed on the base grids, indexed by the staggered cell
+            // the area fractions are indexed by the staggered cell, so the conversion reaches
+            // one further in face_dir, over the cells that straddle the covered interface
             BoxArray cov_fc = amrex::convert(cov, areafrac[idim]->ixType());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
