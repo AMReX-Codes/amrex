@@ -1775,23 +1775,25 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
  *
  * Only data owned by the calling rank is searched, including \p nghost ghost
  * cells; no MPI communication is performed. If no match is found, the returned
- * IntVect is the zero vector, which is indistinguishable from a match at the
- * origin.
+ * IntVect is IntVect::TheMinVector().
  */
 template <BaseFabType FAB>
 IntVect
 indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 typename FAB::value_type value)
 {
-    IntVect loc;
+    IntVect loc = IntVect::TheMinVector();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        amrex::Gpu::Buffer<int> aa({0,AMREX_D_DECL(0,0,0)});
+        constexpr int nofind = std::numeric_limits<int>::lowest();
+        amrex::Gpu::Buffer<int> aa({0,AMREX_D_DECL(nofind,nofind,nofind)});
         int* p = aa.data();
-        // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
-        // The first is used as an atomic bool and the others for intvect.
+        // This is a device ptr to 1+AMREX_SPACEDIM ints.  The first is zero
+        // and used as an atomic bool.  The others hold the intvect and start
+        // at the lowest int so that they stay TheMinVector if there is no
+        // match.
         if (mf.isFusingCandidate()) {
             auto const& ma = mf.const_arrays();
             ParallelFor(mf, nghost, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
