@@ -3,7 +3,9 @@
  * \brief Test for face-centered EB factory capability (EB2::BuildFC)
  *
  * Validates: (1) EB2::BuildFC() workflow, (2) FC factory creation for x/y/z directions,
- * (3) EB data bounds, (4) sphere volume vs analytical (5% tolerance)
+ * (3) EB data bounds, (4) sphere volume vs analytical, (5) the covered region reported as
+ * covered rather than as fluid, (6) flag connectivity: no link through the body, and none
+ * across a face of zero area.
  */
 
 #include <AMReX.H>
@@ -19,7 +21,7 @@
 
 using namespace amrex;
 
-void main_main()
+int run (Array<int, AMREX_SPACEDIM> const& is_periodic)
 {
     int nerrors = 0;
 
@@ -34,7 +36,6 @@ void main_main()
 
     // Domain: [0,1]³
     RealBox rb({AMREX_D_DECL(0.0, 0.0, 0.0)}, {AMREX_D_DECL(1.0, 1.0, 1.0)});
-    Array<int, AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0, 0, 0)};
 
     Geometry geom(Box(IntVect(AMREX_D_DECL(0,0,0)),
                      IntVect(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1))),
@@ -283,6 +284,92 @@ void main_main()
             amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ec << " of " << ncovered
                            << " covered cells have an edge that is not covered\n";
         }
+    }
+
+    // Connectivity. The face-centered flags carry the same neighbour bits as the cell-centered
+    // ones, and nothing may report a path through the body: a cut cell linked to a covered
+    // neighbour lets slope reconstruction, redistribution and MLEB stencils reach across the
+    // boundary. The bits come from the face-centered area fractions, so a closed face has to
+    // disconnect the two cells it separates as well; checking both keeps the flags and the area
+    // fractions consistent with each other. Only cells whose neighbours are all inside the
+    // domain are examined - outside it the data is an extension rather than a coarsening.
+    // A periodic direction has no outside, so it is not shrunk.
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+        const auto& ebflag = fc_factories[dir]->getMultiEBCellFlagFab();
+        auto const& afrac = fc_factories[dir]->getAreaFrac();
+        Box dom_fc = amrex::convert(geom.Domain(), IntVect::TheDimensionVector(dir));
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (!geom.isPeriodic(idim)) { dom_fc.grow(idim,-1); }
+        }
+        const int klo = (AMREX_SPACEDIM == 3) ? -1 : 0;
+
+        ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
+        ReduceData<int,int> reduce_data(reduce_op);
+        using ReduceTuple = typename ReduceData<int,int>::Type;
+
+        for (MFIter mfi(ebflag); mfi.isValid(); ++mfi) {
+            const Box bx = mfi.validbox() & dom_fc;
+            if (!bx.ok()) { continue; }
+            auto const& flag = ebflag[mfi].const_array();
+            const bool have_ap = afrac[0]->ok(mfi);
+            AMREX_D_TERM(auto const& apx = have_ap ? afrac[0]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& apy = have_ap ? afrac[1]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& apz = have_ap ? afrac[2]->const_array(mfi) : Array4<Real const>{};);
+
+            reduce_op.eval(bx, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple {
+                    const EBCellFlag cf = flag(i,j,k);
+                    int nbad_cov = 0, nbad_ap = 0;
+                    for (int kk = klo; kk <= -klo; ++kk) {
+                    for (int jj = -1; jj <= 1; ++jj) {
+                    for (int ii = -1; ii <= 1; ++ii) {
+                        if (ii == 0 && jj == 0 && kk == 0) { continue; }
+                        if (flag(i+ii,j+jj,k+kk).isCovered() &&
+                            cf.isConnected(ii,jj,kk)) { ++nbad_cov; }
+                    }}}
+                    if (have_ap) {
+                        AMREX_D_TERM(
+                        nbad_ap += (apx(i  ,j,k) == Real(0.) && cf.isConnected(-1,0,0)) ? 1 : 0;
+                        nbad_ap += (apx(i+1,j,k) == Real(0.) && cf.isConnected( 1,0,0)) ? 1 : 0;,
+                        nbad_ap += (apy(i,j  ,k) == Real(0.) && cf.isConnected(0,-1,0)) ? 1 : 0;
+                        nbad_ap += (apy(i,j+1,k) == Real(0.) && cf.isConnected(0, 1,0)) ? 1 : 0;,
+                        nbad_ap += (apz(i,j,k  ) == Real(0.) && cf.isConnected(0,0,-1)) ? 1 : 0;
+                        nbad_ap += (apz(i,j,k+1) == Real(0.) && cf.isConnected(0,0, 1)) ? 1 : 0;)
+                    }
+                    return {nbad_cov, nbad_ap};
+                });
+        }
+
+        auto rv = reduce_data.value();
+        int nbad_cov = amrex::get<0>(rv);
+        int nbad_ap  = amrex::get<1>(rv);
+        ParallelDescriptor::ReduceIntSum(nbad_cov);
+        ParallelDescriptor::ReduceIntSum(nbad_ap);
+
+        if (nbad_cov > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_cov
+                           << " cell-neighbour pairs report a connection to a covered cell\n";
+        }
+        if (nbad_ap > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ap
+                           << " cells report a connection across a face with zero area\n";
+        }
+    }
+
+    return nerrors;
+}
+
+void main_main()
+{
+    // Everything is checked twice, on a non-periodic domain and on a fully periodic one:
+    // filling the face-centered data and building its connectivity both reach across a
+    // periodic boundary by their own path.
+    int nerrors = 0;
+    for (int per = 0; per < 2; ++per) {
+        amrex::Print() << "is_periodic = " << per << "\n";
+        nerrors += run({AMREX_D_DECL(per,per,per)});
     }
 
     // Report
