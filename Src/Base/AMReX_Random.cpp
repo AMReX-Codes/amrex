@@ -130,11 +130,21 @@ Real RandomNormal (Real mean, Real stddev)
     return distribution(generators[tid]);
 }
 
+// std::uniform_real_distribution is specified as [0,1), but that bound is not
+// something to depend on: it is built on std::generate_canonical, whose C++20
+// specification is defective -- LWG 2524 -- in that the quotient it forms can
+// round up to exactly 1.0.  In single precision with a 32-bit engine,
+// (2^32-1)/2^32 rounds to 1.0f.  Implementations are free to clamp and the
+// ones AMReX currently supports do (MSVC only since it implemented P0952R2 in
+// 2024, microsoft/STL#1074), but nothing in the standard AMReX targets
+// requires it.  Clamp rather than trust it: that makes the interval of
+// Random() a property of AMReX instead of a property of whichever standard
+// library happens to be in use.
 Real Random ()
 {
     std::uniform_real_distribution<Real> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return random_util::clamp_below_one(distribution(generators[tid]));
 }
 
 unsigned int RandomPoisson (Real lambda)
@@ -292,10 +302,12 @@ void FillRandom (Real* p, Long N)
     event.wait();
 
 #else
+    // clamped for the same reason as Random(): std::uniform_real_distribution
+    // may reach its upper bound (LWG 2524), so [0,1) is not free here either
     std::uniform_real_distribution<Real> distribution(Real(0.0), Real(1.0));
     auto& gen = generators[OpenMP::get_thread_num()];
     for (Long i = 0; i < N; ++i) {
-        p[i] = distribution(gen);
+        p[i] = random_util::clamp_below_one(distribution(gen));
     }
 #endif
 }

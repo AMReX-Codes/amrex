@@ -12,12 +12,52 @@
 
 namespace amrex
 {
+    /// \cond DOXYGEN_IGNORE
+    namespace random_util {
+
+    //! Convert a (0,1] draw to the documented half-open [0,1) by relocating
+    //! the single endpoint that is out of range.  This is the whole interval
+    //! conversion: no arithmetic is involved, so nothing can be reassociated,
+    //! contracted or flushed, and no resolution is lost.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real one_to_zero (Real v) noexcept { return (v == Real(1)) ? Real(0) : v; }
+
+    //! Clamp a value into the half-open unit interval [0,1) by pulling an
+    //! exact 1.0 down to the largest representable Real below one.  Used
+    //! where the generator is natively [0,1) and only needs guarding against
+    //! reaching its own upper bound; unlike one_to_zero this does not raise
+    //! the probability of returning zero.  A comparison rather than
+    //! arithmetic, so it holds under every floating-point mode.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real clamp_below_one (Real v) noexcept
+    {
+        // The constexpr equivalent of std::nextafter(Real(1), Real(0)), which
+        // is not available in device code.
+        constexpr Real almost_one
+            = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
+        // No generator produces NaN, but note this maps it to almost_one
+        // rather than propagating it, since the comparison is false for NaN.
+        return (v < almost_one) ? v : almost_one;
+    }
+
+    }
+    /// \endcond
+
     /**
     * \ingroup amrex_utilities
     * \brief Generate a psuedo-random real from uniform distribution
     *
     *  Generates one pseudorandom real number from a uniform
-    *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
+    *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded).
+    *
+    *  \note Since 0.0 is included, the result must not be passed unguarded
+    *  to a function that is singular at zero, such as std::log or std::pow
+    *  with a negative exponent.  Note that `1 - amrex::Random()` is \b not
+    *  a way around that: it costs an arithmetic operation and discards
+    *  resolution, because the subtraction is exact only above 0.5 and
+    *  collapses smaller values onto a coarse grid.  Before the upper bound
+    *  above was guaranteed it was unsafe as well, evaluating to exactly 0.0
+    *  whenever Random() returned exactly 1.0.
     *
     */
     Real Random ();
@@ -27,21 +67,29 @@ namespace amrex
     Real Random (RandomEngine const& random_engine)
     {
 #if defined (__SYCL_DEVICE_ONLY__)
+        // clamped for the same reason as the host path: the documented [0,1)
+        // of the vendor generator is not a bound we want to depend on
         mkl::rng::device::uniform<Real> distr;
-        return mkl::rng::device::generate(distr, *random_engine.engine);
+        return random_util::clamp_below_one(mkl::rng::device::generate(distr, *random_engine.engine));
 #else
+        // hiprand/curand draw from (0,1].  Relocating the single endpoint
+        // that is out of range converts that to the documented [0,1) exactly,
+        // with no arithmetic.  Subtracting from one would also convert the
+        // interval, but not exactly: for a draw below half an ULP of one,
+        // `1 - draw` rounds back up to 1.0, and the subtraction additionally
+        // collapses every value below 0.5 onto a 2^-24 grid.
 #ifdef BL_USE_FLOAT
         AMREX_IF_ON_DEVICE((
                 AMREX_HIP_OR_CUDA(
-                        return 1.0f - hiprand_uniform(random_engine.rand_state); ,
-                        return 1.0f - curand_uniform(random_engine.rand_state);
+                        return random_util::one_to_zero(hiprand_uniform(random_engine.rand_state)); ,
+                        return random_util::one_to_zero(curand_uniform(random_engine.rand_state));
                 )
         ))
 #else
         AMREX_IF_ON_DEVICE((
                 AMREX_HIP_OR_CUDA(
-                        return 1.0 - hiprand_uniform_double(random_engine.rand_state); ,
-                        return 1.0 - curand_uniform_double(random_engine.rand_state);
+                        return random_util::one_to_zero(hiprand_uniform_double(random_engine.rand_state)); ,
+                        return random_util::one_to_zero(curand_uniform_double(random_engine.rand_state));
                 )
         ))
 #endif
@@ -245,9 +293,12 @@ namespace amrex
     ULong Random_long (ULong n); // [0,n-1]
 
     //! \ingroup amrex_utilities
-    //! Fill random numbers from uniform distribution.  The range is [0,1)
-    //! for CPU and SYCl, and (0,1] for CUADA and HIP.
-    void FillRandom (Real* p, Long N);
+    //! Fill random numbers from uniform distribution.  The interval is not
+    //! uniform across backends the way amrex::Random is: it is [0,1) on the
+    //! CPU, but the GPU paths hand back whatever the vendor bulk generator
+    //! produces, nominally [0,1) for SYCL and (0,1] for CUDA and HIP.  Code
+    //! that depends on either endpoint should guard the values it reads back,
+    //! or draw with amrex::Random instead.
 
     //! \ingroup amrex_utilities
     //! Fill random numbers from normal distribution
