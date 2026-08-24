@@ -21,9 +21,11 @@ macro(check_required_components _NAME)
    endforeach()
 endmacro()
 
-# Set the minimum CMake version required -- This must be the version
-# of CMake used to build the library
-cmake_minimum_required(VERSION @CMAKE_VERSION@)
+# Set the minimum CMake version required -- this is the version AMReX itself
+# requires, not the (possibly much newer) one it happened to be built with:
+# pinning the latter would lock out consumers whose CMake is older than the
+# build machine's, and would raise the policy version of their project.
+cmake_minimum_required(VERSION 3.25)
 
 # Provides find_dependency
 include(CMakeFindDependencyMacro)
