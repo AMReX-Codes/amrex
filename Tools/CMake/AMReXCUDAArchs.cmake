@@ -84,13 +84,13 @@ set(_amrex_cuda_archs_cmdline_now FALSE)
 
 # -DAMReX_CUDA_ARCH=... passed to this configure step, as opposed to a leftover cache entry
 # of an earlier one: it outranks a command line choice this build directory only remembers
-set(_amrex_cuda_arch_cmdline_now FALSE)
+set(_amrex_legacy_arch_cmdline_now FALSE)
 if (DEFINED CACHE{AMReX_CUDA_ARCH})
-   get_property(_amrex_cuda_arch_help CACHE AMReX_CUDA_ARCH PROPERTY HELPSTRING)
-   if (_amrex_cuda_arch_help MATCHES "specified on the command line")
-      set(_amrex_cuda_arch_cmdline_now TRUE)
+   get_property(_amrex_legacy_arch_help CACHE AMReX_CUDA_ARCH PROPERTY HELPSTRING)
+   if (_amrex_legacy_arch_help MATCHES "specified on the command line")
+      set(_amrex_legacy_arch_cmdline_now TRUE)
    endif ()
-   unset(_amrex_cuda_arch_help)
+   unset(_amrex_legacy_arch_help)
 endif ()
 
 if (DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -133,7 +133,7 @@ if (DEFINED CMAKE_CUDA_ARCHITECTURES)
    unset(_amrex_cuda_archs_help)
 endif ()
 
-if (_amrex_cuda_archs_cmdline AND (_amrex_cuda_archs_cmdline_now OR NOT _amrex_cuda_arch_cmdline_now)
+if (_amrex_cuda_archs_cmdline AND (_amrex_cuda_archs_cmdline_now OR NOT _amrex_legacy_arch_cmdline_now)
     AND (DEFINED AMReX_CUDA_ARCH OR DEFINED ENV{AMREX_CUDA_ARCH}))
    # a normal variable shadowing the cache entry supplies the value that is in effect, which
    # is then not the one the command line carries (reported by the diagnostic further down)
@@ -270,7 +270,7 @@ set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
 if (DEFINED CACHE{AMREX_CUDA_ARCHS_CONFIGURED} AND _amrex_cuda_archs_had_cache
     AND _amrex_cuda_archs_given
     AND NOT _amrex_cuda_archs STREQUAL _amrex_cuda_archs_cached
-    AND NOT _amrex_cuda_archs_cmdline_now AND NOT _amrex_cuda_arch_cmdline_now)
+    AND NOT _amrex_cuda_archs_cmdline_now AND NOT _amrex_legacy_arch_cmdline_now)
    message(WARNING
       "The CUDA architectures of this build directory change from "
       "'${_amrex_cuda_archs_cached}' to '${_amrex_cuda_archs}', although none were requested "
@@ -349,4 +349,4 @@ unset(_amrex_cuda_archs_cmdline_now)
 unset(_amrex_cuda_archs_cached)
 unset(_amrex_cuda_archs_had_cache)
 unset(_amrex_cuda_archs_shadowed)
-unset(_amrex_cuda_arch_cmdline_now)
+unset(_amrex_legacy_arch_cmdline_now)
