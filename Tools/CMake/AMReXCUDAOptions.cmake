@@ -28,12 +28,55 @@ if (AMReX_CUDA_LTO AND NOT AMReX_GPU_RDC)
       "(the default) or with -DAMReX_CUDA_LTO=OFF.")
 endif ()
 
-# Device LTO is nvcc's: for any other CUDA compiler CMake's check_ipo_supported reports it
-# as unsupported and AMReXParallelBackends turns AMReX_CUDA_LTO off with a warning, so its
-# requirements below must not fail the configure step of such a compiler instead.
-set(_amrex_cuda_device_lto FALSE)
-if (AMReX_CUDA_LTO AND CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
-   set(_amrex_cuda_device_lto TRUE)
+# Device LTO is driven by the per-target INTERPROCEDURAL_OPTIMIZATION property: that is what
+# makes CMake emit the CUDA "code=lto_<NN>" device code and the "-dlto" device link. Both the
+# support check and the host-language neutering below belong in this scope, the top-level one:
+# they must also cover the AMReX-dependent targets that setup_target_for_cuda_compilation
+# enables device LTO for (tests, tutorials, tools and downstream in-tree targets), which are
+# added from directories of their own.
+set(AMREX_CUDA_IPO FALSE CACHE INTERNAL "CUDA device LTO is requested and available")
+if (AMReX_CUDA_LTO)
+   include(CheckIPOSupported)
+   check_ipo_supported(LANGUAGES CUDA RESULT _amrex_cuda_ipo OUTPUT _amrex_cuda_ipo_msg)
+   if (NOT _amrex_cuda_ipo)
+      message(WARNING "AMReX_CUDA_LTO is ON but device LTO is not supported by this "
+         "toolchain; disabling it.\n${_amrex_cuda_ipo_msg}")
+   else ()
+      set(AMREX_CUDA_IPO TRUE CACHE INTERNAL "CUDA device LTO is requested and available")
+      # INTERPROCEDURAL_OPTIMIZATION is a per-target, all-language property: it is what
+      # makes CMake emit the CUDA "code=lto_XX" device code, but it would also turn on
+      # host LTO (e.g. -flto=auto -fno-fat-lto-objects, an LTO-aware archiver) for the
+      # C/C++/Fortran sources compiled for the host. That would silently change host
+      # code generation and break non-LTO downstream links against an installed static
+      # AMReX, so we make IPO a complete no-op for the host languages in this directory
+      # scope: no flags, and "supported" so that the property does not reject a host
+      # compiler CMake has no IPO flags for (Cray, XL) in a CUDA-only LTO build.
+      if (CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+         message(WARNING
+            "AMReX_CUDA_LTO applies to device code only: host link-time optimization "
+            "requested with CMAKE_INTERPROCEDURAL_OPTIMIZATION is not used for AMReX.")
+      endif ()
+      foreach(_lang IN ITEMS C CXX Fortran)
+         set(CMAKE_${_lang}_COMPILE_OPTIONS_IPO "")
+         set(_CMAKE_${_lang}_IPO_SUPPORTED_BY_CMAKE YES)
+         set(_CMAKE_${_lang}_IPO_MAY_BE_SUPPORTED_BY_COMPILER YES)
+         unset(CMAKE_${_lang}_LINK_OPTIONS_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_CREATE_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_APPEND_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_FINISH_IPO)
+      endforeach()
+      unset(_lang)
+   endif ()
+   unset(_amrex_cuda_ipo)
+   unset(_amrex_cuda_ipo_msg)
+endif ()
+
+# Device LTO is nvcc's: for any other CUDA compiler check_ipo_supported above reports it as
+# unsupported and AMREX_CUDA_IPO stays off, so the requirements below must not fail the
+# configure step of such a compiler instead.
+set(_amrex_cuda_device_lto ${AMREX_CUDA_IPO})
+if (NOT CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+   set(_amrex_cuda_device_lto FALSE)
 endif ()
 
 # Resolve and report the target CUDA architecture(s). CMAKE_CUDA_ARCHITECTURES was set in

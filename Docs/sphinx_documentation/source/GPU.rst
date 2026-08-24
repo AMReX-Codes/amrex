@@ -339,7 +339,11 @@ Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This
 relocatable device code, so it is an error to combine it with ``-DAMReX_GPU_RDC=OFF``.
 Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a Clang
 ``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
-code: host code generation is unchanged. Because it is applied per architecture, device LTO
+code: host code generation is unchanged. It also applies to the AMReX-dependent targets
+of the AMReX build itself (tests, tutorials and tools), and downstream targets that are
+set up with ``setup_target_for_cuda_compilation`` take part in it as well: most AMReX
+device code is instantiated in the translation units of the calling code, so a target
+compiled straight to SASS would only get nvlink's *partial* LTO. Because it is applied per architecture, device LTO
 also needs the architectures to be known at configure time: ``all`` and ``all-major`` are
 always expanded when it is on, and ``CMAKE_CUDA_ARCHITECTURES=OFF`` is an error rather than a
 build that quietly comes out without device LTO. (An unresolved ``native`` is already an
