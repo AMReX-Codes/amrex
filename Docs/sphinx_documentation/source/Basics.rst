@@ -3066,6 +3066,93 @@ of signatures (including the :cpp:`CompileTimeOptions` variants) and
 is identical to :cpp:`ParallelFor` on GPU, but does not add the SIMD
 pragma on CPU.
 
+.. _sec:basics:simdmath:
+
+SIMD Math Functions
+===================
+
+When AMReX is built with SIMD support (CMake option ``AMReX_SIMD=ON``, see
+:ref:`sec:build:cmake`), the math functions in ``AMReX_Math.H`` accept SIMD
+variables in addition to :cpp:`float` and :cpp:`double`. A kernel can therefore
+be written once and instantiated for both, which is the same single-source style
+used by :cpp:`amrex::ParallelForSIMD` and :cpp:`amrex::ParticleReduceSIMD`:
+
+.. highlight:: c++
+
+::
+
+    #include <AMReX_Math.H>
+
+    // T_Real is amrex::ParticleReal in a scalar build and a SIMD type in a
+    // vectorized one
+    template <typename T_Real>
+    AMREX_FORCE_INLINE
+    void focus (T_Real & AMREX_RESTRICT y, T_Real & AMREX_RESTRICT py,
+                T_Real const & AMREX_RESTRICT omega, amrex::Real ds)
+    {
+        T_Real const ch = amrex::Math::cosh(omega * T_Real(ds));
+        T_Real const sh = amrex::Math::sinh(omega * T_Real(ds));
+
+        T_Real const y0 = y;
+        y  = ch * y0 + sh / omega * py;
+        py = omega * sh * y0 + ch * py;
+    }
+
+The following functions have SIMD overloads: :cpp:`sin`, :cpp:`cos`,
+:cpp:`tan`, :cpp:`asin`, :cpp:`acos`, :cpp:`atan`, :cpp:`atan2`, :cpp:`sinh`,
+:cpp:`cosh`, :cpp:`tanh`, :cpp:`asinh`, :cpp:`acosh`, :cpp:`atanh`,
+:cpp:`exp`, :cpp:`exp2`, :cpp:`expm1`, :cpp:`log`, :cpp:`log2`, :cpp:`log10`,
+:cpp:`log1p`, :cpp:`pow`, :cpp:`sqrt`, :cpp:`cbrt`, :cpp:`hypot`, :cpp:`erf`,
+:cpp:`erfc`, :cpp:`abs`, :cpp:`sincos` and :cpp:`sincospi`.
+
+.. note::
+
+   Call these functions **fully qualified**, as :cpp:`amrex::Math::sinh(x)`. An
+   unqualified :cpp:`sinh(x)` on a SIMD argument resolves to the SIMD library's
+   own overload through argument-dependent lookup, which evaluates the function
+   one lane at a time. A :cpp:`using amrex::Math::sinh;` declaration does not
+   change that, because the library overload is the more specialized candidate.
+
+Vectorizing the transcendentals
+-------------------------------
+
+SIMD hardware has instructions for :cpp:`sqrt` and :cpp:`abs`, but not for the
+transcendental functions. Those have to be evaluated by a vector math library,
+such as glibc's ``libmvec``, which computes a whole SIMD register worth of
+results per call. AMReX does not link such a library directly. Instead, each
+SIMD math function contains a short loop over its lanes, written in the shape
+that compilers recognize and replace with a single vector math library call.
+
+Two conditions must be met for that replacement to happen, and the CMake option
+``AMReX_SIMD_VECMATH`` (on by default when ``AMReX_SIMD=ON``) takes care of
+both. It adds ``-fno-math-errno`` to AMReX and to every downstream target,
+because a math call that has to keep ``errno`` up to date may not be vectorized,
+and it makes AMReX declare the vector variants of the functions it uses. For
+clang it also adds ``-fveclib=libmvec``.
+
+Where the option cannot deliver, nothing breaks: the lane loop is then evaluated
+one lane at a time, exactly as the SIMD library would have done. This is
+currently the case
+
+* on any platform other than x86-64 Linux with glibc,
+* with a glibc older than 2.22, and for everything except
+  :cpp:`sin`, :cpp:`cos`, :cpp:`exp`, :cpp:`log` and :cpp:`pow` with a glibc
+  older than 2.35 -- note that this is the *build-time* glibc, so a compiler
+  with an old sysroot (as shipped by conda-forge, for example) falls back even
+  on a recent host, and
+* with clang, for the functions missing from its own vector function table,
+  which covers fewer functions than glibc provides.
+
+.. warning::
+
+   Vector math libraries trade accuracy for speed: glibc's ``libmvec``
+   documents a maximum error of 4 ULP, where its scalar routines stay below
+   1 ULP. Results therefore differ slightly from a scalar build. Because
+   ``-fno-math-errno`` applies to whole translation units, ordinary scalar
+   loops over math functions in downstream code may be auto-vectorized the same
+   way. Build with ``AMReX_SIMD_VECMATH=OFF`` if your application needs the
+   accuracy of the scalar routines, or checks ``errno`` after math calls.
+
 Ghost Cells
 ===========
 
