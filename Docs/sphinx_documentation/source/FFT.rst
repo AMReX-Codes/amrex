@@ -101,9 +101,31 @@ in an :cpp:`FFT::Info` object passed to the constructor of
     r2c.forward(mf, cmf);
 
     // Do work on cmf.
-    // Function forwardThenBackward is not yet supported for a batched FFT.
 
     r2c.backward(cmf, mf);
+
+Function :cpp:`forwardThenBackward` is also supported for a batched FFT. In
+that case, the callable can take a :cpp:`CellData` argument instead of a
+:cpp:`GpuComplex<Real>&`, so that it receives all components of the batch at
+a given spectral point at once. This is what one needs when the components
+are coupled, such as when projecting a vector field in spectral space.
+
+.. highlight:: c++
+
+::
+
+    auto scaling = 1. / geom.Domain().d_numPts();
+
+    r2c.forwardThenBackward(mf, mf2,
+        [=] AMREX_GPU_DEVICE (int, int, int, CellData<GpuComplex<Real>> sp)
+        {
+            for (int n = 0; n < sp.nComp(); ++n) {
+                sp[n] *= scaling;
+            }
+        });
+
+Note that a callable taking a :cpp:`GpuComplex<Real>&` sees only component 0
+of the batch.
 
 .. _sec:FFT:c2c:
 

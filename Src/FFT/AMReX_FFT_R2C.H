@@ -194,7 +194,14 @@ public:
      *                     is `void(int,int,int,GpuComplex<T>&)`, where the integers
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
-     *                     the spectral data at that location.
+     *                     the spectral data at that location. For a batched
+     *                     transform, one can instead use the interface
+     *                     `void(int,int,int,CellData<GpuComplex<T>>)`, which
+     *                     receives all components of the batch at that
+     *                     spectral point at once. This is required if the
+     *                     components are coupled (e.g., projecting a vector
+     *                     field in spectral space). Note that the
+     *                     `GpuComplex<T>&` interface only sees component 0.
      * \param incomp component index of input data
      * \param outcomp component index of output data
      */
@@ -204,8 +211,8 @@ public:
                               int incomp = 0, int outcomp = 0)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            !m_info.twod_mode && m_info.batch_size == 1,
-            "FFT::R2C::forwardThenBackward(post_forward) currently supports only !twod_mode and batch_size==1");
+            !m_info.twod_mode,
+            "FFT::R2C::forwardThenBackward(post_forward) currently supports only !twod_mode");
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf, incomp);
         this->post_forward_doit_0(post_forward);
@@ -1217,11 +1224,36 @@ R2C<T,D,C>::make_c2c_plans (cMF& inout, int ndims) const
     return {fwd, bwd};
 }
 
+namespace fft_detail {
+    // The trailing int/long parameter orders these two overloads. A call
+    // passing a literal 0 prefers the GpuComplex<T>& version, and falls back
+    // to the CellData version only when the former is not viable. Without it,
+    // a functor taking a generic parameter by value or by const reference
+    // would make the two overloads ambiguous.
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_post_forward (F const& f, int i, int j, int k, Array4<T> const& a,
+                            int ii, int jj, int kk, int)
+        noexcept -> decltype(f(0,0,0,a(0,0,0)))
+    {
+        f(i,j,k,a(ii,jj,kk));
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_post_forward (F const& f, int i, int j, int k, Array4<T> const& a,
+                            int ii, int jj, int kk, long)
+        noexcept -> decltype(f(0,0,0,a.cellData(0,0,0)))
+    {
+        f(i,j,k,a.cellData(ii,jj,kk));
+    }
+}
+
 template <typename T, Direction D, bool C>
 template <typename F>
 void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
 {
-    if (m_info.twod_mode || m_info.batch_size > 1) {
+    if (m_info.twod_mode) {
         amrex::Abort("xxxxx todo: post_forward");
 #if (AMREX_SPACEDIM > 1)
     } else if (m_r2c_sub) {
@@ -1229,38 +1261,43 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
 #if (AMREX_SPACEDIM == 2)
         // The original domain is (1,ny). The sub domain is (ny,1).
         m_r2c_sub->post_forward_doit_1
-            ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+            ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
+                  -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
              {
-                 post_forward(0, i, 0, sp);
+                 post_forward(0, i, 0, static_cast<decltype(sp)>(sp));
              });
 #else
         if (m_real_domain.length(0) == 1 && m_real_domain.length(1) == 1) {
             // Original domain: (1, 1, nz). Sub domain: (nz, 1, 1)
             m_r2c_sub->post_forward_doit_1
-                ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
+                      -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
                  {
-                     post_forward(0, 0, i, sp);
+                     post_forward(0, 0, i, static_cast<decltype(sp)>(sp));
                  });
         } else if (m_real_domain.length(0) == 1 && m_real_domain.length(2) == 1) {
             // Original domain: (1, ny, 1). Sub domain: (ny, 1, 1)
             m_r2c_sub->post_forward_doit_1
-                ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
+                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
                      {
-                         post_forward(0, i, 0, sp);
+                         post_forward(0, i, 0, static_cast<decltype(sp)>(sp));
                      });
         } else if (m_real_domain.length(0) == 1) {
             // Original domain: (1, ny, nz). Sub domain: (ny, nz, 1)
             m_r2c_sub->post_forward_doit_1
-                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto&& sp)
+                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
                      {
-                         post_forward(0, i, j, sp);
+                         post_forward(0, i, j, static_cast<decltype(sp)>(sp));
                      });
         } else if (m_real_domain.length(1) == 1) {
             // Original domain: (nx, 1, nz). Sub domain: (nx, nz, 1)
             m_r2c_sub->post_forward_doit_1
-                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto&& sp)
+                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
                      {
-                         post_forward(i, 0, j, sp);
+                         post_forward(i, 0, j, static_cast<decltype(sp)>(sp));
                      });
         } else {
             amrex::Abort("R2c::post_forward_doit_0: how did this happen?");
@@ -1276,7 +1313,7 @@ template <typename T, Direction D, bool C>
 template <typename F>
 void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
 {
-    if (m_info.twod_mode || m_info.batch_size > 1) {
+    if (m_info.twod_mode) {
         amrex::Abort("xxxxx todo: post_forward");
     } else if (m_r2c_sub) {
         amrex::Abort("R2C::post_forward_doit_1: How did this happen?");
@@ -1288,7 +1325,8 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
                 ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iz, int jx, int ky)
                 {
-                    post_forward(jx,ky,iz,a(iz,jx,ky));
+                    fft_detail::call_post_forward(post_forward,
+                                                  jx,ky,iz,a,iz,jx,ky,0);
                 });
             }
         } else if (                    ! m_cy.empty()) {
@@ -1298,7 +1336,8 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
                 ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iy, int jx, int k)
                 {
-                    post_forward(jx,iy,k,a(iy,jx,k));
+                    fft_detail::call_post_forward(post_forward,
+                                                  jx,iy,k,a,iy,jx,k,0);
                 });
             }
         } else {
@@ -1308,7 +1347,8 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
                 ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    post_forward(i,j,k,a(i,j,k));
+                    fft_detail::call_post_forward(post_forward,
+                                                  i,j,k,a,i,j,k,0);
                 });
             }
         }
