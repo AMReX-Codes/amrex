@@ -92,7 +92,7 @@ target_compile_options( Flags_CXX
    $<${_cxx_appleclang_rwdbg}:>
    $<${_cxx_appleclang_rel}:>
    $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_intelllvm_rwdbg}:-gline-tables-only -fdebug-info-for-profiling> # recommended by Intel VTune
+   $<${_cxx_intelllvm_rwdbg}:-Xarch_host -gline-tables-only -Xarch_host -fdebug-info-for-profiling> # recommended by Intel VTune
    $<${_cxx_intelllvm_rel}:>
    )
 endif()
