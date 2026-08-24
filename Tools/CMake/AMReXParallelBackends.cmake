@@ -117,8 +117,11 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
           # so export the device-LTO flag as an interface requirement. -dlto is
           # nvcc's flag, currently `clang -x cuda` or NVHPC do not take it
           # and CMake check_ipo_supported reports device LTO unsupported for them.
+          # A consumer that enables INTERPROCEDURAL_OPTIMIZATION itself - every target
+          # that goes through setup_target_for_cuda_compilation does - already gets -dlto
+          # from CMake, so only add it for the ones that do not.
           target_link_options(amrex_${D}d INTERFACE
-             "$<DEVICE_LINK:$<$<CUDA_COMPILER_ID:NVIDIA>:-dlto>>")
+             "$<DEVICE_LINK:$<$<AND:$<CUDA_COMPILER_ID:NVIDIA>,$<NOT:$<BOOL:$<TARGET_PROPERTY:INTERPROCEDURAL_OPTIMIZATION>>>>:-dlto>>")
        endif ()
    endforeach()
 
