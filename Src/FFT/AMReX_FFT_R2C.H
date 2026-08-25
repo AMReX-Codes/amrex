@@ -195,13 +195,14 @@ public:
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
      *                     the spectral data at that location. For a batched
-     *                     transform, one can instead use the interface
+     *                     transform, this callable is called once for each
+     *                     component of the batch at each spectral point. If
+     *                     the components are coupled (e.g., projecting a
+     *                     vector field in spectral space), one can instead
+     *                     use the interface
      *                     `void(int,int,int,CellData<GpuComplex<T>>)`, which
      *                     receives all components of the batch at that
-     *                     spectral point at once. This is required if the
-     *                     components are coupled (e.g., projecting a vector
-     *                     field in spectral space). Note that the
-     *                     `GpuComplex<T>&` interface only sees component 0.
+     *                     spectral point at once.
      * \param incomp component index of input data
      * \param outcomp component index of output data
      */
@@ -1226,24 +1227,27 @@ R2C<T,D,C>::make_c2c_plans (cMF& inout, int ndims) const
 
 namespace fft_detail {
     // The trailing int/long parameter orders these two overloads. A call
-    // passing a literal 0 prefers the GpuComplex<T>& version, and falls back
-    // to the CellData version only when the former is not viable. Without it,
-    // a functor taking a generic parameter by value or by const reference
-    // would make the two overloads ambiguous.
+    // passing a literal 0 prefers the GpuComplex<T>& version, which is
+    // called once per component of the batch, and falls back to the CellData
+    // version only when the former is not viable. Without it, a functor
+    // taking a generic parameter by value or by const reference would make
+    // the two overloads ambiguous.
     template <typename F, typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto call_post_forward (F const& f, int i, int j, int k, Array4<T> const& a,
                             int ii, int jj, int kk, int)
-        noexcept -> decltype(f(0,0,0,a(0,0,0)))
+        noexcept -> decltype(void(f(0,0,0,a(0,0,0))))
     {
-        f(i,j,k,a(ii,jj,kk));
+        for (int n = 0; n < a.nComp(); ++n) {
+            f(i,j,k,a(ii,jj,kk,n));
+        }
     }
 
     template <typename F, typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto call_post_forward (F const& f, int i, int j, int k, Array4<T> const& a,
                             int ii, int jj, int kk, long)
-        noexcept -> decltype(f(0,0,0,a.cellData(0,0,0)))
+        noexcept -> decltype(void(f(0,0,0,a.cellData(0,0,0))))
     {
         f(i,j,k,a.cellData(ii,jj,kk));
     }
@@ -1262,7 +1266,7 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
         // The original domain is (1,ny). The sub domain is (ny,1).
         m_r2c_sub->post_forward_doit_1
             ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
-                  -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
+                  -> decltype(void(post_forward(0,0,0,static_cast<decltype(sp)>(sp))))
              {
                  post_forward(0, i, 0, static_cast<decltype(sp)>(sp));
              });
@@ -1271,7 +1275,7 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
             // Original domain: (1, 1, nz). Sub domain: (nz, 1, 1)
             m_r2c_sub->post_forward_doit_1
                 ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
-                      -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
+                      -> decltype(void(post_forward(0,0,0,static_cast<decltype(sp)>(sp))))
                  {
                      post_forward(0, 0, i, static_cast<decltype(sp)>(sp));
                  });
@@ -1279,7 +1283,7 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
             // Original domain: (1, ny, 1). Sub domain: (ny, 1, 1)
             m_r2c_sub->post_forward_doit_1
                 ([=] AMREX_GPU_DEVICE (int i, int, int, auto&& sp)
-                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
+                          -> decltype(void(post_forward(0,0,0,static_cast<decltype(sp)>(sp))))
                      {
                          post_forward(0, i, 0, static_cast<decltype(sp)>(sp));
                      });
@@ -1287,7 +1291,7 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
             // Original domain: (1, ny, nz). Sub domain: (ny, nz, 1)
             m_r2c_sub->post_forward_doit_1
                 ([=] AMREX_GPU_DEVICE (int i, int j, int, auto&& sp)
-                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
+                          -> decltype(void(post_forward(0,0,0,static_cast<decltype(sp)>(sp))))
                      {
                          post_forward(0, i, j, static_cast<decltype(sp)>(sp));
                      });
@@ -1295,7 +1299,7 @@ void R2C<T,D,C>::post_forward_doit_0 (F const& post_forward)
             // Original domain: (nx, 1, nz). Sub domain: (nx, nz, 1)
             m_r2c_sub->post_forward_doit_1
                 ([=] AMREX_GPU_DEVICE (int i, int j, int, auto&& sp)
-                          -> decltype(post_forward(0,0,0,static_cast<decltype(sp)>(sp)))
+                          -> decltype(void(post_forward(0,0,0,static_cast<decltype(sp)>(sp))))
                      {
                          post_forward(i, 0, j, static_cast<decltype(sp)>(sp));
                      });

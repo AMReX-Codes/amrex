@@ -104,11 +104,12 @@ in an :cpp:`FFT::Info` object passed to the constructor of
 
     r2c.backward(cmf, mf);
 
-Function :cpp:`forwardThenBackward` is also supported for a batched FFT. In
-that case, the callable can take a :cpp:`CellData` argument instead of a
-:cpp:`GpuComplex<Real>&`, so that it receives all components of the batch at
-a given spectral point at once. This is what one needs when the components
-are coupled, such as when projecting a vector field in spectral space.
+Function :cpp:`forwardThenBackward` is also supported for a batched FFT. A
+callable taking a :cpp:`GpuComplex<Real>&` is called once for each component
+of the batch at each spectral point. When the components are coupled, such as
+when projecting a vector field in spectral space, the callable can take a
+:cpp:`CellData` argument instead, so that it receives all components of the
+batch at a given spectral point at once.
 
 .. highlight:: c++
 
@@ -123,9 +124,6 @@ are coupled, such as when projecting a vector field in spectral space.
                 sp[n] *= scaling;
             }
         });
-
-Note that a callable taking a :cpp:`GpuComplex<Real>&` sees only component 0
-of the batch.
 
 .. _sec:FFT:c2c:
 
