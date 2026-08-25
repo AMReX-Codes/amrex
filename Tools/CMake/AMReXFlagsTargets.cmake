@@ -22,11 +22,11 @@ include_guard(GLOBAL)
 #
 # for every combination of
 #
-#     <lang> = cxx,fortran,cuda
+#     <lang> = cxx,fortran,cuda,hip
 #     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang
 #
 if (CMAKE_VERSION VERSION_LESS 3.20)
-   foreach (_language CXX Fortran CUDA )
+   foreach (_language CXX Fortran CUDA HIP )
       set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
       string(TOLOWER "${_language}" _lang)
 
@@ -45,7 +45,7 @@ if (CMAKE_VERSION VERSION_LESS 3.20)
       unset(_lang)
    endforeach ()
 else ()
-   foreach (_language CXX Fortran CUDA )
+   foreach (_language CXX Fortran CUDA HIP )
       string(TOLOWER "${_language}" _lang)
 
       foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
@@ -138,6 +138,7 @@ target_compile_options( Flags_FASTMATH
    INTERFACE
       $<${_cuda_nvidia}:--use_fast_math>
       $<${_cuda_nvhpc}:-fast>
+      $<${_hip_clang}:-ffast-math>
       $<${_fortran_gnu}:-ffast-math>
       $<${_cxx_gnu}:-ffast-math>
       $<${_fortran_intel}:-ffast-math>
@@ -183,7 +184,7 @@ endif()
 #
 # Unset all the variables defined in this module
 #
-foreach (_lang cxx fortran)
+foreach (_lang cxx fortran cuda hip)
    foreach (_comp gnu intel pgi cray clang appleclang msvc)
       unset(_${_lang}_${_comp})
       unset(_${_lang}_${_comp}_dbg)

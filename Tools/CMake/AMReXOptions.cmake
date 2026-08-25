@@ -227,17 +227,21 @@ endif ()
 
 # --- HIP ----
 if (AMReX_HIP)
-   set(AMReX_AMD_ARCH_DEFAULT "IGNORE")
-   if(DEFINED ENV{AMREX_AMD_ARCH})
+   set(AMReX_AMD_ARCH_DEFAULT "")
+   if(DEFINED CMAKE_HIP_ARCHITECTURES)
+      set(AMReX_AMD_ARCH_DEFAULT "${CMAKE_HIP_ARCHITECTURES}")
+   elseif(DEFINED ENV{AMREX_AMD_ARCH})
       set(AMReX_AMD_ARCH_DEFAULT "$ENV{AMREX_AMD_ARCH}")
    endif()
 
-   set(AMReX_AMD_ARCH ${AMReX_AMD_ARCH_DEFAULT} CACHE STRING
-      "AMD GPU architecture (Must be provided if AMReX_GPU_BACKEND=HIP)")
+   if(DEFINED CMAKE_HIP_ARCHITECTURES)
+      set(AMReX_AMD_ARCH "${CMAKE_HIP_ARCHITECTURES}" CACHE STRING
+         "AMD GPU architecture (deprecated; use CMAKE_HIP_ARCHITECTURES)" FORCE)
+   else()
+      set(AMReX_AMD_ARCH ${AMReX_AMD_ARCH_DEFAULT} CACHE STRING
+         "AMD GPU architecture (deprecated; use CMAKE_HIP_ARCHITECTURES)")
+   endif()
 
-   if (NOT AMReX_AMD_ARCH)
-      message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_GPU_BACKEND=HIP\n")
-   endif ()
 endif ()
 
 #
@@ -524,4 +528,3 @@ endif()
 if (AMReX_ENABLE_TESTS)
    message(STATUS "   AMReX_TEST_TYPE = ${AMReX_TEST_TYPE}")
 endif()
-

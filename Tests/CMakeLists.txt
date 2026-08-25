@@ -54,6 +54,8 @@ function (setup_test _dim _srcs  _inputs)
 
    if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )
+   elseif (AMReX_HIP)
+      setup_target_for_hip_compilation( ${_exe_name} )
    endif ()
 
    #

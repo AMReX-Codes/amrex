@@ -112,6 +112,21 @@ if (AMReX_CUDA)
 endif ()
 
 #
+# Enable HIP if requested
+#
+if (AMReX_HIP)
+    if (CMAKE_VERSION VERSION_LESS 3.21)
+        message(FATAL_ERROR "HIP requires CMake version 3.21 or newer")
+    endif ()
+    if (AMReX_AMD_ARCH AND NOT DEFINED CMAKE_HIP_ARCHITECTURES)
+        set(CMAKE_HIP_ARCHITECTURES "${AMReX_AMD_ARCH}")
+    endif ()
+    enable_language(HIP)
+    set(AMReX_AMD_ARCH "${CMAKE_HIP_ARCHITECTURES}" CACHE STRING
+        "AMD GPU architecture (deprecated; use CMAKE_HIP_ARCHITECTURES)" FORCE)
+endif ()
+
+#
 # Enable Fortran if requested
 #
 if(AMReX_FORTRAN)
@@ -132,6 +147,9 @@ set_mininum_compiler_version(CXX GNU 11.0)
 set_mininum_compiler_version(CXX Clang 14.0)
 set_mininum_compiler_version(CXX AppleClang 14.0)
 set_mininum_compiler_version(CXX MSVC 19.34)
+if (AMReX_HIP)
+    set_mininum_compiler_version(HIP Clang 17.0)
+endif ()
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

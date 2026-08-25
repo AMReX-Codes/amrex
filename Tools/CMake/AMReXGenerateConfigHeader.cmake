@@ -33,30 +33,37 @@ function ( generate_config_header )
 
        set(COMP_DECLS)
        if (NOT AMReX_DIFFERENT_COMPILER)
-           if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" )
+           if (AMReX_HIP)
+               set(_amrex_compiler_id "${CMAKE_HIP_COMPILER_ID}")
+           else ()
+               set(_amrex_compiler_id "${CMAKE_CXX_COMPILER_ID}")
+           endif ()
+
+           if ("${_amrex_compiler_id}" STREQUAL "GNU" )
                set(COMPILER_ID_MACRO __GNUC__)
-           elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" )
+           elseif ("${_amrex_compiler_id}" STREQUAL "Intel" )
                set(COMPILER_ID_MACRO __INTEL_COMPILER)
-           elseif ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray" ) OR
-                    ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "CrayClang" ) )
+           elseif ( ("${_amrex_compiler_id}" STREQUAL "Cray" ) OR
+                    ("${_amrex_compiler_id}" STREQUAL "CrayClang" ) )
                set(COMPILER_ID_MACRO  __cray__)
-           elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
+           elseif ("${_amrex_compiler_id}" STREQUAL "PGI" )
                set(COMPILER_ID_MACRO  __PGI)
-           elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC" )
+           elseif ("${_amrex_compiler_id}" STREQUAL "NVHPC" )
                set(COMPILER_ID_MACRO  __NVCOMPILER)
-           elseif ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )       OR
-                    ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" )  OR
-                    ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "ROCMClang" )   OR
-                    ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelLLVM" )   )
+           elseif ( ("${_amrex_compiler_id}" STREQUAL "Clang" )       OR
+                    ("${_amrex_compiler_id}" STREQUAL "AppleClang" )  OR
+                    ("${_amrex_compiler_id}" STREQUAL "ROCMClang" )   OR
+                    ("${_amrex_compiler_id}" STREQUAL "IntelLLVM" )   )
                set(COMPILER_ID_MACRO  __llvm__)
-           elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" )
+           elseif ("${_amrex_compiler_id}" STREQUAL "MSVC" )
                set(COMPILER_ID_MACRO  _MSC_VER)
            else ()
-               message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported by AMReX developers! "
+               message(FATAL_ERROR "Compiler '${_amrex_compiler_id}' not supported by AMReX developers! "
                    "Try to configure with -DAMReX_DIFFERENT_COMPILER=ON")
            endif ()
-           set(msg "libamrex was built with ${CMAKE_CXX_COMPILER_ID}. To avoid this error, reconfigure with -DAMReX_DIFFERENT_COMPILER=ON")
+           set(msg "libamrex was built with ${_amrex_compiler_id}. To avoid this error, reconfigure with -DAMReX_DIFFERENT_COMPILER=ON")
            set(COMP_DECLS "\n#ifndef ${COMPILER_ID_MACRO}\nstatic_assert(false,\"${msg}\");\n#endif")
+           unset(_amrex_compiler_id)
        endif()
 
        # store define variables in respective ND config header

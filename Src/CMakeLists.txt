@@ -233,11 +233,15 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 endforeach()
 
 #
-# If AMReX_CUDA, C++ files will be compiled as CUDA sources
+# If a native GPU language is enabled, C++ files will be compiled as GPU sources
 #
 if (AMReX_CUDA)
     foreach(D IN LISTS AMReX_SPACEDIM)
         setup_target_for_cuda_compilation(amrex_${D}d)
+    endforeach()
+elseif (AMReX_HIP)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        setup_target_for_hip_compilation(amrex_${D}d)
     endforeach()
 endif ()
 

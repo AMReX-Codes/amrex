@@ -51,6 +51,10 @@ function (configure_amrex AMREX_TARGET)
       set_target_properties(${AMREX_TARGET} PROPERTIES CUDA_EXTENSIONS OFF)
       # minimum: C++20
       target_compile_features(${AMREX_TARGET} PUBLIC cuda_std_20)
+   elseif (AMReX_HIP)
+      set_target_properties(${AMREX_TARGET} PROPERTIES HIP_EXTENSIONS OFF)
+      # minimum: C++20
+      target_compile_features(${AMREX_TARGET} PUBLIC hip_std_20)
    endif()
 
    #
@@ -83,12 +87,18 @@ function (configure_amrex AMREX_TARGET)
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
       # for building amrex will be used to build the application code
-      if (AMReX_CUDA)
+      if (AMReX_CUDA OR AMReX_HIP)
          get_target_property(_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
 
          eval_genex(_omp_flags CXX ${_comp} INTERFACE BUILD STRING )
 
-         target_compile_options(${AMREX_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
+         if (AMReX_CUDA)
+            target_compile_options(${AMREX_TARGET} PUBLIC
+               $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
+         else ()
+            target_compile_options(${AMREX_TARGET} PUBLIC
+               $<$<COMPILE_LANGUAGE:HIP>:${_omp_flags}>)
+         endif ()
       endif ()
 
    else ()
@@ -187,7 +197,7 @@ function (print_amrex_configuration_summary)
 
   get_target_properties_flattened(amrex  _includes _defines _flags _link_line)
 
-  set(_lang CXX Fortran CUDA)
+  set(_lang CXX Fortran CUDA HIP)
   set(_prop _includes _defines _flags _link_line )
 
 
@@ -228,6 +238,7 @@ function (print_amrex_configuration_summary)
    set(_cxx_flags "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
    set(_fortran_flags "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
    set(_cuda_flags   "${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS} ${_cuda_flags}")
+   set(_hip_flags    "${CMAKE_HIP_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_HIP_FLAGS} ${_hip_flags}")
 
 
    #
@@ -244,8 +255,14 @@ function (print_amrex_configuration_summary)
    if (AMReX_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
+   if (AMReX_HIP)
+      message( STATUS "   HIP compiler             = ${CMAKE_HIP_COMPILER}")
+   endif ()
 
    message( STATUS "   C++ defines              = ${_cxx_defines}")
+   if (AMReX_HIP)
+      message( STATUS "   HIP defines              = ${_hip_defines}")
+   endif ()
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran defines          = ${_fortran_defines}")
    endif ()
@@ -257,10 +274,20 @@ function (print_amrex_configuration_summary)
    if (AMReX_CUDA)
       message( STATUS "   CUDA flags               = ${_cuda_flags}")
    endif ()
+   if (AMReX_HIP)
+      message( STATUS "   HIP flags                = ${_hip_flags}")
+   endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
+   if (AMReX_HIP)
+      message( STATUS "   HIP include paths        = ${_hip_includes}")
+   endif ()
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran include paths    = ${_fortran_includes}")
    endif ()
-   message( STATUS "   Link line                = ${_cxx_link_line}")
+   if (AMReX_HIP)
+      message( STATUS "   Link line                = ${_hip_link_line}")
+   else ()
+      message( STATUS "   Link line                = ${_cxx_link_line}")
+   endif ()
 
 endfunction ()

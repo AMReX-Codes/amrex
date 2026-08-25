@@ -118,6 +118,18 @@ function (set_cpp_sources_to_cuda_language _target)
 endfunction ()
 
 #
+# Convert all .cpp sources of _target to HIP sources
+# This DOES NOT change the actual extension of the source.
+# It just changes the default language CMake uses to compile
+# the source.
+#
+function (set_cpp_sources_to_hip_language _target)
+   get_target_property(_sources ${_target} SOURCES)
+   list(FILTER _sources INCLUDE REGEX "\\.cpp$")
+   set_source_files_properties(${_sources} PROPERTIES LANGUAGE HIP)
+endfunction ()
+
+#
 # Setup an amrex-dependent target for cuda compilation.
 # This function ensures that the CUDA compilation of _target
 # is compatible with amrex CUDA build.
@@ -135,4 +147,17 @@ function (setup_target_for_cuda_compilation _target)
          CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
          )
    endif ()
+endfunction ()
+
+#
+# Setup an amrex-dependent target for HIP compilation.
+# This function ensures that the HIP compilation of _target
+# is compatible with the AMReX HIP build.
+#
+function (setup_target_for_hip_compilation _target)
+   set_cpp_sources_to_hip_language(${_target})
+   set_target_properties(${_target}
+      PROPERTIES
+      HIP_ARCHITECTURES "${AMReX_AMD_ARCH}"
+   )
 endfunction ()

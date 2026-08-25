@@ -52,6 +52,7 @@ set_and_check(AMReX_MODULE_PATH @PACKAGE_MODULE_PATH@)
 # Add AMReX modules to app code CMake
 #
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
+include(AMReXTargetHelpers)
 
 #
 # Configuration options
@@ -131,6 +132,7 @@ set(AMReX_SYCL                      @AMReX_SYCL@)
 set(AMReX_HIP                       @AMReX_HIP@)
 set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
 set(AMReX_GPU_RDC                   @AMReX_GPU_RDC@)
+set(AMReX_AMD_ARCH                  @AMReX_AMD_ARCH@)
 set(AMReX_PRECISION                 @AMReX_PRECISION@)
 set(AMReX_FASTMATH                  @AMReX_FASTMATH@)
 set(AMReX_FORTRAN                   @AMReX_FORTRAN@)
@@ -272,7 +274,13 @@ endif ()
 # HIP
 #
 if (@AMReX_HIP@)
-    find_dependency(hip REQUIRED CONFIG)
+    if (CMAKE_VERSION VERSION_LESS 3.21)
+        message(FATAL_ERROR "HIP requires CMake version 3.21 or newer")
+    endif ()
+    if (NOT CMAKE_HIP_COMPILER_LOADED)
+        set(CMAKE_HIP_ARCHITECTURES "@AMReX_AMD_ARCH@")
+        enable_language(HIP)
+    endif ()
     find_dependency(hiprand REQUIRED CONFIG)
     find_dependency(rocrand REQUIRED CONFIG)
     find_dependency(rocprim REQUIRED CONFIG)
@@ -298,7 +306,7 @@ if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
     add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
 endif()
 
-# More Modern CUDA CMake
+# Native GPU language target properties
 if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
     foreach(D IN LISTS AMReX_SPACEDIM)
         # CUDA architectures amrex was built for -- should we make
@@ -306,6 +314,13 @@ if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
         set_target_properties(AMReX::amrex_${D}d
           PROPERTIES
             CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+    endforeach()
+endif ()
+if (@AMReX_HIP@)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        set_target_properties(AMReX::amrex_${D}d
+          PROPERTIES
+            HIP_ARCHITECTURES "@AMReX_AMD_ARCH@")
     endforeach()
 endif ()
 

@@ -356,31 +356,27 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
 Enabling HIP Support
 ^^^^^^^^^^^^^^^^^^^^
 
-To build AMReX with HIP support in CMake, add
-``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
-to the ``cmake`` invocation.
-If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recommended to use AMD's ``clang++`` as the HIP compiler.
-(Please see these issues for reference in rocm/HIP <= 4.2.0
-`[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
-`[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)
+To build AMReX with HIP support in CMake, add ``-DAMReX_GPU_BACKEND=HIP``
+to the ``cmake`` invocation. CMake detects the HIP compiler and local GPU
+architecture by default. For cross-compilation or portable binaries, specify
+them with ``-DCMAKE_HIP_COMPILER=<your-hip-compiler>`` and
+``-DCMAKE_HIP_ARCHITECTURES=<target-arch>``.
+AMReX uses CMake's native HIP language support, which requires CMake 3.21 or newer.
+The HIP compiler and its flags can also be selected with the standard ``HIPCXX``
+environment variable and ``CMAKE_HIP_FLAGS`` options. ``AMReX_AMD_ARCH`` and the
+``AMREX_AMD_ARCH`` environment variable remain supported for compatibility, but
+``CMAKE_HIP_ARCHITECTURES`` is preferred.
 
-In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
-the standard CMake variables used to customize the compilation process for C++,
-for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
-
-
-Since CMake does not support autodetection of HIP compilers/target architectures
-yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc``,
-and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
-Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user inputs when AMReX_GPU_BACKEND=HIP**.
-We also read the *environment variable* ``AMREX_AMD_ARCH`` (note: all caps), and the C++ compiler can be specified as usual, e.g., with ``export CXX=$(which clang++)``.
+Application ``.cpp`` sources containing device code must be compiled as HIP.
+After adding all sources to an AMReX-dependent target, call
+``setup_target_for_hip_compilation(<target>)`` before linking to AMReX.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_HIP_COMPILER=$(which clang++) -DCMAKE_HIP_ARCHITECTURES="gfx906;gfx908"  # [other options]
    cmake --build build -j 6
 
 
