@@ -267,14 +267,17 @@ namespace detail {
      * SIMD library's own math fallback does as well.
      *
      * @param x the SIMD variable to transform
-     * @param f a scalar function applied to one lane
-     * @return a SIMD variable holding f(x) for every lane
+     * @param lane_fn the scalar function to apply to one lane
+     * @param simd_fn the SIMD library's own overload of the same function
+     * @return a SIMD variable holding the function value for every lane
      */
-    template <typename T_Simd, typename F>
+    template <typename T_Simd, typename F_Lane, typename F_Simd>
     AMREX_FORCE_INLINE
-    T_Simd map_lanes (T_Simd const& x, F const& f)
+    T_Simd map_lanes (T_Simd const& x, F_Lane const& lane_fn, F_Simd const& simd_fn)
     {
 #ifdef AMREX_SIMD_VECMATH
+        static_cast<void>(simd_fn);
+
         using T = typename T_Simd::value_type;
         constexpr std::size_t width = T_Simd::size();
         constexpr std::size_t alignment = amrex::simd::stdx::memory_alignment_v<T_Simd>;
@@ -283,17 +286,19 @@ namespace detail {
         x.copy_to(lane, amrex::simd::stdx::vector_aligned);
 
         for (std::size_t i = 0; i < width; ++i) {
-            lane[i] = f(lane[i]);
+            lane[i] = lane_fn(lane[i]);
         }
 
         T_Simd r;
         r.copy_from(lane, amrex::simd::stdx::vector_aligned);
         return r;
 #else
-        // Without a vector math library to call, the loop above would only add a
-        // lane buffer around the same scalar calls. Build the result element by
-        // element instead, like the SIMD library's own math fallback does.
-        return T_Simd([&] (auto i) { return f(x[i]); });
+        // Without a vector math library to call, the loop above would only wrap a
+        // lane buffer around the same scalar calls. Hand the work to the SIMD
+        // library instead: it evaluates most functions one lane at a time too, but
+        // it does carry real vectorized implementations for a few of them.
+        static_cast<void>(lane_fn);
+        return simd_fn(x);
 #endif
     }
 
@@ -301,11 +306,14 @@ namespace detail {
      *
      * @see map_lanes(T_Simd const&, F const&)
      */
-    template <typename T_Simd, typename F>
+    template <typename T_Simd, typename F_Lane, typename F_Simd>
     AMREX_FORCE_INLINE
-    T_Simd map_lanes (T_Simd const& x, T_Simd const& y, F const& f)
+    T_Simd map_lanes (T_Simd const& x, T_Simd const& y,
+                      F_Lane const& lane_fn, F_Simd const& simd_fn)
     {
 #ifdef AMREX_SIMD_VECMATH
+        static_cast<void>(simd_fn);
+
         using T = typename T_Simd::value_type;
         constexpr std::size_t width = T_Simd::size();
         constexpr std::size_t alignment = amrex::simd::stdx::memory_alignment_v<T_Simd>;
@@ -316,39 +324,22 @@ namespace detail {
         y.copy_to(lane_y, amrex::simd::stdx::vector_aligned);
 
         for (std::size_t i = 0; i < width; ++i) {
-            lane_x[i] = f(lane_x[i], lane_y[i]);
+            lane_x[i] = lane_fn(lane_x[i], lane_y[i]);
         }
 
         T_Simd r;
         r.copy_from(lane_x, amrex::simd::stdx::vector_aligned);
         return r;
 #else
-        // see map_lanes(T_Simd const&, F const&)
-        return T_Simd([&] (auto i) { return f(x[i], y[i]); });
+        // see map_lanes(T_Simd const&, F_Lane const&, F_Simd const&)
+        static_cast<void>(lane_fn);
+        return simd_fn(x, y);
 #endif
     }
 
 #endif
 }
 /// \endcond
-
-#ifdef AMREX_USE_SIMD
-//! Return sine and cosine of given number
-template<typename T_Real>
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::pair<T_Real,T_Real> sincos (T_Real const& x)
-{
-    // Evaluated as two separate lane loops on purpose: no vector math library
-    // offers an auto-vectorizable sincos, because writing both results through
-    // pointers stops the vectorizer. Two vector calls still beat one scalar
-    // sincos per lane.
-    std::pair<T_Real,T_Real> r;
-    r.first  = detail::map_lanes(x, [] (auto v) { return std::sin(v); });
-    r.second = detail::map_lanes(x, [] (auto v) { return std::cos(v); });
-    return r;
-}
-#endif
 
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -377,17 +368,6 @@ std::pair<float,float> sincos (float x)
 #endif
     return r;
 }
-
-#ifdef AMREX_USE_SIMD
-//! Return sin(pi*x) and cos(pi*x) given x
-template<typename T_Real>
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::pair<T_Real,T_Real> sincospi (T_Real const& x)
-{
-    return sincos(T_Real(pi<typename T_Real::value_type>()) * x);
-}
-#endif
 
 //! Return sin(pi*x) and cos(pi*x) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -446,7 +426,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real sin (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::sin(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::sin(v); },
+        [] (auto const& v) { return amrex::simd::stdx::sin(v); });
 }
 #endif
 
@@ -466,7 +448,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cos (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::cos(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::cos(v); },
+        [] (auto const& v) { return amrex::simd::stdx::cos(v); });
 }
 #endif
 
@@ -486,7 +470,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real tan (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::tan(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::tan(v); },
+        [] (auto const& v) { return amrex::simd::stdx::tan(v); });
 }
 #endif
 
@@ -506,7 +492,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real asin (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::asin(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::asin(v); },
+        [] (auto const& v) { return amrex::simd::stdx::asin(v); });
 }
 #endif
 
@@ -526,7 +514,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real acos (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::acos(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::acos(v); },
+        [] (auto const& v) { return amrex::simd::stdx::acos(v); });
 }
 #endif
 
@@ -546,7 +536,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atan (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::atan(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::atan(v); },
+        [] (auto const& v) { return amrex::simd::stdx::atan(v); });
 }
 #endif
 
@@ -566,7 +558,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real sinh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::sinh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::sinh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::sinh(v); });
 }
 #endif
 
@@ -586,7 +580,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cosh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::cosh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::cosh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::cosh(v); });
 }
 #endif
 
@@ -606,7 +602,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real tanh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::tanh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::tanh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::tanh(v); });
 }
 #endif
 
@@ -626,7 +624,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real asinh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::asinh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::asinh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::asinh(v); });
 }
 #endif
 
@@ -646,7 +646,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real acosh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::acosh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::acosh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::acosh(v); });
 }
 #endif
 
@@ -666,7 +668,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atanh (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::atanh(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::atanh(v); },
+        [] (auto const& v) { return amrex::simd::stdx::atanh(v); });
 }
 #endif
 
@@ -686,7 +690,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real exp (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::exp(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::exp(v); },
+        [] (auto const& v) { return amrex::simd::stdx::exp(v); });
 }
 #endif
 
@@ -706,7 +712,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real exp2 (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::exp2(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::exp2(v); },
+        [] (auto const& v) { return amrex::simd::stdx::exp2(v); });
 }
 #endif
 
@@ -726,7 +734,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real expm1 (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::expm1(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::expm1(v); },
+        [] (auto const& v) { return amrex::simd::stdx::expm1(v); });
 }
 #endif
 
@@ -746,7 +756,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::log(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::log(v); },
+        [] (auto const& v) { return amrex::simd::stdx::log(v); });
 }
 #endif
 
@@ -766,7 +778,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log2 (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::log2(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::log2(v); },
+        [] (auto const& v) { return amrex::simd::stdx::log2(v); });
 }
 #endif
 
@@ -786,7 +800,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log10 (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::log10(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::log10(v); },
+        [] (auto const& v) { return amrex::simd::stdx::log10(v); });
 }
 #endif
 
@@ -806,7 +822,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log1p (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::log1p(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::log1p(v); },
+        [] (auto const& v) { return amrex::simd::stdx::log1p(v); });
 }
 #endif
 
@@ -826,7 +844,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cbrt (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::cbrt(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::cbrt(v); },
+        [] (auto const& v) { return amrex::simd::stdx::cbrt(v); });
 }
 #endif
 
@@ -846,7 +866,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real erf (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::erf(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::erf(v); },
+        [] (auto const& v) { return amrex::simd::stdx::erf(v); });
 }
 #endif
 
@@ -866,7 +888,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real erfc (T_Real const& x)
 {
-    return detail::map_lanes(x, [] (auto v) { return std::erfc(v); });
+    return detail::map_lanes(x,
+        [] (auto v) { return std::erfc(v); },
+        [] (auto const& v) { return amrex::simd::stdx::erfc(v); });
 }
 #endif
 
@@ -886,7 +910,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real pow (T_Real const& x, T_Real const& y)
 {
-    return detail::map_lanes(x, y, [] (auto v_x, auto v_y) { return std::pow(v_x, v_y); });
+    return detail::map_lanes(x, y,
+        [] (auto a, auto b) { return std::pow(a, b); },
+        [] (auto const& a, auto const& b) { return amrex::simd::stdx::pow(a, b); });
 }
 #endif
 
@@ -906,7 +932,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atan2 (T_Real const& y, T_Real const& x)
 {
-    return detail::map_lanes(y, x, [] (auto v_y, auto v_x) { return std::atan2(v_y, v_x); });
+    return detail::map_lanes(y, x,
+        [] (auto a, auto b) { return std::atan2(a, b); },
+        [] (auto const& a, auto const& b) { return amrex::simd::stdx::atan2(a, b); });
 }
 #endif
 
@@ -926,7 +954,9 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real hypot (T_Real const& x, T_Real const& y)
 {
-    return detail::map_lanes(x, y, [] (auto v_x, auto v_y) { return std::hypot(v_x, v_y); });
+    return detail::map_lanes(x, y,
+        [] (auto a, auto b) { return std::hypot(a, b); },
+        [] (auto const& a, auto const& b) { return amrex::simd::stdx::hypot(a, b); });
 }
 #endif
 
@@ -964,6 +994,34 @@ AMREX_FORCE_INLINE
 T_Real abs (T_Real const& x)
 {
     return amrex::simd::stdx::abs(x);
+}
+#endif
+
+#ifdef AMREX_USE_SIMD
+/** Return sine and cosine of every SIMD lane
+ *
+ * Evaluated as two separate lane loops on purpose: no vector math library offers
+ * an auto-vectorizable sincos, because writing both results through pointers
+ * stops the vectorizer. Two vector calls still beat one scalar sincos per lane.
+ */
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincos (T_Real const& x)
+{
+    std::pair<T_Real,T_Real> r;
+    r.first  = amrex::Math::sin(x);
+    r.second = amrex::Math::cos(x);
+    return r;
+}
+
+//! Return sin(pi*x) and cos(pi*x) of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincospi (T_Real const& x)
+{
+    return amrex::Math::sincos(T_Real(pi<typename T_Real::value_type>()) * x);
 }
 #endif
 
