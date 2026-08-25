@@ -3124,11 +3124,19 @@ SIMD math function contains a short loop over its lanes, written in the shape
 that compilers recognize and replace with a single vector math library call.
 
 Two conditions must be met for that replacement to happen, and the CMake option
-``AMReX_SIMD_VECMATH`` (on by default when ``AMReX_SIMD=ON``) takes care of
-both. It adds ``-fno-math-errno`` to AMReX and to every downstream target,
-because a math call that has to keep ``errno`` up to date may not be vectorized,
-and it makes AMReX declare the vector variants of the functions it uses. For
-clang it also adds ``-fveclib=libmvec``.
+``AMReX_SIMD_VECMATH`` takes care of both. It adds ``-fno-math-errno`` to AMReX
+and to every downstream target, because a math call that has to keep ``errno``
+up to date may not be vectorized, and it makes AMReX declare the vector variants
+of the functions it uses. For clang it also adds ``-fveclib=libmvec``.
+
+The option is off by default, and has to be turned on explicitly::
+
+    cmake -S . -B build -DAMReX_SIMD=ON -DAMReX_SIMD_VECMATH=ON
+
+It is opt-in because ``-fno-math-errno`` applies to whole translation units, not
+just to the functions below. It changes what the compiler is allowed to inline
+and contract, so results of unrelated floating-point code can shift by an ULP,
+and two ways of writing the same expression need no longer agree bit for bit.
 
 Where the option cannot deliver, nothing breaks: the lane loop is then evaluated
 one lane at a time, exactly as the SIMD library would have done. This is
@@ -3147,11 +3155,12 @@ currently the case
 
    Vector math libraries trade accuracy for speed: glibc's ``libmvec``
    documents a maximum error of 4 ULP, where its scalar routines stay below
-   1 ULP. Results therefore differ slightly from a scalar build. Because
-   ``-fno-math-errno`` applies to whole translation units, ordinary scalar
-   loops over math functions in downstream code may be auto-vectorized the same
-   way. Build with ``AMReX_SIMD_VECMATH=OFF`` if your application needs the
-   accuracy of the scalar routines, or checks ``errno`` after math calls.
+   1 ULP. Results therefore differ slightly from a scalar build. Ordinary
+   scalar loops over math functions in downstream code may be auto-vectorized
+   the same way, since the vector variants are declared for the whole
+   translation unit. Leave the option off if your application needs the accuracy
+   of the scalar routines, requires bitwise reproducible results, or checks
+   ``errno`` after math calls.
 
 Ghost Cells
 ===========
