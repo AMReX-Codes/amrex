@@ -136,7 +136,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_GPU_BACKEND=CUDA    \
-            -DAMReX_CUDA_ARCH=8.0       \
+            -DCMAKE_CUDA_ARCHITECTURES=80 \
             -DAMReX_SUNDIALS=ON         \
             -DSUNDIALS_ROOT=${PWD}/sundials-7.0.0/instdir \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \

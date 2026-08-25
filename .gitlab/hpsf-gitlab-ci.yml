@@ -38,7 +38,7 @@ Nvidia-H100-single-precision:
           -DCMAKE_C_COMPILER=$(which gcc)              \
           -DCMAKE_CXX_COMPILER=$(which g++)            \
           -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
-          -DAMReX_CUDA_ARCH="9.0"                      \
+          -DCMAKE_CUDA_ARCHITECTURES=90                \
           -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
           -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
     - cmake --build build -j 16
