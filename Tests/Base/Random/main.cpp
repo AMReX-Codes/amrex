@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Math.H>
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 
@@ -86,9 +87,10 @@ void test_host_intervals ()
 // deterministic: the endpoints are rare enough that it would take far more
 // draws than this to hit one, so it guards against a wholesale breakage of a
 // path rather than against a regression at the endpoint itself -- that is what
-// test_endpoint_guard above is for. RandomGamma is included because it
-// consumes RandomPositive internally and would return a non-finite value if a
-// zero ever reached its std::log.
+// test_endpoint_guard above is for. RandomGamma provides smoke coverage for
+// both shape branches. The alpha < 1 branch would return zero if its
+// multiplicative uniform draw were zero. Both results must be positive and
+// finite.
 void test_engine_intervals ()
 {
     Long const N = 2000000;
@@ -113,7 +115,8 @@ void test_engine_intervals ()
 
         Real const g1 = amrex::RandomGamma(Real(2.5), Real(1.0), engine);
         Real const g2 = amrex::RandomGamma(Real(0.4), Real(1.0), engine); // alpha < 1 branch
-        if (!(g1 > Real(0)) || !(g2 > Real(0))) {
+        if (!(g1 > Real(0) && amrex::Math::isfinite(g1)) ||
+            !(g2 > Real(0) && amrex::Math::isfinite(g2))) {
             Gpu::Atomic::AddNoRet(p_bad_gamma, Long(1));
         }
     });
