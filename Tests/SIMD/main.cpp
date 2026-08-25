@@ -653,7 +653,7 @@ int main (int argc, char* argv[])
                         T(-2.0), T(2.0));
 
             Print() << "amrex::Math SIMD transcendentals ("
-#   ifdef AMREX_SIMD_VECMATH
+#   ifdef AMREX_SIMD_HAS_VECMATH
                     << "vector math library enabled"
 #   else
                     << "vector math library not available, lane-wise fallback"

@@ -49,23 +49,29 @@
  *       vector variant declarations out of a header that is pulled in almost
  *       everywhere makes it clearer where they take effect.
  */
-/* AMREX_SIMD_VECMATH is defined when the lane loops below are expected to reach
- * a vector math library. It can also be set from the outside (the CMake option
- * AMReX_SIMD_VECMATH=ON does so for compilers we cannot detect from here, such
- * as clang with -fveclib=libmvec).
+/* AMREX_SIMD_HAS_VECMATH is defined when the lane loops below are expected to reach
+ * a vector math library. It can also be set from the outside: the CMake option
+ * AMReX_SIMD_VECMATH=ON does so for compilers this cannot be detected for from
+ * here, such as clang with -fveclib=libmvec.
+ *
+ * Note that the CMake option and this macro are not the same thing. The option
+ * asks for vector math and adds the compiler flags for it; this macro says
+ * whether a vector math library is actually within reach. On a toolchain with,
+ * say, an old sysroot, the option is on, its flags apply, and this macro stays
+ * undefined.
  */
-#if !defined(AMREX_SIMD_VECMATH) && defined(AMREX_USE_SIMD) && defined(__NO_MATH_ERRNO__) \
+#if !defined(AMREX_SIMD_HAS_VECMATH) && defined(AMREX_USE_SIMD) && defined(__NO_MATH_ERRNO__) \
     && defined(__GLIBC__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
 #   include <features.h>
 #   ifdef __GLIBC_PREREQ
 #       if __GLIBC_PREREQ(2,22)
 //! Defined when SIMD transcendentals are expected to lower to vector math library calls
-#           define AMREX_SIMD_VECMATH 1
+#           define AMREX_SIMD_HAS_VECMATH 1
 #       endif
 #   endif
 #endif
 
-#if defined(AMREX_SIMD_VECMATH) && defined(__GLIBC__) && defined(__x86_64__) \
+#if defined(AMREX_SIMD_HAS_VECMATH) && defined(__GLIBC__) && defined(__x86_64__) \
     && defined(__GNUC__) && !defined(__clang__) && !defined(__FAST_MATH__)
 #   include <features.h>
 #   ifdef __GLIBC_PREREQ
@@ -275,7 +281,7 @@ namespace detail {
     AMREX_FORCE_INLINE
     T_Simd map_lanes (T_Simd const& x, F_Lane const& lane_fn, F_Simd const& simd_fn)
     {
-#ifdef AMREX_SIMD_VECMATH
+#ifdef AMREX_SIMD_HAS_VECMATH
         static_cast<void>(simd_fn);
 
         using T = typename T_Simd::value_type;
@@ -311,7 +317,7 @@ namespace detail {
     T_Simd map_lanes (T_Simd const& x, T_Simd const& y,
                       F_Lane const& lane_fn, F_Simd const& simd_fn)
     {
-#ifdef AMREX_SIMD_VECMATH
+#ifdef AMREX_SIMD_HAS_VECMATH
         static_cast<void>(simd_fn);
 
         using T = typename T_Simd::value_type;

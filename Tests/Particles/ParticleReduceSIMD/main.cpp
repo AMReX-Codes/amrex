@@ -286,11 +286,13 @@ void compare_results (ReduceTupleT const& a, ReduceTupleT const& b,
 
 /** Tolerance scale for comparisons that are otherwise required to be bitwise identical
  *
- * AMReX_SIMD_VECMATH=ON adds -fno-math-errno, which lets the compiler make
+ * -fno-math-errno, which AMReX_SIMD_VECMATH=ON adds, lets the compiler make
  * different inlining and FMA contraction choices per formulation. Two ways of
- * writing the same sum then no longer have to agree bit for bit.
+ * writing the same sum then no longer have to agree bit for bit. Keyed off the
+ * flag rather than off AMREX_SIMD_HAS_VECMATH, because the flag is what perturbs
+ * the arithmetic, whether or not a vector math library turns out to be reachable.
  */
-#ifdef AMREX_SIMD_VECMATH
+#ifdef __NO_MATH_ERRNO__
 constexpr Real bitwise_tol_scale = 4.;
 #else
 constexpr Real bitwise_tol_scale = 0.;

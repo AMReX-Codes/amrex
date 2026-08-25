@@ -68,7 +68,7 @@ if (AMReX_SIMD)
             foreach(D IN LISTS AMReX_SPACEDIM)
                target_compile_options(amrex_${D}d
                   PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fveclib=libmvec>)
-               target_compile_definitions(amrex_${D}d PUBLIC AMREX_SIMD_VECMATH=1)
+               target_compile_definitions(amrex_${D}d PUBLIC AMREX_SIMD_HAS_VECMATH=1)
             endforeach()
          endif ()
       endif ()
