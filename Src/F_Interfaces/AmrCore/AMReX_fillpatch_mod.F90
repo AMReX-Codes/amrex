@@ -22,7 +22,7 @@ module amrex_fillpatch_module
      module procedure amrex_fillcoarsepatch_faces
   end interface amrex_fillcoarsepatch
 
-  type, public :: amrex_fillpatcher
+  type :: amrex_fillpatcher
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
      integer     :: nghost = 0

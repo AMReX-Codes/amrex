@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.25)
 
 #
 # Setting a cmake_policy to OLD is deprecated by definition and will raise a
@@ -22,16 +22,6 @@ endif()
 #
 if(POLICY CMP0127)
     cmake_policy(SET CMP0127 NEW)
-endif()
-
-#
-# CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
-# https://cmake.org/cmake/help/latest/policy/CMP0104.html
-# We have to migrate there, but maybe the new "native" option (CMake 3.24+)
-# is what we want to wait for:
-# https://cmake.org/cmake/help/v3.24/prop_tgt/CUDA_ARCHITECTURES.html
-if(POLICY CMP0104)
-    cmake_policy(SET CMP0104 OLD)
 endif()
 
 #
@@ -105,10 +95,11 @@ include( AMReXOptions )
 # Enable CUDA if requested
 #
 if (AMReX_CUDA)
+    # Resolve the target CUDA architecture(s) into the standard CMAKE_CUDA_ARCHITECTURES
+    # before enabling the CUDA language, so that CMP0104 does not substitute a
+    # compiler-default architecture and our "native" default / hint precedence is honored.
+    include(AMReXCUDAArchs)
     enable_language(CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    endif()
 endif ()
 
 #

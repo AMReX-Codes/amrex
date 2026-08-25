@@ -2,6 +2,17 @@
 #define AMREX_GPU_ASSERT_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuAssert.H
+ * \brief Assertions for GPU device code.
+ *
+ * \def AMREX_DEVICE_ASSERT
+ * \brief Assert \p flag in CUDA, HIP, or SYCL device code.
+ *
+ * The macro maps to \c assert and is defined only for those GPU backends on
+ * non-Apple platforms.
+ */
+
 #if !defined(__APPLE__)
 
 #include <cassert>

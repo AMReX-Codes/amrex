@@ -155,7 +155,7 @@ jobs:
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v7
-    - uses: Jimver/cuda-toolkit@v0.2.35
+    - uses: Jimver/cuda-toolkit@v0.2.36
       id: cuda-toolkit
       with:
         cuda: '12.6.1'
@@ -181,7 +181,7 @@ jobs:
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `
-              -DAMReX_CUDA_ARCH="8.0"             `
+              -DCMAKE_CUDA_ARCHITECTURES=80        `
               -DAMReX_ENABLE_TESTS=ON             `
               -DAMReX_EB=ON                       `
               -DAMReX_FFT=ON                      `

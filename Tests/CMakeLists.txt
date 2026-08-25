@@ -108,6 +108,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Base/TrackedVector")
    add_subdirectory("Base/RealBox")
+   add_subdirectory("Base/CompensatedSum")
 
    add_subdirectory("Amr/Advection_AmrCore")
 
@@ -138,7 +139,7 @@ else()
    set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut Base CallNoinline CommType CTOParFor DeviceGlobal
                             Enum GpuParallelReduce HeatEquation MultiBlock MultiPeriod ParmParse Parser Parser2
                             ParserUserFn Reducer ReduceToPlaneGuards ReduceToPlanePatchy Reinit RoundoffDomain SIMD
-                            SmallMatrix SumBoundary TOML)
+                            SmallMatrix StochasticHeatEquation SumBoundary TOML)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)

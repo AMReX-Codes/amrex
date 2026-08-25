@@ -143,6 +143,74 @@ public:
      */
     void setShift (int direction, int ncells);
 
+    /**
+     * \brief Face-centered EB data storage structure.
+     */
+    struct FCData {
+        FabArray<EBCellFlagFab> m_cellflag_fc;
+        MultiFab m_volfrac_fc;
+        MultiFab m_centroid_fc;
+        MultiFab m_bndryarea_fc;
+        MultiFab m_bndrycent_fc;
+        MultiFab m_bndrynorm_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
+        // Covered region of the refined level, coarsened onto this level. The refined level
+        // is transient, so this has to be captured while it exists. It is not the same as
+        // Level::m_covered_grids: the refined level resolves the body more finely, so once
+        // coarsened its covered region is the larger of the two, and it is the one that
+        // matches where the face-centered data was computed.
+        //
+        // The fill*FC functions apply it before their ParallelCopy, and deliberately do not
+        // shrink it first. A face-centered cell straddles two cell-centered cells, so the
+        // ones on the covered/cut interface may themselves be cut; clearing them here and
+        // letting the copy write over them is correct, because the copy writes exactly where
+        // the face-centered data is valid - the nodal span of the cut boxes, which reaches
+        // the interface and no further. Ordering does the shrinking, so no box has to be
+        // trimmed and two adjacent covered boxes need no special treatment.
+        BoxArray m_covered_grids_fc;
+        bool m_built = false;
+    };
+
+    //! Check if face-centered data is available for face_dir (0=x, 1=y, 2=z).
+    [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
+        return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
+               m_fc_data[face_dir] && m_fc_data[face_dir]->m_built;
+    }
+
+    //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
+    [[nodiscard]] const FCData& getFCData (int face_dir) const {
+        AMREX_ASSERT(hasFCData(face_dir));
+        return *m_fc_data[face_dir];
+    }
+
+    //! Fill face-centered volume fractions for face_dir.
+    void fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered area fractions for face_dir.
+    void fillAreaFracFC (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
+    void fillAreaFracFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered centroids for face_dir.
+    void fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const;
+    void fillCentroidFC (MultiCutFab& centroid, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary areas for face_dir.
+    void fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom) const;
+    void fillBndryAreaFC (MultiCutFab& bndryarea, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary centroids for face_dir.
+    void fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const;
+    void fillBndryCentFC (MultiCutFab& bndrycent, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary normals for face_dir.
+    void fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const;
+    void fillBndryNormFC (MultiCutFab& bndrynorm, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered EBCellFlags for face_dir.
+    void fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered face centroids for face_dir.
+    void fillFaceCentFC (Array<   MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
+    void fillFaceCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered edge centroids for face_dir.
+    void fillEdgeCentFC (Array<   MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
+    void fillEdgeCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
+
 // public: // for cuda
     /**
      * \brief Coarsen EB data from \p fineLevel into this level.
@@ -185,6 +253,9 @@ protected:
     bool m_has_eb_info = true;
     IntVect m_shift{0};
     IndexSpace const* m_parent;
+
+    //! Face-centered data storage: [0]=x-face, [1]=y-face, [2]=z-face
+    Array<std::unique_ptr<FCData>, AMREX_SPACEDIM> m_fc_data;
 
 private:
     template <typename G> friend class GShopLevel;
@@ -238,6 +309,9 @@ public:
         r.setRegularLevel();
         return r;
     }
+
+    //! Build face-centered EB data for face_dir. Builds refined CC transiently.
+    void buildFCData (G const& gshop, int face_dir, int max_grid_size);
 
 private:
 
@@ -740,6 +814,353 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
     }
+}
+
+template <typename G>
+void
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
+{
+    BL_PROFILE("EB2::GShopLevel::buildFCData");
+
+    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
+
+    // Allocate FC data structure if needed
+    if (!m_fc_data[face_dir]) {
+        m_fc_data[face_dir] = std::make_unique<FCData>();
+    }
+
+    if (m_fc_data[face_dir]->m_built) { return; }
+
+    if (m_allregular) {
+        // An all-regular level carries no MultiFabs, and there is nothing to coarsen. Mark the
+        // face-centered data built anyway so that hasFCData() is true and a face-centered factory
+        // can be constructed: the fill*FC functions fill the regular values for such a level
+        // without reading anything, exactly as their cell-centered counterparts do.
+        m_fc_data[face_dir]->m_built = true;
+        return;
+    }
+
+    // **********************************************************************
+    // STEP1: Get or build the one-level-finer CC data
+    // **********************************************************************
+
+    Level const* refined_cc_level = nullptr;
+    std::unique_ptr<GShopLevel<G>> transient_level;
+
+    // Always create transient refined CC level to avoid grid mismatch
+    // with application-defined BoxArrays (ERF EB-FC development)
+    Geometry refined_geom = amrex::refine(m_geom, 2);
+    transient_level = std::make_unique<GShopLevel<G>>(
+        m_parent, gshop, refined_geom,
+        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+
+    if (!transient_level->isOK()) {
+        amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
+    }
+    refined_cc_level = transient_level.get();
+
+    // **********************************************************************
+    // STEP2: Check multi-cut error
+    // **********************************************************************
+
+    // Everything below is local. m_grids, m_dmap and m_levelset describe the cell-centered
+    // level that the IndexSpace hands to every EBFArrayBoxFactory built from it, so building
+    // face-centered data must not touch them: overwriting m_grids would leave Level::boxArray()
+    // describing a different region than the cell-centered data it belongs to, and redefining
+    // m_levelset on those grids would silently change the level set that cell-centered
+    // factories created afterwards report.
+    //
+    // The grids are coarsened from the refined level rather than taken from m_grids so that the
+    // DistributionMapping stays compatible with the refined data we read below.
+    const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
+    if (!refined_cc_level->m_covered_grids.empty()) {
+        m_fc_data[face_dir]->m_covered_grids_fc =
+            amrex::coarsen(refined_cc_level->m_covered_grids, 2);
+    }
+    const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
+
+    // Face-centered data provides no level set, so nothing here coarsens one. The multi-cut check
+    // below only needs an MFIter over the coarse boxes, walking alongside the refined level set
+    // that shares this DistributionMapping, so this MultiFab is declared without data.
+    auto const& f_levelset = refined_cc_level->m_levelset;
+    MultiFab crse_boxes(amrex::convert(fc_base_grids,IntVect::TheNodeVector()), fc_dmap, 1, 0,
+                        MFInfo{}.SetAlloc(false));
+
+    int mvmc_error = 0;
+
+    if (Gpu::notInLaunchRegion())
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:mvmc_error)
+#endif
+        for (MFIter mfi(crse_boxes,true); mfi.isValid(); ++mfi)
+        {
+            const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
+            auto const& fine = f_levelset.const_array(mfi);
+
+            int tile_error = 0;
+            amrex::LoopOnCpu(ccbx,
+            [=,&tile_error] (int i, int j, int k) noexcept
+            {
+                int ierror = check_mvmc(i,j,k,fine);
+                tile_error = std::max(tile_error,ierror);
+            });
+
+            mvmc_error = std::max(mvmc_error, tile_error);
+        }
+    }
+    else
+    {
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(crse_boxes); mfi.isValid(); ++mfi)
+        {
+            const Box& ndbx = mfi.validbox();
+            const Box& ccbx = amrex::enclosedCells(ndbx);
+            auto const& fine = f_levelset.const_array(mfi);
+            reduce_op.eval(ndbx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                int ierror;
+                if (ccbx.contains(IntVect{AMREX_D_DECL(i,j,k)})) {
+                    ierror = check_mvmc(i,j,k,fine);
+                } else {
+                    ierror = 0;
+                }
+                return {ierror};
+            });
+        }
+        ReduceTuple rv = reduce_data.value(reduce_op);
+        mvmc_error = amrex::max(0, amrex::get<0>(rv));
+    }
+
+    {
+        bool b = mvmc_error;
+        ParallelDescriptor::ReduceBoolOr(b);
+        mvmc_error = b;
+    }
+    if (mvmc_error) {
+        amrex::Abort("GShopLevel::buildFCData: MVMC error");
+    }
+
+    // **********************************************************************
+    // STEP3: Define FC data structures
+    // **********************************************************************
+
+    // FC MultiFabs
+    auto& fc_cellflag = m_fc_data[face_dir]->m_cellflag_fc;
+    MultiFab& fc_volfrac = m_fc_data[face_dir]->m_volfrac_fc;
+    MultiFab& fc_centroid = m_fc_data[face_dir]->m_centroid_fc;
+    MultiFab& fc_bndryarea = m_fc_data[face_dir]->m_bndryarea_fc;
+    MultiFab& fc_bndrycent = m_fc_data[face_dir]->m_bndrycent_fc;
+    MultiFab& fc_bndrynorm = m_fc_data[face_dir]->m_bndrynorm_fc;
+    auto& fc_areafrac = m_fc_data[face_dir]->m_areafrac_fc;
+    auto& fc_facecent = m_fc_data[face_dir]->m_facecent_fc;
+    auto& fc_edgecent = m_fc_data[face_dir]->m_edgecent_fc;
+
+    // Index types of the face-centered data:
+    //
+    //   cellflag / volfrac / centroid / bndry*   nodal in face_dir, i.e. (N,C,C) for face_dir=0,
+    //                                            (C,N,C) for 1, (C,C,N) for 2. These are the
+    //                                            staggered cells themselves.
+    //   areafrac[idim] / facecent[idim]          the cell-centered base grids, the same for
+    //                                            every idim.
+    //   edgecent[idim]                           set by which two directions the edge spans.
+    //
+    // areafrac and facecent are kept uniform on purpose. The cell-centered path gives each
+    // direction its own nodal index type (areafrac[0] is (N,C,C), areafrac[1] is (C,N,C), ...);
+    // carrying that over to a grid already staggered in face_dir would put three different index
+    // types in play at once for no real gain. Here all three are simply indexed by the staggered
+    // cell they belong to.
+
+    // Define FC MultiFabs
+    BoxArray fc_grids = amrex::convert(fc_base_grids, IntVect::TheDimensionVector(face_dir));
+    const int ng = 3;
+    fc_cellflag.define(fc_grids, fc_dmap, 1, ng);
+    fc_volfrac.define(fc_grids, fc_dmap, 1, ng);
+    fc_centroid.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
+    fc_bndryarea.define(fc_grids, fc_dmap, 1, ng);
+    fc_bndrycent.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
+    fc_bndrynorm.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        fc_areafrac[idim].define(fc_base_grids, fc_dmap, 1, ng);
+        fc_facecent[idim].define(fc_base_grids, fc_dmap, AMREX_SPACEDIM-1, ng);
+        IntVect edge_type{1};
+        if (idim != face_dir) {
+            edge_type[face_dir] = 0;
+            edge_type[idim] = 0;
+        }
+        fc_edgecent[idim].define(amrex::convert(fc_base_grids, edge_type), fc_dmap, 1, ng);
+    }
+
+    // **********************************************************************
+    // STEP4: Coarsen from refined CC to FC with staggered averaging
+    // **********************************************************************
+
+    // Fine CC MultiFabs
+    auto const& cc_cellflag = refined_cc_level->m_cellflag;
+    MultiFab const& cc_volfrac = refined_cc_level->m_volfrac;
+    MultiFab const& cc_centroid = refined_cc_level->m_centroid;
+    MultiFab const& cc_bndryarea = refined_cc_level->m_bndryarea;
+    MultiFab const& cc_bndrycent = refined_cc_level->m_bndrycent;
+    MultiFab const& cc_bndrynorm = refined_cc_level->m_bndrynorm;
+    auto const& cc_areafrac = refined_cc_level->m_areafrac;
+    auto const& cc_facecent = refined_cc_level->m_facecent;
+    auto const& cc_edgecent = refined_cc_level->m_edgecent;
+
+    int error = 0;
+
+    if (Gpu::notInLaunchRegion())
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:error)
+#endif
+        for (MFIter mfi(fc_volfrac,true); mfi.isValid(); ++mfi)
+        {
+            // Coarse FC arrays
+            auto const& cvol = fc_volfrac.array(mfi);
+            auto const& ccent = fc_centroid.array(mfi);
+            auto const& cba = fc_bndryarea.array(mfi);
+            auto const& cbc = fc_bndrycent.array(mfi);
+            auto const& cbn = fc_bndrynorm.array(mfi);
+            AMREX_D_TERM(auto const& capx = fc_areafrac[0].array(mfi);,
+                         auto const& capy = fc_areafrac[1].array(mfi);,
+                         auto const& capz = fc_areafrac[2].array(mfi););
+            AMREX_D_TERM(auto const& cfcx = fc_facecent[0].array(mfi);,
+                         auto const& cfcy = fc_facecent[1].array(mfi);,
+                         auto const& cfcz = fc_facecent[2].array(mfi););
+            AMREX_D_TERM(auto const& cecx = fc_edgecent[0].array(mfi);,
+                         auto const& cecy = fc_edgecent[1].array(mfi);,
+                         auto const& cecz = fc_edgecent[2].array(mfi););
+            auto const& cflag = fc_cellflag.array(mfi);
+
+            // Fine CC arrays
+            auto const& fvol = cc_volfrac.const_array(mfi);
+            auto const& fcent = cc_centroid.const_array(mfi);
+            auto const& fba = cc_bndryarea.const_array(mfi);
+            auto const& fbc = cc_bndrycent.const_array(mfi);
+            auto const& fbn = cc_bndrynorm.const_array(mfi);
+            AMREX_D_TERM(auto const& fapx = cc_areafrac[0].const_array(mfi);,
+                         auto const& fapy = cc_areafrac[1].const_array(mfi);,
+                         auto const& fapz = cc_areafrac[2].const_array(mfi););
+            AMREX_D_TERM(auto const& ffcx = cc_facecent[0].const_array(mfi);,
+                         auto const& ffcy = cc_facecent[1].const_array(mfi);,
+                         auto const& ffcz = cc_facecent[2].const_array(mfi););
+            AMREX_D_TERM(auto const& fecx = cc_edgecent[0].const_array(mfi);,
+                         auto const& fecy = cc_edgecent[1].const_array(mfi);,
+                         auto const& fecz = cc_edgecent[2].const_array(mfi););
+            auto const& fflag = cc_cellflag.const_array(mfi);
+
+            Box const& bx = mfi.validbox();
+            Box const& ndgbx = mfi.grownnodaltilebox(-1,2);
+
+            int tile_error = 0;
+            amrex::LoopOnCpu(ndgbx,
+            [=,&tile_error] (int i, int j, int k) noexcept
+            {
+                amrex::ignore_unused(j,k);
+                int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k), bx, 2,
+                                             cvol,ccent,cba,cbc,cbn,
+                                             AMREX_D_DECL(capx,capy,capz),
+                                             AMREX_D_DECL(cfcx,cfcy,cfcz),
+                                             AMREX_D_DECL(cecx,cecy,cecz),
+                                             cflag,fvol,fcent,fba,fbc,fbn,
+                                             AMREX_D_DECL(fapx,fapy,fapz),
+                                             AMREX_D_DECL(ffcx,ffcy,ffcz),
+                                             AMREX_D_DECL(fecx,fecy,fecz),
+                                             fflag, face_dir);
+                tile_error = std::max(tile_error,ierr);
+            });
+
+            error = std::max(error,tile_error);
+        }
+    }
+    else
+    {
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(fc_volfrac); mfi.isValid(); ++mfi)
+        {
+            auto const& cvol = fc_volfrac.array(mfi);
+            auto const& ccent = fc_centroid.array(mfi);
+            auto const& cba = fc_bndryarea.array(mfi);
+            auto const& cbc = fc_bndrycent.array(mfi);
+            auto const& cbn = fc_bndrynorm.array(mfi);
+            AMREX_D_TERM(auto const& capx = fc_areafrac[0].array(mfi);,
+                         auto const& capy = fc_areafrac[1].array(mfi);,
+                         auto const& capz = fc_areafrac[2].array(mfi););
+            AMREX_D_TERM(auto const& cfcx = fc_facecent[0].array(mfi);,
+                         auto const& cfcy = fc_facecent[1].array(mfi);,
+                         auto const& cfcz = fc_facecent[2].array(mfi););
+            // We use MultiArray4 instead of Array4 here
+            // to be below the 2 kB kernel parameter limit for SYCL
+            AMREX_D_TERM(auto const& cecx = fc_edgecent[0].arrays();,
+                         auto const& cecy = fc_edgecent[1].arrays();,
+                         auto const& cecz = fc_edgecent[2].arrays(););
+            auto const& cflag = fc_cellflag.array(mfi);
+
+            auto const& fvol = cc_volfrac.const_array(mfi);
+            auto const& fcent = cc_centroid.const_array(mfi);
+            auto const& fba = cc_bndryarea.const_array(mfi);
+            auto const& fbc = cc_bndrycent.const_array(mfi);
+            auto const& fbn = cc_bndrynorm.const_array(mfi);
+            AMREX_D_TERM(auto const& fapx = cc_areafrac[0].const_array(mfi);,
+                         auto const& fapy = cc_areafrac[1].const_array(mfi);,
+                         auto const& fapz = cc_areafrac[2].const_array(mfi););
+            AMREX_D_TERM(auto const& ffcx = cc_facecent[0].const_array(mfi);,
+                         auto const& ffcy = cc_facecent[1].const_array(mfi);,
+                         auto const& ffcz = cc_facecent[2].const_array(mfi););
+            AMREX_D_TERM(auto const& fecx = cc_edgecent[0].const_arrays();,
+                         auto const& fecy = cc_edgecent[1].const_arrays();,
+                         auto const& fecz = cc_edgecent[2].const_arrays(););
+            auto const& fflag = cc_cellflag.const_array(mfi);
+
+            const int lidx = mfi.LocalIndex();
+            Box const& bx = mfi.validbox();
+            Box const& gbx = amrex::grow(bx,2);
+            Box const& ndgbx = amrex::surroundingNodes(gbx);
+
+            reduce_op.eval(ndgbx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                amrex::ignore_unused(j,k);
+                int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k), bx, 2,
+                                             cvol,ccent,cba,cbc,cbn,
+                                             AMREX_D_DECL(capx,capy,capz),
+                                             AMREX_D_DECL(cfcx,cfcy,cfcz),
+                                             AMREX_D_DECL(cecx[lidx],cecy[lidx],cecz[lidx]),
+                                             cflag,fvol,fcent,fba,fbc,fbn,
+                                             AMREX_D_DECL(fapx,fapy,fapz),
+                                             AMREX_D_DECL(ffcx,ffcy,ffcz),
+                                             AMREX_D_DECL(fecx[lidx],fecy[lidx],fecz[lidx]),
+                                             fflag, face_dir);
+                return {ierr};
+            });
+        }
+
+        ReduceTuple rv = reduce_data.value(reduce_op);
+        error = amrex::max(0, amrex::get<0>(rv));
+    }
+
+    {
+        bool b = error;
+        ParallelDescriptor::ReduceBoolOr(b);
+        error = b;
+    }
+
+    if (!error) {
+        buildCellFlag();
+    }
+
+    // return error;
+
+    m_fc_data[face_dir]->m_built = true;
+    // If transient_level exists, it's automatically destroyed here
 }
 
 }

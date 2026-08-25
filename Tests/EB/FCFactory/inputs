@@ -1,0 +1,12 @@
+n_cell = 64
+max_grid_size = 32
+
+# small enough that whole EB boxes fall inside the body, so the level has covered
+# boxes and the covered-region checks below have something to test
+eb2.max_grid_size = 16
+
+sphere_radius = 0.25
+sphere_center = 0.5 0.5 0.5
+sphere_has_fluid_inside = 1
+
+vol_tol = 1.e-3

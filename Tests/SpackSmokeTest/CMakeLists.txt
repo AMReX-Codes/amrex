@@ -6,7 +6,7 @@
 # against a currently installed version of AMReX. The resulting
 # executable can then be ran to test functionality.
 
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.25)
 
 project(amrex-test-install)
 
@@ -26,9 +26,6 @@ if (AMReX_GPU_BACKEND STREQUAL "CUDA")
     find_package(AMReX REQUIRED CUDA)
 
 elseif(AMReX_GPU_BACKEND STREQUAL "HIP")
-    if(CMAKE_VERSION VERSION_LESS 3.21)
-        message(FATAL_ERROR "HIP requires CMake version 3.21 or newer")
-    endif()
     find_package(AMReX REQUIRED HIP)
     find_package(rocrand REQUIRED CONFIG)
     find_package(rocprim REQUIRED CONFIG)

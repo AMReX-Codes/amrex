@@ -241,7 +241,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | AMReX_CUDA_ARCH              |  CUDA target architecture                       | Auto        | User-defined    |
+   | CMAKE_CUDA_ARCHITECTURES     |  Target CUDA architecture(s) (standard CMake)   | native      | See below       |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_FASTMATH          |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -260,15 +260,16 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_LTO               |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   | AMReX_CUDA_LTO               |  Enable CUDA device link-time optimization      | NO          | YES, NO         |
+   |                              |  (requires AMReX_GPU_RDC)                       |             |                 |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_PTX_VERBOSE       |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_SHOW_CODELINES    |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_CODELINES    |  Source information in PTX (optimizations: on)  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_SHOW_LINENUMBERS  |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_LINENUMBERS  |  Line-number information (optimizations: on)    | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_WARN_CAPTURE_THIS |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -277,29 +278,104 @@ check the :ref:`table <tab:cmakecudavar>` below.
    \end{center}
 
 
-The target architecture to build for can be specified via the configuration option
-``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, e.g., ``Turing``, ``Volta``, or ``Ampere``, or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, e.g., ``10.0`` or ``9.0``.
-For example, on Cori GPUs you can specify the architecture as follows:
+The target architecture(s) to build for are selected via the standard CMake option
+``-DCMAKE_CUDA_ARCHITECTURES=<arch>`` (or the ``CUDAARCHS`` environment variable), where
+``<arch>`` is one or more `CUDA compute capabilities <https://developer.nvidia.com/cuda-gpus>`_
+given as integers without the dot, e.g., ``80`` for compute capability 8.0. Multiple
+architectures can be set as a semicolon-separated list, e.g.,
+``-DCMAKE_CUDA_ARCHITECTURES="80;90"``. Building for multiple architectures generally
+results in a larger library and longer build times. The special values ``native`` (the
+default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
+suffixes documented for CMake's
+`CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
+target property, are supported, as is ``OFF`` for packagers who pass the architecture flags
+themselves. Architectures below compute capability 6.0 are not supported by AMReX; they are
+dropped with a message - including when they are part of what ``all`` or ``all-major`` stands
+for - and configuration stops with an error if nothing is left.
 
 .. highlight:: console
 
 ::
 
-   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
+   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DCMAKE_CUDA_ARCHITECTURES=80 /path/to/amrex/source
 
 
-If no architecture is specified, CMake will default to the architecture defined in the
-*environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
-If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
-If more than one is found, CMake will build for all of them.
-If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as a semicolon-separated list, e.g., ``-DAMReX_CUDA_ARCH=7.0;8.0``.
-Building for multiple CUDA architectures will generally result in a larger library and longer build times.
+If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
+installed in the machine running CMake. If a GPU is visible at configuration time, CMake
+resolves ``native`` right away and the resulting architecture is printed, used for the build
+and exported to downstream projects. If no GPU is visible, configuration stops with an error:
+``native`` is resolved when CMake runs, not when the code is compiled. On machines without a
+visible GPU (e.g., HPC login nodes, CI runners or container builds) an explicit architecture
+must therefore be provided, such as ``-DCMAKE_CUDA_ARCHITECTURES=80``. This includes
+configuring on a login node and building on a GPU node.
+
+.. note::
+
+   The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
+   are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
+   and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
+   precedence over them. The exception is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the
+   ``cmake`` command line, which wins over the deprecated hints. Please migrate to the standard
+   CMake variables. Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it
+   remains the way to select architectures.
+
+   The architectures are selected again on every configure step, so a hint that is still in
+   place - an exported ``AMREX_CUDA_ARCH``, for instance - can change what an earlier step
+   chose. AMReX warns when that happens; pass ``-DCMAKE_CUDA_ARCHITECTURES=...`` to pin the
+   choice for a build directory.
+
+   Their historical values are translated for convenience: ``Auto`` becomes ``native``,
+   ``All`` and ``Common`` become ``all`` and ``all-major``, generation names such as
+   ``Volta``, ``Turing``, ``Ampere`` or ``Hopper`` become the corresponding compute
+   capability (``Blackwell`` becomes both ``100`` and ``120``, the two families it spans),
+   dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
+   (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). A
+   whitespace-separated list is accepted as well, as in GNU Make builds (``"70 80"``), and a
+   hint that is set but empty or blank counts as not set at all. None of these legacy spellings are
+   accepted by ``CMAKE_CUDA_ARCHITECTURES`` itself, so use the values documented above when
+   you migrate.
+
+Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This requires
+relocatable device code, so it is an error to combine it with ``-DAMReX_GPU_RDC=OFF``.
+Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a Clang
+``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
+code: host code generation is unchanged. It also applies to the AMReX-dependent targets
+of the AMReX build itself (tests, tutorials and tools), and downstream targets that are
+set up with ``setup_target_for_cuda_compilation`` take part in it as well: most AMReX
+device code is instantiated in the translation units of the calling code, so a target
+compiled straight to SASS would only get nvlink's *partial* LTO. Because it is applied per architecture, device LTO
+also needs the architectures to be known at configure time: ``all`` and ``all-major`` are
+always expanded when it is on, and ``CMAKE_CUDA_ARCHITECTURES=OFF`` is an error rather than a
+build that quietly comes out without device LTO. (An unresolved ``native`` is already an
+error regardless of this option, see above.)
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
+
+**Environment hints.** Compiler and architecture selection can also be driven through the
+standard CMake and compiler environment variables. These are especially handy on HPC systems and in CI,
+where they are typically exported in a job or module script before invoking ``cmake``.
+Example on a Cray/HPE machine:
+
+.. code-block:: bash
+
+   # For Cray/HPE machines: necessary to use CUDA-Aware MPI and run a job
+   # Note: also sometimes already set by a loaded module.
+   export CRAY_ACCEL_TARGET=nvidia80
+
+   # overwrite the "native" default to optimize CUDA compilation for A100
+   export CUDAARCHS=80
+
+   # optimize CPU (host) microarchitecture for AMD EPYC 3rd Gen (Milan/Zen3)
+   export CXXFLAGS="-march=znver3"
+   export CFLAGS="-march=znver3"
+
+   # CMake compiler selection
+   export CC=$(which gcc)       # or $(which cc) for Cray/HPE
+   export CXX=$(which g++)      # or $(which CC) for Cray/HPE
+   export FC=$(which gfortran)  # or $(which ftn) for Cray/HPE
+   export CUDACXX=$(which nvcc)
+   export CUDAHOSTCXX=${CXX}
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -313,23 +389,28 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
-if the CMake version is less than 3.20:
+in your CMake setup, simply enable the CUDA language before adding the AMReX source directory:
 
 .. highlight:: console
 
 ::
 
+   # Select the target architecture(s) before enabling the CUDA language,
+   # otherwise CMake picks the compiler default for your own targets
+   set(CMAKE_CUDA_ARCHITECTURES 80)
+
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
-   if(CMAKE_VERSION VERSION_LESS 3.20)
-       include(AMReX_SetupCUDA)
-   endif()
-
-   # Include AMReX source directory ONLY AFTER the two steps above
+   # Include AMReX source directory ONLY AFTER enabling the CUDA language
    add_subdirectory(/path/to/amrex/source/dir)
+
+.. note::
+
+   Select the architectures yourself before ``enable_language(CUDA)``, as shown above. If you
+   do not, your own CUDA targets are built for the CUDA compiler's default architecture when
+   they are created before ``add_subdirectory``, and for AMReX's selection when they are
+   created after it.
 
 
 
@@ -1682,8 +1763,9 @@ it is reset, at which point AMReX restores the previous external stream.
   :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
   synchronization to keep the arena safe.  The external stream or queue must
   belong to the active AMReX device.  For SYCL, the queue must also use the
-  same SYCL context as AMReX and must be an in-order queue.  AMReX selects the
-  active GPU during :cpp:`amrex::Initialize`, whose overloads accept an
+  same SYCL context as AMReX and must be an in-order queue.  AMReX
+  selects an active GPU during :cpp:`amrex::Initialize` from the device
+  platform's default context, whose overloads accept an
   optional trailing :cpp:`int device_id` argument; pass the desired GPU there
   if an external runtime needs AMReX to adopt a specific device before the
   stream is created.  Conversely, if AMReX should drive the selection, query

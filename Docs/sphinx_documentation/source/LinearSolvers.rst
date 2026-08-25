@@ -805,6 +805,13 @@ viscous term `divtau` explicitly:
 
    solver.apply(GetVecOfPtrs(divtau), GetVecOfPtrs(vel));
 
+A tensor operator and the :cpp:`MLMG` object built on it may be reused for any
+number of ``solve`` and ``apply`` calls, provided the coefficients are left
+untouched after the first call.  Unlike the other operators, the tensor
+operators do not support updating coefficients in place: calling
+``setShearViscosity``, ``setBulkViscosity``, ``setACoeffs``, or their EB
+counterparts on an operator that has already been used will abort on the next
+call.  Build a new operator when the viscosities change.
 
 Multi-Component Operators
 =========================

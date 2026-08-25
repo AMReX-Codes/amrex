@@ -21,9 +21,11 @@ macro(check_required_components _NAME)
    endforeach()
 endmacro()
 
-# Set the minimum CMake version required -- This must be the version
-# of CMake used to build the library
-cmake_minimum_required(VERSION @CMAKE_VERSION@)
+# Set the minimum CMake version required -- this is the version AMReX itself
+# requires, not the (possibly much newer) one it happened to be built with:
+# pinning the latter would lock out consumers whose CMake is older than the
+# build machine's, and would raise the policy version of their project.
+cmake_minimum_required(VERSION 3.25)
 
 # Provides find_dependency
 include(CMakeFindDependencyMacro)
@@ -261,13 +263,8 @@ endif ()
 #
 # CUDA
 #
-# AMReX 21.06+ supports CUDA_ARCHITECTURES
 if (@AMReX_CUDA@)
-    if (CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    else ()
-        find_dependency(CUDAToolkit REQUIRED)
-    endif ()
+    find_dependency(CUDAToolkit REQUIRED)
 endif ()
 
 #
@@ -306,14 +303,13 @@ if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
     add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
 endif()
 
-# Native GPU language target properties
-if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
+# CUDA architectures amrex was built for
+if (@AMReX_CUDA@)
+    set(AMREX_CUDA_ARCHS "@AMREX_CUDA_ARCHS@" CACHE INTERNAL "CUDA archs AMReX is built for")
     foreach(D IN LISTS AMReX_SPACEDIM)
-        # CUDA architectures amrex was built for -- should we make
-        set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
         set_target_properties(AMReX::amrex_${D}d
           PROPERTIES
-            CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+            CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}")
     endforeach()
 endif ()
 if (@AMReX_HIP@)

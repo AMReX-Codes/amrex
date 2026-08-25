@@ -141,10 +141,20 @@ function (setup_target_for_cuda_compilation _target)
    )
    set_cpp_sources_to_cuda_language(${_target})
 
-   if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+   set_target_properties( ${_target}
+      PROPERTIES
+      CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+      )
+
+   if (AMREX_CUDA_IPO)
+      # Most AMReX device code is instantiated in the translation units of the target
+      # itself, so it has to be compiled for device LTO ("code=lto_<NN>") as well: linking
+      # an LTO-compiled AMReX into a target that was compiled straight to SASS gives only
+      # the partial LTO nvlink warns about, and optimizes across none of the target's own
+      # device code.
       set_target_properties( ${_target}
          PROPERTIES
-         CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+         INTERPROCEDURAL_OPTIMIZATION ON
          )
    endif ()
 endfunction ()
