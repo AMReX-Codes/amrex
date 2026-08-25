@@ -499,9 +499,6 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SIMD                   |  Enable SIMD Primitives (using vir::stdx::simd) | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SIMD_VECMATH           |  Let SIMD math functions call a vector math     | NO                      | YES, NO               |
-   |                              |  library (adds -fno-math-errno)                 |                         |                       |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |

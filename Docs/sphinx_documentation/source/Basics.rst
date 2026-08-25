@@ -3119,48 +3119,22 @@ Vectorizing the transcendentals
 SIMD hardware has instructions for :cpp:`sqrt` and :cpp:`abs`, but not for the
 transcendental functions. Those have to be evaluated by a vector math library,
 such as glibc's ``libmvec``, which computes a whole SIMD register worth of
-results per call. AMReX does not link such a library directly. Instead, each
-SIMD math function contains a short loop over its lanes, written in the shape
-that compilers recognize and replace with a single vector math library call.
+results per call. AMReX does not implement that itself: the SIMD overloads
+forward to whatever the SIMD provider offers, which is a vector math library
+call where the provider has one, and one scalar call per lane otherwise.
 
-Two conditions must be met for that replacement to happen, and the CMake option
-``AMReX_SIMD_VECMATH`` takes care of both. It adds ``-fno-math-errno`` to AMReX
-and to every downstream target, because a math call that has to keep ``errno``
-up to date may not be vectorized, and it makes AMReX declare the vector variants
-of the functions it uses. For clang it also adds ``-fveclib=libmvec``.
-
-The option is off by default, and has to be turned on explicitly::
-
-    cmake -S . -B build -DAMReX_SIMD=ON -DAMReX_SIMD_VECMATH=ON
-
-It is opt-in because ``-fno-math-errno`` applies to whole translation units, not
-just to the functions below. It changes what the compiler is allowed to inline
-and contract, so results of unrelated floating-point code can shift by an ULP,
-and two ways of writing the same expression need no longer agree bit for bit.
-
-Where the option cannot deliver, nothing breaks: the lane loop is then evaluated
-one lane at a time, exactly as the SIMD library would have done. This is
-currently the case
-
-* on any platform other than x86-64 Linux with glibc,
-* with a glibc older than 2.22, and for everything except
-  :cpp:`sin`, :cpp:`cos`, :cpp:`exp`, :cpp:`log` and :cpp:`pow` with a glibc
-  older than 2.35 -- note that this is the *build-time* glibc, so a compiler
-  with an old sysroot (as shipped by conda-forge, for example) falls back even
-  on a recent host, and
-* with clang, for the functions missing from its own vector function table,
-  which covers fewer functions than glibc provides.
+Nothing has to be configured for this, and no compiler flags are involved.
+Whether the fast path is available depends on the provider and the platform,
+and both cases give correct results.
 
 .. warning::
 
    Vector math libraries trade accuracy for speed: glibc's ``libmvec``
    documents a maximum error of 4 ULP, where its scalar routines stay below
-   1 ULP. Results therefore differ slightly from a scalar build. Ordinary
-   scalar loops over math functions in downstream code may be auto-vectorized
-   the same way, since the vector variants are declared for the whole
-   translation unit. Leave the option off if your application needs the accuracy
-   of the scalar routines, requires bitwise reproducible results, or checks
-   ``errno`` after math calls.
+   1 ULP. Where they are used, results differ slightly from a scalar build and
+   are not bit-wise reproducible against one. Consult the SIMD provider's
+   documentation if your application needs the accuracy of the scalar routines
+   or checks ``errno`` after math calls.
 
 Ghost Cells
 ===========

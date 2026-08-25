@@ -653,10 +653,10 @@ int main (int argc, char* argv[])
                         T(-2.0), T(2.0));
 
             Print() << "amrex::Math SIMD transcendentals ("
-#   ifdef AMREX_SIMD_HAS_VECMATH
-                    << "vector math library enabled"
+#   ifdef VIR_HAVE_SIMD_VECMATH
+                    << "vector math library via the SIMD provider"
 #   else
-                    << "vector math library not available, lane-wise fallback"
+                    << "provider fallback, one call per lane"
 #   endif
                     << ", width " << int(V::size()) << "): "
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";

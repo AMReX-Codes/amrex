@@ -19,130 +19,6 @@
 #  include <sycl/sycl.hpp>
 #endif
 
-/*
- * Vector math library support for the SIMD math functions in amrex::Math
- *
- * With AMReX_SIMD=ON, the amrex::Math transcendentals below also accept SIMD
- * types. They are implemented as a short loop over the SIMD lanes with a
- * compile-time constant trip count (see amrex::Math::detail::map_lanes).
- * Compilers that know a vector variant of the scalar function called inside
- * that loop collapse the whole loop into a single call into a vector math
- * library, such as glibc's libmvec.
- *
- * Two conditions must hold for that to happen:
- *  - the translation unit must be compiled with -fno-math-errno, so that a math
- *    call is free of side effects and may be vectorized, and
- *  - the vector variants must have been declared. glibc declares them only for
- *    translation units compiled with -ffast-math, which is too broad a hammer
- *    for most codes, so the ones AMReX uses are declared here instead.
- *
- * The CMake option AMReX_SIMD_VECMATH=ON adds the required compiler flags. If
- * either condition is missing, the loop merely unrolls into scalar calls, which
- * is what the SIMD library's own fallback does as well.
- *
- * Note on accuracy: vector math libraries trade accuracy for speed. glibc's
- * libmvec documents a maximum error of 4 ULP, where its scalar routines stay
- * below 1 ULP. Results are also no longer bit-wise identical to a scalar build.
- *
- * @todo Move the SIMD math functions and the declarations below into their own
- *       header, e.g. AMReX_Math_SIMD.H, that AMReX_Math.H includes. Keeping the
- *       vector variant declarations out of a header that is pulled in almost
- *       everywhere makes it clearer where they take effect.
- */
-/* AMREX_SIMD_HAS_VECMATH is defined when the lane loops below are expected to reach
- * a vector math library. It can also be set from the outside: the CMake option
- * AMReX_SIMD_VECMATH=ON does so for compilers this cannot be detected for from
- * here, such as clang with -fveclib=libmvec.
- *
- * Note that the CMake option and this macro are not the same thing. The option
- * asks for vector math and adds the compiler flags for it; this macro says
- * whether a vector math library is actually within reach. On a toolchain with,
- * say, an old sysroot, the option is on, its flags apply, and this macro stays
- * undefined.
- */
-#if !defined(AMREX_SIMD_HAS_VECMATH) && defined(AMREX_USE_SIMD) && defined(__NO_MATH_ERRNO__) \
-    && defined(__GLIBC__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
-#   include <features.h>
-#   ifdef __GLIBC_PREREQ
-#       if __GLIBC_PREREQ(2,22)
-//! Defined when SIMD transcendentals are expected to lower to vector math library calls
-#           define AMREX_SIMD_HAS_VECMATH 1
-#       endif
-#   endif
-#endif
-
-#if defined(AMREX_SIMD_HAS_VECMATH) && defined(__GLIBC__) && defined(__x86_64__) \
-    && defined(__GNUC__) && !defined(__clang__) && !defined(__FAST_MATH__)
-#   include <features.h>
-#   ifdef __GLIBC_PREREQ
-// glibc's own declarations use "notinbranch": no masked variant is provided.
-#       define AMREX_VECMATH_FN __attribute__((__simd__("notinbranch")))
-#       if __GLIBC_PREREQ(2,22)
-extern "C" {
-    AMREX_VECMATH_FN double cos   (double) noexcept;
-    AMREX_VECMATH_FN double exp   (double) noexcept;
-    AMREX_VECMATH_FN double log   (double) noexcept;
-    AMREX_VECMATH_FN double pow   (double, double) noexcept;
-    AMREX_VECMATH_FN double sin   (double) noexcept;
-    AMREX_VECMATH_FN float  cosf  (float) noexcept;
-    AMREX_VECMATH_FN float  expf  (float) noexcept;
-    AMREX_VECMATH_FN float  logf  (float) noexcept;
-    AMREX_VECMATH_FN float  powf  (float, float) noexcept;
-    AMREX_VECMATH_FN float  sinf  (float) noexcept;
-#           if defined(_GNU_SOURCE) && !defined(__APPLE__)
-    AMREX_VECMATH_FN void   sincos  (double, double*, double*) noexcept;
-    AMREX_VECMATH_FN void   sincosf (float, float*, float*) noexcept;
-#           endif
-}
-#       endif
-#       if __GLIBC_PREREQ(2,35)
-extern "C" {
-    AMREX_VECMATH_FN double acos   (double) noexcept;
-    AMREX_VECMATH_FN double acosh  (double) noexcept;
-    AMREX_VECMATH_FN double asin   (double) noexcept;
-    AMREX_VECMATH_FN double asinh  (double) noexcept;
-    AMREX_VECMATH_FN double atan   (double) noexcept;
-    AMREX_VECMATH_FN double atan2  (double, double) noexcept;
-    AMREX_VECMATH_FN double atanh  (double) noexcept;
-    AMREX_VECMATH_FN double cbrt   (double) noexcept;
-    AMREX_VECMATH_FN double cosh   (double) noexcept;
-    AMREX_VECMATH_FN double erf    (double) noexcept;
-    AMREX_VECMATH_FN double erfc   (double) noexcept;
-    AMREX_VECMATH_FN double exp2   (double) noexcept;
-    AMREX_VECMATH_FN double expm1  (double) noexcept;
-    AMREX_VECMATH_FN double hypot  (double, double) noexcept;
-    AMREX_VECMATH_FN double log10  (double) noexcept;
-    AMREX_VECMATH_FN double log1p  (double) noexcept;
-    AMREX_VECMATH_FN double log2   (double) noexcept;
-    AMREX_VECMATH_FN double sinh   (double) noexcept;
-    AMREX_VECMATH_FN double tan    (double) noexcept;
-    AMREX_VECMATH_FN double tanh   (double) noexcept;
-    AMREX_VECMATH_FN float  acosf  (float) noexcept;
-    AMREX_VECMATH_FN float  acoshf (float) noexcept;
-    AMREX_VECMATH_FN float  asinf  (float) noexcept;
-    AMREX_VECMATH_FN float  asinhf (float) noexcept;
-    AMREX_VECMATH_FN float  atanf  (float) noexcept;
-    AMREX_VECMATH_FN float  atan2f (float, float) noexcept;
-    AMREX_VECMATH_FN float  atanhf (float) noexcept;
-    AMREX_VECMATH_FN float  cbrtf  (float) noexcept;
-    AMREX_VECMATH_FN float  coshf  (float) noexcept;
-    AMREX_VECMATH_FN float  erff   (float) noexcept;
-    AMREX_VECMATH_FN float  erfcf  (float) noexcept;
-    AMREX_VECMATH_FN float  exp2f  (float) noexcept;
-    AMREX_VECMATH_FN float  expm1f (float) noexcept;
-    AMREX_VECMATH_FN float  hypotf (float, float) noexcept;
-    AMREX_VECMATH_FN float  log10f (float) noexcept;
-    AMREX_VECMATH_FN float  log1pf (float) noexcept;
-    AMREX_VECMATH_FN float  log2f  (float) noexcept;
-    AMREX_VECMATH_FN float  sinhf  (float) noexcept;
-    AMREX_VECMATH_FN float  tanf   (float) noexcept;
-    AMREX_VECMATH_FN float  tanhf  (float) noexcept;
-}
-#       endif
-#       undef AMREX_VECMATH_FN
-#   endif
-#endif
-
 namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 /// \cond DOXYGEN_IGNORE
 inline namespace disabled {
@@ -262,88 +138,6 @@ namespace detail {
         *cosx = std::cos(x);
 #endif
     }
-#ifdef AMREX_USE_SIMD
-    /** Apply a scalar function to every lane of a SIMD variable
-     *
-     * The lane loop has a compile-time constant trip count and a body that is a
-     * single scalar function call. That is the shape an auto-vectorizer can
-     * replace with one call into a vector math library (see the note near the
-     * top of this file). When it does, the lane buffer never reaches memory;
-     * when it does not, the loop unrolls into scalar calls, which is what the
-     * SIMD library's own math fallback does as well.
-     *
-     * @param x the SIMD variable to transform
-     * @param lane_fn the scalar function to apply to one lane
-     * @param simd_fn the SIMD library's own overload of the same function
-     * @return a SIMD variable holding the function value for every lane
-     */
-    template <typename T_Simd, typename F_Lane, typename F_Simd>
-    AMREX_FORCE_INLINE
-    T_Simd map_lanes (T_Simd const& x, F_Lane const& lane_fn, F_Simd const& simd_fn)
-    {
-#ifdef AMREX_SIMD_HAS_VECMATH
-        static_cast<void>(simd_fn);
-
-        using T = typename T_Simd::value_type;
-        constexpr std::size_t width = T_Simd::size();
-        constexpr std::size_t alignment = amrex::simd::stdx::memory_alignment_v<T_Simd>;
-
-        alignas(alignment) T lane[width];
-        x.copy_to(lane, amrex::simd::stdx::vector_aligned);
-
-        for (std::size_t i = 0; i < width; ++i) {
-            lane[i] = lane_fn(lane[i]);
-        }
-
-        T_Simd r;
-        r.copy_from(lane, amrex::simd::stdx::vector_aligned);
-        return r;
-#else
-        // Without a vector math library to call, the loop above would only wrap a
-        // lane buffer around the same scalar calls. Hand the work to the SIMD
-        // library instead: it evaluates most functions one lane at a time too, but
-        // it does carry real vectorized implementations for a few of them.
-        static_cast<void>(lane_fn);
-        return simd_fn(x);
-#endif
-    }
-
-    /** Apply a scalar function of two arguments to every lane of two SIMD variables
-     *
-     * @see map_lanes(T_Simd const&, F const&)
-     */
-    template <typename T_Simd, typename F_Lane, typename F_Simd>
-    AMREX_FORCE_INLINE
-    T_Simd map_lanes (T_Simd const& x, T_Simd const& y,
-                      F_Lane const& lane_fn, F_Simd const& simd_fn)
-    {
-#ifdef AMREX_SIMD_HAS_VECMATH
-        static_cast<void>(simd_fn);
-
-        using T = typename T_Simd::value_type;
-        constexpr std::size_t width = T_Simd::size();
-        constexpr std::size_t alignment = amrex::simd::stdx::memory_alignment_v<T_Simd>;
-
-        alignas(alignment) T lane_x[width];
-        alignas(alignment) T lane_y[width];
-        x.copy_to(lane_x, amrex::simd::stdx::vector_aligned);
-        y.copy_to(lane_y, amrex::simd::stdx::vector_aligned);
-
-        for (std::size_t i = 0; i < width; ++i) {
-            lane_x[i] = lane_fn(lane_x[i], lane_y[i]);
-        }
-
-        T_Simd r;
-        r.copy_from(lane_x, amrex::simd::stdx::vector_aligned);
-        return r;
-#else
-        // see map_lanes(T_Simd const&, F_Lane const&, F_Simd const&)
-        static_cast<void>(lane_fn);
-        return simd_fn(x, y);
-#endif
-    }
-
-#endif
 }
 /// \endcond
 
@@ -412,8 +206,12 @@ std::pair<float,float> sincospi (float x)
  * resolves to the SIMD library's own (scalar, element-wise) overload through
  * argument-dependent lookup instead.
  *
- * The SIMD overloads may lower to vector math library calls, see the note near
- * the top of this file for the requirements and the accuracy implications.
+ * SIMD hardware has instructions for sqrt and abs but not for the
+ * transcendental functions, so the SIMD overloads are only as fast as what the
+ * SIMD provider offers for them: a call into a vector math library where it has
+ * one, otherwise one scalar call per lane. See amrex::simd::smath. Where a
+ * vector math library answers, results are accurate to a few ULP rather than
+ * correctly rounded, and are not bit-wise identical to a scalar build.
  */
 
 //! Return the sine of the given number
@@ -432,9 +230,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real sin (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::sin(v); },
-        [] (auto const& v) { return amrex::simd::stdx::sin(v); });
+    return amrex::simd::smath::sin(x);
 }
 #endif
 
@@ -454,9 +250,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cos (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::cos(v); },
-        [] (auto const& v) { return amrex::simd::stdx::cos(v); });
+    return amrex::simd::smath::cos(x);
 }
 #endif
 
@@ -476,9 +270,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real tan (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::tan(v); },
-        [] (auto const& v) { return amrex::simd::stdx::tan(v); });
+    return amrex::simd::smath::tan(x);
 }
 #endif
 
@@ -498,9 +290,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real asin (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::asin(v); },
-        [] (auto const& v) { return amrex::simd::stdx::asin(v); });
+    return amrex::simd::smath::asin(x);
 }
 #endif
 
@@ -520,9 +310,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real acos (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::acos(v); },
-        [] (auto const& v) { return amrex::simd::stdx::acos(v); });
+    return amrex::simd::smath::acos(x);
 }
 #endif
 
@@ -542,9 +330,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atan (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::atan(v); },
-        [] (auto const& v) { return amrex::simd::stdx::atan(v); });
+    return amrex::simd::smath::atan(x);
 }
 #endif
 
@@ -564,9 +350,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real sinh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::sinh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::sinh(v); });
+    return amrex::simd::smath::sinh(x);
 }
 #endif
 
@@ -586,9 +370,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cosh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::cosh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::cosh(v); });
+    return amrex::simd::smath::cosh(x);
 }
 #endif
 
@@ -608,9 +390,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real tanh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::tanh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::tanh(v); });
+    return amrex::simd::smath::tanh(x);
 }
 #endif
 
@@ -630,9 +410,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real asinh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::asinh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::asinh(v); });
+    return amrex::simd::smath::asinh(x);
 }
 #endif
 
@@ -652,9 +430,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real acosh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::acosh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::acosh(v); });
+    return amrex::simd::smath::acosh(x);
 }
 #endif
 
@@ -674,9 +450,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atanh (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::atanh(v); },
-        [] (auto const& v) { return amrex::simd::stdx::atanh(v); });
+    return amrex::simd::smath::atanh(x);
 }
 #endif
 
@@ -696,9 +470,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real exp (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::exp(v); },
-        [] (auto const& v) { return amrex::simd::stdx::exp(v); });
+    return amrex::simd::smath::exp(x);
 }
 #endif
 
@@ -718,9 +490,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real exp2 (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::exp2(v); },
-        [] (auto const& v) { return amrex::simd::stdx::exp2(v); });
+    return amrex::simd::smath::exp2(x);
 }
 #endif
 
@@ -740,9 +510,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real expm1 (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::expm1(v); },
-        [] (auto const& v) { return amrex::simd::stdx::expm1(v); });
+    return amrex::simd::smath::expm1(x);
 }
 #endif
 
@@ -762,9 +530,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::log(v); },
-        [] (auto const& v) { return amrex::simd::stdx::log(v); });
+    return amrex::simd::smath::log(x);
 }
 #endif
 
@@ -784,9 +550,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log2 (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::log2(v); },
-        [] (auto const& v) { return amrex::simd::stdx::log2(v); });
+    return amrex::simd::smath::log2(x);
 }
 #endif
 
@@ -806,9 +570,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log10 (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::log10(v); },
-        [] (auto const& v) { return amrex::simd::stdx::log10(v); });
+    return amrex::simd::smath::log10(x);
 }
 #endif
 
@@ -828,9 +590,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real log1p (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::log1p(v); },
-        [] (auto const& v) { return amrex::simd::stdx::log1p(v); });
+    return amrex::simd::smath::log1p(x);
 }
 #endif
 
@@ -850,9 +610,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real cbrt (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::cbrt(v); },
-        [] (auto const& v) { return amrex::simd::stdx::cbrt(v); });
+    return amrex::simd::smath::cbrt(x);
 }
 #endif
 
@@ -872,9 +630,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real erf (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::erf(v); },
-        [] (auto const& v) { return amrex::simd::stdx::erf(v); });
+    return amrex::simd::smath::erf(x);
 }
 #endif
 
@@ -894,9 +650,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real erfc (T_Real const& x)
 {
-    return detail::map_lanes(x,
-        [] (auto v) { return std::erfc(v); },
-        [] (auto const& v) { return amrex::simd::stdx::erfc(v); });
+    return amrex::simd::smath::erfc(x);
 }
 #endif
 
@@ -916,9 +670,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real pow (T_Real const& x, T_Real const& y)
 {
-    return detail::map_lanes(x, y,
-        [] (auto a, auto b) { return std::pow(a, b); },
-        [] (auto const& a, auto const& b) { return amrex::simd::stdx::pow(a, b); });
+    return amrex::simd::smath::pow(x, y);
 }
 #endif
 
@@ -938,9 +690,7 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real atan2 (T_Real const& y, T_Real const& x)
 {
-    return detail::map_lanes(y, x,
-        [] (auto a, auto b) { return std::atan2(a, b); },
-        [] (auto const& a, auto const& b) { return amrex::simd::stdx::atan2(a, b); });
+    return amrex::simd::smath::atan2(y, x);
 }
 #endif
 
@@ -960,9 +710,10 @@ requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_FORCE_INLINE
 T_Real hypot (T_Real const& x, T_Real const& y)
 {
-    return detail::map_lanes(x, y,
-        [] (auto a, auto b) { return std::hypot(a, b); },
-        [] (auto const& a, auto const& b) { return amrex::simd::stdx::hypot(a, b); });
+    // not amrex::simd::smath: hypot is one of the functions a SIMD library
+    // usually implements itself, with SIMD instructions and the overflow
+    // fixups a vector math library's version would skip
+    return amrex::simd::stdx::hypot(x, y);
 }
 #endif
 

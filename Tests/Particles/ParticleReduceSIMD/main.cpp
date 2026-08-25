@@ -284,20 +284,6 @@ void compare_results (ReduceTupleT const& a, ReduceTupleT const& b,
     }
 }
 
-/** Tolerance scale for comparisons that are otherwise required to be bitwise identical
- *
- * -fno-math-errno, which AMReX_SIMD_VECMATH=ON adds, lets the compiler make
- * different inlining and FMA contraction choices per formulation. Two ways of
- * writing the same sum then no longer have to agree bit for bit. Keyed off the
- * flag rather than off AMREX_SIMD_HAS_VECMATH, because the flag is what perturbs
- * the arithmetic, whether or not a vector math library turns out to be reachable.
- */
-#ifdef __NO_MATH_ERRNO__
-constexpr Real bitwise_tol_scale = 4.;
-#else
-constexpr Real bitwise_tol_scale = 0.;
-#endif
-
 void correctness_tests (Geometry const& geom, DistributionMapping const& dm,
                         BoxArray const& ba, Shifts const& shifts)
 {
@@ -315,9 +301,9 @@ void correctness_tests (Geometry const& geom, DistributionMapping const& dm,
         auto const rc = run_variant_c(pc, shifts);
 
         // A, B and B2 evaluate identical arithmetic in identical order
-        compare_results(ra, rb, np, bitwise_tol_scale, "A (SuperParticle) vs B (ptd,i)");
+        compare_results(ra, rb, np, Real(0.), "A (SuperParticle) vs B (ptd,i)");
         auto const rb2 = run_variant_b2(pc, shifts);
-        compare_results(rb2, rb, np, bitwise_tol_scale,
+        compare_results(rb2, rb, np, Real(0.),
                         "B2 (ptd,i by-ref) vs B (ptd,i)");
         // C reassociates the sums across SIMD lanes
         compare_results(rc, rb, np, Real(100.), "C (SIMD) vs B (ptd,i)");

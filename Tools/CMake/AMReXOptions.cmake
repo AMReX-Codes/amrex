@@ -273,11 +273,6 @@ print_option( AMReX_MPI_THREAD_MULTIPLE )
 option( AMReX_SIMD  "Enable SIMD Primitives" OFF)
 print_option( AMReX_SIMD )
 
-cmake_dependent_option( AMReX_SIMD_VECMATH
-   "Let SIMD math functions call a vector math library (adds -fno-math-errno)"  OFF
-   "AMReX_SIMD" OFF)
-print_option( AMReX_SIMD_VECMATH )
-
 option( AMReX_OMP  "Enable OpenMP" OFF)
 print_option( AMReX_OMP )
 

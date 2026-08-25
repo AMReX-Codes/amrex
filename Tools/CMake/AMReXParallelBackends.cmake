@@ -38,41 +38,6 @@ if (AMReX_SIMD)
    foreach(D IN LISTS AMReX_SPACEDIM)
        target_link_libraries(amrex_${D}d PUBLIC vir-simd::vir-simd)
    endforeach()
-
-   # Vector math library for the SIMD math functions in AMReX_Math.H.
-   #
-   # A math function may only be vectorized if the compiler does not have to keep
-   # errno up to date, so -fno-math-errno is needed both here and in every
-   # downstream translation unit that calls amrex::Math with a SIMD argument.
-   if (AMReX_SIMD_VECMATH)
-      include(CheckCXXCompilerFlag)
-
-      check_cxx_compiler_flag("-fno-math-errno" AMReX_HAS_FLAG_NO_MATH_ERRNO)
-      if (AMReX_HAS_FLAG_NO_MATH_ERRNO)
-         foreach(D IN LISTS AMReX_SPACEDIM)
-            target_compile_options(amrex_${D}d
-               PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fno-math-errno>)
-         endforeach()
-      else ()
-         message(WARNING "AMReX_SIMD_VECMATH: ${CMAKE_CXX_COMPILER_ID} does not accept "
-                         "-fno-math-errno. SIMD math functions stay scalar.")
-      endif ()
-
-      # GCC finds the vector variants through the declarations in AMReX_Math.H.
-      # clang ignores those and uses a built-in mapping table instead, which it
-      # only consults with -fveclib.
-      if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
-          AND AMReX_HAS_FLAG_NO_MATH_ERRNO)
-         check_cxx_compiler_flag("-fveclib=libmvec" AMReX_HAS_FLAG_VECLIB_LIBMVEC)
-         if (AMReX_HAS_FLAG_VECLIB_LIBMVEC)
-            foreach(D IN LISTS AMReX_SPACEDIM)
-               target_compile_options(amrex_${D}d
-                  PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fveclib=libmvec>)
-               target_compile_definitions(amrex_${D}d PUBLIC AMREX_SIMD_HAS_VECMATH=1)
-            endforeach()
-         endif ()
-      endif ()
-   endif ()
 endif ()
 
 #
