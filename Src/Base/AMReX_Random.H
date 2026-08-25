@@ -22,6 +22,12 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real one_to_zero (Real v) noexcept { return (v == Real(1)) ? Real(0) : v; }
 
+    //! Convert a [0,1) draw to the left-open (0,1] the same way.  Note that
+    //! this is also correct if the generator reaches 1.0 in violation of its
+    //! own contract, since 1.0 is in range here.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real zero_to_one (Real v) noexcept { return (v == Real(0)) ? Real(1) : v; }
+
     //! Clamp a value into the half-open unit interval [0,1) by pulling an
     //! exact 1.0 down to the largest representable Real below one.  Used
     //! where the generator is natively [0,1) and only needs guarding against
@@ -52,12 +58,11 @@ namespace amrex
     *
     *  \note Since 0.0 is included, the result must not be passed unguarded
     *  to a function that is singular at zero, such as std::log or std::pow
-    *  with a negative exponent.  Note that `1 - amrex::Random()` is \b not
-    *  a way around that: it costs an arithmetic operation and discards
+    *  with a negative exponent.  Draw from amrex::RandomPositive for those
+    *  cases rather than deriving a value with `1 - amrex::Random()`, which is
+    *  \b not equivalent: it costs an arithmetic operation and discards
     *  resolution, because the subtraction is exact only above 0.5 and
-    *  collapses smaller values onto a coarse grid.  Before the upper bound
-    *  above was guaranteed it was unsafe as well, evaluating to exactly 0.0
-    *  whenever Random() returned exactly 1.0.
+    *  collapses smaller values onto a coarse grid.
     *
     */
     Real Random ();
@@ -96,6 +101,98 @@ namespace amrex
         AMREX_IF_ON_HOST((
                 amrex::ignore_unused(random_engine);
                 return Random();
+        ))
+#endif
+    }
+
+    /**
+    * \ingroup amrex_utilities
+    * \brief Generate a pseudo-random real from uniform distribution,
+    *  excluding zero
+    *
+    *  Generates one pseudorandom real number from a uniform
+    *  distribution between 0.0 and 1.0 (0.0 excluded, 1.0 included).
+    *
+    *  This is the counterpart to amrex::Random for samplers that are
+    *  singular at zero, for example
+    *
+    *  \code{.cpp}
+    *      // exponential distribution with mean tau
+    *      Real const t = -tau * std::log(amrex::RandomPositive(engine));
+    *
+    *      // power law with exponent -a
+    *      Real const x = std::pow(amrex::RandomPositive(engine), -a);
+    *  \endcode
+    *
+    *  Prefer this over deriving a non-zero value from amrex::Random by hand
+    *  with `1 - amrex::Random()`, which is lossier for no benefit.  See the
+    *  note on amrex::Random.
+    *
+    *  \note If all you need is a normally distributed value, use
+    *  amrex::RandomNormal rather than a hand-rolled Box-Muller transform on
+    *  top of this function.  It is faster (on GPU it is the vendor's own
+    *  normal generator, and it does not consume two uniforms per deviate) and
+    *  it never touches std::log, so it is unaffected by the endpoint issue
+    *  described above.  Box-Muller written out by hand is only worthwhile
+    *  when the radial variable itself is needed, for instance to truncate a
+    *  Gaussian at a given number of sigma by inverting the radial CDF, or to
+    *  draw an isotropic direction by normalizing a vector of deviates.
+    *
+    *
+    *  There is no accuracy or performance penalty for choosing this interval
+    *  over the half-open [0,1) of amrex::Random.  On CUDA/HIP it is the
+    *  native interval of the underlying generator, so the value is returned
+    *  as drawn; on the host and with SYCL the generator is natively [0,1) and
+    *  only its zero endpoint is relocated to one.  No arithmetic is performed
+    *  on any path, so no resolution is lost and there is nothing that a
+    *  floating-point mode could change: the exclusion of zero holds under
+    *  -ffast-math / --use_fast_math and flush-to-zero alike, because it is
+    *  established by a comparison rather than by a computed bound.
+    *
+    *  The smallest value that can be returned is in every case the smallest
+    *  positive value of the underlying generator, and is therefore
+    *  backend-dependent: roughly 2^-33 in single precision with curand,
+    *  2^-32 with rocrand, and the granularity of the standard library's
+    *  distribution on the host, which for a 32-bit engine is 2^-32 in single
+    *  precision and 2^-64 in double.  All of these are normal numbers, so
+    *  flush-to-zero cannot reach them.
+    *
+    *  \see amrex::Random, amrex::RandomNormal
+    */
+    Real RandomPositive ();
+
+    /// \ingroup amrex_utilities
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real RandomPositive (RandomEngine const& random_engine)
+    {
+#if defined (__SYCL_DEVICE_ONLY__)
+        // oneMKL draws from [0,1); relocating the zero endpoint converts that
+        // to (0,1] with no arithmetic, and stays correct even if the
+        // generator reaches its own upper bound, since 1.0 is in range here
+        mkl::rng::device::uniform<Real> distr;
+        return random_util::zero_to_one(mkl::rng::device::generate(distr, *random_engine.engine));
+#else
+        // (0,1] is the native interval of hiprand/curand, so unlike Random()
+        // this needs no endpoint relocated and no clamp: the draw is
+        // returned exactly as the generator produced it.
+#ifdef BL_USE_FLOAT
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return hiprand_uniform(random_engine.rand_state); ,
+                        return curand_uniform(random_engine.rand_state);
+                )
+        ))
+#else
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return hiprand_uniform_double(random_engine.rand_state); ,
+                        return curand_uniform_double(random_engine.rand_state);
+                )
+        ))
+#endif
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return RandomPositive();
         ))
 #endif
     }
@@ -193,7 +290,7 @@ namespace amrex
             } while (v <= 0.0_rt);
 
             v = v * v * v;
-            u = amrex::Random(random_engine);
+            u = amrex::RandomPositive(random_engine); // std::log(u) below
 
             if (u < 1.0_rt - 0.0331_rt * x * x * x * x) {
                 break;
@@ -215,9 +312,9 @@ namespace amrex
     *  Generates one real number (single or double)
     *  extracted from a Gamma distribution, given the Real parameters alpha and beta.
     *  alpha and beta must both be > 0.
-    *  The CPU version of this function relies on the Standard Template Library
-    *  The GPU version of this function relies is implemented in terms of Random
-    *  and RandomNormal.
+    *  The CPU version of this function relies on the Standard Template Library.
+    *  The GPU version is implemented in terms of amrex::RandomPositive and
+    *  amrex::RandomNormal.
     *
     */
     Real RandomGamma (Real alpha, Real beta);
@@ -232,7 +329,7 @@ namespace amrex
         AMREX_IF_ON_DEVICE((
         if (alpha < 1)
         {
-            Real u = amrex::Random(random_engine);
+            Real u = amrex::RandomPositive(random_engine); // std::pow(u, 1/alpha) below
             return amrex::random_util::RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
         } else {
             return amrex::random_util::RandomGamma_alpha_ge_1(alpha, beta, random_engine);
@@ -294,11 +391,13 @@ namespace amrex
 
     //! \ingroup amrex_utilities
     //! Fill random numbers from uniform distribution.  The interval is not
-    //! uniform across backends the way amrex::Random is: it is [0,1) on the
-    //! CPU, but the GPU paths hand back whatever the vendor bulk generator
-    //! produces, nominally [0,1) for SYCL and (0,1] for CUDA and HIP.  Code
-    //! that depends on either endpoint should guard the values it reads back,
-    //! or draw with amrex::Random instead.
+    //! uniform across backends the way amrex::Random and amrex::RandomPositive
+    //! are: it is [0,1) on the CPU, but the GPU paths hand back whatever the
+    //! vendor bulk generator produces, nominally [0,1) for SYCL and (0,1] for
+    //! CUDA and HIP.  Code that depends on either endpoint should guard the
+    //! values it reads back, or draw with amrex::Random / amrex::RandomPositive
+    //! instead.
+    void FillRandom (Real* p, Long N);
 
     //! \ingroup amrex_utilities
     //! Fill random numbers from normal distribution

@@ -147,6 +147,16 @@ Real Random ()
     return random_util::clamp_below_one(distribution(generators[tid]));
 }
 
+Real RandomPositive ()
+{
+    // Relocating the zero endpoint converts [0,1) to (0,1] with no arithmetic.
+    // Note this needs no clamp: unlike Random(), it stays correct even when the
+    // distribution reaches 1.0 as described above, because 1.0 is in range here.
+    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
+    int tid = OpenMP::get_thread_num();
+    return random_util::zero_to_one(distribution(generators[tid]));
+}
+
 unsigned int RandomPoisson (Real lambda)
 {
     std::poisson_distribution<unsigned int> distribution(lambda);
