@@ -757,9 +757,17 @@ T_Real abs (T_Real const& x)
 #ifdef AMREX_USE_SIMD
 /** Return sine and cosine of every SIMD lane
  *
- * Evaluated as two separate lane loops on purpose: no vector math library offers
- * an auto-vectorizable sincos, because writing both results through pointers
- * stops the vectorizer. Two vector calls still beat one scalar sincos per lane.
+ * Evaluated as two separate calls on purpose, which is not for want of a fused
+ * one: glibc's libmvec has offered a vector sincos on x86-64 since 2.22. Its
+ * vector ABI passes both results as vectors of pointers, though, so the callee
+ * scatters its output one lane at a time, and that costs more than sharing the
+ * argument reduction between the two saves -- measured at roughly 1.4x the time
+ * of two independent vector calls on AVX2. AArch64 does not offer a fused
+ * sincos at all.
+ *
+ * There is no vector sincospi anywhere. AArch64 has separate sinpi and cospi,
+ * which sincospi below could use once a version of this is worth writing per
+ * architecture; x86-64 has no pi-suffixed vector function at all.
  */
 template<typename T_Real>
 requires (amrex::simd::stdx::is_simd_v<T_Real>)
