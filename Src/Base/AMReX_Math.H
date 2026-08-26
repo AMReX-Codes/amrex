@@ -757,17 +757,26 @@ T_Real abs (T_Real const& x)
 #ifdef AMREX_USE_SIMD
 /** Return sine and cosine of every SIMD lane
  *
- * Evaluated as two separate calls on purpose, which is not for want of a fused
- * one: glibc's libmvec has offered a vector sincos on x86-64 since 2.22. Its
- * vector ABI passes both results as vectors of pointers, though, so the callee
- * scatters its output one lane at a time, and that costs more than sharing the
- * argument reduction between the two saves -- measured at roughly 1.4x the time
- * of two independent vector calls on AVX2. AArch64 does not offer a fused
- * sincos at all.
+ * Evaluated with the SIMD library's own sin and cos, which inline into the
+ * caller. This is the one place that does not hand the work to a vector math
+ * library: amrex::Math::sin and amrex::Math::cos do.
  *
- * There is no vector sincospi anywhere. AArch64 has separate sinpi and cospi,
- * which sincospi below could use once a version of this is worth writing per
- * architecture; x86-64 has no pi-suffixed vector function at all.
+ * The difference is what each tends to be used for. A call into a vector math
+ * library is a scheduling barrier, so the surrounding arithmetic cannot overlap
+ * with the transcendental. Where the transcendental dominates a kernel that is
+ * worth paying for, which is why the single-result overloads route. sincos
+ * usually sits in kernels that are mostly other arithmetic instead -- a
+ * rotation, a coordinate transform -- and there the barrier costs more than the
+ * faster transcendental saves: on a quaternion spin rotation, AVX2, one thread
+ * pinned to a core, 3.64 ms this way against 3.94 ms routed.
+ *
+ * For a kernel the transcendental does dominate, call amrex::Math::sin and
+ * amrex::Math::cos separately.
+ *
+ * No fused vector sincos exists to call in any case. glibc's libmvec has one on
+ * x86-64, but its ABI returns both results through vectors of pointers, so the
+ * callee scatters its output a lane at a time -- about 1.4x the time of two
+ * independent vector calls. AArch64 has none, and neither has sincospi.
  */
 template<typename T_Real>
 requires (amrex::simd::stdx::is_simd_v<T_Real>)
@@ -775,8 +784,8 @@ AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincos (T_Real const& x)
 {
     std::pair<T_Real,T_Real> r;
-    r.first  = amrex::Math::sin(x);
-    r.second = amrex::Math::cos(x);
+    r.first  = amrex::simd::stdx::sin(x);
+    r.second = amrex::simd::stdx::cos(x);
     return r;
 }
 
