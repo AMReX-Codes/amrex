@@ -29,6 +29,12 @@ struct gpu_tuple_element
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_element () requires (std::is_default_constructible_v<T>) {} // NOLINT
 
+    // This overload is what catches arguments the forwarding constructor below
+    // cannot deduce, a braced initializer list above all. Everything else, both
+    // lvalues and rvalues of T, already goes there. Taking this one by value
+    // would therefore add a move for exactly those callers while saving a copy
+    // for nobody.
+    // NOLINTNEXTLINE(modernize-pass-by-value)
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
         {}
