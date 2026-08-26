@@ -52,10 +52,8 @@ function (setup_test _dim _srcs  _inputs)
 
    target_link_libraries( ${_exe_name} AMReX::amrex_${_dim}d )
 
-   if (AMReX_CUDA)
+   if (AMReX_CUDA OR AMReX_HIP)
       setup_target_for_cuda_compilation( ${_exe_name} )
-   elseif (AMReX_HIP)
-      setup_target_for_hip_compilation( ${_exe_name} )
    endif ()
 
    #

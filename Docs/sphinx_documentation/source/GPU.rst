@@ -451,6 +451,8 @@ environment variable and ``CMAKE_HIP_FLAGS`` options. ``AMReX_AMD_ARCH`` and the
 Application ``.cpp`` sources containing device code must be compiled as HIP.
 After adding all sources to an AMReX-dependent target, call
 ``setup_target_for_hip_compilation(<target>)`` before linking to AMReX.
+The legacy ``setup_target_for_cuda_compilation(<target>)`` entry point is also
+supported and dispatches to the active CUDA or HIP backend.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console

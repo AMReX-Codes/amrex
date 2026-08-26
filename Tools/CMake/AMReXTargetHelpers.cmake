@@ -130,11 +130,9 @@ function (set_cpp_sources_to_hip_language _target)
 endfunction ()
 
 #
-# Setup an amrex-dependent target for cuda compilation.
-# This function ensures that the CUDA compilation of _target
-# is compatible with amrex CUDA build.
+# Actual setup for an amrex-dependent CUDA target.
 #
-function (setup_target_for_cuda_compilation _target)
+function (_setup_target_for_cuda_compilation _target)
    set_target_properties( ${_target}
       PROPERTIES
       CUDA_SEPARABLE_COMPILATION ${AMReX_GPU_RDC}      # This adds -dc
@@ -170,4 +168,19 @@ function (setup_target_for_hip_compilation _target)
       PROPERTIES
       HIP_ARCHITECTURES "${AMReX_AMD_ARCH}"
    )
+endfunction ()
+
+#
+# Compatibility entry point for setting up an amrex-dependent GPU target.
+# Dispatch to the native CUDA or HIP setup selected by the AMReX build.
+#
+function (setup_target_for_cuda_compilation _target)
+   if (AMReX_CUDA)
+      _setup_target_for_cuda_compilation(${_target})
+   elseif (AMReX_HIP)
+      setup_target_for_hip_compilation(${_target})
+   else ()
+      message(FATAL_ERROR
+         "setup_target_for_cuda_compilation requires an AMReX CUDA or HIP build")
+   endif ()
 endfunction ()

@@ -54,10 +54,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        ${_input_dir}/Prob.H
     )
 
-    if (AMReX_CUDA)
+    if (AMReX_CUDA OR AMReX_HIP)
        setup_target_for_cuda_compilation(install_test_${D}d)
-    elseif (AMReX_HIP)
-       setup_target_for_hip_compilation(install_test_${D}d)
     endif ()
 
     set(inputs_path "${_input_dir}/inputs")

@@ -78,16 +78,7 @@ target_sources(install_test
 
 target_link_libraries(install_test PUBLIC AMReX::amrex)
 
-# Additional CUDA configuration commands
-if (AMReX_GPU_BACKEND STREQUAL "CUDA")
-    set_target_properties(install_test PROPERTIES
-        LANGUAGE CUDA
-        CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
-        CUDA_SEPARABLE_COMPILATION  ON)
-
-    get_target_property(Source_Files install_test SOURCES)
-    list(FILTER Source_Files INCLUDE REGEX "\\.cpp$")
-    set_source_files_properties(${Source_Files} PROPERTIES LANGUAGE CUDA)
-elseif (AMReX_GPU_BACKEND STREQUAL "HIP")
-    setup_target_for_hip_compilation(install_test)
+# Additional GPU configuration commands
+if (AMReX_GPU_BACKEND STREQUAL "CUDA" OR AMReX_GPU_BACKEND STREQUAL "HIP")
+    setup_target_for_cuda_compilation(install_test)
 endif()
