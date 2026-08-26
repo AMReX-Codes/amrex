@@ -529,7 +529,9 @@ Test (MPI_Request& request, int& flag, MPI_Status& status)
 void
 Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status)
 {
-    BL_MPI_REQUIRE( MPI_Testall(request.size(), request.data(), &flag, status.data()) );
+    if (!request.empty()) {
+        BL_MPI_REQUIRE( MPI_Testall(request.size(), request.data(), &flag, status.data()) );
+    }
 }
 
 void
