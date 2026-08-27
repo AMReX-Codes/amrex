@@ -355,7 +355,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
 
     ebnodefdlap_detail::Row row;
     row.val[0] = diag * scale;
-    row.node[0] = Dim3{i,j,k};
+    row.node[0] = Dim3{.x=i, .y=j, .z=k};
     row.n = 1;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         int const di = (idim == 0) ? 1 : 0;
@@ -365,8 +365,8 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
             int const slot = 2*idim + side;
             if (used[slot]) {
                 row.val[row.n] = coef[slot] * scale;
-                row.node[row.n] = (side == 0) ? Dim3{i-di,j-dj,k-dk}
-                                              : Dim3{i+di,j+dj,k+dk};
+                row.node[row.n] = (side == 0) ? Dim3{.x=i-di, .y=j-dj, .z=k-dk}
+                                              : Dim3{.x=i+di, .y=j+dj, .z=k+dk};
                 ++row.n;
             }
         }
