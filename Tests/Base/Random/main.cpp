@@ -3,6 +3,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <random>
@@ -45,7 +46,13 @@ void test_endpoint_guard ()
     // The clamp must be a no-op on every value that is already in range.
     AMREX_ALWAYS_ASSERT(random_util::clamp_below_one(Real(0)) == Real(0));
     AMREX_ALWAYS_ASSERT(random_util::clamp_below_one(Real(0.5)) == Real(0.5));
+    // Check the constant the clamp is built on against std::nextafter, which
+    // is what it is meant to reproduce but cannot call in device code. Doing
+    // this here rather than in the header is the point: it is an independent
+    // check on every platform CI builds for, not the same expression twice.
     Real const below_one = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
+    AMREX_ALWAYS_ASSERT(below_one == std::nextafter(Real(1), Real(0)));
+
     AMREX_ALWAYS_ASSERT(random_util::clamp_below_one(below_one) == below_one);
 
     // The clamped upper bound is the largest Real below one, so nothing is

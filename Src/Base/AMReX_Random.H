@@ -38,9 +38,15 @@ namespace amrex
     Real clamp_below_one (Real v) noexcept
     {
         // The constexpr equivalent of std::nextafter(Real(1), Real(0)), which
-        // is not available in device code.
+        // is not available in device code.  That this really is the immediate
+        // predecessor of one follows from the two assertions below: it is less
+        // than one, and the midpoint between it and one already rounds to one,
+        // so no Real lies in between.  Tests/Base/Random additionally checks it
+        // against std::nextafter itself on the host.
         constexpr Real almost_one
             = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
+        static_assert(almost_one < Real(1));
+        static_assert(Real(1) - Real(0.25)*std::numeric_limits<Real>::epsilon() == Real(1));
         // No generator produces NaN, but note this maps it to almost_one
         // rather than propagating it, since the comparison is false for NaN.
         return (v < almost_one) ? v : almost_one;
