@@ -122,7 +122,7 @@ endif ()
 set_mininum_compiler_version(CXX GNU 11.0)
 set_mininum_compiler_version(CXX Clang 14.0)
 set_mininum_compiler_version(CXX AppleClang 14.0)
-set_mininum_compiler_version(CXX MSVC 19.34)
+set_mininum_compiler_version(CXX MSVC 19.44)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

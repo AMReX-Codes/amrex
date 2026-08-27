@@ -29,7 +29,7 @@ The minimum toolchain versions we target for C++20 builds are:
 
 * GCC 11 or newer (for both host builds and CUDA host compilers).
 * LLVM Clang 14 or newer, including AppleClang 14 on macOS.
-* Microsoft Visual Studio 2022 (MSVC 19.34 / 17.4) or newer.
+* Microsoft Visual Studio 2022 (MSVC 19.44 / 17.14) or newer.
 * NVIDIA CUDA Toolkit 12.2 or newer.
 * AMD ROCm/HIP 6.0 or newer.
 * Intel oneAPI DPC++ 2025.2 or newer.
