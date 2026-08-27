@@ -2,7 +2,7 @@ amrex.throw_exception = 1  # throw C++ exceptions on AMReX errors
 amrex.signal_handling = 0  # disable AMReX signal handlers
 
 npts = 32            # number of cell centers in the 1D domain
-max_grid_size = 32   # maximum number of cells per grid box
+max_grid_size = 16   # maximum number of cells per grid box
 xlen = 32.e-9        # physical domain length
 
 lambda = 70.e0       # thermal conductivity
