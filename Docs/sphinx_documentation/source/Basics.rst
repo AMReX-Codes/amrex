@@ -3449,8 +3449,8 @@ depends on what you do with the result:
    +----------------------------------+------------+-----------------------------------------+
    | Function                         | Interval   | Use for                                 |
    +==================================+============+=========================================+
-   | :cpp:`amrex::Random()`           | ``[0,1)``  | indices, positions within a cell,       |
-   |                                  |            | rejection tests                         |
+   | :cpp:`amrex::Random()`           | ``[0,1)``  | positions within a cell, rejection      |
+   |                                  |            | tests, general uniform sampling         |
    +----------------------------------+------------+-----------------------------------------+
    | :cpp:`amrex::RandomPositive()`   | ``(0,1]``  | anything singular at zero:              |
    |                                  |            | ``log(u)``, ``1/u``, ``pow(u,-a)``      |
@@ -3459,16 +3459,14 @@ depends on what you do with the result:
 Both endpoints matter in practice, and each generator excludes the one that is
 dangerous for its intended use.
 
-:cpp:`amrex::Random` excludes the upper endpoint, so that
-:cpp:`int(N*amrex::Random())` is always a valid index into an array of length
-``N`` -- the product cannot round up to ``N``.  It *includes* zero.
+:cpp:`amrex::Random` excludes the upper endpoint and *includes* zero.
 
 Note that the guarantee is on the value :cpp:`amrex::Random` returns, not on
 whatever is computed from it.  Arithmetic downstream can still round onto a
 boundary: :cpp:`problo + amrex::Random()*dx` may evaluate to exactly the upper
 face of the cell, since the rounded sum can land there even though the draw is
-strictly below one.  Code that needs a coordinate strictly inside the cell must
-guard the final value, not just the draw.
+strictly below one.  Code that needs a value strictly inside a range must
+therefore guard the result of the computation, not rely on the draw alone.
 
 :cpp:`amrex::RandomPositive` excludes the lower endpoint, so that the result can
 be passed straight to a function that is singular at zero:
