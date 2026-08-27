@@ -15,9 +15,9 @@ dt = 1.e-12          # time step used when cfl <= 0
 cfl = 0.1e0          # if positive, set dt from cfl*dx*dx/(2*kappa)
 dorand = 1.0e0       # scale factor on the stochastic flux noise; 0 disables fluctuations
 scheme = 1           # time integrator: 0 forward Euler, 1 predictor-corrector
-nstep = 10000        # number of production steps after thermalization
-ntherm = 1000         # number of initial steps skipped by diagnostics
-nout = 10000         # diagnostic output interval after thermalization
+nstep = 5000         # number of production steps after thermalization
+ntherm = 500          # number of initial steps skipped by diagnostics
+nout = 5000          # diagnostic output interval after thermalization
 nstat = 1            # statistics accumulation interval after thermalization
 variance_check = 1   # check average variance against equilibrium theory when diagnostics are built
 variance_check_rel_tol = 0.1  # relative tolerance for the variance check
