@@ -653,10 +653,30 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                                MultiFab& sol, Location /*loc*/) const
 {
     BL_PROFILE("MLEBNodeFDLaplacian::compGrad()");
+    if (amrex::isMFIterSafe(*grad[0], sol)) {
+        this->compGrad_doit(amrlev, grad, sol);
+    } else {
+        Array<MultiFab,AMREX_SPACEDIM> grad_tmp;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            grad_tmp[idim].define(amrex::convert(sol.boxArray(), grad[idim]->ixType()),
+                                  sol.DistributionMap(), 1, 0,
+                                  MFInfo{}.SetArena(The_Async_Arena()));
+        }
+        this->compGrad_doit(amrlev, GetArrOfPtrs(grad_tmp), sol);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            grad[idim]->ParallelCopy(grad_tmp[idim], 0, 0, 1);
+        }
+    }
+}
 
+void
+MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                                    MultiFab& sol) const
+{
     AMREX_ASSERT(AMREX_D_TERM(grad[0]->ixType() == IndexType(IntVect(AMREX_D_DECL(0,1,1))),
                            && grad[1]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,0,1))),
                            && grad[2]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,1,0)))));
+
     const int mglev = 0;
     AMREX_D_TERM(const auto dxi = m_geom[amrlev][mglev].InvCellSize(0);,
                  const auto dyi = m_geom[amrlev][mglev].InvCellSize(1);,
