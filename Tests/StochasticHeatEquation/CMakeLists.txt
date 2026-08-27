@@ -1,7 +1,11 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 1)
         set(_sources main.cpp)
-        set(_input_files inputs)
+        if (AMReX_GPU_BACKEND STREQUAL NONE)
+            set(_input_files inputs-ci)
+        else ()
+            set(_input_files inputs-ci-gpu)
+        endif ()
 
         setup_test(${D} _sources _input_files BASE_NAME StochasticHeatEquation)
 

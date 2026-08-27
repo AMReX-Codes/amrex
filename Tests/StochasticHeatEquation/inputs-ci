@@ -1,0 +1,43 @@
+amrex.throw_exception = 1  # throw C++ exceptions on AMReX errors
+amrex.signal_handling = 0  # disable AMReX signal handlers
+
+npts = 32            # number of cell centers in the 1D domain
+max_grid_size = 32   # maximum number of cells per grid box
+xlen = 32.e-9        # physical domain length
+
+lambda = 70.e0       # thermal conductivity
+rho = 7870.e0        # mass density
+cv = 450.e0          # specific heat capacity
+crossA = 4.e-18      # cross-sectional area for stochastic flux scaling
+iopt = 2             # reservoir-face noise state: 1 boundary, 2 interior
+
+dt = 1.e-12          # time step used when cfl <= 0
+cfl = 0.1e0          # if positive, set dt from cfl*dx*dx/(2*kappa)
+dorand = 1.0e0       # scale factor on the stochastic flux noise; 0 disables fluctuations
+scheme = 1           # time integrator: 0 forward Euler, 1 predictor-corrector
+nstep = 10000        # number of production steps after thermalization
+ntherm = 1000         # number of initial steps skipped by diagnostics
+nout = 10000         # diagnostic output interval after thermalization
+nstat = 1            # statistics accumulation interval after thermalization
+variance_check = 1   # check average variance against equilibrium theory when diagnostics are built
+variance_check_rel_tol = 0.1  # relative tolerance for the variance check
+variance_check_min_samples = 1000  # skip variance check before this many samples
+icor = 1             # 1-based reference cell index for correlations
+ensout = 1           # output every ensout ensemble realizations
+
+seed = 1022349098    # random-number seed
+
+uinit = 300.         # initial state outside the middle region
+jmidl = 9            # 1-based first cell in the middle region
+jmidr = 24           # 1-based last cell in the middle region
+midfact = 1.0e0      # multiplier applied to uinit in the middle region
+iresr = 0            # right reservoir flag when non-periodic: 0 off, 1 on
+iresl = 0            # left reservoir flag when non-periodic: 0 off, 1 on
+iper = 1             # x-boundary periodicity flag: 1 periodic, 0 physical
+uleft = 300.         # left reservoir state for non-periodic boundaries
+uright = 300.        # right reservoir state for non-periodic boundaries
+ensemble = 1         # number of ensemble realizations
+
+ipdf = 0             # enable PDF histogram output when nonzero
+write_ascii = 0      # write ASCII diagnostic data files when nonzero
+plot_int = -1        # plotfile output interval; <= 0 disables plotfiles
