@@ -1,6 +1,7 @@
 #ifndef AMREX_BL_BACKTRACE_H_
 #define AMREX_BL_BACKTRACE_H_
 #include <AMReX_Config.H>
+#include <AMReX_Extension.H>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
@@ -29,7 +30,10 @@
  *
  * \param S String literal describing the scope (e.g., function name).
  */
-#define BL_BACKTRACE_PUSH( S )  amrex::BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
+#define BL_BACKTRACE_PUSH( S )                                          \
+    AMREX_COUNTER_WARNING_PUSH                                          \
+    amrex::BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ ) \
+    AMREX_COUNTER_WARNING_POP
 /**
  * \def BL_BACKTRACE_POP()
  * \brief Manually pop the top entry from the backtrace stack.

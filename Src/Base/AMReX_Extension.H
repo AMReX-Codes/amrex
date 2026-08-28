@@ -168,6 +168,28 @@
 #define AMREX_UNROLL_LOOP(n)
 #endif
 
+// __COUNTER__
+//
+// __COUNTER__ has been a de-facto extension in all compilers AMReX supports for
+// a very long time, but it was only recently adopted into C2y.  Clang 22 and
+// later therefore diagnose it as a C2y extension under -Wpedantic, even in C++
+// (https://github.com/llvm/llvm-project/issues/196557).  Bracket a use of
+// __COUNTER__ with these macros to silence that diagnostic.  The nested
+// -Wunknown-warning-option suppression keeps older Clang, which does not know
+// -Wc2y-extensions, quiet as well.
+
+#if defined(__clang__)
+#define AMREX_COUNTER_WARNING_PUSH                                        \
+    _Pragma("clang diagnostic push")                                      \
+    _Pragma("clang diagnostic ignored \"-Wunknown-warning-option\"")      \
+    _Pragma("clang diagnostic ignored \"-Wc2y-extensions\"")
+#define AMREX_COUNTER_WARNING_POP                                         \
+    _Pragma("clang diagnostic pop")
+#else
+#define AMREX_COUNTER_WARNING_PUSH
+#define AMREX_COUNTER_WARNING_POP
+#endif
+
 // __attribute__((weak))
 
 #if defined(AMREX_TYPECHECK)
@@ -233,7 +255,15 @@
 //   - MSVC >= 19.20
 //   - nvcc >= 11.1.0
 //   - icx >= 2021.1.2
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
+//
+// [[assume]] itself is C++23.  Clang >= 19 and GCC >= 13 advertise it through
+// __has_cpp_attribute in older language modes as well, and Clang then diagnoses
+// every use as a C++23 extension under -Wpedantic
+// (-Wc++23-attribute-extensions).  So only take the attribute when the language
+// mode really is C++23 and rely on the compiler-specific spellings below
+// otherwise; they carry the same information to the optimizer.
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume) >= 202207L && \
+    defined(__cplusplus) && __cplusplus >= 202302L
 #   define AMREX_ASSUME(ASSUMPTION) [[assume(ASSUMPTION)]]
 #else
 #   if defined(__CUDA_ARCH__) && defined(__CUDACC__)
@@ -242,6 +272,9 @@
 #       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
 #   elif defined(_MSC_VER)
 #       define AMREX_ASSUME(ASSUMPTION) __assume(ASSUMPTION)
+#   elif defined(__GNUC__) && __GNUC__ >= 13
+        // like [[assume]], this does not evaluate ASSUMPTION
+#       define AMREX_ASSUME(ASSUMPTION) __attribute__((assume(ASSUMPTION)))
 #   elif defined(__GNUC__)
 #       define AMREX_ASSUME(ASSUMPTION) \
             do { if (!(ASSUMPTION)) { __builtin_unreachable(); } } while (0)

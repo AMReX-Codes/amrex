@@ -2,6 +2,8 @@
 #define BL_PROFILER_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
+
 #define BL_PROFILE_PASTE2(x, y) x##y
 #define BL_PROFILE_PASTE(x, y) BL_PROFILE_PASTE2(x, y)
 
@@ -484,7 +486,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_MEMORYINITIALIZE()  amrex::TinyProfiler::MemoryInitialize()
 #define BL_TINY_PROFILE_MEMORYFINALIZE()    amrex::TinyProfiler::MemoryFinalize()
 
-#define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
+#define BL_PROFILE(fname)                       \
+    AMREX_COUNTER_WARNING_PUSH                  \
+    BL_PROFILE_IMPL(fname, __COUNTER__)         \
+    AMREX_COUNTER_WARNING_POP
 #define BL_PROFILE_IMPL(funame, counter)  amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_, counter)((funame)); \
     amrex::ignore_unused(BL_PROFILE_PASTE(tiny_profiler_, counter));
 
