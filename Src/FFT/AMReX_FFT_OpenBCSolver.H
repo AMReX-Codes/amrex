@@ -67,6 +67,29 @@ public:
      */
     [[nodiscard]] IntVect const& PaddedLength () const { return m_padded_length; }
 
+    /**
+     * \brief Access the spectral Green's function held by this solver.
+     *
+     * This lets a caller keep its own set of Green's functions and move them into and
+     * out of the solver, for instance with std::swap, instead of recomputing them with
+     * setGreensFunction(). Since solve() only reads the spectral Green's function, one
+     * moved in this way needs no further preparation.
+     *
+     * \note In 2D, this is an alias of the Green's function R2C's spectral data.
+     *       Callers may write through it, but must not swap or otherwise re-seat it,
+     *       because a later setGreensFunction() writes into the aliased array.
+     *
+     * \return The spectral Green's function.
+     */
+    [[nodiscard]] cMF& greensFunctionFFT () noexcept { return m_G_fft; }
+
+    /**
+     * \brief Access the spectral Green's function held by this solver.
+     *
+     * \return The spectral Green's function.
+     */
+    [[nodiscard]] cMF const& greensFunctionFFT () const noexcept { return m_G_fft; }
+
 private:
     static IntVect make_padded_length (Box const& domain, Info const& info);
     static Box make_grown_domain (Box const& domain, IntVect const& padded_len,
