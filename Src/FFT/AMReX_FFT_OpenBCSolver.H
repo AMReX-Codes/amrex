@@ -75,7 +75,7 @@ public:
      * setGreensFunction(). Since solve() only reads the spectral Green's function, one
      * moved in this way needs no further preparation.
      *
-     * \note In two-d mode this is an alias of the Green's function R2C's spectral data.
+     * \note In 2D, this is an alias of the Green's function R2C's spectral data.
      *       Callers may write through it, but must not swap or otherwise re-seat it,
      *       because a later setGreensFunction() writes into the aliased array.
      *
