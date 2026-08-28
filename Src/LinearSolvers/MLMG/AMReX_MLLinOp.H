@@ -38,7 +38,7 @@ namespace amrex {
  */
 
 enum class BottomSolver : int {
-    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc, custom
 };
 
 /**
@@ -322,6 +322,15 @@ public:
     [[nodiscard]] bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
 
     [[nodiscard]] virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+
+    [[nodiscard]] virtual bool supportCustomBottomSolver () const { return false; }
+
+    virtual void customBottomSolve (MLMGT<MF>* mlmg, MF& x, const MF& b,
+                                    RT eps_rel, RT eps_abs, int maxiter)
+    {
+        amrex::ignore_unused(mlmg, x, b, eps_rel, eps_abs, maxiter);
+        amrex::Abort("customBottomSolve not implemented");
+    }
 
     //! Return number of components
     [[nodiscard]] virtual int getNComp () const { return 1; }
