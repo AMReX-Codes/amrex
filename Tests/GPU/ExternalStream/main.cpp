@@ -3,6 +3,11 @@
 #include <AMReX_Print.H>
 #include <AMReX_Reduce.H>
 
+#ifdef AMREX_TEST_LINEAR_SOLVERS
+#include <AMReX_MLMG.H>
+#include <AMReX_MLPoisson.H>
+#endif
+
 using namespace amrex;
 
 namespace {
@@ -143,6 +148,45 @@ void test_mfiter_and_reducer (gpuStream_t external)
     AMREX_ALWAYS_ASSERT(expected == device_sum);
 }
 
+#ifdef AMREX_TEST_LINEAR_SOLVERS
+void test_mlmg_lifetime (gpuStream_t external)
+{
+    constexpr int ncell = 16;
+    Box domain(IntVect(AMREX_D_DECL(0,0,0)),
+               IntVect(AMREX_D_DECL(ncell-1, ncell-1, ncell-1)));
+    RealBox real_box({AMREX_D_DECL(0.0, 0.0, 0.0)},
+                     {AMREX_D_DECL(1.0, 1.0, 1.0)});
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Geometry geom(domain, real_box, CoordSys::cartesian, is_periodic);
+    BoxArray ba(domain);
+    ba.maxSize(8);
+    DistributionMapping dm(ba);
+
+    MultiFab solution(ba, dm, 1, 1);
+    MultiFab rhs(ba, dm, 1, 0);
+    solution.setVal(0.0);
+    rhs.setVal(1.0);
+
+    MLPoisson linop({geom}, {ba}, {dm});
+    linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)},
+                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)});
+    linop.setLevelBC(0, &solution);
+
+    // MLMG owns persistent work arrays that outlive solve().  They must not
+    // inherit the external stream used only for this solve.
+    MLMG mlmg(linop);
+    {
+        Gpu::ExternalGpuStreamRegion guard(
+            external, Gpu::ExternalStreamSync::Yes);
+        mlmg.solve({&solution}, {&rhs}, 1.e-10, 0.0);
+    }
+}
+#endif
+
 void run_external_stream_tests ()
 {
     gpuStream_t external = make_external_stream();
@@ -151,6 +195,9 @@ void run_external_stream_tests ()
     test_explicit_reset(external);
     test_nested_external_stream_region(external, nested_external);
     test_mfiter_and_reducer(external);
+#ifdef AMREX_TEST_LINEAR_SOLVERS
+    test_mlmg_lifetime(external);
+#endif
     destroy_external_stream(nested_external);
     destroy_external_stream(external);
     amrex::Print() << "External GPU stream override test completed.\n";

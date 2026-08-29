@@ -1696,7 +1696,9 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
     }
 
     fa.os_temp = std::make_unique< FabArray<FAB> > ( fa.boxArray(), fa.DistributionMap(),
-                                                     ncomp, 0, MFInfo(), fa.Factory() );
+                                                     ncomp, 0,
+                                                     MFInfo().SetArena(The_Async_Arena()),
+                                                     fa.Factory() );
     fa.os_temp->setVal(0);
     fa.os_temp->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
 }
