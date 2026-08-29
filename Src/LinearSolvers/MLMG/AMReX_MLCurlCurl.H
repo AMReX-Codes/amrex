@@ -243,7 +243,7 @@ public:
     //! Allocate an \p MF on (\p amrlev,\p mglev) with grow cells \p ng.
     [[nodiscard]] MF make (int amrlev, int mglev, IntVect const& ng) const override;
     [[nodiscard]] MF make (int amrlev, int mglev, IntVect const& ng,
-                           MFInfo const& info) const override;
+                           MFInfo const& mf_info) const override;
 
     //! Create a shallow alias of \p mf (no allocation).
     [[nodiscard]] MF makeAlias (MF const& mf) const override;
@@ -252,13 +252,13 @@ public:
     //! AMR level \p amrlev with grow cells \p ng.
     [[nodiscard]] MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const override;
     [[nodiscard]] MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
-                                   MFInfo const& info) const override;
+                                   MFInfo const& mf_info) const override;
 
     //! Allocate an \p MF on the next coarser AMR level (\p famrlev-1)
     //! with grow cells \p ng.
     [[nodiscard]] MF makeCoarseAmr (int famrlev, IntVect const& ng) const override;
     [[nodiscard]] MF makeCoarseAmr (int famrlev, IntVect const& ng,
-                                    MFInfo const& info) const override;
+                                    MFInfo const& mf_info) const override;
 
 // public for cuda
 

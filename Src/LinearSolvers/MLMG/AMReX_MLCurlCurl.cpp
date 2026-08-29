@@ -985,12 +985,12 @@ MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng) const
 }
 
 Array<MultiFab,3>
-MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& info) const
+MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& mf_info) const
 {
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(this->m_grids[amrlev][mglev], m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng, info,
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng, mf_info,
                        *(this->m_factory)[amrlev][mglev]);
     }
     return r;
@@ -1014,7 +1014,7 @@ MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 
 Array<MultiFab,3>
 MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
-                          MFInfo const& info) const
+                          MFInfo const& mf_info) const
 {
     BoxArray cba = this->m_grids[amrlev][mglev];
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[mglev];
@@ -1023,7 +1023,7 @@ MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng, info);
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng, mf_info);
     }
     return r;
 }
@@ -1035,7 +1035,7 @@ MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng) const
 }
 
 Array<MultiFab,3>
-MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& info) const
+MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& mf_info) const
 {
     BoxArray cba = this->m_grids[famrlev][0];
     IntVect ratio(this->AMRRefRatio(famrlev-1));
@@ -1044,7 +1044,7 @@ MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& info) c
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[famrlev][0], m_ncomp, ng, info);
+                       this->m_dmap[famrlev][0], m_ncomp, ng, mf_info);
     }
     return r;
 }

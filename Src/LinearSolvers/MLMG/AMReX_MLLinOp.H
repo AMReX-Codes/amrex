@@ -979,7 +979,7 @@ protected:
 
     //! As above, with caller-selected allocation metadata for temporary storage.
     [[nodiscard]] virtual MF make (int amrlev, int mglev, IntVect const& ng,
-                                   MFInfo const& info) const;
+                                   MFInfo const& mf_info) const;
 
     [[nodiscard]] virtual MF makeAlias (MF const& mf) const;
 
@@ -988,14 +988,14 @@ protected:
 
     //! As above, with caller-selected allocation metadata for temporary storage.
     [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
-                                           MFInfo const& info) const;
+                                           MFInfo const& mf_info) const;
 
     //! Allocate an \p MF on the next coarser AMR level (\p famrlev-1) with grow cells \p ng.
     [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
 
     //! As above, with caller-selected allocation metadata for temporary storage.
     [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng,
-                                            MFInfo const& info) const;
+                                            MFInfo const& mf_info) const;
 
     [[nodiscard]] virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<DefaultFabFactory<FAB>>();
@@ -1800,11 +1800,11 @@ MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng) const
 
 template <typename MF>
 MF
-MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& info) const
+MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& mf_info) const
 {
     if constexpr (IsMultiFabLike_v<MF>) {
         return MF(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
-                  m_dmap[amrlev][mglev], getNComp(), ng, info,
+                  m_dmap[amrlev][mglev], getNComp(), ng, mf_info,
                   *m_factory[amrlev][mglev]);
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
@@ -1836,14 +1836,14 @@ MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 template <typename MF>
 MF
 MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
-                            MFInfo const& info) const
+                            MFInfo const& mf_info) const
 {
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[amrlev][mglev];
         IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng, info);
+        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng, mf_info);
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
         amrex::Abort("MLLinOpT::makeCoarseMG: how did we get here?");
@@ -1860,14 +1860,14 @@ MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng) const
 
 template <typename MF>
 MF
-MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& info) const
+MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& mf_info) const
 {
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[famrlev][0];
         IntVect ratio(AMRRefRatioVect(famrlev-1));
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[famrlev][0], getNComp(), ng, info);
+        return MF(cba, m_dmap[famrlev][0], getNComp(), ng, mf_info);
     } else {
         amrex::ignore_unused(famrlev, ng);
         amrex::Abort("MLLinOpT::makeCoarseAmr: how did we get here?");
