@@ -121,6 +121,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_EB)
       add_subdirectory("EB/CNS")
+      add_subdirectory("EB_WMLES")
    endif()
 
    if (AMReX_LINEAR_SOLVERS)
@@ -145,7 +146,7 @@ else()
    endif ()
 
    if (AMReX_EB)
-      list(APPEND AMREX_TESTS_SUBDIRS EB)
+      list(APPEND AMREX_TESTS_SUBDIRS EB EB_WMLES)
    endif ()
 
    if (AMReX_LINEAR_SOLVERS)
