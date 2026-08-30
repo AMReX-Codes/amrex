@@ -4,7 +4,7 @@
 #include "WMLES_index_macros.H"
 #include "WMLES.H"
 #include "WMLES_parm.H"
-#include "WMLES.Hydro_K.H"
+#include "WMLES_hydro_K.H"
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 

@@ -1,6 +1,6 @@
 
 #include <WMLES.H>
-#include <WMLES.Hydro_K.H>
+#include <WMLES_hydro_K.H>
 #include <WMLES_diffusion_K.H>
 
 #include <AMReX_EBFArrayBox.H>

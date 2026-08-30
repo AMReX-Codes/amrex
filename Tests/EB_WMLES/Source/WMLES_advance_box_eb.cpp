@@ -1,7 +1,7 @@
 
 #include <WMLES.H>
-#include <WMLES.Hydro_K.H>
-#include <WMLES.Hydro_eb_K.H>
+#include <WMLES_hydro_K.H>
+#include <WMLES_hydro_eb_K.H>
 #include <WMLES_divop_K.H>
 #include <WMLES_diffusion_eb_K.H>
 
