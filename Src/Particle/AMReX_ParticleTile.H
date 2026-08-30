@@ -20,16 +20,16 @@
 namespace amrex {
 
 // Forward Declaration
-template <int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt, class T_RealType=ParticleReal>
 struct ConstSoAParticle;
-template <int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt, class T_RealType>
 struct SoAParticle;
 
-template <typename T_ParticleType, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt, class T_RealType=ParticleReal>
 struct ConstParticleTileData;
 
 /// \ingroup amrex_particles
-template <typename T_ParticleType, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt, class T_RealType=ParticleReal>
 struct ParticleTileData
 {
     static constexpr int NAR = NArrayReal;
@@ -37,8 +37,8 @@ struct ParticleTileData
 
     using ParticleType = T_ParticleType;
     using ParticleRefType = T_ParticleType&;
-    using Self = ParticleTileData<ParticleType, NAR, NAI>;
-    using RealType = ParticleReal;
+    using RealType = T_RealType;
+    using Self = ParticleTileData<ParticleType, NAR, NAI, RealType>;
     using IntType = int;
 
     static constexpr int NStructReal = ParticleType::NReal;
@@ -55,12 +55,12 @@ struct ParticleTileData
     AOS_PTR m_aos;
 
     uint64_t* m_idcpu;
-    GpuArray<ParticleReal*, NAR> m_rdata;
+    GpuArray<RealType*, NAR> m_rdata;
     GpuArray<int*, NAI> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
+    RealType* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -104,7 +104,7 @@ struct ParticleTileData
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleReal * rdata (const int attribute_index) const
+    RealType * rdata (const int attribute_index) const
     {
         return this->m_rdata[attribute_index];
     }
@@ -121,7 +121,7 @@ struct ParticleTileData
         if constexpr (!ParticleType::is_soa_particle) {
             return m_aos[index];
         } else {
-            return SoAParticle<NAR, NAI>(*this, index);
+            return SoAParticle<NAR, NAI, RealType>(*this, index);
         }
     }
 
@@ -146,8 +146,8 @@ struct ParticleTileData
         {
             if (comm_real[array_start_index + i])
             {
-                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
+                memcpy(dst, m_rdata[i] + src_index, sizeof(RealType));
+                dst += sizeof(RealType);
             }
         }
         int runtime_start_index  = array_start_index + NAR;
@@ -155,8 +155,8 @@ struct ParticleTileData
         {
             if (comm_real[runtime_start_index + i])
             {
-                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
+                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(RealType));
+                dst += sizeof(RealType);
             }
         }
         array_start_index  = 2 + NStructInt;
@@ -201,8 +201,8 @@ struct ParticleTileData
             {
                 if (comm_real[array_start_index + i])
                 {
-                    memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
-                    src += sizeof(ParticleReal);
+                    memcpy(m_rdata[i] + dst_index, src, sizeof(RealType));
+                    src += sizeof(RealType);
                 }
             }
         }
@@ -211,8 +211,8 @@ struct ParticleTileData
         {
             if (comm_real[runtime_start_index + i])
             {
-                memcpy(m_runtime_rdata[i] + dst_index, src, sizeof(ParticleReal));
-                src += sizeof(ParticleReal);
+                memcpy(m_runtime_rdata[i] + dst_index, src, sizeof(RealType));
+                src += sizeof(RealType);
             }
         }
         array_start_index  = 2 + NStructInt;
@@ -322,18 +322,18 @@ struct ParticleTileData
 };
 
 // SOA Particle Structure
-template <int T_NArrayReal, int T_NArrayInt>
+template <int T_NArrayReal, int T_NArrayInt, class T_RealType>
 struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
     using StorageParticleType = SoAParticleBase;
-    using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
+    using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt, T_RealType>;
     static constexpr bool is_soa_particle = true;
     static constexpr bool is_rtsoa_particle = false;
     static constexpr bool is_constsoa_particle = true;
 
-    using RealType = ParticleReal;
+    using RealType = T_RealType;
     using IntType = int;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -386,19 +386,19 @@ struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
     int m_index;
 };
 
-template <int T_NArrayReal, int T_NArrayInt>
+template <int T_NArrayReal, int T_NArrayInt, class T_RealType>
 struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
     using StorageParticleType = SoAParticleBase;
-    using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
+    using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt, T_RealType>;
     static constexpr bool is_soa_particle = true;
     static constexpr bool is_rtsoa_particle = false;
     static constexpr bool is_constsoa_particle = false;
 
-    using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;
-    using RealType = ParticleReal;
+    using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt, T_RealType>;
+    using RealType = T_RealType;
     using IntType = int;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -471,11 +471,11 @@ private :
 };
 
 //template <int NArrayReal, int NArrayInt> Long ConstSoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
-template <int NArrayReal, int NArrayInt> Long SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
+template <int NArrayReal, int NArrayInt, class T_RealType> Long SoAParticle<NArrayReal, NArrayInt, T_RealType>::the_next_id = 1;
 
-template <int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt, class T_RealType>
 Long
-SoAParticle<NArrayReal, NArrayInt>::NextID ()
+SoAParticle<NArrayReal, NArrayInt, T_RealType>::NextID ()
 {
     Long next;
 // we should be able to test on _OPENMP < 201107 for capture (version 3.1)
@@ -494,9 +494,9 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
     return next;
 }
 
-template <int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt, class T_RealType>
 Long
-SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
+SoAParticle<NArrayReal, NArrayInt, T_RealType>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
     if (next > LongParticleIds::LastParticleID) {
@@ -505,21 +505,21 @@ SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
     return next;
 }
 
-template <int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt, class T_RealType>
 void
-SoAParticle<NArrayReal, NArrayInt>::NextID (Long nextid)
+SoAParticle<NArrayReal, NArrayInt, T_RealType>::NextID (Long nextid)
 {
     the_next_id = nextid;
 }
 
-template <typename T_ParticleType, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt, class T_RealType>
 struct ConstParticleTileData
 {
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
     using ParticleType = T_ParticleType;
     using ParticleRefType = T_ParticleType const&;
-    using RealType = ParticleReal;
+    using RealType = T_RealType;
     using IntType = int;
 
     static constexpr int NStructReal = ParticleType::NReal;
@@ -536,7 +536,7 @@ struct ConstParticleTileData
     AOS_PTR m_aos;
 
     const uint64_t* m_idcpu;
-    GpuArray<const ParticleReal*, NArrayReal> m_rdata;
+    GpuArray<const RealType*, NArrayReal> m_rdata;
     GpuArray<const int*, NArrayInt > m_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -580,7 +580,7 @@ struct ConstParticleTileData
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ParticleReal * rdata (const int attribute_index) const
+    const RealType * rdata (const int attribute_index) const
     {
         return this->m_rdata[attribute_index];
     }
@@ -597,13 +597,13 @@ struct ConstParticleTileData
         if constexpr (!ParticleType::is_soa_particle) {
             return m_aos[index];
         } else {
-            return ConstSoAParticle<NAR, NAI>(*this, index);
+            return ConstSoAParticle<NAR, NAI, RealType>(*this, index);
         }
     }
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
+    const RealType* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
     const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -628,8 +628,8 @@ struct ConstParticleTileData
             {
                 if (comm_real[array_start_index + i])
                 {
-                    memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-                    dst += sizeof(ParticleReal);
+                    memcpy(dst, m_rdata[i] + src_index, sizeof(RealType));
+                    dst += sizeof(RealType);
                 }
             }
         }
@@ -638,8 +638,8 @@ struct ConstParticleTileData
         {
             if (comm_real[runtime_start_index + i])
             {
-                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
+                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(RealType));
+                dst += sizeof(RealType);
             }
         }
         array_start_index  = 2 + NStructInt;
@@ -783,14 +783,14 @@ struct ParticleTile
 
     using SoA = std::conditional_t<
         ParticleType::is_soa_particle,
-        StructOfArrays<NArrayReal, NArrayInt, Allocator, true>,
-        StructOfArrays<NArrayReal, NArrayInt, Allocator, false>>;
+        StructOfArrays<NArrayReal, NArrayInt, Allocator, true, RealType>,
+        StructOfArrays<NArrayReal, NArrayInt, Allocator, false, RealType>>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
     using StorageParticleType = typename ParticleType::StorageParticleType;
 
-    using ParticleTileDataType = ParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
-    using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
+    using ParticleTileDataType = ParticleTileData<StorageParticleType, NArrayReal, NArrayInt, RealType>;
+    using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt, RealType>;
 
     static constexpr bool has_polymorphic_allocator =
         IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
@@ -1227,7 +1227,7 @@ struct ParticleTile
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
-            nbytes += rdata.capacity() * sizeof(ParticleReal);
+            nbytes += rdata.capacity() * sizeof(RealType);
         }
 
         for (int j = 0; j < NumIntComps(); ++j)
@@ -1581,16 +1581,16 @@ private:
 
     bool m_defined = false;
 
-    amrex::PODVector<ParticleReal*, Allocator<ParticleReal*> > m_runtime_r_ptrs;
+    amrex::PODVector<RealType*, Allocator<RealType*> > m_runtime_r_ptrs;
     amrex::PODVector<int*, Allocator<int*> > m_runtime_i_ptrs;
 
-    mutable amrex::PODVector<const ParticleReal*, Allocator<const ParticleReal*> > m_runtime_r_cptrs;
+    mutable amrex::PODVector<const RealType*, Allocator<const RealType*> > m_runtime_r_cptrs;
     mutable amrex::PODVector<const int*, Allocator<const int*> >m_runtime_i_cptrs;
 
-    amrex::Gpu::HostVector<ParticleReal*> m_h_runtime_r_ptrs;
+    amrex::Gpu::HostVector<RealType*> m_h_runtime_r_ptrs;
     amrex::Gpu::HostVector<int*> m_h_runtime_i_ptrs;
 
-    mutable amrex::Gpu::HostVector<const ParticleReal*> m_h_runtime_r_cptrs;
+    mutable amrex::Gpu::HostVector<const RealType*> m_h_runtime_r_cptrs;
     mutable amrex::Gpu::HostVector<const int*> m_h_runtime_i_cptrs;
 
     RuntimePtrCacheDirtyFlag m_runtime_ptrs_dirty;

@@ -552,9 +552,10 @@ using NeighborParticleContainer =
 
 template <int T_NArrayReal, int T_NArrayInt,
           template<class> class Allocator=DefaultAllocator,
-          class CellAssignor=DefaultAssignor>
+          class CellAssignor=DefaultAssignor,
+          class RType=ParticleReal>
 using NeighborParticleContainerPureSoA =
-    NeighborParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>,
+    NeighborParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt, RType>,
                                    T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 }
