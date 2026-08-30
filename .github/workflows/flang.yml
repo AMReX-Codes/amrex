@@ -1,0 +1,49 @@
+name: LinuxFlang
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-flang
+  cancel-in-progress: true
+
+jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
+  # Build libamrex and its Fortran interfaces with LLVM Flang.
+  # This guards against LLVM-Flang-specific Fortran errors such as #5603.
+  library_flang:
+    name: Flang@20 DP NOMPI Fortran Interfaces [lib]
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    steps:
+    - uses: actions/checkout@v7
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_flang.sh 20
+    - name: Build & Install
+      run: |
+        # The apt.llvm.org packages ship the driver as either flang-<ver>
+        # or flang-new-<ver> depending on the LLVM release.
+        FLANG=$(which flang-20 || which flang-new-20)
+
+        mkdir build
+        cd build
+        cmake ..                                       \
+            -DCMAKE_BUILD_TYPE=Debug                   \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex       \
+            -DAMReX_EB=ON                              \
+            -DAMReX_FORTRAN=ON                         \
+            -DAMReX_FORTRAN_INTERFACES=ON              \
+            -DAMReX_MPI=OFF                            \
+            -DCMAKE_C_COMPILER=$(which clang-20)       \
+            -DCMAKE_CXX_COMPILER=$(which clang++-20)   \
+            -DCMAKE_Fortran_COMPILER=${FLANG}
+        make -j 4
+        make install
+        make test_install
