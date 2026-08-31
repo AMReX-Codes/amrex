@@ -218,7 +218,10 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     // since these are contiguous arrays
 
     // array real fields
-    for (int i = 0; i < NArrayReal; i++)
+    //
+    // NumRealComps() spans the compile-time components and any added at
+    // runtime with AddRealComp(); GetRealData(i) already resolves both.
+    for (int i = 0; i < soa.NumRealComps(); i++)
     {
         conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
         n_f["topology"] = topology_name;
@@ -230,7 +233,7 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     }
 
     // array int fields
-    for (int i = 0; i < NArrayInt; i++)
+    for (int i = 0; i < soa.NumIntComps(); i++)
     {
         conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
         n_f["topology"] = topology_name;
@@ -262,11 +265,11 @@ ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
     // for user defined aos and soa values.
 
     if constexpr(ParticleType::is_soa_particle) {
-        BL_ASSERT(real_comp_names.size() == NArrayReal);
-        BL_ASSERT(int_comp_names.size()  == NArrayInt);
+        BL_ASSERT(real_comp_names.size() == std::size_t(pc.NumRealComps()));
+        BL_ASSERT(int_comp_names.size()  == std::size_t(pc.NumIntComps()));
     } else {
-        BL_ASSERT(real_comp_names.size() == (ParticleType::NReal + NArrayReal) );
-        BL_ASSERT(int_comp_names.size()  == (ParticleType::NInt + NArrayInt) );
+        BL_ASSERT(real_comp_names.size() == std::size_t(ParticleType::NReal + pc.NumRealComps()) );
+        BL_ASSERT(int_comp_names.size()  == std::size_t(ParticleType::NInt  + pc.NumIntComps()) );
     }
 
     int num_levels = pc.maxLevel() + 1;
