@@ -177,9 +177,14 @@ void test_mlmg_lifetime (gpuStream_t external)
     linop.setLevelBC(0, &solution);
 
     // MLMG owns persistent work arrays that outlive solve().  They must not
-    // inherit the external stream used only for this solve.
+    // inherit the external stream used only for this solve.  Solve both with
+    // the default implicit synchronizations and in the single-stream no-sync
+    // mode, in which the solver's temporaries are freed in a stream-ordered
+    // fashion.
     MLMG mlmg(linop);
-    {
+    for (bool no_sync : {false, true}) {
+        solution.setVal(0.0);
+        mlmg.setNoGpuSync(no_sync);
         Gpu::ExternalGpuStreamRegion guard(
             external, Gpu::ExternalStreamSync::Yes);
         mlmg.solve({&solution}, {&rhs}, 1.e-10, 0.0);

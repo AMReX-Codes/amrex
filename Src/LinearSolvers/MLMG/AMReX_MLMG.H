@@ -397,13 +397,17 @@ public:
     /**
      * \brief Control implicit GPU synchronization inside solve().
      *
-     * By default (true), solve() runs in a single-stream region without the
+     * When enabled, solve() runs in a single-stream region without the
      * implicit stream synchronizations normally performed by MFIter and
      * many amrex functions.  The GPU streams are synchronized once when
      * solve() returns, unless the caller is already in a Gpu::NoSyncRegion.
-     * Passing false restores the implicit synchronizations (slower).
+     * This is off by default.  Skipping the synchronizations helps small
+     * problems with few boxes, but running on a single stream can slow down
+     * solvers that launch many small per-box kernels (e.g., the nodal and
+     * EB solvers with many boxes per process).  Try both settings for your
+     * problem.
      *
-     * \param do_not_sync True (default) skips the implicit syncs.
+     * \param do_not_sync True skips the implicit syncs.  Default is false.
      */
     void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
@@ -686,7 +690,7 @@ private:
 
     std::string print_ident;
 
-    bool do_no_sync_gpu = true;
+    bool do_no_sync_gpu = false;
 
     //! HYPRE
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -795,10 +799,11 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    // Run the whole solve in a single-stream, no-implicit-sync region.  The
-    // RAII objects restore the previous state (also when an exception is
-    // thrown), and SyncAtExitOnly synchronizes the GPU streams on exit unless
-    // the caller was already in a NoSync region.  The order matters:
+    // If requested with setNoGpuSync(true), run the whole solve in a
+    // single-stream, no-implicit-sync region.  The RAII objects restore the
+    // previous state (also when an exception is thrown), and SyncAtExitOnly
+    // synchronizes the GPU streams on exit unless the caller was already in
+    // a NoSync region.  The order matters:
     // no_sync_region is destroyed last, i.e., after the single stream region
     // has been popped, so that all streams are synchronized.
     std::optional<Gpu::SyncAtExitOnly> no_sync_region;

@@ -1744,7 +1744,8 @@ the GPU streams when the scope is exited, unless the enclosing code is
 already inside a :cpp:`Gpu::NoSyncRegion`.  This is convenient for functions
 that want to skip the implicit synchronizations internally but return with
 all their GPU work completed.  For example, :cpp:`MLMG::solve` uses it
-together with :cpp:`Gpu::SingleStreamRegion` by default.
+together with :cpp:`Gpu::SingleStreamRegion` when
+:cpp:`MLMG::setNoGpuSync(true)` has been called.
 
 Inside a no-sync region, all GPU work should be launched on a single stream
 (e.g., by also using :cpp:`Gpu::SingleStreamRegion`) unless the ordering
@@ -1755,8 +1756,10 @@ be allocated from :cpp:`The_Async_Arena()` (e.g., with
 memory in a stream-ordered fashion.  Memory freed to an ordinary arena, such
 as :cpp:`The_Arena()`, may be returned to the system (e.g., when the arena
 is under pressure or :cpp:`amrex.the_arena_release_threshold` is small)
-while kernels using it are still queued on the stream, which is undefined
-behavior on some backends such as SYCL.  The auxiliary pinned host buffers
+while kernels using it are still queued on the stream.  Whether that is
+safe depends on the backend (CUDA and HIP synchronize the whole device
+before releasing memory, SYCL does not), so it must not be relied upon.
+The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
 stream-ordered fashion.  Host code that needs to read the results of GPU
 work must still synchronize explicitly (reductions such as

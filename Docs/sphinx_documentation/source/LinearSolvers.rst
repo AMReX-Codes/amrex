@@ -440,15 +440,19 @@ For example, using AMReX-Hydro's :cpp:`NodalProjector`
         // Do something else...
     }
 
-On GPUs, :cpp:`MLMG::solve` runs by default in a single-stream region without
-the implicit stream synchronizations that :cpp:`MFIter` and many AMReX
-functions normally perform (see :ref:`sec:gpu:stream`).  This
-avoids many small synchronizations during the multigrid iterations.  The
-GPU streams are synchronized once when :cpp:`solve` returns, so the solution
-is complete when control comes back to the application, unless the
-application itself is inside a :cpp:`Gpu::NoSyncRegion`.  The old behavior
-with implicit synchronizations can be restored with
-:cpp:`MLMG::setNoGpuSync(false)`.
+On GPUs, calling :cpp:`MLMG::setNoGpuSync(true)` makes :cpp:`MLMG::solve`
+run in a single-stream region without the implicit stream synchronizations
+that :cpp:`MFIter` and many AMReX functions normally perform (see
+:ref:`sec:gpu:stream`).  This is off by default.  When it is on, the GPU
+streams are synchronized once when :cpp:`solve` returns, so the solution is
+complete when control comes back to the application, unless the application
+itself is inside a :cpp:`Gpu::NoSyncRegion`.  Whether this is faster depends
+on the problem.  Avoiding the many small synchronizations of a multigrid
+cycle helps small problems with few boxes per process, but running on a
+single stream removes the concurrency between the per-box kernels that some
+solvers (e.g., the nodal and EB solvers) launch, which can make solves with
+many small boxes slower.  Users are encouraged to time their solves with and
+without :cpp:`setNoGpuSync(true)` and use whichever is faster.
 
 
 Boundary Stencils for Cell-Centered Solvers
