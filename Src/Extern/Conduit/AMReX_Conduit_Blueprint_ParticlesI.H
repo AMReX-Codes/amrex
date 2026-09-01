@@ -219,9 +219,16 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
 
     // array real fields
     //
-    // NumRealComps() spans the compile-time components and any added at
-    // runtime with AddRealComp(); GetRealData(i) already resolves both.
-    for (int i = 0; i < soa.NumRealComps(); i++)
+    // The number of SoA components to publish is taken from the names the
+    // caller supplied: the AoS names have already been consumed, so whatever
+    // remains describes the SoA. The historical behavior is to name only the
+    // compile-time components. Runtime components are published only when
+    // names are provided for all SoA components.
+    int const n_soa_real = int(real_comp_names.size()) - vname_real_idx;
+    AMREX_ASSERT(n_soa_real == NArrayReal ||
+                 n_soa_real == soa.NumRealComps());
+
+    for (int i = 0; i < n_soa_real; i++)
     {
         conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
         n_f["topology"] = topology_name;
@@ -233,7 +240,11 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     }
 
     // array int fields
-    for (int i = 0; i < soa.NumIntComps(); i++)
+    int const n_soa_int = int(int_comp_names.size()) - vname_int_idx;
+    AMREX_ASSERT(n_soa_int == NArrayInt ||
+                 n_soa_int == soa.NumIntComps());
+
+    for (int i = 0; i < n_soa_int; i++)
     {
         conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
         n_f["topology"] = topology_name;
@@ -264,12 +275,17 @@ ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
     // validate varnames, which are used to provide field names
     // for user defined aos and soa values.
 
+    // Name every component, or only the compile-time ones.
     if constexpr(ParticleType::is_soa_particle) {
-        BL_ASSERT(real_comp_names.size() == std::size_t(pc.NumRealComps()));
-        BL_ASSERT(int_comp_names.size()  == std::size_t(pc.NumIntComps()));
+        BL_ASSERT(real_comp_names.size() == NArrayReal ||
+                  real_comp_names.size() == pc.NumRealComps());
+        BL_ASSERT(int_comp_names.size()  == NArrayInt ||
+                  int_comp_names.size()  == pc.NumIntComps());
     } else {
-        BL_ASSERT(real_comp_names.size() == std::size_t(ParticleType::NReal + pc.NumRealComps()) );
-        BL_ASSERT(int_comp_names.size()  == std::size_t(ParticleType::NInt  + pc.NumIntComps()) );
+        BL_ASSERT(real_comp_names.size() == (ParticleType::NReal + NArrayReal) ||
+                  real_comp_names.size() == (ParticleType::NReal + pc.NumRealComps()) );
+        BL_ASSERT(int_comp_names.size()  == (ParticleType::NInt  + NArrayInt) ||
+                  int_comp_names.size()  == (ParticleType::NInt  + pc.NumIntComps()) );
     }
 
     int num_levels = pc.maxLevel() + 1;
