@@ -292,11 +292,14 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
             });
         }
+#ifdef AMREX_USE_GPU
+        if (Gpu::inNoSyncRegion()) {
+            // MFIter does not synchronize in a no-sync region.  Wait for all
+            // streams before the data are passed to HYPRE below.
+            Gpu::synchronize();
+        }
+#endif
     }
-
-    // Sync required: soln (setVal above) and rhs_diag (non-fused path above)
-    // are written by GPU kernels and passed to HYPRE host APIs below.
-    Gpu::streamSynchronize();
 
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {

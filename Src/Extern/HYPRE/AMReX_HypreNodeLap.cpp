@@ -296,9 +296,13 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("HypreNodeLap::loadVectors()");
 
     soln.setVal(0.0);
-    // Sync required: soln is written by a GPU kernel and passed to HYPRE
-    // host API below.
-    Gpu::streamSynchronize();
+#ifdef AMREX_USE_GPU
+    if (Gpu::inNoSyncRegion()) {
+        // setVal does not synchronize in a no-sync region.  Wait for all
+        // streams before soln is passed to HYPRE below.
+        Gpu::synchronize();
+    }
+#endif
 
     Gpu::DeviceVector<Real> bvec;
     for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
