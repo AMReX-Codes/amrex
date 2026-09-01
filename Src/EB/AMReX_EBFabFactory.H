@@ -45,6 +45,21 @@ public:
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
                         const Vector<int>& a_ngrow, EBSupport a_support);
+
+    /**
+     * \brief Build an EB factory for face-centered grids.
+     *
+     * \param a_level   EB level to sample.
+     * \param a_geom    Geometry describing the level.
+     * \param a_ba      Grid layout.
+     * \param a_dm      Distribution mapping for FAB ownership.
+     * \param a_ngrow   Grow-cell requirements (basic/volume/full).
+     * \param a_support Requested EB support level.
+     * \param face_dir  Face direction (0=x, 1=y, 2=z).
+     */
+    EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
+                        const BoxArray& a_ba, const DistributionMapping& a_dm,
+                        const Vector<int>& a_ngrow, EBSupport a_support, int face_dir);
     ~EBFArrayBoxFactory () override = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -123,6 +138,8 @@ public:
     [[nodiscard]] const BoxArray& boxArray () const noexcept;
     //! Geometry inherited from the EB level.
     [[nodiscard]] const Geometry& Geom () const noexcept { return m_geom; }
+    //! Face direction if this is an FC factory (-1 for CC mode).
+    [[nodiscard]] int faceDir () const noexcept { return m_face_dir; }
 
     //! True if EB geometric data beyond flags is available.
     [[nodiscard]] bool hasEBInfo() const noexcept;
@@ -144,6 +161,7 @@ private:
     std::shared_ptr<EBDataCollection> m_ebdc;
     EB2::Level const* m_parent = nullptr;
     Gpu::DeviceVector<Array4<Real const>> m_eb_data;
+    int m_face_dir = -1;  //!< Face direction (0=x, 1=y, 2=z) or -1 for cell-centered
 };
 
 /// \ingroup amrex_eb

@@ -66,6 +66,9 @@ public:
         amrex::Abort("IndexSpace::setShift: not supported");
     }
 
+    //! Build face-centered EB data for all three face directions.
+    virtual void buildAllFCData () {}
+
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
@@ -106,6 +109,8 @@ public:
     void addRegularCoarseLevels (int num_new_coarse_levels) final;
 
     void setShift (int direction, int ncells) override;
+
+    void buildAllFCData () override;
 
     using F = typename G::FunctionType;
 
@@ -277,6 +282,13 @@ void addFineLevels (int num_new_fine_levels);
 
 //! Add \p num_new_coarse_levels regular levels below the current coarsest level.
 void addRegularCoarseLevels (int num_new_coarse_levels);
+
+/**
+ * \brief Build face-centered EB data for all three face directions.
+ *
+ * Must be called after EB2::Build() has created the cell-centered EB geometry.
+ */
+void BuildFC ();
 
 }
 

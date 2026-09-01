@@ -70,9 +70,7 @@ endif ()
 #
 #
 #
-if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
-      AND
-      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
+if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
 
    find_package(CUDAToolkit REQUIRED)
    foreach(D IN LISTS AMReX_SPACEDIM)
@@ -80,13 +78,6 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
 
        if (AMReX_LINEAR_SOLVERS)
            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
-       endif ()
-
-       if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.2)
-           # nvToolsExt: if tiny profiler or base profiler are on.
-           if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-               target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
-           endif ()
        endif ()
    endforeach()
 
@@ -109,13 +100,29 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
           )
   endforeach()
 
-   # Take care of cuda archs
-   set_cuda_architectures(AMReX_CUDA_ARCH)
    foreach(D IN LISTS AMReX_SPACEDIM)
        set_target_properties(amrex_${D}d
           PROPERTIES
           CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+       )
+       if (AMREX_CUDA_IPO)
+          # relocatable device code is required for device LTO and enforced in
+          # AMReXCUDAOptions; CUDA_SEPARABLE_COMPILATION itself is set from AMReX_GPU_RDC
+          # in setup_target_for_cuda_compilation
+          set_target_properties(amrex_${D}d
+             PROPERTIES
+             INTERPROCEDURAL_OPTIMIZATION ON
           )
+          # For a static AMReX, the CUDA device link happens in the user's target,
+          # so export the device-LTO flag as an interface requirement. -dlto is
+          # nvcc's flag, currently `clang -x cuda` or NVHPC do not take it
+          # and CMake check_ipo_supported reports device LTO unsupported for them.
+          # A consumer that enables INTERPROCEDURAL_OPTIMIZATION itself - every target
+          # that goes through setup_target_for_cuda_compilation does - already gets -dlto
+          # from CMake, so only add it for the ones that do not.
+          target_link_options(amrex_${D}d INTERFACE
+             "$<DEVICE_LINK:$<$<AND:$<CUDA_COMPILER_ID:NVIDIA>,$<NOT:$<BOOL:$<TARGET_PROPERTY:INTERPROCEDURAL_OPTIMIZATION>>>>:-dlto>>")
+       endif ()
    endforeach()
 
    #
@@ -132,13 +139,6 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    endif()
    if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
       list(APPEND _cuda_flags "SHELL:--Werror cross-execution-space-call")
-   endif()
-
-   #
-   # Forward unknown NVCC flags to the host compiler
-   #
-   if (CUDA_FORWARD_UNKNOWN_FLAGS_HOST)
-      list(APPEND _cuda_flags --forward-unknown-to-host-compiler)
    endif()
 
    # fast math
@@ -373,14 +373,9 @@ if (AMReX_HIP)
        foreach(D IN LISTS AMReX_SPACEDIM)
            target_compile_options(amrex_${D}d PUBLIC
               $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
-           if(CMAKE_VERSION VERSION_LESS 3.18)
-               target_link_options(amrex_${D}d PUBLIC
-                  -fgpu-rdc)
-           else()
-               target_link_options(amrex_${D}d PUBLIC
-                  "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
-                  "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
-           endif()
+           target_link_options(amrex_${D}d PUBLIC
+              "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
+              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
        endforeach()
    endif()
 endif ()

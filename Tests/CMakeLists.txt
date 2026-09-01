@@ -158,6 +158,7 @@ endfunction ()
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Base/TrackedVector")
+   add_subdirectory("Base/Random")
    add_subdirectory("Base/RealBox")
    add_subdirectory("Base/CompensatedSum")
 

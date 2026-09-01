@@ -87,6 +87,7 @@
 #include <stack>
 #include <string>
 #include <thread>
+#include <utility>
 #include <limits>
 #include <vector>
 #include <algorithm>
@@ -441,13 +442,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
-        // Call the registered function.
+        // Remove the function from the stack before calling it, so that a function
+        // that calls ExecOnInitialize itself neither runs twice nor drops the newly
+        // registered function.
         //
-        The_Initialize_Function_Stack.top()();
-        //
-        // And then remove it from the stack.
-        //
+        auto f = std::move(The_Initialize_Function_Stack.top());
         The_Initialize_Function_Stack.pop();
+        f();
     }
 
     BL_PROFILE_INITIALIZE();
@@ -854,13 +855,13 @@ amrex::Finalize (amrex::AMReX* pamrex)
     while (!The_Finalize_Function_Stack.empty())
     {
         //
-        // Call the registered function.
+        // Remove the function from the stack before calling it, so that a function
+        // that calls ExecOnFinalize itself neither runs twice nor drops the newly
+        // registered function.
         //
-        The_Finalize_Function_Stack.top()();
-        //
-        // And then remove it from the stack.
-        //
+        auto f = std::move(The_Finalize_Function_Stack.top());
         The_Finalize_Function_Stack.pop();
+        f();
     }
 
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
