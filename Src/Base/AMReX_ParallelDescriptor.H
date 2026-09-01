@@ -164,7 +164,7 @@ while ( false )
                 if (omp_in_parallel()) {
                     #pragma omp barrier
                 }
-                #pragma omp master
+                #pragma omp masked
 #endif
                 {
 #if defined(BL_USE_MPI3)

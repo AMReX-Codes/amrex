@@ -2362,7 +2362,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #endif
         }
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
         {
             ++(p->nuse);

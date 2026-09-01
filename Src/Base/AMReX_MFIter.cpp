@@ -267,7 +267,7 @@ MFIter::Finalize ()
     }
 
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
     {
         depth = 0;
@@ -278,7 +278,7 @@ void
 MFIter::Initialize ()
 {
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
     {
         ++depth;

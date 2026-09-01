@@ -306,7 +306,7 @@ void BLProfiler::PStop() {
 
 void BLProfiler::start() {
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
 {
   bltelapsed = 0.0;
@@ -341,7 +341,7 @@ void BLProfiler::start() {
 
 void BLProfiler::stop() {
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
 {
   double tDiff(amrex::second() - bltstart);

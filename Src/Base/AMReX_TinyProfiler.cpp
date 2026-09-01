@@ -136,14 +136,14 @@ TinyProfiler::start ()
     memory_start();
 
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stats.empty(), "TinyProfiler cannot be started twice");
     }
 
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
     if (!regionstack.empty()) {
 
@@ -197,7 +197,7 @@ TinyProfiler::stop ()
     memory_stop();
 
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp masked
 #endif
     if (!stats.empty()) {
 
