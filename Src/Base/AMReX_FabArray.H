@@ -1509,6 +1509,14 @@ public:
      * \param period periodic length if it's non-zero
      */
     void OverrideSync (int scomp, int ncomp, const Periodicity& period);
+    /**
+     * \brief Split-phase version of OverrideSync.
+     *
+     * OverrideSync_nowait starts the synchronization and OverrideSync_finish
+     * completes it.  On GPUs, the two calls must be made within the same
+     * external-stream region (if any), because the temporary storage created
+     * by OverrideSync_nowait is released in a stream-ordered fashion.
+     */
     void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period);
     void OverrideSync_finish ();
