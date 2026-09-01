@@ -141,6 +141,8 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
     // exact edge crossings from the raw geometry.  The domain-face extension
     // is owned by the builder so that every geometry source behaves
     // identically: it is applied to the nodal field and to the crossings.
+    // It runs on whole FABs, ghost nodes included, so every node stays a
+    // deterministic function of the geometry and no communication is needed.
     Box const domain = geom.Domain();
     GpuArray<int, 3> const is_periodic{geom.isPeriodic(0), geom.isPeriodic(1), geom.isPeriodic(2)};
     // Every MC entry point accumulates its counts into the FAB's device
@@ -149,12 +151,10 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
     counters.reset();
     if (extend_domain_face) {
         for (MFIter mfi(m_sdf, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
-            MC::extend_domain_face_levelset(mfi.validbox(), domain, is_periodic, m_sdf[mfi],
+            MC::extend_domain_face_levelset(m_sdf[mfi].box(), domain, is_periodic, m_sdf[mfi],
                                             counters.block(mfi.LocalIndex()));
             MC::extend_domain_face_edge_intersections(domain, is_periodic, mc_fabs[mfi]);
         }
-        m_sdf.OverrideSync(geom.periodicity());
-        m_sdf.FillBoundary(geom.periodicity());
     }
 
     // Every EB field is allocated here and populated from the MC working SDF.
@@ -176,11 +176,16 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
         edge_type[idim] = 0;
         m_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng, mf_info);
     }
+    // prefill_volume_fractions rewrites grow(vbx,1) every pass; this only
+    // provides the regular default beyond it.
+    m_volfrac.setVal(1.0_rt, 0, 1, m_volfrac.nGrowVect());
 
+    // Like the moments, the rejection marks are computed on grow(vbx,1), so
+    // the ghost ring of these arrays holds exactly the marks the neighboring
+    // FAB computes for its valid cells and faces, and the nodal repair needs
+    // no communication.  Degenerate faces in the outer ring are marked and
+    // repaired like any other.
     iMultiFab rejected_cells(m_grids, m_dmap, 1, IntVect(1), mf_info);
-    // One ghost layer in every direction so that the arrays cover all faces
-    // build_face_fractions evaluates on grow(vbx,1); degenerate faces in the
-    // outer ring are then marked and repaired like any other.
     Array<iMultiFab, AMREX_SPACEDIM> rejected_faces;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         rejected_faces[idim].define(m_areafrac[idim].boxArray(), m_dmap, 1, IntVect(1), mf_info);
@@ -202,7 +207,6 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
             MC::marching_cubes(geom, m_sdf[mfi], mc_fabs[mfi], counters.block(mfi.LocalIndex()));
         }
 
-        m_volfrac.setVal(1.0_rt, 0, 1, m_volfrac.nGrowVect());
         m_centroid.setVal(0.0_rt, 0, AMREX_SPACEDIM, m_centroid.nGrowVect());
         m_bndryarea.setVal(0.0_rt, 0, 1, m_bndryarea.nGrowVect());
         m_bndrycent.setVal(-1.0_rt, 0, AMREX_SPACEDIM, m_bndrycent.nGrowVect());
@@ -226,15 +230,17 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
                 fab_counters);
             MC::build_edge_centroids(gbx, mc_fab, m_sdf[mfi], m_edgecent[0][mfi],
                                      m_edgecent[1][mfi], m_edgecent[2][mfi]);
+            // Moments and rejection marks include the ghost ring so that they
+            // are available locally for the repair and the final topology.
             MC::build_cell_fractions(
-                vbx, geom, mc_fab, m_sdf[mfi], m_areafrac[0][mfi],
+                gbx, geom, mc_fab, m_sdf[mfi], m_areafrac[0][mfi],
                 m_areafrac[1][mfi], m_areafrac[2][mfi], m_volfrac[mfi], m_centroid[mfi],
                 m_bndryarea[mfi], m_bndrycent[mfi], m_bndrynorm[mfi], fab_counters);
 
             MC::mark_faces_for_cleanup(
-                vbx, mc_fab, m_sdf[mfi], rejected_faces[0][mfi],
+                gbx, mc_fab, m_sdf[mfi], rejected_faces[0][mfi],
                 rejected_faces[1][mfi], rejected_faces[2][mfi], fab_counters);
-            MC::mark_cells_for_cleanup(vbx, mc_fab, m_sdf[mfi], m_volfrac[mfi], small_volfrac,
+            MC::mark_cells_for_cleanup(gbx, mc_fab, m_sdf[mfi], m_volfrac[mfi], small_volfrac,
                                        rejected_cells[mfi], fab_counters);
         }
 
@@ -276,36 +282,40 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
             break;
         }
 
-        rejected_cells.FillBoundary(geom.periodicity());
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            rejected_faces[idim].OverrideSync(geom.periodicity());
-            rejected_faces[idim].FillBoundary(geom.periodicity());
-        }
-
         counters.reset();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
-            int* const fab_counters = counters.block(mfi.LocalIndex());
+            // Ghost nodes are repaired too, like the nodes of the legacy
+            // generator's grown level set: ghost nodes beyond every grid have
+            // no owner and must be fixed here for the repair to converge.
             MC::zero_nodes_for_cleanup(
-                mfi.validbox(), rejected_cells[mfi], rejected_faces[0][mfi], rejected_faces[1][mfi],
-                rejected_faces[2][mfi], m_sdf[mfi], fab_counters);
-            if (extend_domain_face) {
-                MC::extend_domain_face_levelset(mfi.validbox(), domain, is_periodic, m_sdf[mfi],
-                                                fab_counters);
-            }
+                m_sdf[mfi].box(), rejected_cells[mfi], rejected_faces[0][mfi],
+                rejected_faces[1][mfi], rejected_faces[2][mfi], m_sdf[mfi],
+                counters.block(mfi.LocalIndex()));
         }
         counters.reduce();
-        // Only the repair itself counts toward progress; the domain-face
-        // extension has its own slot so it cannot mask a stalled repair.
         int const changed_nodes = counters.total(MC::counter_changed_nodes);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(changed_nodes > 0,
                                          "Marching-cubes EB repair found rejected "
                                          "geometry but changed no fluid nodes");
 
-        m_sdf.OverrideSync(geom.periodicity());
+        // Shared valid nodes were repaired from identical marks on every FAB
+        // and already agree.  Owned ghost nodes also depend on cells outside
+        // grow(vbx,1), so refresh them from their owners, as the legacy
+        // generator does after each pass.  The domain-face extension follows
+        // so that it reads up-to-date reference nodes on every FAB.
         m_sdf.FillBoundary(geom.periodicity());
+        if (extend_domain_face) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
+                MC::extend_domain_face_levelset(m_sdf[mfi].box(), domain, is_periodic,
+                                                m_sdf[mfi], counters.block(mfi.LocalIndex()));
+            }
+        }
         if (amrex::Verbose() > 0) {
             if (small_cell_rejections > 0) {
                 amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " fixed "
@@ -331,17 +341,6 @@ Level::build_marching_cubes_level (Geometry const& geom, bool extend_domain_face
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(converged,
                                      "Marching-cubes EB failed to fix small or unsupported cells");
-
-    m_volfrac.FillBoundary(geom.periodicity());
-    m_centroid.FillBoundary(geom.periodicity());
-    m_bndryarea.FillBoundary(geom.periodicity());
-    m_bndrycent.FillBoundary(geom.periodicity());
-    m_bndrynorm.FillBoundary(geom.periodicity());
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_areafrac[idim].FillBoundary(geom.periodicity());
-        m_facecent[idim].FillBoundary(geom.periodicity());
-        m_edgecent[idim].FillBoundary(geom.periodicity());
-    }
 
     MFItInfo final_info{};
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)

@@ -55,9 +55,12 @@ RunOn marching_cubes_run_on (G const& gshop) noexcept
  * \brief Fill the nodal marching-cubes level set from geometry source \p gshop.
  *
  * On return every node of \p sdf (including ghost nodes) holds a value that is
- * positive in fluid and negative in the covered region, and shared nodes are
- * identical across FABs.  Implicit functions are sampled without clamping to
- * the domain because the builder applies its own domain-face extension.
+ * positive in fluid and negative in the covered region.  Every node is a
+ * deterministic function of the geometry alone, so shared and ghost nodes
+ * agree across FABs without communication.  Implicit functions are sampled
+ * without clamping to the domain because the builder applies its own
+ * domain-face extension; as in the legacy generator, ghost nodes across a
+ * periodic boundary sample the function at their unwrapped coordinates.
  */
 template <class G>
 void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const& geom)
@@ -67,19 +70,6 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
     } else {
         BL_PROFILE("EB2::fill_marching_cubes_levelset");
         RunOn const run_on = marching_cubes_run_on(gshop);
-        for (MFIter mfi(sdf); mfi.isValid(); ++mfi) {
-            auto& fab = sdf[mfi];
-            gshop.fillFab(fab, geom, run_on, fab.box());
-            // EB2 implicit functions are positive inside the body; marching
-            // cubes extracts the positive material, i.e. the fluid.
-            auto const a = fab.array();
-            ParallelFor(fab.box(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                a(i,j,k) = -a(i,j,k);
-            });
-        }
-        Gpu::streamSynchronize();
-        sdf.FillBoundary(geom.periodicity());
 
         // Roundoff can leave a node that lies on the surface at a tiny nonzero
         // value instead of exactly zero, which would create a sliver cut cell
@@ -88,38 +78,34 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
         // implicit function, i.e. it bounds the crossing position on the
         // incident edges as a fraction of the cell size, so it is independent
         // of the function's units; it matches the sliver tolerance below which
-        // the marching-cubes moments reject a cut.  The decision reads the
-        // unsnapped values from a copy of the FAB, so it does not depend on
-        // the order in which nodes are visited; valid nodes are updated and
-        // OverrideSync then makes shared nodes identical across FABs.
+        // the marching-cubes moments reject a cut.
 #ifdef AMREX_USE_FLOAT
         constexpr Real snap_factor = 1.e-4_rt;
 #else
         constexpr Real snap_factor = 1.e-11_rt;
 #endif
         for (MFIter mfi(sdf); mfi.isValid(); ++mfi) {
-            Box const vbx = mfi.validbox();
-            AMREX_ALWAYS_ASSERT(sdf[mfi].box().contains(amrex::grow(vbx,1)));
-            FArrayBox unsnapped(amrex::grow(vbx,1), 1, The_Arena());
-            Elixir unsnapped_eli = unsnapped.elixir();
-            unsnapped.copy<RunOn::Device>(sdf[mfi], amrex::grow(vbx,1));
-            auto const src = unsnapped.const_array();
+            Box const nbx = sdf[mfi].box();
+            // Sample one more ring of nodes so that the snap stencil is
+            // complete on every node of the FAB, ghost nodes included.
+            FArrayBox raw(amrex::grow(nbx,1), 1, The_Arena());
+            Elixir raw_eli = raw.elixir();
+            gshop.fillFab(raw, geom, run_on, raw.box());
+            auto const f = raw.const_array();
             auto const a = sdf.array(mfi);
-            ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real const v = src(i,j,k);
+                Real const v = f(i,j,k);
                 Real scale = std::abs(v);
-                scale = amrex::max(scale, std::abs(src(i-1,j,k)), std::abs(src(i+1,j,k)));
-                scale = amrex::max(scale, std::abs(src(i,j-1,k)), std::abs(src(i,j+1,k)));
-                scale = amrex::max(scale, std::abs(src(i,j,k-1)), std::abs(src(i,j,k+1)));
-                if (std::abs(v) <= snap_factor*scale) {
-                    a(i,j,k) = 0.0_rt;
-                }
+                scale = amrex::max(scale, std::abs(f(i-1,j,k)), std::abs(f(i+1,j,k)));
+                scale = amrex::max(scale, std::abs(f(i,j-1,k)), std::abs(f(i,j+1,k)));
+                scale = amrex::max(scale, std::abs(f(i,j,k-1)), std::abs(f(i,j,k+1)));
+                // EB2 implicit functions are positive inside the body; marching
+                // cubes extracts the positive material, i.e. the fluid.
+                a(i,j,k) = (std::abs(v) <= snap_factor*scale) ? 0.0_rt : -v;
             });
         }
         Gpu::streamSynchronize();
-        sdf.OverrideSync(geom.periodicity());
-        sdf.FillBoundary(geom.periodicity());
     }
 }
 
@@ -144,17 +130,6 @@ void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sd
         auto const problo = geom.ProbLoArray();
         auto const dx = geom.CellSizeArray();
 
-        // The nodal field has been synchronized across FABs and periodic
-        // images, so its ghost nodes need not agree with the implicit function
-        // evaluated at their physical coordinates (a non-periodic function in
-        // a periodic domain).  Root finding brackets with the function itself,
-        // so decide which edges to bracket from a raw sample of the function
-        // (EB2 convention: positive in the body).
-        FArrayBox raw(sdf_fab.box(), 1, The_Arena());
-        Elixir raw_eli = raw.elixir();
-        gshop.fillFab(raw, geom, run_on, raw.box());
-        auto const raw_if = raw.const_array();
-
         Array<BaseFab<Type_t>,AMREX_SPACEDIM> type_fabs;
         Array<BaseFab<Real>,AMREX_SPACEDIM> inter_fabs;
         Array<Array4<Type_t const>,AMREX_SPACEDIM> type_arrs;
@@ -174,16 +149,12 @@ void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sd
                 // builder places it at that node without an exact intercept.
                 // Root finding on such an edge is not needed and could fail
                 // when the zero came from snapping a roundoff-level value.
+                // Away from snapped nodes the field is the negated implicit
+                // function, so a strict sign change brackets the root for
+                // getIntercept.
                 bool const strict_sign_change = (lo > 0.0_rt && hi < 0.0_rt)
                                              || (lo < 0.0_rt && hi > 0.0_rt);
-                Real const raw_lo = raw_if(i,j,k);
-                Real const raw_hi = raw_if(i+shift[0],j+shift[1],k+shift[2]);
-                bool const bracketed = (raw_lo > 0.0_rt && raw_hi < 0.0_rt)
-                                    || (raw_lo < 0.0_rt && raw_hi > 0.0_rt);
-                // Edges where the synchronized field changes sign but the
-                // function does not keep the linear fallback.
-                type(i,j,k) = (strict_sign_change && bracketed) ? Type::irregular
-                                                                : Type::regular;
+                type(i,j,k) = strict_sign_change ? Type::irregular : Type::regular;
             });
             type_arrs[idim] = type_fabs[idim].const_array();
             inter_arrs[idim] = inter_fabs[idim].array();

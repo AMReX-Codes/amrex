@@ -184,7 +184,8 @@ void build_edge_centroids (
  *
  * Coordinate-face apertures previously built from the MC signed-distance
  * field and the cell-owned embedded-boundary triangles form the closed
- * boundary used to compute volume and first moments.
+ * boundary used to compute volume and first moments.  Requires cubic cells
+ * (dx == dy == dz); the EB2 driver checks this once per level.
  *
  * Single-valued cells whose triangulation produced invalid geometry are
  * counted in counter_closure_errors, counter_volume_errors,
@@ -253,10 +254,13 @@ void mark_cells_for_cleanup (
 /**
  * \brief Apply the legacy EB repair transform to the MC working level set.
  *
- * Positive (fluid) nodes incident to a rejected face or cell are moved to
- * exact zero. The operation is monotone and leaves all other samples intact.
- * The number of nodes changed from positive to zero is added to
- * counter_changed_nodes of \p counters.
+ * Positive (fluid) nodes of \p node_box incident to a rejected face or cell
+ * are moved to exact zero. The operation is monotone and leaves all other
+ * samples intact.  The marks must cover the cells and faces enclosed by
+ * \p node_box; rejected cells and faces beyond the arrays are ignored, so a
+ * caller can repair its ghost nodes from the marks it holds.  The number of
+ * nodes changed from positive to zero is added to counter_changed_nodes of
+ * \p counters.
  */
 void zero_nodes_for_cleanup (
     Box const& node_box, IArrayBox const& rejected_cells,

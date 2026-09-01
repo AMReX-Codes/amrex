@@ -1,6 +1,6 @@
 # Box that crosses the +x domain face, in a domain that is periodic in z, with
-# the domain-face extension disabled.  Exercises the periodic OverrideSync /
-# FillBoundary paths and eb2.extend_domain_face = 0; only the part of the box
+# the domain-face extension disabled.  Exercises periodic ghost handling
+# and eb2.extend_domain_face = 0; only the part of the box
 # inside the domain counts toward the expected volume.  (The body stays clear
 # of the periodic faces so the geometry is consistent with the periodicity.)
 nx = 64

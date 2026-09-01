@@ -1398,13 +1398,6 @@ void build_cell_fractions (
     AMREX_ALWAYS_ASSERT(
         sdf_fab.box().contains(amrex::surroundingNodes(bx)));
     auto const dx = geom.CellSizeArray();
-    Real const max_dx = amrex::max(dx[0],amrex::max(dx[1],dx[2]));
-    Real const cubic_tolerance =
-        16.0_rt*std::numeric_limits<Real>::epsilon()*max_dx;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        std::abs(dx[0]-dx[1]) <= cubic_tolerance
-        && std::abs(dx[0]-dx[2]) <= cubic_tolerance,
-        "Marching-cubes cut-cell fractions currently require dx == dy == dz");
 
     auto const cell_data = mc_fab.m_cell_data.const_array();
     auto const sdf = sdf_fab.const_array();
@@ -1715,9 +1708,9 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
     AMREX_ALWAYS_ASSERT(cellflag.box().contains(bxg1));
     AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bxg1));
     AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
-    AMREX_ALWAYS_ASSERT(apx_fab.box().contains(fxbx));
-    AMREX_ALWAYS_ASSERT(apy_fab.box().contains(fybx));
-    AMREX_ALWAYS_ASSERT(apz_fab.box().contains(fzbx));
+    AMREX_ALWAYS_ASSERT(apx_fab.box().contains(valid_fxbx));
+    AMREX_ALWAYS_ASSERT(apy_fab.box().contains(valid_fybx));
+    AMREX_ALWAYS_ASSERT(apz_fab.box().contains(valid_fzbx));
 
     auto const sdf = sdf_fab.const_array();
     auto const cell = cellflag.array();
@@ -1857,15 +1850,15 @@ void zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
 {
     BL_PROFILE("MC::zero_nodes_for_cleanup");
 
+    // The marks must cover every cell and face enclosed by node_box.  The
+    // outermost cells and faces incident to its boundary nodes may lie beyond
+    // the arrays; they are ignored, as in the legacy generator.
+    Box const cell_box = amrex::enclosedCells(node_box);
     AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(node_box));
-    AMREX_ALWAYS_ASSERT(rejected_cells_fab.box().contains(
-        amrex::enclosedCells(amrex::grow(node_box, 1))));
-    AMREX_ALWAYS_ASSERT(rejected_x_fab.box().contains(amrex::convert(
-        amrex::grow(node_box, IntVect(0, 1, 1)), IntVect::TheDimensionVector(0))));
-    AMREX_ALWAYS_ASSERT(rejected_y_fab.box().contains(amrex::convert(
-        amrex::grow(node_box, IntVect(1, 0, 1)), IntVect::TheDimensionVector(1))));
-    AMREX_ALWAYS_ASSERT(rejected_z_fab.box().contains(amrex::convert(
-        amrex::grow(node_box, IntVect(1, 1, 0)), IntVect::TheDimensionVector(2))));
+    AMREX_ALWAYS_ASSERT(rejected_cells_fab.box().contains(cell_box));
+    AMREX_ALWAYS_ASSERT(rejected_x_fab.box().contains(amrex::surroundingNodes(cell_box, 0)));
+    AMREX_ALWAYS_ASSERT(rejected_y_fab.box().contains(amrex::surroundingNodes(cell_box, 1)));
+    AMREX_ALWAYS_ASSERT(rejected_z_fab.box().contains(amrex::surroundingNodes(cell_box, 2)));
     auto const rejected_cells = rejected_cells_fab.const_array();
     auto const rejected_x = rejected_x_fab.const_array();
     auto const rejected_y = rejected_y_fab.const_array();
@@ -1882,23 +1875,27 @@ void zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
         for (int kk = 0; kk <= 1 && !rejected; ++kk) {
             for (int jj = 0; jj <= 1 && !rejected; ++jj) {
                 for (int ii = 0; ii <= 1; ++ii) {
-                    rejected = rejected || rejected_cells(i - ii, j - jj, k - kk) != 0;
+                    rejected = rejected || (rejected_cells.contains(i - ii, j - jj, k - kk)
+                                            && rejected_cells(i - ii, j - jj, k - kk) != 0);
                 }
             }
         }
         for (int kk = 0; kk <= 1 && !rejected; ++kk) {
             for (int jj = 0; jj <= 1; ++jj) {
-                rejected = rejected || rejected_x(i, j - jj, k - kk) != 0;
+                rejected = rejected || (rejected_x.contains(i, j - jj, k - kk)
+                                        && rejected_x(i, j - jj, k - kk) != 0);
             }
         }
         for (int kk = 0; kk <= 1 && !rejected; ++kk) {
             for (int ii = 0; ii <= 1; ++ii) {
-                rejected = rejected || rejected_y(i - ii, j, k - kk) != 0;
+                rejected = rejected || (rejected_y.contains(i - ii, j, k - kk)
+                                        && rejected_y(i - ii, j, k - kk) != 0);
             }
         }
         for (int jj = 0; jj <= 1 && !rejected; ++jj) {
             for (int ii = 0; ii <= 1; ++ii) {
-                rejected = rejected || rejected_z(i - ii, j - jj, k) != 0;
+                rejected = rejected || (rejected_z.contains(i - ii, j - jj, k)
+                                        && rejected_z(i - ii, j - jj, k) != 0);
             }
         }
         if (rejected) {
