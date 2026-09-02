@@ -1,6 +1,6 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources     main.cpp)
-    set(_input_files inputs)
+    set(_input_files inputs inputs.addfile)
 
     setup_test(${D} _sources _input_files)
 
