@@ -367,7 +367,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
 Available choices of the bottom solver are
 
-- :cpp:`MLMG::BottomSolver::bicgstab`: The default.
+- :cpp:`MLMG::BottomSolver::bicgstab`: The default for most operators.
 
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
@@ -384,6 +384,13 @@ Available choices of the bottom solver are
   see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+
+- :cpp:`MLMG::BottomSolver::custom`: A solver provided by the linear operator
+  itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
+  the only such operator, and it uses this by default.  Its custom solver is a
+  BiCGStab that runs entirely on the GPU when the bottom level has a single
+  Box.  This is currently available for CUDA and HIP only; other builds fall
+  back to the standard BiCGStab solver.
 
 The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.

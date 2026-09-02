@@ -499,6 +499,16 @@ public:
     void actualBottomSolve ();
 
     /**
+     * \brief Post CG smoothing.
+     *
+     * \param ret Return code of the previous CG solver.
+     * \param niters Number of iterations of the previous CG solver to record
+     *               for getNumCGIters().  Pass a negative number if it has
+     *               already been recorded (e.g., by bottomSolveWithCG).
+     */
+    void postCG (int ret, int niters = -1);
+
+    /**
      * \brief Compute the composite residual norm up to AMR level \p amrlevmax.
      *
      * \param amrlevmax Finest AMR level included in the composite norm.
@@ -799,6 +809,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         if (checkpoint_file != nullptr) {
             checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
         }
+    }
+
+    if ((bottom_solver == BottomSolver::custom) && !linop.supportCustomBottomSolver()) {
+        bottom_solver = BottomSolver::Default;
     }
 
     if (bottom_solver == BottomSolver::Default) {
@@ -1944,6 +1958,22 @@ MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
 
 template <typename MF>
 void
+MLMGT<MF>::postCG (int ret, int niters)
+{
+    if (niters >= 0) {
+        m_niters_cg.push_back(niters);
+    }
+
+    const int amrlev = 0;
+    const int mglev = linop.NMGLevels(amrlev) - 1;
+    auto& x = cor[amrlev][mglev];
+    auto& b = res[amrlev][mglev];
+    const int n = (ret==0) ? nub : nuf;
+    linop.smooth(amrlev, mglev, x, b, false, n);
+}
+
+template <typename MF>
+void
 MLMGT<MF>::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
@@ -2002,6 +2032,11 @@ MLMGT<MF>::actualBottomSolve ()
                 amrex::Abort("Using PETSc as bottom solver not supported in this case");
             }
         }
+        else if (bottom_solver == BottomSolver::custom && linop.supportCustomBottomSolver())
+        {
+            linop.customBottomSolve(this, x, *bottom_b, bottom_reltol, bottom_abstol,
+                                    bottom_maxiter);
+        }
         else
         {
             typename MLCGSolverT<MF>::Type cg_type;
@@ -2022,7 +2057,10 @@ MLMGT<MF>::actualBottomSolve ()
                 } else {
                     cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
                 }
-                setVal(cor[amrlev][mglev], RT(0.0));
+                if (ret == 9) {
+                    // if ret != 9 && ret != 0, x has been set to zero in bottomSolveWithCG
+                    setVal(x, RT(0));
+                }
                 ret = bottomSolveWithCG(x, *bottom_b, cg_type);
                 if (ret == 0) { // switch permanently
                     if (cg_type == MLCGSolverT<MF>::Type::CG) {
@@ -2033,12 +2071,7 @@ MLMGT<MF>::actualBottomSolve ()
                 }
             }
 
-            // If the bottom solve failed then set the correction to zero
-            if (ret != 0 && ret != 9) {
-                setVal(cor[amrlev][mglev], RT(0.0));
-            }
-            const int n = (ret==0) ? nub : nuf;
-            linop.smooth(amrlev, mglev, x, b, false, n);
+            postCG(ret);
         }
     }
 
@@ -2066,6 +2099,11 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
         amrex::Print() << print_ident << "MLMG: Bottom solve failed.\n";
     }
     m_niters_cg.push_back(cg_solver.getNumIters());
+
+    if (ret != 0 && ret != 9) {
+        setVal(x, RT(0));
+    }
+
     return ret;
 }
 
