@@ -1385,7 +1385,7 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
     {
         int const amrlev = 0;
         int const mglev = NMGLevels(0) - 1;
-        int const verbose = mlmg->getBottomVerbose();
+        int const bottom_verbose = mlmg->getBottomVerbose();
         int niters = 0;
 
 #ifdef AMREX_USE_EB
@@ -1443,13 +1443,13 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                             (lpbase, RZVarSigmaEB{sigma,vfrac,dx0},
                              RZEBData<true>{levset,ec}, dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter, verbose, niters);
+                                             eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                     } else {
                         LPRZ<true,RZConstSigma> lp
                             (lpbase, RZConstSigma{sig0}, RZEBData<true>{levset,ec},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter, verbose, niters);
+                                             eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                     }
                 } else
 #endif
@@ -1460,13 +1460,13 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                             (lpbase, RZVarSigma{sigma,dx0}, RZEBData<false>{},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter, verbose, niters);
+                                             eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                     } else {
                         LPRZ<false,RZConstSigma> lp
                             (lpbase, RZConstSigma{sig0}, RZEBData<false>{},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter, verbose, niters);
+                                             eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                     }
                 }
             } else
@@ -1484,20 +1484,20 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                     auto const& sigma = (*m_sigma_mf[amrlev][mglev])[0].const_array();
                     auto const& vfrac = eb_factory->getVolFrac()[0].const_array();
                     LPEB<EBVarSigma> lp(lpbase, levset, ec, EBVarSigma{sigma,vfrac});
-                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
+                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                 } else {
                     LPEB<EBConstSigma> lp(lpbase, levset, ec, EBConstSigma{});
-                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
+                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, bottom_verbose, niters);
                 }
             } else
 #endif
             if (m_has_sigma_mf) {
                 auto const& sigma = (*m_sigma_mf[amrlev][mglev])[0].const_array();
                 LPSigma lp(lpbase, sigma);
-                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
+                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, bottom_verbose, niters);
             } else {
                 LP lp(lpbase);
-                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
+                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, bottom_verbose, niters);
             }
         }
 
