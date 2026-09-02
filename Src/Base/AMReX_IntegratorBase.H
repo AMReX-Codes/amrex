@@ -44,8 +44,8 @@ struct IntegratorOps<T>
     static void Saxpy (T& Y, const amrex::Real a, T& X)
     {
         // Calculate Y += a * X using a particle-level saxpy function supplied by the particle container T
-        using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
-        using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
+        using TParIter = typename T::ParIterType;
+        using ParticleType = typename T::ParticleType;
 
         int lev = 0;
         TParIter pty(Y, lev);
@@ -69,16 +69,33 @@ struct IntegratorOps<T>
             const int npx  = ptx.numParticles();
             AMREX_ALWAYS_ASSERT(npy == npx);
 
-            ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
-            ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
-
             auto particle_apply_rhs = T::particle_apply_rhs;
 
-            amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
-                ParticleType& py = psy[i];
-                const ParticleType& px = psx[i];
-                particle_apply_rhs(py, a, px);
-            });
+            // Hand particle_apply_rhs an array-of-structs particle when the
+            // container has one and the supplied function accepts it.
+            if constexpr ( ! ParticleType::is_soa_particle &&
+                           IsCallable<decltype(particle_apply_rhs),
+                                      ParticleType&, amrex::Real,
+                                      ParticleType&>::value) {
+                ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
+                ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
+
+                amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
+                    ParticleType& py = psy[i];
+                    const ParticleType& px = psx[i];
+                    particle_apply_rhs(py, a, px);
+                });
+
+            // Otherwise pass the particle tile data and an index, which is the only form
+            // available once the real components live in struct-of-arrays storage
+            } else {
+                auto ytd = pty.GetParticleTile().getParticleTileData();
+                auto xtd = ptx.GetParticleTile().getParticleTileData();
+
+                amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
+                    particle_apply_rhs(ytd, i, a, xtd);
+                });
+            }
         }
     }
 
@@ -227,6 +244,14 @@ protected:
     std::function<void (T&, amrex::Real)> post_fast_step_action;
 
     /**
+     * \brief User-supplied error norm. This must be set via set_error_norm
+     * before using adaptive time stepping; no default is provided.
+     * Arguments are (error_state, S_old, S_new, abs_tol, rel_tol) and the
+     * return value is the scaled error used to decide step acceptance.
+     */
+    std::function<amrex::Real (T&, T&, T&, amrex::Real, amrex::Real)> custom_error_norm;
+
+    /**
      * \brief Flag to enable/disable adaptive time stepping in single rate
      * methods or at the slow time scale in multirate methods (bool)
      */
@@ -286,6 +311,12 @@ protected:
      */
     amrex::Real fast_abs_tol = 1.0e-9;
 
+    /**
+     * \brief Most recent scaled error computed by the adaptive controller.
+     * Updated each time advance() runs the error norm; otherwise zero.
+     */
+    amrex::Real last_scaled_error = 0.0;
+
 
 public:
     IntegratorBase () {
@@ -335,9 +366,24 @@ public:
         post_fast_step_action = A;
     }
 
+    void set_error_norm (std::function<amrex::Real (T&, T&, T&, amrex::Real, amrex::Real)> F)
+    {
+        custom_error_norm = F;
+    }
+
     amrex::Real get_time_step ()
     {
         return time_step;
+    }
+
+    amrex::Real get_previous_time_step ()
+    {
+        return previous_time_step;
+    }
+
+    amrex::Real get_scaled_error ()
+    {
+        return last_scaled_error;
     }
 
     void set_time_step (amrex::Real dt)
