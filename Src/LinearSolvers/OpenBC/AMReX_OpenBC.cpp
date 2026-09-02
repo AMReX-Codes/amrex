@@ -45,6 +45,10 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_ba_all.resize(nlevels);
     m_dm_all.resize(nlevels);
     m_geom_all.resize(nlevels);
+    m_ba_support.clear();
+    m_ba_support.resize(nlevels);
+    m_dm_support.clear();
+    m_dm_support.resize(nlevels);
 
     Box const domain0 = m_geom[0].Domain();
     m_coarsen_ratio = 8;
@@ -192,6 +196,47 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
         m_ba_all[ilev].shift(offset);
         m_dm_all[ilev] = a_dmap[ilev];
     }
+
+    // The grown level-0 domain turns the original physical boundary into a
+    // coarse/fine boundary. Add source-free parent cells wherever a finer
+    // level would otherwise reach the edge of its parent grids. Using the
+    // multipole coarsening width ensures that this support survives recursive
+    // coarsening through any fully refined intermediate levels.
+    for (int ilev = nlevels-1; ilev > 1; --ilev) {
+        int const clev = ilev-1;
+        IntVect const rr = m_geom[ilev].Domain().length()
+                         / m_geom[clev].Domain().length();
+        BoxArray cba = m_ba_all[ilev];
+        cba.coarsen(rr);
+
+        Box const original_domain = amrex::shift(m_geom[clev].Domain(),
+                                                  m_box_offset[clev]);
+        BoxList support(IndexType::TheCellType());
+        for (int ibox = 0; ibox < cba.size(); ++ibox) {
+            Box const& cbx = cba[ibox];
+            Box needed = amrex::grow(cbx,m_coarsen_ratio) & m_geom_all[clev].Domain();
+            if (needed.ok()) {
+                BoxList const exterior = amrex::boxDiff(needed, original_domain);
+                for (Box const& bx : exterior) {
+                    support.join(m_ba_all[clev].complementIn(bx));
+                }
+            }
+        }
+
+        if (support.size() > 0) {
+            m_ba_support[clev] = BoxArray(std::move(support));
+            m_ba_support[clev].removeOverlap();
+            m_dm_support[clev] = DistributionMapping(m_ba_support[clev]);
+
+            BoxList all_boxes = m_ba_all[clev].boxList();
+            all_boxes.join(m_ba_support[clev].boxList());
+            Vector<int> pmap = m_dm_all[clev].ProcessorMap();
+            Vector<int> const& support_pmap = m_dm_support[clev].ProcessorMap();
+            pmap.insert(pmap.end(), support_pmap.begin(), support_pmap.end());
+            m_ba_all[clev] = BoxArray(std::move(all_boxes));
+            m_dm_all[clev] = DistributionMapping(std::move(pmap));
+        }
+    }
 }
 
 void OpenBCSolver::setVerbose (int v) noexcept
@@ -283,6 +328,8 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     const int nboxes0 = static_cast<int>(m_grids[0].size());
     Vector<MultiFab> sol_all(nlevels);
     Vector<MultiFab> rhs_all(nlevels);
+    Vector<MultiFab> sol_support(nlevels);
+    Vector<MultiFab> rhs_support(nlevels);
 
     sol_all[0].define(m_ba_all[0], m_dm_all[0], 1, solg.nGrowVect(),
                       MFInfo().SetAlloc(false));
@@ -314,18 +361,35 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     }
 
     for (int ilev = 1; ilev < nlevels; ++ilev) {
+        int const nboxes = static_cast<int>(m_grids[ilev].size());
+        if (!m_ba_support[ilev].empty()) {
+            sol_support[ilev].define(m_ba_support[ilev], m_dm_support[ilev], 1,
+                                      a_sol[ilev]->nGrowVect());
+            rhs_support[ilev].define(m_ba_support[ilev], m_dm_support[ilev], 1,
+                                      a_rhs[ilev]->nGrowVect());
+            sol_support[ilev].setVal(0._rt);
+            rhs_support[ilev].setVal(0._rt);
+        }
+
         sol_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
                              a_sol[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
         rhs_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
                              a_rhs[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
         for (MFIter mfi(sol_all[ilev]); mfi.isValid(); ++mfi) {
             const int index = mfi.index();
-            auto const& a_sol_fab = (*a_sol[ilev])[index];
-            auto const& a_rhs_fab = (*a_rhs[ilev])[index];
-            FArrayBox solfab(a_sol_fab, amrex::make_alias, 0, 1);
-            FArrayBox rhsfab(a_rhs_fab, amrex::make_alias, 0, 1);
-            solfab.shift(m_box_offset[ilev]);
-            rhsfab.shift(m_box_offset[ilev]);
+            FArrayBox solfab, rhsfab;
+            if (index < nboxes) {
+                solfab = FArrayBox((*a_sol[ilev])[index], amrex::make_alias, 0, 1);
+                rhsfab = FArrayBox((*a_rhs[ilev])[index], amrex::make_alias, 0, 1);
+                solfab.shift(m_box_offset[ilev]);
+                rhsfab.shift(m_box_offset[ilev]);
+            } else {
+                int const support_index = index-nboxes;
+                solfab = FArrayBox(sol_support[ilev][support_index],
+                                   amrex::make_alias, 0, 1);
+                rhsfab = FArrayBox(rhs_support[ilev][support_index],
+                                   amrex::make_alias, 0, 1);
+            }
             sol_all[ilev].setFab(mfi, std::move(solfab));
             rhs_all[ilev].setFab(mfi, std::move(rhsfab));
         }
