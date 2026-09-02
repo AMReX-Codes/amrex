@@ -20,7 +20,7 @@ public:
 
     void initData ();
 
-    [[nodiscard]] int getNumTrials () const { return 1; }
+    [[nodiscard]] static int getNumTrials () { return 1; }
     [[nodiscard]] int getDoPlots () const { return do_plots; }
 
 private:

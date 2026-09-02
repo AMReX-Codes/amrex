@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #if (AMREX_SPACEDIM == 1)
 #error NodalPoissonEB is a 2D/3D test.
@@ -19,7 +20,7 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real exact_phi (AMREX_D_DECL(Real x, Real y, Real z)) noexcept
 {
-    constexpr Real pi = Real(3.141592653589793238462643383279502884);
+    constexpr Real pi = std::numbers::pi_v<Real>;
     constexpr Real tpi = Real(2.0)*pi;
     constexpr Real fpi = Real(4.0)*pi;
     Real const mode2 = AMREX_D_TERM(std::cos(tpi*x), * std::cos(tpi*y), * std::cos(tpi*z));
@@ -30,7 +31,7 @@ Real exact_phi (AMREX_D_DECL(Real x, Real y, Real z)) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real exact_rhs (AMREX_D_DECL(Real x, Real y, Real z)) noexcept
 {
-    constexpr Real pi = Real(3.141592653589793238462643383279502884);
+    constexpr Real pi = std::numbers::pi_v<Real>;
     constexpr Real tpi = Real(2.0)*pi;
     constexpr Real fpi = Real(4.0)*pi;
     constexpr Real fac = tpi*tpi*Real(AMREX_SPACEDIM);
