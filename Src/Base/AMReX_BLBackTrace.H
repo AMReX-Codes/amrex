@@ -31,9 +31,9 @@
  * \param S String literal describing the scope (e.g., function name).
  */
 #define BL_BACKTRACE_PUSH( S )                                          \
-    AMREX_COUNTER_WARNING_PUSH                                          \
+    AMREX_WARNING_PUSH_COUNTER                                          \
     amrex::BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ ) \
-    AMREX_COUNTER_WARNING_POP
+    AMREX_WARNING_POP
 /**
  * \def BL_BACKTRACE_POP()
  * \brief Manually pop the top entry from the backtrace stack.

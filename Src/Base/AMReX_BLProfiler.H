@@ -487,9 +487,9 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_MEMORYFINALIZE()    amrex::TinyProfiler::MemoryFinalize()
 
 #define BL_PROFILE(fname)                       \
-    AMREX_COUNTER_WARNING_PUSH                  \
+    AMREX_WARNING_PUSH_COUNTER                  \
     BL_PROFILE_IMPL(fname, __COUNTER__)         \
-    AMREX_COUNTER_WARNING_POP
+    AMREX_WARNING_POP
 #define BL_PROFILE_IMPL(funame, counter)  amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_, counter)((funame)); \
     amrex::ignore_unused(BL_PROFILE_PASTE(tiny_profiler_, counter));
 

@@ -177,17 +177,22 @@
 // __COUNTER__ with these macros to silence that diagnostic.  The nested
 // -Wunknown-warning-option suppression keeps older Clang, which does not know
 // -Wc2y-extensions, quiet as well.
+//
+// Each AMREX_WARNING_PUSH_* macro silences a specific diagnostic, while the
+// single AMREX_WARNING_POP restores the previous state of whatever was pushed
+// last.  The naming is intentionally asymmetric: the pops are not tied to a
+// particular warning, so pushes and pops must nest, not interleave.
 
 #if defined(__clang__)
-#define AMREX_COUNTER_WARNING_PUSH                                        \
+#define AMREX_WARNING_PUSH_COUNTER                                        \
     _Pragma("clang diagnostic push")                                      \
     _Pragma("clang diagnostic ignored \"-Wunknown-warning-option\"")      \
     _Pragma("clang diagnostic ignored \"-Wc2y-extensions\"")
-#define AMREX_COUNTER_WARNING_POP                                         \
+#define AMREX_WARNING_POP                                                 \
     _Pragma("clang diagnostic pop")
 #else
-#define AMREX_COUNTER_WARNING_PUSH
-#define AMREX_COUNTER_WARNING_POP
+#define AMREX_WARNING_PUSH_COUNTER
+#define AMREX_WARNING_POP
 #endif
 
 // __attribute__((weak))
