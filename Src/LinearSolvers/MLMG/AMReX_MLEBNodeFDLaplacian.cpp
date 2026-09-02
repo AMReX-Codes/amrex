@@ -2,6 +2,7 @@
 #include <AMReX_MLEBNodeFDLap_K.H>
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLNodeTensorLap_K.H>
+#include <AMReX_Scan.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
@@ -766,21 +767,149 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
-MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& /*mfi*/,
-                                   Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
-                                   Array4<int const> const& /*lid*/,
-                                   HypreNodeLap::Int* /*ncols*/,
-                                   HypreNodeLap::Int* /*cols*/,
-                                   Real* /*mat*/) const
+MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
+                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                   Array4<int const> const& lid,
+                                   HypreNodeLap::Int* ncols,
+                                   HypreNodeLap::Int* cols,
+                                   Real* mat) const
 {
-    amrex::Abort("MLEBNodeFDLaplacian::fillIJMatrix: todo");
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
+
+#if (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_rz,
+        "MLEBNodeFDLaplacian::fillIJMatrix: RZ is not supported yet");
+#endif
+
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const auto dxinv = geom.InvCellSizeArray();
+    const GpuArray<Real,AMREX_SPACEDIM> bcoef
+        {AMREX_D_DECL(m_sigma[0]*dxinv[0]*dxinv[0],
+                      m_sigma[1]*dxinv[1]*dxinv[1],
+                      m_sigma[2]*dxinv[2]*dxinv[2])};
+
+    const Box& nddom = amrex::surroundingNodes(geom.Domain());
+    const auto ndlo = amrex::lbound(nddom);
+    const auto ndhi = amrex::ubound(nddom);
+
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
+    GpuArray<bool,AMREX_SPACEDIM> reflect_lo{};
+    GpuArray<bool,AMREX_SPACEDIM> reflect_hi{};
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        reflect_lo[idim] = (lobc[idim] == LinOpBCType::Neumann ||
+                            lobc[idim] == LinOpBCType::inflow);
+        reflect_hi[idim] = (hibc[idim] == LinOpBCType::Neumann ||
+                            hibc[idim] == LinOpBCType::inflow);
+    }
+
+    const bool has_sig = m_has_sigma_mf;
+    Array4<Real const> sig{};
+    if (has_sig) {
+        sig = m_sigma_mf[amrlev][mglev]->const_array(mfi);
+    }
+
+    bool has_eb = false;
+    Array4<Real const> levset{};
+    Array4<Real const> vfrc{};
+    GpuArray<Array4<Real const>,AMREX_SPACEDIM> ec{};
+#ifdef AMREX_USE_EB
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    if (factory) {
+        Array<const MultiCutFab*,AMREX_SPACEDIM> const& edgecent = factory->getEdgeCent();
+        has_eb = edgecent[0] && edgecent[0]->ok(mfi);
+        if (has_eb) {
+            AMREX_D_TERM(ec[0] = edgecent[0]->const_array(mfi);,
+                         ec[1] = edgecent[1]->const_array(mfi);,
+                         ec[2] = edgecent[2]->const_array(mfi));
+            levset = factory->getLevelSet().const_array(mfi);
+            vfrc = factory->getVolFrac().const_array(mfi);
+        }
+    }
+#endif
+
+    const Box& ndbx = mfi.validbox();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (ndbx.numPts()*(2*AMREX_SPACEDIM+1) <
+         static_cast<Long>(std::numeric_limits<int>::max()),
+         "The Box is too big.  We could use Long here, but it would be much slower.");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        const auto blo = amrex::lbound(ndbx);
+        const auto blen = amrex::length(ndbx);
+        const int npts = static_cast<int>(ndbx.numPts());
+        Scan::PrefixSum<int>
+            (npts,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept -> int
+             {
+                 int const k = offset / (blen.x*blen.y);
+                 int const j = (offset - k*blen.x*blen.y) / blen.x;
+                 int const i = offset - k*blen.x*blen.y - j*blen.x;
+                 if (lid(i+blo.x,j+blo.y,k+blo.z) < 0) { return 0; }
+                 return mlebndfdlap_ijmat_row(i+blo.x, j+blo.y, k+blo.z, gid,
+                                              has_eb, has_sig, bcoef, sig, vfrc,
+                                              levset, ec, ndlo, ndhi,
+                                              reflect_lo, reflect_hi).n;
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 int const k = offset / (blen.x*blen.y);
+                 int const j = (offset - k*blen.x*blen.y) / blen.x;
+                 int const i = offset - k*blen.x*blen.y - j*blen.x;
+                 int const row_lid = lid(i+blo.x,j+blo.y,k+blo.z);
+                 if (row_lid < 0) { return; }
+                 auto const& row = mlebndfdlap_ijmat_row
+                     (i+blo.x, j+blo.y, k+blo.z, gid, has_eb, has_sig, bcoef,
+                      sig, vfrc, levset, ec, ndlo, ndhi, reflect_lo, reflect_hi);
+                 ncols[row_lid] = row.n;
+                 for (int n = 0; n < row.n; ++n) {
+                     cols[ps+n] = static_cast<HypreNodeLap::Int>
+                         (gid(row.node[n].x, row.node[n].y, row.node[n].z));
+                     mat[ps+n] = row.val[n];
+                 }
+             },
+             Scan::Type::exclusive);
+    } else
+#endif
+    {
+        // The nodes are visited in the same order in which local ids were
+        // assigned, so the rows come out sorted by local id.
+        int nelems = 0;
+        amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+        {
+            if (lid(i,j,k) >= 0) {
+                auto const& row = mlebndfdlap_ijmat_row(i, j, k, gid, has_eb, has_sig,
+                                                        bcoef, sig, vfrc, levset, ec,
+                                                        ndlo, ndhi, reflect_lo, reflect_hi);
+                ncols[lid(i,j,k)] = row.n;
+                for (int n = 0; n < row.n; ++n) {
+                    cols[nelems] = static_cast<HypreNodeLap::Int>
+                        (gid(row.node[n].x, row.node[n].y, row.node[n].z));
+                    mat[nelems] = row.val[n];
+                    ++nelems;
+                }
+            }
+        });
+    }
 }
 
 void
-MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*lid*/,
-                              Real* /*rhs*/, Array4<Real const> const& /*bfab*/) const
+MLEBNodeFDLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                              Real* rhs, Array4<Real const> const& bfab) const
 {
-    amrex::Abort("MLEBNodeFDLaplacian::fillRHS: todo");
+    // Unlike MLNodeLaplacian, this is a finite-difference operator, so nodes on
+    // a Neumann boundary need no volume factor here.  fillIJMatrix folds the
+    // ghost node onto its mirror image instead.
+    const Box& bx = mfi.validbox();
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+    {
+        if (lid(i,j,k) >= 0) {
+            rhs[lid(i,j,k)] = bfab(i,j,k);
+        }
+    });
 }
 #endif
 
