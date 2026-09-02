@@ -1770,10 +1770,6 @@ ParmParse::Finalize ()
     g_parser_recursive_symbols.clear();
     g_parser_recursive_symbols.resize(1);
 
-    // Reset the remaining file-scope state, so that the next Initialize starts
-    // from a clean slate. Applications that call SetParserPrefix do so after
-    // Initialize (e.g. from the func_parm_parse hook), so they re-establish
-    // their prefix on every cycle.
     ParmParse::ParserPrefix.clear();
     g_toml_table_key.clear();
 

@@ -460,10 +460,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         {
             // No command line to parse. argc == 0 is the library/embedded entry
             // point (e.g. language bindings), argc == 1 the executable name only.
-            // Both must still initialize ParmParse, because that is what registers
-            // ParmParse::Finalize and thereby clears the parameter table in
-            // amrex::Finalize(). Skipping it would leak every runtime-added
-            // parameter into the next Initialize/Finalize cycle.
             ParmParse::Initialize(0,nullptr,nullptr);
         }
         else
