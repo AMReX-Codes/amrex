@@ -295,6 +295,10 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
 
     Real diag = Real(0.0);
     Real scale = Real(1.0);
+    Real hm_arr[AMREX_SPACEDIM] = {};
+    Real hp_arr[AMREX_SPACEDIM] = {};
+    bool cut_lo_arr[AMREX_SPACEDIM] = {};
+    bool cut_hi_arr[AMREX_SPACEDIM] = {};
     Real coef[2*AMREX_SPACEDIM] = {};
     bool used[2*AMREX_SPACEDIM] = {};
 
@@ -305,18 +309,25 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
 
         Real hp = Real(1.0);
         Real hm = Real(1.0);
-        bool cut_lo = false;
-        bool cut_hi = false;
         if (has_eb) {
             Real const ecp = ec[idim](i,j,k);
             Real const ecm = ec[idim](i-di,j-dj,k-dk);
             hp = (ecp == Real(1.0)) ? Real(1.0) : (Real(1.0) + Real(2.0)*ecp);
             hm = (ecm == Real(1.0)) ? Real(1.0) : (Real(1.0) - Real(2.0)*ecm);
-            cut_hi = (levset(i+di,j+dj,k+dk) >= Real(0.0));
-            cut_lo = (levset(i-di,j-dj,k-dk) >= Real(0.0));
+            cut_hi_arr[idim] = (levset(i+di,j+dj,k+dk) >= Real(0.0));
+            cut_lo_arr[idim] = (levset(i-di,j-dj,k-dk) >= Real(0.0));
             scale = amrex::min(scale, hm, hp);
         }
+        hp_arr[idim] = hp;
+        hm_arr[idim] = hm;
+    }
 
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        int const di = (idim == 0) ? 1 : 0;
+        int const dj = (idim == 1) ? 1 : 0;
+        int const dk = (idim == 2) ? 1 : 0;
+        Real const hp = hp_arr[idim];
+        Real const hm = hm_arr[idim];
         Real const fac = bcoef[idim] * Real(2.0) / (hp+hm);
 
         int const nd = (idim == 0) ? i : ((idim == 1) ? j : k);
@@ -327,12 +338,14 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
             Real const s = has_sig
                 ? ebnodefdlap_detail::face_sigma(i,j,k,idim,side,has_eb,sig,vfrc)
                 : Real(1.0);
-            if ((side == 0) ? cut_lo : cut_hi) {
+            bool const cut = (side == 0) ? cut_lo_arr[idim] : cut_hi_arr[idim];
+            Real const h = (side == 0) ? hm : hp;
+            if (cut) {
                 // The neighbor is covered, so it only contributes a Dirichlet
                 // value, which is zero here.
-                diag -= s * fac / ((side == 0) ? hm : hp);
+                diag -= s * fac * mlebndfdlap_scaled_hinv(scale, h);
             } else {
-                diag -= s * fac;
+                diag -= s * fac * scale;
                 int ii = (side == 0) ? i-di : i+di;
                 int jj = (side == 0) ? j-dj : j+dj;
                 int kk = (side == 0) ? k-dk : k+dk;
@@ -346,7 +359,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
                     slot = 2*idim + (1-side);
                 }
                 if (gid(ii,jj,kk) < gidmax) {
-                    coef[slot] += s * fac;
+                    coef[slot] += s * fac * scale;
                     used[slot] = true;
                 }
             }
@@ -354,7 +367,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
     }
 
     ebnodefdlap_detail::Row row;
-    row.val[0] = diag * scale;
+    row.val[0] = diag;
     row.node[0] = Dim3{.x=i, .y=j, .z=k};
     row.n = 1;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -364,7 +377,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
         for (int side = 0; side < 2; ++side) {
             int const slot = 2*idim + side;
             if (used[slot]) {
-                row.val[row.n] = coef[slot] * scale;
+                row.val[row.n] = coef[slot];
                 row.node[row.n] = (side == 0) ? Dim3{.x=i-di, .y=j-dj, .z=k-dk}
                                               : Dim3{.x=i+di, .y=j+dj, .z=k+dk};
                 ++row.n;
