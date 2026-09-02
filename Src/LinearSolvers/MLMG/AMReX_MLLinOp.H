@@ -323,8 +323,20 @@ public:
 
     [[nodiscard]] virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
 
+    //! Does this operator provide its own bottom solver (BottomSolver::custom)?
     [[nodiscard]] virtual bool supportCustomBottomSolver () const { return false; }
 
+    /**
+     * \brief Bottom solve provided by the operator itself.
+     *
+     * Used when the bottom solver is BottomSolver::custom and
+     * supportCustomBottomSolver() returns true.  The implementation must
+     * finish by calling mlmg->postCG(ret, niters), where ret follows the
+     * return codes of MLCGSolver and niters is the number of iterations.
+     * The only implementation so far, MLEBNodeFDLaplacian, runs a BiCGStab
+     * entirely on the GPU for CUDA and HIP when the bottom level has a
+     * single Box, and falls back to MLMG::bottomSolveWithCG otherwise.
+     */
     virtual void customBottomSolve (MLMGT<MF>* mlmg, MF& x, const MF& b,
                                     RT eps_rel, RT eps_abs, int maxiter)
     {

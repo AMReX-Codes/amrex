@@ -5,12 +5,31 @@
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
 #include <AMReX_BaseFab.H>
+#include <AMReX_Print.H>
+
+#include <iomanip>
 
 namespace amrex
 {
 
+namespace detail {
+    //! Everything bicgstab_solve copies back to the host, in one buffer.
+    template <typename T>
+    struct SingleBoxCGResult
+    {
+        int ret;     //!< return code, same meaning as in MLCGSolver
+        int active;  //!< nonzero while the multi-kernel path keeps iterating
+        int niters;  //!< number of iterations
+        T rnorm0;    //!< initial residual norm
+        T rnorm;     //!< final residual norm
+    };
+}
+
 /**
- * \brief BiCGStab solver
+ * \brief BiCGStab solver for a single Box that runs entirely on the GPU.
+ *
+ * This is currently available for CUDA and HIP only.  The return codes and
+ * the verbose output follow MLCGSolver.
  *
  * \param box region for solve
  * \param x solution with initial value already set to zero
@@ -19,10 +38,12 @@ namespace amrex
  * \param eps_rel relative tolerance
  * \param eps_abs absolute tolerance
  * \param maxiter max iteration
+ * \param verbose verbosity, same meaning as in MLCGSolver
+ * \param niters number of iterations performed (output)
  */
 template <typename T, class LP>
 int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const& lp,
-                    T eps_rel, T eps_abs, int maxiter)
+                    T eps_rel, T eps_abs, int maxiter, int verbose, int& niters)
 {
     const int ncomp = x.nComp();
 
@@ -33,10 +54,11 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
     BaseFab<T> fab(box, ncomp*nidx);
     auto const& a = fab.array();
     auto const& sol = x.array();
-    auto const& rhs = const_cast<BaseFab<T>&>(b).array();
+    auto const& rhs = b.const_array();
 
-    Gpu::Buffer<int> ret_buf(2);
-    auto* retd = ret_buf.data();
+    // Single buffer for everything that goes back to the host.
+    Gpu::Buffer<detail::SingleBoxCGResult<T>> res_buf(1);
+    auto* resd = res_buf.data();
 
     Gpu::DeviceVector<T> reduce_buf;
     Gpu::DeviceVector<T> scalar_buf;
@@ -62,7 +84,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
 
         auto* reduce = reduce_buf.data();
         auto* scalar = scalar_buf.data();
-        auto* active = retd+1;
+        auto* active = &(resd->active);
         auto const npts = indexer.numPts();
 
         // Initialize r and rh, and write one rnorm contribution per block.
@@ -102,12 +124,13 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                 scalar[s_alpha] = 0;
                 scalar[s_omega] = 0;
                 scalar[s_beta] = 0;
-                retd[0] = 0;
+                resd->ret = 0;
                 *active = !((rnorm == 0) || (rnorm < eps_abs));
             }
         });
 
-        for (int iter = 1; iter <= maxiter; ++iter) {
+        int iter = 1;
+        for (; iter <= maxiter; ++iter) {
             // rho = dot(rh,r), with one partial sum per block.
             amrex::launch<MT>(nblocks, Gpu::gpuStream(), [=] AMREX_GPU_DEVICE ()
             {
@@ -138,7 +161,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                 if (threadIdx.x == 0) {
                     scalar[s_rho] = rho;
                     if (rho == 0) {
-                        retd[0] = 1;
+                        resd->ret = 1;
                         *active = 0;
                     } else if (iter > 1) {
                         scalar[s_beta] = (rho/scalar[s_rho_1])
@@ -215,7 +238,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     if (rhTv != 0) {
                         scalar[s_alpha] = scalar[s_rho] / rhTv;
                     } else {
-                        retd[0] = 2;
+                        resd->ret = 2;
                         *active = 0;
                     }
                 }
@@ -312,7 +335,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     if (t0 != 0) {
                         scalar[s_omega] = t1/t0;
                     } else {
-                        retd[0] = 3;
+                        resd->ret = 3;
                         *active = 0;
                     }
                 }
@@ -351,7 +374,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     if (rnorm < eps_rel*scalar[s_rnorm0] || rnorm < eps_abs) {
                         *active = 0;
                     } else if (scalar[s_omega] == 0) {
-                        retd[0] = 4;
+                        resd->ret = 4;
                         *active = 0;
                     } else {
                         scalar[s_rho_1] = scalar[s_rho];
@@ -359,7 +382,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                 }
             });
 
-            if (ret_buf.copyToHost()[1] == 0) {
+            if (res_buf.copyToHost()->active == 0) {
                 break;
             }
         }
@@ -370,7 +393,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
             if (threadIdx.x == 0) {
                 T const rnorm = scalar[s_rnorm];
                 T const rnorm0 = scalar[s_rnorm0];
-                int ret = retd[0];
+                int ret = resd->ret;
                 bool keep_solution = (rnorm0 == 0 || rnorm0 < eps_abs);
                 if (!keep_solution) {
                     if (*active != 0 && ret == 0 &&
@@ -381,8 +404,10 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     keep_solution = ((ret == 0 || ret == 8) && rnorm < rnorm0);
                     if (keep_solution && ret == 8) { ret = 9; }
                 }
-                retd[0] = ret;
+                resd->ret = ret;
                 *active = keep_solution;
+                resd->rnorm0 = rnorm0;
+                resd->rnorm = rnorm;
             }
         });
 
@@ -398,6 +423,10 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                 }
             }
         });
+
+        // Like MLCGSolver, iter is maxiter+1 if the loop was exhausted.  The
+        // no-iteration case is fixed up below once the norms are on the host.
+        niters = iter;
     }
     else
     {
@@ -426,13 +455,19 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
             T const rnorm0 = shared_scalar[0];
 
             if (rnorm0 == 0 || rnorm0 < eps_abs) {
-                if (threadIdx.x == 0) { *retd = 0; }
+                if (threadIdx.x == 0) {
+                    resd->ret = 0;
+                    resd->niters = 0;
+                    resd->rnorm0 = rnorm0;
+                    resd->rnorm = rnorm0;
+                }
                 return;
             }
 
             int ret = 0;
             T rho_1 = 0, alpha = 0, omega = 0;
-            for (int iter = 1; iter <= maxiter; ++iter) {
+            int iter = 1;
+            for (; iter <= maxiter; ++iter) {
                 T rho = 0;
                 for (auto ipt = threadIdx.x; ipt < npts; ipt += blockDim.x) {
                     auto cell = indexer.intVect(ipt);
@@ -577,12 +612,44 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                 }
             }
 
-            if (threadIdx.x == 0) { *retd = ret; }
+            if (threadIdx.x == 0) {
+                resd->ret = ret;
+                resd->niters = iter;
+                resd->rnorm0 = rnorm0;
+                resd->rnorm = rnorm;
+            }
         });
     }
 
-    auto* reth = ret_buf.copyToHost(); // this has stream sync.
-    return *reth;
+    auto const* resh = res_buf.copyToHost(); // this has stream sync.
+    int const ret = resh->ret;
+    T const rnorm0 = resh->rnorm0;
+    T const rnorm = resh->rnorm;
+    if (is_big) {
+        if (rnorm0 == 0 || rnorm0 < eps_abs) { niters = 0; }
+    } else {
+        niters = resh->niters;
+    }
+
+    // Host-side output only, mirroring MLCGSolver.  Only the rank that owns
+    // the box gets here, so AllPrint is used instead of Print.
+    if (verbose > 0) {
+        amrex::AllPrint() << "SingleBoxCGSolver_BiCGStab: Initial error (error0) =        "
+                          << rnorm0 << '\n';
+        if (niters == 0) {
+            amrex::AllPrint() << "SingleBoxCGSolver_BiCGStab: niter = 0, rnorm = " << rnorm
+                              << ", eps_abs = " << eps_abs << '\n';
+        } else {
+            amrex::AllPrint() << "SingleBoxCGSolver_BiCGStab: Final: Iteration "
+                              << std::setw(4) << niters
+                              << " rel. err. " << rnorm/rnorm0 << '\n';
+            if (ret == 8 || ret == 9) {
+                amrex::Warning("SingleBoxCGSolver_BiCGStab:: failed to converge!");
+            }
+        }
+    }
+
+    return ret;
 }
 
 }

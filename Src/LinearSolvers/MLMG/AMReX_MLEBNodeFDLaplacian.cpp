@@ -1377,7 +1377,7 @@ void
 MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
                                         Real eps_rel, Real eps_abs, int maxiter)
 {
-    amrex::ignore_unused(eps_rel, eps_abs, maxiter);
+    amrex::ignore_unused(maxiter, eps_rel, eps_abs);
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     bool use_custom_solver = (x.size() == 1);
@@ -1385,6 +1385,8 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
     {
         int const amrlev = 0;
         int const mglev = NMGLevels(0) - 1;
+        int const verbose = mlmg->getBottomVerbose();
+        int niters = 0;
 
 #ifdef AMREX_USE_EB
         auto const* eb_factory = dynamic_cast<EBFArrayBoxFactory const*>
@@ -1441,13 +1443,13 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                             (lpbase, RZVarSigmaEB{sigma,vfrac,dx0},
                              RZEBData<true>{levset,ec}, dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter);
+                                             eps_rel, eps_abs, maxiter, verbose, niters);
                     } else {
                         LPRZ<true,RZConstSigma> lp
                             (lpbase, RZConstSigma{sig0}, RZEBData<true>{levset,ec},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter);
+                                             eps_rel, eps_abs, maxiter, verbose, niters);
                     }
                 } else
 #endif
@@ -1458,13 +1460,13 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                             (lpbase, RZVarSigma{sigma,dx0}, RZEBData<false>{},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter);
+                                             eps_rel, eps_abs, maxiter, verbose, niters);
                     } else {
                         LPRZ<false,RZConstSigma> lp
                             (lpbase, RZConstSigma{sig0}, RZEBData<false>{},
                              dx0, dx1, xlo, alpha);
                         ret = bicgstab_solve(box, x[0], b[0], lp,
-                                             eps_rel, eps_abs, maxiter);
+                                             eps_rel, eps_abs, maxiter, verbose, niters);
                     }
                 }
             } else
@@ -1482,29 +1484,36 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
                     auto const& sigma = (*m_sigma_mf[amrlev][mglev])[0].const_array();
                     auto const& vfrac = eb_factory->getVolFrac()[0].const_array();
                     LPEB<EBVarSigma> lp(lpbase, levset, ec, EBVarSigma{sigma,vfrac});
-                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter);
+                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
                 } else {
                     LPEB<EBConstSigma> lp(lpbase, levset, ec, EBConstSigma{});
-                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter);
+                    ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
                 }
             } else
 #endif
             if (m_has_sigma_mf) {
                 auto const& sigma = (*m_sigma_mf[amrlev][mglev])[0].const_array();
                 LPSigma lp(lpbase, sigma);
-                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter);
+                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
             } else {
                 LP lp(lpbase);
-                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter);
+                ret = bicgstab_solve(box, x[0], b[0], lp, eps_rel, eps_abs, maxiter, verbose, niters);
             }
         }
 
         if (ParallelContext::NProcsSub() > 1) {
             int root = ParallelContext::global_to_local_rank(x.DistributionMap()[0]);
-            ParallelDescriptor::Bcast(&ret, 1, root, ParallelContext::CommunicatorSub());
+            int buf[2] = {ret, niters};
+            ParallelDescriptor::Bcast(buf, 2, root, ParallelContext::CommunicatorSub());
+            ret = buf[0];
+            niters = buf[1];
         }
 
-        mlmg->postCG(ret);
+        if (ret != 0 && mlmg->getVerbose() > 1) {
+            amrex::Print() << "MLMG: Bottom solve failed.\n";
+        }
+
+        mlmg->postCG(ret, niters);
     } else
 #endif
     {

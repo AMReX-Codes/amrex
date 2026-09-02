@@ -389,7 +389,8 @@ Available choices of the bottom solver are
   itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
   the only such operator, and it uses this by default.  Its custom solver is a
   BiCGStab that runs entirely on the GPU when the bottom level has a single
-  Box.
+  Box.  This is currently available for CUDA and HIP only; other builds fall
+  back to the standard BiCGStab solver.
 
 The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.

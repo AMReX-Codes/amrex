@@ -502,8 +502,11 @@ public:
      * \brief Post CG smoothing.
      *
      * \param ret Return code of the previous CG solver.
+     * \param niters Number of iterations of the previous CG solver to record
+     *               for getNumCGIters().  Pass a negative number if it has
+     *               already been recorded (e.g., by bottomSolveWithCG).
      */
-    void postCG (int ret);
+    void postCG (int ret, int niters = -1);
 
     /**
      * \brief Compute the composite residual norm up to AMR level \p amrlevmax.
@@ -1955,8 +1958,12 @@ MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
 
 template <typename MF>
 void
-MLMGT<MF>::postCG (int ret)
+MLMGT<MF>::postCG (int ret, int niters)
 {
+    if (niters >= 0) {
+        m_niters_cg.push_back(niters);
+    }
+
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     auto& x = cor[amrlev][mglev];
