@@ -23,14 +23,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
-    auto area = (factory) ? factory->getAreaFrac()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
-    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-    const auto *const  ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
     const bool is_eb_dirichlet =  isEBDirichlet();
     const bool is_eb_inhomog = m_is_eb_inhomog && (!this->m_precond_mode);
@@ -99,17 +91,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             }
         } else {
             Array4<int const> const& ccmfab = ccmask.const_array(mfi);
-            Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
-            Array4<Real const> const& vfracfab = vfrac->const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
-                         Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
-                         Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
-            Array4<Real const> const& bcfab = bcent->const_array(mfi);
-            Array4<Real const> const& ccfab = ccent->const_array(mfi);
+            auto const& ebdata = factory->getEBData(mfi);
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
             Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
@@ -130,35 +112,30 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                 amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
-                amrex::ignore_unused(ccfab);
 #else
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-               {
-                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                     flagfab, vfracfab,
-                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     ccfab, bafab, bcfab, bebfab, phiebfab,
-                                     AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
-                                     is_eb_dirichlet, is_eb_inhomog, dxinvarr,
-                                     ascalar, bscalar, ncomp);
-               });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlebabeclap_adotx_centroid(i, j, k, n, yfab, xfab, afab,
+                                      AMREX_D_DECL(bxfab,byfab,bzfab),
+                                      ebdata, bebfab, phiebfab,
+                                      AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                      is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                      ascalar, bscalar);
+                });
 #endif
             } else {
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-               {
-                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                     ccmfab, flagfab, vfracfab,
-                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     bafab, bcfab, bebfab,
-                                     is_eb_dirichlet,
-                                     phiebfab,
-                                     is_eb_inhomog, dxinvarr,
-                                     ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
-               });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlebabeclap_adotx(i, j, k, n, yfab, xfab, afab,
+                                      AMREX_D_DECL(bxfab,byfab,bzfab),
+                                      ccmfab, ebdata, bebfab,
+                                      is_eb_dirichlet,
+                                      phiebfab,
+                                      is_eb_inhomog, dxinvarr,
+                                      ascalar, bscalar, beta_on_centroid, phi_on_centroid);
+                });
             }
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
