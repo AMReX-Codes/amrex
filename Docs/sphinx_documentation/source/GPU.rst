@@ -2074,31 +2074,33 @@ and recommendations for improving the code.  For more information on how to
 use ``nvprof``, see NVIDIA's User's Guide as well as the help web pages of
 your favorite supercomputing facility that uses NVIDIA GPUs.
 
-AMReX's internal profilers currently cannot hook into profiling information
-on the GPU and an efficient way to time and retrieve that information is
-being explored. In the meantime, AMReX's timers can be used to report some
-generic timers that are useful in categorizing an application.
+AMReX's internal profilers do not hook into backend profiling information,
+but TinyProfiler can measure selected GPU scopes by synchronizing the current
+AMReX GPU stream at their timer boundaries.
 
-Due to the asynchronous launching of GPU kernels, any AMReX timers inside of
-asynchronous regions or inside GPU kernels will not measure useful
-information.  However, since the :cpp:`MFIter` synchronizes when being
-destroyed, any timer wrapped around an :cpp:`MFIter` loop will yield a
-consistent timing of the entire set of GPU launches contained within. For
-example:
+Due to asynchronous GPU kernel launches, an ordinary host timer might finish
+before the work launched inside it. Use :cpp:`BL_PROFILE_GPU_SYNC` (or its
+variable and region variants) when a TinyProfiler timer must include work
+launched on the current stream. For example:
 
 .. highlight:: cpp
 
 ::
 
-    BL_PROFILE_VAR("A_NAME", blp);     // Profiling start
+    BL_PROFILE_VAR_GPU_SYNC("A_NAME", blp); // Synchronize, then start timing
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         // gpu works
     }
-    BL_PROFILE_STOP(blp);              // Profiling stop
+    BL_PROFILE_VAR_STOP(blp);           // Synchronize, then stop timing
 
-For now, this is the best way to profile GPU codes using ``TinyProfiler``.
-If you require further profiling detail, use ``nvprof``.
+The synchronized macros add synchronization points that are unnecessary for
+correctness and may affect application performance. Once one executes, the
+TinyProfiler report focuses on synchronized timers, synchronized regions, and
+the outermost timer; see :ref:`sec:tiny:profiling` for the complete behavior.
+The runtime parameter ``tiny_profiler.device_synchronize_around_region`` can
+still synchronize every TinyProfiler timer boundary and does not activate this
+focused report. For detailed kernel information, use a backend profiling tool.
 
 
 Performance Tips

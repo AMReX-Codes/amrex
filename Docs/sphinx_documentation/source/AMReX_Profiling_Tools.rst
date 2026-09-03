@@ -429,6 +429,41 @@ is isolated in its own group.
 Any timers inside :cpp:`MyFunc_0` and :cpp:`MyFunc_1` are not included in the
 region groupings.
 
+GPU-synchronized TinyProfiler timers
+------------------------------------
+
+GPU kernels normally launch asynchronously, so a host timer does not necessarily
+measure the work launched inside its scope. On GPU builds, TinyProfiler provides
+opt-in variants that synchronize the current AMReX GPU stream immediately before
+recording both the start and stop timestamps:
+
+* :cpp:`BL_PROFILE_GPU_SYNC(name)`
+* :cpp:`BL_PROFILE_VAR_GPU_SYNC(name, variable)`
+* :cpp:`BL_PROFILE_VAR_NS_GPU_SYNC(name, variable)`
+* :cpp:`BL_PROFILE_REGION_GPU_SYNC(name)`
+
+Variables created with :cpp:`BL_PROFILE_VAR_NS_GPU_SYNC` are started and stopped
+with the ordinary :cpp:`BL_PROFILE_VAR_START` and :cpp:`BL_PROFILE_VAR_STOP`
+macros. On CPU builds these four macros are aliases for their ordinary variants.
+They are also ordinary aliases when the full profiler is selected, and are no-ops
+when profiling is disabled.
+
+After any GPU-synchronized timer starts, TinyProfiler uses a focused report for
+the remainder of that AMReX initialization cycle. The focused report contains
+the outermost active timer, timers created by the GPU-synchronized macros, and
+tables created by :cpp:`BL_PROFILE_REGION_GPU_SYNC`. Ordinary nested timers and
+ordinary region tables are still collected in the complete internal statistics,
+but are omitted from focused flushes and the final report. Activation is combined
+across all MPI processes, so every process uses the same report even if only one
+process executes a synchronized timer. Percentages remain relative to the total
+application run time.
+
+The runtime parameter
+``tiny_profiler.device_synchronize_around_region`` remains available and is
+independent of these macros. When enabled, it retains its existing behavior of
+synchronizing all TinyProfiler timer boundaries; it does not by itself activate
+the focused report.
+
 Instrumenting Fortran90 Code
 ============================
 
