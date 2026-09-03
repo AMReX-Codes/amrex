@@ -919,6 +919,11 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                 const Vector<MultiFab const*>& a_rhs,
                  Real a_tol_rel, Real a_tol_abs);
 
+The solver supports hierarchies containing fully refined intermediate AMR
+levels.  It adds source-free support cells outside the original domain as
+needed to preserve proper nesting on the enlarged domain used by James's
+method.
+
 
 GMRES
 =====
