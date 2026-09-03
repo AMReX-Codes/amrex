@@ -1,5 +1,4 @@
-// We only support BL_PROFILE, BL_PROFILE_VAR, BL_PROFILE_VAR_STOP, BL_PROFILE_VAR_START,
-// BL_PROFILE_VAR_NS, and BL_PROFILE_REGION.
+// TinyProfiler implementation for the BL_PROFILE family of macros.
 
 #include <AMReX_TinyProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -46,10 +45,10 @@ std::vector<TinyProfiler::aligned_deque> TinyProfiler::mem_stack_thread_private;
 std::vector<std::map<std::string, MemStat>*> TinyProfiler::all_memstats;
 std::vector<std::string> TinyProfiler::all_memnames;
 
-std::vector<std::string>          TinyProfiler::regionstack;
-std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
+std::vector<TinyProfiler::RegionKey> TinyProfiler::regionstack;
+std::vector<std::pair<TinyProfiler::RegionKey,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
-std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
+TinyProfiler::StatsMap TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -58,6 +57,7 @@ int TinyProfiler::verbose = 0;
 double TinyProfiler::print_threshold = 1.;
 bool TinyProfiler::enabled = true;
 bool TinyProfiler::memprof_enabled = true;
+bool TinyProfiler::show_async_gpu_timers = true;
 std::string TinyProfiler::output_file{"stdout"};
 
 namespace {
@@ -111,6 +111,12 @@ TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
     if (start_) { start(); }
 }
 
+TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool async_gpu_) noexcept
+    : fname(std::move(funcname)), async_gpu(async_gpu_)
+{
+    if (start_) { start(); }
+}
+
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
     : fname(funcname)
 {
@@ -119,6 +125,12 @@ TinyProfiler::TinyProfiler (const char* funcname) noexcept
 
 TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
     : fname(funcname)
+{
+    if (start_) { start(); }
+}
+
+TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool async_gpu_) noexcept
+    : fname(funcname), async_gpu(async_gpu_)
 {
     if (start_) { start(); }
 }
@@ -169,9 +181,10 @@ TinyProfiler::start ()
         roctxRangePush(fname.c_str());
 #endif
 
+        TimerKey const key{fname, async_gpu};
         for (auto const& region : regionstack)
         {
-            Stats& st = statsmap[region][fname];
+            Stats& st = statsmap[region][key];
             ++st.depth;
             stats.push_back(&st);
         }
@@ -359,6 +372,7 @@ TinyProfiler::Initialize ()
         pp.queryAdd("print_threshold", print_threshold);
 
         pp.queryAdd("enabled", enabled);
+        pp.queryAdd("show_async_gpu_timers", show_async_gpu_timers);
     }
 
     // Re-arm the output-file read for this cycle and reset the cached value, so
@@ -369,7 +383,7 @@ TinyProfiler::Initialize ()
 
     if (!enabled) { return; }
 
-    regionstack.emplace_back(mainregion);
+    regionstack.push_back(RegionKey{mainregion, false});
     t_init = amrex::second();
 
     finalized = false;
@@ -411,7 +425,7 @@ TinyProfiler::Finalize (bool bFlushing)
 
     double t_final = amrex::second();
 
-    // make a local copy so that any functions call after this will not be recorded in the local copy.
+    // Make a local copy so that timers completed during output are not included.
     auto lstatsmap = statsmap;
 
     int nprocs = ParallelDescriptor::NProcs();
@@ -446,32 +460,52 @@ TinyProfiler::Finalize (bool bFlushing)
         Vector<std::string> localRegions, syncedRegions;
         bool alreadySynced;
 
-        for (auto const& kv : lstatsmap) {
-            localRegions.push_back(kv.first);
-        }
+        for (bool const async_key : {false, true}) {
+            localRegions.clear();
+            syncedRegions.clear();
+            for (auto const& kv : lstatsmap) {
+                if (kv.first.async_gpu == async_key) {
+                    localRegions.push_back(kv.first.name);
+                }
+            }
 
-        amrex::SyncStrings(localRegions, syncedRegions, alreadySynced);
+            amrex::SyncStrings(localRegions, syncedRegions, alreadySynced);
 
-        if (!alreadySynced) {
-            for (auto const& s : syncedRegions) {
-                if (!lstatsmap.contains(s)) {
-                    lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
+            if (!alreadySynced) {
+                for (auto const& s : syncedRegions) {
+                    RegionKey const key{s, async_key};
+                    if (!lstatsmap.contains(key)) {
+                        lstatsmap.insert(std::make_pair(key,RegionStats()));
+                    }
                 }
             }
         }
     }
 
-    PrintStats(lstatsmap[mainregion], dt_max, os);
     for (auto& kv : lstatsmap) {
-        if (kv.first != mainregion) {
+        SyncTimerKeys(kv.second);
+    }
+
+    bool has_marked_results = PrintStats(lstatsmap[RegionKey{mainregion, false}],
+                                         dt_max, os, false);
+    RegionKey const main_key{mainregion, false};
+    for (auto& kv : lstatsmap) {
+        if (!(kv.first == main_key) &&
+            (show_async_gpu_timers || !kv.first.async_gpu)) {
             if (os) {
-                *os << "\n\nBEGIN REGION " << kv.first << "\n";
+                *os << "\n\nBEGIN REGION " << kv.first.name << "\n";
             }
-            PrintStats(kv.second, dt_max, os);
+            has_marked_results = PrintStats(kv.second, dt_max, os,
+                                            kv.first.async_gpu) || has_marked_results;
             if (os) {
-                *os << "END REGION " << kv.first << "\n";
+                *os << "END REGION " << kv.first.name << "\n";
             }
         }
+    }
+
+    if (os && has_marked_results) {
+        *os << "TinyProfiler warning: values marked with ? are asynchronous GPU timings "
+               "and may be inaccurate.\n";
     }
 
     if (!bFlushing) {
@@ -538,30 +572,41 @@ TinyProfiler::DeregisterArena (std::map<std::string, MemStat>& memstats) noexcep
 }
 
 void
-TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
-                          std::ostream* os)
+TinyProfiler::SyncTimerKeys (RegionStats& regstats)
 {
-    // make sure the set of profiled functions is the same on all processes
-    {
+    // Make sure ordinary and asynchronous timer keys are the same on all processes.
+    for (bool const async_key : {false, true}) {
         Vector<std::string> localStrings, syncedStrings;
         bool alreadySynced;
 
-        for(auto const& kv : regstats) {
-            localStrings.push_back(kv.first);
+        for (auto const& kv : regstats) {
+            if (kv.first.async_gpu == async_key) {
+                localStrings.push_back(kv.first.name);
+            }
         }
 
         amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
-        if (! alreadySynced) {  // add the new name
+        if (!alreadySynced) {
             for (auto const& s : syncedStrings) {
-                if (!regstats.contains(s)) {
-                    regstats.insert(std::make_pair(s, Stats()));
+                TimerKey const key{s, async_key};
+                if (!regstats.contains(key)) {
+                    regstats.insert(std::make_pair(key, Stats()));
                 }
             }
         }
     }
+}
 
-    if (regstats.empty()) { return; }
+bool
+TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
+                          std::ostream* os, bool mark_all_async)
+{
+    if (!show_async_gpu_timers) {
+        std::erase_if(regstats, [] (auto const& item) { return item.first.async_gpu; });
+    }
+
+    if (regstats.empty()) { return false; }
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -606,7 +651,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
             pst.navg /= nprocs;
             pst.dtinavg /= nprocs;
             pst.dtexavg /= nprocs;
-            pst.fname = regstat.first;
+            pst.async_gpu = mark_all_async || regstat.first.async_gpu;
+            pst.fname = regstat.first.name;
             allprocstats.push_back(pst);
             maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
             maxncalls = std::max(maxncalls, pst.nmax);
@@ -662,6 +708,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
                     other_procstat.dtexmin += allprocstats[i].dtexmin;
                     other_procstat.dtexavg += allprocstats[i].dtexavg;
                     other_procstat.dtexmax += allprocstats[i].dtexmax;
+                    other_procstat.async_gpu = other_procstat.async_gpu ||
+                                               allprocstats[i].async_gpu;
                 } else {
                     break;
                 }
@@ -697,15 +745,21 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
             if (!allprocstat.do_print) {
                 continue;
             }
+            int const marker_width = allprocstat.async_gpu ? 1 : 0;
             *os << std::setprecision(4) << std::left
                 << std::setw(maxfnamelen) << allprocstat.fname
                 << std::right
                 << std::setw(wnc+2) << allprocstat.navg
-                << std::setw(wt+2) << allprocstat.dtexmin
-                << std::setw(wt+2) << allprocstat.dtexavg
-                << std::setw(wt+2) << allprocstat.dtexmax
-                << std::setprecision(2) << std::setw(wp+1) << std::fixed
-                << allprocstat.dtexmax*(100.0/dt_max) << "%";
+                << std::setw(wt+2-marker_width) << allprocstat.dtexmin;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setw(wt+2-marker_width) << allprocstat.dtexavg;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setw(wt+2-marker_width) << allprocstat.dtexmax;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setprecision(2) << std::setw(wp+1-marker_width) << std::fixed
+                << allprocstat.dtexmax*(100.0/dt_max);
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << "%";
             os->unsetf(std::ios_base::fixed);
             *os << "\n";
         }
@@ -735,20 +789,29 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
             if (!allprocstat.do_print) {
                 continue;
             }
+            int const marker_width = allprocstat.async_gpu ? 1 : 0;
             *os << std::setprecision(4) << std::left
                 << std::setw(maxfnamelen) << allprocstat.fname
                 << std::right
                 << std::setw(wnc+2) << allprocstat.navg
-                << std::setw(wt+2) << allprocstat.dtinmin
-                << std::setw(wt+2) << allprocstat.dtinavg
-                << std::setw(wt+2) << allprocstat.dtinmax
-                << std::setprecision(2) << std::setw(wp+1) << std::fixed
-                << allprocstat.dtinmax*(100.0/dt_max) << "%";
+                << std::setw(wt+2-marker_width) << allprocstat.dtinmin;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setw(wt+2-marker_width) << allprocstat.dtinavg;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setw(wt+2-marker_width) << allprocstat.dtinmax;
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << std::setprecision(2) << std::setw(wp+1-marker_width) << std::fixed
+                << allprocstat.dtinmax*(100.0/dt_max);
+            if (allprocstat.async_gpu) { *os << '?'; }
+            *os << "%";
             os->unsetf(std::ios_base::fixed);
             *os << "\n";
         }
         *os << hline << "\n\n";
     }
+
+    return mark_all_async || std::ranges::any_of(regstats,
+        [] (auto const& item) { return item.first.async_gpu; });
 }
 
 void
@@ -973,24 +1036,38 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 void
 TinyProfiler::StartRegion (std::string regname) noexcept
 {
+    StartRegion(std::move(regname), false);
+}
+
+void
+TinyProfiler::StartRegion (std::string regname, bool async_gpu) noexcept
+{
     if (!enabled) { return; }
 
     bool pushed = false;
-    if (std::ranges::find(regionstack, regname) == regionstack.end()) {
-        regionstack.emplace_back(regname);
+    RegionKey key{std::move(regname), async_gpu};
+    if (std::ranges::find(regionstack, key) == regionstack.end()) {
+        regionstack.push_back(key);
         pushed = true;
     }
-    regionstartstack.emplace_back(std::move(regname), pushed);
+    regionstartstack.emplace_back(std::move(key), pushed);
 }
 
 void
 TinyProfiler::StopRegion (const std::string& regname) noexcept
 {
+    StopRegion(regname, false);
+}
+
+void
+TinyProfiler::StopRegion (const std::string& regname, bool async_gpu) noexcept
+{
     if (!enabled) { return; }
 
-    if (!regionstartstack.empty() && regname == regionstartstack.back().first) {
+    RegionKey const key{regname, async_gpu};
+    if (!regionstartstack.empty() && key == regionstartstack.back().first) {
         if (regionstartstack.back().second) {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!regionstack.empty() && regname == regionstack.back(),
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!regionstack.empty() && key == regionstack.back(),
                 "TinyProfiler regions must be nested with respect to each other");
             regionstack.pop_back();
         }
@@ -1014,10 +1091,26 @@ TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
     tprof.start();
 }
 
+TinyProfileRegion::TinyProfileRegion (std::string a_regname, bool async_gpu_) noexcept
+    : regname(std::move(a_regname)), async_gpu(async_gpu_),
+      tprof(std::string("REG::")+regname, false, async_gpu_)
+{
+    TinyProfiler::StartRegion(regname, async_gpu);
+    tprof.start();
+}
+
+TinyProfileRegion::TinyProfileRegion (const char* a_regname, bool async_gpu_) noexcept
+    : regname(a_regname), async_gpu(async_gpu_),
+      tprof(std::string("REG::")+std::string(a_regname), false, async_gpu_)
+{
+    TinyProfiler::StartRegion(a_regname, async_gpu);
+    tprof.start();
+}
+
 TinyProfileRegion::~TinyProfileRegion ()
 {
     tprof.stop();
-    TinyProfiler::StopRegion(regname);
+    TinyProfiler::StopRegion(regname, async_gpu);
 }
 
 void
