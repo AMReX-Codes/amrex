@@ -2079,12 +2079,11 @@ on the GPU and an efficient way to time and retrieve that information is
 being explored. In the meantime, AMReX's timers can be used to report some
 generic timers that are useful in categorizing an application.
 
-Due to the asynchronous launching of GPU kernels, any AMReX timers inside of
-asynchronous regions or inside GPU kernels will not measure useful
-information.  However, since the :cpp:`MFIter` synchronizes when being
-destroyed, any timer wrapped around an :cpp:`MFIter` loop will yield a
-consistent timing of the entire set of GPU launches contained within. For
-example:
+Due to the asynchronous launching of GPU kernels, an AMReX timer can stop
+before work launched inside it has completed.  However, since the
+:cpp:`MFIter` synchronizes when being destroyed, any timer wrapped around an
+:cpp:`MFIter` loop will yield a consistent timing of the entire set of GPU
+launches contained within. For example:
 
 .. highlight:: cpp
 
@@ -2099,6 +2098,22 @@ example:
 
 For now, this is the best way to profile GPU codes using ``TinyProfiler``.
 If you require further profiling detail, use ``nvprof``.
+
+TinyProfiler also provides :cpp:`BL_PROFILE_ASYNC`,
+:cpp:`BL_PROFILE_VAR_ASYNC`, :cpp:`BL_PROFILE_VAR_NS_ASYNC`, and
+:cpp:`BL_PROFILE_REGION_ASYNC` for scopes that intentionally avoid added
+synchronization.  Their timing and percentage values are followed by ``?`` to
+make the possible inaccuracy visible.  Asynchronous region tables mark all
+their timing results, including ordinary timers nested within them; the nested
+ordinary timers remain unmarked in the main table.  Set
+``tiny_profiler.show_async_gpu_timers=false`` to hide asynchronous timer rows
+and asynchronous region tables.
+
+The asynchronous macros do not synchronize the GPU.  The existing
+``tiny_profiler.device_synchronize_around_region`` option can still synchronize
+all TinyProfiler timer boundaries, but asynchronous timers remain marked even
+when it is enabled.  See :ref:`sec:tiny:profiling` for the complete reporting
+behavior.
 
 
 Performance Tips

@@ -1608,6 +1608,18 @@ enabled.
   which are unnecessary for correctness, could potentially degrade the
   performance.
 
+.. py:data:: tiny_profiler.show_async_gpu_timers
+  :type: bool
+  :value: true
+
+  This parameter controls output from asynchronous TinyProfiler macros on GPU
+  builds.  When true, asynchronous timing and percentage values are followed
+  by ``?`` and the report includes a warning that they may be inaccurate.
+  When false, asynchronous timer rows are omitted from the main table and from
+  ordinary region tables, and asynchronous region tables are omitted entirely.
+  Ordinary timers and regions with the same displayed names remain visible.
+  This option does not add synchronization or change collected timings.
+
 .. py:data:: tiny_profiler.enabled
    :type: bool
    :value: true

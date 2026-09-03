@@ -1,0 +1,7 @@
+amrex.signal_handling = 0
+amrex.throw_exception = 1
+amrex.verbose = 0
+tiny_profiler.output_file = tiny_profiler_async_hidden.out
+tiny_profiler.print_threshold = 0
+tiny_profiler.show_async_gpu_timers = false
+test.hide_async = true

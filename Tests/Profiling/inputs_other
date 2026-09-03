@@ -1,0 +1,7 @@
+amrex.signal_handling = 0
+amrex.throw_exception = 1
+amrex.verbose = 0
+tiny_profiler.output_file = tiny_profiler_async_other.out
+tiny_profiler.print_threshold = 1.0e9
+test.hide_async = false
+test.expect_other = true
