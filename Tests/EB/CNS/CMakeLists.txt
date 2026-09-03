@@ -35,7 +35,7 @@ unset(_hydro_sources)
 #
 ##########################################################################################
 set(_sod_sources Exec/Sod/cns_prob.F90 ${_sources})
-set(_input_files Exec/Sod/inputs-ci)
+set(_input_files Exec/Sod/inputs-ci ../MarchingCubes/cube.stl)
 
 setup_test(3 _sod_sources _input_files
    HAS_FORTRAN_MODULES
@@ -44,6 +44,16 @@ setup_test(3 _sod_sources _input_files
 
 target_link_options(Test_CNS_Sod_3d PRIVATE
    "$<$<COMPILE_LANG_AND_ID:Fortran,NVHPC>:-Mnomain>")
+
+add_test_variant(CNS_Sod_MarchingCubes_3d Test_CNS_Sod_3d inputs-ci
+   max_step=1
+   amr.plot_files_output=0
+   amr.checkpoint_files_output=0
+   eb2.geom_type=stl
+   eb2.stl_file=cube.stl
+   eb2.stl_scale=0.125
+   "eb2.stl_center=0.7 0.5 0.5"
+   eb2.geometry_method=marching_cubes)
 
 unset(_sod_sources)
 

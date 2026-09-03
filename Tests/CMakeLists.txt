@@ -3,7 +3,7 @@
 #
 function (setup_test _dim _srcs  _inputs)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES;COMBINE_MPI_OMP"
       "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS"
       "CMDLINE_PARAMS_AFTER_INPUTS" ${ARGN} )
 
@@ -79,7 +79,30 @@ function (setup_test _dim _srcs  _inputs)
    #
    # Add the test
    #
-   if (AMReX_OMP)
+   if (_COMBINE_MPI_OMP)
+      set(_parallel_cmd ${_cmd})
+      if (AMReX_MPI)
+         set(_ntasks 2)
+         if (_NTASKS)
+            set(_ntasks ${_NTASKS})
+         endif ()
+         set(_parallel_cmd ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_ntasks}
+                           ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS})
+      endif ()
+      add_test(
+         NAME               ${_test_name}
+         COMMAND            ${_parallel_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+      )
+      if (AMReX_OMP)
+         set(_nthreads 2)
+         if (_NTHREADS)
+            set(_nthreads ${_NTHREADS})
+         endif ()
+         set_tests_properties(${_test_name} PROPERTIES
+            ENVIRONMENT OMP_NUM_THREADS=${_nthreads})
+      endif ()
+   elseif (AMReX_OMP)
       add_test(
          NAME               ${_test_name}
          COMMAND            ${_cmd}
@@ -89,7 +112,8 @@ function (setup_test _dim _srcs  _inputs)
    elseif (AMReX_MPI)
       add_test(
          NAME               ${_test_name}
-         COMMAND            mpiexec -n 2 ${_cmd}
+         COMMAND            ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+                            ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS}
          WORKING_DIRECTORY  ${_exe_dir}
       )
    else ()
@@ -100,6 +124,35 @@ function (setup_test _dim _srcs  _inputs)
       )
    endif ()
 
+endfunction ()
+
+# Register another inputs-file variant for an executable created by setup_test.
+# Keep launcher behavior in one place so variants cannot silently become
+# serial-only in MPI or use a different OpenMP thread count than the base test.
+function (add_test_variant _test_name _target _inputs_filename)
+   set(_cmd $<TARGET_FILE:${_target}> ${_inputs_filename} ${ARGN})
+
+   if (AMReX_OMP)
+      add_test(
+         NAME ${_test_name}
+         COMMAND ${_cmd}
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${_target}>
+      )
+      set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+   elseif (AMReX_MPI)
+      add_test(
+         NAME ${_test_name}
+         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+                 ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS}
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${_target}>
+      )
+   else ()
+      add_test(
+         NAME ${_test_name}
+         COMMAND ${_cmd}
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${_target}>
+      )
+   endif ()
 endfunction ()
 
 if (AMReX_TEST_TYPE STREQUAL "Small")
@@ -121,6 +174,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_EB)
       add_subdirectory("EB/CNS")
+      add_subdirectory("EB/MarchingCubes")
    endif()
 
    if (AMReX_LINEAR_SOLVERS)

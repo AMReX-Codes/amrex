@@ -13,6 +13,7 @@
 #include <AMReX_MultiCutFab.H>
 #if (AMREX_SPACEDIM == 3)
 #  include <AMReX_MarchingCubes.H>
+#  include <AMReX_EB2_Level_MC.H>
 #endif
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
@@ -37,6 +38,33 @@ namespace amrex::EB2 {
 
 class IndexSpace;
 template <typename G> class GShopLevel;
+
+/**
+ * \brief Fine-level EB geometry generator.
+ *
+ * `legacy` is the original EB2 cut-cell construction.  `marching_cubes` builds
+ * single-valued cut cells from a marching-cubes (MC33) surface and is available
+ * for every geometry source (implicit functions, parser expressions, and STL)
+ * in 3D on Cartesian grids with cubic cells.
+ */
+enum class GeometryMethod : int {
+    legacy = 0,
+    marching_cubes = 1
+};
+
+//! Generator selected at runtime by `eb2.geometry_method` (default `legacy`).
+GeometryMethod GetGeometryMethod ();
+
+//! Runtime parameters shared by the small-cell/multi-cut repair loops.
+struct RepairParameters
+{
+    Real small_volfrac;
+    int maxiter;
+    bool cover_multiple_cuts;
+};
+
+//! Read `eb2.small_volfrac`, `eb2.maxiter`, and `eb2.cover_multiple_cuts`.
+RepairParameters GetRepairParameters ();
 
 class Level
 {
@@ -247,9 +275,6 @@ protected:
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiFab m_sdf;
-#if (AMREX_SPACEDIM == 3)
-    std::map<int,std::unique_ptr<MC::MCFab>> m_marching_cubes;
-#endif
     MultiGFab m_mgf;
     MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
@@ -271,6 +296,24 @@ protected:
     //! Face-centered data storage: [0]=x-face, [1]=y-face, [2]=z-face
     Array<std::unique_ptr<FCData>, AMREX_SPACEDIM> m_fc_data;
 
+#if (AMREX_SPACEDIM == 3)
+    //! Abort unless \p geom is a Cartesian grid with cubic cells.
+    static void assert_marching_cubes_supported (Geometry const& geom);
+    /**
+     * \brief Allocate the per-FAB marching-cubes caches (with edge-crossing
+     *        storage) that the geometry source fills next.  Requires m_sdf.
+     */
+    LayoutData<MC::MCFab> define_marching_cubes_caches ();
+    /**
+     * \brief Build every EB field of this level from m_sdf and \p mc_fabs.
+     *
+     * Runs the marching-cubes extraction and repair loop, classifies cells,
+     * optionally writes `eb2.mc_stl_file`, and exports m_levelset.
+     */
+    void build_marching_cubes_level (Geometry const& geom, bool extend_domain_face,
+                                     LayoutData<MC::MCFab>& mc_fabs, bool write_stl_output);
+#endif
+
 private:
     template <typename G> friend class GShopLevel;
 
@@ -291,7 +334,8 @@ public:
      * \brief Build a level directly from a GeometryShop object.
      */
     GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size,
-                int ngrow, bool extend_domain_face, int num_crse_opt);
+                int ngrow, bool extend_domain_face, int num_crse_opt,
+                bool finest_level);
     /**
      * \brief Construct a coarse level by coarsening \p fineLevel.
      */
@@ -305,13 +349,28 @@ public:
 
 #if (AMREX_SPACEDIM == 3)
     /**
-     * \brief Define a fine level for multi-valued multi-cut STL geometries (3-D only)
+     * \brief Define data for the finest level with the marching-cubes generator (3-D only).
+     *
+     * Works with any geometry source: STLtools supplies its own MC sampling,
+     * while GeometryShop implicit functions go through the generic adapters in
+     * AMReX_EB2_Level_MC.H.
      */
-    template <typename GS = G>
-    requires (std::same_as<GS,STLtools>)
-    void define_fine_mvmc (GS const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+    void define_fine_marching_cubes (G const& gshop, const Geometry& geom,
+                                     int max_grid_size, int ngrow,
+                                     bool extend_domain_face, int num_crse_opt,
+                                     bool finest_level);
 #endif
+    /**
+     * \brief Define data for a level directly from the geometry source using the
+     *        generator selected by EB2::GetGeometryMethod().
+     *
+     * \p finest_level is false when a coarse level is rebuilt from the
+     * geometry source rather than by coarsening; it only controls diagnostics
+     * such as `eb2.mc_stl_file`, which is written for the finest level only.
+     */
+    void define_fine_with_method (G const& gshop, const Geometry& geom,
+                                  int max_grid_size, int ngrow, bool extend_domain_face,
+                                  int num_crse_opt, bool finest_level);
 
     /**
      * \brief Build a regular (no EB) level.
@@ -343,7 +402,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, const Geometry& geom)
 
 template <typename G>
 GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt,
+                           bool finest_level)
     : Level(is, geom)
 {
     if (std::is_same_v<typename G::FunctionType, AllRegularIF>) {
@@ -352,7 +412,27 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
-    define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+    define_fine_with_method(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt,
+                            finest_level);
+}
+
+template <typename G>
+void
+GShopLevel<G>::define_fine_with_method (G const& gshop, const Geometry& geom, int max_grid_size,
+                                        int ngrow, bool extend_domain_face, int num_crse_opt,
+                                        bool finest_level)
+{
+    if (GetGeometryMethod() == GeometryMethod::marching_cubes) {
+#if (AMREX_SPACEDIM == 3)
+        define_fine_marching_cubes(gshop, geom, max_grid_size, ngrow, extend_domain_face,
+                                   num_crse_opt, finest_level);
+#else
+        amrex::ignore_unused(finest_level);
+        amrex::Abort("eb2.geometry_method = marching_cubes is only available in 3D");
+#endif
+    } else {
+        define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+    }
 }
 
 template <typename G>
@@ -477,20 +557,10 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 {
     BL_PROFILE("EB2::GShopLevel()-fine");
 
-#ifdef AMREX_USE_FLOAT
-    Real small_volfrac = 1.e-5_rt;
-#else
-    Real small_volfrac = 1.e-14;
-#endif
-    bool cover_multiple_cuts = false;
-    int maxiter = 32;
-    {
-        ParmParse pp("eb2");
-        pp.queryAdd("small_volfrac", small_volfrac);
-        pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
-        pp.queryAdd("maxiter", maxiter);
-    }
-    maxiter = std::min(100000, maxiter);
+    auto const repair = GetRepairParameters();
+    Real const small_volfrac = repair.small_volfrac;
+    bool const cover_multiple_cuts = repair.cover_multiple_cuts;
+    int const maxiter = repair.maxiter;
 
     prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
 
@@ -753,40 +823,36 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 
 #if (AMREX_SPACEDIM == 3)
 template <typename G>
-template <typename GS>
-requires (std::same_as<GS,STLtools>)
 void
-GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
-                                 int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
+                                           int max_grid_size, int ngrow,
+                                           bool extend_domain_face, int num_crse_opt,
+                                           bool finest_level)
 {
-    BL_PROFILE("EB2::GShopLevel()-fine-mvmc");
+    BL_PROFILE("EB2::GShopLevel()-fine-marching-cubes");
 
+    assert_marching_cubes_supported(geom);
+
+    // Keep only the cut-box discovery from the legacy path. Every EB field is
+    // allocated and populated from the MC working level set by the driver.
     prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
-
-    if (m_allregular) { return; }
-
-    MC::Initialize();
-
-    m_sdf.define(amrex::convert(m_grids,IntVect(1)), m_dmap, 1, IntVect(1));
-    gshop.fillSignedDistance(m_sdf, m_sdf.nGrowVect(), geom);
-
-    for (MFIter mfi(m_sdf,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
-        m_marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
+    if (m_allregular) {
+        return;
     }
 
-    MFItInfo info{};
+    MFInfo mf_info;
+    mf_info.SetTag("EB2::Level-MC");
+    m_sdf.define(amrex::convert(m_grids, IntVect::TheNodeVector()), m_dmap, 1, IntVect(1),
+                 mf_info);
 
-#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-    info.SetDynamic(true);
-#pragma omp parallel
-#endif
-    for (MFIter mfi(m_sdf,info); mfi.isValid(); ++mfi) {
-        amrex::MC::marching_cubes(geom, m_sdf[mfi], *m_marching_cubes[mfi.index()]);
+    // Geometry-source specific work: nodal MC level set and exact edge crossings.
+    detail::fill_marching_cubes_levelset(gshop, m_sdf, geom);
+    LayoutData<MC::MCFab> mc_fabs = define_marching_cubes_caches();
+    for (MFIter mfi(m_sdf, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+        detail::fill_marching_cubes_edge_intersections(gshop, m_sdf[mfi], geom, mc_fabs[mfi]);
     }
 
-    MC::write_stl("test.stl", m_marching_cubes);
-
-    m_ok = false; // xxxxx TODO
+    build_marching_cubes_level(geom, extend_domain_face, mc_fabs, finest_level);
 }
 #endif
 
@@ -864,9 +930,11 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // Always create transient refined CC level to avoid grid mismatch
     // with application-defined BoxArrays (ERF EB-FC development)
     Geometry refined_geom = amrex::refine(m_geom, 2);
+    // The transient level is not the finest level of the IndexSpace: its
+    // diagnostics (e.g. eb2.mc_stl_file) must not replace the real ones.
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
-        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0, false); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");

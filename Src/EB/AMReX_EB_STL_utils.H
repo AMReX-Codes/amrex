@@ -21,6 +21,10 @@
 namespace amrex
 {
 
+namespace MC {
+struct MCFab;
+}
+
 //! Utility class that loads STL meshes and samples them onto AMReX grids.
 class STLtools
 {
@@ -75,6 +79,12 @@ public:
     //! Enable/disable BVH acceleration when sampling.
     void setBVHOptimization (bool flag) { m_bvh_optimization = flag; }
 
+    //! Select the strict STL contract required by the marching-cubes builder.
+    void setUseMarchingCubes (bool flag) noexcept { m_use_marching_cubes = flag; }
+    [[nodiscard]] bool usesMarchingCubes () const noexcept {
+        return m_use_marching_cubes;
+    }
+
     /**
      * \brief Read an STL file, apply scaling/translation, and store triangles.
      *
@@ -115,12 +125,34 @@ public:
     //! Fill \p mf with signed-distance values sampled from the STL mesh.
     void fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry const& geom) const;
 
+    /**
+     * \brief Fill the nodal scalar field used by the marching-cubes builder.
+     *
+     * Exact STL distances are evaluated only in the two-node band needed by
+     * cut-cell interpolation and vertex-normal stencils.  Away from that
+     * band, the field retains unit-magnitude inside/outside values.
+     */
+    void fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
+                                    Geometry const& geom) const;
+
+    /**
+     * \brief Cache exact normalized Cartesian-edge crossings for MC geometry.
+     *
+     * The cache is evaluated against the original triangles rather than the
+     * sampled signed-distance field. It remains valid through the monotone
+     * nodal cleanup used by marching cubes.
+     */
+    void fillMarchingCubesEdgeIntersections (
+        FArrayBox const& levelset, Geometry const& geom,
+        MC::MCFab& mc_fab) const;
+
     //! Upload triangle data to device memory (exposed for CUDA workflows).
     void prepare (Gpu::PinnedVector<Triangle> a_tri_pts);  // public for cuda
 
 private:
 
     bool m_bvh_optimization = true;
+    bool m_use_marching_cubes = false;
 
     Gpu::DeviceVector<Triangle> m_tri_pts_d;
     Gpu::DeviceVector<XDim3> m_tri_normals_d;

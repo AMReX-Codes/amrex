@@ -2,11 +2,18 @@
 #include <AMReX_EB_STL_utils.H>
 #include <AMReX_EB_triGeomOps_K.H>
 #include <AMReX_IntConv.H>
+#include <AMReX_MarchingCubes.H>
 #include <AMReX_Math.H>
 #include <AMReX_Stack.H>
 
+#include <algorithm>
+#include <array>
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 #include <type_traits>
+#include <unordered_map>
+#include <utility>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -14,6 +21,145 @@ namespace amrex
 {
 
 namespace {
+
+    struct STLVertexKey {
+        Real x;
+        Real y;
+        Real z;
+
+        bool operator== (STLVertexKey const& rhs) const noexcept {
+            return x == rhs.x && y == rhs.y && z == rhs.z;
+        }
+    };
+
+    struct STLVertexKeyHash {
+        std::size_t operator() (STLVertexKey const& key) const noexcept {
+            std::hash<Real> const h;
+            std::size_t seed = h(key.x);
+            seed ^= h(key.y) + std::size_t(0x9e3779b97f4a7c15ULL) + (seed << 6) + (seed >> 2);
+            seed ^= h(key.z) + std::size_t(0x9e3779b97f4a7c15ULL) + (seed << 6) + (seed >> 2);
+            return seed;
+        }
+    };
+
+    struct STLEdgeKeyHash {
+        std::size_t operator() (std::pair<int,int> const& key) const noexcept {
+            return (static_cast<std::size_t>(static_cast<unsigned>(key.first)) << 32)
+                ^ static_cast<std::size_t>(static_cast<unsigned>(key.second));
+        }
+    };
+
+    void validate_marching_cubes_stl (
+        Gpu::PinnedVector<STLtools::Triangle> const& triangles)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !triangles.empty(),
+            "Marching-cubes STL contains no triangles");
+        Real lo[3] = {std::numeric_limits<Real>::max(),
+                      std::numeric_limits<Real>::max(),
+                      std::numeric_limits<Real>::max()};
+        Real hi[3] = {std::numeric_limits<Real>::lowest(),
+                      std::numeric_limits<Real>::lowest(),
+                      std::numeric_limits<Real>::lowest()};
+        for (std::size_t n = 0; n < triangles.size(); ++n) {
+            auto const& tri = triangles[n];
+            std::array<XDim3,3> const vertices{tri.v1,tri.v2,tri.v3};
+            for (auto const& vertex : vertices) {
+                Real const values[3] = {vertex.x,vertex.y,vertex.z};
+                for (int d = 0; d < 3; ++d) {
+                    if (!std::isfinite(values[d])) {
+                        amrex::Abort(
+                            "Marching-cubes STL contains a non-finite vertex in triangle "
+                            + std::to_string(n));
+                    }
+                    lo[d] = std::min(lo[d],values[d]);
+                    hi[d] = std::max(hi[d],values[d]);
+                }
+            }
+        }
+
+        Real const scale = std::max(
+            {hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2]});
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            scale > 0.0_rt,
+            "Marching-cubes STL has a zero-size bounding box");
+        Real const epsilon = std::numeric_limits<Real>::epsilon();
+        // Squaring the coordinate resolution gives the smallest meaningful
+        // cross-product scale.  A larger multiplier rejects valid, very small
+        // facets after otherwise representable single-precision conversion.
+        Real const area_tolerance = epsilon*epsilon*scale*scale;
+
+        // Vertices are welded only when their coordinates are bit-identical
+        // after scaling and centering; a file whose shared vertices differ in
+        // the last digit is reported as open below, with the coordinates.
+        std::unordered_map<STLVertexKey,int,STLVertexKeyHash> vertex_ids;
+        std::unordered_map<std::pair<int,int>,std::pair<int,int>,STLEdgeKeyHash> edges;
+        vertex_ids.reserve(triangles.size()*3);
+        edges.reserve(triangles.size()*3);
+        Vector<XDim3> vertex_coordinates;
+        vertex_coordinates.reserve(triangles.size()*3);
+        int next_vertex_id = 0;
+        auto vertex_id = [&] (XDim3 const& vertex) -> int {
+            STLVertexKey const key{.x = vertex.x, .y = vertex.y, .z = vertex.z};
+            auto [it,inserted] = vertex_ids.emplace(key,next_vertex_id);
+            if (inserted) {
+                ++next_vertex_id;
+                vertex_coordinates.push_back(vertex);
+            }
+            return it->second;
+        };
+
+        for (std::size_t n = 0; n < triangles.size(); ++n) {
+            auto const& tri = triangles[n];
+            Real const e1[3] = {tri.v2.x-tri.v1.x,
+                                tri.v2.y-tri.v1.y,
+                                tri.v2.z-tri.v1.z};
+            Real const e2[3] = {tri.v3.x-tri.v1.x,
+                                tri.v3.y-tri.v1.y,
+                                tri.v3.z-tri.v1.z};
+            Real const cross[3] = {
+                e1[1]*e2[2]-e1[2]*e2[1],
+                e1[2]*e2[0]-e1[0]*e2[2],
+                e1[0]*e2[1]-e1[1]*e2[0]};
+            Real const twice_area = std::sqrt(
+                cross[0]*cross[0]+cross[1]*cross[1]+cross[2]*cross[2]);
+            if (!(twice_area > area_tolerance)) {
+                amrex::Abort(
+                    "Marching-cubes STL contains a degenerate triangle at index "
+                    + std::to_string(n));
+            }
+
+            int const ids[3] = {
+                vertex_id(tri.v1),vertex_id(tri.v2),vertex_id(tri.v3)};
+            for (int edge = 0; edge < 3; ++edge) {
+                int const from = ids[edge];
+                int const to = ids[(edge+1)%3];
+                std::pair<int,int> const key{
+                    std::min(from,to),std::max(from,to)};
+                auto& record = edges[key];
+                ++record.first;
+                record.second += from < to ? 1 : -1;
+            }
+        }
+
+        for (auto const& [edge,record] : edges) {
+            if (record.first != 2 || record.second != 0) {
+                auto const& a = vertex_coordinates[edge.first];
+                auto const& b = vertex_coordinates[edge.second];
+                std::ostringstream message;
+                message << std::setprecision(std::numeric_limits<Real>::max_digits10)
+                        << "Marching-cubes STL is open, nonmanifold, or "
+                        << "inconsistently oriented at the edge from ("
+                        << a.x << ',' << a.y << ',' << a.z << ") to ("
+                        << b.x << ',' << b.y << ',' << b.z << "): incidence="
+                        << record.first << " (expected 2), orientation_sum="
+                        << record.second << " (expected 0).  Vertices are matched "
+                        << "exactly; repair or re-export the STL so shared vertices "
+                        << "have identical coordinates.";
+                amrex::Abort(message.str());
+            }
+        }
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     XDim3 triangle_norm (STLtools::Triangle const& tri)
@@ -351,6 +497,9 @@ STLtools::read_stl_file (std::string const& fname, Real scale, Array<Real,3> con
             read_binary_stl_file(fname, scale, center, reverse_normal, tri_pts);
         } else {
             read_ascii_stl_file(fname, scale, center, reverse_normal, tri_pts);
+        }
+        if (m_use_marching_cubes) {
+            validate_marching_cubes_stl(tri_pts);
         }
     }
 
@@ -712,8 +861,22 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
         centmax.max(cent);
     }
     int max_dir = (centmax-centmin).maxDir(false);
-    std::sort(begin, end, [max_dir] (Triangle const& a, Triangle const& b) -> bool
-                              { return a.cent(max_dir) < b.cent(max_dir); });
+    {
+        // Sort by precomputed centroid keys.  Recomputing Triangle::cent()
+        // inside the comparator is not a strict weak ordering under
+        // fast-math (the sum can be re-associated differently at different
+        // call sites), which lets std::sort run out of bounds.
+        Vector<std::pair<Real,int>> keys(ntri);
+        for (int i = 0; i < ntri; ++i) {
+            keys[i] = std::make_pair(begin[i].cent(max_dir), i);
+        }
+        std::sort(keys.begin(), keys.end());
+        Vector<Triangle> sorted(ntri);
+        for (int i = 0; i < ntri; ++i) {
+            sorted[i] = begin[keys[i].second];
+        }
+        std::copy(sorted.begin(), sorted.end(), begin);
+    }
 
     int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
     int tsize = ntri / nsplits;
@@ -1376,4 +1539,283 @@ STLtools::fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry cons
 #endif
 }
 
+void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
+                                          Geometry const& geom) const
+{
+    BL_PROFILE("STLtools::fillMarchingCubesLevelSet");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3,
+                                     "STLtools::fillMarchingCubesLevelSet is only available in 3D");
+
+#if (AMREX_SPACEDIM != 3)
+    amrex::ignore_unused(this, mf, nghost, geom);
+#else
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        nghost.allGE(IntVect(1)) && mf.nGrowVect().allGE(nghost),
+        "Marching-cubes STL sampling requires at least one nodal ghost cell");
+
+    // The sign is sufficient in regular/covered regions.  Canonicalize it
+    // before constructing the band so every FAB makes the same decision at a
+    // shared node.
+    this->fill(mf, nghost, geom, 1.0_rt, -1.0_rt);
+    mf.OverrideSync(geom.periodicity());
+    mf.FillBoundary(geom.periodicity());
+
+    FabArray<BaseFab<char>> exact_band(
+        mf.boxArray(), mf.DistributionMap(), 1, nghost);
+
+    // A radius-one sign search includes every corner of a mixed cell.  A byte
+    // mask preserves the level-wide kernel batching while using one quarter of
+    // the old integer-mask storage.
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box const bx = mf[mfi].box();
+        int const ilo = bx.smallEnd(0);
+        int const jlo = bx.smallEnd(1);
+        int const klo = bx.smallEnd(2);
+        int const ihi = bx.bigEnd(0);
+        int const jhi = bx.bigEnd(1);
+        int const khi = bx.bigEnd(2);
+        auto const phi = mf.const_array(mfi);
+        auto const band = exact_band.array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            bool const fluid = phi(i, j, k) > 0.0_rt;
+            bool mixed = false;
+            for (int kk = amrex::max(k - 1, klo); kk <= amrex::min(k + 1, khi) && !mixed; ++kk) {
+                for (int jj = amrex::max(j - 1, jlo); jj <= amrex::min(j + 1, jhi) && !mixed;
+                     ++jj) {
+                    for (int ii = amrex::max(i - 1, ilo); ii <= amrex::min(i + 1, ihi); ++ii) {
+                        if ((phi(ii, jj, kk) > 0.0_rt) != fluid) {
+                            mixed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            band(i, j, k) = static_cast<char>(mixed);
+        });
+    }
+
+    auto const plo = geom.ProbLoArray();
+    auto const dx = geom.CellSizeArray();
+    auto const ixt = mf.ixType();
+    RealVect const offset(AMREX_D_DECL(ixt.cellCentered(0) ? 0.5_rt : 0.0_rt,
+                                       ixt.cellCentered(1) ? 0.5_rt : 0.0_rt,
+                                       ixt.cellCentered(2) ? 0.5_rt : 0.0_rt));
+
+    auto const* bvh_root = m_bvh_nodes.data();
+    auto const* tri_pts = m_tri_pts_d.data();
+    int const num_triangles = m_num_tri;
+    bool const use_bvh = m_bvh_optimization;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box const bx = mf[mfi].box();
+        auto const phi = mf.array(mfi);
+        auto const band = exact_band.const_array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            if (band(i, j, k) == 0) {
+                return;
+            }
+            XDim3 const coords{.x = plo[0] + (static_cast<Real>(i) + offset[0]) * dx[0],
+                               .y = plo[1] + (static_cast<Real>(j) + offset[1]) * dx[1],
+                               .z = plo[2] + (static_cast<Real>(k) + offset[2]) * dx[2]};
+            Real d2 = std::numeric_limits<Real>::max();
+            if (use_bvh) {
+                d2 = bvh_d2(coords, bvh_root);
+            } else {
+                for (int tr = 0; tr < num_triangles; ++tr) {
+                    d2 = amrex::min(d2, pt_tri_min_d2(coords, tri_pts[tr]));
+                }
+            }
+            Real const distance = std::sqrt(d2);
+            Real const coordinate_scale = amrex::max(
+                1.0_rt, amrex::max(std::abs(coords.x),
+                                   amrex::max(std::abs(coords.y), std::abs(coords.z))));
+            Real const on_surface_tolerance =
+                16.0_rt * std::numeric_limits<Real>::epsilon() * coordinate_scale;
+            phi(i, j, k) = distance <= on_surface_tolerance
+                               ? 0.0_rt
+                               : phi(i, j, k) * distance;
+        });
+    }
+    Gpu::streamSynchronize();
+    mf.OverrideSync(geom.periodicity());
+    mf.FillBoundary(geom.periodicity());
+#endif
 }
+
+void STLtools::fillMarchingCubesEdgeIntersections (
+    FArrayBox const& levelset, Geometry const& geom, MC::MCFab& mc_fab) const
+{
+    BL_PROFILE("STLtools::fillMarchingCubesEdgeIntersections");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        AMREX_SPACEDIM == 3,
+        "STL marching-cubes edge intersections are only available in 3D");
+
+#if (AMREX_SPACEDIM != 3)
+    amrex::ignore_unused(this, levelset, geom, mc_fab);
+#else
+    auto const sdf = levelset.const_array();
+    auto const plo = geom.ProbLoArray();
+    auto const dx = geom.CellSizeArray();
+    auto const* tri_pts = m_tri_pts_d.data();
+    auto const* tri_norm = m_tri_normals_d.data();
+    auto const* bvh_root = m_bvh_nodes.data();
+    int const num_triangles = m_num_tri;
+    bool const use_bvh = m_bvh_optimization;
+
+    auto find_x = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const x2 = p1.x + dx[0];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i+1,j,k));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const hit = edge_tri_intersects(
+                    p1.x, x2, p1.y, p1.z, tris[it].v1, tris[it].v2,
+                    tris[it].v3, norms[it], sdf(i,j,k)-sdf(i+1,j,k));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.x)/dx[0], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {x2,p1.y,p1.z};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto find_y = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const y2 = p1.y + dx[1];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j+1,k));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const& tri = tris[it];
+                auto const& norm = norms[it];
+                auto const hit = edge_tri_intersects(
+                    p1.y, y2, p1.z, p1.x,
+                    XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                    XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                    XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                    XDim3{.x = norm.y, .y = norm.z, .z = norm.x},
+                    sdf(i,j,k)-sdf(i,j+1,k));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.y)/dx[1], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {p1.x,y2,p1.z};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto find_z = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const z2 = p1.z + dx[2];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j,k+1));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const& tri = tris[it];
+                auto const& norm = norms[it];
+                auto const hit = edge_tri_intersects(
+                    p1.z, z2, p1.x, p1.y,
+                    XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                    XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                    XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                    XDim3{.x = norm.z, .y = norm.x, .z = norm.y},
+                    sdf(i,j,k)-sdf(i,j,k+1));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.z)/dx[2], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {p1.x,p1.y,z2};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto const exact_x = mc_fab.m_edge_intersections[0].array();
+    auto const exact_y = mc_fab.m_edge_intersections[1].array();
+    auto const exact_z = mc_fab.m_edge_intersections[2].array();
+    ParallelFor(Box{exact_x}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i+1,j,k) > 0.0_rt)) {
+            Real fraction = MC::invalid_edge_intersection;
+            find_x(i,j,k,fraction);
+            exact_x(i,j,k) = fraction;
+        }
+    });
+    ParallelFor(Box{exact_y}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j+1,k) > 0.0_rt)) {
+            Real fraction = MC::invalid_edge_intersection;
+            find_y(i,j,k,fraction);
+            exact_y(i,j,k) = fraction;
+        }
+    });
+    ParallelFor(Box{exact_z}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j,k+1) > 0.0_rt)) {
+            Real fraction = MC::invalid_edge_intersection;
+            find_z(i,j,k,fraction);
+            exact_z(i,j,k) = fraction;
+        }
+    });
+#endif
+}
+
+} // namespace amrex
