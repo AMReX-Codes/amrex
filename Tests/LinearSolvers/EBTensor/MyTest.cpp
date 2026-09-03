@@ -122,6 +122,12 @@ MyTest::solve ()
 //    solution.setVal(0.0);
     mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
 
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.
+    if (solution.contains_nan(0, solution.nComp(), 0)) {
+        amrex::Abort("MyTest::solve: solution contains NaN");
+    }
+
     MultiFab error(grids, dmap, 1, 0, MFInfo(), *factory);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         amrex::Print() << "\n";
