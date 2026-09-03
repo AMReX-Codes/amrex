@@ -79,6 +79,8 @@ MyTest::solve ()
     solution[0].setVal(0.0, interior, 0, 1, 0);
 
     mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+
+    mlmg.getGradSolution({GetArrOfPtrs(grad_solution)});
 }
 
 void
@@ -149,6 +151,13 @@ MyTest::initData ()
     solution      [0].define(nba, dmap[0], 1, 1, MFInfo(), *factory);
     rhs           [0].define(nba, dmap[0], 1, 0, MFInfo(), *factory);
     exact_solution[0].define(nba, dmap[0], 1, 0, MFInfo(), *factory);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        IntVect typ = IntVect::TheNodeVector();
+        typ[idim] = 0;
+        const BoxArray& eba = amrex::convert(grids[0], typ);
+        grad_solution[idim].define(eba, dmap[0], 1, 0, MFInfo(), *factory);
+    }
 
     rhs[0].setVal(0.0);
 

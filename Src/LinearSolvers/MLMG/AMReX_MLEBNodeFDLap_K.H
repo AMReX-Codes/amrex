@@ -31,11 +31,11 @@ void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
         // and the full edge length is used.
         Real const h = (ecx(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) - Real(2.0) * ecx(i,j,k);
-        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) / h;
+        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
         Real const h = (ecx(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) + Real(2.0) * ecx(i,j,k);
-        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) / h;
+        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
 
@@ -55,11 +55,11 @@ void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
         // and the full edge length is used.
         Real const h = (ecy(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) - Real(2.0) * ecy(i,j,k);
-        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) / h;
+        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
         Real const h = (ecy(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) + Real(2.0) * ecy(i,j,k);
-        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) / h;
+        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
 
@@ -80,11 +80,11 @@ void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
         // and the full edge length is used.
         Real const h = (ecz(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) - Real(2.0) * ecz(i,j,k);
-        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) / h;
+        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
         Real const h = (ecz(i,j,k) == Real(1.0)) ? Real(1.0)
                      : Real(1.0) + Real(2.0) * ecz(i,j,k);
-        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) / h;
+        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
 #endif

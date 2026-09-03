@@ -49,6 +49,7 @@ private:
     amrex::Vector<amrex::MultiFab> solution;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> exact_solution;
+    amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> grad_solution;
 };
 
 #endif
