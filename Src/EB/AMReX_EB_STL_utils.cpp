@@ -1117,7 +1117,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 #ifdef AMREX_USE_CUDA
             amrex::ignore_unused(num_triangles,tri_pts,tri_norm,lst,bvh_root);
 #endif
-            Real r = std::numeric_limits<Real>::quiet_NaN();
+            Real r = EB2::no_intercept;
             if (type(i,j,k) == EB2::Type::irregular) {
                 XDim3 p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
                          .y = plo[1]+static_cast<Real>(j)*dx[1],
@@ -1280,40 +1280,40 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             if (type(i,j,k) == EB2::Type::irregular) {
-                bool is_nan = amrex::isnan(inter(i,j,k));
+                bool no_inter = (inter(i,j,k) == EB2::no_intercept);
                 if (idim == 0) {
                     if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && is_nan))
+                        (lst(i,j,k) > Real(0.0) && no_inter))
                     {
-                        // interp might still be quiet_nan because lst that
-                        // was set to zero has been changed by FillBoundary
-                        // at periodic boundaries.
+                        // The edge can still be without an intercept because
+                        // lst that was set to zero has been changed by
+                        // FillBoundary at periodic boundaries.
                         inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
                     }
                     else if (lst(i+1,j,k) == Real(0.0) ||
-                             (lst(i+1,j,k) > Real(0.0) && is_nan))
+                             (lst(i+1,j,k) > Real(0.0) && no_inter))
                     {
                         inter(i,j,k) = problo[0] + static_cast<Real>(i+1)*dx[0];
                     }
                 } else if (idim == 1) {
                     if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && is_nan))
+                        (lst(i,j,k) > Real(0.0) && no_inter))
                     {
                         inter(i,j,k) = problo[1] + static_cast<Real>(j)*dx[1];
                     }
                     else if (lst(i,j+1,k) == Real(0.0) ||
-                             (lst(i,j+1,k) > Real(0.0) && is_nan))
+                             (lst(i,j+1,k) > Real(0.0) && no_inter))
                     {
                         inter(i,j,k) = problo[1] + static_cast<Real>(j+1)*dx[1];
                     }
                 } else {
                     if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && is_nan))
+                        (lst(i,j,k) > Real(0.0) && no_inter))
                     {
                         inter(i,j,k) = problo[2] + static_cast<Real>(k)*dx[2];
                     }
                     else if (lst(i,j,k+1) == Real(0.0) ||
-                             (lst(i,j,k+1) > Real(0.0) && is_nan))
+                             (lst(i,j,k+1) > Real(0.0) && no_inter))
                     {
                         inter(i,j,k) = problo[2] + static_cast<Real>(k+1)*dx[2];
                     }

@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <utility>
 #include <cstdint>
+#include <limits>
 
 /**
  * \file AMReX_EB2_Graph.H
@@ -51,6 +52,9 @@ namespace Type {
     static constexpr Type_t irregular=0x2;
     static constexpr Type_t unknown=0x3;
 }
+
+//! \brief Marker stored in an edge intercept array when the edge has no intercept.
+static constexpr Real no_intercept = std::numeric_limits<Real>::max();
 
 //! Packed neighbor structure that tracks the neighbor type in every direction.
 struct Neighbor
