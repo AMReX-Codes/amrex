@@ -236,6 +236,8 @@ public:
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
+    //! Build the face-centered EBCellFlag connectivity for \p face_dir from its area fractions.
+    void buildCellFlagFC (int face_dir);
     //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);
 
@@ -889,7 +891,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
     if (!refined_cc_level->m_covered_grids.empty()) {
         m_fc_data[face_dir]->m_covered_grids_fc =
-            amrex::coarsen(refined_cc_level->m_covered_grids, 2);
+            amrex::coarsen(refined_cc_level->m_covered_grids, 2).simplified();
     }
     const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
 
@@ -1174,14 +1176,11 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         error = b;
     }
 
-    if (!error) {
-        buildCellFlag();
-    }
-
-    // return error;
-
     m_fc_data[face_dir]->m_built = true;
-    // If transient_level exists, it's automatically destroyed here
+
+    if (!error) {
+        buildCellFlagFC(face_dir);
+    }
 }
 
 }
