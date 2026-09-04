@@ -50,6 +50,10 @@ public:
             all_periodic = all_periodic
                 && (bc[idim].first == Boundary::periodic)
                 && (bc[idim].second == Boundary::periodic);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                bc[idim].first != Boundary::even_node &&
+                bc[idim].second != Boundary::even_node,
+                "FFT::Poisson does not support Boundary::even_node");
         }
         if (all_periodic) {
             m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
@@ -194,6 +198,12 @@ public:
         }
         AMREX_ALWAYS_ASSERT(bc[2].first != Boundary::periodic &&
                             bc[2].second != Boundary::periodic);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                bc[idim].first != Boundary::even_node &&
+                bc[idim].second != Boundary::even_node,
+                "FFT::PoissonHybrid does not support Boundary::even_node");
+        }
         Info info{};
         info.setTwoDMode(true);
         if (m_geom.Domain().length(0) == 1 || m_geom.Domain().length(1) == 1) {
