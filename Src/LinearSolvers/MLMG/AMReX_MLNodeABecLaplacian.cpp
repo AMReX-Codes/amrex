@@ -169,7 +169,10 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                                         aarr, barr, dmskarr, dxinvarr);
         }
     }
-    nodalSync(amrlev, mglev, sol);
+    // No nodalSync here.  Every consumer of sol goes through
+    // MLNodeLinOp::applyBC first, and that does FillBoundaryAndSync.  (The
+    // sync in the GPU branch above is not redundant: it reconciles sol
+    // between the m_smooth_num_sweeps sweeps, which no applyBC separates.)
 #endif
 }
 
