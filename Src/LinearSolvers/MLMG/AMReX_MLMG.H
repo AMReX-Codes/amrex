@@ -6,6 +6,8 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <optional>
+
 namespace amrex {
 
 /**
@@ -393,9 +395,19 @@ public:
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
     /**
-     * \brief Disable global GPU syncs before returning to the app.
+     * \brief Control implicit GPU synchronization inside solve().
      *
-     * \param do_not_sync True skips the sync.
+     * When enabled, solve() runs in a single-stream region without the
+     * implicit stream synchronizations normally performed by MFIter and
+     * many amrex functions.  The GPU streams are synchronized once when
+     * solve() returns, unless the caller is already in a Gpu::NoSyncRegion.
+     * This is off by default.  Skipping the synchronizations helps small
+     * problems with few boxes, but running on a single stream can slow down
+     * solvers that launch many small per-box kernels (e.g., the nodal and
+     * EB solvers with many boxes per process).  Try both settings for your
+     * problem.
+     *
+     * \param do_not_sync True skips the implicit syncs.  Default is false.
      */
     void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
@@ -787,12 +799,18 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    bool prev_in_single_stream_region = false;
-    bool prev_in_nosync_region = false;
-
+    // If requested with setNoGpuSync(true), run the whole solve in a
+    // single-stream, no-implicit-sync region.  The RAII objects restore the
+    // previous state (also when an exception is thrown), and SyncAtExitOnly
+    // synchronizes the GPU streams on exit unless the caller was already in
+    // a NoSync region.  The order matters:
+    // no_sync_region is destroyed last, i.e., after the single stream region
+    // has been popped, so that all streams are synchronized.
+    std::optional<Gpu::SyncAtExitOnly> no_sync_region;
+    std::optional<Gpu::SingleStreamRegion> single_stream_region;
     if (do_no_sync_gpu) {
-        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
-        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+        no_sync_region.emplace();
+        single_stream_region.emplace();
     }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
@@ -988,11 +1006,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
-
-    if (do_no_sync_gpu) {
-        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
-    }
 
     return composite_norminf;
 }
@@ -1357,11 +1370,13 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         {
             IntVect ng = ng_sol;
             if (cf_strategy == CFStrategy::ghostnodes) { ng = IntVect(nghost); }
-            in_raii[alev] = linop.make(alev, 0, ng);
+            in_raii[alev] = linop.make(alev, 0, ng,
+                                       MFInfo().SetArena(The_Async_Arena()));
             LocalCopy(in_raii[alev], *a_in[alev], 0, 0, ncomp, IntVect(nghost));
             in[alev] = &(in_raii[alev]);
         }
-        rh[alev] = linop.make(alev, 0, IntVect(nghost));
+        rh[alev] = linop.make(alev, 0, IntVect(nghost),
+                              MFInfo().SetArena(The_Async_Arena()));
         setVal(rh[alev], RT(0.0));
     }
 
@@ -1973,7 +1988,8 @@ MLMGT<MF>::actualBottomSolve ()
         if (linop.isBottomSingular() && linop.getEnforceSingularSolvable())
         {
             const IntVect ng = nGrowVect(b);
-            raii_b = linop.make(amrlev, mglev, ng);
+            raii_b = linop.make(amrlev, mglev, ng,
+                                MFInfo().SetArena(The_Async_Arena()));
             LocalCopy(raii_b, b, 0, 0, ncomp, ng);
             bottom_b = &raii_b;
 
@@ -2184,7 +2200,8 @@ MLMGT<MF>::interpCorrection (int alev)
         }
     }
 
-    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
+    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst),
+                                   MFInfo().SetArena(The_Async_Arena()));
     setVal(cfine, RT(0.0));
     ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), IntVect(ng_dst),
                  crse_geom.periodicity());
@@ -2225,7 +2242,8 @@ MLMGT<MF>::addInterpCorrection (int alev, int mglev)
     }
     else
     {
-        cfine = linop.makeCoarseMG(alev, mglev, IntVect(0));
+        cfine = linop.makeCoarseMG(alev, mglev, IntVect(0),
+                                   MFInfo().SetArena(The_Async_Arena()));
         ParallelCopy(cfine, crse_cor, 0, 0, ncomp);
         cmf = &cfine;
     }

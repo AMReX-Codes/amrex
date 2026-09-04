@@ -435,6 +435,7 @@ requires (std::is_convertible_v<T, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 {
+    [[maybe_unused]] Gpu::SyncAtExitOnly no_sync{};
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_b_coeffs[amrlev][0][idim].setVal(RT(beta));
     }
@@ -447,6 +448,7 @@ requires (std::is_convertible_v<T, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
 {
+    [[maybe_unused]] Gpu::SyncAtExitOnly no_sync{};
     const int ncomp = this->getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         for (int icomp = 0; icomp < ncomp; ++icomp) {
@@ -951,7 +953,8 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
     MF Ax;
     if (! this->m_use_gauss_seidel && regular_coarsening) { // jacobi
-        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0);
+        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0,
+                  MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
     }
 
@@ -1094,7 +1097,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                 });
             }
         }
-        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
@@ -1418,7 +1421,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
     MF const& alpha_bottom = m_a_coeffs[0].back();
     iMultiFab const& osm_bottom = *(this->m_overset_mask[0].back());
     const int ncomp = alpha_bottom.nComp();
-    MF alpha(ba, dm, ncomp, 0);
+    MF alpha(ba, dm, ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
 
     RT a_max = alpha_bottom.norminf(0, ncomp, IntVect(0), true, true);
     const int ncomp_b = m_b_coeffs[0].back()[0].nComp();
@@ -1450,7 +1453,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
                 ama[box_no](i,j,k,n) = huge_alpha;
             }
         });
-        if (alpha.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else

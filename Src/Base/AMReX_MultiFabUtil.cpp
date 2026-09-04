@@ -449,7 +449,8 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow,
+                             MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
@@ -560,7 +561,7 @@ namespace amrex
         else
         {
             MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+                          ncomp, ngcrse, MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
             average_down_edges(fine, ctmp, ratio, ngcrse);
             crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
         }

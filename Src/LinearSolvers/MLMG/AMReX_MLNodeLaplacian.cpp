@@ -496,7 +496,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     MultiFab cfine;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
-        cfine.define(ba, fine.DistributionMap(), 1, 0);
+        cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
     }
 
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -551,7 +551,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
                 mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
         }
-        if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
@@ -612,7 +612,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     const MultiFab* cmf = &crse;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
-        cfine.define(ba, fine.DistributionMap(), 1, 0);
+        cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         cfine.ParallelCopy(crse);
         cmf = &cfine;
     }
@@ -686,7 +686,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                 mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
             });
         }
-        if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
@@ -758,7 +758,8 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 
     if (isSingular(0))
     {
-        MultiFab frhs(fine_rhs.boxArray(), fine_rhs.DistributionMap(), 1, amrrr-1);
+        MultiFab frhs(fine_rhs.boxArray(), fine_rhs.DistributionMap(), 1, amrrr-1,
+                      MFInfo().SetArena(The_Async_Arena()));
         MultiFab::Copy(frhs, fine_rhs, 0, 0, 1, 0);
         restrictInteriorNodes(camrlev, crse_rhs, frhs);
     }
@@ -795,7 +796,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
     const auto& stencil    =  m_nosigma_stencil[camrlev+1];
 
-    MultiFab cfine(amrex::coarsen(fba, amrrr), fdm, 1, 0);
+    MultiFab cfine(amrex::coarsen(fba, amrrr), fdm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
 
     frhs->setBndry(0.0);
     frhs->FillBoundary(fgeom.periodicity());
@@ -830,7 +831,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
         }
     }
 
-    MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
+    MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
     tmp_crhs.setVal(0.0);
     tmp_crhs.ParallelCopy(cfine, cgeom.periodicity());
 

@@ -314,7 +314,8 @@ MLNodeLinOp::buildMasks ()
 
             auto& dmask = *m_dirichlet_mask[amrlev][mglev];
 
-            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1);
+            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1,
+                          MFInfo().SetArena(The_Async_Arena()));
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
@@ -620,7 +621,8 @@ MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
         auto&       cmf = sol[falev-1];
 
         auto rr = AMRRefRatio(falev-1);
-        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
+        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0,
+                       MFInfo().SetArena(The_Async_Arena()));
         amrex::average_down(fmf, tmpmf, 0, ncomp, rr);
         cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
         nodalSync(falev-1, 0, cmf);
@@ -648,7 +650,7 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
     {
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
-        cfine.define(cba, fine.DistributionMap(), ncomp, 0);
+        cfine.define(cba, fine.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
         cfine.ParallelCopy(crse, 0, 0, ncomp, 0, 0, crse_geom.periodicity());
         cmf = & cfine;
     }

@@ -104,7 +104,8 @@ HypreABecLap::getSolution (MultiFab& a_soln)
     MultiFab* soln = &a_soln;
     MultiFab tmp;
     if (a_soln.nGrowVect() != 0) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         soln = &tmp;
     }
 
@@ -291,6 +292,13 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
             });
         }
+#ifdef AMREX_USE_GPU
+        if (Gpu::inNoSyncRegion()) {
+            // MFIter does not synchronize in a no-sync region.  Wait for all
+            // streams before the data are passed to HYPRE below.
+            Gpu::synchronize();
+        }
+#endif
     }
 
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)

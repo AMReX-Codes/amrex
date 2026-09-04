@@ -64,7 +64,8 @@ HypreABecLap3::getSolution (MultiFab& a_soln)
     MultiFab* l_soln = &a_soln;
     MultiFab tmp;
     if (use_tmp_mf) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         l_soln = &tmp;
     }
 
@@ -600,6 +601,13 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
+#ifdef AMREX_USE_GPU
+            if (Gpu::inNoSyncRegion()) {
+                // MFIter does not synchronize in a no-sync region.  Wait for all
+                // streams before the data are passed to HYPRE below.
+                Gpu::synchronize();
+            }
+#endif
         }
     } else
 #endif
@@ -653,6 +661,13 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     });
                 }
             }
+#ifdef AMREX_USE_GPU
+            if (Gpu::inNoSyncRegion()) {
+                // MFIter does not synchronize in a no-sync region.  Wait for all
+                // streams before the data are passed to HYPRE below.
+                Gpu::synchronize();
+            }
+#endif
         }
     }
 

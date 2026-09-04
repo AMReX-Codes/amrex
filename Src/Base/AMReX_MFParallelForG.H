@@ -5,6 +5,7 @@
 #ifdef AMREX_USE_GPU
 
 #include <AMReX_Concepts.H>
+#include <AMReX_GpuDevice.H>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -32,8 +33,14 @@ void build_par_for_boxes (char*& hp, BoxIndexer*& pboxes, Vector<Box> const& box
 inline
 void destroy_par_for_boxes (char* hp, char* dp)
 {
-    The_Pinned_Arena()->free(hp);
-    The_Arena()->free(dp);
+    // The host-to-device copy in build_par_for_boxes() is asynchronous.  In a
+    // NoSync region it may still be pending when the owning ParForInfo is
+    // destroyed (e.g., when a temporary FabArray with a unique BoxArray dies).
+    // Use stream-ordered frees so that the buffers are not reused too early.
+    if (hp) {
+        Gpu::freeAsync(The_Pinned_Arena(), hp);
+        Gpu::freeAsync(The_Arena(), dp);
+    }
 }
 
 namespace parfor_mf_detail {
