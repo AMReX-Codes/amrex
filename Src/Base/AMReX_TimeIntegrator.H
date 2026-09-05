@@ -147,6 +147,22 @@ public:
         integrator_ptr->set_fast_rhs(F);
     }
 
+    void set_preconditioner (
+        std::function<void(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
+        std::function<void(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
+                           const amrex::Real, int)> Psolve)
+    {
+        integrator_ptr->set_preconditioner(std::move(Psetup), std::move(Psolve));
+    }
+
+    void set_fast_preconditioner (
+        std::function<void(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
+        std::function<void(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
+                           const amrex::Real, int)> Psolve)
+    {
+        integrator_ptr->set_fast_preconditioner(std::move(Psetup), std::move(Psolve));
+    }
+
     void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
     {
         integrator_ptr->set_post_stage_action(A);
