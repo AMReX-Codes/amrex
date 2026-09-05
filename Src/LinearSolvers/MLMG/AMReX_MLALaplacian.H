@@ -209,6 +209,7 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
             m_a_coeffs[amrlev][0].setVal(RT(0.0));
         }
     }
+    m_needs_update = true;
 }
 
 template <typename MF>

@@ -496,6 +496,7 @@ MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
             dmsk(i,j,k) = 1 - omsk(i,j,k);
         });
     }
+    m_masks_built = false;
     m_overset_dirichlet_mask = true;
 }
 

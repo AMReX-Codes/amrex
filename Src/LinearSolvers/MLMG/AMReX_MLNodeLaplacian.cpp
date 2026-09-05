@@ -1090,10 +1090,13 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
 #else
     const int ncomp_si = algoim::numSurfIntgs;
 #endif
-    m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                    m_dmap[amrlev][0],
-                                                    ncomp_si, 1, MFInfo(),
-                                                    *m_factory[amrlev][0]);
+    if (m_surface_integral[amrlev] == nullptr) {
+        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0],
+                                                        ncomp_si, 1, MFInfo(),
+                                                        *m_factory[amrlev][0]);
+        m_surface_integral_built = false;
+    }
     // Turn on flag for building surface integrals
     m_build_surface_integral = true;
 }

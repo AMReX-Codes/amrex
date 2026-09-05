@@ -887,6 +887,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                                                    br_ref_ratio, this->m_coarse_bc_loc,
                                                    this->m_domain_bloc_lo, this->m_domain_bloc_hi,
                                                    crse_fine_bc_type);
+        m_bc_tags[amrlev][mglev].undefine();
     }
 
     if (this->hasRobinBC()) {
