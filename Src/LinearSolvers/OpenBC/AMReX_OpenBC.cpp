@@ -24,6 +24,10 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_grids = a_grids;
     m_dmap = a_dmap;
     m_info = a_info;
+    m_mlmg_1.reset();
+    m_mlmg_2.reset();
+    m_poisson_1.reset();
+    m_poisson_2.reset();
     m_box_offset.clear();
     m_momtags_h.clear();
     m_nblocks_local = 0;

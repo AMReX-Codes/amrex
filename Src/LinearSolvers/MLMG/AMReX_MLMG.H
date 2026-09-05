@@ -1286,6 +1286,7 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
             if (sol_is_alias[alev])
             {
                 sol[alev] = linop.make(alev, 0, ng_sol);
+                sol_is_alias[alev] = false;
             }
             LocalCopy(sol[alev], *a_sol[alev], 0, 0, ncomp, IntVect(0));
         }
@@ -1464,15 +1465,18 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         }
         else
         {
+            bool alias_made = false;
             if (nGrowVect(*a_sol[alev]) == ng_sol) {
                 if constexpr (std::is_same<AMF,MF>()) {
                     sol[alev] = linop.makeAlias(*a_sol[alev]);
                     sol_is_alias[alev] = true;
+                    alias_made = true;
                 }
             }
-            if (!sol_is_alias[alev]) {
-                if (!solve_called) {
+            if (!alias_made) {
+                if (sol_is_alias[alev] || !solve_called) {
                     sol[alev] = linop.make(alev, 0, ng_sol);
+                    sol_is_alias[alev] = false;
                 }
                 LocalCopy(sol[alev], *a_sol[alev], 0, 0, ncomp, IntVect(0));
                 setBndry(sol[alev], RT(0.0), 0, ncomp);
