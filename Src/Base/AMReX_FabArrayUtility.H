@@ -1354,7 +1354,8 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
 
     bool explicit_swap = true;
 
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+    if (srccomp == dstcomp && dstcomp == 0 && numcomp == src.nComp() &&
+        src.nComp() == dst.nComp() &&
         src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
         src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
         explicit_swap = false;
