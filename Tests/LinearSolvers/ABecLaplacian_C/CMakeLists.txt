@@ -25,7 +25,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     setup_test(${D} _sources _input_files
-       BASE_NAME LinearSolvers_ABecLaplacian_C_semicoarsening ${_no_ctest})
+       BASE_NAME LinearSolvers_ABecLaplacian_C_semicoarsening
+       RUNTIME_SUBDIR semicoarsening ${_no_ctest})
 
     unset(_no_ctest)
     unset(_sources)
