@@ -212,13 +212,15 @@ int main (int argc, char* argv[])
         int max_grid_size_y = 32;
         int max_grid_size_z = 32;
 
-        ParmParse pp;
-        pp.query("n_cell_x", n_cell_x);
-        pp.query("n_cell_y", n_cell_y);
-        pp.query("n_cell_z", n_cell_z);
-        pp.query("max_grid_size_x", max_grid_size_x);
-        pp.query("max_grid_size_y", max_grid_size_y);
-        pp.query("max_grid_size_z", max_grid_size_z);
+        {
+            ParmParse pp;
+            pp.query("n_cell_x", n_cell_x);
+            pp.query("n_cell_y", n_cell_y);
+            pp.query("n_cell_z", n_cell_z);
+            pp.query("max_grid_size_x", max_grid_size_x);
+            pp.query("max_grid_size_y", max_grid_size_y);
+            pp.query("max_grid_size_z", max_grid_size_z);
+        }
 
         Box domain(IntVect(0), IntVect(n_cell_x-1,n_cell_y-1,n_cell_z-1));
         BoxArray ba(domain);
