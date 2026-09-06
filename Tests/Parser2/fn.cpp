@@ -220,18 +220,6 @@ double f (int icase, double x, double y, double z)
         return x/y/z*x*y*z;
     case 103:
         return ((x+y*z-x*y/z-x*y*z-x/y*z-x/y+z*x/y/z*x*y+z*x-y*z));
-    case 104:
-        return x and 1;
-    case 105:
-        return 1 and x;
-    case 106:
-        return x or 0;
-    case 107:
-        return 0 or x;
-    case 108:
-        return (x and 1) + 1;
-    case 109:
-        return (x > y) and 1;
     default:
         amrex::Abort("Unknown case "+std::to_string(icase));
         return 0.0;
