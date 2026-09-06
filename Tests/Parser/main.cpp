@@ -518,7 +518,7 @@ int main (int argc, char* argv[])
             auto expect_unknown = [&] (Parser const& p) -> bool
             {
                 try {
-                    Parser q = p;
+                    Parser q = p; // NOLINT(performance-unnecessary-copy-initialization)
                     auto exe = q.compile<1>();
                     auto r = exe(2.0);
                     amrex::ignore_unused(r);
