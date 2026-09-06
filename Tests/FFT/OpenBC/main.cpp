@@ -116,7 +116,7 @@ void test_convolution (Box const& domain, int max_grid_size)
             // Math::max would keep the other operand if a(i,j,k) were NaN, so
             // count the non-finite values separately.
             return {amrex::Math::abs(a(i,j,k)-exact), amrex::Math::abs(exact),
-                    Long(!amrex::Math::isfinite(a(i,j,k)))};
+                    Long(amrex::isnan(a(i,j,k)) || amrex::isinf(a(i,j,k)))};
         });
     }
 
@@ -191,7 +191,7 @@ void test_twod_mode (Box const& domain, int max_grid_size)
                                               amrex::Math::abs(j-jj), 0) * test_rhs(ii,jj,k);
             }}
             return {amrex::Math::abs(a(i,j,k)-exact), amrex::Math::abs(exact),
-                    Long(!amrex::Math::isfinite(a(i,j,k)))};
+                    Long(amrex::isnan(a(i,j,k)) || amrex::isinf(a(i,j,k)))};
         });
     }
 
