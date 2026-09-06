@@ -1673,6 +1673,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     Vector<int> nRanksPerFile(FileReadChains.size());
     NItemsPerBin(nProcs, nRanksPerFile);
+    // There may be more files than ranks (e.g., restarting on fewer ranks than
+    // the run that wrote the data used).  Every file still needs a reader.
+    for(int & nrpf : nRanksPerFile) {
+      nrpf = std::max(nrpf, 1);
+    }
     int currentFileIndex(0);
 
     for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
@@ -1699,10 +1704,13 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           ++indexFileOrder;
         }
         ++currentRank;
-        currentRank = std::min(currentRank, nProcs - 1);
+        currentRank = currentRank % nProcs;
       }
       ++currentFileIndex;
     }
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(indexFileOrder == nBoxes,
+                                     "VisMF::Read: not all boxes are assigned a reader");
 
     DistributionMapping dmFileOrder(std::move(ranksFileOrder));
 
