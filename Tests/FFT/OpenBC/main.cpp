@@ -5,8 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
-
-#include <cmath>
+#include <AMReX_Reduce.H>
 
 using namespace amrex;
 
@@ -95,44 +94,50 @@ void test_convolution (Box const& domain, int max_grid_size)
     });
     solver.solve(phi, rho);
 
-    // Gather onto one rank and compare with the direct sum.
-    BoxArray const ba1(domain);
-    DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
-    // Pinned, because the comparison below runs on the host.
-    MultiFab phi_all(ba1, dm1, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
-    phi_all.ParallelCopy(phi, 0, 0, 1);
-    Gpu::streamSynchronize();
+    // The reference is analytic, so each rank can check its own cells in place.
+    auto const hi = amrex::ubound(domain);
+    ReduceOps<ReduceOpMax, ReduceOpMax, ReduceOpSum> reduce_op;
+    ReduceData<Real, Real, Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-    if (ParallelDescriptor::IOProcessor()) {
-        auto const& a = phi_all[0].const_array();
-        auto const hi = amrex::ubound(domain);
-        Real errmax = 0, refmax = 0;
-        Long nbad = 0;
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+        auto const& a = phi.const_array(mfi);
+        reduce_op.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
             Real exact = 0;
             for (int kk = lo.z; kk <= hi.z; ++kk) {
             for (int jj = lo.y; jj <= hi.y; ++jj) {
             for (int ii = lo.x; ii <= hi.x; ++ii) {
-                exact += test_greens_function(std::abs(i-ii), std::abs(j-jj),
-                                              std::abs(k-kk)) * test_rhs(ii,jj,kk);
+                exact += test_greens_function(amrex::Math::abs(i-ii),
+                                              amrex::Math::abs(j-jj),
+                                              amrex::Math::abs(k-kk)) * test_rhs(ii,jj,kk);
             }}}
-            if (!std::isfinite(a(i,j,k))) { ++nbad; }
-            errmax = std::max(errmax, std::abs(a(i,j,k)-exact));
-            refmax = std::max(refmax, std::abs(exact));
-        }}}
-        auto const error = errmax / refmax;
-        amrex::Print() << "  relative error " << error
-                       << ", non-finite values " << nbad << "\n";
-        AMREX_ALWAYS_ASSERT(nbad == 0);
-#ifdef AMREX_USE_FLOAT
-        constexpr Real eps = 1.e-4;
-#else
-        constexpr Real eps = 1.e-12;
-#endif
-        AMREX_ALWAYS_ASSERT(error < eps);
+            // Math::max would keep the other operand if a(i,j,k) were NaN, so
+            // count the non-finite values separately.
+            return {amrex::Math::abs(a(i,j,k)-exact), amrex::Math::abs(exact),
+                    Long(!amrex::Math::isfinite(a(i,j,k)))};
+        });
     }
+
+    auto hv = reduce_data.value(reduce_op);
+    auto errmax = amrex::get<0>(hv);
+    auto refmax = amrex::get<1>(hv);
+    auto nbad   = amrex::get<2>(hv);
+    ParallelDescriptor::ReduceRealMax(errmax);
+    ParallelDescriptor::ReduceRealMax(refmax);
+    ParallelDescriptor::ReduceLongSum(nbad);
+
+    auto const error = errmax / refmax;
+    amrex::Print() << "  relative error " << error
+                   << ", non-finite values " << nbad << "\n";
+    AMREX_ALWAYS_ASSERT(nbad == 0);
+#ifdef AMREX_USE_FLOAT
+    constexpr Real eps = 1.e-4;
+#else
+    constexpr Real eps = 1.e-12;
+#endif
+    AMREX_ALWAYS_ASSERT(error < eps);
 }
 
 
@@ -169,42 +174,45 @@ void test_twod_mode (Box const& domain, int max_grid_size)
     });
     solver.solve(phi, rho);
 
-    BoxArray const ba1(domain);
-    DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
-    // Pinned, because the comparison below runs on the host.
-    MultiFab phi_all(ba1, dm1, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
-    phi_all.ParallelCopy(phi, 0, 0, 1);
-    Gpu::streamSynchronize();
+    auto const hi = amrex::ubound(domain);
+    ReduceOps<ReduceOpMax, ReduceOpMax, ReduceOpSum> reduce_op;
+    ReduceData<Real, Real, Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-    if (ParallelDescriptor::IOProcessor()) {
-        auto const& a = phi_all[0].const_array();
-        auto const hi = amrex::ubound(domain);
-        Real errmax = 0, refmax = 0;
-        Long nbad = 0;
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+        auto const& a = phi.const_array(mfi);
+        reduce_op.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
             Real exact = 0;
             for (int jj = lo.y; jj <= hi.y; ++jj) {
             for (int ii = lo.x; ii <= hi.x; ++ii) {
-                exact += test_greens_function(std::abs(i-ii), std::abs(j-jj), 0)
-                         * test_rhs(ii,jj,k);
+                exact += test_greens_function(amrex::Math::abs(i-ii),
+                                              amrex::Math::abs(j-jj), 0) * test_rhs(ii,jj,k);
             }}
-            if (!std::isfinite(a(i,j,k))) { ++nbad; }
-            errmax = std::max(errmax, std::abs(a(i,j,k)-exact));
-            refmax = std::max(refmax, std::abs(exact));
-        }}}
-        auto const error = errmax / refmax;
-        amrex::Print() << "  relative error " << error
-                       << ", non-finite values " << nbad << "\n";
-        AMREX_ALWAYS_ASSERT(nbad == 0);
-#ifdef AMREX_USE_FLOAT
-        constexpr Real eps = 1.e-4;
-#else
-        constexpr Real eps = 1.e-12;
-#endif
-        AMREX_ALWAYS_ASSERT(error < eps);
+            return {amrex::Math::abs(a(i,j,k)-exact), amrex::Math::abs(exact),
+                    Long(!amrex::Math::isfinite(a(i,j,k)))};
+        });
     }
+
+    auto hv = reduce_data.value(reduce_op);
+    auto errmax = amrex::get<0>(hv);
+    auto refmax = amrex::get<1>(hv);
+    auto nbad   = amrex::get<2>(hv);
+    ParallelDescriptor::ReduceRealMax(errmax);
+    ParallelDescriptor::ReduceRealMax(refmax);
+    ParallelDescriptor::ReduceLongSum(nbad);
+
+    auto const error = errmax / refmax;
+    amrex::Print() << "  relative error " << error
+                   << ", non-finite values " << nbad << "\n";
+    AMREX_ALWAYS_ASSERT(nbad == 0);
+#ifdef AMREX_USE_FLOAT
+    constexpr Real eps = 1.e-4;
+#else
+    constexpr Real eps = 1.e-12;
+#endif
+    AMREX_ALWAYS_ASSERT(error < eps);
 }
 
 #endif
