@@ -6,6 +6,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 
+#include <cmath>
+
 using namespace amrex;
 
 namespace {
@@ -96,13 +98,16 @@ void test_convolution (Box const& domain, int max_grid_size)
     // Gather onto one rank and compare with the direct sum.
     BoxArray const ba1(domain);
     DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
-    MultiFab phi_all(ba1, dm1, 1, 0);
+    // Pinned, because the comparison below runs on the host.
+    MultiFab phi_all(ba1, dm1, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
     phi_all.ParallelCopy(phi, 0, 0, 1);
+    Gpu::streamSynchronize();
 
     if (ParallelDescriptor::IOProcessor()) {
         auto const& a = phi_all[0].const_array();
         auto const hi = amrex::ubound(domain);
         Real errmax = 0, refmax = 0;
+        Long nbad = 0;
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -113,11 +118,14 @@ void test_convolution (Box const& domain, int max_grid_size)
                 exact += test_greens_function(std::abs(i-ii), std::abs(j-jj),
                                               std::abs(k-kk)) * test_rhs(ii,jj,kk);
             }}}
+            if (!std::isfinite(a(i,j,k))) { ++nbad; }
             errmax = std::max(errmax, std::abs(a(i,j,k)-exact));
             refmax = std::max(refmax, std::abs(exact));
         }}}
         auto const error = errmax / refmax;
-        amrex::Print() << "  relative error " << error << "\n";
+        amrex::Print() << "  relative error " << error
+                       << ", non-finite values " << nbad << "\n";
+        AMREX_ALWAYS_ASSERT(nbad == 0);
 #ifdef AMREX_USE_FLOAT
         constexpr Real eps = 1.e-4;
 #else
@@ -163,13 +171,16 @@ void test_twod_mode (Box const& domain, int max_grid_size)
 
     BoxArray const ba1(domain);
     DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
-    MultiFab phi_all(ba1, dm1, 1, 0);
+    // Pinned, because the comparison below runs on the host.
+    MultiFab phi_all(ba1, dm1, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
     phi_all.ParallelCopy(phi, 0, 0, 1);
+    Gpu::streamSynchronize();
 
     if (ParallelDescriptor::IOProcessor()) {
         auto const& a = phi_all[0].const_array();
         auto const hi = amrex::ubound(domain);
         Real errmax = 0, refmax = 0;
+        Long nbad = 0;
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -179,11 +190,14 @@ void test_twod_mode (Box const& domain, int max_grid_size)
                 exact += test_greens_function(std::abs(i-ii), std::abs(j-jj), 0)
                          * test_rhs(ii,jj,k);
             }}
+            if (!std::isfinite(a(i,j,k))) { ++nbad; }
             errmax = std::max(errmax, std::abs(a(i,j,k)-exact));
             refmax = std::max(refmax, std::abs(exact));
         }}}
         auto const error = errmax / refmax;
-        amrex::Print() << "  relative error " << error << "\n";
+        amrex::Print() << "  relative error " << error
+                       << ", non-finite values " << nbad << "\n";
+        AMREX_ALWAYS_ASSERT(nbad == 0);
 #ifdef AMREX_USE_FLOAT
         constexpr Real eps = 1.e-4;
 #else
