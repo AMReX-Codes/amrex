@@ -577,8 +577,8 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
             } else {
                 // RZ
                 const Real* cs_problo = cs_geomdata.ProbLo();
-                Real rp = cs_problo[0] + (ic+0.5_rt)*cs_dx[0];
-                Real rm = cs_problo[0] + (ic-0.5_rt)*cs_dx[0];
+                Real rm = cs_problo[0] + ic*cs_dx[0];
+                Real rp = rm + cs_dx[0];
                 cvol = (rp*rp - rm*rm) * cs_dx[1];
             }
 
@@ -608,8 +608,8 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     } else {
                         // RZ
                         const Real* fn_problo = fn_geomdata.ProbLo();
-                        Real rp = fn_problo[0] + (i+0.5_rt)*fn_dx[0];
-                        Real rm = fn_problo[0] + (i-0.5_rt)*fn_dx[0];
+                        Real rm = fn_problo[0] + i*fn_dx[0];
+                        Real rp = rm + fn_dx[0];
                         fvol = (rp*rp - rm*rm) * fn_dx[1];
                     }
 

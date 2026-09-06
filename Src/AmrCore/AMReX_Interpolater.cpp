@@ -1166,9 +1166,9 @@ void
 CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     int              /*crse_comp*/,
                                     FArrayBox&       fine,
-                                    int              /*fine_comp*/,
+                                    int              fine_comp,
                                     FArrayBox&       fine_state,
-                                    int              /*state_comp*/,
+                                    int              state_comp,
                                     int              ncomp,
                                     const Box&       fine_region,
                                     const IntVect&   ratio,
@@ -1177,10 +1177,12 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     Vector<BCRec>&   /*bcr*/,
                                     RunOn            runon)
 {
-    AMREX_ALWAYS_ASSERT(ratio.allGT(1));
+    AMREX_ALWAYS_ASSERT(ratio.allGT(1) &&
+                        fine_comp+ncomp <= fine.nComp() &&
+                        state_comp+ncomp <= fine_state.nComp());
 
 #if (AMREX_SPACEDIM == 1)
-    amrex::ignore_unused(fine,fine_state,
+    amrex::ignore_unused(fine,fine_comp,fine_state,state_comp,
                          ncomp,fine_region,ratio,
                          crse_geom,fine_geom,runon);
     amrex::Abort("1D CellConservativeProtected::protect not supported");
@@ -1217,8 +1219,8 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     const Box& fnbx = fine.box();
 
     // Extract pointers to fab data
-    Array4<Real>       const&   fnarr = fine.array();
-    Array4<Real const> const& fnstarr = fine_state.const_array();
+    Array4<Real>       const&   fnarr = fine.array(fine_comp);
+    Array4<Real const> const& fnstarr = fine_state.const_array(state_comp);
 
     /*
      * Loop over coarse indices.
