@@ -695,6 +695,7 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
         IntVect ratio = (amrlev > 0) ? IntVect(this->mg_coarsen_ratio) : this->mg_coarsen_ratio_vec[mglev-1];
+        if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
 
         if (m_a_scalar == 0.0)
         {

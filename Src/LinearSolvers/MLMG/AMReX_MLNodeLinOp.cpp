@@ -322,7 +322,9 @@ MLNodeLinOp::buildMasks ()
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
-                amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
+                IntVect const ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio)
+                                                   : mg_coarsen_ratio_vec[mglev-1];
+                amrex::average_down_nodal(dmask_fine, dmask, ratio);
             }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
