@@ -251,7 +251,19 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         }
 #endif
     }
-    m_mlmg_1->solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
+    // get_dpdn_on_domain_faces below reads the domain boundary ghost cells of
+    // the level 0 solution. MLMG only leaves the boundary values there if it
+    // aliased the MultiFab, which it does only for exactly one ghost cell.
+    // Otherwise solve into a temporary that has one.
+    Vector<MultiFab*> sol_1 = a_sol;
+    MultiFab sol_1_tmp;
+    if (a_sol[0]->nGrowVect() != IntVect(1)) {
+        sol_1_tmp.define(m_grids[0], m_dmap[0], 1, 1);
+        sol_1_tmp.setVal(0._rt);
+        MultiFab::Copy(sol_1_tmp, *a_sol[0], 0, 0, 1, 0);
+        sol_1[0] = &sol_1_tmp;
+    }
+    m_mlmg_1->solve(sol_1, a_rhs, a_tol_rel, a_tol_abs);
 
     BL_PROFILE_VAR_STOP(blp_mg1);
 
@@ -261,7 +273,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                                              IntVect::TheDimensionVector(idim)),
                           m_dmap[0], 1, 0);
     }
-    m_poisson_1->get_dpdn_on_domain_faces(GetArrOfPtrs(dpdn_tmp), *a_sol[0]);
+    m_poisson_1->get_dpdn_on_domain_faces(GetArrOfPtrs(dpdn_tmp), *sol_1[0]);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_dpdn[idim].ParallelCopy(dpdn_tmp[idim]);

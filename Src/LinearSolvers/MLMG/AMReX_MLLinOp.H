@@ -1756,11 +1756,15 @@ void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
 {
-    m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
-                                   crse->nComp(), crse->nGrowVect());
-    m_coarse_data_for_bc_raii.LocalCopy(*crse, 0, 0, crse->nComp(),
-                                        crse->nGrowVect());
-    m_coarse_data_for_bc = &m_coarse_data_for_bc_raii;
+    if (crse) {
+        m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
+                                       crse->nComp(), crse->nGrowVect());
+        m_coarse_data_for_bc_raii.LocalCopy(*crse, 0, 0, crse->nComp(),
+                                            crse->nGrowVect());
+        m_coarse_data_for_bc = &m_coarse_data_for_bc_raii;
+    } else {
+        m_coarse_data_for_bc = nullptr;
+    }
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
 }
