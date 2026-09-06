@@ -802,10 +802,16 @@ iparser_ast_optimize (struct iparser_node* node)
     case IPARSER_DIV_PP:
         iparser_ast_optimize(node->l);
         iparser_ast_optimize(node->r);
-        // Division by zero is left for the executor, whose if() is lazy.
-        if (node->l->type == IPARSER_NUMBER &&
-            node->r->type == IPARSER_NUMBER &&
-            ((struct iparser_number*)(node->r))->value != 0)
+        if (node->r->type == IPARSER_NUMBER &&
+            ((struct iparser_number*)(node->r))->value == 0)
+        {
+            // Division by zero is left for the executor, whose if() is lazy.
+            // The node must be generic, because its operands are no longer
+            // what IPARSER_DIV_PP and friends claim they are.
+            node->type = IPARSER_DIV;
+        }
+        else if (node->l->type == IPARSER_NUMBER &&
+                 node->r->type == IPARSER_NUMBER)
         {
             auto v= ((struct iparser_number*)(node->l))->value
                 /   ((struct iparser_number*)(node->r))->value;
@@ -820,8 +826,7 @@ iparser_ast_optimize (struct iparser_node* node)
             node->type = IPARSER_DIV_VP;
         }
         else if (node->l->type == IPARSER_SYMBOL &&
-                 node->r->type == IPARSER_NUMBER &&
-                 ((struct iparser_number*)(node->r))->value != 0)
+                 node->r->type == IPARSER_NUMBER)
         {
             node->lvp.v = ((struct iparser_number*)(node->r))->value;
             node->rip   = ((struct iparser_symbol*)(node->l))->ip;

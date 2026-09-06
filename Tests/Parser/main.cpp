@@ -647,6 +647,16 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 3) == 50);
             AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 3) == x/2);
 
+            {   // A local variable makes the compiler resolve symbol offsets, so
+                // a node left claiming the wrong operand types would be fatal.
+                amrex::Print() << count++ << ". Testing \"t=7; if(c, x/n, t)\"\n";
+                IParser iparser("t=7; if(c, x/n, t)");
+                iparser.setConstant("n", 0);
+                iparser.registerVariables({"x","c"});
+                auto exe = iparser.compileHost<2>();
+                AMREX_ALWAYS_ASSERT(exe(10,0) == 7);
+            }
+
             AMREX_ALWAYS_ASSERT(h("123456789012345") == 123456789012345LL);
             AMREX_ALWAYS_ASSERT(h("123456789012345.") == 123456789012345LL);
             AMREX_ALWAYS_ASSERT(h("123'456'789'012'345") == 123456789012345LL);
