@@ -1010,7 +1010,8 @@ iparser_ast_optimize (struct iparser_node* node)
                 ((struct iparser_number*)node)->type = IPARSER_NUMBER;
                 ((struct iparser_number*)node)->value = v;
             } else {
-                node->type = IPARSER_DIV; // node->l is still the left number
+                // The _VP specialization leaves l and r untouched.
+                node->type = IPARSER_DIV;
             }
         }
         break;

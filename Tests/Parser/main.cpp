@@ -535,7 +535,7 @@ int main (int argc, char* argv[])
                         {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
         nerror += test1("0**x", {}, {"x"},
                         [=] (double x) -> double { return std::pow(0.0,x); },
-                        {1.0}, {4.0}, 4, 1.e-12, 1.e-15);
+                        {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
 
         // and/or must return 1 or 0, not the operand.
         nerror += test1("x and 1", {}, {"x"},
@@ -644,7 +644,10 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 1) == 0);
             AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//(n-1), 0)", "n", 1) == 0);
             AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 0) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//n, 0)", "n", 0) == 0);
             AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 3) == 50);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 4) == 25);
             AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 3) == x/2);
 
             {   // A local variable makes the compiler resolve symbol offsets, so

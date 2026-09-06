@@ -232,12 +232,12 @@ bool parser_is_comparison (struct parser_node* node)
     }
 }
 
-// Is the node a number with an integer value?
+// Is the node a number with a finite integer value?
 bool parser_is_integer (struct parser_node* node)
 {
     if (node && node->type == PARSER_NUMBER) {
         auto v = parser_get_number(node);
-        return v == std::floor(v);
+        return std::isfinite(v) && v == std::floor(v);
     } else {
         return false;
     }
