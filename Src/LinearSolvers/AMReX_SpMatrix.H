@@ -733,6 +733,7 @@ void SpMatrix<T,Allocator>::define (AlgPartition partition, int nnz_per_row)
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_diagonal = AlgVector<T,AllocT>{};
     define_doit(nnz_per_row);
 }
 
@@ -740,11 +741,14 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::define (AlgPartition partition, csr_type csr,
                                     CsrSorted is_sorted)
 {
+    AMREX_ALWAYS_ASSERT(m_split == false);
+
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
     m_nnz = csr.nnz;
     m_csr = std::move(csr);
+    m_diagonal = AlgVector<T,AllocT>{};
     if (! is_sorted) { m_csr.sort(); }
 }
 
@@ -782,6 +786,7 @@ SpMatrix<T,Allocator>::define (AlgPartition partition, T const* mat,
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_diagonal = AlgVector<T,AllocT>{};
 
     bool synced = false;
 
@@ -855,7 +860,7 @@ SpMatrix<T,Allocator>::define_and_filter_doit (T const* mat, Long const* col_ind
             }
         }
         if (i < nlocalrows) {
-            prow[i] = ps[row_offset[i]];
+            prow[i] = (row_offset[i] < nentries) ? Long(ps[row_offset[i]]) : actual_nnz;
             if (i == nlocalrows - 1) {
                 prow[nlocalrows] = actual_nnz;
             }
@@ -936,6 +941,7 @@ void SpMatrix<T,Allocator>::setVal (F const& f, CsrSorted is_sorted)
     // xxxxx TODO: We can try to optimize this later by using shared memory.
 
     AMREX_ALWAYS_ASSERT(m_split == false);
+    m_diagonal = AlgVector<T,AllocT>{};
 
     Long nlocalrows = this->numLocalRows();
     Long rowbegin = this->globalRowBegin();
@@ -989,9 +995,10 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
                   idx < a.csr0.row_offset[i+1]; ++idx) {
             s += a.csr0.mat[idx];
         }
-        if (a.csr1.nnz > 0) {
-            for (auto idx = a.csr1.row_offset[i];
-                      idx < a.csr1.row_offset[i+1]; ++idx) {
+        if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+            auto ii = a.row_map[i];
+            for (auto idx = a.csr1.row_offset[ii];
+                      idx < a.csr1.row_offset[ii+1]; ++idx) {
                 s += a.csr1.mat[idx];
             }
         }
@@ -1061,7 +1068,8 @@ void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(x);
 #else
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (this->partition().numActiveProcs() <= 1 &&
+        x.partition().numActiveProcs() <= 1) { return; }
 
     this->prepare_comm_mv(x.partition());
 
@@ -1107,12 +1115,11 @@ void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
 template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::finishComm_mv (AlgVector<T,AllocT>& y)
 {
-    if (this->numLocalRows() == 0) { return; }
-
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(y);
 #else
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (this->partition().numActiveProcs() <= 1 &&
+        m_col_partition.numActiveProcs() <= 1) { return; }
 
     if ( ! m_comm_mv.recv_reqs.empty()) {
         Vector<MPI_Status> mpi_statuses(m_comm_mv.recv_reqs.size());
@@ -1142,7 +1149,8 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
 {
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (this->partition().numActiveProcs() <= 1 &&
+        col_partition.numActiveProcs() <= 1) { return; }
 
     this->split_csr(col_partition);
 
@@ -1156,11 +1164,11 @@ void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
     if (m_csr_remote.nnz > 0) {
         m_comm_tr.csrt.nnz = m_csr_remote.nnz;
         m_comm_tr.csrt.nrows = m_remote_cols_v.size();
-        m_comm_tr.csrt.mat = (T*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.mat = (T*)The_Pinned_Arena()->alloc
             (sizeof(T)*m_comm_tr.csrt.nnz);
-        m_comm_tr.csrt.col_index = (Long*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.col_index = (Long*)The_Pinned_Arena()->alloc
             (sizeof(Long)*m_comm_tr.csrt.nnz);
-        m_comm_tr.csrt.row_offset = (Long*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.row_offset = (Long*)The_Pinned_Arena()->alloc
             (sizeof(Long)*(m_comm_tr.csrt.nrows+1));
 #ifdef AMREX_USE_GPU
         csr_type csr_comm;
@@ -1352,7 +1360,8 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::finishComm_tr (SpMatrix<T,Allocator>& AT)
 {
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (this->partition().numActiveProcs() <= 1 &&
+        AT.partition().numActiveProcs() <= 1) { return; }
 
     if (! m_comm_tr.recv_reqs.empty()) {
         Vector<MPI_Status> mpi_statuses(m_comm_tr.recv_reqs.size());
@@ -1371,9 +1380,9 @@ void SpMatrix<T,Allocator>::finishComm_tr (SpMatrix<T,Allocator>& AT)
     }
 
     if (m_comm_tr.csrt.nnz > 0) {
-        The_Comms_Arena()->free(m_comm_tr.csrt.mat);
-        The_Comms_Arena()->free(m_comm_tr.csrt.col_index);
-        The_Comms_Arena()->free(m_comm_tr.csrt.row_offset);
+        The_Pinned_Arena()->free(m_comm_tr.csrt.mat);
+        The_Pinned_Arena()->free(m_comm_tr.csrt.col_index);
+        The_Pinned_Arena()->free(m_comm_tr.csrt.row_offset);
     }
     if (m_comm_tr.recv_buffer_mat) {
         The_Pinned_Arena()->free(m_comm_tr.recv_buffer_mat);
@@ -1468,10 +1477,11 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
         auto* pro = m_csr.row_offset.data();
         m_csr_remote.row_offset.resize(noffset);
         auto* pro_r = m_csr_remote.row_offset.data();
+        auto total_nnz = m_nnz;
         ParallelForOMP(noffset, [=] AMREX_GPU_DEVICE (Long i)
         {
             if (i < noffset-1) {
-                auto ro_l = p_pfsum[pro[i]];
+                auto ro_l = (pro[i] < total_nnz) ? p_pfsum[pro[i]] : local_nnz;
                 pro_r[i] = pro[i] - ro_l;
                 pro[i] = ro_l;
             } else {
