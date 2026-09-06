@@ -1274,7 +1274,9 @@ iparser_ast_regvar (struct iparser_node* node, char const* name, int i)
     case IPARSER_NUMBER:
         break;
     case IPARSER_SYMBOL:
-        if (std::strcmp(name, ((struct iparser_symbol*)node)->name) == 0) {
+        // A null name matches every symbol.
+        if (name == nullptr ||
+            std::strcmp(name, ((struct iparser_symbol*)node)->name) == 0) {
             ((struct iparser_symbol*)node)->ip = i;
         }
         break;
@@ -1444,6 +1446,12 @@ void
 iparser_regvar (struct amrex_iparser* iparser, char const* name, int i)
 {
     iparser_ast_regvar(iparser->ast, name, i);
+}
+
+void
+iparser_clearvar (struct amrex_iparser* iparser)
+{
+    iparser_ast_regvar(iparser->ast, nullptr, -1);
 }
 
 void

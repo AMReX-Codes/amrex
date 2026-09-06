@@ -512,6 +512,44 @@ int main (int argc, char* argv[])
         }
 #endif
 
+        {   // Re-registering must forget the variables it drops, even when the
+            // syntax tree is shared with a copy of the Parser.
+            amrex::Print() << test_number++ << ". Testing Parser re-registration\n";
+            auto expect_unknown = [&] (Parser const& p) -> bool
+            {
+                try {
+                    Parser q = p;
+                    auto exe = q.compile<1>();
+                    auto r = exe(2.0);
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            {
+                Parser p("x+y");
+                p.registerVariables({"x","y"});
+                p.registerVariables({"y"});
+                if (!expect_unknown(p)) { ++nerror; }
+            }
+            {   // The copy registers, so the original's stale binding must go.
+                Parser p("x+y");
+                Parser q = p;
+                p.registerVariables({"x","y"});
+                q.registerVariables({"y"});
+                if (!expect_unknown(q)) { ++nerror; }
+            }
+            {   // Reordering is still allowed.
+                Parser p("x-y");
+                p.registerVariables({"x","y"});
+                p.registerVariables({"y","x"});
+                auto exe = p.compile<2>();
+                if (exe(3.0,10.0) != 7.0) { ++nerror; } // y=3, x=10
+            }
+        }
+
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {
             amrex::Print() << nerror << " tests failed\n";
@@ -610,6 +648,64 @@ int main (int argc, char* argv[])
                     return true;
                 }
             };
+            // An unregistered variable must be rejected, whatever optimized
+            // node form it ends up in.
+            auto test_unknown_var = [&] (std::string const& s)
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                try {
+                    IParser iparser(s);
+                    iparser.registerVariables({"x"});
+                    auto exe = iparser.compileHost<1>();
+                    auto r = exe(1);
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y"));        // SYMBOL
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y+2"));      // ADD_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2-y"));      // SUB_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2*y"));      // MUL_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2/y"));      // DIV_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y/2"));      // DIV_PV
+            AMREX_ALWAYS_ASSERT(test_unknown_var("0-y"));      // NEG_P
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x+y"));      // ADD_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x-y"));      // SUB_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x*y"));      // MUL_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x/y"));      // DIV_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y+x"));
+            AMREX_ALWAYS_ASSERT(test_unknown_var("if(x>0, y, 0)"));
+            AMREX_ALWAYS_ASSERT(test_unknown_var("t=2*y; t+x"));
+
+            {   // Re-registering must forget the variables it drops.
+                amrex::Print() << count++ << ". Testing IParser re-registration\n";
+                IParser iparser("x+y");
+                iparser.registerVariables({"x","y"});
+                iparser.registerVariables({"y"});
+                bool caught = false;
+                try {
+                    auto exe = iparser.compileHost<1>();
+                    auto r = exe(1);
+                    amrex::ignore_unused(r);
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    caught = true;
+                }
+                AMREX_ALWAYS_ASSERT(caught);
+            }
+
+            {   // Reordering is still allowed.
+                amrex::Print() << count++ << ". Testing IParser reordering\n";
+                IParser iparser("x-y");
+                iparser.registerVariables({"x","y"});
+                iparser.registerVariables({"y","x"});
+                auto exe = iparser.compileHost<2>();
+                AMREX_ALWAYS_ASSERT(exe(3,10) == 7); // y=3, x=10
+            }
+
             AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));
             AMREX_ALWAYS_ASSERT(test_bad_number("1.234e2"));
             AMREX_ALWAYS_ASSERT(test_bad_number("3.14"));

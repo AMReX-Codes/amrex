@@ -1814,7 +1814,9 @@ parser_ast_regvar (struct parser_node* node, char const* name, int i)
     case PARSER_NUMBER:
         break;
     case PARSER_SYMBOL:
-        if (std::strcmp(name, ((struct parser_symbol*)node)->name) == 0) {
+        // A null name matches every symbol.
+        if (name == nullptr ||
+            std::strcmp(name, ((struct parser_symbol*)node)->name) == 0) {
             ((struct parser_symbol*)node)->ip = i;
         }
         break;
@@ -2058,6 +2060,12 @@ void
 parser_regvar (struct amrex_parser* parser, char const* name, int i)
 {
     parser_ast_regvar(parser->ast, name, i);
+}
+
+void
+parser_clearvar (struct amrex_parser* parser)
+{
+    parser_ast_regvar(parser->ast, nullptr, -1);
 }
 
 void
