@@ -152,42 +152,48 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     // Each block has tile_dim x block_rows threads. They work on a tile_dim
     // x tile_dim tile.
 
+    // gridDim.z is limited to 65535, so blocks loop over y if ny is larger.
     dim3 block{unsigned(tile_dim), unsigned(block_rows), 1};
     dim3 grid{unsigned((nx+tile_dim-1)/tile_dim),
-              unsigned((nz+tile_dim-1)/tile_dim), unsigned(ny)};
+              unsigned((nz+tile_dim-1)/tile_dim),
+              unsigned(std::min(ny, 65535))};
 
     AMREX_LAUNCH_KERNEL(nthreads, grid, block, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE ()
     {
         __shared__ T tile[tile_dim][tile_dim+1]; // +1 to avoid bank conflicts
 
-        int k = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
-        int i = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
+        for (int j = blockIdx.z; j < ny; j += gridDim.z) { // for y-direction
 
-        int j = blockIdx.z; // for y-direction
+            int k = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
+            int i = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
 
-        if (k < nz) {
-            for (int it = 0; it < tile_dim; it += block_rows, i += block_rows) {
-                if (i < nx) {
-                    //      x               z
-                    tile[threadIdx.y+it][threadIdx.x] = pi[k + (j+i*std::size_t(ny))*nz];
+            if (k < nz) {
+                for (int it = 0; it < tile_dim; it += block_rows, i += block_rows) {
+                    if (i < nx) {
+                        //      x               z
+                        tile[threadIdx.y+it][threadIdx.x] = pi[k + (j+i*std::size_t(ny))*nz];
+                    }
                 }
             }
-        }
 
-        __syncthreads();
+            __syncthreads();
 
-        i = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
-        k = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
+            i = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
+            k = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
 
-        if (i < nx) {
-            for (int it = 0; it < tile_dim; it += block_rows, k += block_rows) {
-                if (k < nz) {
-                    po[i + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
+            if (i < nx) {
+                for (int it = 0; it < tile_dim; it += block_rows, k += block_rows) {
+                    if (k < nz) {
+                        po[i + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
+                    }
                 }
             }
+
+            __syncthreads();
         }
     });
+    AMREX_GPU_ERROR_CHECK();
 
 #elif defined(AMREX_USE_SYCL)
 
