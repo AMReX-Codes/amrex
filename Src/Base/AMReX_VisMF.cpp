@@ -2379,10 +2379,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
+    // Note that AsyncWrite always writes in the native format, ignoring fab.format.
+    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+
     int64_t total_bytes = 0;
     if (localdata.size() > 1) {
         char* pld = (char*)(&(localdata[1]));
-        const FABio& fio = FArrayBox::getFABio();
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             std::memcpy(pld, &total_bytes, sizeof(int64_t));
@@ -2394,7 +2396,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             std::stringstream hss;
             FArrayBox valid_fab(bx, ncomp, false);
             FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
-            fio.write_header(hss, header_fab, ncomp);
+            fabio->write_header(hss, header_fab, ncomp);
             total_bytes += static_cast<std::streamoff>(hss.tellp());
             total_bytes += header_fab.size() * whichRD.numBytes();
 
@@ -2468,8 +2470,6 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         }
     }
 
-    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
-
     AsyncOut::Submit([=] ()
     {
         if (myproc == io_proc)
@@ -2496,6 +2496,10 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                 {
                     int k = -1;
                     do {
+                        if (nbytes_on_rank[rank] < 0) { // First time for this rank
+                            std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
+                            pgd += sizeof(int64_t);
+                        }
                         if (lidx < std::ssize(gidx[rank])) {
                             k = gidx[rank][lidx];
                             ++lidx;
@@ -2507,11 +2511,6 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
                     hdr->m_min[k].resize(ncomp);
                     hdr->m_max[k].resize(ncomp);
-
-                    if (nbytes_on_rank[rank] < 0) { // First time for this rank
-                        std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
-                        pgd += sizeof(int64_t);
-                    }
 
                     int64_t nbytes;
                     std::memcpy(&nbytes, pgd, sizeof(int64_t));

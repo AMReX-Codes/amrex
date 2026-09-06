@@ -119,6 +119,9 @@ files, THREAD_MULTIPLE must be turned on by adding
 ``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
 will throw an error.
 
+Note that async output always writes FAB data in the machine's native
+format.  The ``fab.format`` input parameter is ignored.
+
 Async Output works for a wide range of AMReX calls, including:
 
 * ``amrex::WriteSingleLevelPlotfile()``
