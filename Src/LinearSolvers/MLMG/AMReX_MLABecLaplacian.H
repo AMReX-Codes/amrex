@@ -995,6 +995,11 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
+    // The line solve taken for semi-coarsened levels is host only.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(regular_coarsening
+                                     || this->m_overset_mask[amrlev][mglev]
+                                     || Gpu::notInLaunchRegion(),
+                                     "MLABecLaplacian::Fsmooth: line solve is not supported on GPU");
     if (Gpu::inLaunchRegion()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
@@ -1101,7 +1106,13 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
     {
         MFItInfo mfi_info;
-        mfi_info.EnableTiling().SetDynamic(true);
+        mfi_info.SetDynamic(true);
+        // The line solve below needs whole valid boxes, not tiles: a tile
+        // would truncate the tridiagonal lines and make neighboring threads
+        // race on the cells at the tile edges.
+        if (regular_coarsening || this->m_overset_mask[amrlev][mglev]) {
+            mfi_info.EnableTiling();
+        }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1198,7 +1209,8 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                     });
                 }
             } else {
-                // line solve does not with with GPU
+                // Line solve for semi-coarsening. Host only, and tbx == vbx
+                // because tiling is disabled above for this branch.
                 abec_gsrb_with_line_solve(tbx, solnfab, rhsfab, alpha, afab,
                                           AMREX_D_DECL(dhx, dhy, dhz),
                                           AMREX_D_DECL(bxfab, byfab, bzfab),
