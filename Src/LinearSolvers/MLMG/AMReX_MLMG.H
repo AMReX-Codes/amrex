@@ -1150,11 +1150,11 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux, Location a_loc)
         Vector<MF> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             auto const& amf = *a_flux[ilev];
-            fluxes[ilev].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
+            fluxes[ilev].define(boxArray(amf), DistributionMap(amf), AMREX_SPACEDIM, 0);
         }
         getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
-            LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, ncomp, IntVect(0));
+            LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, AMREX_SPACEDIM, IntVect(0));
         }
     }
 }
@@ -1215,11 +1215,11 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
             Vector<MF> fluxes(namrlevs);
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
                 auto const& amf = *a_flux[ilev];
-                fluxes[ilev].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
+                fluxes[ilev].define(boxArray(amf), DistributionMap(amf), AMREX_SPACEDIM, 0);
             }
             linop.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol));
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
-                LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, ncomp, IntVect(0));
+                LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, AMREX_SPACEDIM, IntVect(0));
             }
         }
     }

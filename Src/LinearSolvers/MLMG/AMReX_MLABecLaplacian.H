@@ -266,7 +266,8 @@ protected:
 
     Vector<int> m_is_singular;
 
-    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+    // Robin BC modifies alpha, which has only one component.
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return getNComp() == 1; }
 
 private:
 
