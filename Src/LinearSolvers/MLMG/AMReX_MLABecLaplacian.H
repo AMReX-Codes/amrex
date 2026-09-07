@@ -1390,7 +1390,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
     const DistributionMapping& dm = this->m_dmap[0].back();
 
     std::unique_ptr<MLLinOpT<MF>> r
-        {new MLABecLaplacianT<MF>({geom}, {ba}, {dm}, this->m_lpinfo_arg)};
+        {new MLABecLaplacianT<MF>({geom}, {ba}, {dm}, this->m_lpinfo_arg, {}, m_ncomp)};
 
     auto nop = dynamic_cast<MLABecLaplacianT<MF>*>(r.get());
     if (!nop) {
@@ -1413,7 +1413,11 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
         nop->setCoarseFineBCLocation(cbloc);
     }
 
-    nop->setScalars(m_a_scalar, m_b_scalar);
+    // Pinning the masked cells with a huge alpha below requires a nonzero
+    // a-scalar.  The parent's alpha does not contribute if its a-scalar is zero.
+    const RT ascalar = (m_a_scalar == RT(0.0)) ? RT(1.0) : m_a_scalar;
+    const RT afac = m_a_scalar / ascalar; // 1 unless m_a_scalar is zero
+    nop->setScalars(ascalar, m_b_scalar);
 
     MF const& alpha_bottom = m_a_coeffs[0].back();
     iMultiFab const& osm_bottom = *(this->m_overset_mask[0].back());
@@ -1445,7 +1449,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (mma[box_no](i,j,k)) {
-                ama[box_no](i,j,k,n) = abotma[box_no](i,j,k,n);
+                ama[box_no](i,j,k,n) = afac*abotma[box_no](i,j,k,n);
             } else {
                 ama[box_no](i,j,k,n) = huge_alpha;
             }
@@ -1467,7 +1471,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
                 if (m(i,j,k)) {
-                    a(i,j,k,n) = abot(i,j,k,n);
+                    a(i,j,k,n) = afac*abot(i,j,k,n);
                 } else {
                     a(i,j,k,n) = huge_alpha;
                 }
