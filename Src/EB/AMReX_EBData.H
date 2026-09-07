@@ -73,14 +73,19 @@ struct EBData
     /**
      * \brief Generate a uniformly random point on the EB face inside cell (i,j,k).
      *
+     * The point is in the cell's local coordinates normalized to [-0.5,0.5].
+     * The cell size \p dx is needed because the stored boundary normal is a
+     * unit vector in physical space.
+     *
      * Useful for Monte-Carlo flux evaluations or sampling with particles.
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     GpuArray<Real,AMREX_SPACEDIM>
-    randomPointOnEB (int i, int j, int k, RandomEngine const& engine) const
+    randomPointOnEB (int i, int j, int k, RandomEngine const& engine,
+                     GpuArray<Real,AMREX_SPACEDIM> const& dx) const
     {
-        Real nx = this->get<EBData_t::bndrynorm>(i,j,k,0);
-        Real ny = this->get<EBData_t::bndrynorm>(i,j,k,1);
+        Real nx = this->get<EBData_t::bndrynorm>(i,j,k,0) * dx[0];
+        Real ny = this->get<EBData_t::bndrynorm>(i,j,k,1) * dx[1];
         Real bcx = this->get<EBData_t::bndrycent>(i,j,k,0);
         Real bcy = this->get<EBData_t::bndrycent>(i,j,k,1);
         int dir = (std::abs(nx) >= std::abs(ny)) ? 0 : 1;
@@ -114,7 +119,7 @@ struct EBData
             return GpuArray<Real,2>{x,y};
         }
 #else
-        Real nz = this->get<EBData_t::bndrynorm>(i,j,k,2);
+        Real nz = this->get<EBData_t::bndrynorm>(i,j,k,2) * dx[2];
         Real bcz = this->get<EBData_t::bndrycent>(i,j,k,2);
         if (std::abs(nz) > std::abs(nx) && std::abs(nz) > std::abs(ny)) {
             dir = 2;
