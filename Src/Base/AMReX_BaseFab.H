@@ -3061,10 +3061,12 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         auto const& slo = amrex::lbound(srcbox);
         Dim3 const offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
 
+        // The lock dimension must be a property of the destination fab, not of
+        // destbox, so that concurrent calls into the same fab use the same locks.
         int planedim;
         int nplanes;
         int plo;
-        if (len.z == 1) {
+        if (amrex::length(this->domain).z == 1) {
             planedim = 1;
             nplanes = len.y;
             plo = dlo.y;
