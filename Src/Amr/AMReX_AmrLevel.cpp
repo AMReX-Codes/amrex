@@ -1761,7 +1761,8 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         const BoxArray& srcBA = state[index].boxArray();
 
-        int ngrow_src = ngrow;
+        // growntilebox() below grows by the full mf.nGrowVect().
+        int ngrow_src = mf.nGrowVect().max();
         {
             Box bx0 = srcBA[0];
             Box bx1 = rec->boxMap()(bx0);
