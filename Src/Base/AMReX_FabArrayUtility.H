@@ -1138,11 +1138,11 @@ bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghos
 
 template <BaseFabType FAB, class F>
 requires (amrex::DefinitelyNotHostRunnable<F>::value)
-bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
+bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    amrex::ignore_unused(fa,nghost);
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
-    return 0;
+    return false;
 }
 }
 /// \endcond
