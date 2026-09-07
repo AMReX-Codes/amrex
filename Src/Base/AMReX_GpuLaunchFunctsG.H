@@ -1907,6 +1907,28 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
     }
 }
 
+template <typename L1, typename L2, typename L3, int dim>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
+          MaybeHostDeviceRunnable<L3>::value)
+void
+HostDeviceParallelFor (Gpu::KernelInfo const& info,
+                       BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
+                       L1&& f1, L2&& f2, L3&& f3)
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,box3,
+                    std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    } else {
+#ifdef AMREX_USE_SYCL
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+        LoopConcurrentOnCpu(box3,std::forward<L3>(f3));
+#endif
+    }
+}
+
 template <int MT, typename L1, typename L2, typename L3, int dim>
 requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
           MaybeHostDeviceRunnable<L3>::value)
