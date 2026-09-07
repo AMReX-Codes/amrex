@@ -827,7 +827,7 @@ MLEBABecLap::prepareForSolve ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }
@@ -1466,7 +1466,7 @@ MLEBABecLap::update ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }
