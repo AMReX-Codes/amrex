@@ -794,17 +794,6 @@ namespace amrex
     {
         AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
 
-#if (AMREX_SPACEDIM==2)
-        const auto& ba = grad.boxArray();
-        const auto& dm = grad.DistributionMap();
-        MultiFab volume, areax, areay;
-        if (geom.IsRZ()) {
-            geom.GetVolume(volume, ba, dm, 0);
-            geom.GetFaceArea(areax, ba, dm, 0, 0);
-            geom.GetFaceArea(areay, ba, dm, 1, 0);
-        }
-#endif
-
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_OMP
@@ -817,24 +806,10 @@ namespace amrex
             AMREX_D_TERM(const auto& ufab = umac[0]->const_array(mfi);,
                          const auto& vfab = umac[1]->const_array(mfi);,
                          const auto& wfab = umac[2]->const_array(mfi););
-#if (AMREX_SPACEDIM==2)
-            if (geom.IsRZ()) {
-                Array4<Real const> const&  ax =  areax.array(mfi);
-                Array4<Real const> const&  ay =  areay.array(mfi);
-                Array4<Real const> const& vol = volume.array(mfi);
-
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-                {
-                    amrex_compute_gradient_rz(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
-                });
-            } else
-#endif
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-                {
-                    amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
-                });
-            }
+                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
+            });
         }
     }
 
