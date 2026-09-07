@@ -339,6 +339,9 @@ void parser_setconst (struct amrex_parser* parser, char const* name, double c);
 void parser_print (struct amrex_parser* parser);
 std::set<std::string> parser_get_symbols (struct amrex_parser* parser);
 std::map<std::string,int> parser_get_user_functions (struct amrex_parser* parser);
+/* Functions in the expression that cannot be called in GPU device code in this
+ * build.  Empty unless the build is SYCL. */
+std::set<std::string> parser_get_device_unsupported_functions (struct amrex_parser* parser);
 int parser_depth (struct amrex_parser* parser);
 
 /* We need to walk the tree in these functions */
@@ -351,6 +354,8 @@ void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& sy
                              std::set<std::string>& local_symbols);
 void parser_ast_get_user_functions (struct parser_node* node,
                                     std::map<std::string,int>& user_functions);
+void parser_ast_get_device_unsupported_functions (struct parser_node* node,
+                                                  std::set<std::string>& functions);
 int parser_ast_depth (struct parser_node* node);
 void parser_ast_sort (struct parser_node* node);
 
@@ -484,8 +489,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T parser_math_jn_device (int a, T b)
 {
 #if defined(AMREX_USE_SYCL) && !defined(AMREX_SYCL_EXT_INTEL_MATH)
+    // Unreachable: Parser::compile rejects jn for this build.
     amrex::ignore_unused(a,b);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: jn is not supported for SYCL without Intel extension.");
     return 0;
 #elif defined(AMREX_USE_SYCL)
     return sycl::ext::intel::math::jn(a, b);
@@ -523,8 +528,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T parser_math_yn_device (int a, T b)
 {
 #if defined(AMREX_USE_SYCL) && !defined(AMREX_SYCL_EXT_INTEL_MATH)
+    // Unreachable: Parser::compile rejects yn for this build.
     amrex::ignore_unused(a,b);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: yn is not supported for SYCL without Intel extension.");
     return 0;
 #elif defined(AMREX_USE_SYCL)
     return sycl::ext::intel::math::yn(a, b);
