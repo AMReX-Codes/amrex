@@ -787,11 +787,10 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
                    + facy*(-vel(i-1,j-1,k,1)*zero_ilo - vel(i,j-1,k,1)*zero_ihi
                            +vel(i-1,j  ,k,1)*zero_ilo + vel(i,j  ,k,1)*zero_ihi);
         if (is_rz) {
-            // Here we assume we can't have inflow in the radial direction
             Real fm = facy / static_cast<Real>(6*i-3);
             Real fp = facy / static_cast<Real>(6*i+3);
-            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))
-                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1));
+            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*zero_ilo
+                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1))*zero_ihi;
         }
     }
 }
@@ -820,7 +819,7 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     u(i,j,k,1) -= sig(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -843,7 +842,7 @@ void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real 
     u(i,j,k,1) -= sy(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sy(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -858,7 +857,7 @@ void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real c
     u(i,j,k,1) -= sig*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
