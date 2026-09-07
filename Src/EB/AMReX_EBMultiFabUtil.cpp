@@ -925,10 +925,12 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const auto& fcent = factory.getFaceCent();
 
     AMREX_ALWAYS_ASSERT(a_bcs.size() == ncomp );
+    // Kernels read one cell beyond the tile.
+    AMREX_ALWAYS_ASSERT(cc.nGrowVect().allGE(1) && flags.nGrowVect().allGE(1));
 
     Box domain(a_geom.Domain());
 
-    const int nghost(4);
+    const int nghost(1);
 
    // Initialize edge state
     AMREX_D_TERM(fc_x.setVal(1e30_rt,dcomp,ncomp);,
@@ -1063,10 +1065,12 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
 
     // We assume that we start from the first component of bcs ... we may need to generalize this
     AMREX_ALWAYS_ASSERT(a_bcs.size() >= ncomp );
+    // Kernels read one cell beyond the tile. vfrac has no more ghost cells than flags.
+    AMREX_ALWAYS_ASSERT(phi_centroid.nGrowVect().allGE(1) && vfrac.nGrowVect().allGE(1));
 
     Box domain(a_geom.Domain());
 
-    const int nghost(4);
+    const int nghost(1);
 
    // Initialize edge state
     AMREX_D_TERM(phi_xface.setVal(1e30_rt,dcomp,ncomp);,
