@@ -448,27 +448,8 @@ Box
 MFIter::nodaltilebox (int dir) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
-    BL_ASSERT(tile_array != nullptr);
-    Box bx((*tile_array)[currentIndex]);
-    bx.convert(typ);
-    const Box& vbx = validbox();
-    const IntVect& Big = vbx.bigEnd();
-    int d0, d1;
-    if (dir < 0) {
-        d0 = 0;
-        d1 = AMREX_SPACEDIM-1;
-    } else {
-        d0 = d1 = dir;
-    }
-    for (int d=d0; d<=d1; ++d) {
-        if (typ.cellCentered(d)) { // validbox should also be cell-centered in d-direction.
-            bx.surroundingNodes(d);
-            if (bx.bigEnd(d) <= Big[d]) {
-                bx.growHi(d,-1);
-            }
-        }
-    }
-    return bx;
+    if (dir < 0) { return tilebox(IntVect::TheNodeVector()); }
+    return tilebox(IntVect::TheDimensionVector(dir));
 }
 
 // Note that a small negative ng is supported.
