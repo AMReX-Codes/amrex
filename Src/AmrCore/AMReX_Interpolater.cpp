@@ -1360,6 +1360,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
                          solve_mask,fine_geom,runon);
+    amrex::Abort("1D FaceDivFree::interp_arr not supported");
 #else
 
     BL_PROFILE("FaceDivFree::interp_arr()");
