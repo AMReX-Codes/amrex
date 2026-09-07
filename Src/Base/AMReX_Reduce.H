@@ -665,6 +665,7 @@ public:
     template <typename I, int dim, typename D, typename F>
     void eval_box (I, BoxND<dim> const& box, int ncomp, D& reduce_data, F const& f)
     {
+        if (box.isEmpty()) { return; }
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
