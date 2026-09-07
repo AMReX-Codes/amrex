@@ -295,7 +295,11 @@ void eb_interp_cc2facecent_x (Box const& ubx,
     {
       if (apx(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+        edg_x(i,j,k,n) = Real(1e20);
+#else
         edg_x(i,j,k,n) = 1e40;
+#endif
       }
       else
       {
@@ -346,7 +350,11 @@ void eb_interp_cc2facecent_y (Box const& vbx,
     {
       if (apy(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+        edg_y(i,j,k,n) = Real(1e20);
+#else
         edg_y(i,j,k,n) = 1e40;
+#endif
       }
       else
       {
@@ -399,7 +407,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
   {
       if (apx(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+          edg_x(i,j,k,n) = Real(1e20);
+#else
           edg_x(i,j,k,n) = 1e40;
+#endif
       }
       else if ( (i == domlo.x) && (bc[n].lo(0) == BCType::ext_dir) )
       {
@@ -479,7 +491,11 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
    {
       if (apy(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+          edg_y(i,j,k,n) = Real(1e20);
+#else
           edg_y(i,j,k,n) = 1e40;
+#endif
       }
       else if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
       {
