@@ -1621,8 +1621,9 @@ private:
 template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
 using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
-template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
-using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator,
+          class CellAssignor=DefaultAssignor, class RType=ParticleReal>
+using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt, RType>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
 using ParticleContainerRTSoA = ParticleContainer_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
