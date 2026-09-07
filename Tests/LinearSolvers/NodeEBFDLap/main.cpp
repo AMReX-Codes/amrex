@@ -56,7 +56,7 @@ void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
     do_solve(); // no setEBDirichlet yet
 
     Real const phi_eb = 5.0;
-    linop.setEBDirichlet([=] AMREX_GPU_DEVICE (AMREX_D_DECL(Real,Real,Real)) -> Real
+    linop.setEBDirichlet([=] AMREX_GPU_HOST_DEVICE (AMREX_D_DECL(Real,Real,Real)) -> Real
                          { return phi_eb; });
     do_solve();
 
