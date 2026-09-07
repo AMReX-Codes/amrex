@@ -163,7 +163,7 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     {
         __shared__ T tile[tile_dim][tile_dim+1]; // +1 to avoid bank conflicts
 
-        for (int j = blockIdx.z; j < ny; j += gridDim.z) { // for y-direction
+        for (unsigned int j = blockIdx.z; j < unsigned(ny); j += gridDim.z) { // for y-direction
 
             int k = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
             int i = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
