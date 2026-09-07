@@ -310,6 +310,9 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (fy(i  ,j+1,0) == Type::irregular) { ++ncuts; }
                 if (ncuts > 2) {
                     Gpu::Atomic::Add(dp,1);
+                    if (cover_multiple_cuts) {
+                        cell(i,j,0).setCovered();
+                    }
                 }
             }
         }
