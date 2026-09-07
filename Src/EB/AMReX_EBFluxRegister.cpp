@@ -331,6 +331,8 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         }
     }
 
+    // setDeterministic is silently ignored here, because the rereflux kernels
+    // below use atomic adds near cut cells anyway.
     m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
     {
