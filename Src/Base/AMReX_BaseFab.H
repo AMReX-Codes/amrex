@@ -1658,7 +1658,14 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     {
         this->dptr = nullptr;
         define();
-        this->copy<RunOn::Device>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+            this->copy<RunOn::Device>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+        } else
+#endif
+        {
+            this->copy<RunOn::Host>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+        }
     } else if (make_type == amrex::make_alias) {
         ; // nothing to do
     } else {
