@@ -338,16 +338,24 @@ MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
     const int ncomp = this->getNComp();
     const RT betainv = RT(1.0) / getBScalar();
     const int nlevs = this->NAMRLevels();
+    // Without b coefficients, the metric factor is in the flux kernels, not in
+    // b, so it must be removed before the boundary faces are set using b = 1.
+    const bool has_bcoef = (getBCoeffs(0,0)[0] != nullptr);
     for (int alev = 0; alev < nlevs; ++alev) {
         this->compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (betainv != RT(1.0)) {
                 a_flux[alev][idim]->mult(betainv, 0, ncomp);
             }
+            if (!has_bcoef) {
+                this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            }
         }
         this->addInhomogNeumannFlux(alev, a_flux[alev], *a_sol[alev], true);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+        if (has_bcoef) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            }
         }
     }
 }
