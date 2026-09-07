@@ -996,6 +996,9 @@ void write_stl (std::string const& filename, std::map<int,std::unique_ptr<MCFab>
 
 #ifdef AMREX_USE_MPI
     if (myproc < nprocs-1) {
+        // Make sure the data are on disk before the next rank appends.
+        ofs.flush();
+        ofs.close();
         int foo = 0;
         ParallelDescriptor::Send(&foo, 1, myproc+1, 100);
     }
