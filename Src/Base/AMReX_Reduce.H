@@ -802,9 +802,10 @@ public:
         auto dp = reduce_data.devicePtr(stream);
         int& nblocks = reduce_data.nBlocks(stream);
         constexpr int nitems_per_thread = 4;
-        int nblocks_ec = (n + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
+        Long nblocks_ec_long = (Long(n) + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
-        nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        int nblocks_ec = static_cast<int>(std::min<Long>(nblocks_ec_long,
+                                                         reduce_data.maxBlocks()));
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
@@ -827,12 +828,12 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (N i = N(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
-                 stride = N(AMREX_GPU_MAX_THREADS)*gridDim.x;
-                 i < n;
+            for (Long i = Long(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = Long(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 i < Long(n);
                  i += stride)
             {
-                auto pr = f(i);
+                auto pr = f(N(i));
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
 #ifdef AMREX_USE_SYCL
@@ -1058,8 +1059,9 @@ bool AnyOf (N n, T const* v, P const& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (N i = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
-                 i < n && !r; i += stride)
+            for (Long i = Long(AMREX_GPU_MAX_THREADS)*gh.blockIdx()+gh.threadIdx(),
+                 stride = Long(AMREX_GPU_MAX_THREADS)*gh.gridDim();
+                 i < Long(n) && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
             }
@@ -1079,8 +1081,9 @@ bool AnyOf (N n, T const* v, P const& pred)
         if (!has_any)
         {
             int r = false;
-            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                 i < n && !r; i += stride)
+            for (Long i = Long(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = Long(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 i < Long(n) && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
             }

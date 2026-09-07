@@ -234,7 +234,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 
         // Each block processes [ibegin,iend).
         N ibegin = static_cast<N>(nelms_per_block) * blockIdxx;
-        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        N iend = static_cast<N>(amrex::min(Long(ibegin)+nelms_per_block, Long(n)));
 
         // Each block is responsible for nchunks chunks of data,
         // where each chunk has blockDim.x elements, one for each
@@ -372,9 +372,11 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 
         // Each block processes [ibegin,iend).
         N ibegin = static_cast<N>(nelms_per_block) * blockIdxx;
-        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        N iend = static_cast<N>(amrex::min(Long(ibegin)+nelms_per_block, Long(n)));
         T prev_sum = (blockIdxx == 0) ? 0 : blocksum_p[blockIdxx-1];
-        for (N offset = ibegin + threadIdxx; offset < iend; offset += blockDimx) {
+        int nelms_this_block = static_cast<int>(iend-ibegin);
+        for (int i = threadIdxx; i < nelms_this_block; i += blockDimx) {
+            N offset = ibegin + i;
             fout(offset, prev_sum + blockresult_p[offset]);
         }
     });
@@ -471,7 +473,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
         // Each block processes [ibegin,iend).
         N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
-        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        N iend = static_cast<N>(amrex::min(Long(ibegin)+nelms_per_block, Long(n)));
         BlockStatusT& block_status = block_status_p[virtual_block_id];
 
         //
@@ -649,7 +651,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     constexpr int nelms_per_block = nthreads * nelms_per_thread;
     AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
                         std::numeric_limits<int>::max())*nelms_per_block);
-    int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
+    int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
 
@@ -726,7 +728,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         // Each block processes [ibegin,iend).
         N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
-        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        N iend = static_cast<N>(amrex::min(Long(ibegin)+nelms_per_block, Long(n)));
 
         auto input_begin = rocprim::make_transform_iterator(
             rocprim::make_counting_iterator(N(0)),
@@ -817,7 +819,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     constexpr int nelms_per_block = nthreads * nelms_per_thread;
     AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
                         std::numeric_limits<int>::max())*nelms_per_block);
-    int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
+    int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
 
@@ -872,7 +874,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         // Each block processes [ibegin,iend).
         N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
-        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        N iend = static_cast<N>(amrex::min(Long(ibegin)+nelms_per_block, Long(n)));
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
 #ifdef AMREX_CUDA_CCCL_VER_GE_2_8
