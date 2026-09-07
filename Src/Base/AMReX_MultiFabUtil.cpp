@@ -865,7 +865,9 @@ namespace amrex
     Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
                                      Box const& domain, int direction, bool local)
     {
-        int n1d = domain.length(direction) * ncomp;
+        Box const dom = amrex::convert(domain, mf.ixType());
+        int const dlo = dom.smallEnd(direction);
+        int n1d = dom.length(direction) * ncomp;
         Gpu::HostVector<Real> hv(n1d);
 
 #ifdef AMREX_USE_GPU
@@ -875,7 +877,8 @@ namespace amrex
             Real* p = dv.data();
 
             for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                Box const& b = mfi.validbox();
+                Box const b = mfi.validbox() & dom;
+                if (!b.ok()) { continue; }
                 const auto lo = amrex::lbound(b);
                 const auto len = amrex::length(b);
                 auto const& fab = mf.const_array(mfi);
@@ -931,9 +934,9 @@ namespace amrex
                     for (int n = 0; n < ncomp; ++n) {
                         Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
 #ifdef AMREX_USE_SYCL
-                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r, h);
+                        Gpu::deviceReduceSum_full(p+n+ncomp*(idir-dlo), r, h);
 #else
-                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r);
+                        Gpu::deviceReduceSum_full(p+n+ncomp*(idir-dlo), r);
 #endif
                     }
                 });
@@ -964,23 +967,24 @@ namespace amrex
 #pragma omp parallel
 #endif
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
-                Box const& b = mfi.tilebox();
+                Box const b = mfi.tilebox() & dom;
+                if (!b.ok()) { continue; }
                 auto const& fab = mf.const_array(mfi);
                 Real * AMREX_RESTRICT p = pp[OpenMP::get_thread_num()];
                 if (direction == 0) {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*i] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(i-dlo)] += fab(i,j,k,n+icomp);
                     });
                 } else if (direction == 1) {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*j] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(j-dlo)] += fab(i,j,k,n+icomp);
                     });
                 } else {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*k] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(k-dlo)] += fab(i,j,k,n+icomp);
                     });
                 }
             }
