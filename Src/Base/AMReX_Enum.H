@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -48,11 +49,20 @@ namespace detail
                 if (it != r.end()) {
                     this_value = it->second;
                 } else { // v is an int literal
-                    // Note that if value_string is not a valid string for int,
-                    // it will fail at compile time, because the compiler
-                    // will not allow something like `enum FOO : int { x = 3% }`.
                     // The base of the integer is auto detected, so 0x/0 prefixes work.
-                    this_value =  static_cast<T>(std::stoi(value_string, nullptr, 0));
+                    auto s = value_string;
+                    s.erase(std::remove(s.begin(), s.end(), '\''), s.end()); // digit separators
+                    std::size_t pos = 0;
+                    this_value = static_cast<T>(std::stoi(s, &pos, 0));
+                    // Only an integer suffix may follow. Binary literals and
+                    // expressions such as `1 << 2` are not supported.
+                    if (s.find_first_not_of("uUlLzZ", pos) != std::string::npos) {
+                        std::string error_msg("amrex::getEnumNameValuePairs: unsupported enumerator initializer `");
+                        error_msg.append(value_string).append("` in AMREX_ENUM(")
+                            .append(ET::class_name).append(", ").append(ET::enum_names)
+                            .append(").");
+                        throw std::runtime_error(error_msg);
+                    }
                 }
                 r.emplace_back(amrex::trim(kv[0]), this_value);
                 next_value = static_cast<int>(this_value) + 1;

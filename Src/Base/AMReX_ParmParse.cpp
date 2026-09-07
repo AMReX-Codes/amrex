@@ -1608,9 +1608,14 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
         recursive_symbols.insert(name);
     }
 
-    auto parser = pp_make_parser<T>(val, {}, table, parser_prefix, use_querywithparser);
-    auto exe = parser.template compileHost<0>();
-    ref = static_cast<T>(exe());
+    try {
+        auto parser = pp_make_parser<T>(val, {}, table, parser_prefix, use_querywithparser);
+        auto exe = parser.template compileHost<0>();
+        ref = static_cast<T>(exe());
+    } catch (...) {
+        recursive_symbols.erase(name);
+        throw;
+    }
 
     recursive_symbols.erase(name);
     return true;

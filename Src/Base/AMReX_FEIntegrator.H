@@ -1,5 +1,6 @@
 #ifndef AMREX_FE_INTEGRATOR_H
 #define AMREX_FE_INTEGRATOR_H
+#include <AMReX_Algorithm.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntegratorBase.H>
@@ -75,7 +76,8 @@ public:
         for (int step_number = 0; step_number < BaseT::max_steps && !stop; ++step_number)
         {
             // Adjust step size to reach output time
-            if (time_out - time_current < dt) {
+            // protect against roundoff
+            if ((time_out-time_current) < dt || almostEqual(time_out-time_current,dt,1000)) {
                 dt = time_out - time_current;
                 stop = true;
             }
@@ -89,7 +91,7 @@ public:
             // Update time
             time_current += dt;
 
-            if (step_number == BaseT::max_steps - 1) {
+            if (!stop && step_number == BaseT::max_steps - 1) {
                 Error("Did not reach output time in max steps.");
             }
         }
