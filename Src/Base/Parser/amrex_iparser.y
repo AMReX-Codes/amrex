@@ -145,7 +145,7 @@ pow_exp:
 primary_exp:
   NUMBER                     { $$ = amrex::iparser_newnumber($1); }
 | SYMBOL                     { $$ = amrex::iparser_newsymbol($1); }
-| '(' or_exp ')'                { $$ = $2; }
+| '(' or_exp ')'                { $$ = amrex::iparser_newparen($2); }
 | F1 '(' or_exp ')'             { $$ = amrex::iparser_newf1($1, $3); }
 | F2 '(' or_exp ',' or_exp ')'     { $$ = amrex::iparser_newf2($1, $3, $5); }
 | F3 '(' or_exp ',' or_exp ',' or_exp ')' { $$ = amrex::iparser_newf3($1, $3, $5, $7); }

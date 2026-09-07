@@ -914,6 +914,8 @@ elliptic integrals of the first and second kind).
 **Comparison operators:** ``<``, ``>``, ``==``, ``!=``, ``<=``, ``>=``.
 Comparisons return ``1.0`` for true and ``0.0`` for false. They can be
 chained (e.g., ``a < x < b`` is equivalent to ``a < x and x < b``).
+Parentheses stop chaining, so ``(a < x) < b`` compares the result of
+``a < x`` with ``b``.
 
 **Logical operators:** ``and``, ``or``. A value is considered true if it is
 nonzero. The precedence of operators follows the convention of the C and C++
