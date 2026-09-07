@@ -166,12 +166,17 @@ void test_fewer_levels ()
     auto mesh2 = build_mesh(ncells, 2, max_grid_size);
     MyPC pc_write(mesh2.geom, mesh2.dmap, mesh2.ba, mesh2.ref_ratio);
     pc_write.SetVerbose(false);
+    pc_write.SetUsePrePost(true);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
 #ifdef AMREX_USE_HDF5
+    pc_write.CheckpointPreHDF5();
     pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+    pc_write.CheckpointPostHDF5();
 #else
+    pc_write.CheckpointPre();
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+    pc_write.CheckpointPost();
 #endif
 
     AsyncOut::Finish();
