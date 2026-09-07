@@ -1,4 +1,5 @@
-if ( (NOT AMReX_EB) OR (NOT AMReX_HYPRE) OR (NOT AMReX_LINEAR_SOLVERS_EM) )
+# The hypre comparison is skipped at run time when hypre is not available.
+if ( (NOT AMReX_EB) OR (NOT AMReX_LINEAR_SOLVERS_EM) )
    return()
 endif ()
 
