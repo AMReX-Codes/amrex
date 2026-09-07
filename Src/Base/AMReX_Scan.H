@@ -20,6 +20,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <iterator>
 #include <numeric>
 #include <type_traits>
 
@@ -1145,7 +1146,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
     if (n <= 0) { return 0; }
 
     auto in_last = in[n-1];
-    std::exclusive_scan(in, in+n, out, 0);
+    std::exclusive_scan(in, in+n, out, T(0));
     return in_last + out[n-1];
 }
 
@@ -1183,7 +1184,8 @@ namespace Gpu
         std::advance(result_end, N);
         return result_end;
 #else
-        return std::exclusive_scan(begin, end, result, 0);
+        using T = typename std::iterator_traits<InIter>::value_type;
+        return std::exclusive_scan(begin, end, result, T(0));
 #endif
     }
 
