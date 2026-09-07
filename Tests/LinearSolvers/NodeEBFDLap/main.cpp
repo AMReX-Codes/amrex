@@ -5,6 +5,9 @@
 // bottom solve do all of the work, which is the sharpest test of the matrix
 // assembled by MLEBNodeFDLaplacian::fillIJMatrix.
 //
+// It also checks that reusing an operator does not lose the EB Dirichlet
+// values supplied by the callable setEBDirichlet.
+//
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
@@ -16,6 +19,71 @@
 #include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
+
+// A solve that never calls setEBDirichlet makes prepareForSolve pick
+// homogeneous Dirichlet on the EB.  A setEBDirichlet call after that must
+// still be honored.  postSolve stores the EB value in the covered nodes, so
+// those nodes tell us which value was used.
+void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
+                              DistributionMapping const& dmap,
+                              EBFArrayBoxFactory const& factory,
+                              Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                              Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                              int max_coarsening_level, Real reltol, int verbose)
+{
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+
+    LPInfo info;
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+    linop.setDomainBC(lobc, hibc);
+    linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+
+    MultiFab rhs(nba, dmap, 1, 0);
+    rhs.setVal(Real(1.0));
+    MultiFab sol(nba, dmap, 1, 1);
+
+    auto do_solve = [&] () {
+        MLMG mlmg(linop);
+        mlmg.setVerbose(verbose);
+        MultiFab rhs_copy(nba, dmap, 1, 0);
+        MultiFab::Copy(rhs_copy, rhs, 0, 0, 1, 0);
+        sol.setVal(0.0);
+        mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+    };
+
+    do_solve(); // no setEBDirichlet yet
+
+    Real const phi_eb = 5.0;
+    linop.setEBDirichlet([=] AMREX_GPU_DEVICE (AMREX_D_DECL(Real,Real,Real)) -> Real
+                         { return phi_eb; });
+    do_solve();
+
+    auto const& levset = factory.getLevelSet();
+    Real maxdiff = 0.0;
+    Long ncovered = 0;
+    for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+        Array4<Real const> const& s = sol.const_array(mfi);
+        Array4<Real const> const& ls = levset.const_array(mfi);
+        amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
+        {
+            if (ls(i,j,k) >= Real(0.0)) {
+                ++ncovered;
+                maxdiff = std::max(maxdiff, std::abs(s(i,j,k)-phi_eb));
+            }
+        });
+    }
+    ParallelDescriptor::ReduceRealMax(maxdiff);
+    ParallelDescriptor::ReduceLongSum(ncovered);
+
+    amrex::Print() << "covered nodes      = " << ncovered << "\n"
+                   << "max EB value error = " << maxdiff << std::endl;
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncovered > 0,
+        "No covered nodes: the EB Dirichlet value is not being tested");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(maxdiff <= Real(1.e-12),
+        "setEBDirichlet was ignored after a solve without it");
+}
 
 int main (int argc, char* argv[])
 {
@@ -167,6 +235,11 @@ int main (int argc, char* argv[])
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmax <= max_rel_diff*smax,
             "The hypre bottom solver did not reproduce the native solution");
+
+        amrex::Print() << "\n==== EB Dirichlet value after operator reuse ====\n";
+        test_eb_dirichlet_reuse(geom, grids, dmap,
+                                *static_cast<EBFArrayBoxFactory const*>(factory.get()),
+                                lobc, hibc, max_coarsening_level, reltol, verbose);
 
         if (plot) {
             MultiFab plotmf(nba, dmap, 3, 0);
