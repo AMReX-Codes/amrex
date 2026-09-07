@@ -2166,6 +2166,10 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
 
         const StateDescriptor& desc = AmrLevel::desc_lst[state_index];
 
+        // The cached FillPatcher holds a single interpolater.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(desc.identicalInterps(scomp,ncomp),
+            "FillPatcherFill: all components must have the same interpolater");
+
         if (level > 1 &&!amrex::ProperlyNested(fine_level.crse_ratio,
                                                parent->blockingFactor(fine_level.level),
                                                nghost, mf.ixType(),
@@ -2280,6 +2284,8 @@ AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
         StateDataPhysBCFunct physbcf_crse(crse_level.state[state_index], 0,
                                           crse_level.geom);
         auto& fillpatcher = m_fillpatcher[state_index];
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(fillpatcher != nullptr,
+            "FillRKPatch: coarse level RK data missing.  Was this level regridded mid-step?");
         fillpatcher->fillRK(stage, iteration, ncycle, S, time, physbcf_crse,
                             physbcf, AmrLevel::desc_lst[state_index].getBCs());
     }
