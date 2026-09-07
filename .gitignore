@@ -71,3 +71,11 @@ BLProfParser.lex.yy.cpp
 BLProfParser.tab.H
 BLProfParser.tab.cpp
 BLProfParserNC.y
+
+# Regtests
+ChangeLog.AMReX
+git.AMReX.HEAD
+git.AMReX.out
+fboxinfo.make.out
+fcompare.make.out
+fsnapshot.make.out

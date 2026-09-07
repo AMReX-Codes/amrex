@@ -176,7 +176,7 @@ MyTest::solve ()
             MultiFab::Multiply(mf, vfrc, 0, 0, 1, 0);
 
             Real norminf = mf.norm0();
-            Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
+            Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell_x), *(1.0/n_cell_y), *(1.0/n_cell_z));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
         }
         for (int ilev = 0; ilev <= max_level; ++ilev)
@@ -276,6 +276,15 @@ MyTest::readParameters ()
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("n_cell", n_cell);
+    if (!pp.query("n_cell_x", n_cell_x)) {
+        n_cell_x = n_cell;
+    }
+    if (!pp.query("n_cell_y", n_cell_y)) {
+        n_cell_y = n_cell;
+    }
+    if (!pp.query("n_cell_z", n_cell_z)) {
+        n_cell_z = n_cell;
+    }
     pp.query("max_grid_size", max_grid_size);
     pp.query("prob_type", prob_type);
 
@@ -321,7 +330,7 @@ MyTest::initGrids ()
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
     std::array<int,AMREX_SPACEDIM> isperiodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, isperiodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell_x-1,n_cell_y-1,n_cell_z-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
