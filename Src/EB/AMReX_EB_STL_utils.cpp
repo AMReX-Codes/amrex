@@ -384,10 +384,6 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
         AMREX_ALWAYS_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
-        // maximum number of triangles allowed for traversing the BVH tree
-        // using stack.
-        int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
-        AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
         a_tri_pts.resize(m_num_tri);
 
         if (amrex::Verbose()) {
@@ -496,6 +492,11 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_tri > 0,
                                      "STLtools::prepare: STL contains no triangles");
+
+    // maximum number of triangles allowed for traversing the BVH tree
+    // using stack.
+    int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
+    AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
 
     Gpu::PinnedVector<Node> bvh_nodes;
     if (m_bvh_optimization) {
