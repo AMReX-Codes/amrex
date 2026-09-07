@@ -78,7 +78,7 @@ void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
     ParallelDescriptor::ReduceLongSum(ncovered);
 
     amrex::Print() << "covered nodes      = " << ncovered << "\n"
-                   << "max EB value error = " << maxdiff << std::endl;
+                   << "max EB value error = " << maxdiff << '\n';
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncovered > 0,
         "No covered nodes: the EB Dirichlet value is not being tested");
@@ -118,7 +118,7 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
     MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
     // Use whole wavenumbers so that sigma and the source stay single valued
     // when a direction is periodic.
-    Real const twopi = Real(2.0)*Real(3.14159265358979323846);
+    Real const twopi = Real(2.0)*Math::pi<Real>();
     auto const dx = geom.CellSizeArray();
     auto const problo = geom.ProbLoArray();
     for (MFIter mfi(sigma); mfi.isValid(); ++mfi) {
@@ -196,7 +196,7 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
                    << ", hypre = " << err_hypre << "\n"
                    << "max |phi|              = " << smax << "\n"
                    << "max |phi_hypre - phi|  = " << dmax << "\n"
-                   << "relative difference    = " << dmax/smax << std::endl;
+                   << "relative difference    = " << dmax/smax << '\n';
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmax <= max_rel_diff*smax,
         "The hypre bottom solver did not reproduce the native solution");
