@@ -432,6 +432,20 @@ public: // NOLINT  Private functions, but public for cuda
 };
 
 namespace detail {
+
+// Communication may be skipped only when all rows and all columns live on
+// one common rank.  Two partitions with a single active rank each may still
+// name different ranks.
+inline bool spmat_comm_is_local (AlgPartition const& row_partition,
+                                 AlgPartition const& col_partition)
+{
+    int const rp = row_partition.singleActiveProc();
+    int const cp = col_partition.singleActiveProc();
+    return row_partition.numActiveProcs() <= 1
+        && col_partition.numActiveProcs() <= 1
+        && (rp < 0 || cp < 0 || rp == cp);
+}
+
 template <typename T>
 void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
 {
@@ -1068,8 +1082,7 @@ void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(x);
 #else
-    if (this->partition().numActiveProcs() <= 1 &&
-        x.partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), x.partition())) { return; }
 
     this->prepare_comm_mv(x.partition());
 
@@ -1118,8 +1131,7 @@ void SpMatrix<T,Allocator>::finishComm_mv (AlgVector<T,AllocT>& y)
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(y);
 #else
-    if (this->partition().numActiveProcs() <= 1 &&
-        m_col_partition.numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { return; }
 
     if ( ! m_comm_mv.recv_reqs.empty()) {
         Vector<MPI_Status> mpi_statuses(m_comm_mv.recv_reqs.size());
@@ -1149,8 +1161,7 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
 {
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1 &&
-        col_partition.numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), col_partition)) { return; }
 
     this->split_csr(col_partition);
 
@@ -1360,8 +1371,7 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::finishComm_tr (SpMatrix<T,Allocator>& AT)
 {
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1 &&
-        AT.partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), AT.partition())) { return; }
 
     if (! m_comm_tr.recv_reqs.empty()) {
         Vector<MPI_Status> mpi_statuses(m_comm_tr.recv_reqs.size());
