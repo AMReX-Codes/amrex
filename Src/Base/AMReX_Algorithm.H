@@ -177,7 +177,7 @@ namespace amrex
         if (flo == T(0)) { return lo; }
         if (fhi == T(0)) { return hi; }
 
-        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
+        AMREX_ASSERT_WITH_MESSAGE((flo < T(0)) != (fhi < T(0)),
             "Error - calling bisect but lo and hi don't bracket a root.");
 
         T mi = (lo + hi) / T(2);
@@ -189,7 +189,7 @@ namespace amrex
             mi = (lo + hi) / T(2);
             fmi = f(mi);
             if (fmi == T(0)) { break; }
-            fmi*flo < T(0) ? hi = mi : lo = mi;
+            ((fmi < T(0)) != (flo < T(0))) ? hi = mi : lo = mi;
             flo = f(lo);
             fhi = f(hi);
             ++n;
