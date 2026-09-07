@@ -288,6 +288,63 @@ int main (int argc, char* argv[])
                 AMREX_ALWAYS_ASSERT(error < eps);
             }
         }
+
+#if (AMREX_SPACEDIM > 1)
+        // Degenerate domains.  SubHelper reorders the axes, so scalingFactor
+        // must follow the directions that are actually transformed.
+        {
+            Vector<Box> domains
+#if (AMREX_SPACEDIM == 2)
+                {Box(IntVect(0),IntVect(0,31)),
+                 Box(IntVect(0),IntVect(31,0))};
+#else
+                {Box(IntVect(0),IntVect(0,31,15)),
+                 Box(IntVect(0),IntVect(31,0,15)),
+                 Box(IntVect(0),IntVect(31,15,0))};
+#endif
+            Vector<std::pair<std::string,FFT::Info>> modes;
+            modes.emplace_back("plain", FFT::Info{});
+            modes.emplace_back("oned_mode", FFT::Info{}.setOneDMode(true));
+#if (AMREX_SPACEDIM == 3)
+            modes.emplace_back("twod_mode", FFT::Info{}.setTwoDMode(true));
+            // Both flags, like FFT::PoissonHybrid sets for a degenerate domain.
+            modes.emplace_back("oned+twod_mode",
+                               FFT::Info{}.setOneDMode(true).setTwoDMode(true));
+#endif
+
+            for (auto const& dom : domains) {
+            for (auto const& [tag, info] : modes) {
+                BoxArray dba(dom);
+                DistributionMapping ddm(dba);
+                MultiFab dmf(dba,ddm,1,0), dmf2(dba,ddm,1,0);
+                auto const& dma = dmf.arrays();
+                ParallelFor(dmf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                {
+                    dma[b](i,j,k) = std::sin(0.3_rt*Real(i) + 0.1_rt)
+                        * std::cos(0.7_rt*Real(j) + 0.2_rt)
+                        * std::sin(0.5_rt*Real(k) + 0.3_rt);
+                });
+
+                FFT::R2C<Real,FFT::Direction::both> r2c(dom, info);
+                auto const& [dcba, dcdm] = r2c.getSpectralDataLayout();
+                cMultiFab dcmf(dcba, dcdm, 1, 0);
+                r2c.forward(dmf, dcmf);
+                r2c.backward(dcmf, dmf2);
+
+                auto const dscaling = r2c.scalingFactor();
+                MultiFab::Saxpy(dmf, -dscaling, dmf2, 0, 0, 1, IntVect(0));
+                auto error = dmf.norminf();
+                amrex::Print() << "  Degenerate " << dom << " " << tag
+                               << ", expected to be close to zero: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+                auto eps = 1.e-6F;
+#else
+                auto eps = 1.e-13;
+#endif
+                AMREX_ALWAYS_ASSERT(error < eps);
+            }}
+        }
+#endif
     }
     amrex::Finalize();
 }
