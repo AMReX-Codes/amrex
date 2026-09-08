@@ -511,7 +511,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
     if (!skip_fillboundary) {
-        phi.FillBoundary(geom.periodicity());
+        phi.FillBoundaryAndSync(geom.periodicity());
     }
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
