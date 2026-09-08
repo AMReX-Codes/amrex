@@ -4,9 +4,9 @@
 //   * reusing an operator must not lose the EB Dirichlet values supplied by
 //     the callable setEBDirichlet;
 //   * solving del dot (sigma grad phi) = rhs with the hypre bottom solver
-//     must reproduce the native bottom solver.  Set max_coarsening_level = 0
-//     to make the bottom solve do all of the work, which is the sharpest test
-//     of the matrix assembled by MLEBNodeFDLaplacian::fillIJMatrix.  This one
+//     must reproduce the native bottom solver.  That solve does not coarsen,
+//     so the bottom solve does all of the work, which is the sharpest test of
+//     the matrix assembled by MLEBNodeFDLaplacian::fillIJMatrix.  This one
 //     needs hypre, so it is skipped when hypre is not available.
 //
 
@@ -18,6 +18,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_Reduce.H>
 
 using namespace amrex;
 
@@ -61,19 +62,23 @@ void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
     do_solve();
 
     auto const& levset = factory.getLevelSet();
-    Real maxdiff = 0.0;
-    Long ncovered = 0;
+    ReduceOps<ReduceOpMax, ReduceOpSum> reduce_op;
+    ReduceData<Real, Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
     for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
         Array4<Real const> const& s = sol.const_array(mfi);
         Array4<Real const> const& ls = levset.const_array(mfi);
-        amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
+        reduce_op.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            if (ls(i,j,k) >= Real(0.0)) {
-                ++ncovered;
-                maxdiff = std::max(maxdiff, std::abs(s(i,j,k)-phi_eb));
-            }
+            bool const covered = ls(i,j,k) >= Real(0.0);
+            return { covered ? std::abs(s(i,j,k)-phi_eb) : Real(0.0),
+                     covered ? Long(1) : Long(0) };
         });
     }
+    auto const hv = reduce_data.value(reduce_op);
+    Real maxdiff = amrex::get<0>(hv);
+    Long ncovered = amrex::get<1>(hv);
     ParallelDescriptor::ReduceRealMax(maxdiff);
     ParallelDescriptor::ReduceLongSum(ncovered);
 
@@ -93,14 +98,14 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
                            EBFArrayBoxFactory const& factory,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
-                           int max_coarsening_level, Real reltol, int verbose)
+                           Real reltol, int verbose)
 {
     int bottom_verbose = 0;
     int use_sigma_mf = 1;
     int plot = 0;
     Real phi_eb = 1.0;
     Real bottom_reltol = 1.e-9;
-    Real max_rel_diff = 1.e-12;
+    Real max_rel_diff = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-12);
     {
         ParmParse pp;
         pp.query("bottom_verbose", bottom_verbose);
@@ -149,8 +154,9 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
 
     auto do_solve = [&] (BottomSolver bottom_solver, MultiFab& sol)
     {
+        // No coarsening, so that the bottom solver does all of the work.
         LPInfo info;
-        info.setMaxCoarseningLevel(max_coarsening_level);
+        info.setMaxCoarseningLevel(0);
 
         MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info,
                                   {&factory});
@@ -217,9 +223,10 @@ int main (int argc, char* argv[])
     {
         int n_cell = 64;
         int max_grid_size = 32;
-        int max_coarsening_level = 0;
+        int max_coarsening_level = 30;
         int verbose = 1;
-        Real reltol = 1.e-11;
+        // Single precision cannot reach the double precision tolerance.
+        Real reltol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-11);
         Vector<int> periodic{AMREX_D_DECL(0,0,0)};
         {
             ParmParse pp;
@@ -267,7 +274,7 @@ int main (int argc, char* argv[])
 
 #ifdef AMREX_USE_HYPRE
         test_native_vs_hypre(geom, grids, dmap, ebfactory,
-                             lobc, hibc, max_coarsening_level, reltol, verbose);
+                             lobc, hibc, reltol, verbose);
 #endif
     }
     amrex::Finalize();
