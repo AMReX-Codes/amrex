@@ -6,6 +6,8 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <optional>
+
 namespace amrex {
 
 /**
@@ -787,12 +789,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    bool prev_in_single_stream_region = false;
-    bool prev_in_nosync_region = false;
+    // These must be restored even if we throw below, because they are
+    // global state. So we use RAII rather than resetting them at the end.
+    std::optional<Gpu::SingleStreamRegion> single_stream_region;
+    std::optional<Gpu::NoSyncRegion> nosync_region;
 
     if (do_no_sync_gpu) {
-        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
-        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+        single_stream_region.emplace();
+        nosync_region.emplace();
     }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
@@ -988,11 +992,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
-
-    if (do_no_sync_gpu) {
-        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
-    }
 
     return composite_norminf;
 }
