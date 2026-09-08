@@ -222,14 +222,18 @@ namespace amrex::tri_geom_ops
             int no_intersections=1;
 
             //the tolerances must follow the size of the objects, because the
-            //side operators scale as length^3 and the areas as length^2
-            Real len=Real(0.0);
+            //side operators scale as length^3 and the areas as length^2.  one
+            //factor is the triangle's own size, so that a long line segment
+            //does not inflate the tolerance past the triangle's scale.
+            Real len_t=Real(0.0), len_v=Real(0.0);
             for(int i=0;i<3;i++)
             {
-                len=amrex::max(len,std::abs(v1[i]),std::abs(v2[i]),
-                               std::abs(t2[i]),std::abs(t3[i]));
+                len_t=amrex::max(len_t,std::abs(t2[i]),std::abs(t3[i]));
+                len_v=amrex::max(len_v,std::abs(v1[i]),std::abs(v2[i]));
             }
-            Real eps_area = std::numeric_limits<Real>::epsilon()*len*len;
+            Real len=amrex::max(len_t,len_v);
+            constexpr Real eps_r = std::numeric_limits<Real>::epsilon();
+            Real eps_area = eps_r*len*len_t;
             Real eps = eps_area*len;
 
             //coplanar (S1,S2,S3 = 0)
