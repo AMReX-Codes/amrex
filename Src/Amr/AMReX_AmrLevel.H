@@ -591,6 +591,8 @@ public:
      * \brief Fill ghost cells using cached FillPatcher (level>0) or FillPatch (level 0).
      *
      * All components in [scomp,scomp+ncomp) must have the same interpolater.
+     * Because the FillPatcher is cached per state, that interpolater must also
+     * be the one used by earlier calls for the same state_index.
      *
      * \param mf          Destination MultiFab.
      * \param dcomp       Destination component offset.

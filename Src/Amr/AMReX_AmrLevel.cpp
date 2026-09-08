@@ -2190,6 +2190,11 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
                 (parent->boxArray(level), parent->DistributionMap(level), geom_fine,
                  parent->boxArray(level-1), parent->DistributionMap(level-1), geom_crse,
                  IntVect(nghost), desc.nComp(), desc.interp(scomp));
+        } else {
+            // The cache is keyed by state index, so a previous call may have
+            // built it with another component's interpolater.
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(fillpatcher->interp() == desc.interp(scomp),
+                "FillPatcherFill: all components must have the same interpolater");
         }
 
         fillpatcher->fill(mf, IntVect(nghost), time,
