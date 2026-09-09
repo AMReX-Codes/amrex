@@ -176,6 +176,13 @@ void test_mlmg_lifetime (gpuStream_t external)
                                     LinOpBCType::Dirichlet)});
     linop.setLevelBC(0, &solution);
 
+    Real tol_rel;
+    if constexpr (std::is_same_v<double,Real>) {
+        tol_rel = Real(1.e-10);
+    } else {
+        tol_rel = Real(1.e-4);
+    }
+
     // MLMG owns persistent work arrays that outlive solve().  They must not
     // inherit the external stream used only for this solve.  Solve both with
     // the default implicit synchronizations and in the single-stream no-sync
@@ -187,7 +194,7 @@ void test_mlmg_lifetime (gpuStream_t external)
         mlmg.setNoGpuSync(no_sync);
         Gpu::ExternalGpuStreamRegion guard(
             external, Gpu::ExternalStreamSync::Yes);
-        mlmg.solve({&solution}, {&rhs}, 1.e-10, 0.0);
+        mlmg.solve({&solution}, {&rhs}, tol_rel, Real(0.0));
     }
 }
 #endif
