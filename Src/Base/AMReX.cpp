@@ -1088,7 +1088,7 @@ namespace {
         if (any(off & FPExcept::overflow)) { off_bits |= __fpcr_trap_overflow ; }
         fenv_t env;
         fegetenv(&env);
-        env.__fpcr &= ~off_bits;
+        env.__fpcr &= ~static_cast<unsigned long long>(off_bits);
         env.__fpcr |= on_bits;
         fesetenv(&env);
 #endif
