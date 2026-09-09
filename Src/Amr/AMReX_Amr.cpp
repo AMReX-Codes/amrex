@@ -521,6 +521,9 @@ Amr::InitAmr ()
         is >> in_finest;
         STRIP;
         AMREX_ASSERT(in_finest >= 0  && in_finest < std::numeric_limits<int>::max());
+        if (in_finest > max_level) {
+           amrex::Error("You have fewer levels in your inputs file then in your grids file!");
+        }
         regrid_ba.resize(in_finest);
         for (int lev = 1; lev <= in_finest; lev++)
         {
@@ -1720,6 +1723,7 @@ Amr::restart (const std::string& filename)
     // we know not to unnecessarily overwrite the old file.
     last_checkpoint = level_steps[0];
     last_plotfile = level_steps[0];
+    last_smallplotfile = level_steps[0];
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -2323,8 +2327,9 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
-        last_checkpoint = level_steps[0];
-        last_plotfile   = level_steps[0];
+        last_checkpoint    = level_steps[0];
+        last_plotfile      = level_steps[0];
+        last_smallplotfile = level_steps[0];
     }
 
     if (to_checkpoint && write_plotfile_with_checkpoint) {
@@ -2470,10 +2475,10 @@ Amr::writePlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / plot_log_per));
         }
 
         if (num_per_old != num_per_new)
@@ -2543,10 +2548,10 @@ Amr::writeSmallPlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / small_plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / small_plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / small_plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / small_plot_log_per));
         }
 
         if (num_per_old != num_per_new)
