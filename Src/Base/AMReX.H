@@ -566,16 +566,19 @@ namespace amrex
         return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
     }
 
-    //! Return currently enabled FP exceptions.
+    //! Return currently enabled FP exceptions. Linux and macOS only; a
+    //! no-op elsewhere, including musl-based Linux.
     [[nodiscard]] FPExcept getFPExcept ();
 
-    //! Set FP exception traps. This enables set flags and
-    //! DISABLES unset flags. This can be used to restore previous settings.
+    //! Set FP exception traps. This enables set flags and DISABLES unset
+    //! flags. This can be used to restore previous settings. Linux and
+    //! macOS only; a no-op elsewhere, including musl-based Linux.
     //! \param excepts Bit mask describing which traps should be enabled.
     FPExcept setFPExcept (FPExcept excepts);
 
     /**
-     * \brief Disable FP exceptions.
+     * \brief Disable FP exceptions. Linux and macOS only; a no-op
+     * elsewhere, including musl-based Linux.
      *
      * This function disables given exception traps and keeps the status of
      * the others. The example below disables FPE invalid and
@@ -591,7 +594,8 @@ namespace amrex
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
 
     /**
-     * \brief Enable FP exceptions.
+     * \brief Enable FP exceptions. Linux and macOS only; a no-op
+     * elsewhere, including musl-based Linux.
      *
      * This function enables given exception traps and keeps the status of
      * the others. The example below enables all FPE traps, and later

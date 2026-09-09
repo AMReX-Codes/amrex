@@ -28,8 +28,7 @@ use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.
 One can also control this setting for ``FArrayBox`` using the runtime parameter ``fab.init_snan``.
 Note for Macs: Apple silicon chips using the Arm64 architecture are not able to trap
-division by zero.  The trap can still be requested and will be reported as enabled by
-``amrex::getFPExcept()``, but no exception will be raised.
+division by zero.
 
 One can get more information than the backtrace of the call stack by
 instrumenting the code.  Here is an example.
