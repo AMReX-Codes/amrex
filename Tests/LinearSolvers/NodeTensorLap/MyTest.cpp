@@ -100,6 +100,9 @@ MyTest::readParameters ()
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("reltol", reltol);
+#ifdef AMREX_USE_FLOAT
+    reltol = std::max(reltol, 1.e-5F);
+#endif
 
     Vector<Real> vbeta;
     pp.queryarr("beta", vbeta);

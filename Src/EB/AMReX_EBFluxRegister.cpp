@@ -10,7 +10,7 @@
 
 #ifdef BL_NO_FORT
 namespace {
-    amrex::Real amrex_reredistribution_threshold = 1.e-14;
+    amrex::Real amrex_reredistribution_threshold = amrex::Real(1.e-14);
 }
 extern "C" {
     void amrex_eb_disable_reredistribution () { amrex_reredistribution_threshold = 1.e10; }

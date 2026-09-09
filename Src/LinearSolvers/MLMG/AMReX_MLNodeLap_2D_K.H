@@ -1962,7 +1962,7 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
 {
     using namespace nodelap_detail;
 
-    Real fac_eb = 0.25 *dxinv[0];
+    Real fac_eb = Real(0.25) * dxinv[0];
 
     if (!msk(i,j,0)) {
         rhs(i,j,0) += fac_eb*(

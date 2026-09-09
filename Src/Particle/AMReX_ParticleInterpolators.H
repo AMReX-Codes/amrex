@@ -194,7 +194,7 @@ struct Nearest : public Base<Nearest, int>
     {
         w = &weights[0];
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + 0.5;
+            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + amrex::Real(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l));
             w[i] = 1;
         }
@@ -236,10 +236,10 @@ struct Linear : public Base<Linear, amrex::Real>
     {
         w = &weights[0];
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + 0.5;
+            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + amrex::Real(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l)) - 1;
             amrex::Real lint = l - (index[i] + 1);
-            w[stencil_width*i + 0] = 1.-lint;
+            w[stencil_width*i + 0] = amrex::Real(1.)-lint;
             w[stencil_width*i + 1] = lint;
         }
         for (int i = AMREX_SPACEDIM; i < 3; ++i) {
