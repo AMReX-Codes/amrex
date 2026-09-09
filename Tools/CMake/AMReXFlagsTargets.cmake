@@ -25,42 +25,21 @@ include_guard(GLOBAL)
 #     <lang> = cxx,fortran,cuda
 #     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang
 #
-if (CMAKE_VERSION VERSION_LESS 3.20)
-   foreach (_language CXX Fortran CUDA )
-      set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
-      string(TOLOWER "${_language}" _lang)
+foreach (_language CXX Fortran CUDA )
+   string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
-         string(TOLOWER "${_comp}" _id)
-         # Define variables
-         set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
-         set(_${_lang}_${_id}      "$<AND:${_comp_lang},${_comp_id}>")
-         set(_${_lang}_${_id}_dbg  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Debug>>")
-         set(_${_lang}_${_id}_rel  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Release>>")
-         set(_${_lang}_${_id}_rwdbg "$<AND:${_comp_lang},${_comp_id},$<CONFIG:RelWithDebInfo>>")
-         unset(_comp_id)
-      endforeach ()
-
-      unset(_comp_lang)
-      unset(_lang)
+   foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
+      string(TOLOWER "${_comp}" _id)
+      # Define variables
+      set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
+      set(_${_lang}_${_id}_dbg  "$<AND:${_${_lang}_${_id}},$<CONFIG:Debug>>")
+      set(_${_lang}_${_id}_rel  "$<AND:${_${_lang}_${_id}},$<CONFIG:Release>>")
+      set(_${_lang}_${_id}_rwdbg "$<AND:${_${_lang}_${_id}},$<CONFIG:RelWithDebInfo>>")
+      unset(_id)
    endforeach ()
-else ()
-   foreach (_language CXX Fortran CUDA )
-      string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
-         string(TOLOWER "${_comp}" _id)
-         # Define variables
-         set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
-         set(_${_lang}_${_id}_dbg  "$<AND:${_${_lang}_${_id}},$<CONFIG:Debug>>")
-         set(_${_lang}_${_id}_rel  "$<AND:${_${_lang}_${_id}},$<CONFIG:Release>>")
-         set(_${_lang}_${_id}_rwdbg "$<AND:${_${_lang}_${_id}},$<CONFIG:RelWithDebInfo>>")
-         unset(_id)
-      endforeach ()
-
-      unset(_lang)
-   endforeach ()
-endif ()
+   unset(_lang)
+endforeach ()
 
 
 #
@@ -92,7 +71,7 @@ target_compile_options( Flags_CXX
    $<${_cxx_appleclang_rwdbg}:>
    $<${_cxx_appleclang_rel}:>
    $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_intelllvm_rwdbg}:-gline-tables-only -fdebug-info-for-profiling> # recommended by Intel VTune
+   $<${_cxx_intelllvm_rwdbg}:-Xarch_host -gline-tables-only -Xarch_host -fdebug-info-for-profiling> # recommended by Intel VTune
    $<${_cxx_intelllvm_rel}:>
    )
 endif()

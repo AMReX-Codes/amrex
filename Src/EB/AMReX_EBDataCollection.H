@@ -43,6 +43,21 @@ public:
                       const BoxArray& a_ba, const DistributionMapping& a_dm,
                       Vector<int>  a_ngrow, EBSupport a_support);
 
+    /**
+     * \brief Allocate EB data components for face-centered grids.
+     *
+     * \param a_level   EB2 level providing FC data.
+     * \param a_geom    Geometry used for filling.
+     * \param a_ba      Face-centered grid layout.
+     * \param a_dm      Distribution mapping for data ownership.
+     * \param a_ngrow   Grow cells per component (basic/volume/full).
+     * \param a_support Requested EBSupport tier (basic/volume/full).
+     * \param face_dir  Face direction (0=x, 1=y, 2=z).
+     */
+    EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
+                      const BoxArray& a_ba, const DistributionMapping& a_dm,
+                      Vector<int>  a_ngrow, EBSupport a_support, int face_dir);
+
     ~EBDataCollection ();
 
     EBDataCollection (const EBDataCollection&) = delete;
@@ -81,6 +96,8 @@ private:
     Vector<int> m_ngrow;
     EBSupport m_support;
     Geometry m_geom;
+    bool m_is_fc = false;  //!< True if this is face-centered data
+    int m_face_dir = -1;   //!< Face direction (0=x, 1=y, 2=z) if m_is_fc is true
 
     // have to use pointer to break include loop
 

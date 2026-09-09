@@ -3,7 +3,9 @@
 #
 function (setup_test _dim _srcs  _inputs)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
+   # NO_CTEST: build the executable and stage its inputs, but do not register
+   # a ctest for it.
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES;NO_CTEST"
       "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS"
       "CMDLINE_PARAMS_AFTER_INPUTS" ${ARGN} )
 
@@ -79,6 +81,10 @@ function (setup_test _dim _srcs  _inputs)
    #
    # Add the test
    #
+   if (_NO_CTEST)
+      return ()
+   endif ()
+
    if (AMReX_OMP)
       add_test(
          NAME               ${_test_name}
@@ -105,6 +111,7 @@ endfunction ()
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Base/TrackedVector")
+   add_subdirectory("Base/Random")
    add_subdirectory("Base/RealBox")
    add_subdirectory("Base/CompensatedSum")
 

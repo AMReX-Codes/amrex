@@ -204,158 +204,130 @@ endfunction ()
 
 
 #
+# Expand the CUDA architecture aliases "all" and "all-major" into the concrete
+# architectures they stand for, spelled the way the CUDA_ARCHITECTURES property does:
+# SASS code for every architecture and PTX for the newest major one only.
 #
-# FUNCTION: convert_cuda_archs
+# The architectures a toolkit supports are queried from the CUDA compiler itself, so that
+# the answer stays correct for a toolkit newer than the CMake release in use, whose
+# CMAKE_CUDA_ARCHITECTURES_ALL[_MAJOR] would list architectures the compiler has dropped
+# and miss the ones it added. Those variables are the fallback for a compiler that does not
+# answer the query (e.g. clang -x cuda), which is also the list CMake itself expands the
+# alias with in that case.
 #
+#   _alias  "all" or "all-major"
+#   _var    name of a variable that receives the architecture list in the caller; empty if
+#           neither the compiler nor CMake knows the architectures
 #
-# cuda_select_nvcc_arch_flags accepts CUDA architecture in the form of
-# names (Turing, Volta, ...) or decimal numbers (10.0, 9.0, ...).
-# However, CMAKE_CUDA_ARCHITECTURES only accepts integer numbers.
-# We need to convert the latter to decimal format, else cuda_select_nvcc_arch_flags
-# will complain
-#
-# Arguments:
-#
-#    _cuda_archs   = the target architecture(s)
-#
-#
-function (convert_cuda_archs  _cuda_archs)
+function (amrex_expand_cuda_archs_alias _alias _var)
+   set(_archs)
+   execute_process(COMMAND ${CMAKE_CUDA_COMPILER} --list-gpu-arch
+      OUTPUT_VARIABLE _out RESULT_VARIABLE _rv
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+   if (_rv EQUAL 0)
+      string(REGEX MATCHALL "compute_([0-9]+)" _archs "${_out}")
+      list(TRANSFORM _archs REPLACE "compute_" "")
+      # they are not printed in ascending order (e.g. 110 before 103 with CUDA 13.3), while
+      # the steps below pick the earliest and the newest ones out of the list
+      list(SORT _archs COMPARE NATURAL)
+   endif ()
 
-   foreach (_item IN LISTS ${_cuda_archs})
-      # remove -real suffixes
-      string(REGEX REPLACE "\\-real$" "" _item "${_item}")
+   if (_archs AND _alias STREQUAL "all-major")
+      # "all-major" covers every major architecture (minor revision 0) plus the earliest
+      # architecture the toolkit supports, which need not be a major one (sm_75 with CUDA 13)
+      list(GET _archs 0 _earliest)
+      set(_major "${_earliest}")
+      foreach (_arch IN LISTS _archs)
+         math(EXPR _minor "${_arch} % 10")
+         if (_minor EQUAL 0 AND NOT _arch STREQUAL _earliest)
+            list(APPEND _major "${_arch}")
+         endif ()
+      endforeach ()
+      set(_archs "${_major}")
+   endif ()
 
-      string(REGEX MATCH "\\." _has_decimal "${_item}")
-      string(REGEX MATCH "[0-9]+" _is_number "${_item}")
+   if (_archs)
+      # SASS code for every architecture, and PTX for the newest major one, which is not
+      # necessarily the newest architecture: with CUDA 13 "all" builds SASS for sm_121 but
+      # embeds the PTX of compute_120
+      set(_ptx_arch)
+      foreach (_arch IN LISTS _archs)
+         math(EXPR _minor "${_arch} % 10")
+         if (_minor EQUAL 0)
+            set(_ptx_arch "${_arch}")
+         endif ()
+      endforeach ()
+      if (NOT _ptx_arch)
+         list(GET _archs -1 _ptx_arch)
+      endif ()
 
-      if (NOT _has_decimal AND _is_number)
-         math(EXPR _int "${_item}/10" OUTPUT_FORMAT DECIMAL)
-         math(EXPR _mod "${_item}%10" OUTPUT_FORMAT DECIMAL)
-         if(_int LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
-             list(APPEND _tmp "${_int}.${_mod}")
-         endif()
-      else ()
-         if(_item LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
-            list(APPEND _tmp ${_item})
-        endif()
-      endif()
-   endforeach ()
+      set(_spelled)
+      foreach (_arch IN LISTS _archs)
+         if (_arch STREQUAL _ptx_arch)
+            list(APPEND _spelled "${_arch}")
+         else ()
+            list(APPEND _spelled "${_arch}-real")
+         endif ()
+      endforeach ()
+      set(_archs "${_spelled}")
+   elseif (_alias STREQUAL "all")
+      set(_archs "${CMAKE_CUDA_ARCHITECTURES_ALL}")
+   else ()
+      set(_archs "${CMAKE_CUDA_ARCHITECTURES_ALL_MAJOR}")
+   endif ()
 
-   set(${_cuda_archs} ${_tmp} PARENT_SCOPE)
-
+   set(${_var} "${_archs}" PARENT_SCOPE)
 endfunction ()
 
 
 #
+# Drop architectures below the minimum compute capability AMReX supports, as the deprecated
+# FindCUDA-based selection used to do. Without this an unsupported architecture fails much
+# later: in CMake's CUDA compiler detection, or deep inside the device code compilation of
+# the first source that uses e.g. atomicAdd(double*).
 #
-# FUNCTION: set_cuda_architectures
+#   _var         name of a variable holding the architecture list; updated in the caller
+#   _from_alias  TRUE if the list came from expanding native/all/all-major, where dropping
+#                unsupported entries is expected and only worth a status message
 #
-#
-# Detects the cuda capabilities of the GPU and set the internal
-# variable AMREX_CUDA_ARCHS.
-#
-# Arguments:
-#
-#    _cuda_archs   = the target architecture(s) (select "Auto" for autodetection)
-#
-# Note: if no target arch is specified, it will try to determine
-# which GPU architecture is supported by the system. If more than one is found,
-# it will build for all of them.
-# If autodetection fails, a list of "common" architectures is assumed.
-#
-function (set_cuda_architectures _cuda_archs)
+function (amrex_filter_cuda_archs _var _from_alias)
+   # a false value (OFF, NO, 0) asks CMake for no architecture flags at all, so there is no
+   # architecture to check - and it must not be mistaken for an empty list further down
+   if (NOT ${_var})
+      return ()
+   endif ()
 
-   set(_archs ${${_cuda_archs}})
-   convert_cuda_archs(_archs)
-
-   include(FindCUDA/select_compute_arch)
-   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
-
-   # Extract architecture number: anything less than 6.0 must go
-   string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
-
-   foreach (_item IN LISTS _nvcc_arch_flags)
-      # Match one time the regex [0-9]+.
-      # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
-      string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-
-      if (_cuda_compute_capability LESS 60)
-         message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
+   # defined and empty, so that the emptiness tests below compare their values and not
+   # their names (an unset variable makes if(<name> STREQUAL "") a literal comparison)
+   set(_ok "")
+   set(_low "")
+   foreach (_arch IN LISTS ${_var})
+      set(_supported TRUE)
+      if (_arch MATCHES "^([0-9]+)")
+         if (CMAKE_MATCH_1 LESS 60)
+            set(_supported FALSE)
+         endif ()
+      endif ()
+      if (_supported)
+         list(APPEND _ok "${_arch}")
       else ()
-         list(APPEND _tmp ${_cuda_compute_capability})
+         list(APPEND _low "${_arch}")
       endif ()
    endforeach ()
 
-   set(AMREX_CUDA_ARCHS ${_tmp} CACHE INTERNAL "CUDA archs AMReX is built for")
-
-endfunction()
-
-
-#
-#
-# FUNCTION: set_nvcc_arch_flags
-#
-#
-# Detects the cuda capabilities of the GPU and set the internal
-# variable NVCC_ARCH_FLAGS.
-#
-# Arguments:
-#
-#    _cuda_archs   = the target architecture(s) (select "Auto" for autodetection)
-#    _lto          = true if LTO flags are required
-#
-# Note: if no target arch is specified, it will try to determine
-# which GPU architecture is supported by the system. If more than one is found,
-# it will build for all of them.
-# If autodetection fails, a list of “common” architectures is assumed.
-#
-function (set_nvcc_arch_flags _cuda_archs _lto)
-
-   set(_archs ${${_cuda_archs}})
-   convert_cuda_archs(_archs)
-
-   include(FindCUDA/select_compute_arch)
-   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
-
-   #
-   # Remove unsupported architecture: anything less than 3.5 must go
-   #
-   string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
-
-   foreach (_item IN LISTS _nvcc_arch_flags)
-      # Match one time the regex [0-9]+.
-      # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
-      string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-
-      if (_cuda_compute_capability LESS 35)
-         message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
-         list(REMOVE_ITEM _nvcc_arch_flags ${_item})
+   if (NOT _low STREQUAL "")
+      if (_ok STREQUAL "")
+         message(FATAL_ERROR
+            "The requested CUDA architecture(s) ${_low} are not supported by AMReX, which "
+            "requires compute capability 6.0 or higher. Set CMAKE_CUDA_ARCHITECTURES to a "
+            "supported architecture, e.g. -DCMAKE_CUDA_ARCHITECTURES=80.")
+      elseif (_from_alias)
+         message(STATUS "   ignoring CUDA architectures below 6.0: ${_low}")
+      else ()
+         message(WARNING
+            "Ignoring the requested CUDA architecture(s) ${_low}: AMReX requires compute "
+            "capability 6.0 or higher. Building for ${_ok}.")
       endif ()
-
-   endforeach ()
-
-   if (${_lto})
-      # we replace
-      #   -gencode=arch=compute_NN,code=sm_NN
-      # with
-      #   -gencode=arch=compute_NN,code=lto_NN
-      set(_nvcc_arch_flags_org ${_nvcc_arch_flags})
-      foreach (_item IN LISTS _nvcc_arch_flags_org)
-         string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-         string(REPLACE "code=sm_${_cuda_compute_capability}"
-            "code=lto_${_cuda_compute_capability}"
-            _nvcc_arch_flags "${_nvcc_arch_flags}")
-      endforeach ()
+      set(${_var} "${_ok}" PARENT_SCOPE)
    endif ()
-
-   if (NOT _nvcc_arch_flags)
-      message(FATAL_ERROR "the given target CUDA architectures are not supported by AMReX")
-   endif ()
-
-   #
-   # Set architecture-dependent flags
-   #
-   string(REPLACE ";" " " _nvcc_arch_flags "${_nvcc_arch_flags}")
-   set(NVCC_ARCH_FLAGS ${_nvcc_arch_flags} CACHE INTERNAL "CUDA architecture-dependent flags")
-
-endfunction()
+endfunction ()

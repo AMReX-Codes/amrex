@@ -324,7 +324,8 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                        Array4<Real const> const& ffcx, Array4<Real const> const& ffcy,
                        Array4<Real const> const& ffcz, Array4<Real const> const& fecx,
                        Array4<Real const> const& fecy, Array4<Real const> const& fecz,
-                       Array4<EBCellFlag const> const& fflag)
+                       Array4<EBCellFlag const> const& fflag,
+                       int face_dir)
 {
     using detail::coarsen_edge_cent;
 
@@ -335,9 +336,19 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     const Box& xgbx = amrex::surroundingNodes(gbx,0);
     const Box& ygbx = amrex::surroundingNodes(gbx,1);
     const Box& zgbx = amrex::surroundingNodes(gbx,2);
-    const Box& exbx = amrex::convert(bx,IntVect(0,1,1)); // edge boxes
-    const Box& eybx = amrex::convert(bx,IntVect(1,0,1));
-    const Box& ezbx = amrex::convert(bx,IntVect(1,1,0));
+    Box exbx = amrex::convert(bx,IntVect(0,1,1)); // edge boxes
+    Box eybx = amrex::convert(bx,IntVect(1,0,1));
+    Box ezbx = amrex::convert(bx,IntVect(1,1,0));
+    // For face-centered data bx is nodal in face_dir, and the edge running along face_dir is
+    // indexed by the staggered cell it spans. There is one more of those than the conversion
+    // above leaves after turning face_dir from nodal into cell, so grow it back.
+    if (face_dir == 0) {
+        exbx.growHi(0,1);
+    } else if (face_dir == 1) {
+        eybx.growHi(1,1);
+    } else if (face_dir == 2) {
+        ezbx.growHi(2,1);
+    }
     const Box& exgbx = amrex::convert(gbx,IntVect(0,1,1));
     const Box& eygbx = amrex::convert(gbx,IntVect(1,0,1));
     const Box& ezgbx = amrex::convert(gbx,IntVect(1,1,0));
@@ -346,6 +357,10 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     int ii = i*2;
     int jj = j*2;
     int kk = k*2;
+    // Apply staggered offset if face_dir is specified
+    if (face_dir == 0) { ii-=1; }
+    if (face_dir == 1) { jj-=1; }
+    if (face_dir == 2) { kk-=1; }
 
     if (bx.contains(i,j,k))
     {

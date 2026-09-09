@@ -130,7 +130,9 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                 amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
-                amrex::ignore_unused(ccfab);
+                amrex::ignore_unused(ccfab, flagfab, vfracfab, bafab, bcfab,
+                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab));
 #else
                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                {
@@ -147,18 +149,17 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                });
 #endif
             } else {
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-               {
-                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                     ccmfab, flagfab, vfracfab,
-                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     bafab, bcfab, bebfab,
-                                     is_eb_dirichlet,
-                                     phiebfab,
-                                     is_eb_inhomog, dxinvarr,
-                                     ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
-               });
+                auto const& ebdata = factory->getEBData(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlebabeclap_adotx(i, j, k, n, yfab, xfab, afab,
+                                      AMREX_D_DECL(bxfab,byfab,bzfab),
+                                      ccmfab, ebdata, bebfab,
+                                      is_eb_dirichlet,
+                                      phiebfab,
+                                      is_eb_inhomog, dxinvarr,
+                                      ascalar, bscalar, beta_on_centroid, phi_on_centroid);
+                });
             }
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
@@ -318,9 +319,9 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
             {
-                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
                                  AMREX_2D_ONLY_ARGS(dh,h)
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
@@ -330,7 +331,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  AMREX_D_DECL(f1fab,f3fab,f5fab),
                                  ccmfab, bebfab, ebdata,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                                 vbx, redblack, nc);
+                                 vbx, redblack);
             });
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);

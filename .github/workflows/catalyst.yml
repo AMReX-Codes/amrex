@@ -24,7 +24,7 @@ jobs:
       CC: gcc
       CMAKE_PREFIX_PATH: "/opt/conduit:/opt/catalyst"
     container:
-      image: kitware/paraview:ci-catalyst-amrex-warpx-20240701
+      image: kitware/paraview:ci-catalyst-amrex-warpx-20240828
     steps:
     - uses: actions/checkout@v7
     - name: Configure

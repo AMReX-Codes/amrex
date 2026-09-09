@@ -253,8 +253,9 @@ Message::wait ()
 {
     BL_PROFILE_S("ParallelDescriptor::Message::wait()");
 
-    BL_COMM_PROFILE(BLProfiler::Wait, sizeof(m_type), pid(), tag());
+    BL_COMM_PROFILE(BLProfiler::Wait, sizeof(m_type), BLProfiler::BeforeCall(), BLProfiler::NoTag());
     BL_MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
+    m_finished = true;
     BL_COMM_PROFILE(BLProfiler::Wait, sizeof(m_type), BLProfiler::AfterCall(), tag());
 }
 
@@ -263,10 +264,11 @@ Message::test ()
 {
     int flag;
     BL_PROFILE_S("ParallelDescriptor::Message::test()");
-    BL_COMM_PROFILE(BLProfiler::Test, sizeof(m_type), pid(), tag());
+    BL_COMM_PROFILE(BLProfiler::Test, sizeof(m_type), BLProfiler::BeforeCall(), BLProfiler::NoTag());
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
-    BL_COMM_PROFILE(BLProfiler::Test, flag, BLProfiler::AfterCall(), tag());
     m_finished = flag != 0;
+    BL_COMM_PROFILE(BLProfiler::Test, flag, BLProfiler::AfterCall(),
+                    m_finished ? tag() : BLProfiler::NoTag());
     return m_finished;
 }
 
@@ -529,7 +531,9 @@ Test (MPI_Request& request, int& flag, MPI_Status& status)
 void
 Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status)
 {
-    BL_MPI_REQUIRE( MPI_Testall(request.size(), request.data(), &flag, status.data()) );
+    if (!request.empty()) {
+        BL_MPI_REQUIRE( MPI_Testall(request.size(), request.data(), &flag, status.data()) );
+    }
 }
 
 void

@@ -1,7 +1,5 @@
 include_guard(GLOBAL)
 
-include(CMakeDependentOption)
-
 #
 # Define a macro to print active options
 #
@@ -17,48 +15,210 @@ endmacro ()
 #
 message(STATUS "Enabled CUDA options:")
 
-set(AMReX_CUDA_ARCH_DEFAULT "Auto")
-if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-   set(AMReX_CUDA_ARCH_DEFAULT "${CMAKE_CUDA_ARCHITECTURES}")
+# if this works well and does not add too much compile-time we should enable it by default.
+# Declared before the architecture selection below, which needs to know about it.
+option(AMReX_CUDA_LTO "Enable CUDA link-time-optimization (requires AMReX_GPU_RDC)" OFF)
+
+# device link-time optimization needs relocatable device code: without it every
+# translation unit is already device linked on its own and there is nothing left to
+# optimize across. Do not silently produce a non-LTO build.
+if (AMReX_CUDA_LTO AND NOT AMReX_GPU_RDC)
+   message(FATAL_ERROR
+      "AMReX_CUDA_LTO requires relocatable device code. Configure with -DAMReX_GPU_RDC=ON "
+      "(the default) or with -DAMReX_CUDA_LTO=OFF.")
 endif ()
-if(DEFINED ENV{AMREX_CUDA_ARCH})
-   set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
-endif()
-set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+
+# Device LTO is driven by the per-target INTERPROCEDURAL_OPTIMIZATION property: that is what
+# makes CMake emit the CUDA "code=lto_<NN>" device code and the "-dlto" device link. Both the
+# support check and the host-language neutering below belong in this scope, the top-level one:
+# they must also cover the AMReX-dependent targets that setup_target_for_cuda_compilation
+# enables device LTO for (tests, tutorials, tools and downstream in-tree targets), which are
+# added from directories of their own.
+set(AMREX_CUDA_IPO FALSE CACHE INTERNAL "CUDA device LTO is requested and available")
+if (AMReX_CUDA_LTO)
+   include(CheckIPOSupported)
+   check_ipo_supported(LANGUAGES CUDA RESULT _amrex_cuda_ipo OUTPUT _amrex_cuda_ipo_msg)
+   if (NOT _amrex_cuda_ipo)
+      message(WARNING "AMReX_CUDA_LTO is ON but device LTO is not supported by this "
+         "toolchain; disabling it.\n${_amrex_cuda_ipo_msg}")
+   else ()
+      set(AMREX_CUDA_IPO TRUE CACHE INTERNAL "CUDA device LTO is requested and available")
+      # INTERPROCEDURAL_OPTIMIZATION is a per-target, all-language property: it is what
+      # makes CMake emit the CUDA "code=lto_XX" device code, but it would also turn on
+      # host LTO (e.g. -flto=auto -fno-fat-lto-objects, an LTO-aware archiver) for the
+      # C/C++/Fortran sources compiled for the host. That would silently change host
+      # code generation and break non-LTO downstream links against an installed static
+      # AMReX, so we make IPO a complete no-op for the host languages in this directory
+      # scope: no flags, and "supported" so that the property does not reject a host
+      # compiler CMake has no IPO flags for (Cray, XL) in a CUDA-only LTO build.
+      if (CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+         message(WARNING
+            "AMReX_CUDA_LTO applies to device code only: host link-time optimization "
+            "requested with CMAKE_INTERPROCEDURAL_OPTIMIZATION is not used for AMReX.")
+      endif ()
+      foreach(_lang IN ITEMS C CXX Fortran)
+         set(CMAKE_${_lang}_COMPILE_OPTIONS_IPO "")
+         set(_CMAKE_${_lang}_IPO_SUPPORTED_BY_CMAKE YES)
+         set(_CMAKE_${_lang}_IPO_MAY_BE_SUPPORTED_BY_COMPILER YES)
+         unset(CMAKE_${_lang}_LINK_OPTIONS_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_CREATE_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_APPEND_IPO)
+         unset(CMAKE_${_lang}_ARCHIVE_FINISH_IPO)
+      endforeach()
+      unset(_lang)
+   endif ()
+   unset(_amrex_cuda_ipo)
+   unset(_amrex_cuda_ipo_msg)
+endif ()
+
+# Device LTO is nvcc's: for any other CUDA compiler check_ipo_supported above reports it as
+# unsupported and AMREX_CUDA_IPO stays off, so the requirements below must not fail the
+# configure step of such a compiler instead.
+set(_amrex_cuda_device_lto ${AMREX_CUDA_IPO})
+if (NOT CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+   set(_amrex_cuda_device_lto FALSE)
+endif ()
+
+# Resolve and report the target CUDA architecture(s). CMAKE_CUDA_ARCHITECTURES was set in
+# AMReXCUDAArchs.cmake (before enable_language, honoring the user's hints). The aliases
+# native/all/all-major are resolved by the CUDA compiler itself, so they are normally left
+# alone here and only spelled out where AMReX has to know what they stand for. "native" is
+# always such a case: CMake queries the local GPU during compiler detection and reports the
+# result in CMAKE_CUDA_ARCHITECTURES_NATIVE, which lets us report the architecture, check it
+# and export it to downstream projects instead of a placeholder.
+set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
+set(_amrex_cuda_archs_alias FALSE)
+if (CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
+   if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES_NATIVE)
+      # a CMake or CUDA compiler that does not report the local architecture: leave
+      # "native" to be resolved further down the line
+      message(STATUS "   CUDA architectures: native")
+   elseif (CMAKE_CUDA_ARCHITECTURES_NATIVE MATCHES "^[0-9]")
+      # record the concrete architecture(s) instead of "native", so that the value we
+      # compile with is also the value we report and export to downstream projects.
+      # CMake reports them as "<NN>-real", i.e. SASS only; keep the plain integer form
+      # so that PTX is embedded as well and the library can still JIT onto a newer GPU,
+      # which is what both "-arch=native" and the historical "Auto" default did.
+      string(REPLACE "-real" "" _amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES_NATIVE}")
+      set(_amrex_cuda_archs_alias TRUE)
+      message(STATUS "   CUDA architectures: native -> ${_amrex_cuda_archs}")
+   else ()
+      # The local architecture could not be determined: CMAKE_CUDA_ARCHITECTURES_NATIVE
+      # holds an error message rather than an architecture. Stop here rather than leave
+      # "native" to the CUDA compiler: nvcc does not fail on "-arch=native" without a
+      # visible GPU, it warns once per translation unit ("Cannot find valid GPU for
+      # '-arch=native', default arch is used") and silently falls back to its own default
+      # architecture, which is not necessarily one AMReX supports and in any case not the
+      # one that was meant. A library quietly built for the wrong GPU is worse than a
+      # configure step that says so.
+      message(STATUS "   CUDA architectures: native (unresolved)")
+      message(FATAL_ERROR
+         "CUDA architecture 'native' was requested - it is the default - but no CUDA "
+         "device was detected at configure time, so there is no architecture to build "
+         "for. On machines without a visible GPU, e.g. HPC login nodes, CI runners or "
+         "container builds, pass the architecture explicitly with "
+         "-DCMAKE_CUDA_ARCHITECTURES=80 (or the CUDAARCHS environment variable). Note "
+         "that this also covers configuring on a login node and building on a GPU node: "
+         "'native' is resolved when CMake runs, not when the code is compiled.")
+   endif ()
+elseif (CMAKE_CUDA_ARCHITECTURES MATCHES "^(all|all-major)$")
+   # The CUDA compiler expands these itself, which is what we want it to do: CMake's
+   # CMAKE_CUDA_ARCHITECTURES_ALL[_MAJOR] describe the CUDA versions that CMake release
+   # knew about, so with a CUDA toolkit newer than CMake they list architectures the
+   # compiler has since dropped and miss the ones it added. Two cases need the concrete
+   # architectures nevertheless: device LTO, which is applied per architecture
+   # (code=lto_<NN>), and a toolkit that still supports architectures below the compute
+   # capability AMReX requires (sm_50 with CUDA 12, where "all"/"all-major" would pull
+   # unsupported architectures into the build instead of dropping them).
+   amrex_expand_cuda_archs_alias(${CMAKE_CUDA_ARCHITECTURES} _amrex_alias_archs)
+
+   set(_amrex_alias_unsupported FALSE)
+   foreach (_arch IN LISTS _amrex_alias_archs)
+      if (_arch MATCHES "^([0-9]+)")
+         if (CMAKE_MATCH_1 LESS 60)
+            set(_amrex_alias_unsupported TRUE)
+         endif ()
+      endif ()
+   endforeach ()
+   unset(_arch)
+
+   if (_amrex_alias_archs AND (_amrex_cuda_device_lto OR _amrex_alias_unsupported))
+      # unlike "native", the expanded list keeps the "<NN>-real" entries: embedding PTX
+      # for the newest major architecture only is what "all"/"all-major" mean
+      set(_amrex_cuda_archs "${_amrex_alias_archs}")
+      set(_amrex_cuda_archs_alias TRUE)
+      message(STATUS "   CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES} -> ${_amrex_cuda_archs}")
+   elseif (_amrex_cuda_device_lto)
+      message(FATAL_ERROR
+         "AMReX_CUDA_LTO needs the concrete architectures behind "
+         "'${CMAKE_CUDA_ARCHITECTURES}', which neither the CUDA compiler "
+         "(${CMAKE_CUDA_COMPILER_ID} ${CMAKE_CUDA_COMPILER_VERSION}) nor this CMake "
+         "(${CMAKE_VERSION}) reports. Pass explicit architectures, e.g. "
+         "-DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
+   else ()
+      message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
+   endif ()
+
+   unset(_amrex_alias_archs)
+   unset(_amrex_alias_unsupported)
+else ()
+   message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
+endif ()
+
+# Device LTO is applied per architecture (code=lto_<NN>), so the architectures have to be
+# known here. Two ways they are not: an unresolved "native" is left to the CUDA compiler,
+# which picks the architecture of the GPU it finds at build time, and a false value asks
+# CMake for no architecture flags at all. Either way the build would quietly end up without
+# device LTO (nvcc reports "Ignoring -dlto option because no LTO objects found" at the
+# device link and produces a working, non-LTO library).
+if (_amrex_cuda_device_lto AND _amrex_cuda_archs STREQUAL "native")
+   message(FATAL_ERROR
+      "AMReX_CUDA_LTO needs the concrete architecture(s) behind 'native', which could not "
+      "be resolved at configure time: no CUDA device was detected, or this CMake "
+      "(${CMAKE_VERSION}) and CUDA compiler (${CMAKE_CUDA_COMPILER_ID} "
+      "${CMAKE_CUDA_COMPILER_VERSION}) do not report one. Pass explicit architectures, "
+      "e.g. -DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
+elseif (_amrex_cuda_device_lto AND NOT _amrex_cuda_archs)
+   message(FATAL_ERROR
+      "AMReX_CUDA_LTO cannot be combined with CMAKE_CUDA_ARCHITECTURES=${_amrex_cuda_archs}, "
+      "which leaves the architecture flags to the caller: AMReX has no architecture to "
+      "request the device LTO code for. Pass the architectures to build for, e.g. "
+      "-DCMAKE_CUDA_ARCHITECTURES=80, or configure with -DAMReX_CUDA_LTO=OFF if you pass "
+      "the architecture and device LTO flags yourself - AMReX cannot tell whether flags "
+      "given from outside carry device LTO, so it does not switch this option on for them.")
+endif ()
+
+# expanding an alias on an older CUDA toolkit can bring in architectures below the minimum
+# compute capability AMReX supports (explicit values were already checked in AMReXCUDAArchs)
+amrex_filter_cuda_archs(_amrex_cuda_archs ${_amrex_cuda_archs_alias})
+
+# The architecture(s) AMReX is compiled for: used for the AMReX targets themselves, for
+# dependent test/tutorial targets (setup_target_for_cuda_compilation) and exported to
+# downstream projects (AMReXConfig.cmake.in).
+set(AMREX_CUDA_ARCHS "${_amrex_cuda_archs}" CACHE INTERNAL "CUDA archs AMReX is built for")
+unset(_amrex_cuda_archs)
+unset(_amrex_cuda_archs_alias)
+
+unset(_amrex_cuda_device_lto)
 
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)  # Note: inconsistent with AMReX_FASTMATH defaults
 cuda_print_option( AMReX_CUDA_FASTMATH )
+cuda_print_option(AMReX_CUDA_LTO)
 
 set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
 message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
 
-# if this works well and does not add too much compile-time we should enable it by default
-cmake_dependent_option(AMReX_CUDA_LTO "Enable CUDA link-time-optimization" OFF
-   "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.167" OFF)
-cuda_print_option(AMReX_CUDA_LTO)
-
 # this warns on a typical user bug when developing on (forgiving) Power9 machines (e.g. Summit)
-cmake_dependent_option(AMReX_CUDA_WARN_CAPTURE_THIS
-   "Warn if a CUDA lambda captures a class' this" ON
-   "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.194" OFF)
+option(AMReX_CUDA_WARN_CAPTURE_THIS "Warn if a CUDA lambda captures a class' this" ON)
 # no code should ever ship -Werror, but one can turn this on manually in CI if one likes
-cmake_dependent_option(AMReX_CUDA_ERROR_CAPTURE_THIS
-   "Error if a CUDA lambda captures a class' this" OFF
-   "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.194" OFF)
+option(AMReX_CUDA_ERROR_CAPTURE_THIS "Error if a CUDA lambda captures a class' this" OFF)
 cuda_print_option(AMReX_CUDA_WARN_CAPTURE_THIS)
 cuda_print_option(AMReX_CUDA_ERROR_CAPTURE_THIS)
 
 option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL
        "Error if a CUDA host function is called from a host device function" OFF)
 cuda_print_option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
-
-# makes things more robust for -Xcompiler pre-fixing unknown nvcc flags
-# note: available with NVCC 10.2.89+; default in CMake 3.17.0+ for supporting NVCCs
-#       https://gitlab.kitware.com/cmake/cmake/-/blob/v3.17.0/Modules/Compiler/NVIDIA-CUDA.cmake
-cmake_dependent_option(CUDA_FORWARD_UNKNOWN_FLAGS_HOST
-   "Forward unknown NVCC flags to the host compiler" ON
-   "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 10.2.89;CMAKE_VERSION VERSION_LESS 3.17" OFF)
 
 option(AMReX_CUDA_PTX_VERBOSE "Verbose code generation statistics in ptxas" OFF)
 cuda_print_option(AMReX_CUDA_PTX_VERBOSE)
@@ -87,14 +247,10 @@ cuda_print_option(AMReX_CUDA_DEBUG)
 option(AMReX_CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)" ON)
 cuda_print_option(AMReX_CUDA_SHOW_LINENUMBERS)
 
+# off by default for the CUDA versions we support (12.2+)
 # https://github.com/AMReX-Codes/amrex/issues/3215
 # Nvidia Bug ID: 4088095
-if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.1)
-    set(AMReX_CUDA_SHOW_CODELINES_DEFAULT OFF)
-else()
-    set(AMReX_CUDA_SHOW_CODELINES_DEFAULT ON)
-endif()
-option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)" AMReX_CUDA_SHOW_CODELINES_DEFAULT)
+option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)" OFF)
 cuda_print_option(AMReX_CUDA_SHOW_CODELINES)
 
 option(AMReX_CUDA_BACKTRACE "Generate host function symbol names (better cuda-memcheck)" ${AMReX_CUDA_DEBUG})

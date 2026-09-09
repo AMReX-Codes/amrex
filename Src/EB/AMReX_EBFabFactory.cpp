@@ -92,6 +92,86 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
 #endif
 }
 
+EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
+                                        const Geometry& a_geom,
+                                        const BoxArray& a_ba,
+                                        const DistributionMapping& a_dm,
+                                        const Vector<int>& a_ngrow, EBSupport a_support,
+                                        int face_dir)
+    : m_support(a_support),
+      m_geom(a_geom),
+      m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support,face_dir)),
+      m_parent(&a_level),
+      m_face_dir(face_dir)
+{
+    auto const& ebflags = getMultiEBCellFlagFab();
+    {
+        auto const& ma = ebflags.const_arrays();
+        amrex::ignore_unused(ma);
+    }
+#ifdef AMREX_USE_GPU
+    m_eb_data.resize(EBData::real_data_size*ebflags.local_size());
+    Gpu::PinnedVector<Array4<Real const>> eb_data_hv;
+#else
+    auto& eb_data_hv = m_eb_data;
+#endif
+
+    eb_data_hv.reserve(EBData::real_data_size*ebflags.local_size());
+
+    for (MFIter mfi(ebflags,MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
+        Array4<Real const> a{};
+
+        bool cutfab_is_ok = ebflags[mfi].getType() == FabType::singlevalued;
+
+        a = ( m_ebdc->m_levelset )
+            ? m_ebdc->m_levelset->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        a = ( m_ebdc->m_volfrac )
+            ? m_ebdc->m_volfrac->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        a = ( m_ebdc->m_centroid && cutfab_is_ok )
+            ? m_ebdc->m_centroid->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        a = ( m_ebdc->m_bndrycent && cutfab_is_ok )
+            ? m_ebdc->m_bndrycent->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        a = ( m_ebdc->m_bndrynorm && cutfab_is_ok )
+            ? m_ebdc->m_bndrynorm->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        a = ( m_ebdc->m_bndryarea && cutfab_is_ok )
+            ? m_ebdc->m_bndryarea->const_array(mfi) : Array4<Real const>{};
+        eb_data_hv.push_back(a);
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            a = ( m_ebdc->m_areafrac[idim] && cutfab_is_ok )
+                ? m_ebdc->m_areafrac[idim]->const_array(mfi) : Array4<Real const>{};
+            eb_data_hv.push_back(a);
+        }
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            a = ( m_ebdc->m_facecent[idim] && cutfab_is_ok )
+                ? m_ebdc->m_facecent[idim]->const_array(mfi) : Array4<Real const>{};
+            eb_data_hv.push_back(a);
+        }
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            a = ( m_ebdc->m_edgecent[idim] && cutfab_is_ok )
+                ? m_ebdc->m_edgecent[idim]->const_array(mfi) : Array4<Real const>{};
+            eb_data_hv.push_back(a);
+        }
+    }
+
+#ifdef AMREX_USE_GPU
+    Gpu::copyAsync(Gpu::hostToDevice, eb_data_hv.begin(), eb_data_hv.end(), m_eb_data.begin());
+    Gpu::streamSynchronize();
+#endif
+}
+
 [[nodiscard]]
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,

@@ -35,12 +35,16 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
 
 AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     :
-    m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0,
-           MFInfo(), FArrayBoxFactory()),
     m_ngrow(rhs.m_ngrow),
-    m_initialized(true)
+    m_empty(rhs.m_empty),
+    m_initialized(rhs.m_initialized)
 {
-    m_fabs.ParallelCopy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
+    if (m_initialized && !m_empty)
+    {
+        m_fabs.define(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),
+                      rhs.m_fabs.nComp(),0,MFInfo(),FArrayBoxFactory());
+        m_fabs.ParallelCopy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
+    }
 }
 
 void

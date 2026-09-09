@@ -57,8 +57,21 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
 
 #ifdef AMREX_USE_SYCL
 
+    // oneMKL initializes engine id of an engine_descriptor as
+    // Engine{seed, id*offset}.  With an offset of 1, all N engines would be
+    // the same philox4x32x10 stream shifted by one element per engine, so the
+    // k-th draw of work-item t would equal the (k-1)-th draw of work-item t+1,
+    // and random fields would be correlated across neighboring work-items and
+    // successive kernels.  Give every engine its own window of the stream
+    // instead, in the spirit of the distinct curand/hiprand subsequences
+    // below.  Philox skip-ahead is counter arithmetic, so the size of the
+    // offset does not matter for the cost of initialization.
+    constexpr ULong elements_per_engine = ULong(1) << 36;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (static_cast<ULong>(N) <= std::numeric_limits<ULong>::max() / elements_per_engine,
+         "ResizeRandomSeed: too many RNG engines for the per-engine offset");
     rand_engine_descr = new sycl_rng_descr
-        (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, 1);
+        (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, elements_per_engine);
 
     gpu_rand_generator = new std::remove_pointer_t<decltype(gpu_rand_generator)>
         (Gpu::Device::streamQueue(), gpu_seed+1234ULL);
@@ -130,11 +143,30 @@ Real RandomNormal (Real mean, Real stddev)
     return distribution(generators[tid]);
 }
 
+// std::uniform_real_distribution is specified as [0,1), but that bound is not
+// something to depend on: it is built on std::generate_canonical, whose C++20
+// specification is defective -- LWG 2524 -- in that the quotient it forms can
+// round up to exactly 1.0f in single precision. Implementations are free to clamp
+// and the ones AMReX currently supports do, including MSVC (fixed
+// P0952R2 in 2024 via microsoft/STL#1074).  Since this is a C++20 defect, we
+// clamp rather than trust it: that makes the interval of
+// Random() a property of AMReX instead of a property of whichever standard
+// library happens to be in use.
 Real Random ()
 {
     std::uniform_real_distribution<Real> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return random_util::clamp_below_one(distribution(generators[tid]));
+}
+
+Real RandomPositive ()
+{
+    // Relocating the zero endpoint converts [0,1) to (0,1] with no arithmetic.
+    // Note this needs no clamp: unlike Random(), it stays correct even when the
+    // distribution reaches 1.0 as described above, because 1.0 is in range here.
+    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
+    int tid = OpenMP::get_thread_num();
+    return random_util::zero_to_one(distribution(generators[tid]));
 }
 
 unsigned int RandomPoisson (Real lambda)
@@ -292,10 +324,12 @@ void FillRandom (Real* p, Long N)
     event.wait();
 
 #else
+    // clamped for the same reason as Random(): std::uniform_real_distribution
+    // may reach its upper bound (LWG 2524), so [0,1) is not free here either
     std::uniform_real_distribution<Real> distribution(Real(0.0), Real(1.0));
     auto& gen = generators[OpenMP::get_thread_num()];
     for (Long i = 0; i < N; ++i) {
-        p[i] = distribution(gen);
+        p[i] = random_util::clamp_below_one(distribution(gen));
     }
 #endif
 }

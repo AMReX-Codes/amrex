@@ -427,6 +427,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
         case lexState::LIST:
             eat_comment(str);
             ch = *str;
+            if ( ch == 0 )
+            {
+                amrex::Error("ParmParse::getToken: EOF while parsing");
+            }
             if ( ch == '(' )
             {
                 ostr += ch; str++; pcnt++;
@@ -447,6 +451,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
         case lexState::INITIALIZER:
             eat_garbage(str);
             ch = *str;
+            if ( ch == 0 )
+            {
+                amrex::Error("ParmParse::getToken: EOF while parsing");
+            }
             if ( ch == '{' )
             {
                 ostr += ch; str++; cbcnt++;
@@ -469,6 +477,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             if (!array_in_string) {
                 eat_garbage(str);
                 ch = *str;
+                if ( ch == 0 )
+                {
+                    amrex::Error("ParmParse::getToken: EOF while parsing");
+                }
             } else {
                 ch = *str;
             }
@@ -624,7 +636,7 @@ read_file (const char* fname, ParmParse::Table& tab)
 
         // optional prefix to search files in
         char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
-        if (amrex_inputs_file_prefix_c != nullptr) {
+        if (amrex_inputs_file_prefix_c != nullptr && amrex_inputs_file_prefix_c[0] != 0) {
             // we expect a directory path as the prefix: append a trailing "/" if missing
             auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
             if (amrex_inputs_file_prefix.back() != '/') {
@@ -681,6 +693,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 has_true.push_back(r);
                 continue;
             } else if (std::regex_match(line, sm, elif_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #elif without matching #if in " + filename);
+                }
                 if (has_true.back() == false) {
                     // If none of the previous if/elif is true
                     bool r = isTrue(sm);
@@ -692,6 +707,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 }
                 continue;
             } else if (std::regex_match(line, sm, else_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #else without matching #if in " + filename);
+                }
                 if (has_true.back() == false) {
                     // If none of the previous if/elif is true,
                     valid_region.back() = true;
@@ -700,6 +718,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 }
                 continue;
             } else if (std::regex_match(line, sm, endif_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #endif without matching #if in " + filename);
+                }
                 valid_region.pop_back();
                 has_true.pop_back();
                 continue;
@@ -1769,6 +1790,9 @@ ParmParse::Finalize ()
 
     g_parser_recursive_symbols.clear();
     g_parser_recursive_symbols.resize(1);
+
+    ParmParse::ParserPrefix.clear();
+    g_toml_table_key.clear();
 
     pp_detail::verbose = -1;
     initialized = false;

@@ -431,15 +431,16 @@ namespace amrex::Gpu {
         // No need to use shared memory if the type is small.
         // May not have enough shared memory if the type is too big.
         // Cannot use shared memory, if the type is not trivially copable.
+        // Cannot do the coalesced copy, if the size is not a multiple of 4.
         if constexpr ((sizeof(T) <= 8)
                       || (sizeof(T) > 36*8)
+                      || (sizeof(T) % sizeof(unsigned int) != 0)
                       || ! std::is_trivially_copyable<T>()) {
             amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (Long i) noexcept
             {
                 f(p[i], i);
             });
         } else {
-            static_assert(sizeof(T) % sizeof(unsigned int) == 0);
             using U = std::conditional_t<sizeof(T) % sizeof(unsigned long long) == 0,
                                          unsigned long long, unsigned int>;
             constexpr Long nU = sizeof(T) / sizeof(U);
