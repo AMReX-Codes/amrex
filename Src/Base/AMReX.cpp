@@ -260,7 +260,7 @@ amrex::Error_host (const char* type, const char * msg)
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
-        throw RuntimeError(msg);
+        throw RuntimeError(msg ? msg : type);
     } else {
         write_lib_id(type);
         write_to_stderr_without_buffering(msg);
@@ -984,13 +984,13 @@ amrex::get_command ()
 int
 amrex::command_argument_count ()
 {
-    return static_cast<int>(command_arguments.size())-1;
+    return std::max(0, static_cast<int>(command_arguments.size())-1);
 }
 
 std::string
 amrex::get_command_argument (int number)
 {
-    if (number < std::ssize(command_arguments)) {
+    if (number >= 0 && number < std::ssize(command_arguments)) {
         return command_arguments[number];
     } else {
         return std::string();
