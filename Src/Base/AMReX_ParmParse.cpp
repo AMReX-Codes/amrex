@@ -1770,6 +1770,9 @@ ParmParse::Finalize ()
     g_parser_recursive_symbols.clear();
     g_parser_recursive_symbols.resize(1);
 
+    ParmParse::ParserPrefix.clear();
+    g_toml_table_key.clear();
+
     pp_detail::verbose = -1;
     initialized = false;
 }

@@ -239,7 +239,8 @@ MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const Multi
             Fsmooth(amrlev, mglev, sol, rhs);
             skip_fillboundary = false;
         }
-        nodalSync(amrlev, mglev, sol);
+        // No nodalSync here.  The applyBC above, and the one in every other
+        // consumer of sol, does FillBoundaryAndSync.
     }
 }
 

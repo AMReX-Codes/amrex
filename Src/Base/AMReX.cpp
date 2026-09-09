@@ -456,11 +456,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #ifndef BL_AMRPROF
     if (build_parm_parse)
     {
-        if (argc == 1)
+        if (argc <= 1)
         {
+            // No command line to parse. argc == 0 is the library/embedded entry
+            // point (e.g. language bindings), argc == 1 the executable name only.
             ParmParse::Initialize(0,nullptr,nullptr);
         }
-        else if (argc > 1)
+        else
         {
             if (argv[1][0] == '-')
             {
