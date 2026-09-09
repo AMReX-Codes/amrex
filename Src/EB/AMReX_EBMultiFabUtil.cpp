@@ -833,9 +833,9 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                          Array4<Real const> const& zfab = fmf[2]->const_array(mfi));
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
-                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                AMREX_HOST_DEVICE_FOR_4D(bx, AMREX_SPACEDIM, i, j, k, n,
                 {
-                    ccfab(i,j,k,dcomp) = 0.0;
+                    ccfab(i,j,k,dcomp+n) = 0.0;
                 });
             } else if (fabtyp == FabType::regular) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
