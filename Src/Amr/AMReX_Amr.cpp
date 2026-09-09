@@ -1748,6 +1748,10 @@ Amr::restart (const std::string& filename)
 
         amrex::Print() << "Restart time = " << dRestartTime << " seconds." << '\n';
     }
+
+    // ---- faHeaderMap is local to this function
+    StateData::SetFAHeaderMapPtr(nullptr);
+
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
 
