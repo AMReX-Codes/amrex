@@ -484,7 +484,7 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
         return;
     }
 
-    Real dt_0 = Real(1.0e+100);
+    Real dt_0 = Real(1.0e+30);
     int n_factor = 1;
     for (int i = 0; i <= finest_level; i++)
     {
@@ -564,7 +564,7 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     //
     // Find the minimum over all levels
     //
-    Real dt_0 = Real(1.0e+100);
+    Real dt_0 = Real(1.0e+30);
     int n_factor = 1;
     for (int i = 0; i <= finest_level; i++)
     {

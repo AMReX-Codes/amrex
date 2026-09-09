@@ -53,8 +53,8 @@ class AdvectionAmrCore : public AmrCore {
             Array4<Real> vx = mass.array(mfi, 1);
             Array4<Real> vy = mass.array(mfi, 2);
             amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x[] = {problo[0] + (0.5_rt+i)*dx[0],
-                            problo[1] + (0.5_rt+j)*dx[1]};
+                Real x[] = {problo[0] + (0.5_rt+Real(i))*dx[0],
+                            problo[1] + (0.5_rt+Real(j))*dx[1]};
                 const Real r2 = x[0] * x[0] + x[1] * x[1];
                 constexpr Real R = 0.1_rt * 0.1_rt;
                 m(i, j, k) = r2 < R ? 1_rt : 0_rt;

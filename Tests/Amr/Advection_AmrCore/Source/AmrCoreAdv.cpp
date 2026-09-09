@@ -38,8 +38,8 @@ AmrCoreAdv::AmrCoreAdv ()
     }
 
     t_new.resize(nlevs_max, 0.0);
-    t_old.resize(nlevs_max, Real(-1.e100));
-    dt.resize(nlevs_max, Real(1.e100));
+    t_old.resize(nlevs_max, Real(-1.e30));
+    dt.resize(nlevs_max, Real(1.e30));
 
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
@@ -249,7 +249,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
-    t_old[lev] = time - Real(1.e200);
+    t_old[lev] = time - Real(1.e30);
 
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
@@ -284,7 +284,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     std::swap(old_state, phi_old[lev]);
 
     t_new[lev] = time;
-    t_old[lev] = time - Real(1.e200);
+    t_old[lev] = time - Real(1.e30);
 
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
@@ -321,7 +321,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
-    t_old[lev] = time - Real(1.e200);
+    t_old[lev] = time - Real(1.e30);
 
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)

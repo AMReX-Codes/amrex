@@ -48,9 +48,9 @@ void actual_init_bcoef (int i, int j, int k,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                         amrex::Box const& domain)
 {
-    constexpr amrex::Real w = amrex::Real(0.05);
+    constexpr auto w = amrex::Real(0.05);
     constexpr amrex::Real sigma = 10.;
-    const amrex::Real theta = static_cast<amrex::Real>(0.5*std::log(3.) / (w + 1.e-50));
+    const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / (w + amrex::Real(1.e-30));
 
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     constexpr amrex::Real tpi =  2.*pi;
@@ -73,7 +73,8 @@ void actual_init_bcoef (int i, int j, int k,
 #endif
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
-    beta(i,j,k) = static_cast<amrex::Real>((sigma-1.)/2.*std::tanh(theta*(r-amrex::Real(0.25))) + (sigma+1.)/2.);
+    beta(i,j,k) = (sigma-amrex::Real(1.))/amrex::Real(2.)*std::tanh(theta*(r-amrex::Real(0.25)))
+                  + (sigma+amrex::Real(1.))/amrex::Real(2.);
 
     if (domain.contains(i,j,k)) {
         sol(i,j,k) = 0.0;
@@ -97,9 +98,9 @@ void actual_init_abeclap (int i, int j, int k,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    constexpr amrex::Real w = amrex::Real(0.05);
+    constexpr auto w = amrex::Real(0.05);
     constexpr amrex::Real sigma = 10.;
-    const amrex::Real theta = static_cast<amrex::Real>(0.5*std::log(3.) / (w + 1.e-50));
+    const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / (w + amrex::Real(1.e-30));
 
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     constexpr amrex::Real tpi =  2.*pi;
@@ -124,7 +125,7 @@ void actual_init_abeclap (int i, int j, int k,
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
     amrex::Real tmp = std::cosh(theta*(r-amrex::Real(0.25)));
-    amrex::Real dbdrfac = static_cast<amrex::Real>((sigma-1.)/2./(tmp*tmp) * theta/r);
+    amrex::Real dbdrfac = (sigma-amrex::Real(1.))/amrex::Real(2.)/(tmp*tmp) * theta/r;
     dbdrfac *= b;
 
     alpha(i,j,k) = 1.;
