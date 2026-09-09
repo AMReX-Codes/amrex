@@ -159,7 +159,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
 
     {
         bool b = mvmc_error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         mvmc_error = b;
     }
     if (mvmc_error) { return mvmc_error; }
@@ -388,7 +388,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
 
     {
         bool b = error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         error = b;
     }
 

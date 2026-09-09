@@ -576,8 +576,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
-        // No nodalSync here.  Every consumer of sol goes through
-        // MLNodeLinOp::applyBC first, and that does FillBoundaryAndSync.
+        nodalSync(amrlev, mglev, sol);
     }
     else
     {

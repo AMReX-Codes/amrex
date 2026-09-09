@@ -634,8 +634,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
         }
     }
 
-    // No nodalSync here.  Every consumer of sol goes through
-    // MLNodeLinOp::applyBC first, and that does FillBoundaryAndSync.
+    nodalSync(amrlev, mglev, sol);
 }
 
 void
