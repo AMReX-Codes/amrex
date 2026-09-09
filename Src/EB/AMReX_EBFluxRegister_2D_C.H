@@ -21,7 +21,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) -= tmp*fx(i,j,k,n);
             }
-        } else if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
+        }
+        if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdx*ax(i+1,j,k)*volinv;
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) += tmp*fx(i+1,j,k,n);
@@ -33,7 +34,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) -= tmp*fy(i,j,k,n);
             }
-        } else if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
+        }
+        if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdy*ay(i,j+1,k)*volinv;
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) += tmp*fy(i,j+1,k,n);
