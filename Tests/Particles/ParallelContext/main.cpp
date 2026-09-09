@@ -278,7 +278,7 @@ public:
                 {
                     for (int j = 0; j < NSR; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == Real(ptd.m_aos[i].id()));
+                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ParticleReal(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < NSI; ++j)
                     {
@@ -286,7 +286,7 @@ public:
                     }
                     for (int j = 0; j < NAR; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == Real(ptd.m_aos[i].id()));
+                        AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ParticleReal(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < NAI; ++j)
                     {
@@ -294,7 +294,7 @@ public:
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == Real(ptd.m_aos[i].id()));
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ParticleReal(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < num_ii; ++j)
                     {

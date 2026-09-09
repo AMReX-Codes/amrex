@@ -204,7 +204,7 @@ public:
                 {
                     for (int j = 0; j < NSR; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == Real(ptd.m_aos[i].id()));
+                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ParticleReal(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < NSI; ++j)
                     {
@@ -213,7 +213,7 @@ public:
                     if constexpr (NAR > 0) {
                         for (int j = 0; j < NAR; ++j)
                         {
-                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == Real(ptd.m_aos[i].id()));
+                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ParticleReal(ptd.m_aos[i].id()));
                         }
                     }
                     if constexpr (NAI > 0) {
@@ -224,7 +224,7 @@ public:
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == Real(ptd.m_aos[i].id()));
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ParticleReal(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < num_ii; ++j)
                     {
@@ -312,7 +312,7 @@ void testRedistributeGlobalDM ()
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        real_box.setLo(n, 0.0);
+        real_box.setLo(n, Real(0.0));
         real_box.setHi(n, Real(params.size[n]));
     }
 

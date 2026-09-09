@@ -25,7 +25,7 @@ namespace
     constexpr int PayloadRealComp = AMREX_SPACEDIM + 1;
     constexpr int GridIntComp = 0;
     constexpr int MarkerIntComp = 1;
-    constexpr ParticleReal Cutoff = 0.2_rt;
+    constexpr ParticleReal Cutoff = 0.2_prt;
 
     struct TestParams
     {
@@ -59,9 +59,9 @@ namespace
         int marker_int = 0;
         int runtime_int = 0;
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
     };
 
     struct PackedSourceParticleData
@@ -73,18 +73,18 @@ namespace
         int runtime_int = 0;
         std::array<int, AMREX_SPACEDIM> cell{};
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
     };
 
     static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
 
     struct InverseContributionData
     {
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int marker_int = 0;
         int runtime_int = 0;
     };
@@ -93,9 +93,9 @@ namespace
     {
         Long id = 0;
         int cpu = -1;
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int marker_int = 0;
         int runtime_int = 0;
     };
@@ -154,7 +154,7 @@ namespace
         pp.get("is_periodic", params.is_periodic);
     }
 
-    bool almost_equal (ParticleReal lhs, ParticleReal rhs, ParticleReal tol = 1.0e-12_rt)
+    bool almost_equal (ParticleReal lhs, ParticleReal rhs, ParticleReal tol = 1.0e-12_prt)
     {
         return std::abs(lhs-rhs) <= tol;
     }
@@ -502,9 +502,9 @@ public:
 
     void checkInverseSumNeighbors ()
     {
-        constexpr ParticleReal marker_real_delta = 1.25_rt;
-        constexpr ParticleReal payload_real_delta = 2.5_rt;
-        constexpr ParticleReal runtime_real_delta = 3.75_rt;
+        constexpr ParticleReal marker_real_delta = 1.25_prt;
+        constexpr ParticleReal payload_real_delta = 2.5_prt;
+        constexpr ParticleReal runtime_real_delta = 3.75_prt;
         constexpr int marker_int_delta = 11;
         constexpr int runtime_int_delta = 13;
 
@@ -888,7 +888,7 @@ int main (int argc, char* argv[])
     RealBox real_box;
     for (int dir = 0; dir < BL_SPACEDIM; ++dir)
     {
-        real_box.setLo(dir, 0.0);
+        real_box.setLo(dir, Real(0.0));
         real_box.setHi(dir, Real(params.size[dir]));
     }
 

@@ -54,7 +54,7 @@ void addParticles ()
         for (int d = 0; d < AMREX_SPACEDIM; d++) {
             ptile1.pos(i, d) = 12.0;
         }
-        ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = Real(1.2);  // w
+        ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = ParticleReal(1.2);  // w
 
         ptile1.push_back_int(0, ParticleType::NextID());
         ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());

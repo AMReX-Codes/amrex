@@ -98,7 +98,7 @@ void testNeighborList ()
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        real_box.setLo(n, 0.0);
+        real_box.setLo(n, Real(0.0));
         real_box.setHi(n, Real(params.size[n]));
     }
 

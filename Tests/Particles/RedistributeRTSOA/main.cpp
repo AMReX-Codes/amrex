@@ -258,7 +258,7 @@ public:
                     ConstParticleType p(ptd, i);
                     for (int j = AMREX_SPACEDIM; j < ptd.m_n_real; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.rdata(j)[i] == Real(p.id()));
+                        AMREX_ALWAYS_ASSERT(ptd.rdata(j)[i] == ParticleReal(p.id()));
                     }
                     for (int j = 2; j < ptd.m_n_int; ++j)
                     {
@@ -341,7 +341,7 @@ void testRedistribute ()
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        real_box.setLo(n, 0.0);
+        real_box.setLo(n, Real(0.0));
         real_box.setHi(n, Real(params.size[n]));
     }
 

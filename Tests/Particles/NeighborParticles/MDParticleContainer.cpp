@@ -45,8 +45,8 @@ namespace
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -55,8 +55,8 @@ namespace
     {
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -67,8 +67,8 @@ namespace
         int cpu = -1;
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -623,10 +623,10 @@ void MDParticleContainer::checkInverseSumNeighbors ()
 {
     BL_PROFILE("MDParticleContainer::checkInverseSumNeighbors");
 
-    constexpr ParticleReal struct_real_delta = 1.5_rt;
+    constexpr ParticleReal struct_real_delta = 1.5_prt;
     constexpr int struct_int_delta = 9;
-    constexpr ParticleReal array_real_delta = 2.5_rt;
-    constexpr ParticleReal runtime_real_delta = 3.5_rt;
+    constexpr ParticleReal array_real_delta = 2.5_prt;
+    constexpr ParticleReal runtime_real_delta = 3.5_prt;
     constexpr int array_int_delta = 11;
     constexpr int runtime_int_delta = 13;
 
