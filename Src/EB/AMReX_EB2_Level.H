@@ -385,8 +385,8 @@ GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
     BoxList cut_boxes;
     BoxList covered_boxes;
 
-    const int nprocs = ParallelDescriptor::NProcs();
-    const int iproc = ParallelDescriptor::MyProc();
+    const int nprocs = ParallelContext::NProcsSub();
+    const int iproc = ParallelContext::MyProcSub();
 
     num_crse_opt = std::max(0,std::min(8,num_crse_opt));
     for (int clev = num_crse_opt; clev >= 0; --clev) {
@@ -952,7 +952,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     {
         bool b = mvmc_error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         mvmc_error = b;
     }
     if (mvmc_error) {
@@ -1170,7 +1170,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     {
         bool b = error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         error = b;
     }
 
