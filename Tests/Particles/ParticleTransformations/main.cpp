@@ -234,6 +234,31 @@ struct KeepEvenFilter
     }
 };
 
+struct KeepAllFilter
+{
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    bool operator() (const SrcData& src, int i) const noexcept
+    {
+        amrex::ignore_unused(src, i);
+        return true;
+    }
+};
+
+struct WriteSourceIndex
+{
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (const DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        amrex::ignore_unused(src);
+        for (int j = 0; j < DstData::NAI; ++j) {
+            dst.m_idata[j][dst_i] = src_i;
+        }
+    }
+};
+
 template <typename PC, typename F>
 void transformParticles (PC& pc, F const& f)
 {
@@ -461,20 +486,47 @@ void testFilter (const PC& pc)
 }
 
 template <typename PC>
-void testFilterAndTransformWithOffsets (const PC& pc)
+void testEmptyFilterAndTransform ()
 {
     using ParticleTileType = typename PC::ParticleTileType;
-    using ParticleTileDataType = typename ParticleTileType::ParticleTileDataType;
-    using ConstParticleTileDataType = typename ParticleTileType::ConstParticleTileDataType;
-    using ParIter = typename PC::ParConstIterType;
 
-    // Use non-zero offsets: src particles are read starting at src_start,
-    // and written into dst starting at dst_start.
-    // The filter and transformer receive src_start+i as the src index,
-    // so they subtract src_start to get the actual tile index.
-    const int src_start = 3;
-    const int dst_start = 5;
-    const int factor = 4;
+    ParticleTileType ptile_src;
+    ParticleTileType ptile_dst;
+    ParticleTileType ptile_dst2;
+    Gpu::DeviceVector<int> mask(0);
+
+    auto num_output = amrex::filterParticles(ptile_dst, ptile_src,
+                                             mask.dataPtr(), 0, 0, 0);
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterParticles(ptile_dst, ptile_src, mask.dataPtr());
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterParticles(ptile_dst, ptile_src, KeepOddFilter());
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterAndTransformParticles(ptile_dst, ptile_src,
+                                                    mask.dataPtr(), Transformer(2), 0, 0);
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterAndTransformParticles(ptile_dst, ptile_src,
+                                                    KeepOddFilter(), Transformer(2));
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterAndTransformParticles(ptile_dst, ptile_dst2, ptile_src,
+                                                    mask.dataPtr(), TwoWayTransformer(2, 3));
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+
+    num_output = amrex::filterAndTransformParticles(ptile_dst, ptile_dst2, ptile_src,
+                                                    KeepOddFilter(), TwoWayTransformer(2, 3));
+    AMREX_ALWAYS_ASSERT(num_output == 0);
+}
+
+template <typename PC>
+void testFilterParticlesWithMask (const PC& pc)
+{
+    using ParticleTileType = typename PC::ParticleTileType;
+    using ParIter = typename PC::ParConstIterType;
 
     for (int lev = 0; lev <= pc.finestLevel(); ++lev)
     {
@@ -485,105 +537,80 @@ void testFilterAndTransformWithOffsets (const PC& pc)
 
             if (np == 0) { continue; }
 
-            // Count particles that pass the odd-id filter (to size the dst tile).
-            // Copy the AoS and idata to host so we can inspect them.
-            using ParticleType = typename PC::ParticleType;
-            Gpu::HostVector<ParticleType> h_src_aos(np);
-            Gpu::HostVector<int> h_src_idata(np);
-            Gpu::copyAsync(Gpu::deviceToHost,
-                           ptile_src.GetArrayOfStructs().begin(),
-                           ptile_src.GetArrayOfStructs().end(),
-                           h_src_aos.begin());
-            Gpu::copyAsync(Gpu::deviceToHost,
-                           ptile_src.GetStructOfArrays().GetIntData(NAI - 1).begin(),
-                           ptile_src.GetStructOfArrays().GetIntData(NAI - 1).end(),
-                           h_src_idata.begin());
-            Gpu::streamSynchronize();
-
-            // Only the first (np - src_start) particles are eligible due to
-            // the bounds guard in the filter (the last src_start iterations of
-            // the internal loop would access p_offsets out-of-bounds).
-            const int np_eligible = np - src_start;
-            AMREX_ALWAYS_ASSERT(np_eligible > 0);
-
-            int num_pass = 0;
-            for (int i = 0; i < np_eligible; ++i) {
-                if (h_src_aos[i].id() % 2 == 1) { ++num_pass; }
-            }
-
-            // Pre-allocate dst with dst_start slots (pre-existing) plus room for output.
             ParticleTileType ptile_dst;
-            ptile_dst.resize(dst_start + num_pass);
+            ptile_dst.resize(np);
 
-            // The filter and transformer receive i = src_start + tile_index,
-            // so they subtract src_start to index into the actual tile data.
-            // The guard (i - src_start < np - src_start) prevents accessing
-            // p_offsets[src_start+tile_index] out-of-bounds for the last src_start
-            // iterations of the internal loop (where tile_index >= np - src_start).
+            Gpu::DeviceVector<int> mask(np, 1);
+
+            auto num_output = amrex::filterParticles(ptile_dst, ptile_src, mask.dataPtr());
+            AMREX_ALWAYS_ASSERT(num_output == np);
+        }
+    }
+}
+
+template <typename PC>
+void testFilterAndTransformWithOffsets (const PC& pc)
+{
+    using ParticleTileType = typename PC::ParticleTileType;
+    using ParIter = typename PC::ParConstIterType;
+
+    // Use non-zero offsets: src particles are read starting at src_start,
+    // and written into dst starting at dst_start.
+    const int src_start = 3;
+    const int dst_start = 5;
+
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
+    {
+        for (ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            const auto& ptile_src = pc.ParticlesAt(lev, pti);
+            const int np = ptile_src.numParticles();
+
+            if (np == 0) { continue; }
+
+            const int num_expected = np - src_start;
+            AMREX_ALWAYS_ASSERT(num_expected > 0);
+
+            ParticleTileType ptile_dst;
+            ptile_dst.resize(dst_start + num_expected);
+
             auto num_output = amrex::filterAndTransformParticles(
                 ptile_dst, ptile_src,
-                [=] AMREX_GPU_HOST_DEVICE (const ConstParticleTileDataType& src, int i) noexcept
-                {
-                    const int tile_i = i - src_start;
-                    if (tile_i >= np - src_start) { return false; }
-                    return src.m_aos[tile_i].id() % 2 == 1;
-                },
-                [=] AMREX_GPU_HOST_DEVICE (const ParticleTileDataType& dst,
-                                           const ConstParticleTileDataType& src,
-                                           int src_i, int dst_i) noexcept
-                {
-                    const int tile_i = src_i - src_start;
-                    dst.m_aos[dst_i] = src.m_aos[tile_i];
-                    for (int j = 0; j < dst.m_num_runtime_real; ++j) {
-                        dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][tile_i];
-                    }
-                    for (int j = 0; j < dst.m_num_runtime_int; ++j) {
-                        dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][tile_i];
-                    }
-                    for (int j = 0; j < ParticleTileDataType::NAR; ++j) {
-                        dst.m_rdata[j][dst_i] = src.m_rdata[j][tile_i];
-                    }
-                    for (int j = 0; j < ParticleTileDataType::NAI; ++j) {
-                        dst.m_idata[j][dst_i] = factor * src.m_idata[j][tile_i];
-                    }
-                },
+                KeepAllFilter(), WriteSourceIndex(),
                 src_start, dst_start);
 
-            AMREX_ALWAYS_ASSERT(num_output == num_pass);
+            AMREX_ALWAYS_ASSERT(num_output == num_expected);
 
-            // Copy dst particle data to host for verification (src was already copied above).
-            Gpu::HostVector<ParticleType> h_dst_aos(ptile_dst.size());
             Gpu::HostVector<int> h_dst_idata(ptile_dst.size());
-
-            Gpu::copyAsync(Gpu::deviceToHost,
-                           ptile_dst.GetArrayOfStructs().begin(),
-                           ptile_dst.GetArrayOfStructs().end(),
-                           h_dst_aos.begin());
             Gpu::copyAsync(Gpu::deviceToHost,
                            ptile_dst.GetStructOfArrays().GetIntData(NAI - 1).begin(),
                            ptile_dst.GetStructOfArrays().GetIntData(NAI - 1).end(),
                            h_dst_idata.begin());
             Gpu::streamSynchronize();
 
-            // Verify: dst[dst_start..dst_start+num_pass-1] holds the
-            // filtered+transformed particles - all ids must be odd.
-            for (int k = dst_start; k < dst_start + num_pass; ++k) {
-                AMREX_ALWAYS_ASSERT(h_dst_aos[k].id() % 2 == 1);
+            for (int i = 0; i < num_expected; ++i) {
+                AMREX_ALWAYS_ASSERT(h_dst_idata[dst_start + i] == src_start + i);
             }
 
-            // Check that every eligible odd-id source particle appears in dst
-            // (via id matching) and that its idata was multiplied by factor.
-            for (int i = 0; i < np_eligible; ++i) {
-                if (h_src_aos[i].id() % 2 == 0) { continue; }
-                bool found = false;
-                for (int k = dst_start; k < dst_start + num_pass; ++k) {
-                    if (h_dst_aos[k].id() == h_src_aos[i].id()) {
-                        AMREX_ALWAYS_ASSERT(h_dst_idata[k] == factor * h_src_idata[i]);
-                        found = true;
-                        break;
-                    }
-                }
-                AMREX_ALWAYS_ASSERT(found);
+            ParticleTileType ptile_mask_dst;
+            ptile_mask_dst.resize(dst_start + num_expected);
+
+            Gpu::DeviceVector<int> mask(num_expected, 1);
+            num_output = amrex::filterAndTransformParticles(ptile_mask_dst, ptile_src,
+                                                            mask.dataPtr(), WriteSourceIndex(),
+                                                            src_start, dst_start);
+
+            AMREX_ALWAYS_ASSERT(num_output == num_expected);
+
+            Gpu::HostVector<int> h_mask_dst_idata(ptile_mask_dst.size());
+            Gpu::copyAsync(Gpu::deviceToHost,
+                           ptile_mask_dst.GetStructOfArrays().GetIntData(NAI - 1).begin(),
+                           ptile_mask_dst.GetStructOfArrays().GetIntData(NAI - 1).end(),
+                           h_mask_dst_idata.begin());
+            Gpu::streamSynchronize();
+
+            for (int i = 0; i < num_expected; ++i) {
+                AMREX_ALWAYS_ASSERT(h_mask_dst_idata[dst_start + i] == src_start + i);
             }
         }
     }
@@ -706,6 +733,10 @@ void testTransformations ()
     testTransform(pc);
 
     testFilter(pc);
+
+    testEmptyFilterAndTransform<TestParticleContainer>();
+
+    testFilterParticlesWithMask(pc);
 
     testFilterAndTransform(pc);
 
