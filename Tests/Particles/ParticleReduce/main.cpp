@@ -30,9 +30,9 @@ void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
                      int iy_part = (i_part % (ny * nz)) % ny;,
                      int iz_part = (i_part % (ny * nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
-                     r[1] = (0.5+iy_part)/ny;,
-                     r[2] = (0.5+iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (Real(0.5)+Real(ix_part))/Real(nx);,
+                     r[1] = (Real(0.5)+Real(iy_part))/Real(ny);,
+                     r[2] = (Real(0.5)+Real(iz_part))/Real(nz);)
 }
 
 class TestParticleContainer
