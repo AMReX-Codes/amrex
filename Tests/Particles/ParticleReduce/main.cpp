@@ -188,19 +188,19 @@ void testReduce ()
     using PType   = typename TestParticleContainer::ParticleType;
     using PTDType = typename TestParticleContainer::ParticleTileType::ConstParticleTileDataType;
 
-    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(sm == pc.TotalNumberOfParticles());
 
-    auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return -p.rdata(NSR+1); });
+    auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return -p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(sm2 == -pc.TotalNumberOfParticles());
 
-    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real { return ptd.m_aos[i].rdata(1);});
+    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal { return ptd.m_aos[i].rdata(1);});
     AMREX_ALWAYS_ASSERT(mn == 1);
 
-    auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return p.rdata(NSR+1); });
+    auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(mn2 == 1);
 
-    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return p.rdata(1); });
+    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mx == 1);
 
     auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int { return p.idata(NSI); });
@@ -228,11 +228,11 @@ void testReduce ()
 
     {
         amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-        auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
-         pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+        auto r = amrex::ParticleReduce<ReduceData<amrex::ParticleReal, amrex::ParticleReal,int>> (
+         pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::ParticleReal,amrex::ParticleReal,int>
            {
-               const amrex::Real a = p.rdata(1);
-               const amrex::Real b = p.rdata(2);
+               const amrex::ParticleReal a = p.rdata(1);
+               const amrex::ParticleReal b = p.rdata(2);
                const int c = p.idata(1);
                return {a, b, c};
            }, reduce_ops);
