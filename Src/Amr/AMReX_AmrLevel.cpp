@@ -1216,48 +1216,48 @@ FixUpPhysCorners (FArrayBox&      fab,
 
         Box lo_slab = fab.box();
         Box hi_slab = fab.box();
-        lo_slab.shift(dir, ProbDomain.length(dir));
-        hi_slab.shift(dir,-ProbDomain.length(dir));
+        lo_slab.shift(dir, TheGeom.period(dir));
+        hi_slab.shift(dir,-TheGeom.period(dir));
         lo_slab &= GrownDomain;
         hi_slab &= GrownDomain;
 
         if (lo_slab.ok())
         {
-            lo_slab.shift(dir,-ProbDomain.length(dir));
+            lo_slab.shift(dir,-TheGeom.period(dir));
 
             BL_ASSERT(fab.box().contains(lo_slab));
             BL_ASSERT(HasPhysBndry(lo_slab,ProbDomain,TheGeom));
 
             tmp.resize(lo_slab,ncomp);
             tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
-            tmp.shift(dir,ProbDomain.length(dir));
+            tmp.shift(dir,TheGeom.period(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
                                            time,
                                            0,
                                            scomp,
                                            ncomp);
-            tmp.shift(dir,-ProbDomain.length(dir));
+            tmp.shift(dir,-TheGeom.period(dir));
             fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
 
         if (hi_slab.ok())
         {
-            hi_slab.shift(dir,ProbDomain.length(dir));
+            hi_slab.shift(dir,TheGeom.period(dir));
 
             BL_ASSERT(fab.box().contains(hi_slab));
             BL_ASSERT(HasPhysBndry(hi_slab,ProbDomain,TheGeom));
 
             tmp.resize(hi_slab,ncomp);
             tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
-            tmp.shift(dir,-ProbDomain.length(dir));
+            tmp.shift(dir,-TheGeom.period(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
                                            time,
                                            0,
                                            scomp,
                                            ncomp);
-            tmp.shift(dir,ProbDomain.length(dir));
+            tmp.shift(dir,TheGeom.period(dir));
             fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
     }
