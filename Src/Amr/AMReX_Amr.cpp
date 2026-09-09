@@ -2571,8 +2571,6 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
-    amrex::ignore_unused(pmap);
-
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
@@ -2590,6 +2588,7 @@ Amr::defBaseLevel (Real              strt_time,
     }
 
     BoxArray lev0;
+    DistributionMapping dm0;
 
     if (lev0_grids != nullptr && !lev0_grids->empty())
     {
@@ -2608,14 +2607,28 @@ Amr::defBaseLevel (Real              strt_time,
         if (refine_grid_layout) {
             ChopGrids(0,lev0,ParallelDescriptor::NProcs());
         }
+
+        // Honor the caller-supplied processor map, unless ChopGrids has
+        // changed the number of boxes.
+        if (pmap != nullptr && !pmap->empty()) {
+            if (std::ssize(*pmap) == lev0.size()) {
+                dm0.define(*pmap);
+            } else {
+                amrex::Warning("defBaseLevel: pmap does not match lev0 grids; ignoring pmap");
+            }
+        }
     }
     else
     {
         lev0 = MakeBaseGrids();
     }
 
+    if (dm0.empty()) {
+        dm0.define(lev0);
+    }
+
     this->SetBoxArray(0, lev0);
-    this->SetDistributionMap(0, DistributionMapping(lev0));
+    this->SetDistributionMap(0, dm0);
 
     //
     // Now build level 0 grids.
