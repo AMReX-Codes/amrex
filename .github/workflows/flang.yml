@@ -24,9 +24,23 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_flang.sh 20
+      run: |
+        .github/workflows/dependencies/dependencies_flang.sh 20
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=80M
+        ccache -z
+
         # The apt.llvm.org packages ship the driver as either flang-<ver>
         # or flang-new-<ver> depending on the LLVM release.
         FLANG=$(which flang-20 || which flang-new-20)
@@ -43,7 +57,10 @@ jobs:
             -DAMReX_MPI=OFF                            \
             -DCMAKE_C_COMPILER=$(which clang-20)       \
             -DCMAKE_CXX_COMPILER=$(which clang++-20)   \
-            -DCMAKE_Fortran_COMPILER=${FLANG}
+            -DCMAKE_Fortran_COMPILER=${FLANG}          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
         make test_install
+
+        ccache -s
