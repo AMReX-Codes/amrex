@@ -573,13 +573,13 @@ void MDParticleContainer::checkNeighborList()
                 if ( i == j ) { continue; }
 
                 ParticleType& p2 = h_pstruct[j];
-                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
-                             Real dy = p1.pos(1) - p2.pos(1);,
-                             Real dz = p1.pos(2) - p2.pos(2);)
+                AMREX_D_TERM(ParticleReal dx = p1.pos(0) - p2.pos(0);,
+                             ParticleReal dy = p1.pos(1) - p2.pos(1);,
+                             ParticleReal dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
+                ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
 
-                Real cutoff_sq = Real(25.0)*Params::cutoff*Params::cutoff;
+                ParticleReal cutoff_sq = ParticleReal(25.0)*Params::cutoff*Params::cutoff;
 
                 if (r2 <= cutoff_sq)
                 {

@@ -41,10 +41,10 @@ namespace
         AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         bool operator() (const P1& p1, const P2& p2) const
         {
-            AMREX_D_TERM(Real d0 = p1.pos(0) - p2.pos(0);,
-                         Real d1 = p1.pos(1) - p2.pos(1);,
-                         Real d2 = p1.pos(2) - p2.pos(2);)
-            Real dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
+            AMREX_D_TERM(ParticleReal d0 = p1.pos(0) - p2.pos(0);,
+                         ParticleReal d1 = p1.pos(1) - p2.pos(1);,
+                         ParticleReal d2 = p1.pos(2) - p2.pos(2);)
+            ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
             return dsquared <= 25.0_rt*Cutoff*Cutoff;
         }
     };
@@ -463,9 +463,9 @@ public:
                 for (int j = 0; j < np_total; ++j) {
                     if (i == j) { continue; }
 
-                    Real dsquared = 0.0_rt;
+                    ParticleReal dsquared = 0.0_rt;
                     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                        Real d = host.real[dir][i] - host.real[dir][j];
+                        ParticleReal d = host.real[dir][i] - host.real[dir][j];
                         dsquared += d*d;
                     }
                     if (dsquared <= cutoff_sq) {
@@ -918,7 +918,7 @@ int main (int argc, char* argv[])
     pc.buildNeighborList(CheckPair());
     pc.checkNeighborList();
 
-    pc.moveParticles(0.1_rt);
+    pc.moveParticles(0.1_prt);
     pc.bumpPayload(2000);
     pc.updateNeighbors();
     pc.checkNeighbors();

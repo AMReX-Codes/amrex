@@ -158,13 +158,13 @@ void test ()
             auto sm_new = amrex::ReduceSum(newPC,
                 [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return ptd.rdata(icomp)[i];
+                    return static_cast<Real>(ptd.rdata(icomp)[i]);
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
                 [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return ptd.rdata(icomp)[i];
+                    return static_cast<Real>(ptd.rdata(icomp)[i]);
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);
