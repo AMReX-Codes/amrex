@@ -576,7 +576,8 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
-                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse,
+                                  MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
             }
             EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -606,7 +607,8 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
         {
             BoxArray cba = fine[idim]->boxArray();
             cba.coarsen(ratio);
-            ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse,
+                              MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
         }
         EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
