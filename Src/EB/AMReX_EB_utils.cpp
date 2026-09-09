@@ -309,9 +309,9 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     AMREX_D_TERM(Real dxinv = 1._rt/dx_eb[0];,
                                  Real dyinv = 1._rt/dx_eb[1];,
                                  Real dzinv = 1._rt/dx_eb[2]);
-                    AMREX_D_TERM(Real x = i*dx_ls[0];,
-                                 Real y = j*dx_ls[1];,
-                                 Real z = k*dx_ls[2]);
+                    AMREX_D_TERM(Real x = Real(i)*dx_ls[0];,
+                                 Real y = Real(j)*dx_ls[1];,
+                                 Real z = Real(k)*dx_ls[2]);
                     Real min_dist2 = std::numeric_limits<Real>::max();
                     int i_nearest = 0;
                     for (int ifac  = 0; ifac < ncutcells; ++ifac) {
@@ -356,9 +356,9 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 #endif
                         for (int j_shift = -1; j_shift <= 1; ++j_shift) {
                         for (int i_shift = -1; i_shift <= 1; ++i_shift) {
-                            AMREX_D_TERM(vi_x = static_cast<int>(std::floor((eb_min_x+i_shift*1.e-6_rt*dx_eb[0])*dxinv));,
-                                         vi_y = static_cast<int>(std::floor((eb_min_y+j_shift*1.e-6_rt*dx_eb[1])*dyinv));,
-                                         vi_z = static_cast<int>(std::floor((eb_min_z+k_shift*1.e-6_rt*dx_eb[2])*dzinv)));
+                            AMREX_D_TERM(vi_x = static_cast<int>(std::floor((eb_min_x+Real(i_shift)*1.e-6_rt*dx_eb[0])*dxinv));,
+                                         vi_y = static_cast<int>(std::floor((eb_min_y+Real(j_shift)*1.e-6_rt*dx_eb[1])*dyinv));,
+                                         vi_z = static_cast<int>(std::floor((eb_min_z+Real(k_shift)*1.e-6_rt*dx_eb[2])*dzinv)));
                             if (AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z)) {
                                 min_pt_valid = true;
                                 goto after_loops;

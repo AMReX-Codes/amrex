@@ -254,9 +254,9 @@ void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
                     AMREX_HOST_DEVICE_FOR_3D(ndbx, i, j, k,
                     {
                         if (lstarr(i,j,k) >= Real(0.0)) {
-                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+i*cellsize[0],
-                                                        problo[1]+j*cellsize[1],
-                                                        problo[2]+k*cellsize[2]));
+                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*cellsize[0],
+                                                        problo[1]+Real(j)*cellsize[1],
+                                                        problo[2]+Real(k)*cellsize[2]));
                         }
                     });
                 }

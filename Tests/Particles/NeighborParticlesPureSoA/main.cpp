@@ -140,9 +140,9 @@ namespace
                      int iy_part = (i_part % (ny*nz)) % ny;,
                      int iz_part = (i_part % (ny*nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5_rt + ix_part)/nx;,
-                     r[1] = (0.5_rt + iy_part)/ny;,
-                     r[2] = (0.5_rt + iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (0.5_rt + Real(ix_part))/Real(nx);,
+                     r[1] = (0.5_rt + Real(iy_part))/Real(ny);,
+                     r[2] = (0.5_rt + Real(iz_part))/Real(nz);)
     }
 
     void get_test_params (TestParams& params)
@@ -222,9 +222,9 @@ public:
                     ParticleIDWrapper(host_idcpu.back()) = id;
                     ParticleCPUWrapper(host_idcpu.back()) = ParallelDescriptor::MyProc();
 
-                    AMREX_D_TERM(host_real[0].push_back(static_cast<ParticleReal>(plo[0] + (iv[0] + r[0])*dx[0]));,
-                                 host_real[1].push_back(static_cast<ParticleReal>(plo[1] + (iv[1] + r[1])*dx[1]));,
-                                 host_real[2].push_back(static_cast<ParticleReal>(plo[2] + (iv[2] + r[2])*dx[2]));)
+                    AMREX_D_TERM(host_real[0].push_back(static_cast<ParticleReal>(plo[0] + (Real(iv[0]) + r[0])*dx[0]));,
+                                 host_real[1].push_back(static_cast<ParticleReal>(plo[1] + (Real(iv[1]) + r[1])*dx[1]));,
+                                 host_real[2].push_back(static_cast<ParticleReal>(plo[2] + (Real(iv[2]) + r[2])*dx[2]));)
                     auto const marker_real = static_cast<ParticleReal>(marker);
                     host_real[MarkerRealComp].push_back(marker_real);
                     host_real[PayloadRealComp].push_back(marker_real + ParticleReal(0.5_rt));
@@ -889,7 +889,7 @@ int main (int argc, char* argv[])
     for (int dir = 0; dir < BL_SPACEDIM; ++dir)
     {
         real_box.setLo(dir, 0.0);
-        real_box.setHi(dir, params.size[dir]);
+        real_box.setHi(dir, Real(params.size[dir]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));

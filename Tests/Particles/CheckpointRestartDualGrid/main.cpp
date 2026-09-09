@@ -134,7 +134,7 @@ void add_finest_level_particles (MyPC& pc, MeshData const& mesh,
 
             PType p;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                p.pos(d) = static_cast<ParticleReal>(problo[d] + (iv[d] + 0.5_rt) * dx[d]);
+                p.pos(d) = static_cast<ParticleReal>(problo[d] + (Real(iv[d]) + 0.5_rt) * dx[d]);
             }
             for (int i = 0; i < NStructReal; ++i) {
                 p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);

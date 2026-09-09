@@ -238,7 +238,7 @@ struct Linear : public Base<Linear, amrex::Real>
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + amrex::Real(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l)) - 1;
-            amrex::Real lint = l - (index[i] + 1);
+            amrex::Real lint = l - Real(index[i] + 1);
             w[stencil_width*i + 0] = amrex::Real(1.)-lint;
             w[stencil_width*i + 1] = lint;
         }

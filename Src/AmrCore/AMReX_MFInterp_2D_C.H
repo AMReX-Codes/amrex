@@ -236,35 +236,35 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int j, int ns, Array4<Real> con
     if (sx != Real(0.0) || sy != Real(0.0)) {
 
         // x-direction
-        const Real drc = drf * ratio[0];
-        const Real rcm =  i    * drc + rlo;
-        const Real rcp = (i+1) * drc + rlo;
+        const Real drc = drf * Real(ratio[0]);
+        const Real rcm = Real(i)   * drc + rlo;
+        const Real rcp = Real(i+1) * drc + rlo;
         Real vcm = rcm*rcm*rcm;
         Real vcp = rcp*rcp*rcp;
-        Real rfm =  i*ratio[0]      * drf + rlo;
-        Real rfp = (i*ratio[0] + 1) * drf + rlo;
+        Real rfm = Real(i*ratio[0])     * drf + rlo;
+        Real rfp = Real(i*ratio[0] + 1) * drf + rlo;
         Real vfm = rfm*rfm*rfm;
         Real vfp = rfp*rfp*rfp;
         Real xlo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-        rfm = ((i+1)*ratio[0] - 1) * drf + rlo;
-        rfp =  (i+1)*ratio[0]      * drf + rlo;
+        rfm = Real((i+1)*ratio[0] - 1) * drf + rlo;
+        rfp = Real((i+1)*ratio[0])     * drf + rlo;
         vfm = rfm*rfm*rfm;
         vfp = rfp*rfp*rfp;
         Real xhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
 
         // y-direction
-        const Real dtc = dtf * ratio[1];
-        const Real tcm = j     * dtc + tlo;
-        const Real tcp = (j+1) * dtc + tlo;
+        const Real dtc = dtf * Real(ratio[1]);
+        const Real tcm = Real(j)   * dtc + tlo;
+        const Real tcp = Real(j+1) * dtc + tlo;
         vcm = std::cos(tcm);
         vcp = std::cos(tcp);
-        Real tfm =  j*ratio[1]      * dtf + tlo;
-        Real tfp = (j*ratio[1] + 1) * dtf + tlo;
+        Real tfm = Real(j*ratio[1])     * dtf + tlo;
+        Real tfp = Real(j*ratio[1] + 1) * dtf + tlo;
         vfm = std::cos(tfm);
         vfp = std::cos(tfp);
         Real ylo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-        tfm = ((j+1)*ratio[1] - 1) * dtf + tlo;
-        tfp =  (j+1)*ratio[1]      * dtf + tlo;
+        tfm = Real((j+1)*ratio[1] - 1) * dtf + tlo;
+        tfp = Real((j+1)*ratio[1])     * dtf + tlo;
         vfm = std::cos(tfm);
         vfp = std::cos(tfp);
         Real yhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
@@ -300,11 +300,11 @@ void mf_cell_cons_lin_interp_sph (int i, int j, int ns, Array4<Real> const& fine
 {
     // x-direction
     const int ic = amrex::coarsen(i, ratio[0]);
-    const Real drc =  drf * ratio[0];
-    const Real rcm =  ic    * drc + rlo;
-    const Real rcp = (ic+1) * drc + rlo;
-    const Real rfm =  i     * drf + rlo;
-    const Real rfp = (i +1) * drf + rlo;
+    const Real drc = drf * Real(ratio[0]);
+    const Real rcm = Real(ic)   * drc + rlo;
+    const Real rcp = Real(ic+1) * drc + rlo;
+    const Real rfm = Real(i)    * drf + rlo;
+    const Real rfp = Real(i+1)  * drf + rlo;
     Real vcm = rcm*rcm*rcm;
     Real vcp = rcp*rcp*rcp;
     Real vfm = rfm*rfm*rfm;
@@ -313,11 +313,11 @@ void mf_cell_cons_lin_interp_sph (int i, int j, int ns, Array4<Real> const& fine
 
     // y-direction
     const int jc = amrex::coarsen(j, ratio[1]);
-    const Real dtc =  dtf * ratio[1];
-    const Real tcm =  jc    * dtc + tlo;
-    const Real tcp = (jc+1) * dtc + tlo;
-    const Real tfm =  j     * dtf + tlo;
-    const Real tfp = (j +1) * dtf + tlo;
+    const Real dtc = dtf * Real(ratio[1]);
+    const Real tcm = Real(jc)   * dtc + tlo;
+    const Real tcp = Real(jc+1) * dtc + tlo;
+    const Real tfm = Real(j)    * dtf + tlo;
+    const Real tfp = Real(j+1)  * dtf + tlo;
     vcm = std::cos(tcm);
     vcp = std::cos(tcp);
     vfm = std::cos(tfm);
@@ -360,18 +360,18 @@ void mf_cell_cons_lin_interp_mcslope_rz (int i, int j, int ns, Array4<Real> cons
 
     Real alpha = Real(1.0);
     if (sx != Real(0.0) || sy != Real(0.0)) {
-        const Real drc = drf * ratio[0];
-        const Real rcm =  i    * drc + rlo;
-        const Real rcp = (i+1) * drc + rlo;
+        const Real drc = drf * Real(ratio[0]);
+        const Real rcm = Real(i)   * drc + rlo;
+        const Real rcp = Real(i+1) * drc + rlo;
         const Real vcm = rcm*rcm;
         const Real vcp = rcp*rcp;
-        Real rfm =  i*ratio[0]      * drf + rlo;
-        Real rfp = (i*ratio[0] + 1) * drf + rlo;
+        Real rfm = Real(i*ratio[0])     * drf + rlo;
+        Real rfp = Real(i*ratio[0] + 1) * drf + rlo;
         Real vfm = rfm*rfm;
         Real vfp = rfp*rfp;
         Real xlo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-        rfm = ((i+1)*ratio[0] - 1) * drf + rlo;
-        rfp =  (i+1)*ratio[0]      * drf + rlo;
+        rfm = Real((i+1)*ratio[0] - 1) * drf + rlo;
+        rfp = Real((i+1)*ratio[0])     * drf + rlo;
         vfm = rfm*rfm;
         vfp = rfp*rfp;
         Real xhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
@@ -407,17 +407,17 @@ void mf_cell_cons_lin_interp_rz (int i, int j, int ns, Array4<Real> const& fine,
 {
     const int ic = amrex::coarsen(i, ratio[0]);
     const int jc = amrex::coarsen(j, ratio[1]);
-    const Real drc =  drf * ratio[0];
-    const Real rcm =  ic    * drc + rlo;
-    const Real rcp = (ic+1) * drc + rlo;
-    const Real rfm =  i     * drf + rlo;
-    const Real rfp = (i +1) * drf + rlo;
+    const Real drc = drf * Real(ratio[0]);
+    const Real rcm = Real(ic)   * drc + rlo;
+    const Real rcp = Real(ic+1) * drc + rlo;
+    const Real rfm = Real(i)    * drf + rlo;
+    const Real rfp = Real(i+1)  * drf + rlo;
     const Real vcm = rcm*rcm;
     const Real vcp = rcp*rcp;
     const Real vfm = rfm*rfm;
     const Real vfp = rfp*rfp;
     const Real xoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-    const Real yoff = (j - jc*ratio[1] + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+    const Real yoff = (Real(j - jc*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
     fine(i,j,0,fcomp+ns) = crse(ic,jc,0,ccomp+ns)
         + xoff * slope(ic,jc,0,ns)
         + yoff * slope(ic,jc,0,ns+ncomp);

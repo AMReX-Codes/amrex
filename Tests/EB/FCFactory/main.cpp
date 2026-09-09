@@ -129,7 +129,7 @@ void main_main()
     Real cell_volume = AMREX_D_TERM(geom.CellSize(0),*geom.CellSize(1),*geom.CellSize(2));
     const Real pi = std::numbers::pi_v<Real>;
 #if (AMREX_SPACEDIM == 3)
-    Real vol_analytical = Real(4.0/3.0) * pi * std::pow(sphere_radius, 3);
+    Real vol_analytical = Real(4.0/3.0) * pi * Real(std::pow(sphere_radius, 3));
 #else
     Real vol_analytical = pi * (sphere_radius*sphere_radius);
 #endif

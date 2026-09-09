@@ -71,7 +71,7 @@ void test ()
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
         mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], ncomp, nghost);
-        mf[lev]->setVal(lev);
+        mf[lev]->setVal(Real(lev));
     }
 
     // these don't really matter, make something up
@@ -180,13 +180,13 @@ void test ()
             auto sm_new = amrex::ReduceSum(newPC,
                 [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return ptd.idata(icomp)[i];
+                    return Real(ptd.idata(icomp)[i]);
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
                 [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return ptd.idata(icomp)[i];
+                    return Real(ptd.idata(icomp)[i]);
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);

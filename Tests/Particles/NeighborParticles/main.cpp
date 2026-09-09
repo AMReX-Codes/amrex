@@ -67,7 +67,7 @@ void testNeighborParticles ()
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
@@ -184,7 +184,7 @@ void testNeighborList ()
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));

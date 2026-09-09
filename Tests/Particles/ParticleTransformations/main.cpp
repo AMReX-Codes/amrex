@@ -28,9 +28,9 @@ void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
                      int iy_part = (i_part % (ny * nz)) % ny;,
                      int iz_part = (i_part % (ny * nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
-                     r[1] = (0.5+iy_part)/ny;,
-                     r[2] = (0.5+iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (Real(0.5)+Real(ix_part))/Real(nx);,
+                     r[1] = (Real(0.5)+Real(iy_part))/Real(ny);,
+                     r[2] = (Real(0.5)+Real(iz_part))/Real(nz);)
 }
 
 class TestParticleContainer
@@ -72,9 +72,9 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
-                                 auto y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
-                                 auto z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
+                    AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (Real(iv[0]) + r[0])*dx[0]);,
+                                 auto y = static_cast<ParticleReal> (plo[1] + (Real(iv[1]) + r[1])*dx[1]);,
+                                 auto z = static_cast<ParticleReal> (plo[2] + (Real(iv[2]) + r[2])*dx[2]);)
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
@@ -705,7 +705,7 @@ void testTransformations ()
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));

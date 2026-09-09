@@ -22,9 +22,9 @@ void fill_rhs (MultiFab& rho, Geometry const& geom, IndexType ixtype)
 
     ParallelFor(rho, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
     {
-        Real x = (i+0.5_rt/nsub)*dx[0] + problo[0];
-        Real y = (j+0.5_rt/nsub)*dx[1] + problo[1];
-        Real z = (k+0.5_rt/nsub)*dx[2] + problo[2];
+        Real x = (Real(i)+0.5_rt/nsub)*dx[0] + problo[0];
+        Real y = (Real(j)+0.5_rt/nsub)*dx[1] + problo[1];
+        Real z = (Real(k)+0.5_rt/nsub)*dx[2] + problo[2];
         if (ixtype.nodeCentered()) {
             x -= 0.5_rt*dx[0];
             y -= 0.5_rt*dx[1];
@@ -34,9 +34,9 @@ void fill_rhs (MultiFab& rho, Geometry const& geom, IndexType ixtype)
         for (int isub = 0; isub < nsub; ++isub) {
         for (int jsub = 0; jsub < nsub; ++jsub) {
         for (int ksub = 0; ksub < nsub; ++ksub) {
-            auto xs = x + isub*dxsub;
-            auto ys = y + jsub*dysub;
-            auto zs = z + ksub*dzsub;
+            auto xs = x + Real(isub)*dxsub;
+            auto ys = y + Real(jsub)*dysub;
+            auto zs = z + Real(ksub)*dzsub;
             if ((xs*xs+ys*ys+zs*zs) < 0.25_rt) { ++n; }
         }}}
         rhoma[b](i,j,k) = Real(n) / Real(nsub*nsub*nsub);
@@ -120,7 +120,7 @@ int main (int argc, char* argv[])
                     auto error = std::abs(expected-v[0])/std::max(std::abs(expected),std::abs(v[0]));
                     amrex::AllPrint() << "  error " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-                    constexpr Real eps = 1.e-5;
+                    constexpr Real eps = Real(1.e-5);
 #else
                     constexpr Real eps = 1.e-6;
 #endif
@@ -175,7 +175,7 @@ int main (int argc, char* argv[])
             Real const error = diff.norm0(0) / refnorm;
             amrex::Print() << "  relative padded/unpadded error " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            constexpr Real eps = 1.e-5;
+            constexpr Real eps = Real(1.e-5);
 #else
             constexpr Real eps = 1.e-13;
 #endif

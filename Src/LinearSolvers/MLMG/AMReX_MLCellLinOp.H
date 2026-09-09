@@ -1799,13 +1799,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc*rc;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 rhsarr(i,j,k,n) *= re*re;
             });
         }
@@ -1813,13 +1813,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 rhsarr(i,j,k,n) *= re;
             });
         }
@@ -1855,13 +1855,13 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rcinv = RT(1.0)/(probxlo + (i+RT(0.5))*dx);
+                RT rcinv = RT(1.0)/(probxlo + (RT(i)+RT(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv*rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 RT reinv = (re==RT(0.0)) ? RT(0.0) : RT(1.)/re;
                 rhsarr(i,j,k,n) *= reinv*reinv;
             });
@@ -1870,13 +1870,13 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rcinv = RT(1.0)/(probxlo + (i+RT(0.5))*dx);
+                RT rcinv = RT(1.0)/(probxlo + (RT(i)+RT(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 RT reinv = (re==RT(0.0)) ? RT(0.0) : RT(1.)/re;
                 rhsarr(i,j,k,n) *= reinv;
             });

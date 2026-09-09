@@ -36,9 +36,9 @@ void get_position_unit_cell (Real* r, const IntVect& nppc, int i_part)
     int iy_part = (i_part % (ny * nz)) % ny;
     int iz_part = (i_part % (ny * nz)) / ny;
 
-    r[0] = (0.5+ix_part)/nx;
-    r[1] = (0.5+iy_part)/ny;
-    r[2] = (0.5+iz_part)/nz;
+    r[0] = (Real(0.5)+Real(ix_part))/Real(nx);
+    r[1] = (Real(0.5)+Real(iy_part))/Real(ny);
+    r[2] = (Real(0.5)+Real(iz_part))/Real(nz);
 }
 
 class TestParticleContainer
@@ -104,12 +104,12 @@ public:
                     ParticleType p;
                     p.id() = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = static_cast<ParticleReal>(plo[0] + (iv[0] + r[0])*dx[0]);
+                    p.pos(0) = static_cast<ParticleReal>(plo[0] + (Real(iv[0]) + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = static_cast<ParticleReal>(plo[1] + (iv[1] + r[1])*dx[1]);
+                    p.pos(1) = static_cast<ParticleReal>(plo[1] + (Real(iv[1]) + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = static_cast<ParticleReal>(plo[2] + (iv[2] + r[2])*dx[2]);
+                    p.pos(2) = static_cast<ParticleReal>(plo[2] + (Real(iv[2]) + r[2])*dx[2]);
 #endif
 
                     for (int i = 0; i < NSR; ++i) { p.rdata(i) = ParticleReal(p.id()); }
@@ -204,7 +204,7 @@ public:
                 {
                     for (int j = 0; j < NSR; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == Real(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < NSI; ++j)
                     {
@@ -213,7 +213,7 @@ public:
                     if constexpr (NAR > 0) {
                         for (int j = 0; j < NAR; ++j)
                         {
-                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
+                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == Real(ptd.m_aos[i].id()));
                         }
                     }
                     if constexpr (NAI > 0) {
@@ -224,7 +224,7 @@ public:
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == Real(ptd.m_aos[i].id()));
                     }
                     for (int j = 0; j < num_ii; ++j)
                     {
@@ -313,7 +313,7 @@ void testRedistributeGlobalDM ()
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
@@ -372,12 +372,12 @@ void testRedistributeGlobalDM ()
             new_dm.define(pmap);
             pc.SetParticleDistributionMap(lev, new_dm);
         }
-        total_dm_time += amrex::second() - dm_start;
+        total_dm_time += Real(amrex::second() - dm_start);
 
         ParallelDescriptor::Barrier();
         const auto redistribute_start = amrex::second();
         pc.RedistributeGlobal();
-        total_redistribute_time += amrex::second() - redistribute_start;
+        total_redistribute_time += Real(amrex::second() - redistribute_start);
 
         if (params.sort) { pc.SortParticlesByCell(); }
         if (params.check_answer_each_step) { pc.checkAnswer(); }

@@ -74,7 +74,7 @@ class AdvectionAmrCore : public AmrCore {
     void DoOperatorSplitStep(double dt, Direction dir) {
         // Perform first order accurate upwinding with velocity 1 in the stored direction.
         const double dx = Geom(0).CellSize(0);
-        const double a_dt_over_dx = dt / dx * (velocity == dir);
+        const Real a_dt_over_dx = Real(dt / dx * (velocity == dir));
         if (dir == Direction::x) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

@@ -70,7 +70,7 @@ void test ()
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
         mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], ncomp, nghost);
-        mf[lev]->setVal(lev);
+        mf[lev]->setVal(Real(lev));
     }
 
     // these don't really matter, make something up
