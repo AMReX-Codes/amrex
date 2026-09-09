@@ -763,7 +763,8 @@ jobs:
   # separate jobs to keep each one's build time down.  The two jobs pin
   # opposite AMReX_MPI and AMReX_OMP settings so that both the threaded and
   # the MPI paths are covered, and so that the tests that are only built
-  # without MPI are built at least once.
+  # without MPI are built at least once.  The 2D job also keeps the particles
+  # in double precision, which is otherwise never built.
   tests_single_precision_2D:
     name: GNU@13 SP 2D [tests]
     runs-on: ubuntu-24.04
@@ -801,7 +802,7 @@ jobs:
             -DAMReX_MPI=OFF                        \
             -DAMReX_OMP=ON                         \
             -DAMReX_PRECISION=SINGLE               \
-            -DAMReX_PARTICLES_PRECISION=SINGLE     \
+            -DAMReX_PARTICLES_PRECISION=DOUBLE     \
             -DAMReX_EB=ON                          \
             -DAMReX_FFT=ON                         \
             -DAMReX_LINEAR_SOLVERS=ON              \
