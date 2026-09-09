@@ -685,9 +685,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                         {
                             if (! is_per[idim]) { continue; }
                             if (pshift[idim] > 0) {
-                                pos[idim] += phi[idim] - plo[idim];
+                                pos[idim] += static_cast<ParticleReal>(phi[idim] - plo[idim]);
                             } else if (pshift[idim] < 0) {
-                                pos[idim] -= phi[idim] - plo[idim];
+                                pos[idim] -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
                             }
                         }
                         amrex::Gpu::memcpy(&p_snd_buffer[pos_offset], &pos[0],
@@ -760,9 +760,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                                 {
                                     if (! is_per[idim]) { continue; }
                                     if (pshift[idim] > 0) {
-                                        pos[idim] += phi[idim] - plo[idim];
+                                        pos[idim] += static_cast<ParticleReal>(phi[idim] - plo[idim]);
                                     } else if (pshift[idim] < 0) {
-                                        pos[idim] -= phi[idim] - plo[idim];
+                                        pos[idim] -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
                                     }
                                 }
                                 amrex::Gpu::memcpy(&p_snd_buffer[pos_offset], &pos[0],
