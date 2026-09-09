@@ -72,8 +72,13 @@ public:
     static constexpr int mixedcells = 0;
     static constexpr int allcovered = 1;
 
-    //! Enable/disable BVH acceleration when sampling.
-    void setBVHOptimization (bool flag) { m_bvh_optimization = flag; }
+    //! Enable/disable BVH acceleration when sampling.  Enabling it must be
+    //! done before the STL file is read.
+    void setBVHOptimization (bool flag) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag || m_num_tri == 0 || !m_bvh_nodes.empty(),
+            "STLtools: BVH optimization must be enabled before reading the STL file");
+        m_bvh_optimization = flag;
+    }
 
     /**
      * \brief Read an STL file, apply scaling/translation, and store triangles.
