@@ -304,7 +304,7 @@ operator>> (std::istream&         is,
 #else
             is >> ar[i][j];
 #endif
-            if (is.fail() and ar[i][j] != 0.0 and std::fpclassify(ar[i][j]) == FP_SUBNORMAL) {
+            if (is.fail() && ar[i][j] != 0.0 && std::fpclassify(ar[i][j]) == FP_SUBNORMAL) {
                 is.clear(is.rdstate() & ~std::ios_base::failbit);
             }
             is >> ch;
