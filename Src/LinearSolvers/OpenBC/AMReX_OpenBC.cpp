@@ -566,8 +566,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int jj = 0; jj < m_coarsen_ratio; ++jj) {
                     Real charge = tag.gp(i, jlo+jb*m_coarsen_ratio+jj,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
+                    Real yy = (Real(jj-m_coarsen_ratio/2)+0.5_rt)*dx[1]; // NOLINT
+                    Real zz = (Real(kk-m_coarsen_ratio/2)+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -608,8 +608,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii, j,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
+                    Real xx = (Real(ii-m_coarsen_ratio/2)+0.5_rt)*dx[0]; // NOLINT
+                    Real zz = (Real(kk-m_coarsen_ratio/2)+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -649,8 +649,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii,
                                          jlo+jb*m_coarsen_ratio+jj, k) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
+                    Real xx = (Real(ii-m_coarsen_ratio/2)+0.5_rt)*dx[0]; // NOLINT
+                    Real yy = (Real(jj-m_coarsen_ratio/2)+0.5_rt)*dx[1]; // NOLINT
                     Real ypow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {

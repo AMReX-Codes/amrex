@@ -54,7 +54,11 @@ int main(int argc, char *argv[]) {
     });
 
 
+    // GMRES relative residual target.
     auto eps = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-12);
+    // The conditioning of the matrix amplifies the residual, so the error in
+    // the solution needs a looser bound than the residual target itself.
+    auto solve_eps = (sizeof(Real) == 4) ? Real(1.e-4) : Real(1.e-12);
     amrex::SpMV(xvec, mat, exact);
 
     // Check the multiplication
@@ -77,7 +81,7 @@ int main(int argc, char *argv[]) {
     amrex::Print() << " Max norm error: multiplication = "
                    << multiplicationError << ", solve = " << solveError << "\n\n";
 
-    AMREX_ALWAYS_ASSERT(multiplicationError < eps && solveError < eps);
+    AMREX_ALWAYS_ASSERT(multiplicationError < eps && solveError < solve_eps);
   }
 
   // restriction

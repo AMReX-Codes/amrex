@@ -35,7 +35,7 @@ private:
     int bottom_verbose = 0;
     int max_iter = 200;
     int max_fmg_iter = 0;
-    amrex::Real reltol = 1.e-10;
+    amrex::Real reltol = amrex::Real(1.e-10);
 
     int gpu_regtest = 0;
     bool do_plots = true;

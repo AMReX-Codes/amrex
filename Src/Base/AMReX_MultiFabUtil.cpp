@@ -1054,7 +1054,7 @@ namespace amrex
                             return Real(0.);
                         } else {
                             constexpr Real pi = std::numbers::pi_v<Real>;
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                                 * a[box_no](i,j,k,icomp);
@@ -1071,7 +1071,7 @@ namespace amrex
                         if (m[box_no](i,j,k)) {
                             return Real(0.);
                         } else {
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             constexpr Real pi = std::numbers::pi_v<Real>;
                             return pi*dx[1]*dx[0]*(ro+ri)
@@ -1119,7 +1119,7 @@ namespace amrex
                                noexcept -> Real
                 {
                     constexpr Real pi = std::numbers::pi_v<Real>;
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                         * a[box_no](i,j,k,icomp);
@@ -1132,7 +1132,7 @@ namespace amrex
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
                 {
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     constexpr Real pi = std::numbers::pi_v<Real>;
                     return pi*dx[1]*dx[0]*(ro+ri)
