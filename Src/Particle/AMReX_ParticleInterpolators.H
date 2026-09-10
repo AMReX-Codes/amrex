@@ -112,7 +112,7 @@ struct Base // NOLINT(bugprone-crtp-constructor-accessibility)
      *                return arr(i, j, k, comp);  // no weighting
      *            },
      *            [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
-     *                                  int comp, amrex::Real val)
+     *                                  int comp, auto val)
      *            {
      *                part.rdata(comp) += val;
      *            });
@@ -249,8 +249,8 @@ struct Linear : public Base<Linear, amrex::ParticleMeshReal>
         }
         for (int i = AMREX_SPACEDIM; i < 3; ++i) {
             index[i] = 0;
-            w[stencil_width*i + 0] = amrex::ParticleMeshReal(1.);
-            w[stencil_width*i + 1] = amrex::ParticleMeshReal(0.);
+            w[stencil_width*i + 0] = WT(1.);
+            w[stencil_width*i + 1] = WT(0.);
         }
     }
 };

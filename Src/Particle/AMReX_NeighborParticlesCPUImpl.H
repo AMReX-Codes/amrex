@@ -19,9 +19,9 @@ void applyNeighborPeriodicShift (T& value, int dir, const IntVect& periodic_shif
 {
     if (!periodicity.isPeriodic(dir)) { return; }
     if (periodic_shift[dir] < 0) {
-        value += prob_domain.length(dir);
+        value = static_cast<T>(value + prob_domain.length(dir));
     } else if (periodic_shift[dir] > 0) {
-        value -= prob_domain.length(dir);
+        value = static_cast<T>(value - prob_domain.length(dir));
     }
 }
 
