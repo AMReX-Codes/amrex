@@ -1,0 +1,118 @@
+name: AlpineLinux
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-alpine-linux
+  cancel-in-progress: true
+
+jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
+  # Alpine Linux uses musl libc instead of glibc.  Everything we guard with
+  # __GLIBC__ (trapping of floating-point exceptions, backtraces, ...) is
+  # compiled out here, so this catches accidental use of GNU extensions.  The
+  # jobs also cover two CPU architectures that no other Linux job covers,
+  # 32-bit x86 and Arm64, and they are the only place where the SIMD code is
+  # built for Arm NEON.
+  #
+  # We enter Alpine with `docker run` instead of a job-level `container:`
+  # because the Actions runner ships no musl build of Node for Arm64, see
+  # https://github.com/actions/runner/issues/3665.  This way the actions
+  # (checkout, cache) run on the Ubuntu host and only the build runs in Alpine.
+  # Every container runs natively, none is emulated.
+  musl:
+    name: musl ${{ matrix.arch }} [tests]
+    runs-on: ${{ matrix.runner }}
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: x86_64
+            arch: x86-64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - id: x86
+            arch: 32bit x86
+            runner: ubuntu-24.04
+            platform: linux/386
+          - id: arm64
+            arch: Arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set Up Cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.id }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.id }}-git-
+    - name: Build & Test
+      # The build tree and the ccache directory are written by root, because the
+      # container runs as root.  That is fine on a hosted runner, which is
+      # discarded after the job.
+      #
+      # Alpine 3.24 ships GCC 15.  Compared to the warning set of the GCC jobs:
+      # -Wno-array-bounds is added because on 32-bit x86 GCC believes the
+      #     std::array index in amrex::StructOfArrays::GetIntData could be 2^31.
+      #     Several jobs in gcc.yml turn this warning off for the same reason.
+      # -Wnull-dereference is left out because GCC reports a potential null
+      #     dereference in amrex::FabArray::clear, reached through MultiCutFab.
+      # -Wno-psabi: on Arm, GCC notes an ABI change for every function returning
+      #     a small struct (e.g. amrex::Math::sincos), a page of notes per
+      #     translation unit.
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-psabi"}
+      run: |
+        mkdir -p ~/.cache/ccache
+        docker run --rm --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/work -w /work     \
+            -v ~/.cache/ccache:/ccache                    \
+            -e CXXFLAGS                                   \
+            -e CCACHE_DIR=/ccache                         \
+            -e CCACHE_COMPRESS=1                          \
+            -e CCACHE_COMPRESSLEVEL=10                    \
+            -e CCACHE_MAXSIZE=200M                        \
+            alpine:3.24 sh -eu -c '
+        apk add --no-cache build-base ccache cmake fftw-dev
+
+        wget -q -O - https://github.com/mattkretz/vir-simd/archive/refs/tags/v0.4.4.tar.gz \
+            | tar -xz -C /tmp
+        cmake -S /tmp/vir-simd-0.4.4 -B /tmp/vir-simd-build
+        cmake --build /tmp/vir-simd-build --target install
+
+        ccache -z
+
+        # Alpine builds FFTW with its native pthreads support only (libfftw3_threads)
+        cmake -S . -B build              \
+            -DCMAKE_BUILD_TYPE=Release   \
+            -DCMAKE_CXX_STANDARD=20      \
+            -DCMAKE_VERBOSE_MAKEFILE=ON  \
+            -DAMReX_EB=ON                \
+            -DAMReX_FFT=ON               \
+            -DAMReX_FFTW_OMP_SUFFIX=threads \
+            -DAMReX_OMP=ON               \
+            -DAMReX_PARTICLES=ON         \
+            -DAMReX_SIMD=ON              \
+            -DAMReX_TINY_PROFILE=ON      \
+            -DAMReX_ENABLE_TESTS=ON      \
+            -DAMReX_TEST_TYPE=Small      \
+            -DAMReX_FORTRAN=OFF          \
+            -DAMReX_MPI=OFF              \
+            -DAMReX_SPACEDIM=3           \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 4
+
+        ctest --test-dir build --output-on-failure
+
+        ccache -s
+        du -hs /ccache
+        '
