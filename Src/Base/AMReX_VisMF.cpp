@@ -7,8 +7,10 @@
 #include <AMReX_VisMF.H>
 
 #include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <iterator>
+#include <ios>
 #include <limits>
 #include <vector>
 #include <utility>
@@ -297,11 +299,15 @@ operator>> (std::istream&         is,
 
         for(Long j = 0; j < M; ++j) {
 #ifdef BL_USE_FLOAT
-            is >> dtemp >> ch;
+            is >> dtemp;
             ar[i][j] = static_cast<Real>(dtemp);
 #else
-            is >> ar[i][j] >> ch;
+            is >> ar[i][j];
 #endif
+            if (is.fail() and ar[i][j] != 0.0 and std::fpclassify(ar[i][j]) == FP_SUBNORMAL) {
+                is.clear(is.rdstate() & ~std::ios_base::failbit);
+            }
+            is >> ch;
             if( ch != ',' ) {
               amrex::Error("Expected a ',' got something else");
             }
