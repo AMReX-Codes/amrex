@@ -850,12 +850,6 @@ struct ParticleTile
                 GetStructOfArrays().GetIntData(j).setArena(a_arena);
             }
 
-            // The caches of runtime component pointers are dereferenced wherever the
-            // particle data itself is accessed, so they have to live in the same arena.
-            // Otherwise host code operating on a host-accessible tile - e.g. the plotfile
-            // packing of a pinned temporary container - dereferences device memory.
-            // Note: this has to happen before the vectors are resized below, so that an
-            //       allocation and its matching deallocation use the same arena.
             m_runtime_r_ptrs.setArena(a_arena);
             m_runtime_i_ptrs.setArena(a_arena);
             m_runtime_r_cptrs.setArena(a_arena);
