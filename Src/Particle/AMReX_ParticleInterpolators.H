@@ -194,8 +194,8 @@ struct Nearest : public Base<Nearest, int>
              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
     {
         w = &weights[0];
-        // Index arithmetic uses the wider of ParticleReal and Real.
-        using WT = decltype(p.pos(0) * plo[0]);
+        // Compute in the wider of Real and ParticleReal; round when storing.
+        using WT = amrex::ParticleMeshReal;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             WT l = (p.pos(i) - plo[i]) * dxi[i] + WT(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l));
@@ -221,7 +221,7 @@ struct Nearest : public Base<Nearest, int>
  *                    });
  *   \endcode
  */
-struct Linear : public Base<Linear, amrex::Real>
+struct Linear : public Base<Linear, amrex::ParticleMeshReal>
 {
     static constexpr int stencil_width = 2;
 
@@ -229,7 +229,7 @@ struct Linear : public Base<Linear, amrex::Real>
     static constexpr int ny = (AMREX_SPACEDIM >= 2) ? stencil_width - 1 : 0;
     static constexpr int nz = (AMREX_SPACEDIM >= 3) ? stencil_width - 1 : 0;
 
-    amrex::Real weights[3*stencil_width];
+    amrex::ParticleMeshReal weights[3*stencil_width];
 
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -238,19 +238,19 @@ struct Linear : public Base<Linear, amrex::Real>
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
     {
         w = &weights[0];
-        // Index arithmetic uses the wider of ParticleReal and Real.
-        using WT = decltype(p.pos(0) * plo[0]);
+        // Compute in the wider of Real and ParticleReal; round when storing.
+        using WT = amrex::ParticleMeshReal;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             WT l = (p.pos(i) - plo[i]) * dxi[i] + WT(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l)) - 1;
             WT lint = l - static_cast<WT>(index[i] + 1);
-            w[stencil_width*i + 0] = static_cast<amrex::Real>(WT(1.)-lint);
-            w[stencil_width*i + 1] = static_cast<amrex::Real>(lint);
+            w[stencil_width*i + 0] = WT(1.) - lint;
+            w[stencil_width*i + 1] = lint;
         }
         for (int i = AMREX_SPACEDIM; i < 3; ++i) {
             index[i] = 0;
-            w[stencil_width*i + 0] = 1.;
-            w[stencil_width*i + 1] = 0.;
+            w[stencil_width*i + 0] = amrex::ParticleMeshReal(1.);
+            w[stencil_width*i + 1] = amrex::ParticleMeshReal(0.);
         }
     }
 };

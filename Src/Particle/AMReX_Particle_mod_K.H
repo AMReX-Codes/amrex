@@ -20,8 +20,8 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
 
-    // Index arithmetic uses the wider of ParticleReal and Real.
-    using WT = decltype(p.pos(0) * plo[0]);
+    // Compute in the wider of Real and ParticleReal; round when adding to the mesh.
+    using WT = amrex::ParticleMeshReal;
 
 #if (AMREX_SPACEDIM == 1)
     WT lx = (p.pos(0) - plo[0]) * dxi[0] + WT(0.5);
@@ -129,15 +129,15 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
 
-    // Index arithmetic uses the wider of ParticleReal and Real.
-    using WT = decltype(p.pos(0) * plo[0]);
+    // Compute in the wider of Real and ParticleReal; round when adding to the mesh.
+    using WT = amrex::ParticleMeshReal;
 
 #if (AMREX_SPACEDIM == 1)
-    amrex::Real factor = (pdxi[0]/dxi[0]);
+    WT factor = WT(pdxi[0])/dxi[0];
 
-    WT lx = (p.pos(0) - plo[0] - Real(0.5)/pdxi[0]) * dxi[0];
+    WT lx = (p.pos(0) - plo[0] - WT(0.5)/pdxi[0]) * dxi[0];
 
-    WT hx = (p.pos(0) - plo[0] + Real(0.5)/pdxi[0]) * dxi[0];
+    WT hx = (p.pos(0) - plo[0] + WT(0.5)/pdxi[0]) * dxi[0];
 
     int lo_x = static_cast<int>(amrex::Math::floor(lx));
 
@@ -161,13 +161,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     }
 
 #elif (AMREX_SPACEDIM == 2)
-    amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1]);
+    WT factor = (WT(pdxi[0])/dxi[0])*(WT(pdxi[1])/dxi[1]);
 
-    WT lx = (p.pos(0) - plo[0] - Real(0.5)/pdxi[0]) * dxi[0];
-    WT ly = (p.pos(1) - plo[1] - Real(0.5)/pdxi[1]) * dxi[1];
+    WT lx = (p.pos(0) - plo[0] - WT(0.5)/pdxi[0]) * dxi[0];
+    WT ly = (p.pos(1) - plo[1] - WT(0.5)/pdxi[1]) * dxi[1];
 
-    WT hx = (p.pos(0) - plo[0] + Real(0.5)/pdxi[0]) * dxi[0];
-    WT hy = (p.pos(1) - plo[1] + Real(0.5)/pdxi[1]) * dxi[1];
+    WT hx = (p.pos(0) - plo[0] + WT(0.5)/pdxi[0]) * dxi[0];
+    WT hy = (p.pos(1) - plo[1] + WT(0.5)/pdxi[1]) * dxi[1];
 
     int lo_x = static_cast<int>(amrex::Math::floor(lx));
     int lo_y = static_cast<int>(amrex::Math::floor(ly));
@@ -200,15 +200,15 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     }
 
 #elif (AMREX_SPACEDIM == 3)
-    amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1])*(pdxi[2]/dxi[2]);
+    WT factor = (WT(pdxi[0])/dxi[0])*(WT(pdxi[1])/dxi[1])*(WT(pdxi[2])/dxi[2]);
 
-    WT lx = (p.pos(0) - plo[0] - Real(0.5)/pdxi[0]) * dxi[0];
-    WT ly = (p.pos(1) - plo[1] - Real(0.5)/pdxi[1]) * dxi[1];
-    WT lz = (p.pos(2) - plo[2] - Real(0.5)/pdxi[2]) * dxi[2];
+    WT lx = (p.pos(0) - plo[0] - WT(0.5)/pdxi[0]) * dxi[0];
+    WT ly = (p.pos(1) - plo[1] - WT(0.5)/pdxi[1]) * dxi[1];
+    WT lz = (p.pos(2) - plo[2] - WT(0.5)/pdxi[2]) * dxi[2];
 
-    WT hx = (p.pos(0) - plo[0] + Real(0.5)/pdxi[0]) * dxi[0];
-    WT hy = (p.pos(1) - plo[1] + Real(0.5)/pdxi[1]) * dxi[1];
-    WT hz = (p.pos(2) - plo[2] + Real(0.5)/pdxi[2]) * dxi[2];
+    WT hx = (p.pos(0) - plo[0] + WT(0.5)/pdxi[0]) * dxi[0];
+    WT hy = (p.pos(1) - plo[1] + WT(0.5)/pdxi[1]) * dxi[1];
+    WT hz = (p.pos(2) - plo[2] + WT(0.5)/pdxi[2]) * dxi[2];
 
     int lo_x = static_cast<int>(amrex::Math::floor(lx));
     int lo_y = static_cast<int>(amrex::Math::floor(ly));
