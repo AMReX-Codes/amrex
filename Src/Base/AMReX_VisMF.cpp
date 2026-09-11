@@ -437,13 +437,13 @@ operator>> (std::istream  &is,
       AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
-      for(auto famin : hd.m_famin) {
+      for(auto & famin : hd.m_famin) {
         is >> famin >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famin");
         }
       }
-      for(auto famax : hd.m_famax) {
+      for(auto & famax : hd.m_famax) {
         is >> famax >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famax");
@@ -1198,9 +1198,17 @@ VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
     hdr.m_ncomp = 0;
     hdr.m_ngrow = IntVect{AMREX_D_DECL(0, 0, 0)};
 
-    // FabOnDisk list is uninitialized => initialize it here
+    // Keep the min and max arrays consistent with ncomp = 0 so that the header
+    // we write here can be read back.
+    hdr.m_famin.clear();
+    hdr.m_famax.clear();
+    hdr.m_min.assign(hdr.m_ba.size(), Vector<Real>{});
+    hdr.m_max.assign(hdr.m_ba.size(), Vector<Real>{});
+
+    // FabOnDisk list is uninitialized => initialize it here.  The name must not
+    // contain white space because that is how operator>> tokenizes it.
     for(VisMF::FabOnDisk & fod : hdr.m_fod){
-        fod.m_name = "Not Saved";
+        fod.m_name = "NotSaved";
         fod.m_head = -1;
     }
 
