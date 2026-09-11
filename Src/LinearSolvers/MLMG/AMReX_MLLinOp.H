@@ -1238,9 +1238,9 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         Box dbx = m_geom[0][0].Domain();
         Box bbx = aggbox;
         Real const nbxs = static_cast<Real>(m_grids[0][0].size());
-        Real const threshold_npts = static_cast<Real>(AMREX_D_TERM(info.agg_grid_size,
-                                                                  *info.agg_grid_size,
-                                                                  *info.agg_grid_size));
+        Long const threshold_npts = AMREX_D_TERM(Long(info.agg_grid_size),
+                                                     *info.agg_grid_size,
+                                                     *info.agg_grid_size);
         Vector<Box> domainboxes{dbx};
         Vector<Box> boundboxes{bbx};
         Vector<int> agg_flag{false};
@@ -1287,7 +1287,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             accum_coarsen_ratio.push_back(accum_coarsen_ratio.back()*rr_level);
             domainboxes.push_back(dbx.coarsen(rr_level));
             boundboxes.push_back(bbx.coarsen(rr_level));
-            bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+            bool to_agg = (bbx.d_numPts() / nbxs)
+                < Real(0.999)*static_cast<Real>(threshold_npts);
             agg_flag.push_back(to_agg);
         }
 
@@ -1303,18 +1304,21 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                     break; // average_down would fail if fine boxarray is not coarsenable.
                 }
                 m_grids[0].emplace_back(boundboxes[lev]);
-                IntVect max_grid_size(info.agg_grid_size);
-                if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
-                    && info.semicoarsening_direction != -1)
-                {
-                    IntVect blen = amrex::enclosedCells(boundboxes[lev]).size();
-                    AMREX_D_TERM(int mgs_0 = (max_grid_size[0]+blen[0]-1) / blen[0];,
-                                 int mgs_1 = (max_grid_size[1]+blen[1]-1) / blen[1];,
-                                 int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
-                    max_grid_size[info.semicoarsening_direction]
-                        *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
+                Box const cell_box = amrex::enclosedCells(boundboxes[lev]);
+                if (cell_box.numPts() > threshold_npts) {
+                    IntVect max_grid_size(info.agg_grid_size);
+                    if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
+                        && info.semicoarsening_direction != -1)
+                    {
+                        IntVect blen = cell_box.size();
+                        AMREX_D_TERM(int mgs_0 = (max_grid_size[0]+blen[0]-1) / blen[0];,
+                                     int mgs_1 = (max_grid_size[1]+blen[1]-1) / blen[1];,
+                                     int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
+                        max_grid_size[info.semicoarsening_direction]
+                            *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
+                    }
+                    m_grids[0].back().maxSize(max_grid_size);
                 }
-                m_grids[0].back().maxSize(max_grid_size);
                 m_dmap[0].push_back(DistributionMapping());
                 if (!agged) {
                     agged = true;
