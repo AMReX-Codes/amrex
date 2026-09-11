@@ -429,6 +429,41 @@ is isolated in its own group.
 Any timers inside :cpp:`MyFunc_0` and :cpp:`MyFunc_1` are not included in the
 region groupings.
 
+Asynchronous GPU timers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+GPU kernels normally launch asynchronously, so an ordinary TinyProfiler timer
+can stop before the GPU work launched in its scope has completed.  TinyProfiler
+provides opt-in asynchronous variants for scopes whose measurements should be
+reported as potentially inaccurate:
+
+* :cpp:`BL_PROFILE_ASYNC(name)`
+* :cpp:`BL_PROFILE_VAR_ASYNC(name, variable)`
+* :cpp:`BL_PROFILE_VAR_NS_ASYNC(name, variable)`
+* :cpp:`BL_PROFILE_REGION_ASYNC(name)`
+
+Variables created with :cpp:`BL_PROFILE_VAR_NS_ASYNC` are controlled with the
+ordinary :cpp:`BL_PROFILE_VAR_START` and :cpp:`BL_PROFILE_VAR_STOP` macros.
+These macros do not add a GPU synchronization.  On GPU TinyProfiler builds,
+each affected duration and percentage is followed by ``?``; names and call
+counts are unchanged.  A warning below the report explains that the marked
+values may be inaccurate.  Ordinary and asynchronous timers with the same name
+remain separate rows.
+
+Every timing value in a table created by :cpp:`BL_PROFILE_REGION_ASYNC` is
+marked, including values from ordinary timers nested in that region.  Those
+ordinary timers remain unmarked in the main table.  Set
+``tiny_profiler.show_async_gpu_timers=false`` to omit asynchronous timer rows
+from the main and ordinary-region tables and to omit asynchronous-region tables
+entirely.  Ordinary timers and regions with the same displayed names remain
+visible.
+
+The runtime parameter ``tiny_profiler.device_synchronize_around_region`` still
+synchronizes every TinyProfiler timer boundary.  Asynchronous macros remain
+conservatively marked when that global option is enabled.  On CPU TinyProfiler
+builds and with the legacy full profiler, asynchronous macros are aliases for
+their ordinary counterparts and produce no markers.
+
 Instrumenting Fortran90 Code
 ============================
 

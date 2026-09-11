@@ -32,8 +32,10 @@ class TinyProfiler
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
     TinyProfiler (std::string funcname, bool start_) noexcept;
+    TinyProfiler (std::string funcname, bool start_, bool async_gpu_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
     TinyProfiler (const char* funcname, bool start_) noexcept;
+    TinyProfiler (const char* funcname, bool start_, bool async_gpu_) noexcept;
     ~TinyProfiler ();
 
     TinyProfiler (TinyProfiler const&) = delete;
@@ -63,7 +65,9 @@ public:
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
 
     static void StartRegion (std::string regname) noexcept;
+    static void StartRegion (std::string regname, bool async_gpu) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
+    static void StopRegion (const std::string& regname, bool async_gpu) noexcept;
 
     static void PrintCallStack (std::ostream& os);
     static void PrintMemoryUsage (std::ostream* os, bool only_local) noexcept;
@@ -78,6 +82,36 @@ private:
         double dtex{0.0};    //!< exclusive dt
     };
 
+    struct TimerKey
+    {
+        std::string name;
+        bool async_gpu = false;
+
+        bool operator< (TimerKey const& rhs) const noexcept
+        {
+            return std::tie(name, async_gpu) < std::tie(rhs.name, rhs.async_gpu);
+        }
+    };
+
+    struct RegionKey
+    {
+        std::string name;
+        bool async_gpu = false;
+
+        bool operator< (RegionKey const& rhs) const noexcept
+        {
+            return std::tie(name, async_gpu) < std::tie(rhs.name, rhs.async_gpu);
+        }
+
+        bool operator== (RegionKey const& rhs) const noexcept
+        {
+            return name == rhs.name && async_gpu == rhs.async_gpu;
+        }
+    };
+
+    using RegionStats = std::map<TimerKey, Stats>;
+    using StatsMap = std::map<RegionKey, RegionStats>;
+
     //! stats across processes
     struct ProcStats
     {
@@ -88,6 +122,7 @@ private:
         double dtinavg{0.0}, dtinmax{0.0};
         double dtexmin{std::numeric_limits<double>::max()};
         double dtexavg{0.0}, dtexmax{0.0};
+        bool async_gpu{false};
         bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
@@ -116,6 +151,7 @@ private:
     };
 
     std::string fname;
+    bool async_gpu = false;
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;
@@ -133,10 +169,10 @@ private:
     static std::vector<std::map<std::string, MemStat>*> all_memstats;
     static std::vector<std::string> all_memnames;
 
-    static std::vector<std::string> regionstack;
-    static std::vector<std::pair<std::string,bool> > regionstartstack;
+    static std::vector<RegionKey> regionstack;
+    static std::vector<std::pair<RegionKey,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
-    static std::map<std::string,std::map<std::string, Stats> > statsmap;
+    static StatsMap statsmap;
     static double t_init;
     static double t_memory_init;
     static bool device_synchronize_around_region;
@@ -145,11 +181,13 @@ private:
     static double print_threshold;
     static bool enabled;
     static bool memprof_enabled;
+    static bool show_async_gpu_timers;
     static std::string output_file;
 
     static std::string const& get_output_file ();
-    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
-                            std::ostream* os);
+    static bool PrintStats (RegionStats& regstats, double dt_max,
+                            std::ostream* os, bool mark_all_async);
+    static void SyncTimerKeys (RegionStats& regstats);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,
                                std::string const& memname, double dt_max,
                                double t_final, std::ostream* os, bool only_local);
@@ -160,6 +198,8 @@ class TinyProfileRegion
 public:
     explicit TinyProfileRegion (std::string a_regname) noexcept;
     explicit TinyProfileRegion (const char* a_regname) noexcept;
+    TinyProfileRegion (std::string a_regname, bool async_gpu) noexcept;
+    TinyProfileRegion (const char* a_regname, bool async_gpu) noexcept;
     TinyProfileRegion (TinyProfileRegion const&) = delete;
     TinyProfileRegion (TinyProfileRegion &&) = delete;
     TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;
@@ -167,6 +207,7 @@ public:
     ~TinyProfileRegion ();
 private:
     std::string regname;
+    bool async_gpu = false;
     TinyProfiler tprof;
 };
 
