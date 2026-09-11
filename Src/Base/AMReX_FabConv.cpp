@@ -911,6 +911,9 @@ operator>> (std::istream&   is,
     if (c != ')') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
     }
+    if (fmt.size() != 8) {
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected 8 format numbers");
+    }
     rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),static_cast<int>(ord.size()));
     return is;
 }

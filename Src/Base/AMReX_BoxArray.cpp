@@ -111,8 +111,8 @@ BARef::define (std::istream& is, int& ndims)
     AMREX_ASSERT(maxbox >= 0 && maxbox < std::numeric_limits<int>::max());
     resize(maxbox);
     auto pos = is.tellg();
-    {
-        ndims = AMREX_SPACEDIM;
+    ndims = AMREX_SPACEDIM;
+    if (maxbox > 0) { // No box to probe otherwise, and we would hit EOF.
         char c1, c2;
         int itmp;
         is >> std::ws >> c1 >> std::ws >> c2;
