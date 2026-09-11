@@ -32,8 +32,10 @@ class TinyProfiler
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
     TinyProfiler (std::string funcname, bool start_) noexcept;
+    TinyProfiler (std::string funcname, bool start_, bool gpu_sync_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
     TinyProfiler (const char* funcname, bool start_) noexcept;
+    TinyProfiler (const char* funcname, bool start_, bool gpu_sync_) noexcept;
     ~TinyProfiler ();
 
     TinyProfiler (TinyProfiler const&) = delete;
@@ -63,6 +65,7 @@ public:
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
 
     static void StartRegion (std::string regname) noexcept;
+    static void StartRegion (std::string regname, bool gpu_sync) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
 
     static void PrintCallStack (std::ostream& os);
@@ -77,6 +80,20 @@ private:
         double dtin{0.0};    //!< inclusive dt
         double dtex{0.0};    //!< exclusive dt
     };
+
+    struct TimerKey
+    {
+        std::string name;
+        bool gpu_sync = false;
+
+        bool operator< (TimerKey const& rhs) const noexcept
+        {
+            return std::tie(name, gpu_sync) < std::tie(rhs.name, rhs.gpu_sync);
+        }
+    };
+
+    using RegionStats = std::map<TimerKey, Stats>;
+    using StatsMap = std::map<std::string, RegionStats>;
 
     //! stats across processes
     struct ProcStats
@@ -116,9 +133,11 @@ private:
     };
 
     std::string fname;
+    bool gpu_sync = false;
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;
+    std::vector<Stats*> selective_stats;
 
     static std::deque<const TinyProfiler*> mem_stack;
 
@@ -134,9 +153,12 @@ private:
     static std::vector<std::string> all_memnames;
 
     static std::vector<std::string> regionstack;
-    static std::vector<std::pair<std::string,bool> > regionstartstack;
+    static std::vector<std::string> selective_regionstack;
+    static std::vector<std::tuple<std::string,bool,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
-    static std::map<std::string,std::map<std::string, Stats> > statsmap;
+    static StatsMap statsmap;
+    static StatsMap selective_statsmap;
+    static bool selective_reporting;
     static double t_init;
     static double t_memory_init;
     static bool device_synchronize_around_region;
@@ -148,7 +170,7 @@ private:
     static std::string output_file;
 
     static std::string const& get_output_file ();
-    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
+    static void PrintStats (RegionStats& regstats, double dt_max,
                             std::ostream* os);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,
                                std::string const& memname, double dt_max,
@@ -160,6 +182,8 @@ class TinyProfileRegion
 public:
     explicit TinyProfileRegion (std::string a_regname) noexcept;
     explicit TinyProfileRegion (const char* a_regname) noexcept;
+    TinyProfileRegion (std::string a_regname, bool gpu_sync) noexcept;
+    TinyProfileRegion (const char* a_regname, bool gpu_sync) noexcept;
     TinyProfileRegion (TinyProfileRegion const&) = delete;
     TinyProfileRegion (TinyProfileRegion &&) = delete;
     TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;

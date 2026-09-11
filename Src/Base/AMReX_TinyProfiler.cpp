@@ -1,5 +1,4 @@
-// We only support BL_PROFILE, BL_PROFILE_VAR, BL_PROFILE_VAR_STOP, BL_PROFILE_VAR_START,
-// BL_PROFILE_VAR_NS, and BL_PROFILE_REGION.
+// TinyProfiler implementation for the BL_PROFILE family of macros.
 
 #include <AMReX_TinyProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -47,9 +46,12 @@ std::vector<std::map<std::string, MemStat>*> TinyProfiler::all_memstats;
 std::vector<std::string> TinyProfiler::all_memnames;
 
 std::vector<std::string>          TinyProfiler::regionstack;
-std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
+std::vector<std::string>          TinyProfiler::selective_regionstack;
+std::vector<std::tuple<std::string,bool,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
-std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
+TinyProfiler::StatsMap TinyProfiler::statsmap;
+TinyProfiler::StatsMap TinyProfiler::selective_statsmap;
+bool TinyProfiler::selective_reporting = false;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -111,6 +113,12 @@ TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
     if (start_) { start(); }
 }
 
+TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool gpu_sync_) noexcept
+    : fname(std::move(funcname)), gpu_sync(gpu_sync_)
+{
+    if (start_) { start(); }
+}
+
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
     : fname(funcname)
 {
@@ -119,6 +127,12 @@ TinyProfiler::TinyProfiler (const char* funcname) noexcept
 
 TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
     : fname(funcname)
+{
+    if (start_) { start(); }
+}
+
+TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool gpu_sync_) noexcept
+    : fname(funcname), gpu_sync(gpu_sync_)
 {
     if (start_) { start(); }
 }
@@ -139,7 +153,8 @@ TinyProfiler::start ()
 #pragma omp master
 #endif
     {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stats.empty(), "TinyProfiler cannot be started twice");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stats.empty() && selective_stats.empty(),
+            "TinyProfiler cannot be started twice");
     }
 
 #ifdef AMREX_USE_OMP
@@ -148,12 +163,17 @@ TinyProfiler::start ()
     if (!regionstack.empty()) {
 
 #ifdef AMREX_USE_GPU
-        if (device_synchronize_around_region) {
+        if (gpu_sync || device_synchronize_around_region) {
             amrex::Gpu::streamSynchronize();
         }
 #endif
 
         const double t = amrex::second();
+        bool const outermost = ttstack.empty();
+
+        if (gpu_sync) {
+            selective_reporting = true;
+        }
 
         ttstack.emplace_back(t, 0.0, &fname);
         global_depth = static_cast<int>(ttstack.size());
@@ -169,11 +189,25 @@ TinyProfiler::start ()
         roctxRangePush(fname.c_str());
 #endif
 
+        TimerKey const key{fname, gpu_sync};
         for (auto const& region : regionstack)
         {
-            Stats& st = statsmap[region][fname];
+            Stats& st = statsmap[region][key];
             ++st.depth;
             stats.push_back(&st);
+        }
+
+        if (outermost || gpu_sync) {
+            Stats& st = selective_statsmap[mainregion][key];
+            ++st.depth;
+            selective_stats.push_back(&st);
+        }
+        if (gpu_sync) {
+            for (auto const& region : selective_regionstack) {
+                Stats& st = selective_statsmap[region][key];
+                ++st.depth;
+                selective_stats.push_back(&st);
+            }
         }
 
         if (verbose) {
@@ -202,7 +236,7 @@ TinyProfiler::stop ()
     if (!stats.empty()) {
 
 #ifdef AMREX_USE_GPU
-        if (device_synchronize_around_region) {
+        if (gpu_sync || device_synchronize_around_region) {
             amrex::Gpu::streamSynchronize();
         }
 #endif
@@ -234,6 +268,16 @@ TinyProfiler::stop ()
                 st->dtex += dtex;
             }
 
+            for (Stats* st : selective_stats)
+            {
+                --(st->depth);
+                ++(st->n);
+                if (st->depth == 0) {
+                    st->dtin += dtin;
+                }
+                st->dtex += dtex;
+            }
+
             ttstack.pop_back();
             if (!ttstack.empty()) {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
@@ -248,6 +292,7 @@ TinyProfiler::stop ()
         }
 
         stats.clear();
+        selective_stats.clear();
 
         if (verbose) {
             std::string whitespace;
@@ -348,6 +393,10 @@ TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept
 void
 TinyProfiler::Initialize ()
 {
+    selective_regionstack.clear();
+    selective_statsmap.clear();
+    selective_reporting = false;
+
     {
         amrex::ParmParse pp("tiny_profiler");
         pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
@@ -411,8 +460,11 @@ TinyProfiler::Finalize (bool bFlushing)
 
     double t_final = amrex::second();
 
-    // make a local copy so that any functions call after this will not be recorded in the local copy.
-    auto lstatsmap = statsmap;
+    bool use_selective_stats = selective_reporting;
+    ParallelDescriptor::ReduceBoolOr(use_selective_stats);
+
+    // Make a local copy so that timers completed during output are not included.
+    auto lstatsmap = use_selective_stats ? selective_statsmap : statsmap;
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -455,7 +507,7 @@ TinyProfiler::Finalize (bool bFlushing)
         if (!alreadySynced) {
             for (auto const& s : syncedRegions) {
                 if (!lstatsmap.contains(s)) {
-                    lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
+                    lstatsmap.insert(std::make_pair(s,RegionStats()));
                 }
             }
         }
@@ -476,9 +528,12 @@ TinyProfiler::Finalize (bool bFlushing)
 
     if (!bFlushing) {
         regionstack.clear();
+        selective_regionstack.clear();
         regionstartstack.clear();
         ttstack.clear();
         statsmap.clear();
+        selective_statsmap.clear();
+        selective_reporting = false;
     }
 }
 
@@ -538,24 +593,29 @@ TinyProfiler::DeregisterArena (std::map<std::string, MemStat>& memstats) noexcep
 }
 
 void
-TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
+TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
                           std::ostream* os)
 {
     // make sure the set of profiled functions is the same on all processes
     {
-        Vector<std::string> localStrings, syncedStrings;
-        bool alreadySynced;
+        for (bool const gpu_sync_key : {false, true}) {
+            Vector<std::string> localStrings, syncedStrings;
+            bool alreadySynced;
 
-        for(auto const& kv : regstats) {
-            localStrings.push_back(kv.first);
-        }
+            for (auto const& kv : regstats) {
+                if (kv.first.gpu_sync == gpu_sync_key) {
+                    localStrings.push_back(kv.first.name);
+                }
+            }
 
-        amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
+            amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
-        if (! alreadySynced) {  // add the new name
-            for (auto const& s : syncedStrings) {
-                if (!regstats.contains(s)) {
-                    regstats.insert(std::make_pair(s, Stats()));
+            if (!alreadySynced) {
+                for (auto const& s : syncedStrings) {
+                    TimerKey const key{s, gpu_sync_key};
+                    if (!regstats.contains(key)) {
+                        regstats.insert(std::make_pair(key, Stats()));
+                    }
                 }
             }
         }
@@ -606,7 +666,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
             pst.navg /= nprocs;
             pst.dtinavg /= nprocs;
             pst.dtexavg /= nprocs;
-            pst.fname = regstat.first;
+            pst.fname = regstat.first.name;
             allprocstats.push_back(pst);
             maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
             maxncalls = std::max(maxncalls, pst.nmax);
@@ -973,6 +1033,12 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 void
 TinyProfiler::StartRegion (std::string regname) noexcept
 {
+    StartRegion(std::move(regname), false);
+}
+
+void
+TinyProfiler::StartRegion (std::string regname, bool gpu_sync_region) noexcept
+{
     if (!enabled) { return; }
 
     bool pushed = false;
@@ -980,7 +1046,15 @@ TinyProfiler::StartRegion (std::string regname) noexcept
         regionstack.emplace_back(regname);
         pushed = true;
     }
-    regionstartstack.emplace_back(std::move(regname), pushed);
+
+    bool selective_pushed = false;
+    if (gpu_sync_region && regname != mainregion &&
+        std::ranges::find(selective_regionstack, regname) == selective_regionstack.end()) {
+        selective_regionstack.emplace_back(regname);
+        selective_pushed = true;
+    }
+
+    regionstartstack.emplace_back(std::move(regname), pushed, selective_pushed);
 }
 
 void
@@ -988,11 +1062,17 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 {
     if (!enabled) { return; }
 
-    if (!regionstartstack.empty() && regname == regionstartstack.back().first) {
-        if (regionstartstack.back().second) {
+    if (!regionstartstack.empty() && regname == std::get<0>(regionstartstack.back())) {
+        if (std::get<1>(regionstartstack.back())) {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!regionstack.empty() && regname == regionstack.back(),
                 "TinyProfiler regions must be nested with respect to each other");
             regionstack.pop_back();
+        }
+        if (std::get<2>(regionstartstack.back())) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!selective_regionstack.empty() &&
+                regname == selective_regionstack.back(),
+                "Selective TinyProfiler regions must be nested with respect to each other");
+            selective_regionstack.pop_back();
         }
         regionstartstack.pop_back();
     }
@@ -1011,6 +1091,22 @@ TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
       tprof(std::string("REG::")+std::string(a_regname), false)
 {
     TinyProfiler::StartRegion(a_regname);
+    tprof.start();
+}
+
+TinyProfileRegion::TinyProfileRegion (std::string a_regname, bool gpu_sync) noexcept
+    : regname(std::move(a_regname)),
+      tprof(std::string("REG::")+regname, false, gpu_sync)
+{
+    TinyProfiler::StartRegion(regname, gpu_sync);
+    tprof.start();
+}
+
+TinyProfileRegion::TinyProfileRegion (const char* a_regname, bool gpu_sync) noexcept
+    : regname(a_regname),
+      tprof(std::string("REG::")+std::string(a_regname), false, gpu_sync)
+{
+    TinyProfiler::StartRegion(a_regname, gpu_sync);
     tprof.start();
 }
 
