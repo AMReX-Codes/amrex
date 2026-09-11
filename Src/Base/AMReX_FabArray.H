@@ -1750,6 +1750,9 @@ protected:
     std::unique_ptr<detail::SingleChunkArena> m_single_chunk_arena;
     Long m_single_chunk_size = 0;
 
+    //! Free the cached Array4s so that they are rebuilt by the next arrays() call.
+    void clear_arrays ();
+
     //! has define() been called?
     bool define_function_called = false;
 
@@ -1830,8 +1833,6 @@ private:
     template <class F=FAB>
     requires (BaseFabType<F>)
     void build_arrays () const;
-
-    void clear_arrays ();
 
 #ifdef AMREX_USE_GPU
     std::map<std::uint64_t,
