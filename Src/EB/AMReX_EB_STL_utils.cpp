@@ -55,8 +55,11 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real sign (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
     {
-        Real cp = (x2-x1)*(y3-y2) - (x3-x2)*(y2-y1);
-        if (std::abs(cp) < std::numeric_limits<Real>::epsilon()) {
+        Real a = (x2-x1)*(y3-y2);
+        Real b = (x3-x2)*(y2-y1);
+        Real cp = a - b;
+        // the tolerance must follow the magnitude of the two products
+        if (std::abs(cp) <= std::numeric_limits<Real>::epsilon()*amrex::max(std::abs(a),std::abs(b))) {
             return 0._rt;
         } else {
             return std::copysign(1.0_rt, cp);
@@ -384,10 +387,6 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
         AMREX_ALWAYS_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
-        // maximum number of triangles allowed for traversing the BVH tree
-        // using stack.
-        int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
-        AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
         a_tri_pts.resize(m_num_tri);
 
         if (amrex::Verbose()) {
@@ -497,13 +496,24 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_tri > 0,
                                      "STLtools::prepare: STL contains no triangles");
 
+    // maximum number of triangles allowed for traversing the BVH tree
+    // using stack.
+    int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
+    AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
+
     Gpu::PinnedVector<Node> bvh_nodes;
     if (m_bvh_optimization) {
         BL_PROFILE("STLtools::build_bvh");
         std::size_t nnodes = 0;
         bvh_size(int(a_tri_pts.size()), nnodes);
         bvh_nodes.reserve(nnodes);
-        build_bvh(a_tri_pts.data(), a_tri_pts.data()+a_tri_pts.size(), bvh_nodes);
+        // build_bvh sorts the triangles it is given.  It works on a copy so
+        // that the order stored in m_tri_pts_d, and therefore the reference
+        // point derived from the first triangle below, is the order the file
+        // was read in whether or not the BVH is built.  The nodes hold their
+        // own copies of the triangles, so they do not depend on this array.
+        Gpu::PinnedVector<Triangle> bvh_tri_pts(a_tri_pts);
+        build_bvh(bvh_tri_pts.data(), bvh_tri_pts.data()+bvh_tri_pts.size(), bvh_nodes);
 #ifdef AMREX_USE_GPU
         m_bvh_nodes.resize(bvh_nodes.size());
         Gpu::copyAsync(Gpu::hostToDevice, bvh_nodes.begin(), bvh_nodes.end(),
@@ -1131,10 +1141,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                            tri.v1, tri.v2, tri.v3,
                                                            tri_norm[it],
                                                            lst(i+1,j,k)-lst(i,j,k));
-                            if (tmp.first) {
+                            if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
-                                break;
                             }
                         }
                     } else {
@@ -1150,10 +1159,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                                tri.v1, tri.v2, tri.v3,
                                                                ptrinorm[it],
                                                                lst(i+1,j,k)-lst(i,j,k));
-                                if (tmp.first) {
+                                if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
-                                    return 1;
                                 }
                             }
                             return 0;
@@ -1175,10 +1183,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                            XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
                                                            XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                            lst(i,j+1,k)-lst(i,j,k));
-                            if (tmp.first) {
+                            if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
-                                break;
                             }
                         }
                     } else {
@@ -1197,10 +1204,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                                XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
                                                                XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                                lst(i,j+1,k)-lst(i,j,k));
-                                if (tmp.first) {
+                                if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
-                                    return 1;
                                 }
                             }
                             return 0;
@@ -1224,10 +1230,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                            XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
                                                            XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                            lst(i,j,k+1)-lst(i,j,k));
-                            if (tmp.first) {
+                            if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
-                                break;
                             }
                         }
                     } else {
@@ -1246,10 +1251,9 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                                XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
                                                                XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                                lst(i,j,k+1)-lst(i,j,k));
-                                if (tmp.first) {
+                                if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
-                                    return 1;
                                 }
                             }
                             return 0;

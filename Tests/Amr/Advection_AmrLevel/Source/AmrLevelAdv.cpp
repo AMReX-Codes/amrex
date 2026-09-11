@@ -11,7 +11,7 @@
 using namespace amrex;
 
 int      AmrLevelAdv::verbose         = 0;
-Real     AmrLevelAdv::cfl             = 0.9;
+Real     AmrLevelAdv::cfl             = Real(0.9);
 int      AmrLevelAdv::do_reflux       = 1;
 
 int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
@@ -243,7 +243,7 @@ AmrLevelAdv::advance (Real time,
 
     const Real prev_time = state[Phi_Type].prevTime();
     const Real cur_time = state[Phi_Type].curTime();
-    const Real ctr_time = 0.5*(prev_time + cur_time);
+    const Real ctr_time = Real(0.5)*(prev_time + cur_time);
 
     GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
     GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
@@ -406,7 +406,7 @@ Real
 AmrLevelAdv::estTimeStep (Real)
 {
     // This is just a dummy value to start with
-    Real dt_est  = 1.0e+20;
+    Real dt_est  = Real(1.0e+20);
 
     GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
     GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
@@ -484,19 +484,19 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
         return;
     }
 
-    Real dt_0 = 1.0e+100;
+    Real dt_0 = Real(1.0e+30);
     int n_factor = 1;
     for (int i = 0; i <= finest_level; i++)
     {
         dt_level[i] = getLevel(i).initialTimeStep();
         n_factor   *= n_cycle[i];
-        dt_0 = std::min(dt_0,n_factor*dt_level[i]);
+        dt_0 = std::min(dt_0,Real(n_factor)*dt_level[i]);
     }
 
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001*dt_0;
+    const Real eps = Real(0.001)*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps)) {
@@ -508,7 +508,7 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     for (int i = 0; i <= finest_level; i++)
     {
         n_factor *= n_cycle[i];
-        dt_level[i] = dt_0/n_factor;
+        dt_level[i] = dt_0/Real(n_factor);
     }
 }
 
@@ -554,7 +554,7 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
         //
         // Limit dt's by change_max * old dt
         //
-        static Real change_max = 1.1;
+        static Real change_max = Real(1.1);
         for (int i = 0; i <= finest_level; i++)
         {
             dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
@@ -564,18 +564,18 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     //
     // Find the minimum over all levels
     //
-    Real dt_0 = 1.0e+100;
+    Real dt_0 = Real(1.0e+30);
     int n_factor = 1;
     for (int i = 0; i <= finest_level; i++)
     {
         n_factor *= n_cycle[i];
-        dt_0 = std::min(dt_0,n_factor*dt_min[i]);
+        dt_0 = std::min(dt_0,Real(n_factor)*dt_min[i]);
     }
 
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001*dt_0;
+    const Real eps = Real(0.001)*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps)) {
@@ -587,7 +587,7 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     for (int i = 0; i <= finest_level; i++)
     {
         n_factor *= n_cycle[i];
-        dt_level[i] = dt_0/n_factor;
+        dt_level[i] = dt_0/Real(n_factor);
     }
 }
 

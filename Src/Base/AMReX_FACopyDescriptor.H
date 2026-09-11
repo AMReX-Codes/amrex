@@ -490,7 +490,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 {
     dataAvailable = true;
 
-    if (ParallelDescriptor::NProcs() == 1) { return; }
+    if (ParallelContext::NProcsSub() == 1) { return; }
 
 #ifdef BL_USE_MPI
     using value_type = typename FAB::value_type;
@@ -553,14 +553,15 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type))
               < static_cast<std::size_t>(std::numeric_limits<int>::max()));
 
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int NProcs = ParallelContext::NProcsSub();
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
 
     {
         Vector<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
         for (auto const& Rcv : Rcvs)
         {
-            RcvsArray[Rcv.first] = Rcv.second;
+            RcvsArray[ParallelContext::global_to_local_rank(Rcv.first)] = Rcv.second;
         }
 
         {
@@ -574,14 +575,14 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                                          SndsArray.dataPtr(),
                                          1,
                                          ParallelDescriptor::Mpi_typemap<int>::type(),
-                                         ParallelDescriptor::Communicator()) );
+                                         comm) );
 
             BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int), ParallelDescriptor::MyProc(),
                             BLProfiler::AfterCall());
 
             BL_PROFILE_VAR_STOP(blpvCDATA);
         }
-        BL_ASSERT(SndsArray[MyProc] == 0);
+        BL_ASSERT(SndsArray[ParallelContext::MyProcSub()] == 0);
 
         for (int i = 0; i < NProcs; i++) {
             if (SndsArray[i] > 0) {
@@ -636,7 +637,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         {
             md_recv_reqs.push_back(ParallelDescriptor::Arecv(&md_recv_data[md_offset[i]],
                                                              md_icnts[i], md_sender[i],
-                                                             SeqNum_md).req());
+                                                             SeqNum_md, comm).req());
         }
     }
 
@@ -677,7 +678,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                              md[6+2*AMREX_SPACEDIM] = tp[2]);
             }
 
-            md_send_reqs.push_back(ParallelDescriptor::Asend(p,cnt,rank,SeqNum_md).req());
+            md_send_reqs.push_back(ParallelDescriptor::Asend
+                (p,cnt,ParallelContext::global_to_local_rank(rank),SeqNum_md,comm).req());
         }
     }
 
@@ -694,8 +696,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
             data_sender.push_back(Who);
-            data_recv_reqs.push_back(ParallelDescriptor::Arecv(&recv_data[Idx],
-                                                               Cnt,Who,SeqNum_data).req());
+            data_recv_reqs.push_back(ParallelDescriptor::Arecv
+                (&recv_data[Idx], Cnt, ParallelContext::global_to_local_rank(Who),
+                 SeqNum_data, comm).req());
             data_offset.push_back(Idx);
             Idx += Cnt;
         }
@@ -752,7 +755,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                 dptr += npts[i];
             }
 
-            data_send_reqs.push_back(ParallelDescriptor::Asend(data,N,rank,SeqNum_data).req());
+            data_send_reqs.push_back(ParallelDescriptor::Asend(data,N,rank,SeqNum_data,comm).req());
         }
 
         amrex::The_Arena()->free(md_recv_data);

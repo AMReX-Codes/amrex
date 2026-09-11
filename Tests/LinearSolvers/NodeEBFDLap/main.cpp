@@ -1,0 +1,281 @@
+//
+// Two checks on MLEBNodeFDLaplacian:
+//
+//   * reusing an operator must not lose the EB Dirichlet values supplied by
+//     the callable setEBDirichlet;
+//   * solving del dot (sigma grad phi) = rhs with the hypre bottom solver
+//     must reproduce the native bottom solver.  That solve does not coarsen,
+//     so the bottom solve does all of the work, which is the sharpest test of
+//     the matrix assembled by MLEBNodeFDLaplacian::fillIJMatrix.  This one
+//     needs hypre, so it is skipped when hypre is not available.
+//
+
+#include <AMReX.H>
+#include <AMReX_EB2.H>
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_MLEBNodeFDLaplacian.H>
+#include <AMReX_MLMG.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_PlotFileUtil.H>
+#include <AMReX_Reduce.H>
+
+using namespace amrex;
+
+// A solve that never calls setEBDirichlet makes prepareForSolve pick
+// homogeneous Dirichlet on the EB.  A setEBDirichlet call after that must
+// still be honored.  postSolve stores the EB value in the covered nodes, so
+// those nodes tell us which value was used.
+void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
+                              DistributionMapping const& dmap,
+                              EBFArrayBoxFactory const& factory,
+                              Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                              Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                              int max_coarsening_level, Real reltol, int verbose)
+{
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+
+    LPInfo info;
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+    linop.setDomainBC(lobc, hibc);
+    linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+
+    MultiFab rhs(nba, dmap, 1, 0);
+    rhs.setVal(Real(1.0));
+    MultiFab sol(nba, dmap, 1, 1);
+
+    auto do_solve = [&] () {
+        MLMG mlmg(linop);
+        mlmg.setVerbose(verbose);
+        MultiFab rhs_copy(nba, dmap, 1, 0);
+        MultiFab::Copy(rhs_copy, rhs, 0, 0, 1, 0);
+        sol.setVal(0.0);
+        mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+    };
+
+    do_solve(); // no setEBDirichlet yet
+
+    Real const phi_eb = 5.0;
+    linop.setEBDirichlet([=] AMREX_GPU_HOST_DEVICE (AMREX_D_DECL(Real,Real,Real)) -> Real
+                         { return phi_eb; });
+    do_solve();
+
+    auto const& levset = factory.getLevelSet();
+    ReduceOps<ReduceOpMax, ReduceOpSum> reduce_op;
+    ReduceData<Real, Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+        Array4<Real const> const& s = sol.const_array(mfi);
+        Array4<Real const> const& ls = levset.const_array(mfi);
+        reduce_op.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            bool const covered = ls(i,j,k) >= Real(0.0);
+            return { covered ? std::abs(s(i,j,k)-phi_eb) : Real(0.0),
+                     covered ? Long(1) : Long(0) };
+        });
+    }
+    auto const hv = reduce_data.value(reduce_op);
+    Real maxdiff = amrex::get<0>(hv);
+    Long ncovered = amrex::get<1>(hv);
+    ParallelDescriptor::ReduceRealMax(maxdiff);
+    ParallelDescriptor::ReduceLongSum(ncovered);
+
+    amrex::Print() << "covered nodes      = " << ncovered << "\n"
+                   << "max EB value error = " << maxdiff << '\n';
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncovered > 0,
+        "No covered nodes: the EB Dirichlet value is not being tested");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(maxdiff <= Real(1.e-12),
+        "setEBDirichlet was ignored after a solve without it");
+}
+
+#ifdef AMREX_USE_HYPRE
+// The hypre bottom solver must reproduce the native one.
+void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
+                           DistributionMapping const& dmap,
+                           EBFArrayBoxFactory const& factory,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                           Real reltol, int verbose)
+{
+    int bottom_verbose = 0;
+    int use_sigma_mf = 1;
+    int plot = 0;
+    Real phi_eb = 1.0;
+    Real bottom_reltol = 1.e-9;
+    Real max_rel_diff = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-12);
+    {
+        ParmParse pp;
+        pp.query("bottom_verbose", bottom_verbose);
+        pp.query("use_sigma_mf", use_sigma_mf);
+        pp.query("phi_eb", phi_eb);
+        pp.query("bottom_reltol", bottom_reltol);
+        pp.query("plot", plot);
+        pp.query("max_rel_diff", max_rel_diff);
+    }
+
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+
+    // A smooth, strictly positive sigma so that the variable coefficient
+    // path is exercised.
+    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
+    // Use whole wavenumbers so that sigma and the source stay single valued
+    // when a direction is periodic.
+    Real const twopi = Real(2.0)*Math::pi<Real>();
+    auto const dx = geom.CellSizeArray();
+    auto const problo = geom.ProbLoArray();
+    for (MFIter mfi(sigma); mfi.isValid(); ++mfi) {
+        Array4<Real> const& s = sigma.array(mfi);
+        amrex::ParallelFor(mfi.growntilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            AMREX_D_TERM(Real const x = problo[0] + (i+Real(0.5))*dx[0];,
+                         Real const y = problo[1] + (j+Real(0.5))*dx[1];,
+                         Real const z = problo[2] + (k+Real(0.5))*dx[2];)
+            s(i,j,k) = Real(1.0) + Real(0.5)*std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(Real(2.0)*twopi*y), *std::sin(twopi*z));
+        });
+    }
+    sigma.FillBoundary(geom.periodicity());
+
+    MultiFab rhs(nba, dmap, 1, 0);
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+        Array4<Real> const& r = rhs.array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            AMREX_D_TERM(Real const x = problo[0] + i*dx[0];,
+                         Real const y = problo[1] + j*dx[1];,
+                         Real const z = problo[2] + k*dx[2];)
+            r(i,j,k) = std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(Real(3.0)*twopi*y), *std::cos(Real(2.0)*twopi*z));
+        });
+    }
+
+    auto do_solve = [&] (BottomSolver bottom_solver, MultiFab& sol)
+    {
+        // No coarsening, so that the bottom solver does all of the work.
+        LPInfo info;
+        info.setMaxCoarseningLevel(0);
+
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info,
+                                  {&factory});
+        linop.setDomainBC(lobc, hibc);
+        linop.setEBDirichlet(phi_eb);
+        if (use_sigma_mf) {
+            linop.setSigma(0, sigma);
+        } else {
+            linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.5), Real(0.7))});
+        }
+
+        MLMG mlmg(linop);
+        mlmg.setVerbose(verbose);
+        mlmg.setBottomVerbose(bottom_verbose);
+        mlmg.setBottomSolver(bottom_solver);
+        mlmg.setBottomTolerance(bottom_reltol);
+        mlmg.setBottomMaxIter(1000);
+
+        MultiFab rhs_copy(nba, dmap, 1, 0);
+        MultiFab::Copy(rhs_copy, rhs, 0, 0, 1, 0);
+
+        sol.define(nba, dmap, 1, 1);
+        sol.setVal(0.0);
+        return mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+    };
+
+    MultiFab sol_native;
+    MultiFab sol_hypre;
+
+    amrex::Print() << "\n==== native bottom solver ====\n";
+    Real const err_native = do_solve(BottomSolver::bicgstab, sol_native);
+
+    amrex::Print() << "\n==== hypre bottom solver ====\n";
+    Real const err_hypre = do_solve(BottomSolver::hypre, sol_hypre);
+
+    MultiFab diff(nba, dmap, 1, 0);
+    MultiFab::Copy(diff, sol_hypre, 0, 0, 1, 0);
+    MultiFab::Subtract(diff, sol_native, 0, 0, 1, 0);
+    Real const dmax = diff.norminf();
+    Real const smax = sol_native.norminf(0, 0);
+
+    amrex::Print() << "\nfinal residual: native = " << err_native
+                   << ", hypre = " << err_hypre << "\n"
+                   << "max |phi|              = " << smax << "\n"
+                   << "max |phi_hypre - phi|  = " << dmax << "\n"
+                   << "relative difference    = " << dmax/smax << '\n';
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmax <= max_rel_diff*smax,
+        "The hypre bottom solver did not reproduce the native solution");
+
+    if (plot) {
+        MultiFab plotmf(nba, dmap, 3, 0);
+        MultiFab::Copy(plotmf, sol_native, 0, 0, 1, 0);
+        MultiFab::Copy(plotmf, sol_hypre , 0, 1, 1, 0);
+        MultiFab::Copy(plotmf, diff      , 0, 2, 1, 0);
+        WriteSingleLevelPlotfile("plot", plotmf, {"phi_native","phi_hypre","diff"}, geom, 0.0, 0);
+    }
+}
+#endif
+
+int main (int argc, char* argv[])
+{
+    amrex::Initialize(argc, argv);
+    {
+        int n_cell = 64;
+        int max_grid_size = 32;
+        int max_coarsening_level = 30;
+        int verbose = 1;
+        // Single precision cannot reach the double precision tolerance.
+        Real reltol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-11);
+        Vector<int> periodic{AMREX_D_DECL(0,0,0)};
+        {
+            ParmParse pp;
+            pp.queryarr("periodic", periodic, 0, AMREX_SPACEDIM);
+            pp.query("n_cell", n_cell);
+            pp.query("max_grid_size", max_grid_size);
+            pp.query("max_coarsening_level", max_coarsening_level);
+            pp.query("verbose", verbose);
+            pp.query("reltol", reltol);
+        }
+
+        Box const domain(IntVect(0), IntVect(n_cell-1));
+        RealBox const rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+        Array<int,AMREX_SPACEDIM> is_periodic{};
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            is_periodic[idim] = periodic[idim];
+        }
+        Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
+
+        BoxArray grids(domain);
+        grids.maxSize(max_grid_size);
+        DistributionMapping const dmap(grids);
+
+        EB2::Build(geom, 0, max_coarsening_level);
+        auto factory = makeEBFabFactory(geom, grids, dmap, {2,2,2}, EBSupport::full);
+        auto const& ebfactory = *static_cast<EBFArrayBoxFactory const*>(factory.get());
+
+        // Mix the boundary conditions so that both the Dirichlet nodes (which
+        // are left out of the linear system) and the Neumann nodes (whose ghost
+        // node is folded onto its mirror image) are covered.
+        Array<LinOpBCType,AMREX_SPACEDIM> lobc
+            {AMREX_D_DECL(LinOpBCType::Neumann, LinOpBCType::Dirichlet, LinOpBCType::Neumann)};
+        Array<LinOpBCType,AMREX_SPACEDIM> hibc
+            {AMREX_D_DECL(LinOpBCType::Dirichlet, LinOpBCType::Neumann, LinOpBCType::Dirichlet)};
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (geom.isPeriodic(idim)) {
+                lobc[idim] = LinOpBCType::Periodic;
+                hibc[idim] = LinOpBCType::Periodic;
+            }
+        }
+
+        amrex::Print() << "\n==== EB Dirichlet value after operator reuse ====\n";
+        test_eb_dirichlet_reuse(geom, grids, dmap, ebfactory,
+                                lobc, hibc, max_coarsening_level, reltol, verbose);
+
+#ifdef AMREX_USE_HYPRE
+        test_native_vs_hypre(geom, grids, dmap, ebfactory,
+                             lobc, hibc, reltol, verbose);
+#endif
+    }
+    amrex::Finalize();
+}

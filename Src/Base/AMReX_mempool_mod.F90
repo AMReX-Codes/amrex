@@ -6,7 +6,8 @@ module amrex_mempool_module
 
   implicit none
 
-  integer (kind=c_size_t), parameter, private :: szi = 4_c_size_t
+  integer (kind=c_size_t), parameter, private :: szi = int(storage_size(0)/8, c_size_t)
+  integer (kind=c_size_t), parameter, private :: szl = int(storage_size(.false.)/8, c_size_t)
 
   interface amrex_allocate
      module procedure bl_allocate_r1
@@ -24,6 +25,9 @@ module amrex_mempool_module
      module procedure bl_allocate_r1_vc
      module procedure bl_allocate_r2_vc
      module procedure bl_allocate_r3_vc
+     module procedure bl_allocate_l1
+     module procedure bl_allocate_l2
+     module procedure bl_allocate_l3
   end interface
 
   interface amrex_deallocate
@@ -36,6 +40,9 @@ module amrex_mempool_module
      module procedure bl_deallocate_i1
      module procedure bl_deallocate_i2
      module procedure bl_deallocate_i3
+     module procedure bl_deallocate_l1
+     module procedure bl_deallocate_l2
+     module procedure bl_deallocate_l3
   end interface
 
   interface bl_allocate
@@ -54,6 +61,9 @@ module amrex_mempool_module
      module procedure bl_allocate_r1_vc
      module procedure bl_allocate_r2_vc
      module procedure bl_allocate_r3_vc
+     module procedure bl_allocate_l1
+     module procedure bl_allocate_l2
+     module procedure bl_allocate_l3
   end interface
 
   interface bl_deallocate
@@ -66,6 +76,9 @@ module amrex_mempool_module
      module procedure bl_deallocate_i1
      module procedure bl_deallocate_i2
      module procedure bl_deallocate_i3
+     module procedure bl_deallocate_l1
+     module procedure bl_deallocate_l2
+     module procedure bl_deallocate_l3
   end interface
 
   interface
@@ -590,5 +603,113 @@ contains
     call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_i3
+
+  subroutine bl_allocate_l1(a, lo1, hi1)
+    logical, pointer, intent(inout) :: a(:)
+    integer, intent(in) :: lo1, hi1
+    integer :: n1
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    logical, pointer :: fp(:)
+    n1 = max(hi1-lo1+1, 1)
+    sz = szl * int(n1,c_size_t)
+    cp = amrex_mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=(/n1/))
+#if __INTEL_COMPILER >= 1800
+    a(lo1:) => fp
+#else
+    call shift_bound_l1(fp, lo1, a)
+  contains
+    subroutine shift_bound_l1(fp, lo1, a)
+      integer, intent(in) :: lo1
+      logical, target, intent(in) :: fp(lo1:)
+      logical, pointer, intent(inout) :: a(:)
+      a => fp
+    end subroutine shift_bound_l1
+#endif
+  end subroutine bl_allocate_l1
+
+  subroutine bl_allocate_l2(a, lo1, hi1, lo2, hi2)
+    logical, pointer, intent(inout) :: a(:,:)
+    integer, intent(in) :: lo1, hi1, lo2, hi2
+    integer :: n1, n2
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    logical, pointer :: fp(:,:)
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    sz = szl * int(n1,c_size_t) * int(n2,c_size_t)
+    cp = amrex_mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=(/n1,n2/))
+#if __INTEL_COMPILER >= 1800
+    a(lo1:,lo2:) => fp
+#else
+    call shift_bound_l2(fp, lo1, lo2, a)
+  contains
+    subroutine shift_bound_l2(fp, lo1, lo2, a)
+      integer, intent(in) :: lo1, lo2
+      logical, target, intent(in) :: fp(lo1:,lo2:)
+      logical, pointer, intent(inout) :: a(:,:)
+      a => fp
+    end subroutine shift_bound_l2
+#endif
+  end subroutine bl_allocate_l2
+
+  subroutine bl_allocate_l3(a, lo1, hi1, lo2, hi2, lo3, hi3)
+    logical, pointer, intent(inout) :: a(:,:,:)
+    integer, intent(in) :: lo1, hi1, lo2, hi2, lo3, hi3
+    integer :: n1, n2, n3
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    logical, pointer :: fp(:,:,:)
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
+    sz = szl * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
+    cp = amrex_mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
+#if __INTEL_COMPILER >= 1800
+    a(lo1:,lo2:,lo3:) => fp
+#else
+    call shift_bound_l3(fp, lo1, lo2, lo3, a)
+  contains
+    subroutine shift_bound_l3(fp, lo1, lo2, lo3, a)
+      integer, intent(in) :: lo1, lo2, lo3
+      logical, target, intent(in) :: fp(lo1:,lo2:,lo3:)
+      logical, pointer, intent(inout) :: a(:,:,:)
+      a => fp
+    end subroutine shift_bound_l3
+#endif
+  end subroutine bl_allocate_l3
+
+  subroutine bl_deallocate_l1(a)
+    logical, pointer, intent(inout) :: a(:)
+    integer :: lo(1)
+    type(c_ptr) :: cp
+    lo = lbound(a)
+    cp = c_loc(a(lo(1)))
+    call amrex_mempool_free(cp)
+    a => Null()
+  end subroutine bl_deallocate_l1
+
+  subroutine bl_deallocate_l2(a)
+    logical, pointer, intent(inout) :: a(:,:)
+    integer :: lo(2)
+    type(c_ptr) :: cp
+    lo = lbound(a)
+    cp = c_loc(a(lo(1),lo(2)))
+    call amrex_mempool_free(cp)
+    a => Null()
+  end subroutine bl_deallocate_l2
+
+  subroutine bl_deallocate_l3(a)
+    logical, pointer, intent(inout) :: a(:,:,:)
+    integer :: lo(3)
+    type(c_ptr) :: cp
+    lo = lbound(a)
+    cp = c_loc(a(lo(1),lo(2),lo(3)))
+    call amrex_mempool_free(cp)
+    a => Null()
+  end subroutine bl_deallocate_l3
 
 end module amrex_mempool_module

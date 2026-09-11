@@ -95,7 +95,9 @@ public:
      * \param strt_time Simulation start time.
      * \param stop_time Optional stop time for the initial solve.
      * \param lev0_grids Optional user-supplied level-0 grids.
-     * \param pmap       Optional processor map matching \p lev0_grids.
+     * \param pmap       Optional processor map matching \p lev0_grids.  It is
+     *                   ignored if \c amr.refine_grid_layout further chops
+     *                   \p lev0_grids.
      */
     void InitializeInit (Real strt_time, Real stop_time,
                          const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
@@ -565,7 +567,9 @@ protected:
      * \param strt_time Simulation start time.
      * \param stop_time Optional time limit for the initialization phase.
      * \param lev0_grids Optional user-defined BoxArray for level 0.
-     * \param pmap       Optional processor map that pairs with \p lev0_grids.
+     * \param pmap       Optional processor map that pairs with \p lev0_grids.  It
+     *                   is ignored if \c amr.refine_grid_layout further chops
+     *                   \p lev0_grids.
      */
     void initialInit (Real strt_time, Real stop_time,
                       const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
@@ -577,7 +581,9 @@ protected:
     void checkInput ();
     //! Restart from a checkpoint file named \p filename.
     void restart (const std::string& filename);
-    //! Define and initialize the coarsest level using optional level-0 grids \p lev0_grids and map \p pmap.
+    //! Define and initialize the coarsest level using optional level-0 grids \p lev0_grids
+    //! and map \p pmap.  \p pmap is ignored unless its size matches \p lev0_grids after
+    //! any chopping done for \c amr.refine_grid_layout.
     void defBaseLevel (Real strt_time, const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
     //! Define and initialize refined levels at simulation time \p strt_time.
     void bldFineLevels (Real strt_time);

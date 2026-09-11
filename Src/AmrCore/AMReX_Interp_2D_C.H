@@ -173,8 +173,8 @@ facediv_face_interp_RZ (int ci, int cj, int /*ck*/,
         }
         case 1:
         {
-            const Real rm = rcen - drf*ratio[0];
-            const Real rp = rcen + drf*ratio[0];
+            const Real rm = rcen - drf*Real(ratio[0]);
+            const Real rp = rcen + drf*Real(ratio[0]);
 
             fine(fi,   fj, 0, n) = (rcen*crse(ci, cj, 0, n) + (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/Real(8.))/(rcen-drf*Real(0.5));
             fine(fi+1, fj, 0, n) = (rcen*crse(ci, cj, 0, n) - (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/Real(8.))/(rcen+drf*Real(0.5));
@@ -248,15 +248,15 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     for (int j = 0; j < ratio[1]; ++j) {
     for (int i = 1; i < ratio[0]; ++i) {
         fine[0](fi+i, fj+j, 0, nf) =
-            ((ratio[0]-i)*redge[0]*fine[0](fi,           fj+j, 0, nf)
-           +          i *redge[2]* fine[0](fi+ratio[0], fj+j, 0, nf))/(rcen*ratio[0]);
+            (Real(ratio[0]-i)*redge[0]*fine[0](fi,           fj+j, 0, nf)
+           +         Real(i)*redge[2]* fine[0](fi+ratio[0], fj+j, 0, nf))/(rcen*Real(ratio[0]));
     }}
 
     for (int j = 1; j < ratio[1]; ++j) {
     for (int i = 0; i < ratio[0]; ++i) {
         fine[1](fi+i, fj+j, 0, nf) =
-            ((ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
-           +          j *fine[1](fi+i, fj+ratio[1], 0, nf))/ratio[1];
+            (Real(ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
+           +         Real(j)*fine[1](fi+i, fj+ratio[1], 0, nf))/Real(ratio[1]);
     }}
 
     Real uplus = Real(0.);
@@ -438,15 +438,15 @@ facediv_int_gen (int ci, int cj, int /*ck*/, int nf,
     for (int j = 0; j < ratio[1]; ++j) {
     for (int i = 1; i < ratio[0]; ++i) {
         fine[0](fi+i, fj+j, 0, nf) =
-            ((ratio[0]-i)*fine[0](fi,           fj+j, 0, nf)
-           +          i *fine[0](fi+ratio[0], fj+j, 0, nf))/ratio[0];
+            (Real(ratio[0]-i)*fine[0](fi,           fj+j, 0, nf)
+           +         Real(i)*fine[0](fi+ratio[0], fj+j, 0, nf))/Real(ratio[0]);
     }}
 
     for (int j = 1; j < ratio[1]; ++j) {
     for (int i = 0; i < ratio[0]; ++i) {
         fine[1](fi+i, fj+j, 0, nf) =
-            ((ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
-           +          j *fine[1](fi+i, fj+ratio[1], 0, nf))/ratio[1];
+            (Real(ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
+           +         Real(j)*fine[1](fi+i, fj+ratio[1], 0, nf))/Real(ratio[1]);
     }}
 
     Real uplus = Real(0.);
@@ -577,8 +577,8 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
             } else {
                 // RZ
                 const Real* cs_problo = cs_geomdata.ProbLo();
-                Real rp = cs_problo[0] + (ic+0.5_rt)*cs_dx[0];
-                Real rm = cs_problo[0] + (ic-0.5_rt)*cs_dx[0];
+                Real rp = cs_problo[0] + (Real(ic)+0.5_rt)*cs_dx[0];
+                Real rm = cs_problo[0] + (Real(ic)-0.5_rt)*cs_dx[0];
                 cvol = (rp*rp - rm*rm) * cs_dx[1];
             }
 
@@ -608,8 +608,8 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     } else {
                         // RZ
                         const Real* fn_problo = fn_geomdata.ProbLo();
-                        Real rp = fn_problo[0] + (i+0.5_rt)*fn_dx[0];
-                        Real rm = fn_problo[0] + (i-0.5_rt)*fn_dx[0];
+                        Real rp = fn_problo[0] + (Real(i)+0.5_rt)*fn_dx[0];
+                        Real rm = fn_problo[0] + (Real(i)-0.5_rt)*fn_dx[0];
                         fvol = (rp*rp - rm*rm) * fn_dx[1];
                     }
 

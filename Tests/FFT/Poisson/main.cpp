@@ -32,7 +32,7 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
         IntVect iv(AMREX_D_DECL(i,j,k));
         Real r = 1.0_rt;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Real x = (iv[idim]+0.5_rt) * dx[idim];
+            Real x = (Real(iv[idim])+0.5_rt) * dx[idim];
             if (fft_bc[idim].first == FFT::Boundary::periodic) {
                 r *= (0.11_rt + std::sin((x+0.1_rt)*fac[idim]));
             } else if (fft_bc[idim].first == FFT::Boundary::even &&
@@ -67,7 +67,7 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
     if (! has_dirichlet) {
         // Shift rhs so that its sum is zero.
         auto rhosum = rhs.sum(0);
-        rhs.plus(-rhosum/geom.Domain().d_numPts(), 0, 1);
+        rhs.plus(Real(-rhosum/geom.Domain().d_numPts()), 0, 1);
     }
 }
 
@@ -118,9 +118,9 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
         AMREX_D_TERM(Real prob_lo_x = 0.;,
                      Real prob_lo_y = 0.;,
                      Real prob_lo_z = 0.);
-        AMREX_D_TERM(Real prob_hi_x = 1.1;,
-                     Real prob_hi_y = 0.8;,
-                     Real prob_hi_z = 1.9);
+        AMREX_D_TERM(Real prob_hi_x = Real(1.1);,
+                     Real prob_hi_y = Real(0.8);,
+                     Real prob_hi_z = Real(1.9));
 
         {
             ParmParse pp;
@@ -199,7 +199,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             amrex::Print() << "       rhs inf norm " << bnorm << "\n"
                            << "       res inf norm " << rnorm << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 2.e-3f;
+            auto eps = 2.e-3F;
 #else
             auto eps = 2.e-10;
 #endif
@@ -240,7 +240,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             amrex::Print() << "       rhs inf norm " << bnorm << "\n"
                            << "       res inf norm " << rnorm << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 2.e-3f;
+            auto eps = 2.e-3F;
 #else
             auto eps = 2.e-10;
 #endif

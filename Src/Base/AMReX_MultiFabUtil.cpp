@@ -894,7 +894,8 @@ namespace amrex
                 int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
                 int nblocks = n2dblocks * b.length(direction);
 #ifdef AMREX_USE_SYCL
-                std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
+                std::size_t shared_mem_byte = sizeof(Real)
+                    * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
                 amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks, shared_mem_byte, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
 #else
@@ -1054,7 +1055,7 @@ namespace amrex
                             return Real(0.);
                         } else {
                             constexpr Real pi = std::numbers::pi_v<Real>;
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                                 * a[box_no](i,j,k,icomp);
@@ -1071,7 +1072,7 @@ namespace amrex
                         if (m[box_no](i,j,k)) {
                             return Real(0.);
                         } else {
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             constexpr Real pi = std::numbers::pi_v<Real>;
                             return pi*dx[1]*dx[0]*(ro+ri)
@@ -1119,7 +1120,7 @@ namespace amrex
                                noexcept -> Real
                 {
                     constexpr Real pi = std::numbers::pi_v<Real>;
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                         * a[box_no](i,j,k,icomp);
@@ -1132,7 +1133,7 @@ namespace amrex
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
                 {
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     constexpr Real pi = std::numbers::pi_v<Real>;
                     return pi*dx[1]*dx[0]*(ro+ri)
@@ -1166,6 +1167,10 @@ namespace amrex
                                   && (ratio[1] == 2 || ratio[1] == 4),
                                   && (ratio[2] == 2 || ratio[2] == 4)));
 
+        AMREX_D_TERM(int const xoff = ratio[0]/2 - 1;,
+                     int const yoff = ratio[1]/2 - 1;,
+                     int const zoff = ratio[2]/2 - 1;)
+
         MultiFab tmp(amrex::coarsen(fmf.boxArray(), ratio), fmf.DistributionMap(),
                      ncomp, 0);
 
@@ -1198,7 +1203,7 @@ namespace amrex
 #endif
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(xbx, ncomp, i, j, k, n,
                 {
-                    int ii = 2*i;
+                    int ii = ratio[0]*i + xoff;
                     xa(i,j,k,n) = Real(1./16)*(Real(9.)*(fa(ii  ,j,k,n) +
                                                          fa(ii+1,j,k,n))
                                                -         fa(ii-1,j,k,n)
@@ -1219,7 +1224,7 @@ namespace amrex
 #endif
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(ybx, ncomp, i, j, k, n,
                 {
-                    int jj = 2*j;
+                    int jj = ratio[1]*j + yoff;
                     ya(i,j,k,n) = Real(1./16)*(Real(9.)*(xca(i,jj  ,k,n) +
                                                          xca(i,jj+1,k,n))
                                                -         xca(i,jj-1,k,n)
@@ -1231,7 +1236,7 @@ namespace amrex
                 auto const& ca = tmp.array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    int kk = 2*k;
+                    int kk = ratio[2]*k + zoff;
                     ca(i,j,k,n) = Real(1./16)*(Real(9.)*(yca(i,j,kk  ,n) +
                                                          yca(i,j,kk+1,n))
                                                -         yca(i,j,kk-1,n)

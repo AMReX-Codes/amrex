@@ -131,6 +131,10 @@ namespace amrex {
      * \brief Multi-level redistribution interface that couples coarse and fine levels.
      *
      * Parameters mirror ApplyRedistribution but also include buffers for coarse/fine overlap.
+     *
+     * The caller must zero \p dm_as_fine before the call. Because it receives
+     * contributions from cells outside \p bx, it should be a temporary local to
+     * the MFIter iteration rather than shared between tiles.
      */
     void ApplyMLRedistribution (
         amrex::Box const& bx, int ncomp,

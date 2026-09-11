@@ -2,6 +2,8 @@
 #define BL_PROFILER_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
+
 #define BL_PROFILE_PASTE2(x, y) x##y
 #define BL_PROFILE_PASTE(x, y) BL_PROFILE_PASTE2(x, y)
 
@@ -417,7 +419,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_ADD_STEP(snum)  amrex::BLProfiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  amrex::BLProfiler::SetRunTime(rtime);
 
-#define BL_PROFILE_REGION(rname) amrex::BLProfileRegion bl_profile_region_##vname((rname));
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::BLProfileRegion BL_PROFILE_PASTE(bl_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 
 #define BL_PROFILE_REGION_START(rname) amrex::BLProfiler::RegionStart(rname);
 #define BL_PROFILE_REGION_STOP(rname)  amrex::BLProfiler::RegionStop(rname);
@@ -484,7 +489,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_MEMORYINITIALIZE()  amrex::TinyProfiler::MemoryInitialize()
 #define BL_TINY_PROFILE_MEMORYFINALIZE()    amrex::TinyProfiler::MemoryFinalize()
 
-#define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
+#define BL_PROFILE(fname)                       \
+    AMREX_WARNING_PUSH_COUNTER                  \
+    BL_PROFILE_IMPL(fname, __COUNTER__)         \
+    AMREX_WARNING_POP
 #define BL_PROFILE_IMPL(funame, counter)  amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_, counter)((funame)); \
     amrex::ignore_unused(BL_PROFILE_PASTE(tiny_profiler_, counter));
 
@@ -499,7 +507,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
-#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region_##vname((rname))
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::TinyProfileRegion BL_PROFILE_PASTE(tiny_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
 //#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname)

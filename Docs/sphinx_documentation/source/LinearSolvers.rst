@@ -417,6 +417,15 @@ consolidation strategy for multigrid coarsening.
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.  If agglomeration is used, consolidation is ignored.
 
+- :cpp:`LPInfo::setSemicoarsening(bool)` (by default false) allows multigrid
+  to coarsen in only some of the directions when a direction can no longer be
+  coarsened.  :cpp:`LPInfo::setMaxSemicoarseningLevel(int)` caps how many such
+  levels are built, and :cpp:`LPInfo::setSemicoarseningDirection(int)` pins the
+  direction that is left uncoarsened.  On semi-coarsened levels the
+  cell-centered solvers smooth with a line solve along the uncoarsened
+  direction.  That smoother runs on the CPU only, so cell-centered
+  semi-coarsening is not supported in GPU builds and will abort.
+
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
 application. The application code must catch the exception:

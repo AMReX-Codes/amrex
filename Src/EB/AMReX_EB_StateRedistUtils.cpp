@@ -217,9 +217,9 @@ MakeStateRedistUtils ( Box const& bx,
                     int jj = jmap[itracker(i,j,k,i_nbor)]; int s = j+jj;
                     int kk = kmap[itracker(i,j,k,i_nbor)]; int t = k+kk;
 
-                    AMREX_D_TERM(cent_hat(i,j,k,0) += (ccent(r,s,t,0) + ii) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,1) += (ccent(r,s,t,1) + jj) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,2) += (ccent(r,s,t,2) + kk) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t););
+                    AMREX_D_TERM(cent_hat(i,j,k,0) += (ccent(r,s,t,0) + Real(ii)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
+                                 cent_hat(i,j,k,1) += (ccent(r,s,t,1) + Real(jj)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
+                                 cent_hat(i,j,k,2) += (ccent(r,s,t,2) + Real(kk)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t););
                 }
 
                 AMREX_D_TERM(cent_hat(i,j,k,0) /= nbhd_vol(i,j,k);,

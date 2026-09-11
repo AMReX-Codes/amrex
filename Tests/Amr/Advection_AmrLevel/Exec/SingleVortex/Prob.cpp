@@ -25,8 +25,8 @@ void initdata (MultiFab& S_tmp, const Geometry& geom){
         ParallelFor(box, [=] AMREX_GPU_DEVICE ( int i, int j, int k) noexcept
         {
 
-            Real x = prob_lo[0] + (i + 0.5_rt) * dx[0];
-            Real y = prob_lo[1] + (j + 0.5_rt) * dx[1];
+            Real x = prob_lo[0] + (Real(i) + 0.5_rt) * dx[0];
+            Real y = prob_lo[1] + (Real(j) + 0.5_rt) * dx[1];
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -35,7 +35,7 @@ void initdata (MultiFab& S_tmp, const Geometry& geom){
 
 #elif (AMREX_SPACEDIM == 3)
 
-            Real z = prob_lo[2] + (k + 0.5_rt) * dx[2];
+            Real z = prob_lo[2] + (Real(k) + 0.5_rt) * dx[2];
             Real r2 = ((x-0.5_rt)*(x-0.5_rt) + (y-0.75_rt)*(y-0.75_rt) + (z-0.5_rt)*(z-0.5_rt)) / 0.01_rt;
             phi(i,j,k) = 1.0_rt + std::exp(-r2);
 #endif
