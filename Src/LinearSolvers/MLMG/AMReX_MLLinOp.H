@@ -1117,6 +1117,13 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
 
+    m_geom.clear();
+    m_grids.clear();
+    m_dmap.clear();
+    m_factory.clear();
+    m_domain_covered.clear();
+    mg_coarsen_ratio_vec.clear();
+
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
