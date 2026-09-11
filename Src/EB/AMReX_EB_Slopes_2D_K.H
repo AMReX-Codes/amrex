@@ -373,8 +373,10 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     auto yslope = amrex::Real(0.0);
 
     // First get EB-aware slope that doesn't know about extdir
-    bool needs_bdry_stencil = (edlo_x && i <= domlo_x) || (edhi_x && i >= domhi_x) ||
-                              (edlo_y && j <= domlo_y) || (edhi_y && j >= domhi_y);
+    // Note that we include the cells one in from the boundary because the 4th-order
+    //    one-sided stencils reach domlo+1 / domhi-1
+    bool needs_bdry_stencil = (edlo_x && i <= domlo_x+1) || (edhi_x && i >= domhi_x-1) ||
+                              (edlo_y && j <= domlo_y+1) || (edhi_y && j >= domhi_y-1);
 
     //
     // This call does not have any knowledge of extdir / hoextrap boundary conditions
@@ -505,8 +507,11 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
     auto yslope = amrex::Real(0.0);
 
     // First get EB-aware slope that doesn't know about extdir
-    bool needs_bdry_stencil = (edlo_x && i <= domlo_x) || (edhi_x && i >= domhi_x) ||
-                              (edlo_y && j <= domlo_y) || (edhi_y && j >= domhi_y);
+    // Note that we include the cells one in from the boundary because both the 4th-order
+    //    one-sided stencils and the grown (nx or ny == 2) least squares stencil reach
+    //    domlo+1 / domhi-1
+    bool needs_bdry_stencil = (edlo_x && i <= domlo_x+1) || (edhi_x && i >= domhi_x-1) ||
+                              (edlo_y && j <= domlo_y+1) || (edhi_y && j >= domhi_y-1);
 
     //
     // This call does not have any knowledge of extdir / hoextrap boundary conditions
@@ -529,13 +534,22 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
         for(int jj(-ny); jj<=ny; jj++) {
         for(int ii(-nx); ii<=nx; ii++)
         {
-            if ( !flag(i+ii,j+jj,k).isCovered() && !(ii==0 && jj==0 && kk==0) )
-            {
-                bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
-                bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
+            // Cells more than one cell outside an extdir/hoextrap boundary hold no usable data,
+            //    so we exclude them from the fit just as we exclude covered cells
+            bool outside = (edlo_x && i+ii < domlo_x-1) || (edhi_x && i+ii > domhi_x+1) ||
+                           (edlo_y && j+jj < domlo_y-1) || (edhi_y && j+jj > domhi_y+1);
 
-                bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
-                bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
+            if ( !outside && !flag(i+ii,j+jj,k).isCovered() && !(ii==0 && jj==0 && kk==0) )
+            {
+                // The value in the first ghost cell outside an extdir/hoextrap boundary lives on
+                //    the domain face, not at the cell centroid.  With the grown (n == 2) stencil
+                //    that ghost cell can be reached from a cell one in from the boundary, so we
+                //    key these tests on the neighbor index rather than on the offset alone.
+                bool ilo_test = ( edlo_x && (i+ii == domlo_x-1) );
+                bool ihi_test = ( edhi_x && (i+ii == domhi_x+1) );
+
+                bool jlo_test = ( edlo_y && (j+jj == domlo_y-1) );
+                bool jhi_test = ( edhi_y && (j+jj == domhi_y+1) );
 
                 bool klo_test = false;
                 bool khi_test = false;
@@ -548,16 +562,16 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
                 {
                     if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                     {
-                        A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
+                        A[lc][1] = amrex::Real(jj) + fcx(domlo_x,j+jj,k+kk,0);
                     }
-                    A[lc][0] = amrex::Real(-0.5)                      ;
+                    A[lc][0] = amrex::Real(domlo_x-i) - amrex::Real(0.5);
                 } else if (ihi_test) {
 
                     if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                     {
-                        A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
+                        A[lc][1] = amrex::Real(jj) + fcx(domhi_x+1,j+jj,k+kk,0);
                     }
-                    A[lc][0] = amrex::Real(0.5)                       ;
+                    A[lc][0] = amrex::Real(domhi_x-i) + amrex::Real(0.5);
                 }
 
                 // Do corrections for entire y-face
@@ -565,17 +579,17 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
                 {
                     if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                     {
-                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,domlo_y,k+kk,0);
                     }
-                    A[lc][1] = amrex::Real(-0.5)                      ;
+                    A[lc][1] = amrex::Real(domlo_y-j) - amrex::Real(0.5);
 
                 } else if (jhi_test) {
 
                     if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                     {
-                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,domhi_y+1,k+kk,0);
                     }
-                    A[lc][1] = amrex::Real(0.5)                       ;
+                    A[lc][1] = amrex::Real(domhi_y-j) + amrex::Real(0.5);
                 }
 
                 A[lc][0] -= ccent(i,j,k,0);
