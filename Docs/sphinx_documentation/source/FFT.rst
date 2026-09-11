@@ -170,7 +170,10 @@ AMReX provides FFT-based Poisson solvers. Here, Poisson's equation is
 
 :cpp:`FFT::Poisson` supports periodic (:cpp:`FFT::Boundary::periodic`),
 homogeneous Neumann (:cpp:`FFT::Boundary::even`), and homogeneous Dirichlet
-(:cpp:`FFT::Boundary::odd`) boundaries using FFT. Below is an example of
+(:cpp:`FFT::Boundary::odd`) boundaries using FFT. The underlying
+:cpp:`FFT::R2X` class additionally supports :cpp:`FFT::Boundary::even_node`,
+the DCT-I with mirror symmetry about the first and last data points
+themselves; :cpp:`FFT::Poisson` does not use it. Below is an example of
 using the solver.
 
 .. highlight:: c++
@@ -230,6 +233,15 @@ changes only the internal FFT work arrays, not the user-provided
                   // outside the domain.
     FFT::PoissonOpenBC openbc_solver(geom, soln.ixType(), IntVect(ng));
     openbc_solver.solve(soln, rhs);
+
+Besides a functor evaluating the Green's function in real space,
+:cpp:`FFT::OpenBCSolver::setGreensFunction` accepts a :cpp:`MultiFab` holding
+it on the octant of non-negative lags, and
+:cpp:`FFT::OpenBCSolver::setGreensFunctionFromSpectral` accepts a functor
+evaluating its real, even Fourier transform on an oversampled periodic grid.
+The latter serves Green's functions known in Fourier space, such as the
+truncated free-space kernels of Vico, Greengard & Ferrando (J. Comput. Phys.
+323, 2016); see the OpenBC test for an example.
 
 :cpp:`FFT::PoissonHybrid` is a 3D only solver that supports Dirichlet and
 Neumann boundary in the last dimension. The last dimension is solved with a

@@ -19,6 +19,7 @@ namespace amrex::FFT
 
 template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
+template <typename T> class OpenBCSolver;
 
 /**
  * \ingroup amrex_fft
@@ -37,6 +38,7 @@ public:
 
     template <typename U> friend class Poisson;
     template <typename U> friend class PoissonHybrid;
+    template <typename U> friend class OpenBCSolver;
 
     /**
      * \brief Build an FFT plan for the given domain and boundary types.
@@ -478,7 +480,8 @@ R2X<T>::R2X (Box const& domain,
             m_fft_fwd_x.template init_r2r<Direction::forward>(box, pf, bc[0]);
 #if defined(AMREX_USE_GPU)
             if ((bc[0].first == Boundary::even && bc[0].second == Boundary::odd) ||
-                (bc[0].first == Boundary::odd && bc[0].second == Boundary::even)) {
+                (bc[0].first == Boundary::odd && bc[0].second == Boundary::even) ||
+                (bc[0].first == Boundary::even_node && bc[0].second == Boundary::even_node)) {
                 m_fft_bwd_x = m_fft_fwd_x;
             } else
 #endif
@@ -519,7 +522,8 @@ R2X<T>::R2X (Box const& domain,
             m_fft_fwd_y.template init_r2r<Direction::forward>(box, p, bc[1]);
 #if defined(AMREX_USE_GPU)
             if ((bc[1].first == Boundary::even && bc[1].second == Boundary::odd) ||
-                (bc[1].first == Boundary::odd && bc[1].second == Boundary::even)) {
+                (bc[1].first == Boundary::odd && bc[1].second == Boundary::even) ||
+                (bc[1].first == Boundary::even_node && bc[1].second == Boundary::even_node)) {
                 m_fft_bwd_y = m_fft_fwd_y;
             } else
 #endif
@@ -534,7 +538,8 @@ R2X<T>::R2X (Box const& domain,
             m_fft_fwd_y.template init_r2r<Direction::forward>(box, p, bc[1]);
 #if defined(AMREX_USE_GPU)
             if ((bc[1].first == Boundary::even && bc[1].second == Boundary::odd) ||
-                (bc[1].first == Boundary::odd && bc[1].second == Boundary::even)) {
+                (bc[1].first == Boundary::odd && bc[1].second == Boundary::even) ||
+                (bc[1].first == Boundary::even_node && bc[1].second == Boundary::even_node)) {
                 m_fft_bwd_y = m_fft_fwd_y;
             } else
 #endif
@@ -576,7 +581,8 @@ R2X<T>::R2X (Box const& domain,
             m_fft_fwd_z.template init_r2r<Direction::forward>(box, p, bc[2]);
 #if defined(AMREX_USE_GPU)
             if ((bc[2].first == Boundary::even && bc[2].second == Boundary::odd) ||
-                (bc[2].first == Boundary::odd && bc[2].second == Boundary::even)) {
+                (bc[2].first == Boundary::odd && bc[2].second == Boundary::even) ||
+                (bc[2].first == Boundary::even_node && bc[2].second == Boundary::even_node)) {
                 m_fft_bwd_z = m_fft_fwd_z;
             } else
 #endif
@@ -591,7 +597,8 @@ R2X<T>::R2X (Box const& domain,
             m_fft_fwd_z.template init_r2r<Direction::forward>(box, p, bc[2]);
 #if defined(AMREX_USE_GPU)
             if ((bc[2].first == Boundary::even && bc[2].second == Boundary::odd) ||
-                (bc[2].first == Boundary::odd && bc[2].second == Boundary::even)) {
+                (bc[2].first == Boundary::odd && bc[2].second == Boundary::even) ||
+                (bc[2].first == Boundary::even_node && bc[2].second == Boundary::even_node)) {
                 m_fft_bwd_z = m_fft_fwd_z;
             } else
 #endif
@@ -629,9 +636,15 @@ T R2X<T>::scalingFactor () const
     if (m_info.twod_mode && m_dom_0.length(2) == 1) { ndims = 1; };
 #endif
     for (int idim = 0; idim < ndims; ++idim) {
-        r *= m_dom_0.length(idim);
-        if (m_bc[idim].first != Boundary::periodic && (m_dom_0.length(idim) > 1)) {
-            r *= 2;
+        Long const n = m_dom_0.length(idim);
+        if (m_bc[idim].first == Boundary::even_node && n > 1) {
+            // DCT-I of n points is a DFT of length 2*(n-1)
+            r *= 2*(n-1);
+        } else {
+            r *= n;
+            if (m_bc[idim].first != Boundary::periodic && (n > 1)) {
+                r *= 2;
+            }
         }
     }
     return T(1)/T(r);
