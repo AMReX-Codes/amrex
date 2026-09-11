@@ -233,6 +233,10 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
     LPInfo linfo = a_info;
     linfo.max_coarsening_level = std::min(a_info.max_coarsening_level,
                                           max_overset_mask_coarsening_level);
+    // The overset masks above are coarsened isotropically by 2, so the MG
+    // levels must be too, or the masks and the grids end up in different
+    // index spaces.
+    linfo.do_semicoarsening = false;
 
     MLCellLinOpT<MF>::define(a_geom, a_grids, a_dmap, linfo, a_factory);
 

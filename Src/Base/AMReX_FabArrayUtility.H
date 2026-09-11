@@ -1138,11 +1138,11 @@ bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghos
 
 template <BaseFabType FAB, class F>
 requires (amrex::DefinitelyNotHostRunnable<F>::value)
-bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
+bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    amrex::ignore_unused(fa,nghost);
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
-    return 0;
+    return false;
 }
 }
 /// \endcond
@@ -1813,7 +1813,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 }
             });
         } else {
-            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
+            // The result is read on the host below, so the streams used by
+            // MFIter must be synchronized even inside a NoSyncRegion.
+            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(true)); mfi.isValid(); ++mfi) {
                 const Box& bx = amrex::grow(mfi.validbox(), nghost);
                 auto const& arr = mf.const_array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

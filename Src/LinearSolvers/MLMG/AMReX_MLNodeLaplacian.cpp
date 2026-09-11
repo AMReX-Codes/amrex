@@ -492,10 +492,12 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
     }
 
@@ -511,7 +513,6 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     int idir = 2;
     if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
-        IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
         if (ratio[1] == 1) {
             idir = 1;
         } else if (ratio[0] == 1) {
@@ -607,11 +608,13 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     const auto& sigma = m_sigma[amrlev][fmglev];
     const auto& stencil = m_stencil[amrlev][fmglev];
 
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     const MultiFab* cmf = &crse;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         cfine.ParallelCopy(crse);
         cmf = &cfine;
@@ -626,7 +629,6 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     int idir = 2;
     if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
-        IntVect ratio = mg_coarsen_ratio_vec[fmglev];
         if (ratio[1] == 1) {
             idir = 1;
         } else if (ratio[0] == 1) {
@@ -1091,10 +1093,13 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
 #else
     const int ncomp_si = algoim::numSurfIntgs;
 #endif
-    m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                    m_dmap[amrlev][0],
-                                                    ncomp_si, 1, MFInfo(),
-                                                    *m_factory[amrlev][0]);
+    if (m_surface_integral[amrlev] == nullptr) {
+        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0],
+                                                        ncomp_si, 1, MFInfo(),
+                                                        *m_factory[amrlev][0]);
+        m_surface_integral_built = false;
+    }
     // Turn on flag for building surface integrals
     m_build_surface_integral = true;
 }

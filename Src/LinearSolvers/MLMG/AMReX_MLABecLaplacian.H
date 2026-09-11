@@ -275,6 +275,9 @@ private:
 
     int m_ncomp = 1;
 
+    Vector<int> m_a_metric_applied;
+    Vector<int> m_b_metric_applied;
+
     void define_ab_coeffs ();
 
     void update_singular_flags ();
@@ -342,6 +345,8 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
 {
     m_a_coeffs.resize(this->m_num_amr_levels);
     m_b_coeffs.resize(this->m_num_amr_levels);
+    m_a_metric_applied.assign(this->m_num_amr_levels, 0);
+    m_b_metric_applied.assign(this->m_num_amr_levels, 0);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
         m_a_coeffs[amrlev].resize(this->m_num_mg_levels[amrlev]);
@@ -377,6 +382,7 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
         }
         m_acoef_set = true;
     }
+    m_needs_update = true;
     m_scalars_set = true;
 }
 
@@ -389,6 +395,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
     AMREX_ASSERT_WITH_MESSAGE(alpha.nComp() == 1,
                               "MLABecLaplacian::setACoeffs: alpha is supposed to be single component.");
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, 1, IntVect(0));
+    m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
 }
@@ -400,6 +407,7 @@ void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 {
     m_a_coeffs[amrlev][0].setVal(RT(alpha));
+    m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
 }
@@ -427,6 +435,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
             }
         }
     }
+    m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
 }
 
@@ -440,6 +449,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_b_coeffs[amrlev][0][idim].setVal(RT(beta));
     }
+    m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
 }
 
@@ -456,6 +466,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
             m_b_coeffs[amrlev][0][idim].setVal(RT(beta[icomp]), icomp, 1, 0);
         }
     }
+    m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
 }
 
@@ -509,10 +520,16 @@ MLABecLaplacianT<MF>::applyMetricTermsCoeffs ()
     for (int alev = 0; alev < this->m_num_amr_levels; ++alev)
     {
         const int mglev = 0;
-        this->applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            this->applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
+        if (!m_a_metric_applied[alev]) {
+            this->applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
+            m_a_metric_applied[alev] = 1;
+        }
+        if (!m_b_metric_applied[alev]) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                this->applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
+            }
+            m_b_metric_applied[alev] = 1;
         }
     }
 #endif
@@ -698,6 +715,7 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
         IntVect ratio = (amrlev > 0) ? IntVect(this->mg_coarsen_ratio) : this->mg_coarsen_ratio_vec[mglev-1];
+        if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
 
         if (m_a_scalar == 0.0)
         {

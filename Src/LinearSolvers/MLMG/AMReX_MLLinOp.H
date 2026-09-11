@@ -1129,6 +1129,13 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
 
+    m_geom.clear();
+    m_grids.clear();
+    m_dmap.clear();
+    m_factory.clear();
+    m_domain_covered.clear();
+    mg_coarsen_ratio_vec.clear();
+
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
@@ -1849,6 +1856,7 @@ MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[amrlev][mglev];
         IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
+        if (hasHiddenDimension()) { ratio[hiddenDirection()] = 1; }
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
         return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng, mf_info);

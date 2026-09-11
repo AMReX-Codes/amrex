@@ -824,9 +824,7 @@ FABio_8bit::read (std::istream& is,
     for(int k = 0; k < f.nComp(); ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
-        while (is.get() != '\n') {
-            ;  // ---- do nothing
-        }
+        is.ignore(BL_IGNORE_MAX, '\n');
         is.read((char*)c,siz);
         Real* dat       = f.dataPtr(k);
         const Real rng  = (mx-mn)/255.0_rt;
@@ -855,9 +853,7 @@ FABio_8bit::skip (std::istream& is,
     for(int k = 0; k < f.nComp(); ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
-        while(is.get() != '\n') {
-            ;  // ---- do nothing
-        }
+        is.ignore(BL_IGNORE_MAX, '\n');
         is.seekg(siz, std::ios::cur);
     }
 
@@ -878,9 +874,7 @@ FABio_8bit::skip (std::istream& is,
     for(int k = 0; k < nCompToSkip; ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
-        while(is.get() != '\n') {
-            ;  // ---- do nothing
-        }
+        is.ignore(BL_IGNORE_MAX, '\n');
         is.seekg(siz, std::ios::cur);
     }
 

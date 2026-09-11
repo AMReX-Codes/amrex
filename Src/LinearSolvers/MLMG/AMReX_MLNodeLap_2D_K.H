@@ -678,7 +678,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
         if (!msk(i,j,0)) {
             int ic = i;
             int jc = amrex::coarsen(j,2);
-            bool j_is_odd = (ic*2 != i);
+            bool j_is_odd = (jc*2 != j);
             if (j_is_odd) {
                 // Node on Y line
                 fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
