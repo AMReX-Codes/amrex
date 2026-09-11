@@ -156,7 +156,7 @@ MLEBTensorOp::prepareForSolve ()
             if (amrlev > 0) {
                 amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
                                              GetArrOfPtrs     (m_kappa[amrlev-1].front()),
-                                             IntVect(mg_coarsen_ratio), m_geom[amrlev-1][0]);
+                                             AMRRefRatioVect(amrlev-1), m_geom[amrlev-1][0]);
             }
         }
     } else {
@@ -179,7 +179,7 @@ MLEBTensorOp::prepareForSolve ()
             if (amrlev > 0) {
                 amrex::EB_average_down_boundaries(m_eb_kappa[amrlev  ].back(),
                                                   m_eb_kappa[amrlev-1].front(),
-                                                  IntVect(mg_coarsen_ratio), 0);
+                                                  AMRRefRatioVect(amrlev-1), 0);
             }
         }
     } else {

@@ -601,13 +601,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
-#ifdef AMREX_USE_GPU
-            if (Gpu::inNoSyncRegion()) {
-                // MFIter does not synchronize in a no-sync region.  Wait for all
-                // streams before the data are passed to HYPRE below.
-                Gpu::synchronize();
-            }
-#endif
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     } else
 #endif
@@ -661,13 +655,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     });
                 }
             }
-#ifdef AMREX_USE_GPU
-            if (Gpu::inNoSyncRegion()) {
-                // MFIter does not synchronize in a no-sync region.  Wait for all
-                // streams before the data are passed to HYPRE below.
-                Gpu::synchronize();
-            }
-#endif
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     }
 

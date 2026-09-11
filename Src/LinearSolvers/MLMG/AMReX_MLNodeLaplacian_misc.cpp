@@ -576,8 +576,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
-        // No nodalSync here.  Every consumer of sol goes through
-        // MLNodeLinOp::applyBC first, and that does FillBoundaryAndSync.
+        nodalSync(amrlev, mglev, sol);
     }
     else
     {
@@ -734,8 +733,11 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping
     // or harmonic averaging), each velocity component needs its own
     // sigma direction.  Otherwise fall through to the scalar-sigma path.
+    // The RAP stencil is built from sigma component 0 alone, so the
+    // correction must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -931,9 +933,11 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping),
     // each flux component needs its own sigma direction.  Otherwise fall
-    // through to the scalar-sigma path.
+    // through to the scalar-sigma path.  The RAP stencil is built from
+    // sigma component 0 alone, so the fluxes must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);

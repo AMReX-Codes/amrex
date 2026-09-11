@@ -462,33 +462,23 @@ Arena::Initialize (bool minimal)
     pp.queryAdd("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
     {
-#if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
+#ifdef AMREX_USE_GPU
         ArenaInfo ai{};
         ai.SetReleaseThreshold(the_arena_release_threshold);
         ai.SetDefragmentation(the_arena_defragmentation);
         if (the_arena_is_managed) {
             the_arena = new CArena(0, ai.SetPreferred());
-#ifdef AMREX_USE_GPU
             the_arena->registerForProfiling("Managed Memory");
-#else
-            the_arena->registerForProfiling("Cpu Memory");
-#endif
         } else {
             the_arena = new CArena(0, ai.SetDeviceMemory());
-#ifdef AMREX_USE_GPU
             the_arena->registerForProfiling("Device Memory");
-#else
-            the_arena->registerForProfiling("Cpu Memory");
-#endif
         }
-#ifdef AMREX_USE_GPU
         if (the_arena_init_size > 0) {
             BL_PROFILE("The_Arena::Initialize()");
             void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
             the_arena->free(p);
             the_arena->ResetMaxUsageCounter();
         }
-#endif
 #else
         the_arena = The_BArena();
 #endif

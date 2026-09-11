@@ -237,6 +237,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << '\n';
         }
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
         return ret;
     }
 
@@ -423,6 +426,9 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             amrex::Print() << print_ident << "MLCGSolver_CG: niter = 0,"
                            << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << '\n';
+        }
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
         }
         return ret;
     }

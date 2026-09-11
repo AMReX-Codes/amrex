@@ -81,7 +81,7 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                int                     num_comp,
                bool                    extrap)
 {
-    amrex::ignore_unused(extrap);
+    amrex::ignore_unused(extrap, src_comp);
 
     const Real teps = (t2-t1)/1000.0_rt;
 
@@ -107,9 +107,9 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp<RunOn::Host>
                       (dest1,
-                       src_comp,
+                       dest_comp,
                        dest2,
-                       src_comp,
+                       dest_comp,
                        t1,
                        t2,
                        t,

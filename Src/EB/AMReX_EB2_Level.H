@@ -37,6 +37,7 @@ namespace amrex::EB2 {
 
 class IndexSpace;
 template <typename G> class GShopLevel;
+template <typename G> class IndexSpaceImp;
 
 class Level
 {
@@ -236,6 +237,8 @@ public:
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
+    //! Build the face-centered EBCellFlag connectivity for \p face_dir from its area fractions.
+    void buildCellFlagFC (int face_dir);
     //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);
 
@@ -273,6 +276,8 @@ protected:
 
 private:
     template <typename G> friend class GShopLevel;
+    // So that it can update m_parent when a level changes owner.
+    template <typename G> friend class IndexSpaceImp;
 
     // Need this function to work around a gcc bug.
     void setRegularLevel () {
@@ -385,8 +390,8 @@ GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
     BoxList cut_boxes;
     BoxList covered_boxes;
 
-    const int nprocs = ParallelDescriptor::NProcs();
-    const int iproc = ParallelDescriptor::MyProc();
+    const int nprocs = ParallelContext::NProcsSub();
+    const int iproc = ParallelContext::MyProcSub();
 
     num_crse_opt = std::max(0,std::min(8,num_crse_opt));
     for (int clev = num_crse_opt; clev >= 0; --clev) {
@@ -889,7 +894,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
     if (!refined_cc_level->m_covered_grids.empty()) {
         m_fc_data[face_dir]->m_covered_grids_fc =
-            amrex::coarsen(refined_cc_level->m_covered_grids, 2);
+            amrex::coarsen(refined_cc_level->m_covered_grids, 2).simplified();
     }
     const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
 
@@ -952,7 +957,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     {
         bool b = mvmc_error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         mvmc_error = b;
     }
     if (mvmc_error) {
@@ -1170,18 +1175,15 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     {
         bool b = error;
-        ParallelDescriptor::ReduceBoolOr(b);
+        ParallelAllReduce::Or(b, ParallelContext::CommunicatorSub());
         error = b;
     }
 
-    if (!error) {
-        buildCellFlag();
-    }
-
-    // return error;
-
     m_fc_data[face_dir]->m_built = true;
-    // If transient_level exists, it's automatically destroyed here
+
+    if (!error) {
+        buildCellFlagFC(face_dir);
+    }
 }
 
 }

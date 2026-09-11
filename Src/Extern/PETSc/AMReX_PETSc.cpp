@@ -669,13 +669,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     });
                 }
             }
-#ifdef AMREX_USE_GPU
-            if (Gpu::inNoSyncRegion()) {
-                // MFIter does not synchronize in a no-sync region.  Wait for all
-                // streams before the data are passed to PETSc below.
-                Gpu::synchronize();
-            }
-#endif
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     } else
 #endif
@@ -709,13 +703,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
                 });
             }
-#ifdef AMREX_USE_GPU
-            if (Gpu::inNoSyncRegion()) {
-                // MFIter does not synchronize in a no-sync region.  Wait for all
-                // streams before the data are passed to PETSc below.
-                Gpu::synchronize();
-            }
-#endif
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     }
 

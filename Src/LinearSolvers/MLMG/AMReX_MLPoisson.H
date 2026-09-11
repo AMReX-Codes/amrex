@@ -200,6 +200,8 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLPoisson::define(overset)");
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
+        "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
 }
 
 template <typename MF>

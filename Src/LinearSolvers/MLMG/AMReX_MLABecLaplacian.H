@@ -266,7 +266,8 @@ protected:
 
     Vector<int> m_is_singular;
 
-    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+    // Robin BC modifies alpha, which has only one component.
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return getNComp() == 1; }
 
 private:
 
@@ -998,6 +999,11 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
+    // The line solve taken for semi-coarsened levels is host only.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(regular_coarsening
+                                     || this->m_overset_mask[amrlev][mglev]
+                                     || Gpu::notInLaunchRegion(),
+                                     "MLABecLaplacian::Fsmooth: line solve is not supported on GPU");
     if (Gpu::inLaunchRegion()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
@@ -1104,7 +1110,13 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
     {
         MFItInfo mfi_info;
-        mfi_info.EnableTiling().SetDynamic(true);
+        mfi_info.SetDynamic(true);
+        // The line solve below needs whole valid boxes, not tiles: a tile
+        // would truncate the tridiagonal lines and make neighboring threads
+        // race on the cells at the tile edges.
+        if (regular_coarsening || this->m_overset_mask[amrlev][mglev]) {
+            mfi_info.EnableTiling();
+        }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1201,7 +1213,8 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                     });
                 }
             } else {
-                // line solve does not with with GPU
+                // Line solve for semi-coarsening. Host only, and tbx == vbx
+                // because tiling is disabled above for this branch.
                 abec_gsrb_with_line_solve(tbx, solnfab, rhsfab, alpha, afab,
                                           AMREX_D_DECL(dhx, dhy, dhz),
                                           AMREX_D_DECL(bxfab, byfab, bzfab),
@@ -1393,7 +1406,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
     const DistributionMapping& dm = this->m_dmap[0].back();
 
     std::unique_ptr<MLLinOpT<MF>> r
-        {new MLABecLaplacianT<MF>({geom}, {ba}, {dm}, this->m_lpinfo_arg)};
+        {new MLABecLaplacianT<MF>({geom}, {ba}, {dm}, this->m_lpinfo_arg, {}, m_ncomp)};
 
     auto nop = dynamic_cast<MLABecLaplacianT<MF>*>(r.get());
     if (!nop) {
@@ -1416,7 +1429,11 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
         nop->setCoarseFineBCLocation(cbloc);
     }
 
-    nop->setScalars(m_a_scalar, m_b_scalar);
+    // Pinning the masked cells with a huge alpha below requires a nonzero
+    // a-scalar.  The parent's alpha does not contribute if its a-scalar is zero.
+    const RT ascalar = (m_a_scalar == RT(0.0)) ? RT(1.0) : m_a_scalar;
+    const RT afac = m_a_scalar / ascalar; // 1 unless m_a_scalar is zero
+    nop->setScalars(ascalar, m_b_scalar);
 
     MF const& alpha_bottom = m_a_coeffs[0].back();
     iMultiFab const& osm_bottom = *(this->m_overset_mask[0].back());
@@ -1448,7 +1465,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (mma[box_no](i,j,k)) {
-                ama[box_no](i,j,k,n) = abotma[box_no](i,j,k,n);
+                ama[box_no](i,j,k,n) = afac*abotma[box_no](i,j,k,n);
             } else {
                 ama[box_no](i,j,k,n) = huge_alpha;
             }
@@ -1470,7 +1487,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
                 if (m(i,j,k)) {
-                    a(i,j,k,n) = abot(i,j,k,n);
+                    a(i,j,k,n) = afac*abot(i,j,k,n);
                 } else {
                     a(i,j,k,n) = huge_alpha;
                 }

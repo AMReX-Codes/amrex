@@ -59,9 +59,9 @@ int main (int argc, char* argv[])
         auto const& ma = mf.arrays();
         ParallelFor(mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
-                         Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
-                         Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
+            AMREX_D_TERM(Real x = (Real(i)+0.5_rt) * dx[0] - 0.5_rt;,
+                         Real y = (Real(j)+0.5_rt) * dx[1] - 0.5_rt;,
+                         Real z = (Real(k)+0.5_rt) * dx[2] - 0.5_rt);
             ma[b](i,j,k) = std::exp(-10._rt*
                 (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
         });
@@ -98,7 +98,7 @@ int main (int argc, char* argv[])
             auto error = mf2.norminf();
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 1.e-6F;
 #else
             auto eps = 1.e-13;
 #endif
@@ -121,7 +121,7 @@ int main (int argc, char* argv[])
             auto error = mf2.norminf();
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 1.e-6F;
 #else
             auto eps = 1.e-13;
 #endif
@@ -164,7 +164,7 @@ int main (int argc, char* argv[])
             ParallelDescriptor::ReduceRealMax(error);
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 1.e-6F;
 #else
             auto eps = 1.e-13;
 #endif
@@ -230,7 +230,7 @@ int main (int argc, char* argv[])
             auto error = mf2.norminf();
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 1.e-6F;
 #else
             auto eps = 1.e-13;
 #endif
@@ -281,7 +281,7 @@ int main (int argc, char* argv[])
                 amrex::Print() << "  Face MultiFab dir " << idim
                                << " expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-                auto eps = 1.e-6f;
+                auto eps = 1.e-6F;
 #else
                 auto eps = 1.e-13;
 #endif

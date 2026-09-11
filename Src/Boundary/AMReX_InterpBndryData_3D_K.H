@@ -46,8 +46,8 @@ void interpbndrydata_x_o3 (int i, int j, int k, int n,
         ? T(0.25)*(crse(ic,jc+1,kc+1,n+nc)-crse(ic,jc-1,kc+1,n+nc)+crse(ic,jc-1,kc-1,n+nc)-crse(ic,jc+1,kc-1,n+nc))
         : T(0.0);
 
-    T y = -T(0.5) + (j-jc*r.y+T(0.5))/r.y;
-    T z = -T(0.5) + (k-kc*r.z+T(0.5))/r.z;
+    T y = -T(0.5) + (T(j-jc*r.y)+T(0.5))/T(r.y);
+    T z = -T(0.5) + (T(k-kc*r.z)+T(0.5))/T(r.z);
     bdry(i,j,k,n+nb) = crse(ic,jc,kc,n+nc) + y*dy + (y*y)*dy2 + z*dz + (z*z)*dz2 + y*z*dyz;
 }
 
@@ -80,8 +80,8 @@ void interpbndrydata_y_o3 (int i, int j, int k, int n,
         : T(0.0);
 
 
-    T x = -T(0.5) + (i-ic*r.x+T(0.5))/r.x;
-    T z = -T(0.5) + (k-kc*r.z+T(0.5))/r.z;
+    T x = -T(0.5) + (T(i-ic*r.x)+T(0.5))/T(r.x);
+    T z = -T(0.5) + (T(k-kc*r.z)+T(0.5))/T(r.z);
     bdry(i,j,k,n+nb) = crse(ic,jc,kc,n+nc) + x*dx + (x*x)*dx2 + z*dz + (z*z)*dz2 + x*z*dxz;
 }
 
@@ -113,8 +113,8 @@ void interpbndrydata_z_o3 (int i, int j, int k, int n,
         ? T(0.25)*(crse(ic+1,jc+1,kc,n+nc)-crse(ic-1,jc+1,kc,n+nc)+crse(ic-1,jc-1,kc,n+nc)-crse(ic+1,jc-1,kc,n+nc))
         : T(0.0);
 
-    T x = -T(0.5) + (i-ic*r.x+T(0.5))/r.x;
-    T y = -T(0.5) + (j-jc*r.y+T(0.5))/r.y;
+    T x = -T(0.5) + (T(i-ic*r.x)+T(0.5))/T(r.x);
+    T y = -T(0.5) + (T(j-jc*r.y)+T(0.5))/T(r.y);
     bdry(i,j,k,n+nb) = crse(ic,jc,kc,n+nc) + x*dx + (x*x)*dx2 + y*dy + (y*y)*dy2 + x*y*dxy;
 }
 
