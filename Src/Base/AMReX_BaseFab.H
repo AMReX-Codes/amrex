@@ -1821,7 +1821,7 @@ BaseFab<T>::elixir () noexcept
         o = this->ptr_owner;
         this->ptr_owner = false;
         if (o && this->dptr) {
-            if (this->nvar > 1) {
+            if (this->nvar > 0) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
             } else {
                 amrex::update_fab_stats(0, -this->truesize, sizeof(T));
@@ -1857,7 +1857,7 @@ BaseFab<T>::clear ()
             this->free(this->dptr);
 #endif
 
-            if (this->nvar > 1) {
+            if (this->nvar > 0) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
             } else {
                 amrex::update_fab_stats(0, -this->truesize, sizeof(T));
@@ -1877,7 +1877,7 @@ BaseFab<T>::release () noexcept
     if (this->dptr && this->ptr_owner) {
         r.reset(this->dptr);
         this->ptr_owner = false;
-        if (this->nvar > 1) {
+        if (this->nvar > 0) {
             amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
         } else {
             amrex::update_fab_stats(0, -this->truesize, sizeof(T));
