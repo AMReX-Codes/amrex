@@ -227,6 +227,9 @@ template <typename F>
 requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
 void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 {
+    // Select m_phi_eb again, in case a previous prepareForSolve defaulted
+    // to homogeneous Dirichlet or a scalar value was set earlier.
+    m_s_phi_eb = std::numeric_limits<Real>::lowest();
     m_phi_eb.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());

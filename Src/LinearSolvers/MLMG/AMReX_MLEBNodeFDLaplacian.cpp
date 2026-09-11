@@ -268,6 +268,13 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     buildMasks();
 
 #ifdef AMREX_USE_EB
+    // If neither setEBDirichlet overload was called, m_s_phi_eb still holds
+    // the "use the m_phi_eb array" sentinel while m_phi_eb is empty. Default
+    // to homogeneous Dirichlet on the EB instead.
+    if (m_s_phi_eb == std::numeric_limits<Real>::lowest() && m_phi_eb.empty()) {
+        m_s_phi_eb = Real(0.0);
+    }
+
     // Set covered nodes to Dirichlet, but with a negative value.
     // compGrad relies on the negative value to detect EB.
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {

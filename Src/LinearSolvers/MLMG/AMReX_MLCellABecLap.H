@@ -367,6 +367,8 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
+    // A preconditioner must be linear, so it gets no inhomogeneous terms.
+    if (this->m_precond_mode) { return; }
     if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();

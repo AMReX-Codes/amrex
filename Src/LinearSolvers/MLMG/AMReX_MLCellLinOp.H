@@ -889,7 +889,9 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                                                    crse_fine_bc_type);
     }
 
-    if (this->hasRobinBC()) {
+    // In precond mode beginPrecondBC calls this with null Robin data; keep
+    // the user's a, b and f rather than dereferencing the null pointers.
+    if (this->hasRobinBC() && !this->m_precond_mode) {
         AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr && robinbc_f != nullptr);
         this->m_robin_bcval[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
                                                      this->m_dmap[amrlev][0],
