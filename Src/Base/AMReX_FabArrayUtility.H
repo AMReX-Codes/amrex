@@ -1811,7 +1811,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 }
             });
         } else {
-            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
+            // The result is read on the host below, so the streams used by
+            // MFIter must be synchronized even inside a NoSyncRegion.
+            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(true)); mfi.isValid(); ++mfi) {
                 const Box& bx = amrex::grow(mfi.validbox(), nghost);
                 auto const& arr = mf.const_array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
