@@ -680,7 +680,7 @@ MLEBABecLap::averageDownEBPhi ()
     if (m_eb_phi[0]) {
         for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev) {
             amrex::EB_average_down_boundaries(*m_eb_phi[amrlev], *m_eb_phi[amrlev-1],
-                                              mg_coarsen_ratio, 0);
+                                              AMRRefRatioVect(amrlev-1), 0);
         }
     }
 }
