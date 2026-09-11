@@ -37,6 +37,7 @@ namespace amrex::EB2 {
 
 class IndexSpace;
 template <typename G> class GShopLevel;
+template <typename G> class IndexSpaceImp;
 
 class Level
 {
@@ -275,6 +276,8 @@ protected:
 
 private:
     template <typename G> friend class GShopLevel;
+    // So that it can update m_parent when a level changes owner.
+    template <typename G> friend class IndexSpaceImp;
 
     // Need this function to work around a gcc bug.
     void setRegularLevel () {
