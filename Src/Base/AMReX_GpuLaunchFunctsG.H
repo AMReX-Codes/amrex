@@ -159,7 +159,7 @@ void single_task (gpuStream_t stream, L const& f)
     try {
         q.submit([&] (sycl::handler& h) {
             if constexpr (detail::is_big_kernel<L>()) {
-                h.single_task(*pf);
+                h.single_task([=] () { (*pf)(); });
             } else {
                 h.single_task(f);
             }
