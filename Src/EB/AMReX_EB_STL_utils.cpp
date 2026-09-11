@@ -55,8 +55,11 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real sign (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
     {
-        Real cp = (x2-x1)*(y3-y2) - (x3-x2)*(y2-y1);
-        if (std::abs(cp) < std::numeric_limits<Real>::epsilon()) {
+        Real a = (x2-x1)*(y3-y2);
+        Real b = (x3-x2)*(y2-y1);
+        Real cp = a - b;
+        // the tolerance must follow the magnitude of the two products
+        if (std::abs(cp) <= std::numeric_limits<Real>::epsilon()*amrex::max(std::abs(a),std::abs(b))) {
             return 0._rt;
         } else {
             return std::copysign(1.0_rt, cp);
