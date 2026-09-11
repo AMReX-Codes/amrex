@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
             } else if (k >= ncells) {
                 k -= ncells;
             }
-            return n + i*ncomp + j*ncomp*ncells + k*ncomp*ncells*ncells;
+            return Real(n + i*ncomp + j*ncomp*ncells + k*ncomp*ncells*ncells);
         };
 
         // Test GpuArray
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
                     auto v = value(i,j,k,n);
                     r1 = std::max(r1, std::abs(a1(i,j,k)[n] - v));
                     r2 = std::max(r2, std::abs(a2(i,j,k)[n] - v));
-                    r3 = std::max(r3, std::abs(a3(i,j,k)[n] - v*m(i,j,k)));
+                    r3 = std::max(r3, std::abs(a3(i,j,k)[n] - v*Real(m(i,j,k))));
                 }
                 return {r1, r2, r3};
             });

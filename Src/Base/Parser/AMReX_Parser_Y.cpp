@@ -3,6 +3,7 @@
 #include <amrex_parser.tab.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <vector>
 
@@ -226,6 +227,29 @@ bool parser_is_comparison (struct parser_node* node)
                 ftype == PARSER_LEQ || ftype == PARSER_GEQ ||
                 ftype == PARSER_EQ || ftype == PARSER_NEQ ||
                 (ftype == PARSER_CMP_CHAIN && parser_is_comparison(node->r)));
+    } else {
+        return false;
+    }
+}
+
+// Is the node a number with a finite integer value?
+bool parser_is_integer (struct parser_node* node)
+{
+    if (node && node->type == PARSER_NUMBER) {
+        auto v = parser_get_number(node);
+        return std::isfinite(v) && v == std::floor(v);
+    } else {
+        return false;
+    }
+}
+
+// Does the node already evaluate to 1 or 0?
+bool parser_is_boolean (struct parser_node* node)
+{
+    if (node && node->type == PARSER_F2) {
+        auto ftype = ((struct parser_f2*)node)->ftype;
+        return (ftype == PARSER_AND || ftype == PARSER_OR ||
+                parser_is_comparison(node));
     } else {
         return false;
     }
@@ -1409,8 +1433,13 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) != 0.0)
-        { // ? and true => ?
-            std::memcpy(node, node->l, sizeof(struct parser_node));
+        { // ? and true => (? != 0)
+            if (parser_is_boolean(node->l)) {
+                std::memcpy(node, node->l, sizeof(struct parser_node));
+            } else {
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+                parser_set_number(node->r, 0.0);
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
@@ -1421,8 +1450,14 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) != 0.0)
-        { // true and ? => ?
-            std::memcpy(node, node->r, sizeof(struct parser_node));
+        { // true and ? => (? != 0)
+            if (parser_is_boolean(node->r)) {
+                std::memcpy(node, node->r, sizeof(struct parser_node));
+            } else {
+                std::swap(node->l, node->r);
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+                parser_set_number(node->r, 0.0);
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
@@ -1433,8 +1468,12 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) == 0.0)
-        { // ? or false => ?
-            std::memcpy(node, node->l, sizeof(struct parser_node));
+        { // ? or false => (? != 0)
+            if (parser_is_boolean(node->l)) {
+                std::memcpy(node, node->l, sizeof(struct parser_node));
+            } else {
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
@@ -1445,8 +1484,13 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) == 0.0)
-        { // false or ? => ?
-            std::memcpy(node, node->r, sizeof(struct parser_node));
+        { // false or ? => (? != 0)
+            if (parser_is_boolean(node->r)) {
+                std::memcpy(node, node->r, sizeof(struct parser_node));
+            } else {
+                std::swap(node->l, node->r);
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
@@ -1462,12 +1506,6 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                         sizeof(struct parser_node));
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
-                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
-                 parser_get_number(((struct parser_f2*)node)->l) == 0.0)
-        {
-            parser_set_number(node, 0.0);
-        }
-        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) == -1.0)
         {
@@ -1477,8 +1515,10 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->l->type == PARSER_F2 &&
-                 ((struct parser_f2*)((struct parser_f2*)node)->l)->ftype == PARSER_POW)
-        { // pow(pow(,),)
+                 ((struct parser_f2*)((struct parser_f2*)node)->l)->ftype == PARSER_POW &&
+                 parser_is_integer(((struct parser_f2*)node)->r) &&
+                 parser_is_integer(((struct parser_f2*)((struct parser_f2*)node)->l)->r))
+        { // pow(pow(x,m),n) => pow(x,m*n), for integer m and n only
             std::swap(node->l, node->r);
             std::swap(node->l, node->r->l);
             node->r->type = PARSER_MUL;

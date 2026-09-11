@@ -39,8 +39,8 @@ int main (int argc, char* argv[])
                 auto phixp = Math::powi<5>(std::sin(x+dx));
                 rhs[lrow] = a*phi0 + (Real(2)*phi0-phixm-phixp) / (dx*dx);
 #elif (AMREX_SPACEDIM == 2)
-                auto x = (cell[0]+Real(0.5))*dx;
-                auto y = (cell[1]+Real(0.5))*dx;
+                auto x = (Real(cell[0])+Real(0.5))*dx;
+                auto y = (Real(cell[1])+Real(0.5))*dx;
                 auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y));
                 auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y));
                 auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y));
@@ -48,9 +48,9 @@ int main (int argc, char* argv[])
                 auto phiyp = Math::powi<5>(std::sin(x)*std::sin(y+dx));
                 rhs[lrow] = a*phi0 + (Real(4)*phi0-phixm-phixp-phiym-phiyp) / (dx*dx);
 #else
-                auto x = (cell[0]+Real(0.5))*dx;
-                auto y = (cell[1]+Real(0.5))*dx;
-                auto z = (cell[2]+Real(0.5))*dx;
+                auto x = (Real(cell[0])+Real(0.5))*dx;
+                auto y = (Real(cell[1])+Real(0.5))*dx;
+                auto z = (Real(cell[2])+Real(0.5))*dx;
                 auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y)*std::sin(z));
                 auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y)*std::sin(z));
                 auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y)*std::sin(z));

@@ -23,6 +23,9 @@
 // the device buffer is handed to MPI directly, otherwise the data is staged
 // through host (pinned) memory for the collective.
 //
+// Either way the collectives are stream-ordered: work previously launched on
+// Gpu::gpuStream() has completed before MPI reads the vector.
+//
 
 namespace amrex {
 
@@ -45,6 +48,7 @@ void Sum (Gpu::DeviceVector<T>& v, MPI_Comm comm)
 #endif
 
     // GPU-aware case
+    Gpu::streamSynchronize();
     Sum(v.data(), static_cast<int>(v.size()), comm);
 }
 
@@ -73,6 +77,7 @@ void Sum (Gpu::DeviceVector<T>& v, int root, MPI_Comm comm)
 #endif
 
     // GPU-aware case
+    Gpu::streamSynchronize();
     Sum(v.data(), static_cast<int>(v.size()), root, comm);
 }
 
@@ -133,6 +138,7 @@ void Bcast (Gpu::DeviceVector<T>& v, int root, MPI_Comm comm)
 #endif
 
     // GPU-aware case
+    Gpu::streamSynchronize();
     Bcast(v.data(), static_cast<std::size_t>(n), root, comm);
 
 #else  // AMREX_USE_MPI

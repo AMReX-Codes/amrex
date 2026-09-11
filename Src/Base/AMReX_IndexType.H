@@ -242,13 +242,17 @@ using IndexType = IndexTypeND<AMREX_SPACEDIM>;
 
 // Template deduction guide for IndexTypeND
 template<int dim>
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IndexTypeND(const IntVectND<dim>&) -> IndexTypeND<dim>;
 
 // Template deduction guide for IndexTypeND
 template <class...Args>
 requires (IsConvertible_v<IndexType::CellIndex, Args...>)
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
 
 /// \cond DOXYGEN_IGNORE

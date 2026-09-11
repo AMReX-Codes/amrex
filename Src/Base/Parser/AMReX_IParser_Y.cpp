@@ -802,8 +802,16 @@ iparser_ast_optimize (struct iparser_node* node)
     case IPARSER_DIV_PP:
         iparser_ast_optimize(node->l);
         iparser_ast_optimize(node->r);
-        if (node->l->type == IPARSER_NUMBER &&
-            node->r->type == IPARSER_NUMBER)
+        if (node->r->type == IPARSER_NUMBER &&
+            ((struct iparser_number*)(node->r))->value == 0)
+        {
+            // Division by zero is left for the executor, whose if() is lazy.
+            // The node must be generic, because its operands are no longer
+            // what IPARSER_DIV_PP and friends claim they are.
+            node->type = IPARSER_DIV;
+        }
+        else if (node->l->type == IPARSER_NUMBER &&
+                 node->r->type == IPARSER_NUMBER)
         {
             auto v= ((struct iparser_number*)(node->l))->value
                 /   ((struct iparser_number*)(node->r))->value;
@@ -937,7 +945,9 @@ iparser_ast_optimize (struct iparser_node* node)
             ((struct iparser_f2*)node)->ftype = IPARSER_AND;
         }
         if (node->l->type == IPARSER_NUMBER &&
-            node->r->type == IPARSER_NUMBER)
+            node->r->type == IPARSER_NUMBER &&
+            !(((struct iparser_f2*)node)->ftype == IPARSER_FLRDIV &&
+              ((struct iparser_number*)(node->r))->value == 0))
         {
             auto v= iparser_call_f2
                 (((struct iparser_f2*)node)->ftype,
@@ -995,9 +1005,14 @@ iparser_ast_optimize (struct iparser_node* node)
         iparser_ast_optimize(node->r);
         if (node->r->type == IPARSER_NUMBER)
         {
-            auto v= node->lvp.v / ((struct iparser_number*)(node->r))->value;
-            ((struct iparser_number*)node)->type = IPARSER_NUMBER;
-            ((struct iparser_number*)node)->value = v;
+            if (((struct iparser_number*)(node->r))->value != 0) {
+                auto v= node->lvp.v / ((struct iparser_number*)(node->r))->value;
+                ((struct iparser_number*)node)->type = IPARSER_NUMBER;
+                ((struct iparser_number*)node)->value = v;
+            } else {
+                // The _VP specialization leaves l and r untouched.
+                node->type = IPARSER_DIV;
+            }
         }
         break;
     case IPARSER_DIV_PV:

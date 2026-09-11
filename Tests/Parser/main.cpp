@@ -512,6 +512,55 @@ int main (int argc, char* argv[])
         }
 #endif
 
+        // Edge cases where the optimizer must agree with the runtime evaluator.
+
+        // pow(pow(x,m),n) may only be merged for integer m and n.
+        nerror += test1("(x**2)**0.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),0.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        nerror += test1("(x**2)**1.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),1.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        nerror += test1("((x-1)*(x-1))**0.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow((x-1.0)*(x-1.0),0.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        // Integer exponents still merge.
+        nerror += test1("(x**2)**3", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),3.0); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+
+        // pow with a constant zero base: std::pow(0,0) is 1 and pow(0,-1) is inf.
+        nerror += test1("c**x", {{"c",0.0}}, {"x"},
+                        [=] (double x) -> double { return std::pow(0.0,x); },
+                        {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("0**x", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(0.0,x); },
+                        {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
+
+        // and/or must return 1 or 0, not the operand.
+        nerror += test1("x and 1", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("1 and x", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("(x and 1)+1", {}, {"x"},
+                        [=] (double x) -> double { return ((x != 0.0) ? 1.0 : 0.0) + 1.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x or 0", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("0 or x", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x and c", {{"c",1.0}}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        // An operand that is already 0 or 1 needs no extra operation.
+        nerror += test1("(x>0) and 1", {}, {"x"},
+                        [=] (double x) -> double { return (x > 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+
         {   // Re-registering must forget the variables it drops, even when the
             // syntax tree is shared with a copy of the Parser.
             amrex::Print() << test_number++ << ". Testing Parser re-registration\n";
@@ -625,6 +674,28 @@ int main (int argc, char* argv[])
                                             static_cast<int>(std::floor(double(a)/double(b))));
                     }
                 }
+            }
+
+            // A division that the executor never evaluates must not be folded.
+            AMREX_ALWAYS_ASSERT(h("if(0, 1/0, 2)") == 2);
+            AMREX_ALWAYS_ASSERT(h("if(0, 1//0, 2)") == 2);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 0) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//n, 0)", "n", 0) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 3) == 50);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 4) == 25);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 3) == x/2);
+
+            {   // A local variable makes the compiler resolve symbol offsets, so
+                // a node left claiming the wrong operand types would be fatal.
+                amrex::Print() << count++ << ". Testing \"t=7; if(c, x/n, t)\"\n";
+                IParser iparser("t=7; if(c, x/n, t)");
+                iparser.setConstant("n", 0);
+                iparser.registerVariables({"x","c"});
+                auto exe = iparser.compileHost<2>();
+                AMREX_ALWAYS_ASSERT(exe(10,0) == 7);
             }
 
             AMREX_ALWAYS_ASSERT(h("123456789012345") == 123456789012345LL);

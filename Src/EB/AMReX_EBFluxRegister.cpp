@@ -10,7 +10,7 @@
 
 #ifdef BL_NO_FORT
 namespace {
-    amrex::Real amrex_reredistribution_threshold = 1.e-14;
+    amrex::Real amrex_reredistribution_threshold = amrex::Real(1.e-14);
 }
 extern "C" {
     void amrex_eb_disable_reredistribution () { amrex_reredistribution_threshold = 1.e10; }
@@ -331,6 +331,8 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         }
     }
 
+    // setDeterministic is silently ignored here, because the rereflux kernels
+    // below use atomic adds near cut cells anyway.
     m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
     {

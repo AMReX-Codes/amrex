@@ -47,6 +47,8 @@ public:
     [[nodiscard]] Long numGlobalRows () const { return m_ref->m_row.back(); }
     //! Number of MPI ranks that own at least one row.
     [[nodiscard]] int numActiveProcs () const { return m_ref->m_n_active_procs; }
+    //! The sole rank owning rows if numActiveProcs() is one, otherwise -1.
+    [[nodiscard]] int singleActiveProc () const { return m_ref->m_single_active_proc; }
 
     //! Underlying prefix array describing row offsets (size nproc+1).
     [[nodiscard]] Vector<Long> const& dataVector () const { return m_ref->m_row; }
@@ -71,6 +73,7 @@ private:
 
         Vector<Long> m_row; // size: nprocs + 1
         int m_n_active_procs = 0;
+        int m_single_active_proc = -1;
     };
 
     std::shared_ptr<Ref> m_ref;

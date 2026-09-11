@@ -985,7 +985,7 @@ void mllinop_apply_innu_ylo_m (int i, int j, int k,
                                T fac, T xlo, T dx, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        T b = xlo + (i+T(0.5))*dx;
+        T b = xlo + (T(i)+T(0.5))*dx;
         rhs(i,j+1,k,icomp) -= fac*b*bcval(i,j,k,icomp);
     }
 }
@@ -1016,7 +1016,7 @@ void mllinop_apply_innu_yhi_m (int i, int j, int k,
                                T fac, T xlo, T dx, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        T b = xlo + (i+T(0.5))*dx;
+        T b = xlo + (T(i)+T(0.5))*dx;
         rhs(i,j-1,k,icomp) += fac*b*bcval(i,j,k,icomp);
     }
 }

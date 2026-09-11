@@ -12,12 +12,12 @@ void main_main ()
     int ny = 64;
     int nz = 64;
     int max_grid_size = 32;
-    Real xmin = -1.2;
-    Real xmax =  1.2;
-    Real ymin = -1.2;
-    Real ymax =  1.2;
-    Real zmin = -1.2;
-    Real zmax =  1.2;
+    Real xmin = Real(-1.2);
+    Real xmax =  Real(1.2);
+    Real ymin = Real(-1.2);
+    Real ymax =  Real(1.2);
+    Real zmin = Real(-1.2);
+    Real zmax =  Real(1.2);
     {
         ParmParse pp;
         pp.query("nx", nx);

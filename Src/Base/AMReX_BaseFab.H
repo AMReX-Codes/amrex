@@ -1658,7 +1658,14 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     {
         this->dptr = nullptr;
         define();
-        this->copy<RunOn::Device>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+            this->copy<RunOn::Device>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+        } else
+#endif
+        {
+            this->copy<RunOn::Host>(rhs, this->domain, scomp, this->domain, 0, ncomp);
+        }
     } else if (make_type == amrex::make_alias) {
         ; // nothing to do
     } else {
@@ -3061,10 +3068,12 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         auto const& slo = amrex::lbound(srcbox);
         Dim3 const offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
 
+        // The lock dimension must be a property of the destination fab, not of
+        // destbox, so that concurrent calls into the same fab use the same locks.
         int planedim;
         int nplanes;
         int plo;
-        if (len.z == 1) {
+        if (amrex::length(this->domain).z == 1) {
             planedim = 1;
             nplanes = len.y;
             plo = dlo.y;

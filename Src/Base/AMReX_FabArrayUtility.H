@@ -1138,11 +1138,11 @@ bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghos
 
 template <BaseFabType FAB, class F>
 requires (amrex::DefinitelyNotHostRunnable<F>::value)
-bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
+bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    amrex::ignore_unused(fa,nghost);
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
-    return 0;
+    return false;
 }
 }
 /// \endcond
@@ -1354,7 +1354,8 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
 
     bool explicit_swap = true;
 
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+    if (srccomp == dstcomp && dstcomp == 0 && numcomp == src.nComp() &&
+        src.nComp() == dst.nComp() &&
         src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
         src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
         explicit_swap = false;
@@ -1810,7 +1811,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 }
             });
         } else {
-            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
+            // The result is read on the host below, so the streams used by
+            // MFIter must be synchronized even inside a NoSyncRegion.
+            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(true)); mfi.isValid(); ++mfi) {
                 const Box& bx = amrex::grow(mfi.validbox(), nghost);
                 auto const& arr = mf.const_array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -2000,9 +2003,16 @@ Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool l
 }
 
 /**
- * \brief Compute dot product of two FabArrays in region that mask is true
+ * \brief Compute weighted dot product of two FabArrays
  *
- * \param mask   mask
+ * The mask is a weight, not a boolean.  The result is the sum of
+ * `mask * x * y` over the region, so weights other than 0 and 1 are
+ * meaningful; the nodal solvers, for example, use a mask of 1/2 on Neumann
+ * domain boundaries.  A cell whose weight is zero contributes nothing.  The
+ * mask may be an integer or a floating-point FabArray; its values are
+ * converted to the value type of \p x.
+ *
+ * \param mask   weight of each cell
  * \param x      first FabArray
  * \param xcomp  starting component of x
  * \param y      second FabArray
@@ -2011,9 +2021,9 @@ Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool l
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <BaseFabType IFAB, BaseFabType FAB>
+template <BaseFabType MFAB, BaseFabType FAB>
 typename FAB::value_type
-Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp,
+Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp,
      FabArray<FAB> const& y, int ycomp, int ncomp, IntVect const& nghost,
      bool local = false)
 {
@@ -2073,18 +2083,22 @@ Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp,
 }
 
 /**
- * \brief Compute dot product of FabArray with itself in region that mask is true
+ * \brief Compute weighted dot product of a FabArray with itself
  *
- * \param mask   mask
+ * The mask is a weight, not a boolean.  The result is the sum of
+ * `mask * x * x` over the region.  See the two-FabArray overload above for
+ * details.
+ *
+ * \param mask   weight of each cell
  * \param x      FabArray
  * \param xcomp  starting component of x
  * \param ncomp  number of components
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <BaseFabType IFAB, BaseFabType FAB>
+template <BaseFabType MFAB, BaseFabType FAB>
 typename FAB::value_type
-Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
+Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
      IntVect const& nghost, bool local = false)
 {
     BL_ASSERT(x.boxArray() == mask.boxArray());

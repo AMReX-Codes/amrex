@@ -50,16 +50,24 @@ IParser::Data::~Data ()
 {
     m_expression.clear();
     if (m_iparser) { amrex_iparser_delete(m_iparser); }
+    clear_host_executor();
+#ifdef AMREX_USE_GPU
+    if (m_device_executor) { The_Arena()->free(m_device_executor); }
+#endif
+}
+
+void
+IParser::Data::clear_host_executor ()
+{
     if (m_host_executor) {
         if (m_use_arena) {
             The_Pinned_Arena()->free(m_host_executor);
         } else {
             std::free(m_host_executor);
         }
+        m_host_executor = nullptr;
+        m_use_arena = true;
     }
-#ifdef AMREX_USE_GPU
-    if (m_device_executor) { The_Arena()->free(m_device_executor); }
-#endif
 }
 /// \endcond
 

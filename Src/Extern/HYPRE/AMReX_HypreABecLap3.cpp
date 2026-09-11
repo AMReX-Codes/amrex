@@ -600,6 +600,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     } else
 #endif
@@ -653,6 +654,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     });
                 }
             }
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     }
 
