@@ -322,7 +322,9 @@ MLNodeLinOp::buildMasks ()
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
-                amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
+                IntVect const ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio)
+                                                   : mg_coarsen_ratio_vec[mglev-1];
+                amrex::average_down_nodal(dmask_fine, dmask, ratio);
             }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -496,6 +498,7 @@ MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
             dmsk(i,j,k) = 1 - omsk(i,j,k);
         });
     }
+    m_masks_built = false;
     m_overset_dirichlet_mask = true;
 }
 
@@ -511,7 +514,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
     if (!skip_fillboundary) {
-        phi.FillBoundary(geom.periodicity());
+        phi.FillBoundaryAndSync(geom.periodicity());
     }
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)

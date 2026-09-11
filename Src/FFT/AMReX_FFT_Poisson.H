@@ -344,9 +344,9 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
     auto f = [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& spectral_data)
     {
         amrex::ignore_unused(j,k);
-        AMREX_D_TERM(T a = fac[0]*(i+offset[0]);,
-                     T b = fac[1]*(j+offset[1]);,
-                     T c = fac[2]*(k+offset[2]));
+        AMREX_D_TERM(T a = fac[0]*(T(i)+offset[0]);,
+                     T b = fac[1]*(T(j)+offset[1]);,
+                     T c = fac[2]*(T(k)+offset[2]));
         T k2 = AMREX_D_TERM(dxfac[0]*(std::cos(a)-T(1)),
                            +dxfac[1]*(std::cos(b)-T(1)),
                            +dxfac[2]*(std::cos(c)-T(1)));
@@ -412,9 +412,9 @@ void PoissonOpenBC<MF>::define_doit ()
         for (int gx = 0; gx < 2; ++gx) {
         for (int gy = 0; gy < 2; ++gy) {
         for (int gz = 0; gz < 2; ++gz) {
-            auto xg = x + 2*gx*gfac*dx;
-            auto yg = y + 2*gy*gfac*dy;
-            auto zg = z + 2*gz*gfac*dz;
+            auto xg = x + T(2*gx)*gfac*dx;
+            auto yg = y + T(2*gy)*gfac*dy;
+            auto zg = z + T(2*gz)*gfac*dz;
             r += T(1)/std::sqrt(xg*xg+yg*yg+zg*zg);
         }}}
         return fac * r;
@@ -685,8 +685,8 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             auto const& box = mfi.validbox();
             amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                T a = facx*(i+offset[0]);
-                T b = facy*(j+offset[1]);
+                T a = facx*(T(i)+offset[0]);
+                T b = facy*(T(j)+offset[1]);
                 T k2 = dxfac * (std::cos(a)-T(1))
                     +  dyfac * (std::cos(b)-T(1));
                 if (k2 != T(0)) {
@@ -725,8 +725,8 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 
             amrex::ParallelFor(xybox, [=] AMREX_GPU_DEVICE (int i, int j, int)
             {
-                T a = facx*(i+offset[0]);
-                T b = facy*(j+offset[1]);
+                T a = facx*(T(i)+offset[0]);
+                T b = facy*(T(j)+offset[1]);
                 T k2 = dxfac * (std::cos(a)-T(1))
                     +  dyfac * (std::cos(b)-T(1));
 
@@ -788,8 +788,8 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 
             amrex::LoopOnCpu(xybox, [&] (int i, int j, int)
             {
-                T a = facx*(i+offset[0]);
-                T b = facy*(j+offset[1]);
+                T a = facx*(T(i)+offset[0]);
+                T b = facy*(T(j)+offset[1]);
                 T k2 = dxfac * (std::cos(a)-T(1))
                     +  dyfac * (std::cos(b)-T(1));
 

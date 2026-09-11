@@ -84,18 +84,12 @@ private:
 
 public:
 
-    TimeIntegrator () {
-        // initialize functions to do nothing
-        set_default_functions();
-    }
+    TimeIntegrator () = default;
 
     TimeIntegrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         // initialize the integrator class corresponding to the desired type
         initialize_integrator(integrator_type, S_data, time);
-
-        // initialize functions to do nothing
-        set_default_functions();
     }
 
     TimeIntegrator (const T& S_data, const amrex::Real time = 0.0)
@@ -103,13 +97,15 @@ public:
         // initialize the integrator class corresponding to the input parameter selection
         IntegratorTypes integrator_type = read_parameters();
         initialize_integrator(integrator_type, S_data, time);
-
-        // initialize functions to do nothing
-        set_default_functions();
     }
 
     virtual ~TimeIntegrator () {}
 
+    /**
+     * \brief Create an integrator of the given type. This resets the
+     * right-hand side and post stage/step functions to their defaults, so
+     * they must be set again after calling this function.
+     */
     void initialize_integrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         switch (integrator_type)
@@ -129,6 +125,9 @@ public:
                 amrex::Error("integrator type did not match a valid integrator type.");
                 break;
         }
+
+        // initialize functions to do nothing
+        set_default_functions();
     }
 
     void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)

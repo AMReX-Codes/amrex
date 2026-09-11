@@ -55,9 +55,9 @@ public:
     {
         Real retval = 0.0_rt;
         for (auto const& term : m_polynomial) {
-            retval += term.coef * AMREX_D_TERM(  std::pow(x, term.powers[0]),
-                                               * std::pow(y, term.powers[1]),
-                                               * std::pow(z, term.powers[2]));
+            retval += Real(term.coef * AMREX_D_TERM(  std::pow(x, term.powers[0]),
+                                                    * std::pow(y, term.powers[1]),
+                                                    * std::pow(z, term.powers[2])));
         }
         return m_sign*retval;
     }
@@ -97,9 +97,9 @@ public:
     {
         Real retval = 0.0_rt;
         for (auto const& term : m_polynomial) {
-            retval += term.coef * AMREX_D_TERM(  std::pow(x, term.powers[0]),
-                                               * std::pow(y, term.powers[1]),
-                                               * std::pow(z, term.powers[2]));
+            retval += Real(term.coef * AMREX_D_TERM(  std::pow(x, term.powers[0]),
+                                                    * std::pow(y, term.powers[1]),
+                                                    * std::pow(z, term.powers[2])));
         }
         return m_sign*retval;
     }

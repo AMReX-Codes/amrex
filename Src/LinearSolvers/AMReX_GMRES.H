@@ -142,7 +142,7 @@ public:
 private:
     void clear ();
     void allocate_scratch ();
-    void cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0);
+    void cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0, int a_maxiter);
     void build_solution (V& a_xx, int it);
     void compute_residual (V& a_rr, V const& a_xx, V const& a_bb);
 
@@ -263,11 +263,11 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 
     m_its = 0;
     m_status = -1;
-    cycle(a_sol, m_status, m_its, rnorm0);
+    cycle(a_sol, m_status, m_its, rnorm0, a_its);
 
     while (m_status == -1 && m_its < a_its) {
         compute_residual(m_vv[0], a_sol, a_rhs);
-        cycle(a_sol, m_status, m_its, rnorm0);
+        cycle(a_sol, m_status, m_its, rnorm0, a_its);
     }
 
     if (m_status == -1 && m_its >= a_its) { m_status = 1; }
@@ -283,7 +283,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 }
 
 template <typename V, typename M>
-void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
+void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0, int a_maxiter)
 {
     BL_PROFILE("GMRES::cycle()");
 
@@ -302,7 +302,7 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
     a_status = converged(a_rnorm0,m_res) ? 0 : -1;
 
     int it = 0;
-    while (it < m_restrtlen && a_itcount < m_maxiter)
+    while (it < m_restrtlen && a_itcount < a_maxiter)
     {
         if (m_verbose > 1) {
             amrex::Print() << "GMRES: iter = " << a_itcount
@@ -343,7 +343,7 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
         if (happyend) { break; }
     }
 
-    if ((m_verbose > 1) && (a_status != 0 || a_itcount >= m_maxiter)) {
+    if ((m_verbose > 1) && (a_status != 0 || a_itcount >= a_maxiter)) {
         amrex::Print() << "GMRES: iter = " << a_itcount
                        << ", residual = " << m_res << ", " << m_res/a_rnorm0
                        << " (rel.)\n";

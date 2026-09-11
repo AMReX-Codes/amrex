@@ -24,6 +24,10 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_grids = a_grids;
     m_dmap = a_dmap;
     m_info = a_info;
+    m_mlmg_1.reset();
+    m_mlmg_2.reset();
+    m_poisson_1.reset();
+    m_poisson_2.reset();
     m_box_offset.clear();
     m_momtags_h.clear();
     m_nblocks_local = 0;
@@ -251,7 +255,19 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         }
 #endif
     }
-    m_mlmg_1->solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
+    // get_dpdn_on_domain_faces below reads the domain boundary ghost cells of
+    // the level 0 solution. MLMG only leaves the boundary values there if it
+    // aliased the MultiFab, which it does only for exactly one ghost cell.
+    // Otherwise solve into a temporary that has one.
+    Vector<MultiFab*> sol_1 = a_sol;
+    MultiFab sol_1_tmp;
+    if (a_sol[0]->nGrowVect() != IntVect(1)) {
+        sol_1_tmp.define(m_grids[0], m_dmap[0], 1, 1);
+        sol_1_tmp.setVal(0._rt);
+        MultiFab::Copy(sol_1_tmp, *a_sol[0], 0, 0, 1, 0);
+        sol_1[0] = &sol_1_tmp;
+    }
+    m_mlmg_1->solve(sol_1, a_rhs, a_tol_rel, a_tol_abs);
 
     BL_PROFILE_VAR_STOP(blp_mg1);
 
@@ -261,7 +277,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                                              IntVect::TheDimensionVector(idim)),
                           m_dmap[0], 1, 0);
     }
-    m_poisson_1->get_dpdn_on_domain_faces(GetArrOfPtrs(dpdn_tmp), *a_sol[0]);
+    m_poisson_1->get_dpdn_on_domain_faces(GetArrOfPtrs(dpdn_tmp), *sol_1[0]);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_dpdn[idim].ParallelCopy(dpdn_tmp[idim]);
@@ -566,8 +582,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int jj = 0; jj < m_coarsen_ratio; ++jj) {
                     Real charge = tag.gp(i, jlo+jb*m_coarsen_ratio+jj,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
+                    Real yy = (Real(jj-m_coarsen_ratio/2)+0.5_rt)*dx[1]; // NOLINT
+                    Real zz = (Real(kk-m_coarsen_ratio/2)+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -608,8 +624,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii, j,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
+                    Real xx = (Real(ii-m_coarsen_ratio/2)+0.5_rt)*dx[0]; // NOLINT
+                    Real zz = (Real(kk-m_coarsen_ratio/2)+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -649,8 +665,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii,
                                          jlo+jb*m_coarsen_ratio+jj, k) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
+                    Real xx = (Real(ii-m_coarsen_ratio/2)+0.5_rt)*dx[0]; // NOLINT
+                    Real yy = (Real(jj-m_coarsen_ratio/2)+0.5_rt)*dx[1]; // NOLINT
                     Real ypow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {

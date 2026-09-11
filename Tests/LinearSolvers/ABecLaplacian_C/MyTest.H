@@ -62,6 +62,7 @@ private:
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    int semicoarsening_direction = -1;
     bool use_gauss_seidel = true; // true: red-black, false: jacobi
     bool use_hypre = false;
     bool use_petsc = false;
@@ -84,7 +85,7 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 
-    amrex::Real ascalar = 1.e-3;
+    amrex::Real ascalar = amrex::Real(1.e-3);
     amrex::Real bscalar = 1.0;
 };
 

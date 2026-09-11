@@ -55,8 +55,11 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real sign (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
     {
-        Real cp = (x2-x1)*(y3-y2) - (x3-x2)*(y2-y1);
-        if (std::abs(cp) < std::numeric_limits<Real>::epsilon()) {
+        Real a = (x2-x1)*(y3-y2);
+        Real b = (x3-x2)*(y2-y1);
+        Real cp = a - b;
+        // the tolerance must follow the magnitude of the two products
+        if (std::abs(cp) <= std::numeric_limits<Real>::epsilon()*amrex::max(std::abs(a),std::abs(b))) {
             return 0._rt;
         } else {
             return std::copysign(1.0_rt, cp);
@@ -384,10 +387,6 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
         AMREX_ALWAYS_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
-        // maximum number of triangles allowed for traversing the BVH tree
-        // using stack.
-        int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
-        AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
         a_tri_pts.resize(m_num_tri);
 
         if (amrex::Verbose()) {
@@ -496,6 +495,11 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_tri > 0,
                                      "STLtools::prepare: STL contains no triangles");
+
+    // maximum number of triangles allowed for traversing the BVH tree
+    // using stack.
+    int max_tri_stack = Math::powi<m_bvh_max_stack_size-1>(m_bvh_max_splits)*m_bvh_max_size;
+    AMREX_ALWAYS_ASSERT(m_num_tri <= max_tri_stack);
 
     Gpu::PinnedVector<Node> bvh_nodes;
     if (m_bvh_optimization) {

@@ -146,7 +146,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion()) {
+            if (std::is_same_v<BUF,value_type> && Gpu::inGraphRegion()) {
                 FB_pack_send_buffer_cuda_graph(TheFB, scomp, ncomp, send_data, send_size, send_cctc);
             }
             else
@@ -267,7 +267,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion() && !sumboundary)
+            if (std::is_same_v<BUF,value_type> && Gpu::inGraphRegion() && !sumboundary)
             {
                 FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
                                                  fbd->recv_data, fbd->recv_size,

@@ -29,6 +29,7 @@
 #if !defined(BL_LANG_FORT)
 #ifdef __cplusplus
 #include <cfloat>
+#include <type_traits>
 #else
 #include <float.h>
 #endif
@@ -88,6 +89,17 @@ namespace amrex {
      * computations and storage.
      */
     using ParticleReal = amrex_particle_real;
+
+    /**
+     * \ingroup amrex_arithmetic_types
+     * \brief Floating Point Type for Particle-Mesh Operations
+     *
+     * The wider of amrex::Real and amrex::ParticleReal. Use it for the
+     * intermediate results of operations that mix particle and field data,
+     * such as deposition and interpolation, so that they are rounded only
+     * when the final value is stored.
+     */
+    using ParticleMeshReal = std::common_type_t<Real, ParticleReal>;
 
 /** Floating point literals for AMReX precision.
  *

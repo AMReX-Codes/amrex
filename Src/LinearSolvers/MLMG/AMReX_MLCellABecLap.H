@@ -233,6 +233,10 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
     LPInfo linfo = a_info;
     linfo.max_coarsening_level = std::min(a_info.max_coarsening_level,
                                           max_overset_mask_coarsening_level);
+    // The overset masks above are coarsened isotropically by 2, so the MG
+    // levels must be too, or the masks and the grids end up in different
+    // index spaces.
+    linfo.do_semicoarsening = false;
 
     MLCellLinOpT<MF>::define(a_geom, a_grids, a_dmap, linfo, a_factory);
 
@@ -338,16 +342,24 @@ MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
     const int ncomp = this->getNComp();
     const RT betainv = RT(1.0) / getBScalar();
     const int nlevs = this->NAMRLevels();
+    // Without b coefficients, the metric factor is in the flux kernels, not in
+    // b, so it must be removed before the boundary faces are set using b = 1.
+    const bool has_bcoef = (getBCoeffs(0,0)[0] != nullptr);
     for (int alev = 0; alev < nlevs; ++alev) {
         this->compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (betainv != RT(1.0)) {
                 a_flux[alev][idim]->mult(betainv, 0, ncomp);
             }
+            if (!has_bcoef) {
+                this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            }
         }
         this->addInhomogNeumannFlux(alev, a_flux[alev], *a_sol[alev], true);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+        if (has_bcoef) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            }
         }
     }
 }
@@ -359,6 +371,8 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
+    // A preconditioner must be linear, so it gets no inhomogeneous terms.
+    if (this->m_precond_mode) { return; }
     if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();

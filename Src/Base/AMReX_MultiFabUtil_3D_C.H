@@ -106,7 +106,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
     switch (idir) {
     case 0:
     {
-        T facInv = T(1.0) / (facy*facz);
+        T facInv = T(1.0) / T(facy*facz);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -126,7 +126,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
     }
     case 1:
     {
-        T facInv = T(1.0) / (facx*facz);
+        T facInv = T(1.0) / T(facx*facz);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -146,7 +146,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
     }
     case 2:
     {
-        T facInv = T(1.0) / (facx*facy);
+        T facInv = T(1.0) / T(facx*facy);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -184,7 +184,7 @@ void amrex_avgdown_faces (int i, int j, int k, int n, Array4<T> const& crse,
     switch (idir) {
     case 0:
     {
-        const T facInv = T(1.0) / (facy*facz);
+        const T facInv = T(1.0) / T(facy*facz);
         T c = T(0.);
         for (int kref = 0; kref < facz; ++kref) {
         for (int jref = 0; jref < facy; ++jref) {
@@ -195,7 +195,7 @@ void amrex_avgdown_faces (int i, int j, int k, int n, Array4<T> const& crse,
     }
     case 1:
     {
-        const T facInv = T(1.0) / (facx*facz);
+        const T facInv = T(1.0) / T(facx*facz);
         T c = T(0.);
         for (int kref = 0; kref < facz; ++kref) {
         for (int iref = 0; iref < facx; ++iref) {
@@ -206,7 +206,7 @@ void amrex_avgdown_faces (int i, int j, int k, int n, Array4<T> const& crse,
     }
     case 2:
     {
-        const T facInv = T(1.0) / (facx*facy);
+        const T facInv = T(1.0) / T(facx*facy);
         T c = T(0.);
         for (int jref = 0; jref < facy; ++jref) {
         for (int iref = 0; iref < facx; ++iref) {
