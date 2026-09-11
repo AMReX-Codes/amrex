@@ -1456,8 +1456,8 @@ BaseFab<T>::getVal  (T*             data,
                      int            n,
                      int            numcomp) const noexcept
 {
-    const int loc      = this->domain.index(pos);
-    const Long sz    = this->domain.numPts();
+    const Long loc = this->domain.index(pos);
+    const Long sz  = this->domain.numPts();
 
     AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(n >= 0 && n + numcomp <= this->nvar);
