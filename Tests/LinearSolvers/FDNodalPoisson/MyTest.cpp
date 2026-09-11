@@ -259,9 +259,9 @@ MyTest::initData ()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             phi(i,j,k) = ExactSolution{}
-                (AMREX_D_DECL(problo[0] + i*dx[0],
-                              problo[1] + j*dx[1],
-                              problo[2] + k*dx[2]));
+                (AMREX_D_DECL(problo[0] + Real(i)*dx[0],
+                              problo[1] + Real(j)*dx[1],
+                              problo[2] + Real(k)*dx[2]));
         });
     }
 
@@ -276,12 +276,12 @@ MyTest::initData ()
         {
             constexpr Real tpi = 2.0_rt * std::numbers::pi_v<Real>;
 
-            Real variation = std::cos(tpi * (problo[0] + (i+0.5_rt)*dx[0]));
+            Real variation = std::cos(tpi * (problo[0] + (Real(i)+0.5_rt)*dx[0]));
 #if (AMREX_SPACEDIM > 1)
-            variation += std::cos(tpi * (problo[1] + (j+0.5_rt)*dx[1]));
+            variation += std::cos(tpi * (problo[1] + (Real(j)+0.5_rt)*dx[1]));
 #endif
 #if (AMREX_SPACEDIM > 2)
-            variation += std::cos(tpi * (problo[2] + (k+0.5_rt)*dx[2]));
+            variation += std::cos(tpi * (problo[2] + (Real(k)+0.5_rt)*dx[2]));
 #endif
             sig(i,j,k) = 1.0_rt + 0.1_rt*variation;
         });
