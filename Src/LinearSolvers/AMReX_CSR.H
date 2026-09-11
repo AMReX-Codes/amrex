@@ -242,6 +242,9 @@ void CSR<T,V>::sort ()
 
     if (*h_needs_fallback)
     {
+        // The item count of the segmented sort below is 32-bit.
+        AMREX_ALWAYS_ASSERT(nnz < Long(std::numeric_limits<int>::max()));
+
         V<Long> col_index_out(col_index.size());
         V<T> mat_out(mat.size());
         auto* d_col_out = col_index_out.data();

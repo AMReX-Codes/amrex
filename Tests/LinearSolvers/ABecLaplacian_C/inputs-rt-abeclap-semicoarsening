@@ -1,0 +1,22 @@
+
+max_level = 0
+n_cell = 64
+max_grid_size = 32
+
+composite_solve = 0
+
+prob_type = 2       # ABecLaplacian
+
+# For MLMG
+verbose = 2
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0
+linop_maxorder = 2
+agglomeration = 0
+consolidation = 0
+
+# Exercise the line solve smoother used for semi-coarsened levels.
+semicoarsening = 1
+max_semicoarsening_level = 4
+semicoarsening_direction = 1

@@ -27,8 +27,9 @@ namespace amrex {
  *
  * FaceConservativeLinear works in 2D and 3D on cpu and gpu.
  *
- * FaceDivFree works in 2D and 3D on cpu and gpu.
- * The algorithm is restricted to ref ratio of 2.
+ * FaceDivFree works in 2D and 3D on cpu and gpu with a ref ratio of 2 or 4
+ * in each direction. On gpu, a ref ratio other than 2 must run on the
+ * device. In 2D RZ, only a ref ratio of 2 is supported.
  */
 
 //

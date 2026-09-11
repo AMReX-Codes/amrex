@@ -1517,7 +1517,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
-        KnapSackProcessorMap(wgts,nprocs);
+        KnapSackProcessorMap(wgts,nprocs,nullptr,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
@@ -1540,7 +1540,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
-        KnapSackProcessorMap(wgts,nprocs,&eff);
+        KnapSackProcessorMap(wgts,nprocs,&eff,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
@@ -1550,9 +1550,11 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
 
 void
 DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
-                                int                      nprocs)
+                                int                   /* nprocs */)
 {
     BL_PROFILE("DistributionMapping::RRSFCDoIt()");
+
+    int nprocs = ParallelContext::NProcsSub();
 
 #if defined (BL_USE_TEAM)
     amrex::Abort("Team support is not implemented yet in RRSFC");
@@ -1721,7 +1723,8 @@ gather_weights (const MultiFab& weight)
     Vector<Real> rcost(weight.size());
     ParallelDescriptor::GatherLayoutDataToVector(costld, rcost,
                                                  ParallelContext::IOProcessorNumberSub());
-    ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub());
+    ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub(),
+                              ParallelContext::CommunicatorSub());
     return DistributionMapping::ConvertCostRealToLong(rcost);
 #else
     return Vector<Long>(weight.size(), 1L);
@@ -2037,7 +2040,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
         if (isects.empty()) {
             // no intersection found, revert to round-robin
             int nprocs = ParallelContext::NProcsSub();
-            pmap[i] = i % nprocs;
+            pmap[i] = ParallelContext::local_to_global_rank(i % nprocs);
         } else {
             Long max_overlap = 0;
             int max_overlap_index = -1;

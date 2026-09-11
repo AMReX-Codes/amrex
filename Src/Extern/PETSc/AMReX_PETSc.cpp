@@ -669,6 +669,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     });
                 }
             }
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     } else
 #endif
@@ -702,6 +703,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
                 });
             }
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     }
 

@@ -76,6 +76,8 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
                 umin = amrex::min(umin, u(i+ioff,j+joff,k+koff,nu));
                 umax = amrex::max(umax, u(i+ioff,j+joff,k+koff,nu));
             }}}
+            // Avoid 0/0 if the divides below are if-converted. No-op otherwise.
+            dumax = dumax == Real(0.) ? Real(1.) : dumax;
             if (dumax * alpha > (umax - u(i,j,k,nu))) {
                 alpha = (umax - u(i,j,k,nu)) / dumax;
             }

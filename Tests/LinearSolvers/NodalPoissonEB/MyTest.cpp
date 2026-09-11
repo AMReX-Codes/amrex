@@ -173,9 +173,9 @@ MyTest::initData ()
         Array4<Real> const rh = rhs[0].array(mfi);
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            AMREX_D_TERM(const Real x = problo[0] + i * dx[0];,
-                         const Real y = problo[1] + j * dx[1];,
-                         const Real z = problo[2] + k * dx[2];)
+            AMREX_D_TERM(const Real x = problo[0] + Real(i) * dx[0];,
+                         const Real y = problo[1] + Real(j) * dx[1];,
+                         const Real z = problo[2] + Real(k) * dx[2];)
             phi(i,j,k) = exact_phi(AMREX_D_DECL(x, y, z));
             rh(i,j,k) = exact_rhs(AMREX_D_DECL(x, y, z));
         });

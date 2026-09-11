@@ -292,29 +292,29 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
 
 
         // Computes the average of the intersection points of the cube
-        vid = ex( i , j , k ,1) ;
+        vid = ex( i , j , k ,0) ? ex( i , j , k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ey(i+1, j , k ,1) ;
+        vid = ey(i+1, j , k ,0) ? ey(i+1, j , k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ex( i ,j+1, k ,1) ;
+        vid = ex( i ,j+1, k ,0) ? ex( i ,j+1, k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ey( i , j , k ,1) ;
+        vid = ey( i , j , k ,0) ? ey( i , j , k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ex( i , j ,k+1,1) ;
+        vid = ex( i , j ,k+1,0) ? ex( i , j ,k+1,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ey(i+1, j ,k+1,1) ;
+        vid = ey(i+1, j ,k+1,0) ? ey(i+1, j ,k+1,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ex( i ,j+1,k+1,1) ;
+        vid = ex( i ,j+1,k+1,0) ? ex( i ,j+1,k+1,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ey( i , j ,k+1,1) ;
+        vid = ey( i , j ,k+1,0) ? ey( i , j ,k+1,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ez( i , j , k ,1) ;
+        vid = ez( i , j , k ,0) ? ez( i , j , k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ez(i+1, j , k ,1) ;
+        vid = ez(i+1, j , k ,0) ? ez(i+1, j , k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ez(i+1,j+1, k ,1) ;
+        vid = ez(i+1,j+1, k ,0) ? ez(i+1,j+1, k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
-        vid = ez( i ,j+1, k ,1) ;
+        vid = ez( i ,j+1, k ,0) ? ez( i ,j+1, k ,1) : -1 ;
         if( vid != -1 ) { update_vertex(); }
 
         vert_x  *= Real(1)/u ;
@@ -885,7 +885,8 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
                                      },
                                      [=] AMREX_GPU_DEVICE (int m, int ps) {
                                          auto [i,j,k] = c_bi(m);
-                                         ntri(i,j,k,3) = ps;
+                                         // c-vertices live after the edge vertices
+                                         ntri(i,j,k,3) = ps + nvx;
                                      },
                                      Scan::Type::exclusive, Scan::retSum);
 
@@ -996,6 +997,9 @@ void write_stl (std::string const& filename, std::map<int,std::unique_ptr<MCFab>
 
 #ifdef AMREX_USE_MPI
     if (myproc < nprocs-1) {
+        // Make sure the data are on disk before the next rank appends.
+        ofs.flush();
+        ofs.close();
         int foo = 0;
         ParallelDescriptor::Send(&foo, 1, myproc+1, 100);
     }

@@ -419,7 +419,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_ADD_STEP(snum)  amrex::BLProfiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  amrex::BLProfiler::SetRunTime(rtime);
 
-#define BL_PROFILE_REGION(rname) amrex::BLProfileRegion bl_profile_region_##vname((rname));
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::BLProfileRegion BL_PROFILE_PASTE(bl_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 
 #define BL_PROFILE_REGION_START(rname) amrex::BLProfiler::RegionStart(rname);
 #define BL_PROFILE_REGION_STOP(rname)  amrex::BLProfiler::RegionStop(rname);
@@ -504,7 +507,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
-#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region_##vname((rname))
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::TinyProfileRegion BL_PROFILE_PASTE(tiny_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
 //#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname)
