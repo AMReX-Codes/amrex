@@ -26,6 +26,9 @@ MLNodeABecLaplacian::define (const Vector<Geometry>& a_geom,
 
     BL_PROFILE("MLNodeABecLaplacian::define()");
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!a_info.do_semicoarsening,
+        "MLNodeABecLaplacian does not support semicoarsening");
+
     // This makes sure grids are cell-centered;
     Vector<BoxArray> cc_grids = a_grids;
     for (auto& ba : cc_grids) {

@@ -94,8 +94,12 @@ void AlgPartition::Ref::update_n_active_procs ()
 {
     AMREX_ASSERT(m_row.size() == ParallelDescriptor::NProcs()+1);
     m_n_active_procs = 0;
+    m_single_active_proc = -1;
     for (int i = 0, N = int(m_row.size())-1; i < N; ++i) {
-        if (m_row[i] < m_row[i+1]) { ++m_n_active_procs; }
+        if (m_row[i] < m_row[i+1]) {
+            ++m_n_active_procs;
+            m_single_active_proc = (m_n_active_procs == 1) ? i : -1;
+        }
     }
 }
 

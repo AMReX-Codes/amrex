@@ -143,6 +143,19 @@ void
 MLEBABecLap::setPhiOnCentroid ()
 {
     m_phi_loc = Location::CellCentroid;
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        if (m_eb_phi[amrlev] && m_eb_phi[amrlev]->nGrow() == 0) {
+            const int mglev = 0;
+            const int ncomp = getNComp();
+            auto p = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+                                                m_dmap[amrlev][mglev],
+                                                ncomp, 1, MFInfo(),
+                                                *m_factory[amrlev][mglev]);
+            MultiFab::Copy(*p, *m_eb_phi[amrlev], 0, 0, ncomp, 0);
+            p->FillBoundary(m_geom[amrlev][mglev].periodicity());
+            m_eb_phi[amrlev] = std::move(p);
+        }
+    }
 }
 
 void
@@ -158,6 +171,7 @@ MLEBABecLap::setScalars (Real a, Real b)
         }
         m_acoef_set = true;
     }
+    m_needs_update = true;
     m_scalars_set = true;
 }
 
@@ -802,6 +816,12 @@ MLEBABecLap::prepareForSolve ()
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
     MLCellABecLap::prepareForSolve();
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_bc_tags[amrlev][mglev].undefine();
+        }
+    }
 
     applyRobinBCTermsCoeffs();
 
