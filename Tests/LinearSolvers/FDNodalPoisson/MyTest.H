@@ -34,7 +34,11 @@ private:
     int bottom_verbose = 0;
     int max_iter = 100;
     int max_fmg_iter = 0;
+#ifdef AMREX_USE_FLOAT
+    amrex::Real reltol = 1.e-4F;
+#else
     amrex::Real reltol = 1.e-11;
+#endif
 
     bool agglomeration = true;
     bool consolidation = true;
