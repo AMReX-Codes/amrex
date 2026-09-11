@@ -1253,6 +1253,9 @@ MLCellLinOpT<MF>::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
 {
     const int ncomp = this->getNComp();
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[cmglev-1];
+    // MG levels inside a fine AMR level are not coarsened in the hidden
+    // direction either.
+    if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
     amrex::average_down(fine, crse, 0, ncomp, ratio);
 }
 
@@ -1264,6 +1267,7 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
 
     Dim3 ratio3 = {.x = 2, .y = 2, .z = 2};
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
     AMREX_D_TERM(ratio3.x = ratio[0];,
                  ratio3.y = ratio[1];,
                  ratio3.z = ratio[2];);
@@ -1312,7 +1316,8 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     const int ncomp = this->getNComp();
 
     const Geometry& crse_geom = this->Geom(amrlev,fmglev+1);
-    const IntVect refratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    IntVect refratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    if (this->hasHiddenDimension()) { refratio[this->hiddenDirection()] = 1; }
     const IntVect ng = crse.nGrowVect();
 
     MF cfine;

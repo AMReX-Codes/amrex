@@ -1822,6 +1822,7 @@ MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[amrlev][mglev];
         IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
+        if (hasHiddenDimension()) { ratio[hiddenDirection()] = 1; }
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
         return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng);

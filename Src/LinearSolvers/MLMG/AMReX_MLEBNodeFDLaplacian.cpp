@@ -175,7 +175,19 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
-    int semicoarsening_dir = info.semicoarsening_direction;
+#if (AMREX_SPACEDIM == 1)
+    int semicoarsening_dir = 0;
+#else
+    // Direction NOT coarsened by this MG step. Derived from the level's
+    // ratio, because info.semicoarsening_direction is -1 when the direction
+    // is chosen automatically.
+    int semicoarsening_dir = 2;
+    if (ratio[1] == 1) {
+        semicoarsening_dir = 1;
+    } else if (ratio[0] == 1) {
+        semicoarsening_dir = 0;
+    }
+#endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -221,7 +233,19 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     BL_PROFILE("MLEBNodeFDLaplacian::interpolation()");
 
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
-    int semicoarsening_dir = info.semicoarsening_direction;
+#if (AMREX_SPACEDIM == 1)
+    int semicoarsening_dir = 0;
+#else
+    // Direction NOT coarsened by this MG step. Derived from the level's
+    // ratio, because info.semicoarsening_direction is -1 when the direction
+    // is chosen automatically.
+    int semicoarsening_dir = 2;
+    if (ratio[1] == 1) {
+        semicoarsening_dir = 1;
+    } else if (ratio[0] == 1) {
+        semicoarsening_dir = 0;
+    }
+#endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
