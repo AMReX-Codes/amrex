@@ -1,0 +1,2 @@
+WEXE_headers += WMLES_diffusion_K.H
+WEXE_headers += WMLES_diffusion_eb_K.H

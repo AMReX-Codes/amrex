@@ -1,0 +1,33 @@
+max_step = 10
+stop_time = 0.1
+
+geometry.is_periodic = 0 0
+geometry.coord_sys   = 0
+geometry.prob_lo     = -2.0  -1.5
+geometry.prob_hi     =  4.0   1.5
+amr.n_cell           = 32    16
+
+wmles.lo_bc = 1 4
+wmles.hi_bc = 2 4
+wmles.cfl = 0.5
+
+amr.max_level       = 0
+amr.ref_ratio       = 2
+amr.regrid_int      = 2
+amr.blocking_factor = 8
+amr.max_grid_size   = 32
+amr.n_error_buf     = 2
+
+amr.checkpoint_files_output = 0
+amr.plot_files_output = 0
+
+eb2.geom_type = "cylinder"
+eb2.cylinder_radius = 0.5
+eb2.cylinder_direction = 2
+eb2.cylinder_center = 0.0 0.0 0.0
+eb2.cylinder_has_fluid_inside = false
+
+prob.inflow_velocity = 1.0
+prob.inflow_rho      = 1.0
+prob.inflow_T        = 300.0
+prob.inflow_p        = 71500.0
