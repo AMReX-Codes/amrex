@@ -345,7 +345,8 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f)
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
@@ -410,7 +411,8 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
@@ -479,7 +481,8 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)

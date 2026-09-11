@@ -894,7 +894,8 @@ namespace amrex
                 int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
                 int nblocks = n2dblocks * b.length(direction);
 #ifdef AMREX_USE_SYCL
-                std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
+                std::size_t shared_mem_byte = sizeof(Real)
+                    * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
                 amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks, shared_mem_byte, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
 #else

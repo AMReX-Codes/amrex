@@ -623,7 +623,8 @@ public:
 
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
-            constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+            constexpr std::size_t shared_mem_bytes = sizeof(ReduceTuple)
+                * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
             amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
                           [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
             {
@@ -678,7 +679,8 @@ public:
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
-        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        constexpr std::size_t shared_mem_bytes = sizeof(ReduceTuple)
+            * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
@@ -805,7 +807,8 @@ public:
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
-        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        constexpr std::size_t shared_mem_bytes = sizeof(ReduceTuple)
+            * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
@@ -874,7 +877,8 @@ public:
             int maxblocks = reduce_data.maxBlocks();
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
-            constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+            constexpr std::size_t shared_mem_bytes = sizeof(ReduceTuple)
+                * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
 #ifndef AMREX_NO_SYCL_REDUCE_WORKAROUND
             // xxxxx SYCL todo: reduce bug workaround
             Gpu::DeviceVector<ReduceTuple> dtmp(1);
