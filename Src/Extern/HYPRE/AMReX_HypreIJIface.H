@@ -147,6 +147,8 @@ private:
     std::string m_solver_name{"BoomerAMG"};
     std::string m_preconditioner_name{"none"};
     std::string m_file_prefix{"IJ"};
+    //! HYPRE keeps a pointer to this, so it must outlive m_precond.
+    std::string m_euclid_file;
 
     //! Verbosity of the HYPRE solvers
     int m_verbose{0};
