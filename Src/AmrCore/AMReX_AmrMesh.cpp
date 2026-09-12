@@ -376,6 +376,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
+    pp.queryAdd("refine_whole_domain_dir", refine_whole_domain_dir);
+
     pp.queryAdd("check_input", check_input);
     pp.queryAdd("max_grid_iterations", max_grid_iterations);
 
@@ -820,7 +822,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Construct initial cluster.
                     //
-                    ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()));
+                    ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()),
+                                      pc_domain[levc], refine_whole_domain_dir);
                     if (use_new_chop) {
                         clist.new_chop(grid_eff);
                     } else {
@@ -1288,6 +1291,32 @@ AmrMesh::checkInput ()
         }
     }
 
+    //
+    // Check the direction in which the fine levels cover the entire domain.
+    //
+    if (refine_whole_domain_dir >= 0)
+    {
+        const int idim = refine_whole_domain_dir;
+        if (idim >= AMREX_SPACEDIM) {
+            amrex::Error("Amr::checkInput: refine_whole_domain_dir is out of range");
+        }
+#ifdef AMREX_USE_BITTREE
+        if (use_bittree) {
+            amrex::Error("Amr::checkInput: refine_whole_domain_dir does not work with bittree");
+        }
+#endif
+        for (int i = 0; i < max_level; ++i) {
+            // The tags are coarsened by this factor before they are clustered.
+            int bf = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            if (Geom(i).Domain().length(idim) % bf != 0) {
+                amrex::Print() << "On level " << i << " the domain size in direction " << idim
+                               << " is " << Geom(i).Domain().length(idim)
+                               << ", which is not divisible by " << bf << '\n';
+                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in refine_whole_domain_dir");
+            }
+        }
+    }
+
     if( ! (Geom(0).ProbDomain().volume() > 0.0) ) {
         amrex::Error("Amr::checkInput: bad physical problem size");
     }
@@ -1324,6 +1353,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
+    os << "  refine_whole_domain_dir = " << amr_mesh.refine_whole_domain_dir << "\n";
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
