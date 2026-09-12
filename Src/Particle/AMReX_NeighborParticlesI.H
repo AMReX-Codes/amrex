@@ -628,8 +628,8 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const P& p,
         const auto* plo = this->Geom(src_lev).ProbLo();
         bool is_interior = true;
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            amrex::Real face_lo = plo[d] + tile_box.smallEnd(d) * dx[d];
-            amrex::Real face_hi = plo[d] + (tile_box.bigEnd(d) + 1) * dx[d];
+            amrex::Real face_lo = plo[d] + Real(tile_box.smallEnd(d)) * dx[d];
+            amrex::Real face_hi = plo[d] + Real(tile_box.bigEnd(d) + 1) * dx[d];
             if ((p.pos(d) - face_lo) < search_radius ||
                 (face_hi - p.pos(d)) < search_radius) {
                 is_interior = false;

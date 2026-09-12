@@ -220,7 +220,9 @@ an STL file using:
                     int num_coarsen_opt = NumCoarsenOpt());
 
 This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
-``eb2.stl_file`` to specify the STL file path.
+``eb2.stl_file`` to specify the STL file path. Because an STL file is expected
+to describe a water-tight object, the embedded boundary outside the domain is
+always taken from the STL mesh itself, and ``extend_domain_face`` is ignored.
 
 **Managing IndexSpace Objects**
 

@@ -106,14 +106,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #endif
     Array4<Real> qt = qtracker_fab.array();
 
-    // Initialize to zero just in case
-    if (as_fine) {
-        amrex::ParallelFor(bx, ncomp,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-        {
-            dm_as_fine(i,j,k,n) = 0.0;
-        });
-    }
+    // We do not initialize dm_as_fine here because we also add to cells outside
+    // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
+    // caller's responsibility.
 
     for (int n = 0; n < ncomp; n++)
     {
@@ -333,7 +328,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                     flag_as_crse( r, s, t) == amrex_yafluxreg_crse_fine_boundary_cell &&
                                     flag_as_crse(ii,jj,kk) == amrex_yafluxreg_fine_cell )
                                {
-                                   drho_as_crse(r,s,t,n) -= fac*update/nrs(r,s,t) * fac_for_deltaR;
+                                   amrex::HostDevice::Atomic::Add(&drho_as_crse(r,s,t,n),
+                                                                  -fac*update/nrs(r,s,t) * fac_for_deltaR);
                                }
 
                                // Uncovered (by fine) to covered (by fine)
@@ -341,8 +337,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                     flag_as_crse( r, s, t) == amrex_yafluxreg_fine_cell  &&
                                     flag_as_crse(ii,jj,kk) == amrex_yafluxreg_crse_fine_boundary_cell )
                                {
-                                   drho_as_crse(ii,jj,kk,n) += fac * update / nrs(r,s,t) *
-                                                               (vfrac(r,s,t) / vfrac(ii,jj,kk)) * fac_for_deltaR;
+                                   amrex::HostDevice::Atomic::Add(&drho_as_crse(ii,jj,kk,n),
+                                                                  fac * update / nrs(r,s,t) *
+                                                                  (vfrac(r,s,t) / vfrac(ii,jj,kk)) * fac_for_deltaR);
                                }
                             } // as_crse
 
@@ -351,13 +348,15 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                // Ghost (ii,jj,kk) to valid (r,s,t)
                                if (levmsk(ii,jj,kk) == is_ghost_cell && bx.contains(IntVect(AMREX_D_DECL(r,s,t)))) {
 
-                                   dm_as_fine(ii,jj,kk,n) -= fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR;
+                                   amrex::HostDevice::Atomic::Add(&dm_as_fine(ii,jj,kk,n),
+                                                                  -fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR);
                                }
 
                                // Valid (ii,jj,kk) to ghost (r,s,t)
                                if (bx.contains(IntVect(AMREX_D_DECL(ii,jj,kk))) && levmsk(r,s,t) == is_ghost_cell) {
 
-                                   dm_as_fine(r,s,t,n) += fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR;
+                                   amrex::HostDevice::Atomic::Add(&dm_as_fine(r,s,t,n),
+                                                                  fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR);
                                }
                             } // as_fine
 

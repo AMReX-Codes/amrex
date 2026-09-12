@@ -1509,6 +1509,14 @@ public:
      * \param period periodic length if it's non-zero
      */
     void OverrideSync (int scomp, int ncomp, const Periodicity& period);
+    /**
+     * \brief Split-phase version of OverrideSync.
+     *
+     * OverrideSync_nowait starts the synchronization and OverrideSync_finish
+     * completes it.  On GPUs, the two calls must be made within the same
+     * external-stream region (if any), because the temporary storage created
+     * by OverrideSync_nowait is released in a stream-ordered fashion.
+     */
     void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period);
     void OverrideSync_finish ();
@@ -1750,6 +1758,9 @@ protected:
     std::unique_ptr<detail::SingleChunkArena> m_single_chunk_arena;
     Long m_single_chunk_size = 0;
 
+    //! Free the cached Array4s so that they are rebuilt by the next arrays() call.
+    void clear_arrays ();
+
     //! has define() been called?
     bool define_function_called = false;
 
@@ -1830,8 +1841,6 @@ private:
     template <class F=FAB>
     requires (BaseFabType<F>)
     void build_arrays () const;
-
-    void clear_arrays ();
 
 #ifdef AMREX_USE_GPU
     std::map<std::uint64_t,
@@ -2131,8 +2140,14 @@ void
 FabArray<FAB>::clear_arrays ()
 {
 #ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
+    // The host-to-device copy of the Array4s issued in build_arrays() is
+    // asynchronous and is not synchronized when we are in a NoSync region.
+    // Use stream-ordered frees so that the pinned and device buffers are not
+    // reused before the copy and any kernels using them have completed.
+    if (m_hp_arrays) {
+        Gpu::freeAsync(The_Pinned_Arena(), m_hp_arrays);
+        Gpu::freeAsync(The_Arena(), m_dp_arrays);
+    }
     m_dp_arrays = nullptr;
 #else
     std::free(m_hp_arrays);

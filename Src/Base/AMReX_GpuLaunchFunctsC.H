@@ -119,16 +119,22 @@ namespace detail {
 /// \endcond
 
 template<typename T, typename L>
-void launch (T const& n, L&& f) noexcept
+void launch (T const& n, L const& f) noexcept
 {
-    std::forward<L>(f)(n);
+    // Like the GPU backends: f(i) for each i in [0,n) when n is integral,
+    // f(box) once when n is a BoxND.
+    for (auto const i : Gpu::Range(n)) {
+        f(i);
+    }
 }
 
 template<int MT, typename T, typename L>
-void launch (T const& n, L&& f) noexcept
+void launch (T const& n, L const& f) noexcept
 {
     amrex::ignore_unused(MT);
-    std::forward<L>(f)(n);
+    for (auto const i : Gpu::Range(n)) {
+        f(i);
+    }
 }
 
 template <std::integral T, typename L >

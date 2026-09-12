@@ -203,6 +203,9 @@ public:
     void fillRK (int stage, int iteration, int ncycle, MF& mf, Real time,
                  BC& cbc, BC& fbc, Vector<BCRec> const& bcs);
 
+    //! Interpolater this FillPatcher was built with.
+    [[nodiscard]] InterpBase* interp () const noexcept { return m_interp; }
+
 private:
 
     BoxArray m_fba;

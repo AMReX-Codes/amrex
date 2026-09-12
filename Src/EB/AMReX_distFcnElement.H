@@ -25,6 +25,7 @@ class distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
 
   [[nodiscard]] virtual amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
   [[nodiscard]] virtual amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
+  //! Tridiagonal solver. Note that \p b and \p d are eliminated in place.
   static int solve_thomas (const std::vector<amrex::Real> &a,
                            std::vector<amrex::Real> &b,
                            const std::vector<amrex::Real> &c,

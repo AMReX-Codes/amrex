@@ -594,17 +594,23 @@ protected:
 // Template deduction guide for RealVectND
 template <class... Args>
 requires (IsConvertible_v<Real, Args...>)
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 RealVectND(Real, Real, Args...) -> RealVectND<sizeof...(Args)+2>;
 
 // Template deduction guide for RealVectND
 template<int dim>
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 RealVectND(const IntVectND<dim>&) -> RealVectND<dim>;
 
 // Template deduction guide for RealVectND
 template<int dim>
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 RealVectND(const GpuArray<Real, dim>&) -> RealVectND<dim>;
 
 template <int dim>

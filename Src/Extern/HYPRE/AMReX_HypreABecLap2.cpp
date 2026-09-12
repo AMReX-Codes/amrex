@@ -121,7 +121,8 @@ HypreABecLap2::getSolution (MultiFab& a_soln)
     MultiFab* soln = &a_soln;
     MultiFab tmp;
     if (a_soln.nGrowVect() != 0) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         soln = &tmp;
     }
 
@@ -324,6 +325,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
             });
         }
+        if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
     }
 
     const HYPRE_Int part = 0;

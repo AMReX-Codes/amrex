@@ -45,7 +45,7 @@ private:
     amrex::Array<amrex::MultiFab,3> rhs;
     amrex::MultiFab alpha_node;
 
-    amrex::Real beta_factor = 1.e-2;
+    amrex::Real beta_factor = amrex::Real(1.e-2);
     amrex::Real alpha = 1.0;
     amrex::Real beta = 1.0;
     bool variable_beta = false;

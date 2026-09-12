@@ -338,10 +338,9 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
         // Process Euclid smoother parameters
         if (smooth_type == 9) {
             if (hpp.pp.contains("bamg_euclid_file")) {
-                std::string euclid_file;
-                hpp.pp.get("bamg_euclid_file", euclid_file);
+                hpp.pp.get("bamg_euclid_file", m_euclid_file);
                 HYPRE_BoomerAMGSetEuclidFile(
-                    m_precond, const_cast<char*>(euclid_file.c_str()));
+                    m_precond, const_cast<char*>(m_euclid_file.c_str()));
             }
             hpp.set<int>("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
             hpp.set<int>("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);

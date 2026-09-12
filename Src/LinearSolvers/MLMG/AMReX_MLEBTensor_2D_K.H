@@ -307,8 +307,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     int ii = i - isx;
                     int jj = j - isy;
 
-                    gx *= isx;
-                    gy *= isy;
+                    gx *= Real(isx);
+                    gy *= Real(isy);
                     Real gxy = gx*gy;
                     Real oneggg = Real(1.0)+gx+gy+gxy;
 
