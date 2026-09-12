@@ -377,13 +377,17 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
     applyBC(amrlev, mglev, in, CurlCurlStateType::x);
 
     auto dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
     auto adxinv = dxinv;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        adxinv[idim] *= std::sqrt(m_alpha);
+    if (!has_alpha) {
+        // m_alpha is a negative sentinel when alpha was given as a
+        // MultiFab, in which case adxinv is never read.
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            adxinv[idim] *= std::sqrt(m_alpha);
+        }
     }
     auto const b = m_beta;
     bool const has_beta = (m_bcoefs[amrlev][mglev][0] != nullptr);
-    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
 
     auto dinfo = getDirichletInfo(amrlev,mglev);
     auto coord = m_coord;
@@ -570,9 +574,14 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
 
     auto dinfo = getDirichletInfo(amrlev,mglev);
     auto dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
     auto adxinv = dxinv;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        adxinv[idim] *= std::sqrt(m_alpha);
+    if (!has_alpha) {
+        // m_alpha is a negative sentinel when alpha was given as a
+        // MultiFab, in which case adxinv is never read.
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            adxinv[idim] *= std::sqrt(m_alpha);
+        }
     }
 
     int xhi = this->m_geom[amrlev][mglev].Domain().bigEnd(0);
@@ -583,7 +592,6 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
     bool const has_beta = (m_bcoefs[amrlev][mglev][0] != nullptr);
-    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
 
     if (has_alpha && has_beta) {
         auto const& acy = m_acoefs[amrlev][mglev][1]->const_arrays();
@@ -651,13 +659,17 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
     auto const& rhsz = rhs[2].const_arrays();
 
     auto dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
     auto adxinv = dxinv;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        adxinv[idim] *= std::sqrt(m_alpha);
+    if (!has_alpha) {
+        // m_alpha is a negative sentinel when alpha was given as a
+        // MultiFab, in which case adxinv is never read.
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            adxinv[idim] *= std::sqrt(m_alpha);
+        }
     }
 
     bool const has_beta = (m_bcoefs[amrlev][mglev][0] != nullptr);
-    bool const has_alpha = (m_acoefs[amrlev][mglev][0] != nullptr);
     bool const use_pcg = m_use_pcg || has_alpha;
     // We support LU solver with variable beta and scalar alpha.
 
@@ -981,10 +993,16 @@ void MLCurlCurl::make (Vector<Vector<MF> >& mf, IntVect const& ng) const
 Array<MultiFab,3>
 MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng) const
 {
+    return make(amrlev, mglev, ng, MFInfo());
+}
+
+Array<MultiFab,3>
+MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& mf_info) const
+{
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(this->m_grids[amrlev][mglev], m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng, MFInfo(),
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng, mf_info,
                        *(this->m_factory)[amrlev][mglev]);
     }
     return r;
@@ -1003,6 +1021,13 @@ MLCurlCurl::makeAlias (MF const& mf) const
 Array<MultiFab,3>
 MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 {
+    return makeCoarseMG(amrlev, mglev, ng, MFInfo());
+}
+
+Array<MultiFab,3>
+MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
+                          MFInfo const& mf_info) const
+{
     BoxArray cba = this->m_grids[amrlev][mglev];
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[mglev];
     cba.coarsen(ratio);
@@ -1010,13 +1035,19 @@ MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng);
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng, mf_info);
     }
     return r;
 }
 
 Array<MultiFab,3>
 MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng) const
+{
+    return makeCoarseAmr(famrlev, ng, MFInfo());
+}
+
+Array<MultiFab,3>
+MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& mf_info) const
 {
     BoxArray cba = this->m_grids[famrlev][0];
     IntVect ratio(this->AMRRefRatio(famrlev-1));
@@ -1025,7 +1056,7 @@ MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng) const
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[famrlev][0], m_ncomp, ng);
+                       this->m_dmap[famrlev][0], m_ncomp, ng, mf_info);
     }
     return r;
 }

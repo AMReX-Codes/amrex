@@ -1061,7 +1061,16 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     int nprocs = ParallelContext::NProcsSub();
     Vector<int> recvcount(nprocs, 0);
     recvbuf.resize(sendbuf.size());
-    const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
+    const Vector<int>& gpmap = sendbuf.DistributionMap().ProcessorMap();
+    Vector<int> lpmap;
+    if (ParallelContext::in_sub_frame()) {
+        // assign, not resize: gcc -O3 falsely warns about a null dereference
+        // when resize on an empty vector is inlined here.
+        lpmap.assign(gpmap.size(), 0);
+        ParallelContext::global_to_local_rank(lpmap.data(), gpmap.data(),
+                                              static_cast<int>(gpmap.size()));
+    }
+    const Vector<int>& old_pmap = ParallelContext::in_sub_frame() ? lpmap : gpmap;
     for (int i : old_pmap)
     {
         ++recvcount[i];

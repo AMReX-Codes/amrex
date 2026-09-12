@@ -39,9 +39,9 @@ void mlpoisson_adotx_m (int i, int j, Array4<T> const& y,
                         Array4<T const> const& x,
                         T dhx, T dhy, T dx, T probxlo) noexcept
 {
-    T rel = probxlo + i*dx;
-    T rer = probxlo +(i+1)*dx;
-    T rc = probxlo + (i+T(0.5))*dx;
+    T rel = probxlo + T(i)*dx;
+    T rer = probxlo + T(i+1)*dx;
+    T rc = probxlo + (T(i)+T(0.5))*dx;
     y(i,j,0) = dhx * (rel*x(i-1,j,0) - (rel+rer)*x(i,j,0) + rer*x(i+1,j,0))
         +      dhy * rc *(x(i,j-1,0) -  T(2.)*x(i,j,0) +     x(i,j+1,0));
 }
@@ -74,7 +74,7 @@ void mlpoisson_flux_x_m (Box const& box, Array4<T> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            T re = probxlo + i*dx;
+            T re = probxlo + T(i)*dx;
             fx(i,j,0) = dxinv*re*(sol(i,j,0)-sol(i-1,j,0));
         }
     }
@@ -107,10 +107,10 @@ void mlpoisson_flux_xface_m (Box const& box, Array4<T> const& fx,
 
     for     (int j = lo.y; j <= hi.y; ++j) {
         int i = lo.x;
-        T re = probxlo + i*dx;
+        T re = probxlo + T(i)*dx;
         fx(i,j,0) = dxinv*re*(sol(i,j,0)-sol(i-1,j,0));
         i += xlen;
-        re = probxlo + i*dx;
+        re = probxlo + T(i)*dx;
         fx(i,j,0) = dxinv*re*(sol(i,j,0)-sol(i-1,j,0));
     }
 }
@@ -143,7 +143,7 @@ void mlpoisson_flux_y_m (Box const& box, Array4<T> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            T rc = probxlo + (i+T(0.5))*dx;
+            T rc = probxlo + (T(i)+T(0.5))*dx;
             fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
         }
     }
@@ -181,13 +181,13 @@ void mlpoisson_flux_yface_m (Box const& box, Array4<T> const& fy,
     int j = lo.y;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        T rc = probxlo + (i+T(0.5))*dx;
+        T rc = probxlo + (T(i)+T(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
     j += ylen;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        T rc = probxlo + (i+T(0.5))*dx;
+        T rc = probxlo + (T(i)+T(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
 }
@@ -289,9 +289,9 @@ void mlpoisson_gsrb_m (int i, int j, int, Array4<T> const& phi, Array4<T const> 
         T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
             ? f3(i,vhi.y,0) : T(0.0);
 
-        T rel = probxlo + i*dx;
-        T rer = probxlo +(i+1)*dx;
-        T rc = probxlo + (i+T(0.5))*dx;
+        T rel = probxlo + T(i)*dx;
+        T rer = probxlo + T(i+1)*dx;
+        T rc = probxlo + (T(i)+T(0.5))*dx;
 
         T gamma = -dhx*(rel+rer) - T(2.0)*dhy*rc;
 
@@ -390,9 +390,9 @@ void mlpoisson_jacobi_m (int i, int j, int, Array4<T> const& phi, Array4<T const
     T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
         ? f3(i,vhi.y,0) : T(0.0);
 
-    T rel = probxlo + i*dx;
-    T rer = probxlo +(i+1)*dx;
-    T rc = probxlo + (i+T(0.5))*dx;
+    T rel = probxlo + T(i)*dx;
+    T rer = probxlo + T(i+1)*dx;
+    T rc = probxlo + (T(i)+T(0.5))*dx;
 
     T gamma = -dhx*(rel+rer) - T(2.0)*dhy*rc;
 
@@ -406,9 +406,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_normalize (int i, int j, int, Array4<T> const& x,
                           T dhx, T dhy, T dx, T probxlo) noexcept
 {
-    T rel = probxlo + i*dx;
-    T rer = probxlo +(i+1)*dx;
-    T rc = probxlo + (i+T(0.5))*dx;
+    T rel = probxlo + T(i)*dx;
+    T rer = probxlo + T(i+1)*dx;
+    T rc = probxlo + (T(i)+T(0.5))*dx;
     x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*T(2.0));
 }
 

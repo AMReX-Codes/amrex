@@ -48,9 +48,9 @@ void mlalap_adotx_m (Box const& box, Array4<RT> const& y,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                RT rel = probxlo + i*dx;
-                RT rer = probxlo +(i+1)*dx;
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rel = probxlo + RT(i)*dx;
+                RT rer = probxlo + RT(i+1)*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 y(i,j,0,n) = alpha*a(i,j,0,n)*x(i,j,0,n)*rc
                     - dhx * (rer*(x(i+1,j,0,n) - x(i  ,j,0,n))
                            - rel*(x(i  ,j,0,n) - x(i-1,j,0,n)))
@@ -101,9 +101,9 @@ void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                RT rel = probxlo + i*dx;
-                RT rer = probxlo +(i+1)*dx;
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rel = probxlo + RT(i)*dx;
+                RT rer = probxlo + RT(i+1)*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 x(i,j,0,n) /= alpha*a(i,j,0,n)*rc
                     + dhx*(rel+rer) + dhy*(rc*RT(2.0));
             }
@@ -142,7 +142,7 @@ void mlalap_flux_x_m (Box const& box, Array4<RT> const& fx,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 fx(i,j,0,n) = -fac*re*(sol(i,j,0,n)-sol(i-1,j,0,n));
             }
         }
@@ -179,10 +179,10 @@ void mlalap_flux_xface_m (Box const& box, Array4<RT> const& fx,
     for (int n = 0; n < ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             int i = lo.x;
-            RT re = probxlo + i*dx;
+            RT re = probxlo + RT(i)*dx;
             fx(i,j,0,n) = -fac*re*(sol(i,j,0,n)-sol(i-1,j,0,n));
             i += xlen;
-            re = probxlo + i*dx;
+            re = probxlo + RT(i)*dx;
             fx(i,j,0,n) = -fac*re*(sol(i,j,0,n)-sol(i-1,j,0,n));
         }
     }
@@ -219,7 +219,7 @@ void mlalap_flux_y_m (Box const& box, Array4<RT> const& fy,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 fy(i,j,0,n) = -fac*rc*(sol(i,j,0,n)-sol(i,j-1,0,n));
             }
         }
@@ -261,13 +261,13 @@ void mlalap_flux_yface_m (Box const& box, Array4<RT> const& fy,
         int j = lo.y;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            RT rc = probxlo + (i+RT(0.5))*dx;
+            RT rc = probxlo + (RT(i)+RT(0.5))*dx;
             fy(i,j,0,n) = -fac*rc*(sol(i,j,0,n)-sol(i,j-1,0,n));
         }
         j += ylen;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            RT rc = probxlo + (i+RT(0.5))*dx;
+            RT rc = probxlo + (RT(i)+RT(0.5))*dx;
             fy(i,j,0,n) = -fac*rc*(sol(i,j,0,n)-sol(i,j-1,0,n));
         }
     }
@@ -349,9 +349,9 @@ void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
                     RT cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
                         ? f3(i,vhi.y,0,n) : RT(0.0);
 
-                    RT rel = probxlo + i*dx;
-                    RT rer = probxlo +(i+1)*dx;
-                    RT rc = probxlo + (i+RT(0.5))*dx;
+                    RT rel = probxlo + RT(i)*dx;
+                    RT rer = probxlo + RT(i+1)*dx;
+                    RT rc = probxlo + (RT(i)+RT(0.5))*dx;
 
                     RT delta = dhx*(rel*cf0 + rer*cf2) + dhy*rc*(cf1 + cf3);
 

@@ -164,7 +164,8 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     if (isper == nullptr)
     {
         Vector<int> is_per(AMREX_SPACEDIM,0);
-        pp.queryAdd("is_periodic", is_per);
+        pp.queryAdd("is_periodic", is_per, AMREX_SPACEDIM);
+        AMREX_ASSERT(is_per.size() == AMREX_SPACEDIM);
         for (int n = 0; n < AMREX_SPACEDIM; n++) {
             gg->is_periodic[n] = is_per[n];
         }
@@ -553,7 +554,7 @@ Geometry::computeRoundoffDomain ()
         Real dxinv = InvCellSize(idim);
 
         // Check that the grid is well formed and that deltax > roundoff
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)), error_msg_2);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((plo + Real(ihi)*CellSize(idim)) < (plo + Real(ihi + 1)*CellSize(idim)), error_msg_2);
 
         // roundoff_lo will be the lowest value that will be inside the domain
         // roundoff_hi will be the highest value that will be inside the domain

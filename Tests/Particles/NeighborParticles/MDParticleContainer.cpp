@@ -45,8 +45,8 @@ namespace
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -55,8 +55,8 @@ namespace
     {
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -67,8 +67,8 @@ namespace
         int cpu = -1;
         std::array<ParticleReal, PIdx::ncomps> struct_real{};
         int struct_int = 0;
-        ParticleReal array_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal array_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int array_int = 0;
         int runtime_int = 0;
     };
@@ -121,9 +121,9 @@ namespace
                      int iy_part = (i_part % (ny * nz)) % ny;,
                      int iz_part = (i_part % (ny * nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
-                     r[1] = (0.5+iy_part)/ny;,
-                     r[2] = (0.5+iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (Real(0.5)+Real(ix_part))/Real(nx);,
+                     r[1] = (Real(0.5)+Real(iy_part))/Real(ny);,
+                     r[2] = (Real(0.5)+Real(iz_part))/Real(nz);)
     }
 
     void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
@@ -195,9 +195,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
 
-                AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
-                             auto y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
-                             auto z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
+                AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (Real(iv[0]) + r[0])*dx[0]);,
+                             auto y = static_cast<ParticleReal> (plo[1] + (Real(iv[1]) + r[1])*dx[1]);,
+                             auto z = static_cast<ParticleReal> (plo[2] + (Real(iv[2]) + r[2])*dx[2]);)
 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
@@ -573,13 +573,13 @@ void MDParticleContainer::checkNeighborList()
                 if ( i == j ) { continue; }
 
                 ParticleType& p2 = h_pstruct[j];
-                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
-                             Real dy = p1.pos(1) - p2.pos(1);,
-                             Real dz = p1.pos(2) - p2.pos(2);)
+                AMREX_D_TERM(ParticleReal dx = p1.pos(0) - p2.pos(0);,
+                             ParticleReal dy = p1.pos(1) - p2.pos(1);,
+                             ParticleReal dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
+                ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
 
-                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff;
+                ParticleReal cutoff_sq = ParticleReal(25.0)*Params::cutoff*Params::cutoff;
 
                 if (r2 <= cutoff_sq)
                 {
@@ -623,10 +623,10 @@ void MDParticleContainer::checkInverseSumNeighbors ()
 {
     BL_PROFILE("MDParticleContainer::checkInverseSumNeighbors");
 
-    constexpr ParticleReal struct_real_delta = 1.5_rt;
+    constexpr ParticleReal struct_real_delta = 1.5_prt;
     constexpr int struct_int_delta = 9;
-    constexpr ParticleReal array_real_delta = 2.5_rt;
-    constexpr ParticleReal runtime_real_delta = 3.5_rt;
+    constexpr ParticleReal array_real_delta = 2.5_prt;
+    constexpr ParticleReal runtime_real_delta = 3.5_prt;
     constexpr int array_int_delta = 11;
     constexpr int runtime_int_delta = 13;
 

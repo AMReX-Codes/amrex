@@ -89,6 +89,9 @@ inline void BarrierSub () noexcept { }
 inline void BarrierAll () noexcept { }
 #endif
 
+//! Is a sub-communicator frame pushed?  If not, rank translation is the identity.
+inline bool in_sub_frame () noexcept { return frames.size() > 1; }
+
 //! get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () noexcept { return frames.back().get_inc_mpi_tag(); }
 //! translate between local rank and global rank

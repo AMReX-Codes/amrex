@@ -254,6 +254,7 @@ private:
         Vector<char const*> m_locals;
         Data () = default;
         ~Data ();
+        void clear_host_executor ();
         Data (Data const&) = delete;
         Data (Data &&) = delete;
         Data& operator= (Data const&) = delete;
@@ -309,6 +310,8 @@ Parser::compileHost () const
                 m_data->m_locals = parser_compile(m_data->m_parser, m_uf_ptrs,
                                                   m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
+                // Do not leave a partially compiled executor behind.
+                m_data->clear_host_executor();
                 throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                          + m_data->m_expression + "\"");
             }

@@ -449,7 +449,8 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow,
+                             MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
@@ -560,7 +561,7 @@ namespace amrex
         else
         {
             MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+                          ncomp, ngcrse, MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
             average_down_edges(fine, ctmp, ratio, ngcrse);
             crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
         }
@@ -794,17 +795,6 @@ namespace amrex
     {
         AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
 
-#if (AMREX_SPACEDIM==2)
-        const auto& ba = grad.boxArray();
-        const auto& dm = grad.DistributionMap();
-        MultiFab volume, areax, areay;
-        if (geom.IsRZ()) {
-            geom.GetVolume(volume, ba, dm, 0);
-            geom.GetFaceArea(areax, ba, dm, 0, 0);
-            geom.GetFaceArea(areay, ba, dm, 1, 0);
-        }
-#endif
-
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_OMP
@@ -817,24 +807,10 @@ namespace amrex
             AMREX_D_TERM(const auto& ufab = umac[0]->const_array(mfi);,
                          const auto& vfab = umac[1]->const_array(mfi);,
                          const auto& wfab = umac[2]->const_array(mfi););
-#if (AMREX_SPACEDIM==2)
-            if (geom.IsRZ()) {
-                Array4<Real const> const&  ax =  areax.array(mfi);
-                Array4<Real const> const&  ay =  areay.array(mfi);
-                Array4<Real const> const& vol = volume.array(mfi);
-
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-                {
-                    amrex_compute_gradient_rz(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
-                });
-            } else
-#endif
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-                {
-                    amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
-                });
-            }
+                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
+            });
         }
     }
 
@@ -865,7 +841,9 @@ namespace amrex
     Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
                                      Box const& domain, int direction, bool local)
     {
-        int n1d = domain.length(direction) * ncomp;
+        Box const dom = amrex::convert(domain, mf.ixType());
+        int const dlo = dom.smallEnd(direction);
+        int n1d = dom.length(direction) * ncomp;
         Gpu::HostVector<Real> hv(n1d);
 
 #ifdef AMREX_USE_GPU
@@ -875,7 +853,8 @@ namespace amrex
             Real* p = dv.data();
 
             for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                Box const& b = mfi.validbox();
+                Box const b = mfi.validbox() & dom;
+                if (!b.ok()) { continue; }
                 const auto lo = amrex::lbound(b);
                 const auto len = amrex::length(b);
                 auto const& fab = mf.const_array(mfi);
@@ -894,7 +873,8 @@ namespace amrex
                 int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
                 int nblocks = n2dblocks * b.length(direction);
 #ifdef AMREX_USE_SYCL
-                std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
+                std::size_t shared_mem_byte = sizeof(Real)
+                    * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
                 amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks, shared_mem_byte, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
 #else
@@ -931,9 +911,9 @@ namespace amrex
                     for (int n = 0; n < ncomp; ++n) {
                         Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
 #ifdef AMREX_USE_SYCL
-                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r, h);
+                        Gpu::deviceReduceSum_full(p+n+ncomp*(idir-dlo), r, h);
 #else
-                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r);
+                        Gpu::deviceReduceSum_full(p+n+ncomp*(idir-dlo), r);
 #endif
                     }
                 });
@@ -964,23 +944,24 @@ namespace amrex
 #pragma omp parallel
 #endif
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
-                Box const& b = mfi.tilebox();
+                Box const b = mfi.tilebox() & dom;
+                if (!b.ok()) { continue; }
                 auto const& fab = mf.const_array(mfi);
                 Real * AMREX_RESTRICT p = pp[OpenMP::get_thread_num()];
                 if (direction == 0) {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*i] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(i-dlo)] += fab(i,j,k,n+icomp);
                     });
                 } else if (direction == 1) {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*j] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(j-dlo)] += fab(i,j,k,n+icomp);
                     });
                 } else {
                     amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
                     {
-                        p[n+ncomp*k] += fab(i,j,k,n+icomp);
+                        p[n+ncomp*(k-dlo)] += fab(i,j,k,n+icomp);
                     });
                 }
             }
@@ -1054,7 +1035,7 @@ namespace amrex
                             return Real(0.);
                         } else {
                             constexpr Real pi = std::numbers::pi_v<Real>;
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                                 * a[box_no](i,j,k,icomp);
@@ -1071,7 +1052,7 @@ namespace amrex
                         if (m[box_no](i,j,k)) {
                             return Real(0.);
                         } else {
-                            Real ri = rlo + dx[0]*i;
+                            Real ri = rlo + dx[0]*Real(i);
                             Real ro = ri + dx[0];
                             constexpr Real pi = std::numbers::pi_v<Real>;
                             return pi*dx[1]*dx[0]*(ro+ri)
@@ -1119,7 +1100,7 @@ namespace amrex
                                noexcept -> Real
                 {
                     constexpr Real pi = std::numbers::pi_v<Real>;
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                         * a[box_no](i,j,k,icomp);
@@ -1132,7 +1113,7 @@ namespace amrex
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
                 {
-                    Real ri = rlo + dx[0]*i;
+                    Real ri = rlo + dx[0]*Real(i);
                     Real ro = ri + dx[0];
                     constexpr Real pi = std::numbers::pi_v<Real>;
                     return pi*dx[1]*dx[0]*(ro+ri)
@@ -1166,6 +1147,10 @@ namespace amrex
                                   && (ratio[1] == 2 || ratio[1] == 4),
                                   && (ratio[2] == 2 || ratio[2] == 4)));
 
+        AMREX_D_TERM(int const xoff = ratio[0]/2 - 1;,
+                     int const yoff = ratio[1]/2 - 1;,
+                     int const zoff = ratio[2]/2 - 1;)
+
         MultiFab tmp(amrex::coarsen(fmf.boxArray(), ratio), fmf.DistributionMap(),
                      ncomp, 0);
 
@@ -1198,7 +1183,7 @@ namespace amrex
 #endif
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(xbx, ncomp, i, j, k, n,
                 {
-                    int ii = 2*i;
+                    int ii = ratio[0]*i + xoff;
                     xa(i,j,k,n) = Real(1./16)*(Real(9.)*(fa(ii  ,j,k,n) +
                                                          fa(ii+1,j,k,n))
                                                -         fa(ii-1,j,k,n)
@@ -1219,7 +1204,7 @@ namespace amrex
 #endif
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(ybx, ncomp, i, j, k, n,
                 {
-                    int jj = 2*j;
+                    int jj = ratio[1]*j + yoff;
                     ya(i,j,k,n) = Real(1./16)*(Real(9.)*(xca(i,jj  ,k,n) +
                                                          xca(i,jj+1,k,n))
                                                -         xca(i,jj-1,k,n)
@@ -1231,7 +1216,7 @@ namespace amrex
                 auto const& ca = tmp.array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    int kk = 2*k;
+                    int kk = ratio[2]*k + zoff;
                     ca(i,j,k,n) = Real(1./16)*(Real(9.)*(yca(i,j,kk  ,n) +
                                                          yca(i,j,kk+1,n))
                                                -         yca(i,j,kk-1,n)
