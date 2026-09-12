@@ -367,7 +367,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
 Available choices of the bottom solver are
 
-- :cpp:`MLMG::BottomSolver::bicgstab`: The default.
+- :cpp:`MLMG::BottomSolver::bicgstab`: The default for most operators.
 
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
@@ -384,6 +384,13 @@ Available choices of the bottom solver are
   see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+
+- :cpp:`MLMG::BottomSolver::custom`: A solver provided by the linear operator
+  itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
+  the only such operator, and it uses this by default.  Its custom solver is a
+  BiCGStab that runs entirely on the GPU when the bottom level has a single
+  Box.  This is currently available for CUDA and HIP only; other builds fall
+  back to the standard BiCGStab solver.
 
 The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.
@@ -409,6 +416,15 @@ consolidation strategy for multigrid coarsening.
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.  If agglomeration is used, consolidation is ignored.
+
+- :cpp:`LPInfo::setSemicoarsening(bool)` (by default false) allows multigrid
+  to coarsen in only some of the directions when a direction can no longer be
+  coarsened.  :cpp:`LPInfo::setMaxSemicoarseningLevel(int)` caps how many such
+  levels are built, and :cpp:`LPInfo::setSemicoarseningDirection(int)` pins the
+  direction that is left uncoarsened.  On semi-coarsened levels the
+  cell-centered solvers smooth with a line solve along the uncoarsened
+  direction.  That smoother runs on the CPU only, so cell-centered
+  semi-coarsening is not supported in GPU builds and will abort.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
@@ -439,6 +455,20 @@ For example, using AMReX-Hydro's :cpp:`NodalProjector`
     } catch (const MLMG::error& e) {
         // Do something else...
     }
+
+On GPUs, calling :cpp:`MLMG::setNoGpuSync(true)` makes :cpp:`MLMG::solve`
+run in a single-stream region without the implicit stream synchronizations
+that :cpp:`MFIter` and many AMReX functions normally perform (see
+:ref:`sec:gpu:stream`).  This is off by default.  When it is on, the GPU
+streams are synchronized once when :cpp:`solve` returns, so the solution is
+complete when control comes back to the application, unless the application
+itself is inside a :cpp:`Gpu::NoSyncRegion`.  Whether this is faster depends
+on the problem.  Avoiding the many small synchronizations of a multigrid
+cycle helps small problems with few boxes per process, but running on a
+single stream removes the concurrency between the per-box kernels that some
+solvers (e.g., the nodal and EB solvers) launch, which can make solves with
+many small boxes slower.  Users are encouraged to time their solves with and
+without :cpp:`setNoGpuSync(true)` and use whichever is faster.
 
 
 Boundary Stencils for Cell-Centered Solvers

@@ -437,13 +437,13 @@ operator>> (std::istream  &is,
       AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
-      for(auto famin : hd.m_famin) {
+      for(auto & famin : hd.m_famin) {
         is >> famin >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famin");
         }
       }
-      for(auto famax : hd.m_famax) {
+      for(auto & famax : hd.m_famax) {
         is >> famax >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famax");
@@ -1198,9 +1198,17 @@ VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
     hdr.m_ncomp = 0;
     hdr.m_ngrow = IntVect{AMREX_D_DECL(0, 0, 0)};
 
-    // FabOnDisk list is uninitialized => initialize it here
+    // Keep the min and max arrays consistent with ncomp = 0 so that the header
+    // we write here can be read back.
+    hdr.m_famin.clear();
+    hdr.m_famax.clear();
+    hdr.m_min.assign(hdr.m_ba.size(), Vector<Real>{});
+    hdr.m_max.assign(hdr.m_ba.size(), Vector<Real>{});
+
+    // FabOnDisk list is uninitialized => initialize it here.  The name must not
+    // contain white space because that is how operator>> tokenizes it.
     for(VisMF::FabOnDisk & fod : hdr.m_fod){
-        fod.m_name = "Not Saved";
+        fod.m_name = "NotSaved";
         fod.m_head = -1;
     }
 
@@ -1673,6 +1681,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     Vector<int> nRanksPerFile(FileReadChains.size());
     NItemsPerBin(nProcs, nRanksPerFile);
+    // There may be more files than ranks (e.g., restarting on fewer ranks than
+    // the run that wrote the data used).  Every file still needs a reader.
+    for(int & nrpf : nRanksPerFile) {
+      nrpf = std::max(nrpf, 1);
+    }
     int currentFileIndex(0);
 
     for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
@@ -1699,10 +1712,13 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           ++indexFileOrder;
         }
         ++currentRank;
-        currentRank = std::min(currentRank, nProcs - 1);
+        currentRank = currentRank % nProcs;
       }
       ++currentFileIndex;
     }
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(indexFileOrder == nBoxes,
+                                     "VisMF::Read: not all boxes are assigned a reader");
 
     DistributionMapping dmFileOrder(std::move(ranksFileOrder));
 
@@ -2379,10 +2395,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
+    // Note that AsyncWrite always writes in the native format, ignoring fab.format.
+    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+
     int64_t total_bytes = 0;
     if (localdata.size() > 1) {
         char* pld = (char*)(&(localdata[1]));
-        const FABio& fio = FArrayBox::getFABio();
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             std::memcpy(pld, &total_bytes, sizeof(int64_t));
@@ -2394,7 +2412,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             std::stringstream hss;
             FArrayBox valid_fab(bx, ncomp, false);
             FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
-            fio.write_header(hss, header_fab, ncomp);
+            fabio->write_header(hss, header_fab, ncomp);
             total_bytes += static_cast<std::streamoff>(hss.tellp());
             total_bytes += header_fab.size() * whichRD.numBytes();
 
@@ -2468,8 +2486,6 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         }
     }
 
-    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
-
     AsyncOut::Submit([=] ()
     {
         if (myproc == io_proc)
@@ -2496,6 +2512,10 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                 {
                     int k = -1;
                     do {
+                        if (nbytes_on_rank[rank] < 0) { // First time for this rank
+                            std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
+                            pgd += sizeof(int64_t);
+                        }
                         if (lidx < std::ssize(gidx[rank])) {
                             k = gidx[rank][lidx];
                             ++lidx;
@@ -2507,11 +2527,6 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
                     hdr->m_min[k].resize(ncomp);
                     hdr->m_max[k].resize(ncomp);
-
-                    if (nbytes_on_rank[rank] < 0) { // First time for this rank
-                        std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
-                        pgd += sizeof(int64_t);
-                    }
 
                     int64_t nbytes;
                     std::memcpy(&nbytes, pgd, sizeof(int64_t));

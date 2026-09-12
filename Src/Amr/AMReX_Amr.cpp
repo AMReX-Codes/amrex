@@ -521,6 +521,9 @@ Amr::InitAmr ()
         is >> in_finest;
         STRIP;
         AMREX_ASSERT(in_finest >= 0  && in_finest < std::numeric_limits<int>::max());
+        if (in_finest > max_level) {
+           amrex::Error("You have fewer levels in your inputs file then in your grids file!");
+        }
         regrid_ba.resize(in_finest);
         for (int lev = 1; lev <= in_finest; lev++)
         {
@@ -1720,6 +1723,7 @@ Amr::restart (const std::string& filename)
     // we know not to unnecessarily overwrite the old file.
     last_checkpoint = level_steps[0];
     last_plotfile = level_steps[0];
+    last_smallplotfile = level_steps[0];
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -1744,6 +1748,10 @@ Amr::restart (const std::string& filename)
 
         amrex::Print() << "Restart time = " << dRestartTime << " seconds." << '\n';
     }
+
+    // ---- faHeaderMap is local to this function
+    StateData::SetFAHeaderMapPtr(nullptr);
+
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
 
@@ -2323,8 +2331,9 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
-        last_checkpoint = level_steps[0];
-        last_plotfile   = level_steps[0];
+        last_checkpoint    = level_steps[0];
+        last_plotfile      = level_steps[0];
+        last_smallplotfile = level_steps[0];
     }
 
     if (to_checkpoint && write_plotfile_with_checkpoint) {
@@ -2470,10 +2479,10 @@ Amr::writePlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / plot_log_per));
         }
 
         if (num_per_old != num_per_new)
@@ -2543,10 +2552,10 @@ Amr::writeSmallPlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / small_plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / small_plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / small_plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / small_plot_log_per));
         }
 
         if (num_per_old != num_per_new)
@@ -2566,8 +2575,6 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
-    amrex::ignore_unused(pmap);
-
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
@@ -2585,6 +2592,7 @@ Amr::defBaseLevel (Real              strt_time,
     }
 
     BoxArray lev0;
+    DistributionMapping dm0;
 
     if (lev0_grids != nullptr && !lev0_grids->empty())
     {
@@ -2603,14 +2611,28 @@ Amr::defBaseLevel (Real              strt_time,
         if (refine_grid_layout) {
             ChopGrids(0,lev0,ParallelDescriptor::NProcs());
         }
+
+        // Honor the caller-supplied processor map, unless ChopGrids has
+        // changed the number of boxes.
+        if (pmap != nullptr && !pmap->empty()) {
+            if (std::ssize(*pmap) == lev0.size()) {
+                dm0.define(*pmap);
+            } else {
+                amrex::Warning("defBaseLevel: pmap does not match lev0 grids; ignoring pmap");
+            }
+        }
     }
     else
     {
         lev0 = MakeBaseGrids();
     }
 
+    if (dm0.empty()) {
+        dm0.define(lev0);
+    }
+
     this->SetBoxArray(0, lev0);
-    this->SetDistributionMap(0, DistributionMapping(lev0));
+    this->SetDistributionMap(0, dm0);
 
     //
     // Now build level 0 grids.

@@ -10,8 +10,6 @@ USE_CUDA  = FALSE
 
 TINY_PROFILE = FALSE
 
-CXXSTD = c++17
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package

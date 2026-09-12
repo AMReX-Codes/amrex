@@ -599,7 +599,11 @@ Read (FabArray<FAB>& fa, const std::string& name)
     if (fa.empty()) {
         fa.define(ba, DistributionMapping{ba}, ncomp, ngrow);
     } else {
-        AMREX_ASSERT(amrex::match(ba, fa.boxArray()));
+        // read_fab reads straight into fa[i], which resizes the fab, so unlike
+        // VisMF::Read there is nothing here to absorb a mismatch.
+        AMREX_ALWAYS_ASSERT(amrex::match(ba, fa.boxArray()) &&
+                            ncomp == fa.nComp() &&
+                            ngrow == fa.nGrowVect());
     }
 
 #ifdef AMREX_USE_MPI

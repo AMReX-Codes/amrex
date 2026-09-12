@@ -200,6 +200,8 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLPoisson::define(overset)");
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
+        "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
 }
 
 template <typename MF>
@@ -443,7 +445,8 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 
     MF Ax;
     if (! this->m_use_gauss_seidel) { // jacobi
-        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0);
+        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0,
+                  MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
     }
 
@@ -646,6 +649,9 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                                      vbx);
                 });
             }
+        }
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
         }
     } else
 #endif
@@ -1191,7 +1197,7 @@ MLPoissonT<MF>::makeNLinOp (int grid_size) const
     dxscale = std::max(dxscale,RT(dxinv[2]));
 #endif
 
-    MF alpha(ba, dm, 1, 0);
+    MF alpha(ba, dm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
     alpha.setVal(RT(1.e30)*dxscale*dxscale);
 
     MF foo(this->m_grids[0].back(), this->m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));
