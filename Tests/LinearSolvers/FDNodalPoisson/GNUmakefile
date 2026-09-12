@@ -1,21 +1,29 @@
-AMREX_HOME ?= ../../../
+DEBUG = FALSE
 
-USE_MPI      = FALSE
-USE_OMP      = FALSE
-TINY_PROFILE = FALSE
-DIM          = 3
+USE_MPI   = TRUE
+USE_OMP   = FALSE
+USE_HYPRE = FALSE
+USE_EB    = TRUE
 
-USE_CUDA = TRUE
+COMP = gnu
 
-# Also build the MLMG lifetime test.
-DEFINES += -DAMREX_TEST_LINEAR_SOLVERS
+DIM = 3
+
+AMREX_HOME = ../../..
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 
 Pdirs := Base Boundary LinearSolvers
+
+ifeq ($(USE_EB),TRUE)
+  USERSuffix += .EB
+  Pdirs += AmrCore EB
+endif
+
 Ppack += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
 include $(Ppack)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

@@ -6,6 +6,8 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <optional>
+
 namespace amrex {
 
 /**
@@ -393,9 +395,19 @@ public:
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
     /**
-     * \brief Disable global GPU syncs before returning to the app.
+     * \brief Control implicit GPU synchronization inside solve().
      *
-     * \param do_not_sync True skips the sync.
+     * When enabled, solve() runs in a single-stream region without the
+     * implicit stream synchronizations normally performed by MFIter and
+     * many amrex functions.  The GPU streams are synchronized once when
+     * solve() returns, unless the caller is already in a Gpu::NoSyncRegion.
+     * This is off by default.  Skipping the synchronizations helps small
+     * problems with few boxes, but running on a single stream can slow down
+     * solvers that launch many small per-box kernels (e.g., the nodal and
+     * EB solvers with many boxes per process).  Try both settings for your
+     * problem.
+     *
+     * \param do_not_sync True skips the implicit syncs.  Default is false.
      */
     void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
@@ -497,6 +509,16 @@ public:
     void NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs);
     //! Execute the actual bottom solve after pre-smoothing and restriction.
     void actualBottomSolve ();
+
+    /**
+     * \brief Post CG smoothing.
+     *
+     * \param ret Return code of the previous CG solver.
+     * \param niters Number of iterations of the previous CG solver to record
+     *               for getNumCGIters().  Pass a negative number if it has
+     *               already been recorded (e.g., by bottomSolveWithCG).
+     */
+    void postCG (int ret, int niters = -1);
 
     /**
      * \brief Compute the composite residual norm up to AMR level \p amrlevmax.
@@ -787,18 +809,28 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    bool prev_in_single_stream_region = false;
-    bool prev_in_nosync_region = false;
-
+    // If requested with setNoGpuSync(true), run the whole solve in a
+    // single-stream, no-implicit-sync region.  The RAII objects restore the
+    // previous state (also when an exception is thrown), and SyncAtExitOnly
+    // synchronizes the GPU streams on exit unless the caller was already in
+    // a NoSync region.  The order matters:
+    // no_sync_region is destroyed last, i.e., after the single stream region
+    // has been popped, so that all streams are synchronized.
+    std::optional<Gpu::SyncAtExitOnly> no_sync_region;
+    std::optional<Gpu::SingleStreamRegion> single_stream_region;
     if (do_no_sync_gpu) {
-        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
-        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+        no_sync_region.emplace();
+        single_stream_region.emplace();
     }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
         if (checkpoint_file != nullptr) {
             checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
         }
+    }
+
+    if ((bottom_solver == BottomSolver::custom) && !linop.supportCustomBottomSolver()) {
+        bottom_solver = BottomSolver::Default;
     }
 
     if (bottom_solver == BottomSolver::Default) {
@@ -988,11 +1020,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
-
-    if (do_no_sync_gpu) {
-        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
-    }
 
     return composite_norminf;
 }
@@ -1358,11 +1385,13 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         {
             IntVect ng = ng_sol;
             if (cf_strategy == CFStrategy::ghostnodes) { ng = IntVect(nghost); }
-            in_raii[alev] = linop.make(alev, 0, ng);
+            in_raii[alev] = linop.make(alev, 0, ng,
+                                       MFInfo().SetArena(The_Async_Arena()));
             LocalCopy(in_raii[alev], *a_in[alev], 0, 0, ncomp, IntVect(nghost));
             in[alev] = &(in_raii[alev]);
         }
-        rh[alev] = linop.make(alev, 0, IntVect(nghost));
+        rh[alev] = linop.make(alev, 0, IntVect(nghost),
+                              MFInfo().SetArena(The_Async_Arena()));
         setVal(rh[alev], RT(0.0));
     }
 
@@ -1948,6 +1977,22 @@ MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
 
 template <typename MF>
 void
+MLMGT<MF>::postCG (int ret, int niters)
+{
+    if (niters >= 0) {
+        m_niters_cg.push_back(niters);
+    }
+
+    const int amrlev = 0;
+    const int mglev = linop.NMGLevels(amrlev) - 1;
+    auto& x = cor[amrlev][mglev];
+    auto& b = res[amrlev][mglev];
+    const int n = (ret==0) ? nub : nuf;
+    linop.smooth(amrlev, mglev, x, b, false, n);
+}
+
+template <typename MF>
+void
 MLMGT<MF>::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
@@ -1977,7 +2022,8 @@ MLMGT<MF>::actualBottomSolve ()
         if (linop.isBottomSingular() && linop.getEnforceSingularSolvable())
         {
             const IntVect ng = nGrowVect(b);
-            raii_b = linop.make(amrlev, mglev, ng);
+            raii_b = linop.make(amrlev, mglev, ng,
+                                MFInfo().SetArena(The_Async_Arena()));
             LocalCopy(raii_b, b, 0, 0, ncomp, ng);
             bottom_b = &raii_b;
 
@@ -2006,6 +2052,11 @@ MLMGT<MF>::actualBottomSolve ()
                 amrex::Abort("Using PETSc as bottom solver not supported in this case");
             }
         }
+        else if (bottom_solver == BottomSolver::custom && linop.supportCustomBottomSolver())
+        {
+            linop.customBottomSolve(this, x, *bottom_b, bottom_reltol, bottom_abstol,
+                                    bottom_maxiter);
+        }
         else
         {
             typename MLCGSolverT<MF>::Type cg_type;
@@ -2026,7 +2077,10 @@ MLMGT<MF>::actualBottomSolve ()
                 } else {
                     cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
                 }
-                setVal(cor[amrlev][mglev], RT(0.0));
+                if (ret == 9) {
+                    // if ret != 9 && ret != 0, x has been set to zero in bottomSolveWithCG
+                    setVal(x, RT(0));
+                }
                 ret = bottomSolveWithCG(x, *bottom_b, cg_type);
                 if (ret == 0) { // switch permanently
                     if (cg_type == MLCGSolverT<MF>::Type::CG) {
@@ -2037,12 +2091,7 @@ MLMGT<MF>::actualBottomSolve ()
                 }
             }
 
-            // If the bottom solve failed then set the correction to zero
-            if (ret != 0 && ret != 9) {
-                setVal(cor[amrlev][mglev], RT(0.0));
-            }
-            const int n = (ret==0) ? nub : nuf;
-            linop.smooth(amrlev, mglev, x, b, false, n);
+            postCG(ret);
         }
     }
 
@@ -2070,6 +2119,11 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
         amrex::Print() << print_ident << "MLMG: Bottom solve failed.\n";
     }
     m_niters_cg.push_back(cg_solver.getNumIters());
+
+    if (ret != 0 && ret != 9) {
+        setVal(x, RT(0));
+    }
+
     return ret;
 }
 
@@ -2188,7 +2242,8 @@ MLMGT<MF>::interpCorrection (int alev)
         }
     }
 
-    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
+    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst),
+                                   MFInfo().SetArena(The_Async_Arena()));
     setVal(cfine, RT(0.0));
     ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), IntVect(ng_dst),
                  crse_geom.periodicity());
@@ -2229,7 +2284,8 @@ MLMGT<MF>::addInterpCorrection (int alev, int mglev)
     }
     else
     {
-        cfine = linop.makeCoarseMG(alev, mglev, IntVect(0));
+        cfine = linop.makeCoarseMG(alev, mglev, IntVect(0),
+                                   MFInfo().SetArena(The_Async_Arena()));
         ParallelCopy(cfine, crse_cor, 0, 0, ncomp);
         cmf = &cfine;
     }
