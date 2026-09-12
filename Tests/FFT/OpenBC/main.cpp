@@ -133,7 +133,7 @@ void test_convolution (Box const& domain, int max_grid_size)
                    << ", non-finite values " << nbad << "\n";
     AMREX_ALWAYS_ASSERT(nbad == 0);
 #ifdef AMREX_USE_FLOAT
-    constexpr Real eps = 1.e-4;
+    constexpr Real eps = 1.e-4F;
 #else
     constexpr Real eps = 1.e-12;
 #endif
@@ -208,7 +208,7 @@ void test_twod_mode (Box const& domain, int max_grid_size)
                    << ", non-finite values " << nbad << "\n";
     AMREX_ALWAYS_ASSERT(nbad == 0);
 #ifdef AMREX_USE_FLOAT
-    constexpr Real eps = 1.e-4;
+    constexpr Real eps = 1.e-4F;
 #else
     constexpr Real eps = 1.e-12;
 #endif
@@ -295,7 +295,7 @@ int main (int argc, char* argv[])
                     auto error = std::abs(expected-v[0])/std::max(std::abs(expected),std::abs(v[0]));
                     amrex::AllPrint() << "  error " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-                    constexpr Real eps = Real(1.e-5);
+                    constexpr Real eps = 1.e-5F;
 #else
                     constexpr Real eps = 1.e-6;
 #endif
@@ -350,7 +350,7 @@ int main (int argc, char* argv[])
             Real const error = diff.norm0(0) / refnorm;
             amrex::Print() << "  relative padded/unpadded error " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            constexpr Real eps = Real(1.e-5);
+            constexpr Real eps = 1.e-5F;
 #else
             constexpr Real eps = 1.e-13;
 #endif

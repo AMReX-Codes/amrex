@@ -39,6 +39,16 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     } else {
         work_to_do = nghost.max() > 0;
     }
+
+    // Only a plain FillBoundary brings the halo up to date.  The other
+    // operations here either touch valid data or only part of the halo, so
+    // they make no claim about it.
+    if (enforce_periodicity_only || override_sync || sumboundary) {
+        n_filled = IntVect::TheZeroVector();
+    } else {
+        n_filled = nghost;
+    }
+
     if (!work_to_do) { return; }
 
     const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync, sumboundary_src_nghost);
@@ -231,7 +241,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_PROFILE("FillBoundary_finish()");
     BL_PROFILE_SYNC_STOP();
 
-    if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
+    if (!fbd) { return; }
 
     const FB* TheFB = fbd->fb;
     bool sumboundary = TheFB->m_sb_snghost.allGE(0);
@@ -658,6 +668,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         if (!last_iter)
         {
             ParallelCopy_finish();
+            BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
 
             SC += NC;
             DC += NC;
