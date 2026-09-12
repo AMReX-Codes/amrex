@@ -1842,8 +1842,6 @@ private:
     requires (BaseFabType<F>)
     void build_arrays () const;
 
-    void clear_arrays ();
-
     void clear_fab_caches ();
 
 #ifdef AMREX_USE_GPU
