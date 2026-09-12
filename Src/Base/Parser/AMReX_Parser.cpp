@@ -97,6 +97,11 @@ Parser::registerVariables (Vector<std::string> const& vars)
 
     m_vars = vars;
     if (m_data && m_data->m_parser) {
+        // The syntax tree may be shared with copies of this object, so forget
+        // every previous registration, not just this object's.  A variable
+        // dropped here then fails at compile time instead of reading past the
+        // argument array.
+        parser_clearvar(m_data->m_parser);
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             parser_regvar(m_data->m_parser, vars[i].c_str(), i);

@@ -1,5 +1,7 @@
 #include <AMReX_IParser_Exe.H>
 
+#include <stdexcept>
+
 namespace amrex {
 
 namespace {
@@ -11,6 +13,21 @@ int iparser_local_symbol_index (struct iparser_symbol* sym, Vector<char*>& local
         return static_cast<int>(std::distance(r, local_variables.rend())) - 1;
     } else {
         return -1;
+    }
+}
+
+// The index of a symbol in the executor's argument array, or in the local
+// variables.  Throws if the symbol was never registered.
+int iparser_symbol_index (struct iparser_node* snode, Vector<char*>& local_variables)
+{
+    auto* sym = (struct iparser_symbol*)snode;
+    int lidx = iparser_local_symbol_index(sym, local_variables);
+    if (lidx >= 0) {
+        return AMREX_IPARSER_LOCAL_IDX0 + lidx;
+    } else if (sym->ip < 0) {
+        throw std::runtime_error(std::string("Unknown variable ") + sym->name);
+    } else {
+        return sym->ip;
     }
 }
 }
@@ -41,16 +58,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeSymbol;
             p     += sizeof(IParserExeSymbol);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)node, local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = ((struct iparser_symbol*)node)->ip;
-                if (t->i < 0) {
-                    throw std::runtime_error(std::string("Unknown variable ")
-                                             + ((struct iparser_symbol*)node)->name);
-                }
-            }
+            t->i = iparser_symbol_index(node, local_variables);
         }
         exe_size += sizeof(IParserExeSymbol);
         ++stack_size;
@@ -88,17 +96,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeADD_PN;
                 p     += sizeof(IParserExeADD_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->l),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->l)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->l, local_variables);
             }
             exe_size += sizeof(IParserExeADD_PN);
         }
@@ -109,17 +107,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeADD_PN;
                 p     += sizeof(IParserExeADD_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->r)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->r, local_variables);
             }
             exe_size += sizeof(IParserExeADD_PN);
         }
@@ -179,17 +167,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeSUB_PN;
                 p     += sizeof(IParserExeSUB_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->l),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->l)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->l, local_variables);
                 t->sign = 1.0;
             }
             exe_size += sizeof(IParserExeSUB_PN);
@@ -201,17 +179,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeSUB_PN;
                 p     += sizeof(IParserExeSUB_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->r)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->r, local_variables);
                 t->sign = -1.0;
             }
             exe_size += sizeof(IParserExeSUB_PN);
@@ -273,17 +241,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeMUL_PN;
                 p     += sizeof(IParserExeMUL_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->l),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->l)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->l, local_variables);
             }
             exe_size += sizeof(IParserExeMUL_PN);
         }
@@ -294,17 +252,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeMUL_PN;
                 p     += sizeof(IParserExeMUL_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->r)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->r, local_variables);
             }
             exe_size += sizeof(IParserExeMUL_PN);
         }
@@ -364,17 +312,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeDIV_PN;
                 p     += sizeof(IParserExeDIV_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->l),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->l)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->l, local_variables);
                 t->reverse = false;
             }
             exe_size += sizeof(IParserExeDIV_PN);
@@ -386,17 +324,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
             if (p) {
                 auto *t = new(p) IParserExeDIV_PN;
                 p     += sizeof(IParserExeDIV_PN);
-                int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r),
-                                                      local_variables);
-                if (lidx >= 0) {
-                    t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-                } else {
-                    t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct iparser_symbol*)node->r)->name);
-                    }
-                }
+                t->i = iparser_symbol_index(node->r, local_variables);
                 t->reverse = true;
             }
             exe_size += sizeof(IParserExeDIV_PN);
@@ -543,12 +471,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeADD_VP;
             p     += sizeof(IParserExeADD_VP);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->rip;
-            }
+            t->i = iparser_symbol_index(node->r, local_variables);
             t->v = node->lvp.v;
         }
         exe_size += sizeof(IParserExeADD_VP);
@@ -561,12 +484,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeSUB_VP;
             p     += sizeof(IParserExeSUB_VP);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->rip;
-            }
+            t->i = iparser_symbol_index(node->r, local_variables);
             t->v = node->lvp.v;
         }
         exe_size += sizeof(IParserExeSUB_VP);
@@ -579,12 +497,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeMUL_VP;
             p     += sizeof(IParserExeMUL_VP);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->rip;
-            }
+            t->i = iparser_symbol_index(node->r, local_variables);
             t->v = node->lvp.v;
         }
         exe_size += sizeof(IParserExeMUL_VP);
@@ -597,12 +510,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeDIV_VP;
             p     += sizeof(IParserExeDIV_VP);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->rip;
-            }
+            t->i = iparser_symbol_index(node->r, local_variables);
             t->v = node->lvp.v;
         }
         exe_size += sizeof(IParserExeDIV_VP);
@@ -615,12 +523,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeDIV_PV;
             p     += sizeof(IParserExeDIV_PV);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->rip;
-            }
+            t->i = iparser_symbol_index(node->r, local_variables);
             t->v = node->lvp.v;
         }
         exe_size += sizeof(IParserExeDIV_PV);
@@ -633,18 +536,8 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeADD_PP;
             p     += sizeof(IParserExeADD_PP);
-            int li1 = iparser_local_symbol_index((struct iparser_symbol*)(node->l), local_variables);
-            int li2 = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (li1 >= 0) {
-                t->i1 = AMREX_IPARSER_LOCAL_IDX0 + li1;
-            } else {
-                t->i1 = node->lvp.ip;
-            }
-            if (li2 >= 0) {
-                t->i2 = AMREX_IPARSER_LOCAL_IDX0 + li2;
-            } else {
-                t->i2 = node->rip;
-            }
+            t->i1 = iparser_symbol_index(node->l, local_variables);
+            t->i2 = iparser_symbol_index(node->r, local_variables);
         }
         exe_size += sizeof(IParserExeADD_PP);
         ++stack_size;
@@ -656,18 +549,8 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeSUB_PP;
             p     += sizeof(IParserExeSUB_PP);
-            int li1 = iparser_local_symbol_index((struct iparser_symbol*)(node->l), local_variables);
-            int li2 = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (li1 >= 0) {
-                t->i1 = AMREX_IPARSER_LOCAL_IDX0 + li1;
-            } else {
-                t->i1 = node->lvp.ip;
-            }
-            if (li2 >= 0) {
-                t->i2 = AMREX_IPARSER_LOCAL_IDX0 + li2;
-            } else {
-                t->i2 = node->rip;
-            }
+            t->i1 = iparser_symbol_index(node->l, local_variables);
+            t->i2 = iparser_symbol_index(node->r, local_variables);
         }
         exe_size += sizeof(IParserExeSUB_PP);
         ++stack_size;
@@ -679,18 +562,8 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeMUL_PP;
             p     += sizeof(IParserExeMUL_PP);
-            int li1 = iparser_local_symbol_index((struct iparser_symbol*)(node->l), local_variables);
-            int li2 = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (li1 >= 0) {
-                t->i1 = AMREX_IPARSER_LOCAL_IDX0 + li1;
-            } else {
-                t->i1 = node->lvp.ip;
-            }
-            if (li2 >= 0) {
-                t->i2 = AMREX_IPARSER_LOCAL_IDX0 + li2;
-            } else {
-                t->i2 = node->rip;
-            }
+            t->i1 = iparser_symbol_index(node->l, local_variables);
+            t->i2 = iparser_symbol_index(node->r, local_variables);
         }
         exe_size += sizeof(IParserExeMUL_PP);
         ++stack_size;
@@ -702,18 +575,8 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeDIV_PP;
             p     += sizeof(IParserExeDIV_PP);
-            int li1 = iparser_local_symbol_index((struct iparser_symbol*)(node->l), local_variables);
-            int li2 = iparser_local_symbol_index((struct iparser_symbol*)(node->r), local_variables);
-            if (li1 >= 0) {
-                t->i1 = AMREX_IPARSER_LOCAL_IDX0 + li1;
-            } else {
-                t->i1 = node->lvp.ip;
-            }
-            if (li2 >= 0) {
-                t->i2 = AMREX_IPARSER_LOCAL_IDX0 + li2;
-            } else {
-                t->i2 = node->rip;
-            }
+            t->i1 = iparser_symbol_index(node->l, local_variables);
+            t->i2 = iparser_symbol_index(node->r, local_variables);
         }
         exe_size += sizeof(IParserExeDIV_PP);
         ++stack_size;
@@ -725,12 +588,7 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
         if (p) {
             auto *t = new(p) IParserExeNEG_P;
             p     += sizeof(IParserExeNEG_P);
-            int lidx = iparser_local_symbol_index((struct iparser_symbol*)(node->l), local_variables);
-            if (lidx >= 0) {
-                t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
-            } else {
-                t->i = node->lvp.ip;
-            }
+            t->i = iparser_symbol_index(node->l, local_variables);
         }
         exe_size += sizeof(IParserExeNEG_P);
         ++stack_size;
