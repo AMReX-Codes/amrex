@@ -1842,6 +1842,8 @@ private:
     requires (BaseFabType<F>)
     void build_arrays () const;
 
+    void clear_fab_caches ();
+
 #ifdef AMREX_USE_GPU
     std::map<std::uint64_t,
              std::unique_ptr<TagVector<Array4CopyTag<value_type>>>>
@@ -2158,6 +2160,18 @@ FabArray<FAB>::clear_arrays ()
 }
 
 template <class FAB>
+void
+FabArray<FAB>::clear_fab_caches ()
+{
+    clear_arrays();
+#ifdef AMREX_USE_GPU
+    m_fb_local_copy_handler.clear();
+    m_recv_copy_handler.clear();
+    m_send_copy_handler.clear();
+#endif
+}
+
+template <class FAB>
 [[nodiscard]]
 FAB*
 FabArray<FAB>::release (int K)
@@ -2171,6 +2185,7 @@ FabArray<FAB>::release (int K)
                 updateMemUsage(t, -nbytes, nullptr);
             }
         }
+        clear_fab_caches();
         return std::exchange(m_fabs_v[li], nullptr);
     } else {
         return nullptr;
@@ -2191,6 +2206,7 @@ FabArray<FAB>::release (const MFIter& mfi)
                 updateMemUsage(t, -nbytes, nullptr);
             }
         }
+        clear_fab_caches();
         return std::exchange(m_fabs_v[li], nullptr);
     } else {
         return nullptr;
@@ -2671,6 +2687,7 @@ FabArray<FAB>::setFab (int boxno, std::unique_ptr<FAB> elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = elem.release();
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2694,6 +2711,7 @@ FabArray<FAB>::setFab (int boxno, FAB&& elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = new FAB(std::move(elem));
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2715,6 +2733,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, std::unique_ptr<FAB> elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = elem.release();
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2738,6 +2757,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, FAB&& elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = new FAB(std::move(elem));
+    clear_fab_caches();
 }
 
 template <class FAB>

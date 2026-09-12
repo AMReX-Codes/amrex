@@ -677,7 +677,10 @@ BoxArray::coarsen (int refinement_ratio)
 BoxArray&
 BoxArray::coarsen (const IntVect& iv)
 {
-    m_bat.set_coarsen_ratio(crseRatio()*iv);
+    if (iv != IntVect::TheUnitVector()) {
+        m_bat.set_coarsen_ratio(crseRatio()*iv);
+        m_simplified_list.reset();
+    }
     return *this;
 }
 
