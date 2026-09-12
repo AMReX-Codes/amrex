@@ -434,7 +434,24 @@ Cluster::new_chop ()
 }
 
 ClusterList::ClusterList (IntVect* pts, Long len)
+    : ClusterList(pts, len, Box(), -1)
 {
+}
+
+ClusterList::ClusterList (IntVect* pts, Long len, const Box& domain, int whole_domain_dir)
+    : m_domain(domain),
+      m_whole_domain_dir(whole_domain_dir)
+{
+    if (whole_domain_dir >= 0) {
+        const int lo = domain.smallEnd(whole_domain_dir);
+        for (Long i = 0; i < len; ++i) {
+            pts[i][whole_domain_dir] = lo;
+        }
+        // Duplicates would make Cluster::eff() exceed the true efficiency.
+        std::sort(pts, pts+len);
+        len = std::unique(pts, pts+len) - pts;
+    }
+
     lst.push_back(new Cluster(pts,len));
 }
 
@@ -445,6 +462,16 @@ ClusterList::~ClusterList ()
     }
 }
 
+Box
+ClusterList::expandBox (const Box& b) const
+{
+    if (m_whole_domain_dir < 0) { return b; }
+    Box r(b);
+    r.setSmall(m_whole_domain_dir, m_domain.smallEnd(m_whole_domain_dir));
+    r.setBig  (m_whole_domain_dir, m_domain.bigEnd  (m_whole_domain_dir));
+    return r;
+}
+
 BoxArray
 ClusterList::boxArray () const
 {
@@ -452,7 +479,7 @@ ClusterList::boxArray () const
 
     int i = 0;
     for (auto const& cli : lst) {
-        ba.set(i++, cli->box());
+        ba.set(i++, expandBox(cli->box()));
     }
 
     return ba;
@@ -467,7 +494,7 @@ ClusterList::boxArray (BoxArray& ba) const
 
     int i = 0;
     for (auto const& cli : lst) {
-        ba.set(i++, cli->box());
+        ba.set(i++, expandBox(cli->box()));
     }
 }
 
@@ -477,7 +504,7 @@ ClusterList::boxList() const
     BoxList blst;
     blst.reserve(lst.size());
     for (auto const& cli : lst) {
-        blst.push_back(cli->box());
+        blst.push_back(expandBox(cli->box()));
     }
     return blst;
 }
@@ -488,7 +515,7 @@ ClusterList::boxList (BoxList& blst) const
     blst.clear();
     blst.reserve(lst.size());
     for (auto const& cli : lst) {
-        blst.push_back(cli->box());
+        blst.push_back(expandBox(cli->box()));
     }
 }
 
@@ -532,6 +559,28 @@ void
 ClusterList::intersect (BoxArray& domba)
 {
     BL_PROFILE("ClusterList::intersect()");
+
+    if (m_whole_domain_dir >= 0) {
+        // Keep only those lines of cells that lie entirely inside domba,
+        // then flatten them onto the same plane as the clusters.
+        const int dir = m_whole_domain_dir;
+        const int dlo = m_domain.smallEnd(dir);
+        const int dhi = m_domain.bigEnd(dir);
+        BoxList bl;
+        bl.complementIn(m_domain, domba);
+        for (auto& b : bl) {
+            b.setSmall(dir,dlo);
+            b.setBig  (dir,dhi);
+        }
+        BoxArray ba_out(std::move(bl));
+        BoxList bl2;
+        bl2.complementIn(m_domain, ba_out);
+        for (auto& b : bl2) {
+            b.setSmall(dir,dlo);
+            b.setBig  (dir,dlo);
+        }
+        domba = BoxArray(std::move(bl2));
+    }
 
     domba.removeOverlap();
 
