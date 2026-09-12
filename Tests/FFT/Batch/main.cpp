@@ -62,9 +62,9 @@ int main (int argc, char* argv[])
         ParallelFor(mf, IntVect(0), batch_size,
                     [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
         {
-            AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
-                         Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
-                         Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
+            AMREX_D_TERM(Real x = (Real(i)+0.5_rt) * dx[0] - 0.5_rt;,
+                         Real y = (Real(j)+0.5_rt) * dx[1] - 0.5_rt;,
+                         Real z = (Real(k)+0.5_rt) * dx[2] - 0.5_rt);
             ma[b](i,j,k,n) = std::exp(-10._rt*
                 (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z))) + Real(n);
         });

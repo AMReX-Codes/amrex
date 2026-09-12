@@ -14,11 +14,11 @@ AmrLevelAdv::get_tagging_params()
 
     // Set default values for the error thresholds, then read from input file
     if (max_phierr_lev  != -1) {
-        phierr.resize(max_phierr_lev, 1.0e+20);
+        phierr.resize(max_phierr_lev, amrex::Real(1.0e+20));
         pp.queryarr("phierr",  phierr);
     }
     if (max_phigrad_lev != -1) {
-        phigrad.resize(max_phigrad_lev, 1.0e+20);
+        phigrad.resize(max_phigrad_lev, amrex::Real(1.0e+20));
         pp.queryarr("phigrad", phigrad);
     }
 }

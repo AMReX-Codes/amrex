@@ -44,7 +44,7 @@ int main (int argc, char* argv[])
         int max_grid_size = 32;
         int use_hypre  = 0;
 
-        Real obstacle_radius = 0.10;
+        Real obstacle_radius = Real(0.10);
 
         // read parameters
         {
@@ -71,8 +71,8 @@ int main (int argc, char* argv[])
         int n_cell_z =   n_cell/8;
 
         Real ylen = 1.0;
-        Real xlen = 2.0 * ylen;
-        Real zlen = ylen / 8.0;
+        Real xlen = Real(2.0) * ylen;
+        Real zlen = ylen / Real(8.0);
 
         Geometry geom;
         BoxArray grids;
@@ -94,15 +94,15 @@ int main (int argc, char* argv[])
         int max_coarsening_level = 100;    // typically a huge number so MG coarsens as much as possible
 
         amrex::Vector<amrex::RealArray> obstacle_center = {
-            {AMREX_D_DECL(0.3,0.2,0.5)},
-            {AMREX_D_DECL(0.3,0.5,0.5)},
-            {AMREX_D_DECL(0.3,0.8,0.5)},
-            {AMREX_D_DECL(0.7,0.25,0.5)},
-            {AMREX_D_DECL(0.7,0.60,0.5)},
-            {AMREX_D_DECL(0.7,0.85,0.5)},
-            {AMREX_D_DECL(1.1,0.2,0.5)},
-            {AMREX_D_DECL(1.1,0.5,0.5)},
-            {AMREX_D_DECL(1.1,0.8,0.5)}};
+            {AMREX_D_DECL(Real(0.3),Real(0.2),0.5)},
+            {AMREX_D_DECL(Real(0.3),0.5,0.5)},
+            {AMREX_D_DECL(Real(0.3),Real(0.8),0.5)},
+            {AMREX_D_DECL(Real(0.7),0.25,0.5)},
+            {AMREX_D_DECL(Real(0.7),Real(0.60),0.5)},
+            {AMREX_D_DECL(Real(0.7),Real(0.85),0.5)},
+            {AMREX_D_DECL(Real(1.1),Real(0.2),0.5)},
+            {AMREX_D_DECL(Real(1.1),0.5,0.5)},
+            {AMREX_D_DECL(Real(1.1),Real(0.8),0.5)}};
 
         int direction =  2;
         Real height   = -1.0;  // Putting a negative number for height means it extends beyond the domain
@@ -114,9 +114,9 @@ int main (int argc, char* argv[])
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 0], false),
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 1], false),
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 2], false),
-            EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 3], false),
-            EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 4], false),
-            EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 5], false),
+            EB2::CylinderIF(Real(0.9)*obstacle_radius, height, direction, obstacle_center[ 3], false),
+            EB2::CylinderIF(Real(0.9)*obstacle_radius, height, direction, obstacle_center[ 4], false),
+            EB2::CylinderIF(Real(0.9)*obstacle_radius, height, direction, obstacle_center[ 5], false),
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 6], false),
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 7], false),
             EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 8], false)};
@@ -250,13 +250,13 @@ int main (int argc, char* argv[])
 
         // Define the relative tolerance
 #ifdef AMREX_USE_FLOAT
-        Real reltol = 2.e-4;
+        Real reltol = Real(2.e-4);
 #else
         Real reltol = 1.e-8;
 #endif
 
         // Define the absolute tolerance; note that this argument is optional
-        Real abstol = 1.e-15;
+        Real abstol = Real(1.e-15);
 
         amrex::Print() << " \n********************************************************************" << '\n';
         amrex::Print() << " Let's project the initial velocity to find " << '\n';
@@ -305,8 +305,8 @@ int main (int argc, char* argv[])
         MultiFab plotfile_mf(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
 
         // copy processor id into plotfile_mf
-        plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
-        plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
+        plotfile_mf.setVal(Real(ParallelDescriptor::MyProc()), 0, 1);
+        plotfile_mf.setVal(Real(ParallelDescriptor::MyProc()), 0, 1);
 
         // copy velocity into plotfile
         MultiFab::Copy(plotfile_mf, vel, 0, 1, AMREX_SPACEDIM, 0);

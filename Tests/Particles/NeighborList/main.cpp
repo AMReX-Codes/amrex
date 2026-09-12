@@ -35,7 +35,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
 
 namespace Params
 {
-    static constexpr amrex::Real cutoff = 0.2;
+    static constexpr amrex::Real cutoff = Real(0.2);
 }
 
 struct CheckPair
@@ -44,10 +44,10 @@ struct CheckPair
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool operator() (const P1& p1, const P2& p2) const
     {
-        AMREX_D_TERM(amrex::Real d0 = (p1.pos(0) - p2.pos(0));,
-                     amrex::Real d1 = (p1.pos(1) - p2.pos(1));,
-                     amrex::Real d2 = (p1.pos(2) - p2.pos(2));)
-        amrex::Real dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
+        AMREX_D_TERM(amrex::ParticleReal d0 = (p1.pos(0) - p2.pos(0));,
+                     amrex::ParticleReal d1 = (p1.pos(1) - p2.pos(1));,
+                     amrex::ParticleReal d2 = (p1.pos(2) - p2.pos(2));)
+        amrex::ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
         return (dsquared <= 25.0*Params::cutoff*Params::cutoff);
     }
 };
@@ -98,8 +98,8 @@ void testNeighborList ()
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setLo(n, Real(0.0));
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));

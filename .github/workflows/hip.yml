@@ -23,7 +23,7 @@ jobs:
     - uses: actions/checkout@v7
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_hip.sh 7.0
+        .github/workflows/dependencies/dependencies_hip.sh 7.2.4
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v6
@@ -33,10 +33,6 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # Have to remove "-fno-operator-names to avoid
-      #    /opt/rocm-6.1.0/include/rocprim/device/detail/device_adjacent_difference.hpp:198:26: error: token is not a valid binary operator in a preprocessor subexpression
-      #      198 | #if defined(__gfx1102__) or defined(__gfx1030__)
-      #          |     ~~~~~~~~~~~~~~~~~~~~~^~
       env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1

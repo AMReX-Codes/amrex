@@ -433,7 +433,7 @@ bool enforcePeriodic (P& p,
         if (! is_per[idim]) { continue; }
         if (p.pos(idim) > rhi[idim]) {
             while (p.pos(idim) > rhi[idim]) {
-                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
+                p.pos(idim) = static_cast<ParticleReal>(p.pos(idim) - (phi[idim] - plo[idim]));
             }
             // clamp to avoid precision issues;
             if (p.pos(idim) < rlo[idim]) {
@@ -443,7 +443,7 @@ bool enforcePeriodic (P& p,
         }
         else if (p.pos(idim) < rlo[idim]) {
             while (p.pos(idim) < rlo[idim]) {
-                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
+                p.pos(idim) = static_cast<ParticleReal>(p.pos(idim) + (phi[idim] - plo[idim]));
             }
             // clamp to avoid precision issues;
             if (p.pos(idim) > rhi[idim]) {

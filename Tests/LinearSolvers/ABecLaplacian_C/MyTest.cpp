@@ -178,6 +178,7 @@ MyTest::solveABecLaplacian ()
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+    info.setSemicoarseningDirection(semicoarsening_direction);
 
     Real tol_rel;
     if constexpr (std::is_same_v<double,Real>) {
@@ -499,6 +500,7 @@ MyTest::solveABecLaplacianGMRES ()
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+    info.setSemicoarseningDirection(semicoarsening_direction);
 
     const auto tol_rel = Real(1.e-10);
     const auto tol_abs = Real(0.0);
@@ -642,6 +644,7 @@ MyTest::readParameters ()
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
+    pp.query("semicoarsening_direction", semicoarsening_direction);
 
     pp.query("use_gauss_seidel", use_gauss_seidel);
 

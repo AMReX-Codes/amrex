@@ -95,7 +95,7 @@ MLNodeLaplacian::buildSurfaceIntegral ()
         MultiFab* sintg = m_surface_integral[amrlev].get();
 
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
-        if (factory)
+        if (factory && sintg)
         {
             const int ncomp = sintg->nComp();
             const auto& flags = factory->getMultiEBCellFlagFab();
@@ -141,7 +141,8 @@ MLNodeLaplacian::buildSurfaceIntegral ()
 #else
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        if (dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get())) {
+        if (m_surface_integral[amrlev] &&
+            dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get())) {
             amrex::algoim::compute_surface_integrals(*m_surface_integral[amrlev]);
         }
     }

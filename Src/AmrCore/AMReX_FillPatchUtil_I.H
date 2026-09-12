@@ -467,8 +467,10 @@ namespace detail {
         {
             const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
-            // Test for Face-centered data
-            if ( AMREX_D_TERM(  mf.ixType().nodeCentered(0),
+            // Test for Face-centered data.  In 1D, face and nodal index types
+            // are the same, and we treat the data as nodal.
+            if ( mf.ixType() != IndexType::TheNodeType() &&
+                 AMREX_D_TERM(  mf.ixType().nodeCentered(0),
                               + mf.ixType().nodeCentered(1),
                               + mf.ixType().nodeCentered(2) ) == 1 )
             {
@@ -530,8 +532,8 @@ namespace detail {
                                                       mf_known, IntVect::TheZeroVector(),
                                                       cgeom.periodicity());
 
-                    solve_mask.setVal(1);                   // Values to solve.
-                    solve_mask.setVal(0, mask_cpc, 0, 1);   // Known values.
+                    solve_mask.setVal(1);                       // Values to solve.
+                    solve_mask.setVal(0, mask_cpc, 0, ncomp);   // Known values.
 
                     detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
@@ -708,8 +710,8 @@ namespace detail {
                                                       mf_known, IntVect::TheZeroVector(),
                                                       cgeom.periodicity() );
 
-                    solve_mask[d].setVal(1);                   // Values to solve.
-                    solve_mask[d].setVal(0, mask_cpc, 0, 1);   // Known values.
+                    solve_mask[d].setVal(1);                       // Values to solve.
+                    solve_mask[d].setVal(0, mask_cpc, 0, ncomp);   // Known values.
                 }
 
                 int idummy=0;
@@ -1252,7 +1254,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
                                                              &(*mf_local[2])[mfi] )};
 
             const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
-            Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
+            // Interpolate only over the region the coarse patch was built from.
+            Box dfab_cc = amrex::convert(amrex::grow(ba[mfi.index()], nghost_adj),
+                                         IntVect::TheZeroVector());
             const Box& dbx_cc = dfab_cc & fdomain_g;
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -1269,17 +1273,17 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 
             pre_interp(sfab, sbx_cc, 0, ncomp);
 
-            mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ratio, mfab,
+            mapper->interp_arr(sfab, 0, dfab, dcomp_adj, ncomp, dbx_cc, ratio, mfab,
                                cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
 
-            post_interp(dfab, dbx_cc, 0, ncomp);
+            post_interp(dfab, dbx_cc, dcomp_adj, ncomp);
         }
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         if (mf[d] != mf_local[d]) {
-            amrex::Copy(*mf[d], *mf_local[d], 0, dcomp_adj, ncomp, nghost);
+            amrex::Copy(*mf[d], *mf_local[d], 0, dcomp, ncomp, nghost);
         }
 
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);

@@ -193,7 +193,7 @@ private:
     std::string restart_chkfile;
 
     // advective cfl number - dt = cfl*dx/umax
-    amrex::Real cfl = 0.7;
+    amrex::Real cfl = amrex::Real(0.7);
 
     // how often each level regrids the higher levels of refinement
     // (after a level advances that many time steps)

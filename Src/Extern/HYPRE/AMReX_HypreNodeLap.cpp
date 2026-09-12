@@ -296,6 +296,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("HypreNodeLap::loadVectors()");
 
     soln.setVal(0.0);
+    if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
 
     Gpu::DeviceVector<Real> bvec;
     for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)

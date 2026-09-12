@@ -25,7 +25,7 @@ namespace
     constexpr int PayloadRealComp = AMREX_SPACEDIM + 1;
     constexpr int GridIntComp = 0;
     constexpr int MarkerIntComp = 1;
-    constexpr ParticleReal Cutoff = 0.2_rt;
+    constexpr ParticleReal Cutoff = 0.2_prt;
 
     struct TestParams
     {
@@ -41,10 +41,10 @@ namespace
         AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         bool operator() (const P1& p1, const P2& p2) const
         {
-            AMREX_D_TERM(Real d0 = p1.pos(0) - p2.pos(0);,
-                         Real d1 = p1.pos(1) - p2.pos(1);,
-                         Real d2 = p1.pos(2) - p2.pos(2);)
-            Real dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
+            AMREX_D_TERM(ParticleReal d0 = p1.pos(0) - p2.pos(0);,
+                         ParticleReal d1 = p1.pos(1) - p2.pos(1);,
+                         ParticleReal d2 = p1.pos(2) - p2.pos(2);)
+            ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
             return dsquared <= 25.0_rt*Cutoff*Cutoff;
         }
     };
@@ -59,9 +59,9 @@ namespace
         int marker_int = 0;
         int runtime_int = 0;
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
     };
 
     struct PackedSourceParticleData
@@ -73,18 +73,18 @@ namespace
         int runtime_int = 0;
         std::array<int, AMREX_SPACEDIM> cell{};
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
     };
 
     static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
 
     struct InverseContributionData
     {
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int marker_int = 0;
         int runtime_int = 0;
     };
@@ -93,9 +93,9 @@ namespace
     {
         Long id = 0;
         int cpu = -1;
-        ParticleReal marker_real = 0.0_rt;
-        ParticleReal payload_real = 0.0_rt;
-        ParticleReal runtime_real = 0.0_rt;
+        ParticleReal marker_real = 0.0_prt;
+        ParticleReal payload_real = 0.0_prt;
+        ParticleReal runtime_real = 0.0_prt;
         int marker_int = 0;
         int runtime_int = 0;
     };
@@ -140,9 +140,9 @@ namespace
                      int iy_part = (i_part % (ny*nz)) % ny;,
                      int iz_part = (i_part % (ny*nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5_rt + ix_part)/nx;,
-                     r[1] = (0.5_rt + iy_part)/ny;,
-                     r[2] = (0.5_rt + iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (0.5_rt + Real(ix_part))/Real(nx);,
+                     r[1] = (0.5_rt + Real(iy_part))/Real(ny);,
+                     r[2] = (0.5_rt + Real(iz_part))/Real(nz);)
     }
 
     void get_test_params (TestParams& params)
@@ -154,7 +154,7 @@ namespace
         pp.get("is_periodic", params.is_periodic);
     }
 
-    bool almost_equal (ParticleReal lhs, ParticleReal rhs, ParticleReal tol = 1.0e-12_rt)
+    bool almost_equal (ParticleReal lhs, ParticleReal rhs, ParticleReal tol = 1.0e-12_prt)
     {
         return std::abs(lhs-rhs) <= tol;
     }
@@ -222,9 +222,9 @@ public:
                     ParticleIDWrapper(host_idcpu.back()) = id;
                     ParticleCPUWrapper(host_idcpu.back()) = ParallelDescriptor::MyProc();
 
-                    AMREX_D_TERM(host_real[0].push_back(static_cast<ParticleReal>(plo[0] + (iv[0] + r[0])*dx[0]));,
-                                 host_real[1].push_back(static_cast<ParticleReal>(plo[1] + (iv[1] + r[1])*dx[1]));,
-                                 host_real[2].push_back(static_cast<ParticleReal>(plo[2] + (iv[2] + r[2])*dx[2]));)
+                    AMREX_D_TERM(host_real[0].push_back(static_cast<ParticleReal>(plo[0] + (Real(iv[0]) + r[0])*dx[0]));,
+                                 host_real[1].push_back(static_cast<ParticleReal>(plo[1] + (Real(iv[1]) + r[1])*dx[1]));,
+                                 host_real[2].push_back(static_cast<ParticleReal>(plo[2] + (Real(iv[2]) + r[2])*dx[2]));)
                     auto const marker_real = static_cast<ParticleReal>(marker);
                     host_real[MarkerRealComp].push_back(marker_real);
                     host_real[PayloadRealComp].push_back(marker_real + ParticleReal(0.5_rt));
@@ -463,9 +463,9 @@ public:
                 for (int j = 0; j < np_total; ++j) {
                     if (i == j) { continue; }
 
-                    Real dsquared = 0.0_rt;
+                    ParticleReal dsquared = 0.0_rt;
                     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                        Real d = host.real[dir][i] - host.real[dir][j];
+                        ParticleReal d = host.real[dir][i] - host.real[dir][j];
                         dsquared += d*d;
                     }
                     if (dsquared <= cutoff_sq) {
@@ -502,9 +502,9 @@ public:
 
     void checkInverseSumNeighbors ()
     {
-        constexpr ParticleReal marker_real_delta = 1.25_rt;
-        constexpr ParticleReal payload_real_delta = 2.5_rt;
-        constexpr ParticleReal runtime_real_delta = 3.75_rt;
+        constexpr ParticleReal marker_real_delta = 1.25_prt;
+        constexpr ParticleReal payload_real_delta = 2.5_prt;
+        constexpr ParticleReal runtime_real_delta = 3.75_prt;
         constexpr int marker_int_delta = 11;
         constexpr int runtime_int_delta = 13;
 
@@ -888,8 +888,8 @@ int main (int argc, char* argv[])
     RealBox real_box;
     for (int dir = 0; dir < BL_SPACEDIM; ++dir)
     {
-        real_box.setLo(dir, 0.0);
-        real_box.setHi(dir, params.size[dir]);
+        real_box.setLo(dir, Real(0.0));
+        real_box.setHi(dir, Real(params.size[dir]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
@@ -918,7 +918,7 @@ int main (int argc, char* argv[])
     pc.buildNeighborList(CheckPair());
     pc.checkNeighborList();
 
-    pc.moveParticles(0.1_rt);
+    pc.moveParticles(0.1_prt);
     pc.bumpPayload(2000);
     pc.updateNeighbors();
     pc.checkNeighbors();

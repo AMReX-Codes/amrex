@@ -678,7 +678,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
         if (!msk(i,j,0)) {
             int ic = i;
             int jc = amrex::coarsen(j,2);
-            bool j_is_odd = (ic*2 != i);
+            bool j_is_odd = (jc*2 != j);
             if (j_is_odd) {
                 // Node on Y line
                 fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
@@ -787,11 +787,10 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
                    + facy*(-vel(i-1,j-1,k,1)*zero_ilo - vel(i,j-1,k,1)*zero_ihi
                            +vel(i-1,j  ,k,1)*zero_ilo + vel(i,j  ,k,1)*zero_ihi);
         if (is_rz) {
-            // Here we assume we can't have inflow in the radial direction
             Real fm = facy / static_cast<Real>(6*i-3);
             Real fp = facy / static_cast<Real>(6*i+3);
-            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))
-                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1));
+            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*zero_ilo
+                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1))*zero_ihi;
         }
     }
 }
@@ -820,7 +819,7 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     u(i,j,k,1) -= sig(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -843,7 +842,7 @@ void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real 
     u(i,j,k,1) -= sy(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sy(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -858,7 +857,7 @@ void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real c
     u(i,j,k,1) -= sig*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -1962,7 +1961,7 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
 {
     using namespace nodelap_detail;
 
-    Real fac_eb = 0.25 *dxinv[0];
+    Real fac_eb = Real(0.25) * dxinv[0];
 
     if (!msk(i,j,0)) {
         rhs(i,j,0) += fac_eb*(
@@ -2030,10 +2029,18 @@ Real mlndlap_rhcc_eb (int i, int j, int, Array4<Real const> const& rhcc,
 
     if (!msk(i,j,0)) {
         return
-            rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
-            rhcc(i-1,j  ,0)*(Real(0.25)*vfrac(i-1,j  ,0)+intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y)-intg(i-1,j  ,0,i_S_xy)) +
-            rhcc(i-1,j-1,0)*(Real(0.25)*vfrac(i-1,j-1,0)+intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y)+intg(i-1,j-1,0,i_S_xy)) +
-            rhcc(i  ,j-1,0)*(Real(0.25)*vfrac(i  ,j-1,0)-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y)-intg(i  ,j-1,0,i_S_xy));
+            rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)
+                             + Real(0.5)*(-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y))
+                             +             intg(i  ,j  ,0,i_S_xy)) +
+            rhcc(i-1,j  ,0)*(Real(0.25)*vfrac(i-1,j  ,0)
+                             + Real(0.5)*( intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y))
+                             -             intg(i-1,j  ,0,i_S_xy)) +
+            rhcc(i-1,j-1,0)*(Real(0.25)*vfrac(i-1,j-1,0)
+                             + Real(0.5)*( intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y))
+                             +             intg(i-1,j-1,0,i_S_xy)) +
+            rhcc(i  ,j-1,0)*(Real(0.25)*vfrac(i  ,j-1,0)
+                             + Real(0.5)*(-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y))
+                             -             intg(i  ,j-1,0,i_S_xy));
     } else {
         return Real(0.);
     }
@@ -2128,7 +2135,7 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Real bb = bcy-kk*bcx;
             Sxy = Real(1./8.)*kk*kk*(xmax4-xmin4) + Real(1./3.)*kk*bb*(xmax3-xmin3)
                 + (Real(0.25)*bb*bb-Real(1./16.))*(xmax*xmax-xmin*xmin);
-            Sxy = std::copysign(Sxy, anrmy);
+            if (anrmy < Real(0.)) { Sxy = -Sxy; }
         }
 
         if (std::abs(anrmy) <= almostzero) {
