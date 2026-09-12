@@ -78,7 +78,24 @@ MyTest::solve ()
                                1.e-11, 0.0);
     amrex::ignore_unused(mlmg_err);
 
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.
+    for (int ilev = 0; ilev < int(phi.size()); ++ilev) {
+        if (phi[ilev].contains_nan(0, phi[ilev].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: solution contains NaN on level "
+                         + std::to_string(ilev));
+        }
+    }
+
     mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
+
+    // Likewise for the updated velocity, which is the real output here.
+    for (int ilev = 0; ilev < int(vel.size()); ++ilev) {
+        if (vel[ilev].contains_nan(0, vel[ilev].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: velocity contains NaN on level "
+                         + std::to_string(ilev));
+        }
+    }
 
 #if 0
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});

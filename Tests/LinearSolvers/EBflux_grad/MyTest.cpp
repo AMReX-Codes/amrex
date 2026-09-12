@@ -71,6 +71,16 @@ MyTest::solve ()
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.
+    for (int ilev = 0; ilev < int(phi.size()); ++ilev) {
+        if (phi[ilev].contains_nan(0, phi[ilev].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: solution contains NaN on level "
+                         + std::to_string(ilev));
+        }
+    }
+
     mlmg.getFluxes(amrex::GetVecOfArrOfPtrs(flux));
     mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(grad));
     mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(fgrad)); // Test when MF is different from AMF

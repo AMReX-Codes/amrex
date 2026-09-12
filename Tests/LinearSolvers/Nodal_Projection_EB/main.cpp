@@ -270,6 +270,12 @@ int main (int argc, char* argv[])
         //
         nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
 
+        // A failed solve often returns NaNs, and a max-norm check would not
+        // catch them because the max reduction silently drops NaNs.
+        if (phi.contains_nan(0, phi.nComp(), 0)) {
+            amrex::Abort("nodal projection: phi contains NaN");
+        }
+
         amrex::Print() << " \n********************************************************************" << '\n';
         amrex::Print() << " Done solving the equation " << '\n';
         amrex::Print() << " ... now subtracting off sigmna grad phi from vel" << '\n';
@@ -287,6 +293,10 @@ int main (int argc, char* argv[])
         // Apply projection explicitly --  vel = vel - sigma * grad(phi)
         //
         MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
+
+        if (vel.contains_nan(0, vel.nComp(), 0)) {
+            amrex::Abort("nodal projection: projected velocity contains NaN");
+        }
 
         amrex::Print() << " ... now done with full projection operation" << '\n';
         amrex::Print() << "******************************************************************** \n" << '\n';

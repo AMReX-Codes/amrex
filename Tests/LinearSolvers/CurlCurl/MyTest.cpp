@@ -108,6 +108,16 @@ MyTest::solve ()
         mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
     }
 
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.  This must
+    // happen before the loop below, which overwrites solution with the error.
+    for (int idim = 0; idim < 3; ++idim) {
+        if (solution[idim].contains_nan(0, solution[idim].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: solution contains NaN in direction "
+                         + std::to_string(idim));
+        }
+    }
+
     amrex::Print() << "  Number of cells: " << n_cell << '\n';
     for (int idim = 0; idim < 3; ++idim) {
         MultiFab::Subtract(solution[idim], exact[idim], 0, 0, 1, 0);
