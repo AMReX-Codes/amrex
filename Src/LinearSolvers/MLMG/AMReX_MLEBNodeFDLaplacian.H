@@ -208,6 +208,15 @@ public:
     //! Post-process the solution hierarchy.
     void postSolve (Vector<MultiFab*> const& sol) const override;
 
+    [[nodiscard]] BottomSolver getDefaultBottomSolver () const override {
+        return BottomSolver::custom;
+    }
+
+    [[nodiscard]] bool supportCustomBottomSolver () const override { return true; }
+
+    void customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
+                            Real eps_rel, Real eps_abs, int maxiter) override;
+
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Vector<Vector<std::unique_ptr<MultiFab>>> m_sigma_mf;
