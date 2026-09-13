@@ -1293,8 +1293,18 @@ namespace {
             int const jm = lowerNeighbor(j,1);
             int const jp = upperNeighbor(j,1);
             Real const xc = xa(i,j,k,n);
+
+            Real hpz = Real(1.0);
+            Real hmz = Real(1.0);
+            if constexpr (UseEB) {
+                hpz = (this->edgecent[1](i,j,k) == Real(1.0))
+                    ? Real(1.0) : Real(1.0)+Real(2.0)*this->edgecent[1](i,j,k);
+                hmz = (this->edgecent[1](i,j-1,k) == Real(1.0))
+                    ? Real(1.0) : Real(1.0)-Real(2.0)*this->edgecent[1](i,j-1,k);
+            }
+
             Real out;
-            Real scale = Real(1.0);
+            Real scale;
 
             if (r == Real(0.0)) {
                 Real const sigp = this->radialEdgeSigma(i,j,k,r);
@@ -1302,12 +1312,14 @@ namespace {
                     if (this->levset(i+1,j,k) >= Real(0.0)) {
                         Real const hp = (this->edgecent[0](i,j,k) == Real(1.0))
                             ? Real(1.0) : Real(1.0)+Real(2.0)*this->edgecent[0](i,j,k);
-                        out = -Real(4.0)*sigp*xc/(dr*dr*hp*hp);
-                        scale = hp;
+                        scale = amrex::min(hp,hmz,hpz);
+                        out = -Real(4.0)*sigp*mlebndfdlap_scaled_h2inv(scale,hp)*xc/(dr*dr);
                     } else {
-                        out = Real(4.0)*sigp*(xa(ip,j,k,n)-xc)/(dr*dr);
+                        scale = amrex::min(Real(1.0),hmz,hpz);
+                        out = scale*Real(4.0)*sigp*(xa(ip,j,k,n)-xc)/(dr*dr);
                     }
                 } else {
+                    scale = Real(1.0);
                     out = Real(4.0)*sigp*(xa(ip,j,k,n)-xc)/(dr*dr);
                 }
             } else {
@@ -1319,32 +1331,23 @@ namespace {
                     hm = (this->edgecent[0](i-1,j,k) == Real(1.0))
                         ? Real(1.0) : Real(1.0)-Real(2.0)*this->edgecent[0](i-1,j,k);
                 }
+                scale = amrex::min(hm,hp,hmz,hpz);
 
                 Real const sigp = this->radialEdgeSigma(i,j,k,r);
                 Real const sigm = this->radialEdgeSigma(i-1,j,k,r);
                 Real tmp;
                 if constexpr (UseEB) {
                     tmp = (this->levset(i+1,j,k) < Real(0.0))
-                        ? sigp*(xa(ip,j,k,n)-xc)*(r+Real(0.5)*dr)
-                        : -sigp*xc/hp*(r+Real(0.5)*hp*dr);
+                        ? scale*sigp*(xa(ip,j,k,n)-xc)*(r+Real(0.5)*dr)
+                        : -sigp*mlebndfdlap_scaled_hinv(scale,hp)*xc*(r+Real(0.5)*hp*dr);
                     tmp += (this->levset(i-1,j,k) < Real(0.0))
-                        ? sigm*(xa(im,j,k,n)-xc)*(r-Real(0.5)*dr)
-                        : -sigm*xc/hm*(r-Real(0.5)*hm*dr);
+                        ? scale*sigm*(xa(im,j,k,n)-xc)*(r-Real(0.5)*dr)
+                        : -sigm*mlebndfdlap_scaled_hinv(scale,hm)*xc*(r-Real(0.5)*hm*dr);
                 } else {
                     tmp = sigp*(xa(ip,j,k,n)-xc)*(r+Real(0.5)*dr)
                         + sigm*(xa(im,j,k,n)-xc)*(r-Real(0.5)*dr);
                 }
                 out = tmp*Real(2.0)/((hp+hm)*r*dr*dr);
-                scale = amrex::min(hm,hp);
-            }
-
-            Real hp = Real(1.0);
-            Real hm = Real(1.0);
-            if constexpr (UseEB) {
-                hp = (this->edgecent[1](i,j,k) == Real(1.0))
-                    ? Real(1.0) : Real(1.0)+Real(2.0)*this->edgecent[1](i,j,k);
-                hm = (this->edgecent[1](i,j-1,k) == Real(1.0))
-                    ? Real(1.0) : Real(1.0)-Real(2.0)*this->edgecent[1](i,j-1,k);
             }
 
             Real const sigp = this->axialEdgeSigma(i,j,k,r);
@@ -1352,19 +1355,20 @@ namespace {
             Real tmp;
             if constexpr (UseEB) {
                 tmp = (this->levset(i,j+1,k) < Real(0.0))
-                    ? sigp*(xa(i,jp,k,n)-xc) : -sigp*xc/hp;
+                    ? scale*sigp*(xa(i,jp,k,n)-xc)
+                    : -sigp*mlebndfdlap_scaled_hinv(scale,hpz)*xc;
                 tmp += (this->levset(i,j-1,k) < Real(0.0))
-                    ? sigm*(xa(i,jm,k,n)-xc) : -sigm*xc/hm;
+                    ? scale*sigm*(xa(i,jm,k,n)-xc)
+                    : -sigm*mlebndfdlap_scaled_hinv(scale,hmz)*xc;
             } else {
                 tmp = sigp*(xa(i,jp,k,n)-xc) + sigm*(xa(i,jm,k,n)-xc);
             }
-            out += tmp*Real(2.0)/((hp+hm)*dz*dz);
-            scale = amrex::min(scale,hm,hp);
+            out += tmp*Real(2.0)/((hpz+hmz)*dz*dz);
 
             if (r != Real(0.0)) {
-                out -= alpha*xc/(r*r);
+                out -= scale*alpha*xc/(r*r);
             }
-            return out*scale;
+            return out;
         }
 
         Real dr;
@@ -1480,54 +1484,63 @@ namespace {
             }
 
             Real const xc = xa(i,j,k,n);
-            int const im = lowerNeighbor(i,0);
-            int const ip = upperNeighbor(i,0);
             Real const hpx = (edgecent[0](i,j,k) == Real(1.0))
                 ? Real(1.0) : Real(1.0)+Real(2.0)*edgecent[0](i,j,k);
             Real const hmx = (edgecent[0](i-1,j,k) == Real(1.0))
                 ? Real(1.0) : Real(1.0)-Real(2.0)*edgecent[0](i-1,j,k);
-            Real const sigxp = this->edgeSigmaX(i,j,k);
-            Real const sigxm = this->edgeSigmaX(i-1,j,k);
-            Real tmp = (levset(i+1,j,k) < Real(0.0))
-                ? sigxp*(xa(ip,j,k,n)-xc) : -sigxp*xc/hpx;
-            tmp += (levset(i-1,j,k) < Real(0.0))
-                ? sigxm*(xa(im,j,k,n)-xc) : -sigxm*xc/hmx;
-            Real y = beta[0]*tmp*Real(2.0)/(hpx+hmx);
-            Real scale = amrex::min(hmx,hpx);
-
-            int const jm = lowerNeighbor(j,1);
-            int const jp = upperNeighbor(j,1);
             Real const hpy = (edgecent[1](i,j,k) == Real(1.0))
                 ? Real(1.0) : Real(1.0)+Real(2.0)*edgecent[1](i,j,k);
             Real const hmy = (edgecent[1](i,j-1,k) == Real(1.0))
                 ? Real(1.0) : Real(1.0)-Real(2.0)*edgecent[1](i,j-1,k);
-            Real const sigyp = this->edgeSigmaY(i,j,k);
-            Real const sigym = this->edgeSigmaY(i,j-1,k);
-            tmp = (levset(i,j+1,k) < Real(0.0))
-                ? sigyp*(xa(i,jp,k,n)-xc) : -sigyp*xc/hpy;
-            tmp += (levset(i,j-1,k) < Real(0.0))
-                ? sigym*(xa(i,jm,k,n)-xc) : -sigym*xc/hmy;
-            y += beta[1]*tmp*Real(2.0)/(hpy+hmy);
-            scale = amrex::min(scale,hmy,hpy);
-
 #if (AMREX_SPACEDIM == 3)
-            int const km = lowerNeighbor(k,2);
-            int const kp = upperNeighbor(k,2);
             Real const hpz = (edgecent[2](i,j,k) == Real(1.0))
                 ? Real(1.0) : Real(1.0)+Real(2.0)*edgecent[2](i,j,k);
             Real const hmz = (edgecent[2](i,j,k-1) == Real(1.0))
                 ? Real(1.0) : Real(1.0)-Real(2.0)*edgecent[2](i,j,k-1);
+            Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
+#else
+            Real const scale = amrex::min(hmx,hpx,hmy,hpy);
+#endif
+
+            int const im = lowerNeighbor(i,0);
+            int const ip = upperNeighbor(i,0);
+            Real const sigxp = this->edgeSigmaX(i,j,k);
+            Real const sigxm = this->edgeSigmaX(i-1,j,k);
+            Real tmp = (levset(i+1,j,k) < Real(0.0))
+                ? sigxp*scale*(xa(ip,j,k,n)-xc)
+                : -sigxp*mlebndfdlap_scaled_hinv(scale,hpx)*xc;
+            tmp += (levset(i-1,j,k) < Real(0.0))
+                ? sigxm*scale*(xa(im,j,k,n)-xc)
+                : -sigxm*mlebndfdlap_scaled_hinv(scale,hmx)*xc;
+            Real y = beta[0]*tmp*Real(2.0)/(hpx+hmx);
+
+            int const jm = lowerNeighbor(j,1);
+            int const jp = upperNeighbor(j,1);
+            Real const sigyp = this->edgeSigmaY(i,j,k);
+            Real const sigym = this->edgeSigmaY(i,j-1,k);
+            tmp = (levset(i,j+1,k) < Real(0.0))
+                ? sigyp*scale*(xa(i,jp,k,n)-xc)
+                : -sigyp*mlebndfdlap_scaled_hinv(scale,hpy)*xc;
+            tmp += (levset(i,j-1,k) < Real(0.0))
+                ? sigym*scale*(xa(i,jm,k,n)-xc)
+                : -sigym*mlebndfdlap_scaled_hinv(scale,hmy)*xc;
+            y += beta[1]*tmp*Real(2.0)/(hpy+hmy);
+
+#if (AMREX_SPACEDIM == 3)
+            int const km = lowerNeighbor(k,2);
+            int const kp = upperNeighbor(k,2);
             Real const sigzp = this->edgeSigmaZ(i,j,k);
             Real const sigzm = this->edgeSigmaZ(i,j,k-1);
             tmp = (levset(i,j,k+1) < Real(0.0))
-                ? sigzp*(xa(i,j,kp,n)-xc) : -sigzp*xc/hpz;
+                ? sigzp*scale*(xa(i,j,kp,n)-xc)
+                : -sigzp*mlebndfdlap_scaled_hinv(scale,hpz)*xc;
             tmp += (levset(i,j,k-1) < Real(0.0))
-                ? sigzm*(xa(i,j,km,n)-xc) : -sigzm*xc/hmz;
+                ? sigzm*scale*(xa(i,j,km,n)-xc)
+                : -sigzm*mlebndfdlap_scaled_hinv(scale,hmz)*xc;
             y += beta[2]*tmp*Real(2.0)/(hpz+hmz);
-            scale = amrex::min(scale,hmz,hpz);
 #endif
 
-            return y*scale;
+            return y;
         }
 
         Array4<Real const> levset;

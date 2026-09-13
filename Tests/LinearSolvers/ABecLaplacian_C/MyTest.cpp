@@ -26,6 +26,14 @@ MyTest::solve ()
 #ifdef AMREX_USE_HYPRE
     if (use_mlhypre) {
         solveMLHypre();
+        // A failed solve often returns NaNs.  Check for them explicitly,
+        // because the max-norm checks used by these tests silently drop NaNs.
+        for (int ilev = 0; ilev < int(solution.size()); ++ilev) {
+            if (solution[ilev].contains_nan(0, solution[ilev].nComp(), 0)) {
+                amrex::Abort("MyTest::solve: solution contains NaN on level "
+                             + std::to_string(ilev));
+            }
+        }
         return;
     }
 #endif
@@ -44,6 +52,15 @@ MyTest::solve ()
         solveNodeABecLaplacian();
     } else {
         amrex::Abort("Unknown prob_type");
+    }
+
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.
+    for (int ilev = 0; ilev < int(solution.size()); ++ilev) {
+        if (solution[ilev].contains_nan(0, solution[ilev].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: solution contains NaN on level "
+                         + std::to_string(ilev));
+        }
     }
 }
 

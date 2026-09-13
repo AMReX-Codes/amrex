@@ -180,7 +180,15 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
 
         sol.define(nba, dmap, 1, 1);
         sol.setVal(0.0);
-        return mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+        Real const err = mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+
+        // A failed solve often returns NaNs.  Check for them explicitly,
+        // because the max-norm checks below silently drop NaNs.
+        if (sol.contains_nan(0, sol.nComp(), 0)) {
+            amrex::Abort("do_solve: solution contains NaN");
+        }
+
+        return err;
     };
 
     MultiFab sol_native;
