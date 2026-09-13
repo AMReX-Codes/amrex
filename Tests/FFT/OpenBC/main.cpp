@@ -371,20 +371,20 @@ int main (int argc, char* argv[])
             Box domain; RealBox rb; Real sigma; Real tol_exact; Real tol_grid; bool check_fixed_2N;
         };
         VGCase const vg_cases[] = {
-            {Box(IntVect(0), IntVect(63,47,79)),
-             RealBox(-1._rt, -0.75_rt, -1.25_rt, 1._rt, 0.75_rt, 1.25_rt),
+            {.domain = Box(IntVect(0), IntVect(63,47,79)),
+             .rb = RealBox(-1._rt, -0.75_rt, -1.25_rt, 1._rt, 0.75_rt, 1.25_rt),
 #ifdef AMREX_USE_FLOAT
-             0.12_rt, 1.e-4_rt, 1.e-5_rt, false},
+             .sigma = 0.12_rt, .tol_exact = 1.e-4_rt, .tol_grid = 1.e-5_rt, .check_fixed_2N = false},
 #else
-             0.12_rt, 1.e-9_rt, 1.e-12_rt, false},
+             .sigma = 0.12_rt, .tol_exact = 1.e-9_rt, .tol_grid = 1.e-12_rt, .check_fixed_2N = false},
 #endif
-            {Box(IntVect(5,-3,7), IntVect(68,12,22)),
-             RealBox(-1._rt, -0.25_rt, -0.25_rt, 1._rt, 0.25_rt, 0.25_rt),
+            {.domain = Box(IntVect(5,-3,7), IntVect(68,12,22)),
+             .rb = RealBox(-1._rt, -0.25_rt, -0.25_rt, 1._rt, 0.25_rt, 0.25_rt),
 #ifdef AMREX_USE_FLOAT
-             0.05_rt, 1.e-4_rt, 1.e-5_rt, true}
+             .sigma = 0.05_rt, .tol_exact = 1.e-4_rt, .tol_grid = 1.e-5_rt, .check_fixed_2N = true}
 #else
              // source not fully resolved: truncation error ~ 3e-7
-             0.05_rt, 1.e-5_rt, 1.e-8_rt, true}
+             .sigma = 0.05_rt, .tol_exact = 1.e-5_rt, .tol_grid = 1.e-8_rt, .check_fixed_2N = true}
 #endif
         };
         for (auto const& vgc : vg_cases) {
