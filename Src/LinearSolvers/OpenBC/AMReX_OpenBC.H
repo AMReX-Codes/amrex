@@ -200,6 +200,8 @@ private:
     Vector<BoxArray> m_ba_all;
     Vector<DistributionMapping> m_dm_all;
     Vector<Geometry> m_geom_all;
+    Vector<BoxArray> m_ba_support;
+    Vector<DistributionMapping> m_dm_support;
 };
 
 }
