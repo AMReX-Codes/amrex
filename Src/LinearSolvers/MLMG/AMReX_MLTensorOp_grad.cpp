@@ -29,7 +29,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
-    const bool mapped = m_use_mapped;
+    const bool mapped = hasMappingFactors(amrlev);
     Array4<Real const> foo;
 
 #ifdef AMREX_USE_OMP

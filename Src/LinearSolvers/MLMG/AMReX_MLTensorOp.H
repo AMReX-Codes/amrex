@@ -218,7 +218,15 @@ public:
      */
     void setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& fac);
 
+    //! True if setMappingFactors has been called for any AMR level.
     [[nodiscard]] bool isMapped () const noexcept { return m_use_mapped; }
+
+    //! True if setMappingFactors has been called for AMR level amrlev.  The
+    //! factors are per level: a level without them uses the unmapped kernels.
+    [[nodiscard]] bool hasMappingFactors (int amrlev) const noexcept {
+        return m_use_mapped && amrlev < static_cast<int>(m_mapfac.size())
+            && m_mapfac[amrlev][0].ok();
+    }
 
 protected:
 
