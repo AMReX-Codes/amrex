@@ -15,6 +15,22 @@ struct ErrZone {
     IntVect cell;
 };
 
+namespace {
+    bool cell_size_matches (Real a, Real b, bool fuzzy)
+    {
+        if (a == b) {
+            return true;
+        }
+        if (!fuzzy) {
+            return false;
+        }
+
+        const Real scale = std::max(std::abs(a), std::abs(b));
+        const Real tol = Real(4.0) * Real(std::numeric_limits<float>::epsilon());
+        return std::abs(a - b) <= tol * scale;
+    }
+}
+
 void PrintUsage()
 {
     amrex::Print()
@@ -172,9 +188,13 @@ int main_main()
     for (int ilev = 0; ilev < nlevels; ++ilev) {
         const auto& dx_a = pf_a.cellSize(ilev);
         const auto& dx_b = pf_b.cellSize(ilev);
-        bool not_match = AMREX_D_TERM(   dx_a[0] != dx_b[0],
-                                      || dx_a[1] != dx_b[1],
-                                      || dx_a[2] != dx_b[2] );
+        const int real_bytes_a = pf_a.realDescriptorNumBytes(ilev);
+        const int real_bytes_b = pf_b.realDescriptorNumBytes(ilev);
+        const bool fuzzy_dx = real_bytes_a > 0 && real_bytes_b > 0
+            && real_bytes_a != real_bytes_b;
+        bool not_match = AMREX_D_TERM(   !cell_size_matches(dx_a[0], dx_b[0], fuzzy_dx),
+                                      || !cell_size_matches(dx_a[1], dx_b[1], fuzzy_dx),
+                                      || !cell_size_matches(dx_a[2], dx_b[2], fuzzy_dx) );
         if (not_match) {
             amrex::Print() << "\n ERROR: grid dx does not match at level "
                            << ilev << '\n';

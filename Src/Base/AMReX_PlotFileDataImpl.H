@@ -51,6 +51,7 @@ public:
     [[nodiscard]] Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_prob_lo; }
     [[nodiscard]] Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_prob_hi; }
     [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const { return m_cell_size[level]; }
+    [[nodiscard]] int realDescriptorNumBytes (int level) const;
 
     [[nodiscard]] const Vector<std::string>& varNames () const noexcept { return m_var_names; }
 
