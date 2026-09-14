@@ -29,6 +29,8 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
+    const bool mapped = m_use_mapped;
+    Array4<Real const> foo;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -45,6 +47,9 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
                          Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
                          Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const mapxfab = mapped ? m_mapfac[amrlev][0].const_array(mfi) : foo;,
+                         Array4<Real const> const mapyfab = mapped ? m_mapfac[amrlev][1].const_array(mfi) : foo;,
+                         Array4<Real const> const mapzfab = mapped ? m_mapfac[amrlev][2].const_array(mfi) : foo;);
             AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
                          Box const ybx = mfi.nodaltilebox(1);,
                          Box const zbx = mfi.nodaltilebox(2););
@@ -59,15 +64,15 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                 ( xbx, txbx,
                   {
-                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,mapxfab);
                   }
                 , ybx, tybx,
                   {
-                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,mapyfab);
                   }
                 , zbx, tzbx,
                   {
-                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,mapzfab);
                   }
                 );
             } else {
@@ -94,17 +99,17 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                 ( xbx, txbx,
                   {
                       mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,
-                                              bvxlo, bvxhi, bct, dlo, dhi);
+                                              bvxlo, bvxhi, bct, dlo, dhi, mapxfab);
                   }
                 , ybx, tybx,
                   {
                       mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,
-                                              bvylo, bvyhi, bct, dlo, dhi);
+                                              bvylo, bvyhi, bct, dlo, dhi, mapyfab);
                   }
                 , zbx, tzbx,
                   {
                       mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,
-                                              bvzlo, bvzhi, bct, dlo, dhi);
+                                              bvzlo, bvzhi, bct, dlo, dhi, mapzfab);
                   }
                 );
             }

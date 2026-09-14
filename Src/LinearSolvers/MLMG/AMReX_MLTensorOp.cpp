@@ -125,6 +125,23 @@ MLTensorOp::setBulkViscosity (int amrlev, Real kappa)
 }
 
 void
+MLTensorOp::setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& fac)
+{
+    if (m_mapfac.empty()) { m_mapfac.resize(NAMRLevels()); }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT(fac[idim]->nComp() >= AMREX_SPACEDIM);
+        if (!m_mapfac[amrlev][idim].ok()) {
+            m_mapfac[amrlev][idim].define
+                (amrex::convert(m_grids[amrlev][0], IntVect::TheDimensionVector(idim)),
+                 m_dmap[amrlev][0], AMREX_SPACEDIM, 0, MFInfo(), *m_factory[amrlev][0]);
+        }
+        MultiFab::Copy(m_mapfac[amrlev][idim], *fac[idim], 0, 0, AMREX_SPACEDIM, 0);
+    }
+    m_use_mapped = true;
+    m_needs_update = true;
+}
+
+void
 MLTensorOp::prepareForSolve ()
 {
     if (m_has_kappa) {
@@ -225,6 +242,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
+    const bool mapped = m_use_mapped && (mglev == 0);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -242,6 +260,10 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
                          Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
                          Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
+            // Mesh-mapping face factors (empty Array4s when not mapped)
+            AMREX_D_TERM(Array4<Real const> const mapxfab = mapped ? m_mapfac[amrlev][0].const_array(mfi) : foo;,
+                         Array4<Real const> const mapyfab = mapped ? m_mapfac[amrlev][1].const_array(mfi) : foo;,
+                         Array4<Real const> const mapzfab = mapped ? m_mapfac[amrlev][2].const_array(mfi) : foo;);
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
@@ -256,15 +278,15 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                 ( xbx, txbx,
                   {
-                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,mapxfab);
                   }
                 , ybx, tybx,
                   {
-                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,mapyfab);
                   }
                 , zbx, tzbx,
                   {
-                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,mapzfab);
                   }
                 );
             } else {
@@ -297,17 +319,17 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                 ( xbx, txbx,
                   {
                       mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,
-                                              bvxlo, bvxhi, bct, dlo, dhi);
+                                              bvxlo, bvxhi, bct, dlo, dhi, mapxfab);
                   }
                 , ybx, tybx,
                   {
                       mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,
-                                              bvylo, bvyhi, bct, dlo, dhi);
+                                              bvylo, bvyhi, bct, dlo, dhi, mapyfab);
                   }
                 , zbx, tzbx,
                   {
                       mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,
-                                              bvzlo, bvzhi, bct, dlo, dhi);
+                                              bvzlo, bvzhi, bct, dlo, dhi, mapzfab);
                   }
                 );
             }

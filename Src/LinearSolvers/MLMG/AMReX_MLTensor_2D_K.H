@@ -188,7 +188,8 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etax,
                               Array4<Real const> const& kapx,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& mapfac = {}) noexcept
 {
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
@@ -201,6 +202,10 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
             Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+            if (mapfac) {
+                const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                dudy *= rxy; dvdy *= rxy;
+            }
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -216,7 +221,8 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etay,
                               Array4<Real const> const& kapy,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& mapfac = {}) noexcept
 {
     const Real dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
@@ -229,6 +235,10 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
             Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+            if (mapfac) {
+                const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                dudx *= ryx; dvdx *= ryx;
+            }
             Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
@@ -250,7 +260,8 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
-                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+                              Dim3 const& dlo, Dim3 const& dhi,
+                              Array4<Real const> const& mapfac = {}) noexcept
 {
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
@@ -264,6 +275,10 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
             Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            if (mapfac) {
+                const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                dudy *= rxy; dvdy *= rxy;
+            }
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -285,7 +300,8 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
-                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+                              Dim3 const& dlo, Dim3 const& dhi,
+                              Array4<Real const> const& mapfac = {}) noexcept
 {
     const Real dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
@@ -297,6 +313,10 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            if (mapfac) {
+                const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                dudx *= ryx; dvdx *= ryx;
+            }
             Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta

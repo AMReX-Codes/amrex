@@ -5,6 +5,10 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_Array.H>
 
+// Feature macro: when defined, MLTensorOp::setMappingFactors exists and the
+// cross-term (transpose and bulk) fluxes honour a diagonal mesh mapping.
+#define AMREX_MLTENSOROP_HAS_MAPPING_FACTORS 1
+
 namespace amrex {
 
 /**
@@ -190,10 +194,39 @@ public:
 
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
+    /**
+     * \brief Declare a diagonal mesh mapping and supply its face factors.
+     *
+     * For a solver on a uniform computational grid carrying a diagonal,
+     * axis-aligned mapping x_d = x_d(xi_d), the tensor operator is applied
+     * in xi space.  The caller scales the face viscosity on face d by
+     * J/fac_d^2 (and any bulk viscosity likewise), which makes the
+     * normal-derivative part of the operator exact; the transpose and
+     * bulk terms, which differentiate in the other directions, additionally
+     * need the ratio fac_d/fac_j on face d for a derivative in direction j.
+     * This call supplies fac_j, j = 0..AMREX_SPACEDIM-1, as the components of
+     * face-centred MultiFabs, one per face direction, evaluated at the
+     * faces; the cross-term kernels then apply the ratios.  The returned
+     * L(u) is J times the physical tensor divergence.  Cross terms are only
+     * evaluated on the finest MG level, so factors are needed per AMR level
+     * only.
+     *
+     * \param amrlev AMR level.
+     * \param fac    Array of face-centred MultiFabs (one per face direction),
+     *               each with AMREX_SPACEDIM components holding the mapping
+     *               factors dx_j/dxi_j at that face.
+     */
+    void setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& fac);
+
+    [[nodiscard]] bool isMapped () const noexcept { return m_use_mapped; }
+
 protected:
 
     bool m_has_kappa = false;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
+
+    bool m_use_mapped = false;
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_mapfac; // per AMR level, MG level 0
 
 private:
 
