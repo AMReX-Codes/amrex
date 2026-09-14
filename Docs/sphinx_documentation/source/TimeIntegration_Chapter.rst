@@ -173,6 +173,15 @@ methods, one also needs to select the fast time scale method type using the
 input option :py:data:`integration.sundials.fast_type`, which may be set to
 ``ERK`` or ``DIRK``.
 
+Implicit SUNDIALS solves can also attach preconditioner callbacks through
+``TimeIntegrator::set_preconditioner()`` and, for fast implicit MRI solves,
+``TimeIntegrator::set_fast_preconditioner()``. These callbacks receive AMReX
+data structures unpacked from the SUNDIALS vectors, which makes it possible to
+reuse AMReX linear solver infrastructure such as hypre-backed solves inside the
+SUNDIALS Newton iteration. The SPGMR preconditioning side can be selected with
+:py:data:`integration.sundials.linear_solver_preconditioning` and
+:py:data:`integration.sundials.fast_linear_solver_preconditioning`.
+
 To select a specific SUNDIALS method, use the input option
 :py:data:`integration.sundials.method` for ERK and DIRK methods as well as the
 slow time scale method with an MRI integrator. Use
