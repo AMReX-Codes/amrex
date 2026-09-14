@@ -11,8 +11,12 @@
 #include <AMReX_SIMD.H>
 #include <AMReX_Vector.H>
 
+#include <AMReX_Algorithm.H>
+#include <AMReX_Math.H>
+
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <numeric>
 #include <type_traits>
 
@@ -54,6 +58,51 @@ struct VectorizedCompute : public simd::Vectorized<>
 void func_mc (ParticleReal& x, ParticleReal const& y) { x += y; }
 void func_cc (ParticleReal const& /*x*/, ParticleReal const& /*y*/) {}
 void func_mm (ParticleReal& x, ParticleReal& y) { x += y; y *= ParticleReal(2); }
+
+#ifdef AMREX_USE_SIMD
+// Compare a SIMD math overload against its scalar counterpart over a range.
+//
+// A vector math library is allowed to be less accurate than scalar libm; glibc's
+// libmvec documents a maximum error of 4 ULP, so this uses a tolerance of 8 ULP.
+template <typename T_Simd, typename F_Simd, typename F_Scalar>
+int check_simd_math (char const* name, F_Simd const& f_simd, F_Scalar const& f_scalar,
+                     typename T_Simd::value_type lo, typename T_Simd::value_type hi)
+{
+    using T = typename T_Simd::value_type;
+    constexpr std::size_t width = T_Simd::size();
+    constexpr int nchunk = 16;
+    constexpr int npoint = nchunk * int(width);
+    constexpr T max_ulp = T(8);
+
+    int err = 0;
+    for (int c = 0; c < nchunk; ++c) {
+        T in[width];
+        for (std::size_t i = 0; i < width; ++i) {
+            in[i] = lo + (hi - lo) * T(c * int(width) + int(i)) / T(npoint - 1);
+        }
+        T_Simd x;
+        x.copy_from(in, simd::stdx::element_aligned);
+
+        T_Simd const y = f_simd(x);
+
+        for (std::size_t i = 0; i < width; ++i) {
+            T const ref = f_scalar(in[i]);
+            T const got = y[i];
+            T const tol = max_ulp * std::numeric_limits<T>::epsilon()
+                          * amrex::max(Math::abs(ref), T(1));
+            if (!(Math::abs(got - ref) <= tol)) {
+                ++err;
+                if (err <= 2) {
+                    Print() << "  " << name << " mismatch at x=" << double(in[i])
+                            << ": got " << double(got) << ", expected " << double(ref) << "\n";
+                }
+            }
+        }
+    }
+    if (err != 0) { Print() << "  " << name << ": FAILED (" << err << " lanes)\n"; }
+    return err;
+}
+#endif
 
 // ---------------------------------------------------------------------------
 int main (int argc, char* argv[])
@@ -513,6 +562,110 @@ int main (int argc, char* argv[])
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";
         }
 #endif // !AMREX_USE_GPU
+
+        // ================================================================
+        // Test: amrex::Math transcendentals, scalar and SIMD
+        // ================================================================
+        {
+            int err = 0;
+
+            // The scalar overloads must exist for every build, so that a kernel
+            // written once compiles with AMReX_SIMD both ON and OFF.
+            {
+                constexpr Real x = Real(0.5);
+                if (!amrex::almostEqual(Math::sinh(x), std::sinh(x))) { ++err; }
+                if (!amrex::almostEqual(Math::cosh(x), std::cosh(x))) { ++err; }
+                if (!amrex::almostEqual(Math::exp(x), std::exp(x))) { ++err; }
+                if (!amrex::almostEqual(Math::sqrt(x), std::sqrt(x))) { ++err; }
+                if (!amrex::almostEqual(Math::pow(x, Real(3)), std::pow(x, Real(3)))) { ++err; }
+                auto const [s, c] = Math::sincos(x);
+                if (!amrex::almostEqual(s, std::sin(x))) { ++err; }
+                if (!amrex::almostEqual(c, std::cos(x))) { ++err; }
+            }
+
+#ifdef AMREX_USE_SIMD
+            using V = simd::SIMDReal<>;
+            using T = Real;
+
+#   define AMREX_CHECK_SIMD_MATH(FUNC, LO, HI)                                \
+        err += check_simd_math<V>(#FUNC,                                      \
+                    [] (V const& v) { return Math::FUNC(v); },                \
+                    [] (T const v)  { return std::FUNC(v); },                 \
+                    T(LO), T(HI))
+
+            AMREX_CHECK_SIMD_MATH(sin,   -6.0,  6.0);
+            AMREX_CHECK_SIMD_MATH(cos,   -6.0,  6.0);
+            AMREX_CHECK_SIMD_MATH(tan,   -1.5,  1.5);
+            AMREX_CHECK_SIMD_MATH(asin,  -1.0,  1.0);
+            AMREX_CHECK_SIMD_MATH(acos,  -1.0,  1.0);
+            AMREX_CHECK_SIMD_MATH(atan, -10.0, 10.0);
+            AMREX_CHECK_SIMD_MATH(sinh,  -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(cosh,  -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(tanh,  -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(asinh, -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(acosh,  1.0, 10.0);
+            AMREX_CHECK_SIMD_MATH(atanh, -0.9,  0.9);
+            AMREX_CHECK_SIMD_MATH(exp,   -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(exp2,  -5.0,  5.0);
+            AMREX_CHECK_SIMD_MATH(expm1, -1.0,  1.0);
+            AMREX_CHECK_SIMD_MATH(log,    0.1, 20.0);
+            AMREX_CHECK_SIMD_MATH(log2,   0.1, 20.0);
+            AMREX_CHECK_SIMD_MATH(log10,  0.1, 20.0);
+            AMREX_CHECK_SIMD_MATH(log1p, -0.9,  9.0);
+            AMREX_CHECK_SIMD_MATH(cbrt, -20.0, 20.0);
+            AMREX_CHECK_SIMD_MATH(erf,   -3.0,  3.0);
+            AMREX_CHECK_SIMD_MATH(erfc,  -3.0,  3.0);
+            AMREX_CHECK_SIMD_MATH(sqrt,   0.0, 20.0);
+            AMREX_CHECK_SIMD_MATH(abs,  -20.0, 20.0);
+
+#   undef AMREX_CHECK_SIMD_MATH
+
+            // two-argument functions
+            err += check_simd_math<V>("pow",
+                        [] (V const& v) { return Math::pow(v, V(T(2.5))); },
+                        [] (T const v)  { return std::pow(v, T(2.5)); },
+                        T(0.1), T(10.0));
+            err += check_simd_math<V>("atan2",
+                        [] (V const& v) { return Math::atan2(v, V(T(2.0))); },
+                        [] (T const v)  { return std::atan2(v, T(2.0)); },
+                        T(-10.0), T(10.0));
+            err += check_simd_math<V>("hypot",
+                        [] (V const& v) { return Math::hypot(v, V(T(3.0))); },
+                        [] (T const v)  { return std::hypot(v, T(3.0)); },
+                        T(-10.0), T(10.0));
+
+            // sincos and sincospi return both results at once
+            err += check_simd_math<V>("sincos (sin)",
+                        [] (V const& v) { return Math::sincos(v).first; },
+                        [] (T const v)  { return std::sin(v); },
+                        T(-6.0), T(6.0));
+            err += check_simd_math<V>("sincos (cos)",
+                        [] (V const& v) { return Math::sincos(v).second; },
+                        [] (T const v)  { return std::cos(v); },
+                        T(-6.0), T(6.0));
+            err += check_simd_math<V>("sincospi (sin)",
+                        [] (V const& v) { return Math::sincospi(v).first; },
+                        [] (T const v)  { return std::sin(Math::pi<T>() * v); },
+                        T(-2.0), T(2.0));
+            err += check_simd_math<V>("sincospi (cos)",
+                        [] (V const& v) { return Math::sincospi(v).second; },
+                        [] (T const v)  { return std::cos(Math::pi<T>() * v); },
+                        T(-2.0), T(2.0));
+
+            Print() << "amrex::Math SIMD transcendentals ("
+#   ifdef VIR_HAVE_SIMD_VECMATH
+                    << "vector math library via the SIMD provider"
+#   else
+                    << "provider fallback, one call per lane"
+#   endif
+                    << ", width " << int(V::size()) << "): "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+#else
+            Print() << "amrex::Math scalar transcendentals: "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+#endif
+            nerrors += err;
+        }
 
         // ================================================================
         // Final report

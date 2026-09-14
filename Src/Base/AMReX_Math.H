@@ -141,21 +141,6 @@ namespace detail {
 }
 /// \endcond
 
-#ifdef AMREX_USE_SIMD
-//! Return sine and cosine of given number
-template<typename T_Real>
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::pair<T_Real,T_Real> sincos (T_Real x)
-{
-    using namespace amrex::simd::stdx;
-    std::pair<T_Real,T_Real> r;
-    r.first = sin(x);
-    r.second = cos(x);
-    return r;
-}
-#endif
-
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
@@ -184,22 +169,6 @@ std::pair<float,float> sincos (float x)
     return r;
 }
 
-#ifdef AMREX_USE_SIMD
-//! Return sin(pi*x) and cos(pi*x) given x
-template<typename T_Real>
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::pair<T_Real,T_Real> sincospi (T_Real x)
-{
-    using namespace amrex::simd::stdx;
-    T_Real const px = pi<typename T_Real::value_type>() * x;
-    std::pair<T_Real,T_Real> r;
-    r.first = sin(px);
-    r.second = cos(px);
-    return r;
-}
-#endif
-
 //! Return sin(pi*x) and cos(pi*x) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
@@ -227,6 +196,608 @@ std::pair<float,float> sincospi (float x)
 #endif
     return r;
 }
+
+/*
+ * Transcendental functions
+ *
+ * Each function comes in a scalar and, with AMReX_SIMD=ON, a SIMD overload, so
+ * that a compute kernel written once can be instantiated for both. Call them
+ * qualified as amrex::Math::sinh(x): an unqualified call on a SIMD argument
+ * resolves to the SIMD library's own (scalar, element-wise) overload through
+ * argument-dependent lookup instead.
+ *
+ * SIMD hardware has instructions for sqrt and abs but not for the
+ * transcendental functions, so the SIMD overloads are only as fast as what the
+ * SIMD provider offers for them: a call into a vector math library where it has
+ * one, otherwise one scalar call per lane. See amrex::simd::smath. Where a
+ * vector math library answers, results are accurate to a few ULP rather than
+ * correctly rounded, and are not bit-wise identical to a scalar build.
+ */
+
+//! Return the sine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real sin (T_Real x)
+{
+    return std::sin(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the sine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real sin (T_Real const& x)
+{
+    return amrex::simd::smath::sin(x);
+}
+#endif
+
+//! Return the cosine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real cos (T_Real x)
+{
+    return std::cos(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the cosine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real cos (T_Real const& x)
+{
+    return amrex::simd::smath::cos(x);
+}
+#endif
+
+//! Return the tangent of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real tan (T_Real x)
+{
+    return std::tan(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the tangent of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real tan (T_Real const& x)
+{
+    return amrex::simd::smath::tan(x);
+}
+#endif
+
+//! Return the arc sine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real asin (T_Real x)
+{
+    return std::asin(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the arc sine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real asin (T_Real const& x)
+{
+    return amrex::simd::smath::asin(x);
+}
+#endif
+
+//! Return the arc cosine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real acos (T_Real x)
+{
+    return std::acos(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the arc cosine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real acos (T_Real const& x)
+{
+    return amrex::simd::smath::acos(x);
+}
+#endif
+
+//! Return the arc tangent of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real atan (T_Real x)
+{
+    return std::atan(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the arc tangent of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real atan (T_Real const& x)
+{
+    return amrex::simd::smath::atan(x);
+}
+#endif
+
+//! Return the hyperbolic sine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real sinh (T_Real x)
+{
+    return std::sinh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the hyperbolic sine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real sinh (T_Real const& x)
+{
+    return amrex::simd::smath::sinh(x);
+}
+#endif
+
+//! Return the hyperbolic cosine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real cosh (T_Real x)
+{
+    return std::cosh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the hyperbolic cosine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real cosh (T_Real const& x)
+{
+    return amrex::simd::smath::cosh(x);
+}
+#endif
+
+//! Return the hyperbolic tangent of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real tanh (T_Real x)
+{
+    return std::tanh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the hyperbolic tangent of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real tanh (T_Real const& x)
+{
+    return amrex::simd::smath::tanh(x);
+}
+#endif
+
+//! Return the inverse hyperbolic sine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real asinh (T_Real x)
+{
+    return std::asinh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the inverse hyperbolic sine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real asinh (T_Real const& x)
+{
+    return amrex::simd::smath::asinh(x);
+}
+#endif
+
+//! Return the inverse hyperbolic cosine of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real acosh (T_Real x)
+{
+    return std::acosh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the inverse hyperbolic cosine of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real acosh (T_Real const& x)
+{
+    return amrex::simd::smath::acosh(x);
+}
+#endif
+
+//! Return the inverse hyperbolic tangent of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real atanh (T_Real x)
+{
+    return std::atanh(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the inverse hyperbolic tangent of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real atanh (T_Real const& x)
+{
+    return amrex::simd::smath::atanh(x);
+}
+#endif
+
+//! Return the base-e exponential of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real exp (T_Real x)
+{
+    return std::exp(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the base-e exponential of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real exp (T_Real const& x)
+{
+    return amrex::simd::smath::exp(x);
+}
+#endif
+
+//! Return the base-2 exponential of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real exp2 (T_Real x)
+{
+    return std::exp2(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the base-2 exponential of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real exp2 (T_Real const& x)
+{
+    return amrex::simd::smath::exp2(x);
+}
+#endif
+
+//! Return the base-e exponential minus one of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real expm1 (T_Real x)
+{
+    return std::expm1(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the base-e exponential minus one of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real expm1 (T_Real const& x)
+{
+    return amrex::simd::smath::expm1(x);
+}
+#endif
+
+//! Return the natural logarithm of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real log (T_Real x)
+{
+    return std::log(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the natural logarithm of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real log (T_Real const& x)
+{
+    return amrex::simd::smath::log(x);
+}
+#endif
+
+//! Return the base-2 logarithm of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real log2 (T_Real x)
+{
+    return std::log2(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the base-2 logarithm of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real log2 (T_Real const& x)
+{
+    return amrex::simd::smath::log2(x);
+}
+#endif
+
+//! Return the base-10 logarithm of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real log10 (T_Real x)
+{
+    return std::log10(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the base-10 logarithm of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real log10 (T_Real const& x)
+{
+    return amrex::simd::smath::log10(x);
+}
+#endif
+
+//! Return the natural logarithm of one plus the argument of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real log1p (T_Real x)
+{
+    return std::log1p(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the natural logarithm of one plus the argument of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real log1p (T_Real const& x)
+{
+    return amrex::simd::smath::log1p(x);
+}
+#endif
+
+//! Return the cube root of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real cbrt (T_Real x)
+{
+    return std::cbrt(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the cube root of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real cbrt (T_Real const& x)
+{
+    return amrex::simd::smath::cbrt(x);
+}
+#endif
+
+//! Return the error function of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real erf (T_Real x)
+{
+    return std::erf(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the error function of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real erf (T_Real const& x)
+{
+    return amrex::simd::smath::erf(x);
+}
+#endif
+
+//! Return the complementary error function of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real erfc (T_Real x)
+{
+    return std::erfc(x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return the complementary error function of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real erfc (T_Real const& x)
+{
+    return amrex::simd::smath::erfc(x);
+}
+#endif
+
+//! Return x raised to the power y
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real pow (T_Real x, T_Real y)
+{
+    return std::pow(x, y);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return x raised to the power y, for every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real pow (T_Real const& x, T_Real const& y)
+{
+    return amrex::simd::smath::pow(x, y);
+}
+#endif
+
+//! Return arc tangent of y/x, using their signs
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real atan2 (T_Real y, T_Real x)
+{
+    return std::atan2(y, x);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return arc tangent of y/x, using their signs, for every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real atan2 (T_Real const& y, T_Real const& x)
+{
+    return amrex::simd::smath::atan2(y, x);
+}
+#endif
+
+//! Return square root of x*x + y*y
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real hypot (T_Real x, T_Real y)
+{
+    return std::hypot(x, y);
+}
+
+#ifdef AMREX_USE_SIMD
+//! Return square root of x*x + y*y, for every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real hypot (T_Real const& x, T_Real const& y)
+{
+    // not amrex::simd::smath: hypot is one of the functions a SIMD library
+    // usually implements itself, with SIMD instructions and the overflow
+    // fixups a vector math library's version would skip
+    return amrex::simd::stdx::hypot(x, y);
+}
+#endif
+
+//! Return the square root of the given number
+template<typename T_Real>
+requires (std::is_floating_point_v<T_Real>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T_Real sqrt (T_Real x)
+{
+    return std::sqrt(x);
+}
+
+#ifdef AMREX_USE_SIMD
+/** Return the square root of every SIMD lane
+ *
+ * Unlike the transcendentals above, this maps onto a hardware instruction and
+ * is handed to the SIMD library directly. No vector math library is involved
+ * and the result is correctly rounded.
+ */
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real sqrt (T_Real const& x)
+{
+    return amrex::simd::stdx::sqrt(x);
+}
+
+/** Return the absolute value of every SIMD lane
+ *
+ * @see sqrt for why no vector math library is involved
+ */
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+T_Real abs (T_Real const& x)
+{
+    return amrex::simd::stdx::abs(x);
+}
+#endif
+
+#ifdef AMREX_USE_SIMD
+/** Return sine and cosine of every SIMD lane
+ *
+ * Evaluated with the SIMD library's own sin and cos, which inline into the
+ * caller. This is the one place that does not hand the work to a vector math
+ * library: amrex::Math::sin and amrex::Math::cos do.
+ *
+ * The difference is what each tends to be used for. A call into a vector math
+ * library is a scheduling barrier, so the surrounding arithmetic cannot overlap
+ * with the transcendental. Where the transcendental dominates a kernel that is
+ * worth paying for, which is why the single-result overloads route. sincos
+ * usually sits in kernels that are mostly other arithmetic instead -- a
+ * rotation, a coordinate transform -- and there the barrier costs more than the
+ * faster transcendental saves: on a quaternion spin rotation, AVX2, one thread
+ * pinned to a core, 3.64 ms this way against 3.94 ms routed.
+ *
+ * For a kernel the transcendental does dominate, call amrex::Math::sin and
+ * amrex::Math::cos separately.
+ *
+ * No fused vector sincos exists to call in any case. glibc's libmvec has one on
+ * x86-64, but its ABI returns both results through vectors of pointers, so the
+ * callee scatters its output a lane at a time -- about 1.4x the time of two
+ * independent vector calls. AArch64 has none, and neither has sincospi.
+ */
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincos (T_Real const& x)
+{
+    std::pair<T_Real,T_Real> r;
+    r.first  = amrex::simd::stdx::sin(x);
+    r.second = amrex::simd::stdx::cos(x);
+    return r;
+}
+
+//! Return sin(pi*x) and cos(pi*x) of every SIMD lane
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
+AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincospi (T_Real const& x)
+{
+    return amrex::Math::sincos(T_Real(pi<typename T_Real::value_type>()) * x);
+}
+#endif
 
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T>

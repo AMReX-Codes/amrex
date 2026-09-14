@@ -3066,6 +3066,76 @@ of signatures (including the :cpp:`CompileTimeOptions` variants) and
 is identical to :cpp:`ParallelFor` on GPU, but does not add the SIMD
 pragma on CPU.
 
+.. _sec:basics:simdmath:
+
+SIMD Math Functions
+===================
+
+When AMReX is built with SIMD support (CMake option ``AMReX_SIMD=ON``, see
+:ref:`sec:build:cmake`), the math functions in ``AMReX_Math.H`` accept SIMD
+variables in addition to :cpp:`float` and :cpp:`double`. A kernel can therefore
+be written once and instantiated for both, which is the same single-source style
+used by :cpp:`amrex::ParallelForSIMD` and :cpp:`amrex::ParticleReduceSIMD`:
+
+.. highlight:: c++
+
+::
+
+    #include <AMReX_Math.H>
+
+    // T_Real is amrex::ParticleReal in a scalar build and a SIMD type in a
+    // vectorized one
+    template <typename T_Real>
+    AMREX_FORCE_INLINE
+    void focus (T_Real & AMREX_RESTRICT y, T_Real & AMREX_RESTRICT py,
+                T_Real const & AMREX_RESTRICT omega, amrex::Real ds)
+    {
+        T_Real const ch = amrex::Math::cosh(omega * T_Real(ds));
+        T_Real const sh = amrex::Math::sinh(omega * T_Real(ds));
+
+        T_Real const y0 = y;
+        y  = ch * y0 + sh / omega * py;
+        py = omega * sh * y0 + ch * py;
+    }
+
+The following functions have SIMD overloads: :cpp:`sin`, :cpp:`cos`,
+:cpp:`tan`, :cpp:`asin`, :cpp:`acos`, :cpp:`atan`, :cpp:`atan2`, :cpp:`sinh`,
+:cpp:`cosh`, :cpp:`tanh`, :cpp:`asinh`, :cpp:`acosh`, :cpp:`atanh`,
+:cpp:`exp`, :cpp:`exp2`, :cpp:`expm1`, :cpp:`log`, :cpp:`log2`, :cpp:`log10`,
+:cpp:`log1p`, :cpp:`pow`, :cpp:`sqrt`, :cpp:`cbrt`, :cpp:`hypot`, :cpp:`erf`,
+:cpp:`erfc`, :cpp:`abs`, :cpp:`sincos` and :cpp:`sincospi`.
+
+.. note::
+
+   Call these functions **fully qualified**, as :cpp:`amrex::Math::sinh(x)`. An
+   unqualified :cpp:`sinh(x)` on a SIMD argument resolves to the SIMD library's
+   own overload through argument-dependent lookup, which evaluates the function
+   one lane at a time. A :cpp:`using amrex::Math::sinh;` declaration does not
+   change that, because the library overload is the more specialized candidate.
+
+Vectorizing the transcendentals
+-------------------------------
+
+SIMD hardware has instructions for :cpp:`sqrt` and :cpp:`abs`, but not for the
+transcendental functions. Those have to be evaluated by a vector math library,
+such as glibc's ``libmvec``, which computes a whole SIMD register worth of
+results per call. AMReX does not implement that itself: the SIMD overloads
+forward to whatever the SIMD provider offers, which is a vector math library
+call where the provider has one, and one scalar call per lane otherwise.
+
+Nothing has to be configured for this, and no compiler flags are involved.
+Whether the fast path is available depends on the provider and the platform,
+and both cases give correct results.
+
+.. warning::
+
+   Vector math libraries trade accuracy for speed: glibc's ``libmvec``
+   documents a maximum error of 4 ULP, where its scalar routines stay below
+   1 ULP. Where they are used, results differ slightly from a scalar build and
+   are not bit-wise reproducible against one. Consult the SIMD provider's
+   documentation if your application needs the accuracy of the scalar routines
+   or checks ``errno`` after math calls.
+
 Ghost Cells
 ===========
 

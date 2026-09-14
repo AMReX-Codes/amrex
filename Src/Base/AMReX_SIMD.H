@@ -12,6 +12,11 @@
 #   if __cplusplus >= 202002L
 #       include <vir/simd_cvt.h>
 #   endif
+// Transcendentals evaluated by a vector math library, where the provider has
+// them. Older providers do not, hence the __has_include.
+#   if __has_include(<vir/simd_vecmath.h>)
+#       include <vir/simd_vecmath.h>
+#   endif
 #endif
 
 #include <cstdint>
@@ -192,6 +197,26 @@ namespace amrex::simd
         T max (T const& a, T const& b) { return (a < b) ? b : a; }
 #endif
     }
+
+    /** Where the SIMD math functions in amrex::Math come from
+     *
+     * SIMD hardware has instructions for sqrt and abs but not for the
+     * transcendental functions, so a SIMD library has to evaluate those one
+     * lane at a time unless it can hand a whole register to a vector math
+     * library such as glibc's libmvec. Providers that can offer them
+     * separately, and this alias names whichever set is available: the fast
+     * one where the provider has it, its own otherwise. Either way the results
+     * are correct; only the speed and the last few ULP differ.
+     *
+     * @see amrex::Math::sinh and the other transcendentals
+     */
+#ifdef AMREX_USE_SIMD
+#   ifdef VIR_HAVE_SIMD_VECMATH
+    namespace smath = vir::vecmath;
+#   else
+    namespace smath = vir::stdx;
+#   endif
+#endif
 
     // TODO: move to AMReX_REAL.H?
 
