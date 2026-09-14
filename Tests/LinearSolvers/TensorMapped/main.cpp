@@ -17,7 +17,8 @@
 // fac_d/fac_j, which the test also checks is visible,
 // so that a regression in the ratio kernels cannot pass unnoticed.  Dirichlet
 // boundaries on all sides exercise the boundary variants of the kernels;
-// variable eta and kappa exercise the coefficient handling.
+// variable eta and kappa exercise the coefficient handling; with four boxes
+// per direction both the interior and the boundary kernels run.
 
 #include <AMReX.H>
 #include <AMReX_MLMG.H>
@@ -191,7 +192,9 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     {
         int n_cell = 32;
-        int max_grid_size = 16;
+        int max_grid_size = 8;   // 4 boxes per direction: interior boxes
+                                 // (interior kernels) and boundary boxes
+                                 // (boundary kernels) are both present
         // Round-off on the second differences of O(1) fields at h = 1/32:
         // ~1e-14 in double, ~1e-6 in single precision.
         Real tol = (sizeof(Real) == 4) ? Real(1.e-4) : Real(1.e-12);
