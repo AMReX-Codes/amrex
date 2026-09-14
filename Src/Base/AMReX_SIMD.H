@@ -11,6 +11,7 @@
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>
 #   if __cplusplus >= 202002L
 #       include <vir/simd_cvt.h>
+#       include <vir/simd_iota.h>
 #   endif
 #endif
 
@@ -27,6 +28,7 @@ namespace amrex::simd
         using namespace vir::stdx;
 #   if __cplusplus >= 202002L
         using vir::cvt;
+        using vir::iota_v;
 #   endif
 
         /** Vectorized ternary operator: select(mask, true_val, false_val)
@@ -234,6 +236,56 @@ namespace amrex::simd
     template<typename T_ParticleReal = SIMDParticleReal<>>
     using SIMDIdCpu = std::uint64_t;
 #endif
+
+    /** Number of SIMD lanes represented by a type
+     *
+     * Returns 1 for a scalar arithmetic type (int, amrex::Real, ...) and the
+     * SIMD width for a stdx::simd type. Use to deduce the SIMD width from a
+     * kernel's index argument type, e.g. for kernels that may be called with
+     * either a scalar int (GPU / non-SIMD CPU) or a SIMD int register (CPU
+     * with SIMD).
+     *
+     * @tparam T a scalar arithmetic type or a stdx::simd type
+     */
+    template <typename T>
+    struct lane_count : std::integral_constant<int, 1> {};
+
+#ifdef AMREX_USE_SIMD
+    template <typename U, typename Abi>
+    struct lane_count<stdx::simd<U, Abi>>
+        : std::integral_constant<int, static_cast<int>(stdx::simd<U, Abi>::size())> {};
+#endif
+
+    template <typename T>
+    inline constexpr int lane_count_v = lane_count<std::decay_t<T>>::value;
+
+    /** Build a real value (SIMD register or scalar) from an integer index
+     *
+     * For a scalar integer idx this returns ST(idx). For a SIMD integer
+     * register it returns a static_simd_cast to the SIMD real type ST. This
+     * mirrors the dual scalar/SIMD calling convention of SIMD-capable grid
+     * kernels, where the index argument is either a scalar int (GPU / non-SIMD
+     * CPU) or a SIMD int register (CPU with SIMD).
+     *
+     * @tparam ST the target real type: amrex::Real or a SIMDReal<WIDTH>
+     * @tparam Idx the index type: an integer or a stdx::simd integer
+     * @param idx the integer index (scalar or SIMD)
+     * @return the index value converted to the real type ST
+     */
+    template <typename ST, typename Idx>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ST index_to_real (Idx const& idx)
+    {
+        if constexpr (std::is_arithmetic_v<Idx>) {
+            return static_cast<ST>(idx);
+        } else {
+#ifdef AMREX_USE_SIMD
+            return stdx::static_simd_cast<ST>(idx);
+#else
+            return static_cast<ST>(idx);
+#endif
+        }
+    }
 
     /// \cond DOXYGEN_IGNORE
     namespace detail {
