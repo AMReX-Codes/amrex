@@ -48,6 +48,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
                             AMREX_SPACEDIM);
 
     m_kappa.clear();
+    m_mapfac.clear();
+    m_use_mapped = false;
     m_kappa.resize(NAMRLevels());
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
@@ -77,6 +79,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
                             a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
+    m_mapfac.clear();
+    m_use_mapped = false;
     m_kappa.resize(NAMRLevels());
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
