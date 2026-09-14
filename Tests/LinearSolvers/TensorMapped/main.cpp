@@ -23,6 +23,7 @@
 #include <AMReX_MLTensorOp.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
+#include <numbers>
 
 using namespace amrex;
 
@@ -32,7 +33,7 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real velfun (int n, Real x, Real y, Real z) noexcept
 {
-    constexpr Real pi = Real(3.1415926535897932);
+    constexpr Real pi = Real(std::numbers::pi_v<double>);
     Real const sx = std::sin(pi*x), cx = std::cos(pi*x);
     Real const sy = std::sin(Real(2.)*pi*y), cy = std::cos(Real(2.)*pi*y);
     Real const sz = std::sin(pi*z), cz = std::cos(pi*z);
@@ -44,14 +45,14 @@ Real velfun (int n, Real x, Real y, Real z) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real etafun (Real x, Real y, Real z) noexcept
 {
-    constexpr Real pi = Real(3.1415926535897932);
+    constexpr Real pi = Real(std::numbers::pi_v<double>);
     return Real(1.) + Real(0.5)*std::sin(pi*x)*std::cos(Real(2.)*pi*y)*std::cos(pi*z);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real kapfun (Real x, Real y, Real z) noexcept
 {
-    constexpr Real pi = Real(3.1415926535897932);
+    constexpr Real pi = Real(std::numbers::pi_v<double>);
     return Real(0.3) + Real(0.2)*std::cos(pi*x)*std::sin(pi*y)*std::cos(Real(2.)*pi*z);
 }
 
