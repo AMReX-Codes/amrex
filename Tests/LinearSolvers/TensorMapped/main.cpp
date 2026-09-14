@@ -12,8 +12,9 @@
 // Both see the same velocity, viscosity and boundary data at the same
 // physical positions, so the mapped operator must return J times the
 // reference operator and the mapped flux on face d must be J/fac_d times
-// the reference flux, to round-off.  Without the factors the transpose and
-// bulk terms are off by fac_d/fac_j, which the test also checks is visible,
+// the reference flux, to round-off (1e-12 in double, 1e-4 in single
+// precision).  Without the factors the transpose and bulk terms are off by
+// fac_d/fac_j, which the test also checks is visible,
 // so that a regression in the ratio kernels cannot pass unnoticed.  Dirichlet
 // boundaries on all sides exercise the boundary variants of the kernels;
 // variable eta and kappa exercise the coefficient handling.
@@ -191,7 +192,9 @@ int main (int argc, char* argv[])
     {
         int n_cell = 32;
         int max_grid_size = 16;
-        Real tol = Real(1.e-12);
+        // Round-off on the second differences of O(1) fields at h = 1/32:
+        // ~1e-14 in double, ~1e-6 in single precision.
+        Real tol = (sizeof(Real) == 4) ? Real(1.e-4) : Real(1.e-12);
         Array<Real,AMREX_SPACEDIM> fac{AMREX_D_DECL(Real(2.), Real(0.5), Real(1.25))};
         {
             ParmParse pp;
@@ -224,8 +227,9 @@ int main (int argc, char* argv[])
 
         bool pass = (err_lap < tol) && (err_flux < tol);
         // The factors must matter: without them the cross terms are off by
-        // fac_d/fac_j, an O(1) relative error on the transpose part.
-        bool discriminates = err_naive > Real(1.e-3);
+        // fac_d/fac_j, an O(1) relative error on the transpose part (0.67 for
+        // these fields and factors).
+        bool discriminates = err_naive > Real(1.e-2);
 
         if (!pass || !discriminates) {
             amrex::Abort("TensorMapped test FAILED");
