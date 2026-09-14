@@ -200,3 +200,22 @@ macro( add_test_install_target _dir _amrex_root )
       )
 
 endmacro()
+
+#
+# Add uninstall target
+#
+# _amrex_root: Root directory of AMReX (contains Tools/CMake/)
+#
+macro(add_uninstall_target _amrex_root)
+    if(NOT TARGET uninstall)
+        configure_file(
+            "${_amrex_root}/Tools/CMake/AMReX_cmake_uninstall.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+            IMMEDIATE @ONLY)
+
+        add_custom_target(uninstall
+            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+            COMMENT "Uninstalling files listed in install_manifest.txt"
+        )
+    endif()
+endmacro()

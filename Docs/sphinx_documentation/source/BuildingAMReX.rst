@@ -425,6 +425,7 @@ The CMake build process is summarized as follows:
     cmake [options] -DCMAKE_BUILD_TYPE=[Debug|Release|RelWithDebInfo|MinSizeRel] -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
     make  install
     make  test_install  # optional step to test if the installation is working
+    make  uninstall     # optional step to remove files from install_manifest.txt
 
 In the above snippet, ``[options]`` indicates one or more options for the
 customization of the build, as described in the subsection on
@@ -432,6 +433,10 @@ customization of the build, as described in the subsection on
 ``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
 complete, ``builddir`` can be removed.
+
+The ``uninstall`` target removes files listed in ``install_manifest.txt``.
+For staged installs, use the same ``DESTDIR`` setting that was used for the
+install step.
 
 
 .. _sec:build:cmake:options:
