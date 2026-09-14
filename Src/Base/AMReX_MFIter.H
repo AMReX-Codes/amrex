@@ -146,7 +146,11 @@ public:
     //! Return the tilebox with provided nodal flag and grown cells
     [[nodiscard]] Box tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept;
 
-    //! Return the dir-nodal (or all nodal if dir<0) Box at the current index.
+    /**
+     * \brief Return the dir-nodal (or all nodal if dir<0) tile Box at the
+     * current index.  The Box is cell-centered in the other directions
+     * regardless of the FabArray's index type, like grownnodaltilebox.
+     */
     [[nodiscard]] Box nodaltilebox (int dir=-1) const noexcept;
 
     //! Return the tile box at the current index grown to include ghost cells.

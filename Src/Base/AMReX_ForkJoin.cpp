@@ -112,6 +112,12 @@ ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].empty(),
                                      "Can only register to a (name, index) pair once");
+    if (strategy == Strategy::single ||
+        (strategy == Strategy::duplicate && intent != Intent::in)) {
+        // these cases need a valid owner task
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(owner >= 0 && owner < NTasks(),
+                                         "A valid owner task must be specified for this strategy and intent");
+    }
 
     IntVect ngrow = mf.nGrowVect(); // default use original MultiFab's grow cells
 
@@ -144,11 +150,16 @@ ForkJoin::modify_ngrow (const std::string &name, int idx, IntVect ngrow)
                                      "(name, index) pair doesn't exist");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag_invoked,
                                      "Can only specify grow cells before first forkjoin() invocation");
+    auto& mff = data[name][idx];
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mff.empty(),
+                                     "(name, index) pair has not been registered");
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow[i] >= 0,
                                          "ngrow[i] must be non-negative");
     }
-    data[name][idx].ngrow = ngrow;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow.allLE(mff.orig->nGrowVect()),
+                                     "ngrow cannot exceed the original MultiFab's grow cells");
+    mff.ngrow = ngrow;
 }
 
 void

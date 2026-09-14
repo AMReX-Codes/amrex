@@ -893,13 +893,17 @@ inline constexpr const IntVectND<dim> IntVectND<dim>::Unit{1};
 
 // Template deduction guide for IntVectND
 template<std::size_t dim>
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
 template <class...Args>
 requires (IsConvertible_v<int, Args...>)
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
 //! \brief IntVect is an alias for \ref amrex::IntVectND instantiated with

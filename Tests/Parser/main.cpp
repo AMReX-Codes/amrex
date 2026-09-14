@@ -512,6 +512,93 @@ int main (int argc, char* argv[])
         }
 #endif
 
+        // Edge cases where the optimizer must agree with the runtime evaluator.
+
+        // pow(pow(x,m),n) may only be merged for integer m and n.
+        nerror += test1("(x**2)**0.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),0.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        nerror += test1("(x**2)**1.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),1.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        nerror += test1("((x-1)*(x-1))**0.5", {}, {"x"},
+                        [=] (double x) -> double { return std::pow((x-1.0)*(x-1.0),0.5); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+        // Integer exponents still merge.
+        nerror += test1("(x**2)**3", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(std::pow(x,2.0),3.0); },
+                        {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
+
+        // pow with a constant zero base: std::pow(0,0) is 1 and pow(0,-1) is inf.
+        nerror += test1("c**x", {{"c",0.0}}, {"x"},
+                        [=] (double x) -> double { return std::pow(0.0,x); },
+                        {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("0**x", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(0.0,x); },
+                        {0.0}, {4.0}, 5, 1.e-12, 1.e-15);
+
+        // and/or must return 1 or 0, not the operand.
+        nerror += test1("x and 1", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("1 and x", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("(x and 1)+1", {}, {"x"},
+                        [=] (double x) -> double { return ((x != 0.0) ? 1.0 : 0.0) + 1.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x or 0", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("0 or x", {}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x and c", {{"c",1.0}}, {"x"},
+                        [=] (double x) -> double { return (x != 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+        // An operand that is already 0 or 1 needs no extra operation.
+        nerror += test1("(x>0) and 1", {}, {"x"},
+                        [=] (double x) -> double { return (x > 0.0) ? 1.0 : 0.0; },
+                        {-2.0}, {2.0}, 5, 1.e-12, 1.e-15);
+
+        {   // Re-registering must forget the variables it drops, even when the
+            // syntax tree is shared with a copy of the Parser.
+            amrex::Print() << test_number++ << ". Testing Parser re-registration\n";
+            auto expect_unknown = [&] (Parser const& p) -> bool
+            {
+                try {
+                    Parser q = p; // NOLINT(performance-unnecessary-copy-initialization)
+                    auto exe = q.compile<1>();
+                    auto r = exe(2.0);
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            {
+                Parser p("x+y");
+                p.registerVariables({"x","y"});
+                p.registerVariables({"y"});
+                if (!expect_unknown(p)) { ++nerror; }
+            }
+            {   // The copy registers, so the original's stale binding must go.
+                Parser p("x+y");
+                Parser q = p;
+                p.registerVariables({"x","y"});
+                q.registerVariables({"y"});
+                if (!expect_unknown(q)) { ++nerror; }
+            }
+            {   // Reordering is still allowed.
+                Parser p("x-y");
+                p.registerVariables({"x","y"});
+                p.registerVariables({"y","x"});
+                auto exe = p.compile<2>();
+                if (exe(3.0,10.0) != 7.0) { ++nerror; } // y=3, x=10
+            }
+        }
+
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {
             amrex::Print() << nerror << " tests failed\n";
@@ -589,6 +676,28 @@ int main (int argc, char* argv[])
                 }
             }
 
+            // A division that the executor never evaluates must not be folded.
+            AMREX_ALWAYS_ASSERT(h("if(0, 1/0, 2)") == 2);
+            AMREX_ALWAYS_ASSERT(h("if(0, 1//0, 2)") == 2);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 1) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 0) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100//n, 0)", "n", 0) == 0);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/(n-1), 0)", "n", 3) == 50);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, 100/n, 0)", "n", 4) == 25);
+            AMREX_ALWAYS_ASSERT(g("if(n > 1, x/(n-1), 0)", "n", 3) == x/2);
+
+            {   // A local variable makes the compiler resolve symbol offsets, so
+                // a node left claiming the wrong operand types would be fatal.
+                amrex::Print() << count++ << ". Testing \"t=7; if(c, x/n, t)\"\n";
+                IParser iparser("t=7; if(c, x/n, t)");
+                iparser.setConstant("n", 0);
+                iparser.registerVariables({"x","c"});
+                auto exe = iparser.compileHost<2>();
+                AMREX_ALWAYS_ASSERT(exe(10,0) == 7);
+            }
+
             AMREX_ALWAYS_ASSERT(h("123456789012345") == 123456789012345LL);
             AMREX_ALWAYS_ASSERT(h("123456789012345.") == 123456789012345LL);
             AMREX_ALWAYS_ASSERT(h("123'456'789'012'345") == 123456789012345LL);
@@ -610,6 +719,64 @@ int main (int argc, char* argv[])
                     return true;
                 }
             };
+            // An unregistered variable must be rejected, whatever optimized
+            // node form it ends up in.
+            auto test_unknown_var = [&] (std::string const& s)
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                try {
+                    IParser iparser(s);
+                    iparser.registerVariables({"x"});
+                    auto exe = iparser.compileHost<1>();
+                    auto r = exe(1);
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y"));        // SYMBOL
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y+2"));      // ADD_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2-y"));      // SUB_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2*y"));      // MUL_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("2/y"));      // DIV_VP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y/2"));      // DIV_PV
+            AMREX_ALWAYS_ASSERT(test_unknown_var("0-y"));      // NEG_P
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x+y"));      // ADD_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x-y"));      // SUB_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x*y"));      // MUL_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("x/y"));      // DIV_PP
+            AMREX_ALWAYS_ASSERT(test_unknown_var("y+x"));
+            AMREX_ALWAYS_ASSERT(test_unknown_var("if(x>0, y, 0)"));
+            AMREX_ALWAYS_ASSERT(test_unknown_var("t=2*y; t+x"));
+
+            {   // Re-registering must forget the variables it drops.
+                amrex::Print() << count++ << ". Testing IParser re-registration\n";
+                IParser iparser("x+y");
+                iparser.registerVariables({"x","y"});
+                iparser.registerVariables({"y"});
+                bool caught = false;
+                try {
+                    auto exe = iparser.compileHost<1>();
+                    auto r = exe(1);
+                    amrex::ignore_unused(r);
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    caught = true;
+                }
+                AMREX_ALWAYS_ASSERT(caught);
+            }
+
+            {   // Reordering is still allowed.
+                amrex::Print() << count++ << ". Testing IParser reordering\n";
+                IParser iparser("x-y");
+                iparser.registerVariables({"x","y"});
+                iparser.registerVariables({"y","x"});
+                auto exe = iparser.compileHost<2>();
+                AMREX_ALWAYS_ASSERT(exe(3,10) == 7); // y=3, x=10
+            }
+
             AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));
             AMREX_ALWAYS_ASSERT(test_bad_number("1.234e2"));
             AMREX_ALWAYS_ASSERT(test_bad_number("3.14"));

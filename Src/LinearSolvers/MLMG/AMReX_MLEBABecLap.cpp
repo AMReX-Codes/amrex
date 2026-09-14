@@ -143,6 +143,19 @@ void
 MLEBABecLap::setPhiOnCentroid ()
 {
     m_phi_loc = Location::CellCentroid;
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        if (m_eb_phi[amrlev] && m_eb_phi[amrlev]->nGrow() == 0) {
+            const int mglev = 0;
+            const int ncomp = getNComp();
+            auto p = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+                                                m_dmap[amrlev][mglev],
+                                                ncomp, 1, MFInfo(),
+                                                *m_factory[amrlev][mglev]);
+            MultiFab::Copy(*p, *m_eb_phi[amrlev], 0, 0, ncomp, 0);
+            p->FillBoundary(m_geom[amrlev][mglev].periodicity());
+            m_eb_phi[amrlev] = std::move(p);
+        }
+    }
 }
 
 void
@@ -158,6 +171,7 @@ MLEBABecLap::setScalars (Real a, Real b)
         }
         m_acoef_set = true;
     }
+    m_needs_update = true;
     m_scalars_set = true;
 }
 
@@ -680,7 +694,7 @@ MLEBABecLap::averageDownEBPhi ()
     if (m_eb_phi[0]) {
         for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev) {
             amrex::EB_average_down_boundaries(*m_eb_phi[amrlev], *m_eb_phi[amrlev-1],
-                                              mg_coarsen_ratio, 0);
+                                              AMRRefRatioVect(amrlev-1), 0);
         }
     }
 }
@@ -803,6 +817,12 @@ MLEBABecLap::prepareForSolve ()
 
     MLCellABecLap::prepareForSolve();
 
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_bc_tags[amrlev][mglev].undefine();
+        }
+    }
+
     applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
@@ -827,7 +847,7 @@ MLEBABecLap::prepareForSolve ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }
@@ -1466,7 +1486,7 @@ MLEBABecLap::update ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }

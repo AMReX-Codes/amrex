@@ -6,8 +6,8 @@ module amrex_mempool_module
 
   implicit none
 
-  integer (kind=c_size_t), parameter, private :: szi = 4_c_size_t
-  integer (kind=c_size_t), parameter, private :: szl = 4_c_size_t
+  integer (kind=c_size_t), parameter, private :: szi = int(storage_size(0)/8, c_size_t)
+  integer (kind=c_size_t), parameter, private :: szl = int(storage_size(.false.)/8, c_size_t)
 
   interface amrex_allocate
      module procedure bl_allocate_r1

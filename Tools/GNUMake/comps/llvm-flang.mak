@@ -83,9 +83,8 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 ########################################################################
 
-# libflangrti.so is needed when using OpenMP. It is also needed in
-# Castro_util.o to provide the symbol "__mth_i_idnint" in non-OpenMP builds
-override XTRALIBS += -lflangrti -lflang -lpgmath
+# Needed when clang++ does the linking.
+override XTRALIBS += -lflang_rt.runtime
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan

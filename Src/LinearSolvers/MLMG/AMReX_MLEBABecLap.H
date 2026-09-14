@@ -331,7 +331,8 @@ protected:
     //! Average coefficients from fine AMR level \p flev to coarse AMR level \p flev-1.
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
-    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+    // Robin BC modifies alpha, which has only one component.
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return getNComp() == 1; }
 
     mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 

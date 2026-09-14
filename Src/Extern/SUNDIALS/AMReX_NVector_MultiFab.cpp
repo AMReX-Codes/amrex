@@ -278,11 +278,21 @@ void N_VProd_MultiFab(N_Vector x, N_Vector y, N_Vector z)
     amrex::MultiFab *mf_z = amrex::sundials::getMFptr(z);
 
     int ncomp = mf_x->nComp();
-    //int nghost = mf_x->nGrow();
-    int nghost = 0;  // do not include ghost cells
 
-    amrex::MultiFab::Copy(*mf_z, *mf_x, 0, 0, ncomp, nghost);
-    amrex::MultiFab::Multiply(*mf_z, *mf_y, 0, 0, ncomp, nghost);
+    // ghost cells not included; z may alias x or y
+    for (amrex::MFIter mfi(*mf_x); mfi.isValid(); ++mfi)
+    {
+         const amrex::Box& bx = mfi.validbox();
+         amrex::Array4<amrex::Real const> const& x_fab = mf_x->const_array(mfi);
+         amrex::Array4<amrex::Real const> const& y_fab = mf_y->const_array(mfi);
+         amrex::Array4<amrex::Real> const& z_fab = mf_z->array(mfi);
+
+         amrex::ParallelFor(bx, ncomp,
+         [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+         {
+             z_fab(i,j,k,c) = x_fab(i,j,k,c) * y_fab(i,j,k,c);
+         });
+    }
 }
 
 void N_VDiv_MultiFab(N_Vector x, N_Vector y, N_Vector z)
@@ -292,11 +302,21 @@ void N_VDiv_MultiFab(N_Vector x, N_Vector y, N_Vector z)
     amrex::MultiFab *mf_z = amrex::sundials::getMFptr(z);
 
     int ncomp = mf_x->nComp();
-    //int nghost = mf_x->nGrow();
-    int nghost = 0;  // do not include ghost cells
 
-    amrex::MultiFab::Copy(*mf_z, *mf_x, 0, 0, ncomp, nghost);
-    amrex::MultiFab::Divide(*mf_z, *mf_y, 0, 0, ncomp, nghost);
+    // ghost cells not included; z may alias x or y
+    for (amrex::MFIter mfi(*mf_x); mfi.isValid(); ++mfi)
+    {
+         const amrex::Box& bx = mfi.validbox();
+         amrex::Array4<amrex::Real const> const& x_fab = mf_x->const_array(mfi);
+         amrex::Array4<amrex::Real const> const& y_fab = mf_y->const_array(mfi);
+         amrex::Array4<amrex::Real> const& z_fab = mf_z->array(mfi);
+
+         amrex::ParallelFor(bx, ncomp,
+         [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+         {
+             z_fab(i,j,k,c) = x_fab(i,j,k,c) / y_fab(i,j,k,c);
+         });
+    }
 }
 
 void N_VScale_MultiFab(amrex::Real c, N_Vector x, N_Vector z)
@@ -573,7 +593,9 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
             });
     }
 
-    temp = mf_m->norm1();
+    for (int c = 0; c < ncomp; ++c) {
+        temp += mf_m->norm1(c, 0, true);
+    }
     /* Return false if any constraint was violated */
     ParallelAllReduce::Max(temp, ParallelContext::CommunicatorSub());
 

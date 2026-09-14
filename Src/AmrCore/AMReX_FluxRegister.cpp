@@ -151,7 +151,7 @@ FluxRegister::SumReg (int comp) const
         }
     }
 
-    ParallelDescriptor::ReduceRealSum(sum);
+    ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
 
     return sum;
 }
@@ -708,7 +708,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                     }
                 }
                 if (geom.isPeriodic(dir)) {
-                    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
+                    if (bx.bigEnd(dir) == domain.bigEnd(dir)+1) { // nodal in dir
                         const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
                         const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
                         for (auto const& is : isects2) {

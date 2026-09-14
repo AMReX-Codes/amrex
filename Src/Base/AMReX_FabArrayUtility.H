@@ -1138,11 +1138,11 @@ bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghos
 
 template <BaseFabType FAB, class F>
 requires (amrex::DefinitelyNotHostRunnable<F>::value)
-bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
+bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    amrex::ignore_unused(fa,nghost);
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
-    return 0;
+    return false;
 }
 }
 /// \endcond
@@ -1354,7 +1354,8 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
 
     bool explicit_swap = true;
 
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+    if (srccomp == dstcomp && dstcomp == 0 && numcomp == src.nComp() &&
+        src.nComp() == dst.nComp() &&
         src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
         src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
         explicit_swap = false;
@@ -1696,7 +1697,9 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
     }
 
     fa.os_temp = std::make_unique< FabArray<FAB> > ( fa.boxArray(), fa.DistributionMap(),
-                                                     ncomp, 0, MFInfo(), fa.Factory() );
+                                                     ncomp, 0,
+                                                     MFInfo().SetArena(The_Async_Arena()),
+                                                     fa.Factory() );
     fa.os_temp->setVal(0);
     fa.os_temp->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
 }
@@ -1810,7 +1813,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 }
             });
         } else {
-            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
+            // The result is read on the host below, so the streams used by
+            // MFIter must be synchronized even inside a NoSyncRegion.
+            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(true)); mfi.isValid(); ++mfi) {
                 const Box& bx = amrex::grow(mfi.validbox(), nghost);
                 auto const& arr = mf.const_array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

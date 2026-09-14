@@ -571,8 +571,9 @@ namespace amrex
     [[nodiscard]] FPExcept getFPExcept ();
 
     //! Set FP exception traps. This enables set flags and DISABLES unset
-    //! flags. This can be used to restore previous settings. Linux and
-    //! macOS only; a no-op elsewhere, including musl-based Linux.
+    //! flags. This can be used to restore previous settings. See
+    //! disableFPExcept() on when `std::feclearexcept` is also needed. Linux
+    //! and macOS only; a no-op elsewhere, including musl-based Linux.
     //! \param excepts Bit mask describing which traps should be enabled.
     FPExcept setFPExcept (FPExcept excepts);
 
@@ -587,8 +588,16 @@ namespace amrex
      \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
          // ....
+         std::feclearexcept(FE_ALL_EXCEPT); // see the note below
          setFPExcept(prev_excepts); // restore previous settings
      \endcode
+     *
+     * Disabling a trap does not clear the hardware's record that an
+     * exception occurred. A pending exception may not be reported until
+     * the next floating point instruction, making the SIGFPE appear to
+     * come from an unrelated place. `std::feclearexcept(FE_ALL_EXCEPT)`
+     * (`<cfenv>`) avoids that, but discards all recorded exceptions.
+     *
      * \param excepts Bit mask describing which traps should be disabled.
      */
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);

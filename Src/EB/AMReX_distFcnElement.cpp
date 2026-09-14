@@ -249,17 +249,19 @@ void SplineDistFcnElement2d::calc_D(bool clamped_bc)
   }
 
   if (clamped_bc) {
+    // Row i's super-diagonal is diagplus[i] and its sub-diagonal is
+    // diagminus[i-1], so this decouples the first and last rows.
     diag[0] = Real(1.0);
-    diagminus[0] = Real(0.0);
+    diagplus[0] = Real(0.0);
 
     diag[nsplines] = Real(1.0);
-    diagplus[nsplines] = Real(0.0);
+    diagminus[nsplines-1] = Real(0.0);
 
     rhsx[0] = control_points_x[0] - bc_pt_start[0];
-    rhsx[nsplines] = -control_points_x[nsplines-1] + bc_pt_end[0];
+    rhsx[nsplines] = bc_pt_end[0] - control_points_x[nsplines];
 
     rhsy[0] = control_points_y[0] - bc_pt_start[1];
-    rhsy[nsplines] = -control_points_y[nsplines-1] + bc_pt_end[1];
+    rhsy[nsplines] = bc_pt_end[1] - control_points_y[nsplines];
 
   } else {
     // Natural boundary conditions
@@ -275,8 +277,10 @@ void SplineDistFcnElement2d::calc_D(bool clamped_bc)
                             control_points_y[nsplines-1]);
   }
 
+  // solve_thomas eliminates the diagonal in place, so the y solve needs its own.
+  std::vector<amrex::Real> diag_y = diag;
   solve_thomas(diagminus, diag, diagplus, rhsx, Dx);
-  solve_thomas(diagminus, diag, diagplus, rhsy, Dy);
+  solve_thomas(diagminus, diag_y, diagplus, rhsy, Dy);
 }
 
 
