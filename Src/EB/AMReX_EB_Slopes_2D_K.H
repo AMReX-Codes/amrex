@@ -23,9 +23,12 @@ calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int nx, int ny)
         AtA[0][0] += A[lc][0] * A[lc][0];
         AtA[0][1] += A[lc][0] * A[lc][1];
         AtA[1][1] += A[lc][1] * A[lc][1];
-        auto du = f(ii,jj);
-        Atb[0] += A[lc][0]*du;
-        Atb[1] += A[lc][1]*du;
+        // Do not read state for excluded rows: zero times NaN is still NaN.
+        if (A[lc][0] != Real(0) || A[lc][1] != Real(0)) {
+            auto du = f(ii,jj);
+            Atb[0] += A[lc][0]*du;
+            Atb[1] += A[lc][1]*du;
+        }
         ++lc;
     }}
 

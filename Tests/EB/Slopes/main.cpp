@@ -24,6 +24,7 @@
 #include <AMReX_Vector.H>
 
 #include <cmath>
+#include <limits>
 
 using namespace amrex;
 
@@ -36,9 +37,6 @@ constexpr Real coef_x = Real(1.5);
 constexpr Real coef_y = Real(-0.75);
 constexpr Real coef_z = Real(0.25);
 
-// A value that must never make it into any stencil
-constexpr Real garbage = Real(12345.);
-
 #ifdef BL_USE_FLOAT
 constexpr Real tol = Real(1.e-4);
 #else
@@ -46,7 +44,7 @@ constexpr Real tol = Real(1.e-11);
 #endif
 
 int
-test_dir (int dir)
+test_dir (int dir, Real garbage)
 {
     const Box domain(IntVect(0), IntVect(AMREX_D_DECL(ncell-1,ncell-1,ncell-1)));
     const Box gbx = amrex::grow(domain, 3);
@@ -190,7 +188,7 @@ test_dir (int dir)
         const int kern = t % 2;
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             const Real got = h_slopes[std::size_t(t)*AMREX_SPACEDIM+d];
-            if (std::abs(got-expected[d]) > tol*(Real(1.)+std::abs(expected[d]))) {
+            if (!std::isfinite(got) || std::abs(got-expected[d]) > tol*(Real(1.)+std::abs(expected[d]))) {
                 ++nfail;
                 amrex::Print() << "FAIL: dir = " << dir
                                << ", index = " << h_pos[ip]
@@ -214,7 +212,9 @@ int main (int argc, char* argv[])
     {
         int nfail = 0;
         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-            nfail += test_dir(dir);
+            // Neither finite garbage nor NaNs outside the stencil may affect slopes.
+            nfail += test_dir(dir, Real(12345.));
+            nfail += test_dir(dir, std::numeric_limits<Real>::quiet_NaN());
         }
         if (nfail == 0) {
             amrex::Print() << "EB extdir slopes: PASS\n";
