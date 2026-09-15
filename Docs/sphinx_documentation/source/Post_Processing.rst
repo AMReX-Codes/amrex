@@ -78,6 +78,8 @@ variable.
 
 In ``amrex/Tools/Plotfile``, type ``make`` and then ``./fcompare.gnu.ex`` to run.
 Typing ``./fcompare.gnu.ex`` without inputs will bring up usage and options.
+Use ``--allow_diff_dx`` to compare plotfile data without requiring identical
+cell sizes in the ASCII headers.
 
 
 **Example**
