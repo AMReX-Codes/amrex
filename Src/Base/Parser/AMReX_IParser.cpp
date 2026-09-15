@@ -95,6 +95,11 @@ IParser::registerVariables (Vector<std::string> const& vars)
     }
 
     if (m_data && m_data->m_iparser) {
+        // The syntax tree may be shared with copies of this object, so forget
+        // every previous registration, not just this object's.  A variable
+        // dropped here then fails at compile time instead of reading past the
+        // argument array.
+        iparser_clearvar(m_data->m_iparser);
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             iparser_regvar(m_data->m_iparser, vars[i].c_str(), i);

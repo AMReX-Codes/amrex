@@ -87,6 +87,8 @@ void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
             umin = amrex::min(umin, u(i+ioff,0,0,nu));
             umax = amrex::max(umax, u(i+ioff,0,0,nu));
         }
+        // Avoid 0/0 if the divides below are if-converted. No-op otherwise.
+        dumax = dumax == Real(0.) ? Real(1.) : dumax;
         if (dumax * alpha > (umax - u(i,0,0,nu))) {
             alpha = (umax - u(i,0,0,nu)) / dumax;
         }
@@ -150,6 +152,9 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
             umin = amrex::min(umin, u(i+ioff,0,0,nu));
             umax = amrex::max(umax, u(i+ioff,0,0,nu));
         }
+        // Avoid 0/0 if the divides below are if-converted. No-ops otherwise.
+        dumax = dumax == Real(0.) ? Real(1.) : dumax;
+        dumin = dumin == Real(0.) ? Real(1.) : dumin;
         if (dumax * alpha > (umax - u(i,0,0,nu))) {
             alpha = (umax - u(i,0,0,nu)) / dumax;
         }

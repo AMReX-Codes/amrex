@@ -268,14 +268,14 @@ ONES_COMP_NEG (Long& n,
 inline
 int
 _pd_get_bit (char const* base,
-             int         offs,
+             Long        offs,
              int         nby,
              const int*  ord)
 {
-    int n      = offs >> 3;
-    int nbytes = n % nby;
+    Long n     = offs >> 3;
+    int nbytes = int(n % nby);
     n     -= nbytes;
-    offs   = offs % 8;
+    int bit = int(offs % 8);
 
     if (ord == nullptr) {
         base += (n + nbytes);
@@ -283,7 +283,7 @@ _pd_get_bit (char const* base,
         base += (n + (ord[nbytes] - 1));
     }
 
-    int mask = (1 << (7 - offs));
+    int mask = (1 << (7 - bit));
 
     return (*base & mask) != 0;
 }
@@ -298,7 +298,7 @@ _pd_get_bit (char const* base,
 
 Long
 _pd_extract_field (char const* in,
-                   int         offs,
+                   Long        offs,
                    int         nbi,
                    int         nby,
                    const int*  ord)
@@ -313,12 +313,12 @@ _pd_extract_field (char const* in,
     Long n   = offs >> 3;
     int offy = int(n % nby);
     n   -= offy;
-    offs = offs % 8;
+    int bit = int(offs % 8);
     //
     // Advance the pointer past the unneeded items.
     //
     in += n;
-    unsigned char bpb = 8 - offs;
+    unsigned char bpb = 8 - bit;
 
     if (ord == nullptr) {
         ind = offy++;
@@ -403,7 +403,7 @@ void
 _pd_insert_field (Long  in_long,
                   int   nb,
                   char* out,
-                  int   offs,
+                  Long  bit_offs,
                   int   l_order,
                   int   l_bytes)
 {
@@ -415,11 +415,8 @@ _pd_insert_field (Long  in_long,
     // If the output start bit is not in the first byte move past the
     // appropriate number of bytes so that the start bit is in the first byte.
     //
-    if (offs > 7)
-    {
-        out  += (offs >> 3);
-        offs %= 8;
-    }
+    out += (bit_offs >> 3);
+    int offs = int(bit_offs % 8);
     //
     // If mi is less than offs, copy the first dm bits over, reset offs to 0,
     // Advance mi by dm, and handle the rest as if mi >= offs.
@@ -470,14 +467,14 @@ _pd_insert_field (Long  in_long,
 
 inline
 void
-_pd_set_bit (char* base, int offs)
+_pd_set_bit (char* base, Long offs)
 {
-    int nbytes = offs >> 3;
+    Long nbytes = offs >> 3;
 
     base += nbytes;
-    offs -= 8*nbytes;
+    int bit = int(offs - 8*nbytes);
 
-    int mask = (1 << (7 - offs));
+    int mask = (1 << (7 - bit));
 
     *base  |= mask; // NOLINT
 }
@@ -623,8 +620,9 @@ PD_fconvert (void*       out,
 
     Long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
     int nbits, inbytes, outbytes, sign;
-    int indxin, indxout, inrem, outrem, dindx;
-    int bi_sign, bo_sign, bi_exp, bo_exp, bi_mant, bo_mant;
+    Long indxin, indxout;
+    int inrem, outrem, dindx;
+    Long bi_sign, bo_sign, bi_exp, bo_exp, bi_mant, bo_mant;
     int nbi_exp, nbo_exp, nbi, nbo;
     char *lout, *lin;
     unsigned char *rout;
@@ -633,12 +631,12 @@ PD_fconvert (void*       out,
     nbo     = int(outfor[0]);
     nbi_exp = int(infor[1]);
     nbo_exp = int(outfor[1]);
-    bi_sign = int(infor[3] + boffs);
-    bo_sign = int(outfor[3]);
-    bi_exp  = int(infor[4] + boffs);
-    bo_exp  = int(outfor[4]);
-    bi_mant = int(infor[5] + boffs);
-    bo_mant = int(outfor[5]);
+    bi_sign = infor[3] + boffs;
+    bo_sign = outfor[3];
+    bi_exp  = infor[4] + boffs;
+    bo_exp  = outfor[4];
+    bi_mant = infor[5] + boffs;
+    bo_mant = outfor[5];
 
     hmbo    = (outfor[6] & 1LL);
     hmbi    = (infor[6] & 1LL);
@@ -649,9 +647,7 @@ PD_fconvert (void*       out,
     hexpn     = 1LL << (outfor[1] - 1L);
     expn_max  = (1LL << outfor[1]) - 1LL;
 
-    auto number = size_t(nitems);
-    BL_ASSERT(int(number) == nitems);
-    memset(out, 0, number*outbytes);
+    memset(out, 0, std::size_t(nitems)*outbytes);
 
     lout = (char*)out;
     lin  = (char*)in;
@@ -763,9 +759,9 @@ PD_fconvert (void*       out,
     //
     if (hmbo)
     {
-        int j, mask = (1 << (7 - bo_mant % 8));
+        int j, mask = (1 << (7 - int(bo_mant % 8)));
 
-        indxout = int(outfor[5]/8);
+        indxout = outfor[5]/8;
         rout    = (unsigned char *) out;
         for (i = 0L; i < nitems; i++, rout += outbytes)
         {
@@ -795,7 +791,7 @@ PD_fixdenormals (void*       out,
     const int nbo = int(outfor[0]);
 
     int nbo_exp  = int(outfor[1]);
-    int bo_exp   = int(outfor[4]);
+    Long bo_exp  = outfor[4];
     int outbytes = (nbo + 7) >> 3;
 
     char* lout = (char*) out;
@@ -914,6 +910,9 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != ')') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    }
+    if (fmt.size() != 8) {
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected 8 format numbers");
     }
     rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),static_cast<int>(ord.size()));
     return is;

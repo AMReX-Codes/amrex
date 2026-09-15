@@ -176,6 +176,7 @@ void amrex_iparser_delete_ptrs ();
 struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node);
 
 void iparser_regvar (struct amrex_iparser* iparser, char const* name, int i);
+void iparser_clearvar (struct amrex_iparser* iparser);
 void iparser_setconst (struct amrex_iparser* iparser, char const* name, long long c);
 void iparser_print (struct amrex_iparser* iparser);
 std::set<std::string> iparser_get_symbols (struct amrex_iparser* iparser);

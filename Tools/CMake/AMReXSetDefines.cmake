@@ -169,7 +169,6 @@ add_amrex_define( AMREX_USE_NVML NO_LEGACY IF AMReX_CUDA )
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    add_amrex_define( AMREX_USE_GPU NO_LEGACY )
    add_amrex_define( AMREX_GPU_MAX_THREADS=${AMReX_GPU_MAX_THREADS} NO_LEGACY )
-   add_amrex_define( BL_COALESCE_FABS )
 endif()
 
 if (AMReX_CUDA OR AMReX_HIP)

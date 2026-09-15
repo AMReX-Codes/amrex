@@ -439,16 +439,20 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
             if (tmp.ok()) { face_boxes.push_back(tmp); }
         }
         const int n_face_boxes = face_boxes.size();
-        if (n_face_boxes == 1) {
-            amrex::ParallelFor(face_boxes[0],
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
-                IntVect const idx(AMREX_D_DECL(i,j,k));
-                fillfunc(idx, fab, dcomp, numcomp, domain, bcr_p, 0);
-                f_user(idx, fab, dcomp, numcomp, geomdata, time,
-                       bcr_p, 0, orig_comp);
-            });
+        // For non-cell-centered data the boxes share nodes, so they must be
+        // launched separately to avoid races, like in the CPU version below.
+        if (n_face_boxes == 1 || ! idxType.cellCentered()) {
+            for (const Box& b : face_boxes) {
+                amrex::ParallelFor(b,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
+                    IntVect const idx(AMREX_D_DECL(i,j,k));
+                    fillfunc(idx, fab, dcomp, numcomp, domain, bcr_p, 0);
+                    f_user(idx, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                });
+            }
         } else if (n_face_boxes > 1) {
             AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
             Box* boxes_p = face_boxes_aa.data();
@@ -499,16 +503,20 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
             if (tmp.ok()) { edge_boxes.push_back(tmp); }
         }
         const int n_edge_boxes = edge_boxes.size();
-        if (n_edge_boxes == 1) {
-            amrex::ParallelFor(edge_boxes[0],
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
-                IntVect const idx(AMREX_D_DECL(i,j,k));
-                fillfunc(idx, fab, dcomp, numcomp, domain, bcr_p, 0);
-                f_user(idx, fab, dcomp, numcomp, geomdata, time,
-                       bcr_p, 0, orig_comp);
-            });
+        // For non-cell-centered data the boxes share nodes, so they must be
+        // launched separately to avoid races, like in the CPU version below.
+        if (n_edge_boxes == 1 || ! idxType.cellCentered()) {
+            for (const Box& b : edge_boxes) {
+                amrex::ParallelFor(b,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
+                    IntVect const idx(AMREX_D_DECL(i,j,k));
+                    fillfunc(idx, fab, dcomp, numcomp, domain, bcr_p, 0);
+                    f_user(idx, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                });
+            }
         } else if (n_edge_boxes > 1) {
             AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
             Box* boxes_p = edge_boxes_aa.data();

@@ -164,7 +164,8 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     if (isper == nullptr)
     {
         Vector<int> is_per(AMREX_SPACEDIM,0);
-        pp.queryAdd("is_periodic", is_per);
+        pp.queryAdd("is_periodic", is_per, AMREX_SPACEDIM);
+        AMREX_ASSERT(is_per.size() == AMREX_SPACEDIM);
         for (int n = 0; n < AMREX_SPACEDIM; n++) {
             gg->is_periodic[n] = is_per[n];
         }

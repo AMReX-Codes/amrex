@@ -149,7 +149,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
-                cfine.define(ba, fine.DistributionMap(), 1, 0);
+                cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
             }
 
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -580,7 +580,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     }
     else
     {
-        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
 
 #ifdef AMREX_USE_GPU
@@ -718,7 +718,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     }
@@ -733,8 +733,11 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping
     // or harmonic averaging), each velocity component needs its own
     // sigma direction.  Otherwise fall through to the scalar-sigma path.
+    // The RAP stencil is built from sigma component 0 alone, so the
+    // correction must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -930,9 +933,11 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping),
     // each flux component needs its own sigma direction.  Otherwise fall
-    // through to the scalar-sigma path.
+    // through to the scalar-sigma path.  The RAP stencil is built from
+    // sigma component 0 alone, so the fluxes must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);

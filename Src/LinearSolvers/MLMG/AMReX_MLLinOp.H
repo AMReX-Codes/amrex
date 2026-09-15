@@ -38,7 +38,7 @@ namespace amrex {
  */
 
 enum class BottomSolver : int {
-    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc, custom
 };
 
 /**
@@ -322,6 +322,27 @@ public:
     [[nodiscard]] bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
 
     [[nodiscard]] virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+
+    //! Does this operator provide its own bottom solver (BottomSolver::custom)?
+    [[nodiscard]] virtual bool supportCustomBottomSolver () const { return false; }
+
+    /**
+     * \brief Bottom solve provided by the operator itself.
+     *
+     * Used when the bottom solver is BottomSolver::custom and
+     * supportCustomBottomSolver() returns true.  The implementation must
+     * finish by calling mlmg->postCG(ret, niters), where ret follows the
+     * return codes of MLCGSolver and niters is the number of iterations.
+     * The only implementation so far, MLEBNodeFDLaplacian, runs a BiCGStab
+     * entirely on the GPU for CUDA and HIP when the bottom level has a
+     * single Box, and falls back to MLMG::bottomSolveWithCG otherwise.
+     */
+    virtual void customBottomSolve (MLMGT<MF>* mlmg, MF& x, const MF& b,
+                                    RT eps_rel, RT eps_abs, int maxiter)
+    {
+        amrex::ignore_unused(mlmg, x, b, eps_rel, eps_abs, maxiter);
+        amrex::Abort("customBottomSolve not implemented");
+    }
 
     //! Return number of components
     [[nodiscard]] virtual int getNComp () const { return 1; }
@@ -977,13 +998,25 @@ protected:
 
     [[nodiscard]] virtual MF make (int amrlev, int mglev, IntVect const& ng) const;
 
+    //! As above, with caller-selected allocation metadata for temporary storage.
+    [[nodiscard]] virtual MF make (int amrlev, int mglev, IntVect const& ng,
+                                   MFInfo const& mf_info) const;
+
     [[nodiscard]] virtual MF makeAlias (MF const& mf) const;
 
     //! Allocate an \p MF on the next coarser MG level (\p mglev+1) with grow cells \p ng.
     [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
 
+    //! As above, with caller-selected allocation metadata for temporary storage.
+    [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
+                                           MFInfo const& mf_info) const;
+
     //! Allocate an \p MF on the next coarser AMR level (\p famrlev-1) with grow cells \p ng.
     [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
+
+    //! As above, with caller-selected allocation metadata for temporary storage.
+    [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng,
+                                            MFInfo const& mf_info) const;
 
     [[nodiscard]] virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<DefaultFabFactory<FAB>>();
@@ -1117,6 +1150,13 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
 
+    m_geom.clear();
+    m_grids.clear();
+    m_dmap.clear();
+    m_factory.clear();
+    m_domain_covered.clear();
+    mg_coarsen_ratio_vec.clear();
+
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
@@ -1238,9 +1278,9 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         Box dbx = m_geom[0][0].Domain();
         Box bbx = aggbox;
         Real const nbxs = static_cast<Real>(m_grids[0][0].size());
-        Real const threshold_npts = static_cast<Real>(AMREX_D_TERM(info.agg_grid_size,
-                                                                  *info.agg_grid_size,
-                                                                  *info.agg_grid_size));
+        Long const threshold_npts = AMREX_D_TERM(Long(info.agg_grid_size),
+                                                     *info.agg_grid_size,
+                                                     *info.agg_grid_size);
         Vector<Box> domainboxes{dbx};
         Vector<Box> boundboxes{bbx};
         Vector<int> agg_flag{false};
@@ -1287,7 +1327,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             accum_coarsen_ratio.push_back(accum_coarsen_ratio.back()*rr_level);
             domainboxes.push_back(dbx.coarsen(rr_level));
             boundboxes.push_back(bbx.coarsen(rr_level));
-            bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+            bool to_agg = (bbx.d_numPts() / nbxs)
+                < Real(0.999)*static_cast<Real>(threshold_npts);
             agg_flag.push_back(to_agg);
         }
 
@@ -1303,18 +1344,21 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                     break; // average_down would fail if fine boxarray is not coarsenable.
                 }
                 m_grids[0].emplace_back(boundboxes[lev]);
-                IntVect max_grid_size(info.agg_grid_size);
-                if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
-                    && info.semicoarsening_direction != -1)
-                {
-                    IntVect blen = amrex::enclosedCells(boundboxes[lev]).size();
-                    AMREX_D_TERM(int mgs_0 = (max_grid_size[0]+blen[0]-1) / blen[0];,
-                                 int mgs_1 = (max_grid_size[1]+blen[1]-1) / blen[1];,
-                                 int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
-                    max_grid_size[info.semicoarsening_direction]
-                        *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
+                Box const cell_box = amrex::enclosedCells(boundboxes[lev]);
+                if (cell_box.numPts() > threshold_npts) {
+                    IntVect max_grid_size(info.agg_grid_size);
+                    if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
+                        && info.semicoarsening_direction != -1)
+                    {
+                        IntVect blen = cell_box.size();
+                        AMREX_D_TERM(int mgs_0 = (max_grid_size[0]+blen[0]-1) / blen[0];,
+                                     int mgs_1 = (max_grid_size[1]+blen[1]-1) / blen[1];,
+                                     int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
+                        max_grid_size[info.semicoarsening_direction]
+                            *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
+                    }
+                    m_grids[0].back().maxSize(max_grid_size);
                 }
-                m_grids[0].back().maxSize(max_grid_size);
                 m_dmap[0].push_back(DistributionMapping());
                 if (!agged) {
                     agged = true;
@@ -1756,11 +1800,15 @@ void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
 {
-    m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
-                                   crse->nComp(), crse->nGrowVect());
-    m_coarse_data_for_bc_raii.LocalCopy(*crse, 0, 0, crse->nComp(),
-                                        crse->nGrowVect());
-    m_coarse_data_for_bc = &m_coarse_data_for_bc_raii;
+    if (crse) {
+        m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
+                                       crse->nComp(), crse->nGrowVect());
+        m_coarse_data_for_bc_raii.LocalCopy(*crse, 0, 0, crse->nComp(),
+                                            crse->nGrowVect());
+        m_coarse_data_for_bc = &m_coarse_data_for_bc_raii;
+    } else {
+        m_coarse_data_for_bc = nullptr;
+    }
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
 }
@@ -1783,9 +1831,16 @@ template <typename MF>
 MF
 MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng) const
 {
+    return make(amrlev, mglev, ng, MFInfo());
+}
+
+template <typename MF>
+MF
+MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng, MFInfo const& mf_info) const
+{
     if constexpr (IsMultiFabLike_v<MF>) {
         return MF(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
-                  m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
+                  m_dmap[amrlev][mglev], getNComp(), ng, mf_info,
                   *m_factory[amrlev][mglev]);
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
@@ -1811,12 +1866,21 @@ template <typename MF>
 MF
 MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 {
+    return makeCoarseMG(amrlev, mglev, ng, MFInfo());
+}
+
+template <typename MF>
+MF
+MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng,
+                            MFInfo const& mf_info) const
+{
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[amrlev][mglev];
         IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
+        if (hasHiddenDimension()) { ratio[hiddenDirection()] = 1; }
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng);
+        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng, mf_info);
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
         amrex::Abort("MLLinOpT::makeCoarseMG: how did we get here?");
@@ -1828,12 +1892,19 @@ template <typename MF>
 MF
 MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng) const
 {
+    return makeCoarseAmr(famrlev, ng, MFInfo());
+}
+
+template <typename MF>
+MF
+MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng, MFInfo const& mf_info) const
+{
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[famrlev][0];
         IntVect ratio(AMRRefRatioVect(famrlev-1));
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[famrlev][0], getNComp(), ng);
+        return MF(cba, m_dmap[famrlev][0], getNComp(), ng, mf_info);
     } else {
         amrex::ignore_unused(famrlev, ng);
         amrex::Abort("MLLinOpT::makeCoarseAmr: how did we get here?");

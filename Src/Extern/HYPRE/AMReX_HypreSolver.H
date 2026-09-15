@@ -409,6 +409,8 @@ HypreSolver<MSS>::fill_global_id ()
             p_global_id.push_back(&(m_global_id[ivar]));
         }
     } else {
+        // Reserve so that the pointers taken below stay valid.
+        global_id_raii.reserve(m_nvars);
         for (int ivar = 0; ivar < m_nvars; ++ivar) {
             global_id_raii.emplace_back(m_global_id[ivar].boxArray(),
                                         m_global_id[ivar].DistributionMap(),

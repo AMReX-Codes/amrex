@@ -76,8 +76,7 @@ namespace amrex
                 {
                     const int fi = cfinfo.fine_grid_idx[mfi.LocalIndex()];
 
-                    Box ccbx = amrex::grow(fine[0]->boxArray()[fi], ngrow);
-                    ccbx.enclosedCells();
+                    Box ccbx = cfinfo.ba_cfb[mfi.index()];
                     ccbx.coarsen(ref_ratio).refine(ref_ratio);  // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = cmf[0][mfi];
@@ -122,9 +121,9 @@ namespace amrex
                     {
                         const BoxArray& fine_ba = fine[idim]->boxArray();
                         const Box& fine_valid_box = fine_ba[fi];
-                        Box b = bfab[idim].box();
-                        const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
                         FArrayBox& fine_fab = (*fine[idim])[fi];
+                        Box b = bfab[idim].box() & fine_fab.box();
+                        const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
                         for (const auto& x : diff)
                         {
                             fine_fab.copy<RunOn::Host>(bfab[idim], x, 0, x, 0, 1);
