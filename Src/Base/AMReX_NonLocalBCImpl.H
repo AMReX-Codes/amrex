@@ -460,6 +460,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         handler.send.the_data =
             FabArray<FAB>::PrepareSendBuffers(*cmd.m_SndTags, handler.send.data, handler.send.size,
                                   handler.send.rank, handler.send.request, handler.send.cctc, ncomp);
+        handler.send.id = FabArrayBase::getNextCommMetaDataId();
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
@@ -565,7 +566,7 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
             auto const& fab = mf.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,ncomp,i,j,k,n,
             {
-                fab(i,j,k,n) = fab(-i-1,-j-1,k,n);
+                fab(i,j,k,scomp+n) = fab(-i-1,-j-1,k,scomp+n);
             });
         }
     }

@@ -257,6 +257,17 @@ can be set via :cpp:`ParmParse`.
    This parameter, if found, will override the
    :py:data:`amrex.refine_grid_layout` parameter in the z-direction.
 
+.. py:data:: amr.refine_whole_domain_dir
+   :type: int
+   :value: -1
+
+   If this is 0, 1 or 2, the fine levels will cover the entire domain in that
+   coordinate direction, no matter where the cells are tagged. Tagging a cell
+   then behaves as if the whole line of cells through it in that direction were
+   tagged, and :py:data:`amr.grid_eff` refers to the fraction of tagged cells in
+   the plane perpendicular to that direction. A negative value, the default,
+   disables this.
+
 .. py:data:: amr.check_input
    :type: bool
    :value: true

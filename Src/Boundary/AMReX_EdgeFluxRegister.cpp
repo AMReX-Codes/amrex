@@ -182,6 +182,30 @@ void EdgeFluxRegister::reset ()
     Gpu::synchronize();
 }
 
+namespace {
+// Due to its special BoxArray, it's not safe to do tiling on m_E_fine.
+void EFRAddFine (MultiFab& dst, MultiFab const& src, int ncomp)
+{
+#ifdef AMREX_USE_GPU
+    auto const& dma = dst.arrays();
+    auto const& sma = src.const_arrays();
+    ParallelFor(dst, IntVect(0), ncomp,
+    [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+    {
+        dma[bno](i,j,k,n) += sma[bno](i,j,k,n);
+    });
+    Gpu::streamSynchronize();
+#else
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
+        dst[mfi].plus<RunOn::Host>(src[mfi], 0, 0, ncomp);
+    }
+#endif
+}
+}
+
 EdgeFluxRegister&
 EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
 {
@@ -194,13 +218,13 @@ EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
     }
     for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
         for (int icomp = 0; icomp < 2; ++icomp) {
-            MultiFab::Add(m_E_fine[iface][icomp], rhs.m_E_fine[iface][icomp], 0, 0, m_ncomp, 0);
+            EFRAddFine(m_E_fine[iface][icomp], rhs.m_E_fine[iface][icomp], m_ncomp);
         }
     }
 #else
     MultiFab::Add(m_E_crse, rhs.m_E_crse, 0, 0, m_ncomp, 0);
     for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
-        MultiFab::Add(m_E_fine[iface], rhs.m_E_fine[iface], 0, 0, m_ncomp, 0);
+        EFRAddFine(m_E_fine[iface], rhs.m_E_fine[iface], m_ncomp);
     }
 #endif
 

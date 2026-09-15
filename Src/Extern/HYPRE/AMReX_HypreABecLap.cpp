@@ -104,7 +104,8 @@ HypreABecLap::getSolution (MultiFab& a_soln)
     MultiFab* soln = &a_soln;
     MultiFab tmp;
     if (a_soln.nGrowVect() != 0) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         soln = &tmp;
     }
 

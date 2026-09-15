@@ -57,6 +57,14 @@ struct AmrInfo {
      */
     IntVect refine_grid_layout_dims = IntVect(1);
 
+    /**
+     * Direction in which the fine levels cover the entire domain, no matter
+     * where the cells are tagged.  Tagging a cell then behaves as if the
+     * whole line of cells through it in that direction were tagged.  A
+     * negative value means there is no such direction.
+     */
+    int refine_whole_domain_dir = -1;
+
     bool check_input = true;
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;

@@ -1059,6 +1059,37 @@ Level::setShift (int direction, int ncells)
 }
 
 void
+Level::buildCellFlagFC (int face_dir)
+{
+    FCData& fc = *m_fc_data[face_dir];
+
+    Array<MultiFab,AMREX_SPACEDIM> ap;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        ap[idim].define(fc.m_areafrac_fc[idim].boxArray(),
+                        fc.m_areafrac_fc[idim].DistributionMap(), 1, 1);
+    }
+    fillAreaFracFC(amrex::GetArrOfPtrs(ap), face_dir, m_geom);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fc.m_cellflag_fc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto const& cflag = fc.m_cellflag_fc.array(mfi);
+        AMREX_D_TERM(auto const& apx = ap[0].const_array(mfi);,
+                     auto const& apy = ap[1].const_array(mfi);,
+                     auto const& apz = ap[2].const_array(mfi););
+        AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+        {
+            amrex::ignore_unused(k);
+            build_cellflag_from_ap(AMREX_D_DECL(i,j,k),
+                                   cflag, AMREX_D_DECL(apx,apy,apz));
+        });
+    }
+}
+
+void
 Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));

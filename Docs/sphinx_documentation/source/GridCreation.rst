@@ -81,6 +81,16 @@ grids do not contain too large a fraction of un-tagged cells.   We note that the
 process attempts to satisfy the :cpp:`amr.grid_eff` constraint but will not do so if it means
 violating the :cpp:`blocking_factor` criterion.
 
+Some applications want the fine levels to cover the entire domain in one coordinate
+direction, no matter where the cells are tagged.  Setting :cpp:`amr.refine_whole_domain_dir`
+to that direction (0 for *x*, 1 for *y*, 2 for *z*; the default of -1 disables this)
+makes the tagging of a cell behave as if the whole line of cells through it in that
+direction were tagged.  The clustering is then performed in one fewer dimension, so
+:cpp:`amr.grid_eff` refers to the fraction of tagged cells in the plane perpendicular
+to that direction.  The resulting grids may still be chopped in that direction by
+:cpp:`max_grid_size` and :cpp:`refine_grid_layout`, but together they always cover the
+entire domain.
+
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).
 This parameter is used to increase the number of tagged cells before the grids are defined;

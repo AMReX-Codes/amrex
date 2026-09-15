@@ -505,6 +505,8 @@ namespace amrex
         {
             auto* pos = const_cast<iterator>(a_pos);
             if (a_count > 0) {
+                // Copy first because a_value could be a reference to an element of this vector.
+                T const value = a_value;
                 if (m_capacity < m_size + a_count)
                 {
                     std::size_t insert_index = std::distance(m_data, pos);
@@ -517,7 +519,7 @@ namespace amrex
                                         (Allocator const&)(*this));
                     m_size += a_count;
                 }
-                detail::uninitializedFillNImpl(pos, a_count, a_value,
+                detail::uninitializedFillNImpl(pos, a_count, value,
                                                (Allocator const&)(*this));
             }
             return pos;
@@ -582,12 +584,14 @@ namespace amrex
 
         void assign (size_type a_count, const T& a_value)
         {
+            // Copy first because a_value could be a reference to an element of this vector.
+            T const value = a_value;
             if ( a_count > m_capacity ) {
                 clear();
                 reserve(a_count);
             }
             m_size = a_count;
-            detail::uninitializedFillNImpl(m_data, a_count, a_value,
+            detail::uninitializedFillNImpl(m_data, a_count, value,
                                            (Allocator const&)(*this));
         }
 
@@ -628,11 +632,13 @@ namespace amrex
 
         void push_back (const T& a_value)
         {
+            // Copy first because a_value could be a reference to an element of this vector.
+            T const value = a_value;
             if (m_size == m_capacity) {
                 auto new_capacity = GetNewCapacityForPush();
                 AllocateBufferForPush(new_capacity);
             }
-            detail::uninitializedFillNImpl(m_data+m_size, 1, a_value,
+            detail::uninitializedFillNImpl(m_data+m_size, 1, value,
                                            (Allocator const&)(*this));
             ++m_size;
         }
@@ -769,12 +775,14 @@ namespace amrex
         void resize (size_type a_new_size, const T& a_val,
                      GrowthStrategy strategy = GrowthStrategy::Poisson)
         {
+            // Copy first because a_val could be a reference to an element of this vector.
+            T const value = a_val;
             size_type old_size = m_size;
             resize_without_init_snan(a_new_size, strategy);
             if (old_size < a_new_size)
             {
                 detail::uninitializedFillNImpl(m_data + old_size,
-                                               m_size - old_size, a_val,
+                                               m_size - old_size, value,
                                                (Allocator const&)(*this));
             }
         }

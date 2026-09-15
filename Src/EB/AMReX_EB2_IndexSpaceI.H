@@ -142,6 +142,11 @@ IndexSpaceImp<G>::addFineLevels (int num_new_fine_levels)
     }
     std::swap(fine_isp.m_gslevel, m_gslevel);
 
+    // The new levels were built by fine_isp, which is about to be destroyed.
+    for (auto& lev : m_gslevel) {
+        lev.m_parent = this;
+    }
+
     m_geom.insert(m_geom.begin(), fine_isp.m_geom.begin(), fine_isp.m_geom.end());
     m_domain.insert(m_domain.begin(), fine_isp.m_domain.begin(), fine_isp.m_domain.end());
     m_ngrow.insert(m_ngrow.begin(), fine_isp.m_ngrow.begin(), fine_isp.m_ngrow.end());

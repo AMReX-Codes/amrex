@@ -828,12 +828,14 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
     const auto& stencil    =  m_nosigma_stencil[crse_amrlev+1];
 
-    MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0);
+    MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0,
+                                 MFInfo().SetArena(The_Async_Arena()));
 
     std::unique_ptr<MultiFab> tmp_fine_res;
     if (!a_fine_res.nGrowVect().allGE(amrrr-1)) {
         tmp_fine_res = std::make_unique<MultiFab>(a_fine_res.boxArray(),
-                                                  a_fine_res.DistributionMap(), 1, amrrr-1);
+                                                  a_fine_res.DistributionMap(), 1, amrrr-1,
+                                                  MFInfo().SetArena(The_Async_Arena()));
         MultiFab::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
     }
     MultiFab& fine_res = (tmp_fine_res) ? *tmp_fine_res :  a_fine_res;
@@ -871,7 +873,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
 
-    MultiFab fine_contrib(amrex::coarsen(fba, amrrr), fdm, 1, 0);
+    MultiFab fine_contrib(amrex::coarsen(fba, amrrr), fdm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
 
     const auto& fsigma = m_sigma[crse_amrlev+1][0][0];
 
@@ -993,7 +995,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         }
     }
 
-    MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0);
+    MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0,
+                                  MFInfo().SetArena(The_Async_Arena()));
     fine_contrib_on_crse.setVal(0.0);
     fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
 
