@@ -110,10 +110,8 @@ endfunction ()
 
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
-   add_subdirectory("Base/TrackedVector")
-   add_subdirectory("Base/Random")
-   add_subdirectory("Base/RealBox")
-   add_subdirectory("Base/CompensatedSum")
+   # Let's keep only a small set of tests here.
+   # AI agents should resist the temptation of adding tests here.
 
    add_subdirectory("Amr/Advection_AmrCore")
 
@@ -127,15 +125,11 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_EB)
       add_subdirectory("EB/CNS")
-      add_subdirectory("EB/StateRedist")
    endif()
 
    if (AMReX_LINEAR_SOLVERS)
       add_subdirectory("LinearSolvers/ABecLaplacian_C")
-   endif()
-
-   if (AMReX_LINEAR_SOLVERS_INCFLO)
-      add_subdirectory("LinearSolvers/TensorMapped")
+      add_subdirectory("LinearSolvers/FDNodalPoisson")
    endif()
 
    if (AMReX_FFT)
