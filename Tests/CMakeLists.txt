@@ -127,6 +127,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_EB)
       add_subdirectory("EB/CNS")
+      add_subdirectory("EB/StateRedist")
    endif()
 
    if (AMReX_LINEAR_SOLVERS)

@@ -98,16 +98,20 @@ MakeITracker ( Box const& bx,
            bool ydir_mns_ok = (is_periodic_y || (j > domain.smallEnd(1)));
            bool ydir_pls_ok = (is_periodic_y || (j < domain.bigEnd(1)  ));
 
-           // Override above logic if trying to reach outside a domain boundary (and non-periodic)
+           // Override above logic if trying to reach outside a domain boundary (and non-periodic).
+           // Note that the replacement must stay inside the domain as well -- we prefer the
+           // direction the normal points in, but reverse the sign if that side is outside.
+           // Otherwise, at a domain corner, the second override could undo the first one and
+           // leave us pointing outside the domain again.
            if ( (!xdir_mns_ok && (itracker(i,j,k,1) == 4)) ||
                 (!xdir_pls_ok && (itracker(i,j,k,1) == 5)) )
            {
-               itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
+               itracker(i,j,k,1) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
            }
            if ( (!ydir_mns_ok && (itracker(i,j,k,1) == 2)) ||
                 (!ydir_pls_ok && (itracker(i,j,k,1) == 7)) )
            {
-               itracker(i,j,k,1) = (nx > 0) ? 5 : 4;
+               itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
            }
 
            // (i,j) merges with at least one cell now
@@ -267,7 +271,17 @@ MakeITracker ( Box const& bx,
                                      " to get new sum_vol " <<  sum_vol << '\n';
 #endif
            }
-           if (sum_vol < target_volfrac)
+           // A cell next to a non-periodic domain boundary can only merge with the cells
+           // that are available inside the domain, so its neighborhood may fall short of
+           // target_volfrac even though we merged with everything we were allowed to use.
+           // We accept the largest neighborhood we could build in that case: reaching
+           // outside the domain instead would silently break conservation, because
+           // StateRedistribute leaves cells outside the domain out of Qhat even though
+           // MakeStateRedistUtils counts their volume in nbhd_vol.
+           bool nbhd_limited_by_domain = !(xdir_mns_ok && xdir_pls_ok &&
+                                           ydir_mns_ok && ydir_pls_ok);
+
+           if (sum_vol < target_volfrac && !nbhd_limited_by_domain)
            {
 #if 0
              amrex::Print() << "Couldn't merge with enough cells to raise volume at " <<
@@ -399,12 +413,22 @@ MakeITracker ( Box const& bx,
                }
            }
 
-           // Override above logic if trying to reach outside a domain boundary (and non-periodic)
+           // Is the direction the normal points in open in each coordinate direction?
+           bool xdir_nrm_ok = (nx > 0) ? xdir_pls_ok : xdir_mns_ok;
+           bool ydir_nrm_ok = (ny > 0) ? ydir_pls_ok : ydir_mns_ok;
+           bool zdir_nrm_ok = (nz > 0) ? zdir_pls_ok : zdir_mns_ok;
+
+           // Override above logic if trying to reach outside a domain boundary (and non-periodic).
+           // Note that the replacement must stay inside the domain as well: we prefer the other
+           // coordinate direction along which the normal points inward, and only reverse a sign
+           // if neither of the two remaining directions is open on the side the normal points to.
+           // Otherwise, at a domain corner or edge, a later override could undo an earlier one and
+           // leave us pointing outside the domain again.
            if ( (!xdir_mns_ok && (itracker(i,j,k,1) == 4)) ||
                 (!xdir_pls_ok && (itracker(i,j,k,1) == 5)) )
            {
-               if ( (std::abs(ny) > std::abs(nz)) ) {
-                   itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
+               if ( (std::abs(ny) > std::abs(nz) && ydir_nrm_ok) || !zdir_nrm_ok ) {
+                   itracker(i,j,k,1) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
                } else {
                    itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
                }
@@ -413,8 +437,8 @@ MakeITracker ( Box const& bx,
            if ( (!ydir_mns_ok && (itracker(i,j,k,1) == 2)) ||
                 (!ydir_pls_ok && (itracker(i,j,k,1) == 7)) )
            {
-               if ( (std::abs(nx) > std::abs(nz)) ) {
-                   itracker(i,j,k,1) = (nx > 0) ? 5 : 4;
+               if ( (std::abs(nx) > std::abs(nz) && xdir_nrm_ok) || !zdir_nrm_ok ) {
+                   itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
                } else {
                    itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
                }
@@ -423,8 +447,8 @@ MakeITracker ( Box const& bx,
            if ( (!zdir_mns_ok && (itracker(i,j,k,1) == 13)) ||
                 (!zdir_pls_ok && (itracker(i,j,k,1) == 22)) )
            {
-               if ( (std::abs(nx) > std::abs(ny)) ) {
-                   itracker(i,j,k,1) = (nx > 0) ? 5 : 4;
+               if ( (std::abs(nx) > std::abs(ny) && xdir_nrm_ok) || !ydir_nrm_ok ) {
+                   itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
                } else {
                    itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
                }
@@ -595,15 +619,50 @@ MakeITracker ( Box const& bx,
                        }
                    }
 
-                   // (i,j,k) merges with at least two cells now
-                   itracker(i,j,k,0) += 1;
-
-                   // (i+ioff2,j+joff2,k+koff2) is in the nbhd of (i,j,k)
+                   // (i+ioff2,j+joff2,k+koff2) would be in the nbhd of (i,j,k)
                    int ioff2 = imap[itracker(i,j,k,2)];
                    int joff2 = jmap[itracker(i,j,k,2)];
                    int koff2 = kmap[itracker(i,j,k,2)];
 
-                   sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
+                   // As in 2D, we don't reach outside a domain boundary (and non-periodic).
+                   // The first merge used one coordinate direction and this one wants another,
+                   // so if the chosen direction is outside the domain we try the one remaining
+                   // direction instead, and only skip this merge if that is blocked as well.
+                   bool nbor2_ok = (ioff2 >= 0 || xdir_mns_ok) && (ioff2 <= 0 || xdir_pls_ok) &&
+                                   (joff2 >= 0 || ydir_mns_ok) && (joff2 <= 0 || ydir_pls_ok) &&
+                                   (koff2 >= 0 || zdir_mns_ok) && (koff2 <= 0 || zdir_pls_ok);
+
+                   if (!nbor2_ok)
+                   {
+                       if (ioff == 0 && ioff2 == 0) {
+                           itracker(i,j,k,2) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
+                           nbor2_ok = (itracker(i,j,k,2) == 5) ? xdir_pls_ok : xdir_mns_ok;
+                       } else if (joff == 0 && joff2 == 0) {
+                           itracker(i,j,k,2) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
+                           nbor2_ok = (itracker(i,j,k,2) == 7) ? ydir_pls_ok : ydir_mns_ok;
+                       } else {
+                           itracker(i,j,k,2) = ((nz > 0 && zdir_pls_ok) || !zdir_mns_ok) ? 22 : 13;
+                           nbor2_ok = (itracker(i,j,k,2) == 22) ? zdir_pls_ok : zdir_mns_ok;
+                       }
+
+                       ioff2 = imap[itracker(i,j,k,2)];
+                       joff2 = jmap[itracker(i,j,k,2)];
+                       koff2 = kmap[itracker(i,j,k,2)];
+                   }
+
+                   if (!nbor2_ok)
+                   {
+                       // Leave the neighbor count alone so that nothing downstream -- including
+                       // the corner merge and the 2x2x2 expansion below -- sees this neighbor
+                       itracker(i,j,k,2) = 0;
+                   }
+                   else
+                   {
+                       // (i,j,k) merges with at least two cells now
+                       itracker(i,j,k,0) += 1;
+
+                       sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
+                   }
 #if 0
                    if (debug_print)
                        amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
@@ -694,10 +753,12 @@ MakeITracker ( Box const& bx,
                            amrex::Print() << "Expanding neighborhood of " << IntVect(i,j,k) <<
                                              " from 4 to 8 since sum_vol with 4 was only " << sum_vol << " " << '\n';
 #endif
-                   // All nbors are currently in the koff=0 plane
+                   // All nbors are currently in the koff=0 plane.  We use the sign of the
+                   // remaining normal component to pick the side to expand to, but reverse
+                   // that choice if it would take us outside a non-periodic domain boundary.
                    if (koff == 0)
                    {
-                       if (nz > 0)
+                       if ((nz > 0 && zdir_pls_ok) || !zdir_mns_ok)
                        {
                            itracker(i,j,k,4) = 22;
 
@@ -722,7 +783,7 @@ MakeITracker ( Box const& bx,
                                itracker(i,j,k,7) = 18;
                            }
 
-                       } else { // nz <= 0
+                       } else { // expand in the -z direction
 
                            itracker(i,j,k,4) = 13;
 
@@ -748,7 +809,7 @@ MakeITracker ( Box const& bx,
                            }
                        }
                    } else if (joff == 0) {
-                       if (ny > 0)
+                       if ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok)
                        {
                            itracker(i,j,k,4) = 7;
 
@@ -773,7 +834,7 @@ MakeITracker ( Box const& bx,
                                itracker(i,j,k,7) = 15;
                            }
 
-                       } else { // ny <= 0
+                       } else { // expand in the -y direction
 
                            itracker(i,j,k,4) = 2;
 
@@ -800,7 +861,7 @@ MakeITracker ( Box const& bx,
                        }
                    } else if (ioff == 0) {
 
-                       if (nx > 0)
+                       if ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok)
                        {
                            itracker(i,j,k,4) = 5;
 
@@ -824,7 +885,7 @@ MakeITracker ( Box const& bx,
                            } else {
                                itracker(i,j,k,7) = 11;
                            }
-                       } else { // nx <= 0
+                       } else { // expand in the -x direction
 
                            itracker(i,j,k,4) = 4;
 
@@ -869,7 +930,18 @@ MakeITracker ( Box const& bx,
                    itracker(i,j,k,0) += 4;
                }
            }
-           if (sum_vol < target_volfrac)
+           // A cell next to a non-periodic domain boundary can only merge with the cells
+           // that are available inside the domain, so its neighborhood may fall short of
+           // target_volfrac even though we merged with everything we were allowed to use.
+           // We accept the largest neighborhood we could build in that case: reaching
+           // outside the domain instead would silently break conservation, because
+           // StateRedistribute leaves cells outside the domain out of Qhat even though
+           // MakeStateRedistUtils counts their volume in nbhd_vol.
+           bool nbhd_limited_by_domain = !(xdir_mns_ok && xdir_pls_ok &&
+                                           ydir_mns_ok && ydir_pls_ok &&
+                                           zdir_mns_ok && zdir_pls_ok);
+
+           if (sum_vol < target_volfrac && !nbhd_limited_by_domain)
            {
 #if 0
              amrex::Print() << "Couldn't merge with enough cells to raise volume at " <<
