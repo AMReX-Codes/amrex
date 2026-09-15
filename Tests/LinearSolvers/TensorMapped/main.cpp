@@ -231,8 +231,13 @@ int main (int argc, char* argv[])
         bool pass = (err_lap < tol) && (err_flux < tol);
         // The factors must matter: without them the cross terms are off by
         // fac_d/fac_j, an O(1) relative error on the transpose part (0.67 for
-        // these fields and factors).
-        bool discriminates = err_naive > Real(1.e-2);
+        // these fields and factors).  Only meaningful for anisotropic factors;
+        // with fac_d all equal the ratios are 1 and both runs agree.
+        bool anisotropic = false;
+        for (int d = 1; d < AMREX_SPACEDIM; ++d) {
+            anisotropic = anisotropic || (std::abs(fac[d]-fac[0]) > Real(1.e-12));
+        }
+        bool discriminates = !anisotropic || (err_naive > Real(1.e-2));
 
         if (!pass || !discriminates) {
             amrex::Abort("TensorMapped test FAILED");
