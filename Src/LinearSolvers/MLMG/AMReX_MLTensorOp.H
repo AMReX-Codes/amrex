@@ -225,7 +225,7 @@ public:
     //! factors are per level: a level without them uses the unmapped kernels.
     [[nodiscard]] bool hasMappingFactors (int amrlev) const noexcept {
         return m_use_mapped && amrlev < static_cast<int>(m_mapfac.size())
-            && m_mapfac[amrlev][0].ok();
+            && m_mapfac[amrlev][0].isDefined();
     }
 
 protected:
