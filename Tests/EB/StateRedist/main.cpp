@@ -26,8 +26,11 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #include <AMReX_Reduce.H>
+
+#include <limits>
 
 using namespace amrex;
 
@@ -72,10 +75,9 @@ int count_outside (Array4<int const> const& itracker, int i, int j, int k,
     int nbad = 0;
     for (int n = 1; n <= itracker(i,j,k,0); ++n) {
         const int idx = itracker(i,j,k,n);
-        const int r = i + m.imap[idx];
-        const int s = j + m.jmap[idx];
-        const int t = k + m.kmap[idx];
-        const IntVect nbor(AMREX_D_DECL(r,s,t));
+        const IntVect nbor(AMREX_D_DECL(i + m.imap[idx],
+                                        j + m.jmap[idx],
+                                        k + m.kmap[idx]));
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             if (!is_per[d] && (nbor[d] < domain.smallEnd(d) || nbor[d] > domain.bigEnd(d))) {
                 ++nbad;
@@ -280,7 +282,9 @@ int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per,
     ParallelDescriptor::ReduceIntSum(nbad);
     ParallelDescriptor::ReduceRealMax(max_update);
 
-    const bool failed = (nbad > 0) || (max_update > Real(1.e-12));
+    // A constant state must come back to roundoff, in either precision.
+    const Real tol = Real(100.)*std::numeric_limits<Real>::epsilon();
+    const bool failed = (nbad > 0) || (max_update > tol);
     amrex::Print() << "  " << label << " : " << nbad << " neighbors outside the domain, "
                    << "max |update| of a constant state = " << max_update
                    << (failed ? "   ** FAILED **" : "") << '\n';
@@ -293,6 +297,11 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
     {
+        // In single precision a plane can cut a cell more than twice; cover those
+        // cells instead of aborting.
+        ParmParse pp("eb2");
+        pp.add("cover_multiple_cuts", 1);
+
         int nfail = 0;
 
         amrex::Print() << "Neighborhoods built on prescribed normals at domain edges:\n";
@@ -300,37 +309,37 @@ int main (int argc, char* argv[])
         // Corner cell whose fluid opens out of the domain corner.  Each coordinate
         // override has to leave the replacement inside the domain, otherwise the
         // x-override and the y-override undo each other.
-        nfail += synthetic_case(8, IntVect(7,7), Real(0.3), {0.7,0.5},   "hi-hi corner, n = ( .7, .5)");
-        nfail += synthetic_case(8, IntVect(0,0), Real(0.3), {-0.7,-0.5}, "lo-lo corner, n = (-.7,-.5)");
-        nfail += synthetic_case(8, IntVect(7,0), Real(0.3), {0.7,-0.5},  "hi-lo corner, n = ( .7,-.5)");
-        nfail += synthetic_case(8, IntVect(0,7), Real(0.3), {-0.7,0.5},  "lo-hi corner, n = (-.7, .5)");
+        nfail += synthetic_case(8, IntVect(7,7), 0.3_rt, {0.7_rt,0.5_rt},   "hi-hi corner, n = ( .7, .5)");
+        nfail += synthetic_case(8, IntVect(0,0), 0.3_rt, {-0.7_rt,-0.5_rt}, "lo-lo corner, n = (-.7,-.5)");
+        nfail += synthetic_case(8, IntVect(7,0), 0.3_rt, {0.7_rt,-0.5_rt},  "hi-lo corner, n = ( .7,-.5)");
+        nfail += synthetic_case(8, IntVect(0,7), 0.3_rt, {-0.7_rt,0.5_rt},  "lo-hi corner, n = (-.7, .5)");
 #else
-        nfail += synthetic_case(8, IntVect(7,7,4), Real(0.3), {0.7,0.5,0.2},    "hi-hi edge,   n = ( .7, .5, .2)");
-        nfail += synthetic_case(8, IntVect(0,0,4), Real(0.3), {-0.7,-0.5,-0.2}, "lo-lo edge,   n = (-.7,-.5,-.2)");
-        nfail += synthetic_case(8, IntVect(7,7,7), Real(0.3), {0.7,0.5,0.2},    "hi corner,    n = ( .7, .5, .2)");
-        nfail += synthetic_case(8, IntVect(0,0,0), Real(0.3), {-0.7,-0.5,-0.2}, "lo corner,    n = (-.7,-.5,-.2)");
+        nfail += synthetic_case(8, IntVect(7,7,4), 0.3_rt, {0.7_rt,0.5_rt,0.2_rt},    "hi-hi edge,   n = ( .7, .5, .2)");
+        nfail += synthetic_case(8, IntVect(0,0,4), 0.3_rt, {-0.7_rt,-0.5_rt,-0.2_rt}, "lo-lo edge,   n = (-.7,-.5,-.2)");
+        nfail += synthetic_case(8, IntVect(7,7,7), 0.3_rt, {0.7_rt,0.5_rt,0.2_rt},    "hi corner,    n = ( .7, .5, .2)");
+        nfail += synthetic_case(8, IntVect(0,0,0), 0.3_rt, {-0.7_rt,-0.5_rt,-0.2_rt}, "lo corner,    n = (-.7,-.5,-.2)");
         // Equal normal components break symmetry and force the second merge, which
         // has to respect the domain boundary just like the first one.
-        nfail += synthetic_case(8, IntVect(4,7,4), Real(0.3), {0.5,0.5,0.2}, "hi-y face,    n = ( .5, .5, .2)");
-        nfail += synthetic_case(8, IntVect(4,7,4), Real(0.3), {0.2,0.5,0.5}, "hi-y face,    n = ( .2, .5, .5)");
-        nfail += synthetic_case(8, IntVect(7,4,4), Real(0.3), {0.5,0.2,0.5}, "hi-x face,    n = ( .5, .2, .5)");
-        nfail += synthetic_case(8, IntVect(4,4,7), Real(0.3), {0.2,0.5,0.5}, "hi-z face,    n = ( .2, .5, .5)");
+        nfail += synthetic_case(8, IntVect(4,7,4), 0.3_rt, {0.5_rt,0.5_rt,0.2_rt}, "hi-y face,    n = ( .5, .5, .2)");
+        nfail += synthetic_case(8, IntVect(4,7,4), 0.3_rt, {0.2_rt,0.5_rt,0.5_rt}, "hi-y face,    n = ( .2, .5, .5)");
+        nfail += synthetic_case(8, IntVect(7,4,4), 0.3_rt, {0.5_rt,0.2_rt,0.5_rt}, "hi-x face,    n = ( .5, .2, .5)");
+        nfail += synthetic_case(8, IntVect(4,4,7), 0.3_rt, {0.2_rt,0.5_rt,0.5_rt}, "hi-z face,    n = ( .2, .5, .5)");
 #endif
 
         amrex::Print() << "Redistributing a constant state across a cut domain:\n";
 #if (AMREX_SPACEDIM == 2)
-        nfail += geometry_case(17, {0,0}, {0.30,0.30}, {0.9,0.8}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0}, {0.42,0.42}, {0.9,0.4},  9, "non-periodic,   4 boxes");
-        nfail += geometry_case(17, {1,0}, {0.30,0.30}, {0.9,0.8},  9, "x-periodic,     4 boxes");
-        nfail += geometry_case(16, {1,1}, {0.30,0.30}, {0.9,0.8},  4, "fully periodic, 16 boxes");
+        nfail += geometry_case(17, {0,0}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt}, 17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0}, {0.42_rt,0.42_rt}, {0.9_rt,0.4_rt},  9, "non-periodic,   4 boxes");
+        nfail += geometry_case(17, {1,0}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt},  9, "x-periodic,     4 boxes");
+        nfail += geometry_case(16, {1,1}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt},  4, "fully periodic, 16 boxes");
 #else
-        nfail += geometry_case(17, {0,0,0}, {0.30,0.30,0.30}, {0.9,0.8,0.7}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0,0}, {0.42,0.42,0.42}, {0.9,0.8,0.7}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0,0}, {0.30,0.30,0.30}, {0.9,-0.8,0.7}, 9, "non-periodic,   8 boxes");
-        nfail += geometry_case(17, {0,0,0}, {0.30,0.30,0.30}, {0.9,0.4,0.2}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {1,0,0}, {0.30,0.30,0.30}, {0.9,0.8,0.7},  9, "x-periodic,     8 boxes");
-        nfail += geometry_case(16, {1,1,1}, {0.42,0.42,0.42}, {0.9,0.8,0.7},  8, "fully periodic, 8 boxes");
-        nfail += geometry_case(16, {1,1,1}, {0.55,0.55,0.55}, {0.6,0.5,0.4},  4, "fully periodic, 64 boxes");
+        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt}, 17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0,0}, {0.42_rt,0.42_rt,0.42_rt}, {0.9_rt,0.8_rt,0.7_rt}, 17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,-0.8_rt,0.7_rt}, 9, "non-periodic,   8 boxes");
+        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.4_rt,0.2_rt}, 17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {1,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt},  9, "x-periodic,     8 boxes");
+        nfail += geometry_case(16, {1,1,1}, {0.42_rt,0.42_rt,0.42_rt}, {0.9_rt,0.8_rt,0.7_rt},  8, "fully periodic, 8 boxes");
+        nfail += geometry_case(16, {1,1,1}, {0.55_rt,0.55_rt,0.55_rt}, {0.6_rt,0.5_rt,0.4_rt},  4, "fully periodic, 64 boxes");
 #endif
 
         if (nfail > 0) {
