@@ -192,7 +192,6 @@ namespace amrex
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_impl->probLo(); }
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_impl->probHi(); }
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const { return m_impl->cellSize(level); }
-        [[nodiscard]] int realDescriptorNumBytes (int level) const { return m_impl->realDescriptorNumBytes(level); }
 
         [[nodiscard]] const Vector<std::string>& varNames () const noexcept { return m_impl->varNames(); }
 

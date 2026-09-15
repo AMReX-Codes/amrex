@@ -15,22 +15,6 @@ struct ErrZone {
     IntVect cell;
 };
 
-namespace {
-    bool cell_size_matches (Real a, Real b, bool fuzzy)
-    {
-        if (a == b) {
-            return true;
-        }
-        if (!fuzzy) {
-            return false;
-        }
-
-        const Real scale = std::max(std::abs(a), std::abs(b));
-        const Real tol = Real(4.0) * Real(std::numeric_limits<float>::epsilon());
-        return std::abs(a - b) <= tol * scale;
-    }
-}
-
 void PrintUsage()
 {
     amrex::Print()
@@ -40,7 +24,7 @@ void PrintUsage()
         << " variable.\n"
         << "\n"
         << " usage:\n"
-        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-l|--allow_diff_num_levels] [-r|rel_tol] [--abs_tol] [--abort_if_not_all_found] file1 file2\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [--allow_diff_dx] [-l|--allow_diff_num_levels] [-r|rel_tol] [--abs_tol] [--abort_if_not_all_found] file1 file2\n"
         << "\n"
         << " optional arguments:\n"
         << "    -n|--norm num            : what norm to use (default is 0 for inf norm)\n"
@@ -49,6 +33,7 @@ void PrintUsage()
         << "    -z|--zone_info var       : output the information for a zone corresponding\n"
         << "                               to the maximum error for the given variable\n"
         << "    -a|--allow_diff_grids    : allow different BoxArrays covering the same domain\n"
+        << "    --allow_diff_dx          : allow different grid dx values\n"
         << "    -l|--allow_diff_num_levels : allow different number of levels (only the levels in common will be compared)\n"
         << "    -r|--rel_tol rtol        : relative tolerance (default is 0)\n"
         << "    --abs_tol atol           : absolute tolerance (default is 0)\n"
@@ -73,6 +58,7 @@ int main_main()
     std::string diffvar;
     int zone_info = false;
     int allow_diff_grids = false;
+    bool allow_diff_dx = false;
     int allow_diff_num_levels = false;
     Real rtol = 0.0;
     Real atol = 0.0;
@@ -100,6 +86,8 @@ int main_main()
             plot_names[0] = diffvar;
         } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
+        } else if (fname == "--allow_diff_dx") {
+            allow_diff_dx = true;
         } else if (fname == "-l" || fname == "--allow_diff_num_levels") {
             allow_diff_num_levels = true;
         } else if (fname == "-r" || fname == "--rel_tol") {
@@ -185,20 +173,18 @@ int main_main()
         }
     }
 
-    for (int ilev = 0; ilev < nlevels; ++ilev) {
-        const auto& dx_a = pf_a.cellSize(ilev);
-        const auto& dx_b = pf_b.cellSize(ilev);
-        const int real_bytes_a = pf_a.realDescriptorNumBytes(ilev);
-        const int real_bytes_b = pf_b.realDescriptorNumBytes(ilev);
-        const bool fuzzy_dx = real_bytes_a > 0 && real_bytes_b > 0
-            && real_bytes_a != real_bytes_b;
-        bool not_match = AMREX_D_TERM(   !cell_size_matches(dx_a[0], dx_b[0], fuzzy_dx),
-                                      || !cell_size_matches(dx_a[1], dx_b[1], fuzzy_dx),
-                                      || !cell_size_matches(dx_a[2], dx_b[2], fuzzy_dx) );
-        if (not_match) {
-            amrex::Print() << "\n ERROR: grid dx does not match at level "
-                           << ilev << '\n';
-            return EXIT_FAILURE;
+    if (!allow_diff_dx) {
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            const auto& dx_a = pf_a.cellSize(ilev);
+            const auto& dx_b = pf_b.cellSize(ilev);
+            bool not_match = AMREX_D_TERM(   dx_a[0] != dx_b[0],
+                                          || dx_a[1] != dx_b[1],
+                                          || dx_a[2] != dx_b[2] );
+            if (not_match) {
+                amrex::Print() << "\n ERROR: grid dx does not match at level "
+                               << ilev << '\n';
+                return EXIT_FAILURE;
+            }
         }
     }
 

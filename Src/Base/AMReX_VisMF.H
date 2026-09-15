@@ -162,8 +162,6 @@ public:
     [[nodiscard]] int size () const;
     //! The BoxArray of the on-disk FabArray<FArrayBox>.
     [[nodiscard]] const BoxArray& boxArray () const;
-    //! Number of bytes in the floating-point values stored on disk.
-    [[nodiscard]] int realDescriptorNumBytes () const;
     //! The min of the FAB (in valid region) at specified index and component.
     [[nodiscard]] Real min (int fabIndex, int nComp) const;
     //! The min of the FabArray (in valid region) at specified component.

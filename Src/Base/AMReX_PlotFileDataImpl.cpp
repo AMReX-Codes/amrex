@@ -120,12 +120,6 @@ PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src)
     }
 }
 
-int
-PlotFileDataImpl::realDescriptorNumBytes (int level) const
-{
-    return (m_vismf[level]) ? m_vismf[level]->realDescriptorNumBytes() : 0;
-}
-
 MultiFab
 PlotFileDataImpl::get (int level)
 {
