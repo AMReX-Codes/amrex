@@ -262,7 +262,7 @@ int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per,
 
         // Covered cells are filled with a large sentinel by design, so only the
         // uncovered cells carry a meaningful update.
-        auto const& dout = dUdt_out.const_array(mfi);
+        auto const& dudt = dUdt_out.const_array(mfi);
         auto const& flag = flagfab.const_array();
         {
             ReduceOps<ReduceOpMax> reduce_op;
@@ -271,7 +271,7 @@ int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per,
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> ReduceTuple
             {
-                return { flag(i,j,k).isCovered() ? Real(0) : std::abs(dout(i,j,k,0)) };
+                return { flag(i,j,k).isCovered() ? Real(0) : std::abs(dudt(i,j,k,0)) };
             });
             max_update = amrex::max(max_update, amrex::get<0>(reduce_data.value()));
         }
