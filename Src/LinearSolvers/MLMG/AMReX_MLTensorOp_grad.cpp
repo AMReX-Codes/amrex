@@ -139,6 +139,8 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
     amrex::ignore_unused(amrlev,fluxes,sol);
 #else
     BL_PROFILE("MLTensorOp::compVelGrad()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!isMapped(),
+        "MLTensorOp::compVelGrad is not mapping-aware; apply the factors in the caller");
 
     const int mglev = 0;
 

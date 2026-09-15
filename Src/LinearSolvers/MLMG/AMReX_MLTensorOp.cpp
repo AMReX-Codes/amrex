@@ -148,6 +148,14 @@ MLTensorOp::setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPA
 void
 MLTensorOp::prepareForSolve ()
 {
+    if (m_use_mapped) {
+        // The factors are set per AMR level; a level without them would
+        // silently use the unmapped cross-term kernels.
+        for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasMappingFactors(amrlev),
+                "MLTensorOp: setMappingFactors must be called for every AMR level");
+        }
+    }
     if (m_has_kappa) {
         for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
             for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {

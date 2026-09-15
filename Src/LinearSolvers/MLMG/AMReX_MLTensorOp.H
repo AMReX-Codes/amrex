@@ -184,6 +184,10 @@ public:
     /**
      * \brief Compute velocity gradients (symmetrized) at the requested location.
      *
+     * Not available with mapping factors (setMappingFactors): the gradients
+     * would be plain Xi-derivatives with no factor applied, so the call
+     * asserts.  Divide the Xi-derivatives by the factors in the caller.
+     *
      * \param amrlev AMR level index.
      * \param fluxes Destination gradient MultiFabs per direction.
      * \param sol    Solution whose gradients are computed.
