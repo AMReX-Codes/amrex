@@ -347,7 +347,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -373,7 +373,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -399,7 +399,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -425,7 +425,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -451,7 +451,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -477,7 +477,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     real(c_real), pointer :: fp(:,:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t) * int(n(6),c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
@@ -810,7 +810,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -835,7 +835,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -860,7 +860,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -885,7 +885,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -910,7 +910,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -935,7 +935,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t) * int(n(6),c_size_t)
     cp = amrex_mempool_alloc(szi*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1186,7 +1186,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1211,7 +1211,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1236,7 +1236,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1261,7 +1261,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1286,7 +1286,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
@@ -1311,7 +1311,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     logical, pointer :: fp(:,:,:,:,:,:)
-    n = hi - lo + 1
+    n = max(hi - lo + 1, 1)
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t) * int(n(5),c_size_t) * int(n(6),c_size_t)
     cp = amrex_mempool_alloc(szl*sz)
     call c_f_pointer(cp, fp, shape=n)
