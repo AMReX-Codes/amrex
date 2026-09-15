@@ -133,6 +133,10 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
       add_subdirectory("LinearSolvers/ABecLaplacian_C")
    endif()
 
+   if (AMReX_LINEAR_SOLVERS_INCFLO)
+      add_subdirectory("LinearSolvers/TensorMapped")
+   endif()
+
    if (AMReX_FFT)
       add_subdirectory("FFT/Poisson")
    endif()
