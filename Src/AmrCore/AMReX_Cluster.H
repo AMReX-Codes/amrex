@@ -87,15 +87,8 @@ public:
     * dividing the tagged points into clusters on either side of the
     * plane.  One cluster is returned as a new object the other
     * is the modified calling object.  This is called by chop(eff)
-    *
-    * No cutting plane perpendicular to \p no_chop_dir is ever considered, so
-    * the cluster is never split in that direction.  Pass -1 to allow cuts in
-    * every direction.  If the cluster cannot be split in any of the allowed
-    * directions, nothing is modified and nullptr is returned.
-    *
-    * \param no_chop_dir Direction in which the cluster must not be split, or -1.
     */
-    Cluster* chop (int no_chop_dir = -1);
+    Cluster* chop ();
 
 
     /**
@@ -103,13 +96,8 @@ public:
     * cut results in two boxes with the same grid efficiency as the original
     * box then the cut is reverted and a cut in a different direction is chosen
     * This is called by new_chop(eff)
-    *
-    * As in chop, no cutting plane perpendicular to \p no_chop_dir is ever
-    * considered, and nullptr is returned if no allowed cut exists.
-    *
-    * \param no_chop_dir Direction in which the cluster must not be split, or -1.
     */
-    Cluster* new_chop (int no_chop_dir = -1);
+    Cluster* new_chop ();
 
     /**
     * \brief Constructs a list of cluster objects obtained by intersecting
@@ -240,23 +228,17 @@ public:
     /**
     * \brief Chop all clusters in list that have poor efficiency.
     *
-    * Clusters are never split in direction \p no_chop_dir.  A cluster whose
-    * efficiency is too low but that cannot be split in any other direction is
-    * left as it is.
-    *
-    * \param eff          Minimum acceptable tagging efficiency.
-    * \param no_chop_dir  Direction in which clusters must not be split, or -1.
+    * \param eff Minimum acceptable tagging efficiency.
     */
-    void chop (Real eff, int no_chop_dir = -1);
+    void chop (Real eff);
 
     /**
     * \brief Chop all clusters in list that have poor efficiency.
     * This version calls new_chop() instead of chop()
     *
-    * \param eff          Minimum acceptable tagging efficiency.
-    * \param no_chop_dir  Direction in which clusters must not be split, or -1.
+    * \param eff Minimum acceptable tagging efficiency.
     */
-    void new_chop (Real eff, int no_chop_dir = -1);
+    void new_chop (Real eff);
 
     /**
     * \brief Intersect clusters with BoxArray to insure cluster

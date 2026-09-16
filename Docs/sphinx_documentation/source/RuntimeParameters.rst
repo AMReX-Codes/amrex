@@ -272,14 +272,11 @@ can be set via :cpp:`ParmParse`.
    :type: int
    :value: -1
 
-   If this is 0, 1 or 2, the grid creation algorithm will never chop the grids
-   in that coordinate direction. The extent of each grid in that direction is
-   then whatever the clustering of the tagged cells produces, and both
-   :py:data:`amr.max_grid_size` and :py:data:`amr.refine_grid_layout` are
-   ignored in that direction. Note that the requirement that the grids be
-   properly nested is still enforced, and in rare cases that can by itself
-   split a grid in that direction. A negative value, the default, disables
-   this.
+   If this is 0, 1 or 2, both :py:data:`amr.max_grid_size` and
+   :py:data:`amr.refine_grid_layout` are ignored in that coordinate direction,
+   so the grids produced by the clustering of the tagged cells are not
+   subdivided further in it. The clustering itself may still cut in that
+   direction. A negative value, the default, disables this.
 
 .. py:data:: amr.check_input
    :type: bool

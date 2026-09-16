@@ -91,22 +91,17 @@ to that direction.  The resulting grids may still be chopped in that direction b
 :cpp:`max_grid_size` and :cpp:`refine_grid_layout`, but together they always cover the
 entire domain.
 
-Other applications want the fine grids to be undecomposed in one coordinate
-direction, but do not need them to cover the entire domain in that direction.
-Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for *y*, 2 for
-*z*; the default of -1 disables this) stops the grid creation algorithm from
-ever chopping the grids there: the clustering never cuts perpendicular to that
-direction, and :cpp:`max_grid_size` and :cpp:`refine_grid_layout` are ignored in
-it.  Each grid then extends exactly as far in that direction as the cells
-tagged within its footprint.  Because a cluster that is inefficient but can
-only be improved by a forbidden cut is left alone, :cpp:`amr.grid_eff` may not
-be satisfied as often as it would be otherwise.  The requirement that the grids
-be properly nested is still enforced, so in rare cases the nesting region can
-itself split a grid in that direction.
+Other applications do not want the grids subdivided in one coordinate
+direction once the clustering has produced them.  Setting :cpp:`amr.no_chop_dir`
+to that direction (0 for *x*, 1 for *y*, 2 for *z*; the default of -1 disables
+this) makes :cpp:`max_grid_size` and :cpp:`refine_grid_layout` ignored in that
+direction, on every level including level 0.  The clustering algorithm itself
+is unaffected and may still cut perpendicular to that direction to satisfy
+:cpp:`amr.grid_eff`.
 
 Setting both :cpp:`amr.refine_whole_domain_dir` and :cpp:`amr.no_chop_dir` to
-the same direction gives fine grids that both cover the entire domain in that
-direction and are never chopped in it.
+the same direction gives fine grids that each span the entire domain in that
+direction.
 
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).

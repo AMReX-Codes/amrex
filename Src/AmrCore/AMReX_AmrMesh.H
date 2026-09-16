@@ -66,11 +66,9 @@ struct AmrInfo {
     int refine_whole_domain_dir = -1;
 
     /**
-     * Direction in which the grid creation algorithm never chops the grids.
-     * The grids are then as long in that direction as the clustering of the
-     * tagged cells makes them, and max_grid_size and refine_grid_layout_dims
-     * are ignored in that direction.  A negative value means there is no such
-     * direction.
+     * Direction in which max_grid_size and refine_grid_layout_dims are
+     * ignored, so the grids produced by clustering are not subdivided in
+     * it.  A negative value means there is no such direction.
      */
     int no_chop_dir = -1;
 

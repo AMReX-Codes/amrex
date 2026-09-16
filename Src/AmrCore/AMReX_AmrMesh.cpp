@@ -844,9 +844,9 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()),
                                       pc_domain[levc], refine_whole_domain_dir);
                     if (use_new_chop) {
-                        clist.new_chop(grid_eff, no_chop_dir);
+                        clist.new_chop(grid_eff);
                     } else {
-                        clist.chop(grid_eff, no_chop_dir);
+                        clist.chop(grid_eff);
                     }
                     clist.intersect(p_n_ba[levc]);
                     //
