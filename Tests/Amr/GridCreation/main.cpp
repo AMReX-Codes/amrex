@@ -259,6 +259,7 @@ void check_level (TestMesh const& mesh, int lev)
             auto const& m = mask.const_array(mfi);
             amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
             {
+                amrex::ignore_unused(k); // unused in 2D
                 IntVect iv(AMREX_D_DECL(i,j,k));
                 if (mesh.tagged(clev, iv)) {
                     ++ntagged;
@@ -297,6 +298,7 @@ struct LinearField
 
     [[nodiscard]] Real operator() (int i, int j, int k) const
     {
+        amrex::ignore_unused(k); // unused in 2D
         IntVect const iv(AMREX_D_DECL(i,j,k));
         auto const dx = geom.CellSizeArray();
         auto const plo = geom.ProbLoArray();
