@@ -336,6 +336,16 @@ public:
     BoxList& maxSize (int chunk);
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
     BoxList& maxSize (const IntVect& chunk);
+    /**
+     * \brief Merge Boxes along direction \p dir so that no two Boxes share
+     * a face normal to \p dir.
+     *
+     * Boxes touching across a \p dir face are joined over their overlap;
+     * the remaining parts are split off in the other directions.  The
+     * union of the Boxes is unchanged, and simplify() is applied at the
+     * end.  The Boxes must be cell-centered and non-overlapping.
+     */
+    BoxList& mergeAlongDir (int dir);
     //! Returns smallest Box that contains all Boxes in this BoxList.
     [[nodiscard]] Box minimalBox () const;
     //! Returns the IndexType of Boxes in this BoxList.
