@@ -841,6 +841,18 @@ BoxList::mergeAlongDir (int dir)
         return a & bp;
     };
 
+    // Whether a and b overlap in the directions other than dir.  Cheaper
+    // than transverse_overlap(a,b).ok() for the pair search.
+    auto transverse_touch = [dir] (Box const& a, Box const& b) -> bool
+    {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if (d != dir && (a.smallEnd(d) > b.bigEnd(d) || b.smallEnd(d) > a.bigEnd(d))) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     std::ranges::sort(m_lbox, [dir] (Box const& a, Box const& b) {
             return a.smallEnd(dir) < b.smallEnd(dir); });
 
@@ -883,7 +895,7 @@ BoxList::mergeAlongDir (int dir)
 #pragma omp for schedule(static)
                     for (int i = 0; i < nf; ++i) {
                         for (int j = 0; j < nn; ++j) {
-                            if (transverse_overlap(fpieces[i][0], npieces[j][0]).ok()) {
+                            if (transverse_touch(fpieces[i][0], npieces[j][0])) {
                                 pp.emplace_back(i,j);
                             }
                         }
@@ -897,7 +909,7 @@ BoxList::mergeAlongDir (int dir)
             {
                 for (int i = 0; i < nf; ++i) {
                     for (int j = 0; j < nn; ++j) {
-                        if (transverse_overlap(fpieces[i][0], npieces[j][0]).ok()) {
+                        if (transverse_touch(fpieces[i][0], npieces[j][0])) {
                             pairs.emplace_back(i,j);
                         }
                     }
