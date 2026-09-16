@@ -1607,8 +1607,15 @@ AmrMesh::checkInput ()
     // With a domain that is not divisible by the blocking factor, the grid
     // at the upper boundary can only be kept at least as thick as the
     // blocking factor if max_grid_size allows grids of two blocking factors.
+    // This is only done for odd refinement ratios; even ratios keep the
+    // old behavior.
     //
     for (int i = 1; i <= max_level; i++) {
+        bool odd_rr = false;
+        for (auto const& rr : ref_ratio[i-1]) {
+            if (rr != 1 && (rr%2 != 0)) { odd_rr = true; }
+        }
+        if (!odd_rr) { continue; }
         IntVect const emgs = effectiveMaxGridSize(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const bf_lev = bfLev(i-1)[idim];
