@@ -615,7 +615,13 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
                     // direction, and must not be split there.
                     IntVect chunk1 = domain.length();
                     chunk1[idim] = chunk[idim];
-                    if (hasPartialBox(ba, idim, chunk[idim], unit, domain)) {
+                    bool partial_possible = false;
+                    if (lev > 0 && domain.length(idim) % unit != 0) {
+                        for (auto const& r : ref_ratio[lev-1]) {
+                            if (r != 1 && (r%2 != 0)) { partial_possible = true; }
+                        }
+                    }
+                    if (partial_possible && hasPartialBox(ba, idim, chunk[idim], unit, domain)) {
                         chopBoxes(ba, idim, rr, chunk1, unit, domain);
                     } else if (rr == 1) {
                         ba.maxSize(chunk1);
@@ -981,6 +987,13 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             }
 
             if (levf > useFixedUpToLevel()) {
+                bool odd_ref_ratio = false;
+                for (auto const& rr : ref_ratio[levc]) {
+                    if (rr != 1 && (rr%2 != 0)) {
+                        odd_ref_ratio = true;
+                    }
+                }
+
                 BoxList new_bx;
                 if (ParallelDescriptor::IOProcessor()) {
                     BL_PROFILE("AmrMesh-cluster");
@@ -1007,6 +1020,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     // coarsened cell at the upper boundary is a partial one.
                     // A box that covers only that cell would become a thin
                     // grid, so extend it by one cell into the interior.
+                    // This is only done for odd refinement ratios.
+                    if (odd_ref_ratio)
                     {
                         bool extended = false;
                         Box const& pcd = pc_domain[levc];
@@ -1042,13 +1057,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
                 // The boxes are in the index space of level levc coarsened
                 // by bf_lev[levc].
-
-                bool odd_ref_ratio = false;
-                for (auto const& rr : ref_ratio[levc]) {
-                    if (rr != 1 && (rr%2 != 0)) {
-                        odd_ref_ratio = true;
-                    }
-                }
 
                 if (odd_ref_ratio)
                 {
@@ -1643,7 +1651,13 @@ AmrMesh::checkInput ()
         IntVect const bf_lev = bfLev(i);
         IntVect const emgs = effectiveMaxGridSize(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int unit = std::min(grid_unit(i,idim), emgs[idim]);
+            // For even ratios this is the old check.
+            bool odd_prev = false;
+            for (auto const& rr : ref_ratio[i-1]) {
+                if (rr != 1 && (rr%2 != 0)) { odd_prev = true; }
+            }
+            int const gu = odd_prev ? grid_unit(i,idim) : blocking_factor[i][idim];
+            int unit = std::min(gu, emgs[idim]);
             if (unit % bf_lev[idim] != 0) {
                 amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
                                << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
