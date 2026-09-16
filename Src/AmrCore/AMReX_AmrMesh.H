@@ -315,6 +315,16 @@ public:
      */
     [[nodiscard]] IntVect effectiveMaxGridSize (int lev) const noexcept;
 
+    /**
+     * \brief Return the factor by which the tags on level \p lev are
+     * coarsened before they are clustered into level \p lev+1 grids.
+     *
+     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  In a
+     * periodic direction whose domain size is not divisible by that, it is
+     * reduced to the largest power of 2 that divides the domain size.
+     */
+    [[nodiscard]] IntVect bfLev (int lev) const noexcept;
+
     //! Return true if valid grids/dmaps exist for level \p lev.
     [[nodiscard]] bool LevelDefined (int lev) const noexcept;
 

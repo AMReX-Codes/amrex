@@ -275,11 +275,13 @@ can be set via :cpp:`ParmParse`.
    :type: int
    :value: -1
 
-   If this is 0, 1 or 2, both :py:data:`amr.max_grid_size` and
-   :py:data:`amr.refine_grid_layout` are ignored in that coordinate direction,
-   so the grids produced by the clustering of the tagged cells are not
-   subdivided further in it. The clustering itself may still cut in that
-   direction. A negative value, the default, disables this.
+   If this is 0, 1 or 2, the grids are never decomposed in that coordinate
+   direction: :py:data:`amr.max_grid_size` and
+   :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is decomposed
+   in the other directions only (when the level 0 blocking factor is 1 in
+   those directions), and on finer levels no two grids share a face normal to
+   it. See :ref:`sec:grid_creation` for details. A negative value, the
+   default, disables this.
 
 .. py:data:: amr.check_input
    :type: bool

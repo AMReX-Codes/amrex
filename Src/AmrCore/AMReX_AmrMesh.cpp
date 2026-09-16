@@ -482,6 +482,27 @@ AmrMesh::effectiveMaxGridSize (int lev) const noexcept
     return mgs;
 }
 
+IntVect
+AmrMesh::bfLev (int lev) const noexcept
+{
+    IntVect bf;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        int b = std::max(1, blocking_factor[lev+1][idim]/ref_ratio[lev][idim]);
+        if (Geom(lev).isPeriodic(idim)) {
+            // The periodic mapping of the coarsened tags requires the
+            // domain to be divisible by the coarsening factor.
+            int const len = Geom(lev).Domain().length(idim);
+            if (len % b != 0) {
+                int p = 1;
+                while (2*p <= b && len % (2*p) == 0) { p *= 2; }
+                b = p;
+            }
+        }
+        bf[idim] = b;
+    }
+    return bf;
+}
+
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
@@ -544,22 +565,56 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrMesh::MakeBaseGrids () const
 {
-    IntVect fac(2);
     const Box& dom = geom[0].Domain();
-    const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
+    BoxArray ba;
+
+    // With no_chop_dir and blocking factor 1 in the other directions, the
+    // domain is decomposed into nearly equal pieces without any alignment
+    // requirement, which works for any number of cells.
+    bool use_decompose = (no_chop_dir >= 0);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (dom.length(idim) != dom2.length(idim)) {
-            fac[idim] = 1;
+        if (idim != no_chop_dir && blocking_factor[0][idim] != 1) {
+            use_decompose = false;
         }
     }
-    BoxArray ba(amrex::coarsen(dom,fac));
-    ba.maxSize(effectiveMaxGridSize(0)/fac);
-    ba.refine(fac);
-    // Boxes in ba have even number of cells in each direction
-    // unless the domain has odd number of cells in that direction.
-    if (refine_grid_layout) {
-        ChopGrids(0, ba, ParallelDescriptor::NProcs());
+
+    if (use_decompose)
+    {
+        Array<bool,AMREX_SPACEDIM> decomp;
+        int nboxes = 1;
+        bool chop_for_procs = false;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            decomp[idim] = (idim != no_chop_dir);
+            if (decomp[idim]) {
+                int const mgs = max_grid_size[0][idim];
+                nboxes *= (dom.length(idim) + mgs - 1) / mgs;
+                if (refine_grid_layout_dims[idim]) { chop_for_procs = true; }
+            }
+        }
+        if (refine_grid_layout && chop_for_procs) {
+            nboxes = std::max(nboxes, ParallelDescriptor::NProcs());
+        }
+        ba = amrex::decompose(dom, nboxes, decomp);
     }
+    else
+    {
+        IntVect fac(2);
+        const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (dom.length(idim) != dom2.length(idim)) {
+                fac[idim] = 1;
+            }
+        }
+        ba = BoxArray(amrex::coarsen(dom,fac));
+        ba.maxSize(effectiveMaxGridSize(0)/fac);
+        ba.refine(fac);
+        // Boxes in ba have even number of cells in each direction
+        // unless the domain has odd number of cells in that direction.
+        if (refine_grid_layout) {
+            ChopGrids(0, ba, ParallelDescriptor::NProcs());
+        }
+    }
+
     if (ba == grids[0]) {
         ba = grids[0];  // to avoid duplicates
     }
@@ -593,15 +648,13 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     for (int i = 0; i <= max_crse; i++)
     {
-        for (int n=0; n<AMREX_SPACEDIM; n++) {
-            bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
-        }
+        bf_lev[i] = bfLev(i);
     }
     for (int i = lbase; i < max_crse; i++)
     {
         for (int n=0; n<AMREX_SPACEDIM; n++) {
-            // Note that in AmrMesh we check that
-            // ref ratio * coarse blocking factor >= fine blocking factor
+            // checkInput makes sure this is an integer.
+            AMREX_ASSERT((ref_ratio[i][n]*bf_lev[i][n]) % bf_lev[i+1][n] == 0);
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
         }
     }
@@ -855,6 +908,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     clist.boxList(new_bx);
                     new_bx.simplify();
+                    if (no_chop_dir >= 0) {
+                        // No two grids may share a face normal to no_chop_dir.
+                        // Nothing after this point chops in that direction.
+                        new_bx.mergeAlongDir(no_chop_dir);
+                    }
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
@@ -873,25 +931,25 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     // This approach imposes max_grid_size (suitably scaled) before
                     //     refining so as to ensure fine grids align with coarse grids
 
-                    // If max_grid_size is a multiple of the grid unit
-                    // bf_lev*ref_ratio, chop before refining by bf_lev so
-                    // that the grids are multiples of the unit even when the
-                    // domain is not divisible by it.  Otherwise, chop after
-                    // refining, as we have always done.
-                    IntVect chunk(0);
-                    bool chop_first = true;
+                    // In each direction where max_grid_size is a multiple
+                    // of the grid unit bf_lev*ref_ratio, chop before
+                    // refining by bf_lev so that the grids are multiples of
+                    // the unit even when the domain is not divisible by it.
+                    // Other directions are chopped after refining, as we
+                    // have always done.  The boxes are inside pc_domain, so
+                    // using its length as chunk means no chop.
+                    IntVect const emgs = effectiveMaxGridSize(levf);
+                    IntVect chunk = pc_domain[levc].length();
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                         int bf = bf_lev[levc][idim];
                         int unit = bf * ref_ratio[levc][idim];
-                        if (((bf & (bf-1)) == 0) && (max_grid_size[levf][idim]%unit == 0)) {
-                            chunk[idim] = max_grid_size[levf][idim] / unit;
-                        } else {
-                            chop_first = false;
+                        if (idim != no_chop_dir && ((bf & (bf-1)) == 0)
+                            && (emgs[idim]%unit == 0))
+                        {
+                            chunk[idim] = emgs[idim] / unit;
                         }
                     }
-                    if (chop_first) {
-                        new_bx.maxSize(chunk);
-                    }
+                    new_bx.maxSize(chunk);
 
                     new_bx.refine(bf_lev[levc]);
                     if (new_bx.size()>0) {
@@ -902,7 +960,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Impose max_grid_size (suitably coarsened)
                     //
-                    AMREX_ASSERT(max_grid_size[levf].allGE(ref_ratio[levc]));
+                    AMREX_ASSERT(emgs.allGE(ref_ratio[levc]));
                     new_grids[levf] = BoxArray(std::move(new_bx),
                                                effectiveMaxGridSize(levf)/ref_ratio[levc]);
 
@@ -1257,13 +1315,29 @@ AmrMesh::checkInput ()
     }
 
     //
+    // Check the direction in which the grids are never chopped.
+    //
+    if (no_chop_dir >= 0)
+    {
+        if (no_chop_dir >= AMREX_SPACEDIM) {
+            amrex::Error("Amr::checkInput: no_chop_dir is out of range");
+        }
+#ifdef AMREX_USE_BITTREE
+        if (use_bittree) {
+            amrex::Error("Amr::checkInput: no_chop_dir does not work with bittree");
+        }
+#endif
+    }
+
+    //
     // Check that domain size is a multiple of blocking_factor[0].
-    //   (only check if blocking_factor <= max_grid_size)
+    //   (only check if blocking_factor <= max_grid_size, and not in
+    //   no_chop_dir where blocking_factor and max_grid_size are ignored)
     //
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
         int len = domain.length(idim);
-        if (blocking_factor[0][idim] <= max_grid_size[0][idim]) {
+        if (idim != no_chop_dir && blocking_factor[0][idim] <= max_grid_size[0][idim]) {
             if (len%blocking_factor[0][idim] != 0)
             {
                 amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
@@ -1276,11 +1350,10 @@ AmrMesh::checkInput ()
     auto is_pow2 = [] (int k) { return k > 0 && (k & (k-1)) == 0; };
 
     // Grids on level i > 0 are built from tags on level i-1 coarsened by
-    // bf_lev = max(1, blocking_factor[i]/ref_ratio[i-1]) and refined back,
-    // so they are multiples of the "grid unit" bf_lev*ref_ratio[i-1].
+    // bfLev(i-1) and refined back, so they are multiples of the "grid unit"
+    // bfLev(i-1)*ref_ratio[i-1].
     auto grid_unit = [&] (int i, int idim) {
-        int rr = ref_ratio[i-1][idim];
-        return std::max(1, blocking_factor[i][idim]/rr) * rr;
+        return bfLev(i-1)[idim] * ref_ratio[i-1][idim];
     };
 
     //
@@ -1318,7 +1391,8 @@ AmrMesh::checkInput ()
     for (int i = 1; i <= max_level; i++) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int bf = blocking_factor[i][idim];
-            int unit = grid_unit(i,idim);
+            int rr = ref_ratio[i-1][idim];
+            int unit = std::max(1, bf/rr) * rr; // before any periodic reduction
             if (unit%bf != 0) {
                 amrex::Print() << "WARNING: blocking_factor " << bf << " on level " << i
                                << " in direction " << idim << " cannot be satisfied with ref_ratio "
@@ -1336,7 +1410,7 @@ AmrMesh::checkInput ()
         for (int i = 0; i <= max_level; i++)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
+                if (idim != no_chop_dir && blocking_factor[i][idim] <= max_grid_size[i][idim]) {
                     if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                         amrex::Print() << "max_grid_size in direction " << idim
                                        << " is " << max_grid_size[i][idim] << '\n'
@@ -1355,10 +1429,11 @@ AmrMesh::checkInput ()
     // exempt because its grids cover the whole domain.
     //
     for (int i = 1; i < max_level; i++) {
+        IntVect const bf_lev = bfLev(i);
+        IntVect const emgs = effectiveMaxGridSize(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int bf_lev = std::max(1, blocking_factor[i+1][idim]/ref_ratio[i][idim]);
-            int unit = std::min(grid_unit(i,idim), max_grid_size[i][idim]);
-            if (unit % bf_lev != 0) {
+            int unit = std::min(grid_unit(i,idim), emgs[idim]);
+            if (unit % bf_lev[idim] != 0) {
                 amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
                                << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
                                << ". Ref ratio is " << ref_ratio[i]
@@ -1369,17 +1444,20 @@ AmrMesh::checkInput ()
     }
 
     //
-    // In periodic directions, the domain must be divisible by bf_lev.
+    // In periodic directions, the tag coarsening factor is reduced if the
+    // domain is not divisible by it.
     //
     for (int i = 0; i < max_level; ++i) {
+        IntVect const bf_lev = bfLev(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int bf_lev = std::max(1, blocking_factor[i+1][idim]/ref_ratio[i][idim]);
-            if (Geom(i).isPeriodic(idim) && Geom(i).Domain().length(idim) % bf_lev != 0) {
-                amrex::Print() << "Level " << i << " domain size in periodic direction " << idim
-                               << " is " << Geom(i).Domain().length(idim)
+            int nominal = std::max(1, blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            if (bf_lev[idim] != nominal) {
+                amrex::Print() << "WARNING: Level " << i << " domain size in periodic direction "
+                               << idim << " is " << Geom(i).Domain().length(idim)
                                << ", which is not divisible by blocking_factor/ref_ratio = "
-                               << bf_lev << '\n';
-                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in periodic direction");
+                               << nominal << ". Tags will be coarsened by " << bf_lev[idim]
+                               << " instead, and level " << i+1 << " grids will be multiples of "
+                               << bf_lev[idim]*ref_ratio[i][idim] << " in that direction.\n";
             }
         }
     }
@@ -1396,31 +1474,6 @@ AmrMesh::checkInput ()
 #ifdef AMREX_USE_BITTREE
         if (use_bittree) {
             amrex::Error("Amr::checkInput: refine_whole_domain_dir does not work with bittree");
-        }
-#endif
-        for (int i = 0; i < max_level; ++i) {
-            // The tags are coarsened by this factor before they are clustered.
-            int bf = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
-            if (Geom(i).Domain().length(idim) % bf != 0) {
-                amrex::Print() << "On level " << i << " the domain size in direction " << idim
-                               << " is " << Geom(i).Domain().length(idim)
-                               << ", which is not divisible by " << bf << '\n';
-                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in refine_whole_domain_dir");
-            }
-        }
-    }
-
-    //
-    // Check the direction in which the grids are never chopped.
-    //
-    if (no_chop_dir >= 0)
-    {
-        if (no_chop_dir >= AMREX_SPACEDIM) {
-            amrex::Error("Amr::checkInput: no_chop_dir is out of range");
-        }
-#ifdef AMREX_USE_BITTREE
-        if (use_bittree) {
-            amrex::Error("Amr::checkInput: no_chop_dir does not work with bittree");
         }
 #endif
     }

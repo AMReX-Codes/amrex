@@ -100,17 +100,29 @@ to that direction.  The resulting grids may still be chopped in that direction b
 :cpp:`max_grid_size` and :cpp:`refine_grid_layout`, but together they always cover the
 entire domain.
 
-Other applications do not want the grids subdivided in one coordinate
-direction once the clustering has produced them.  Setting :cpp:`amr.no_chop_dir`
-to that direction (0 for *x*, 1 for *y*, 2 for *z*; the default of -1 disables
-this) makes :cpp:`max_grid_size` and :cpp:`refine_grid_layout` ignored in that
-direction, on every level including level 0.  The clustering algorithm itself
-is unaffected and may still cut perpendicular to that direction to satisfy
-:cpp:`amr.grid_eff`.
+Other applications do not want the grids decomposed in one coordinate
+direction (for example, atmospheric codes that solve implicitly along vertical
+columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
+*y*, 2 for *z*; the default of -1 disables this) has the following effects.
 
-Setting both :cpp:`amr.refine_whole_domain_dir` and :cpp:`amr.no_chop_dir` to
-the same direction gives fine grids that each span the entire domain in that
-direction.
+- :cpp:`max_grid_size` and :cpp:`refine_grid_layout` are ignored in that
+  direction on every level, and the :cpp:`blocking_factor` does not need to
+  divide :cpp:`n_cell` in it.
+
+- On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
+  domain is decomposed in those directions only, into nearly equal grids
+  that all span the domain in :cpp:`amr.no_chop_dir`.  The number of grids is
+  the number of MPI processes or, if larger, the number implied by
+  :cpp:`max_grid_size` in the decomposed directions.  Any :cpp:`n_cell` works.
+  With a larger level 0 :cpp:`blocking_factor` the usual algorithm is used.
+
+- On finer levels, the grids produced by the clustering are merged along that
+  direction so that no two grids share a face normal to it, and they are never
+  chopped in it afterwards.  A grid still covers only the part of the domain
+  where cells are tagged; two tagged regions at different heights in the same
+  column give two grids that do not touch.  Use
+  :cpp:`amr.refine_whole_domain_dir` as well if every grid must span the entire
+  domain in that direction.
 
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).
@@ -149,10 +161,13 @@ direction) between levels :math:`\ell-1` and :math:`\ell`.
   blocking factor of level 1.
 
 - The domain does not need to be divisible by the level :math:`\ell`
-  :cpp:`blocking_factor` in non-periodic directions.  The grids touching the
-  upper domain boundary are simply truncated there.  In periodic directions,
-  the level :math:`\ell-1` domain must be divisible by the
-  :cpp:`blocking_factor` on level :math:`\ell` divided by :math:`r`.
+  :cpp:`blocking_factor`.  In non-periodic directions the grids touching the
+  upper domain boundary are simply truncated there.  In a periodic direction
+  whose level :math:`\ell-1` domain size is not divisible by the
+  :cpp:`blocking_factor` on level :math:`\ell` divided by :math:`r`, the tags
+  are coarsened by the largest power of 2 that does divide the domain size
+  instead, and the grids are multiples of :math:`r` times that number in that
+  direction.  A warning is printed.
 
 For example, with :cpp:`n_cell = 749 679 69`, :cpp:`ref_ratio_vect = 3 3 1` and
 :cpp:`max_level = 1`, the following gives level 1 grids that are multiples of
