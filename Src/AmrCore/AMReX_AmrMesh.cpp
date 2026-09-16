@@ -735,8 +735,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     for (int i = lbase; i < max_crse; i++)
     {
         for (int n=0; n<AMREX_SPACEDIM; n++) {
-            // checkInput makes sure this is an integer.
-            AMREX_ASSERT((ref_ratio[i][n]*bf_lev[i][n]) % bf_lev[i+1][n] == 0);
+            // For odd ratios checkInput makes sure this is an integer; even
+            // ratios keep the old integer division.
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
         }
     }
@@ -1007,7 +1007,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     } else {
                         clist.chop(grid_eff);
                     }
-                    BoxArray const p_n_copy = p_n_ba[levc]; // intersect() below empties it
+                    // Needed by the boundary extension below.  The copy shares the
+                    // data, so it is only taken when it will be used, because
+                    // intersect() below would otherwise have to duplicate it.
+                    BoxArray p_n_copy;
+                    if (odd_ref_ratio) { p_n_copy = p_n_ba[levc]; }
                     clist.intersect(p_n_ba[levc]);
                     //
                     // Efficient properly nested Clusters have been constructed
