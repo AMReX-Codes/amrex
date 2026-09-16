@@ -751,11 +751,11 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    coarsen(ratio, !boxarray.coarsenable(ratio));
+    coarsenMayOverlap(ratio, !boxarray.coarsenable(ratio));
 }
 
 void
-TagBoxArray::coarsen (const IntVect & ratio, bool may_overlap)
+TagBoxArray::coarsenMayOverlap (const IntVect & ratio, bool may_overlap)
 {
     m_may_overlap = may_overlap;
 

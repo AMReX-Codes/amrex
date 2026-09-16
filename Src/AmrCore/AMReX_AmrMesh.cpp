@@ -849,7 +849,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             if (may_overlap) {
                 may_overlap = !grids[levc].coarsenable(bf_lev[levc]);
             }
-            tags.coarsen(bf_lev[levc], may_overlap);
+            tags.coarsenMayOverlap(bf_lev[levc], may_overlap);
         } else {
             amrex::Abort("blocking factor is too small relative to ref_ratio");
         }

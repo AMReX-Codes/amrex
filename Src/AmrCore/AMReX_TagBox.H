@@ -196,7 +196,7 @@ public:
      * valid regions may overlap (i.e., the grids are not coarsenable by
      * \p ratio), which avoids a scan of the BoxArray.
      */
-    void coarsen (const IntVect& ratio, bool may_overlap);
+    void coarsenMayOverlap (const IntVect& ratio, bool may_overlap);
 
     /**
      * \brief Calls TagBox::collate() across all FABs, storing indices in \p TheGlobalCollateSpace.
