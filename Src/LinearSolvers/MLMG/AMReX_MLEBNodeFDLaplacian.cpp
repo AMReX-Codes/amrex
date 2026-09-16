@@ -347,8 +347,18 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 #if (AMREX_SPACEDIM == 2)
     if (m_rz) {
         if (m_geom[0][0].ProbLo(0) == 0._rt) {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
-                                             "The lo-x BC must be Neumann for 2d RZ");
+            // With the alpha/r^2 term the solution must vanish on the axis, so
+            // the caller has to declare Dirichlet there. That in turn lets
+            // buildMasks mark the axis nodes, which keeps the residual,
+            // restriction, interpolation and dot products consistent with what
+            // the operator kernels do.
+            if (m_rz_alpha != 0._rt) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Dirichlet,
+                    "The lo-x BC must be Dirichlet for 2d RZ with a non-zero alpha");
+            } else {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
+                                                 "The lo-x BC must be Neumann for 2d RZ");
+            }
         }
         if (m_sigma[0] == 0._rt) {
             m_sigma[0] = 1._rt; // For backward compatibility
