@@ -46,9 +46,9 @@ public:
     [[nodiscard]] bool tagged (int lev, IntVect const& iv) const
     {
         Real const rad = m_radius[std::min(lev, int(m_radius.size())-1)];
-        auto const& geom = Geom(lev);
-        auto const dx = geom.CellSizeArray();
-        auto const plo = geom.ProbLoArray();
+        auto const& lgeom = Geom(lev);
+        auto const dx = lgeom.CellSizeArray();
+        auto const plo = lgeom.ProbLoArray();
         for (auto const& c : m_centers) {
             Real r2 = 0;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
