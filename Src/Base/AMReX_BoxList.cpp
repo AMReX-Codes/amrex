@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <map>
+#include <utility>
 
 namespace amrex {
 
@@ -819,6 +821,141 @@ BoxList&
 BoxList::maxSize (int chunk)
 {
     return maxSize(IntVect(AMREX_D_DECL(chunk,chunk,chunk)));
+}
+
+BoxList&
+BoxList::mergeAlongDir (int dir)
+{
+    AMREX_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
+    AMREX_ASSERT(btype.cellCentered());
+    AMREX_ASSERT(isDisjoint());
+
+    removeEmpty();
+
+    // Overlap of a and b in the directions other than dir, using a's extent in dir.
+    auto transverse_overlap = [dir] (Box const& a, Box const& b) -> Box
+    {
+        Box bp = b;
+        bp.setSmall(dir, a.smallEnd(dir));
+        bp.setBig(dir, a.bigEnd(dir));
+        return a & bp;
+    };
+
+    std::ranges::sort(m_lbox, [dir] (Box const& a, Box const& b) {
+            return a.smallEnd(dir) < b.smallEnd(dir); });
+
+    // Boxes whose hi face in dir may still be extended, keyed by bigEnd(dir).
+    std::map<int, Vector<Box>> pending;
+    // Boxes whose hi face in dir is known to be free.
+    Vector<Box> done;
+
+    // Sweep over layers of boxes with the same smallEnd(dir).
+    Long const N = static_cast<Long>(m_lbox.size());
+    Long ibeg = 0;
+    while (ibeg < N) {
+        int const p = m_lbox[ibeg].smallEnd(dir);
+        Long iend = ibeg+1;
+        while (iend < N && m_lbox[iend].smallEnd(dir) == p) { ++iend; }
+
+        // Pieces of the boxes ending at p-1 (front) and starting at p (newb).
+        Vector<Vector<Box>> fpieces;
+        if (auto it = pending.find(p-1); it != pending.end()) {
+            fpieces.reserve(it->second.size());
+            for (auto const& b : it->second) { fpieces.push_back(Vector<Box>{b}); }
+            pending.erase(it);
+        }
+        Vector<Vector<Box>> npieces;
+        npieces.reserve(iend-ibeg);
+        for (Long i = ibeg; i < iend; ++i) { npieces.push_back(Vector<Box>{m_lbox[i]}); }
+
+        if (!fpieces.empty()) {
+            int const nf = static_cast<int>(fpieces.size());
+            int const nn = static_cast<int>(npieces.size());
+
+            // Find pairs of original boxes that touch across the p-1/p interface.
+            Vector<std::pair<int,int>> pairs;
+#ifdef AMREX_USE_OMP
+            if (static_cast<Long>(nf)*static_cast<Long>(nn) >= 4096 && !omp_in_parallel()) {
+                Vector<Vector<std::pair<int,int>>> pairs_priv(omp_get_max_threads());
+#pragma omp parallel
+                {
+                    auto& pp = pairs_priv[omp_get_thread_num()];
+#pragma omp for schedule(static)
+                    for (int i = 0; i < nf; ++i) {
+                        for (int j = 0; j < nn; ++j) {
+                            if (transverse_overlap(fpieces[i][0], npieces[j][0]).ok()) {
+                                pp.emplace_back(i,j);
+                            }
+                        }
+                    }
+                }
+                for (auto const& pp : pairs_priv) {
+                    pairs.insert(pairs.end(), pp.begin(), pp.end());
+                }
+            } else
+#endif
+            {
+                for (int i = 0; i < nf; ++i) {
+                    for (int j = 0; j < nn; ++j) {
+                        if (transverse_overlap(fpieces[i][0], npieces[j][0]).ok()) {
+                            pairs.emplace_back(i,j);
+                        }
+                    }
+                }
+            }
+
+            // Join the touching parts; split off the rest in the other directions.
+            BoxList tmp(btype);
+            for (auto const& [i,j] : pairs) {
+                auto& A = fpieces[i];
+                auto& B = npieces[j];
+                for (std::size_t ia = 0; ia < A.size(); ++ia) {
+                    for (std::size_t ib = 0; ib < B.size(); ++ib) {
+                        if (!B[ib].ok()) { continue; }
+                        Box const aT = transverse_overlap(A[ia], B[ib]);
+                        if (aT.ok()) {
+                            Box const a = A[ia];
+                            Box const b = B[ib];
+                            Box const bT = transverse_overlap(b, aT);
+                            Box merged = aT;
+                            merged.setBig(dir, bT.bigEnd(dir));
+                            pending[merged.bigEnd(dir)].push_back(merged);
+                            boxDiff(tmp, a, aT);
+                            A[ia] = Box();
+                            A.insert(A.end(), tmp.begin(), tmp.end());
+                            boxDiff(tmp, b, bT);
+                            B[ib] = Box();
+                            B.insert(B.end(), tmp.begin(), tmp.end());
+                            break;
+                        }
+                    }
+                }
+                std::erase_if(A, [] (Box const& b) { return !b.ok(); });
+                std::erase_if(B, [] (Box const& b) { return !b.ok(); });
+            }
+
+            for (auto const& A : fpieces) {
+                done.insert(done.end(), A.begin(), A.end());
+            }
+        }
+
+        for (auto const& B : npieces) {
+            for (auto const& b : B) {
+                pending[b.bigEnd(dir)].push_back(b);
+            }
+        }
+
+        ibeg = iend;
+    }
+
+    m_lbox = std::move(done);
+    for (auto const& kv : pending) {
+        m_lbox.insert(m_lbox.end(), kv.second.begin(), kv.second.end());
+    }
+
+    while (simplify() > 0) {}
+
+    return *this;
 }
 
 BoxList&
