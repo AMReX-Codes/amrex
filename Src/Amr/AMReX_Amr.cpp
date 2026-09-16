@@ -1094,24 +1094,9 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 void
 Amr::checkInput ()
 {
+    // The blocking factors themselves have been checked by AmrMesh::checkInput.
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
-    }
-    //
-    // Check that blocking_factor is a power of 2.
-    //
-    for (int i = 0; i <= max_level; i++)
-    {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            int k = blocking_factor[i][idim];
-            while ( k > 0 && (k%2 == 0) ) {
-                k /= 2;
-            }
-            if (k != 1) {
-                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
-            }
-        }
     }
     //
     // Check level dependent values.
@@ -1127,12 +1112,13 @@ Amr::checkInput ()
         amrex::Error("level 0 domain bad or not set");
     }
     //
-    // Check that domain size is a multiple of blocking_factor[0].
+    // Check that domain size is a multiple of blocking_factor[0], except
+    // in no_chop_dir where the blocking factor and max_grid_size are ignored.
     //
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (len%blocking_factor[0][i] != 0) {
+        if (i != no_chop_dir && len%blocking_factor[0][i] != 0) {
             amrex::Error("domain size not divisible by blocking_factor");
         }
     }
@@ -1142,7 +1128,7 @@ Amr::checkInput ()
     for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (max_grid_size[i][idim]%2 != 0) {
+            if (idim != no_chop_dir && max_grid_size[i][idim]%2 != 0) {
                 amrex::Error("max_grid_size is not even");
             }
         }
@@ -1154,7 +1140,7 @@ Amr::checkInput ()
     for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+            if (idim != no_chop_dir && max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                 amrex::Error("max_grid_size not divisible by blocking_factor");
             }
         }
@@ -3062,7 +3048,7 @@ Amr::grid_places (int              lbase,
             if (lev > lbase) {
                 new_grids[lev].define(bl);
             }
-            new_grids[lev].maxSize(max_grid_size[lev]);
+            new_grids[lev].maxSize(effectiveMaxGridSize(lev));
         }
     }
     else if ( !regrid_grids_file.empty() )     // Use grids in regrid_grids_file

@@ -107,7 +107,8 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
 
 - :cpp:`max_grid_size` and :cpp:`refine_grid_layout` are ignored in that
   direction on every level, and the :cpp:`blocking_factor` does not need to
-  divide :cpp:`n_cell` in it.
+  divide :cpp:`n_cell` in it.  (Applications built on :cpp:`class Amr` rather
+  than :cpp:`AmrCore` still need an even :cpp:`n_cell` in every direction.)
 
 - On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
   domain is decomposed in those directions only, into nearly equal grids

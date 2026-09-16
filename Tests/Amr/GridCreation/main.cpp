@@ -38,7 +38,7 @@ public:
             m_centers.push_back(rv);
         }
         pp.queryarr("radius", m_radius);
-        AMREX_ALWAYS_ASSERT(m_radius.size() >= 1);
+        AMREX_ALWAYS_ASSERT(!m_radius.empty());
     }
 
     // A cell is tagged if its center is within the radius of one of the
@@ -52,7 +52,7 @@ public:
         for (auto const& c : m_centers) {
             Real r2 = 0;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                Real x = plo[d] + (iv[d]+Real(0.5))*dx[d] - c[d];
+                Real x = plo[d] + (Real(iv[d])+Real(0.5))*dx[d] - c[d];
                 r2 += x*x;
             }
             if (r2 <= rad*rad) { return true; }
@@ -168,8 +168,8 @@ void check_level0 (TestMesh const& mesh)
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         if (d != dir) {
             if (mesh.blockingFactor(0)[d] != 1) { bf1 = false; }
-            int const mgs = mesh.maxGridSize(0)[d];
-            nboxes *= (domain.length(d) + mgs - 1) / mgs;
+            int const mgs_d = mesh.maxGridSize(0)[d];
+            nboxes *= (domain.length(d) + mgs_d - 1) / mgs_d;
         }
     }
     if (bf1 && mesh.refineGridLayout()) {
@@ -314,7 +314,7 @@ struct LinearField
         Real f = 1.0;
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             Real const off = ityp.nodeCentered(d) ? Real(0.0) : Real(0.5);
-            f += slope[d] * (plo[d] + (iv[d]+off)*dx[d]);
+            f += slope[d] * (plo[d] + (Real(iv[d])+off)*dx[d]);
         }
         return f;
     }
@@ -363,10 +363,10 @@ void test_fillpatch (TestMesh const& mesh, int lev, IndexType ityp,
 
     RealVect slope;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        slope[d] = fgeom.isPeriodic(d) ? Real(0.0) : Real(0.7) + Real(0.3)*d;
+        slope[d] = fgeom.isPeriodic(d) ? Real(0.0) : Real(0.7) + Real(0.3)*Real(d);
     }
-    LinearField cfield{cgeom, ityp, slope};
-    LinearField ffield{fgeom, ityp, slope};
+    LinearField cfield{.geom = cgeom, .ityp = ityp, .slope = slope};
+    LinearField ffield{.geom = fgeom, .ityp = ityp, .slope = slope};
 
     // The coarse data must cover the coarsened fine ghost region plus one
     // cell for the interpolation stencil.  Level 0 covers the whole domain;
@@ -476,7 +476,7 @@ void test_tag_overlap ()
             IntVect const iv1(AMREX_D_DECL(37,38,0));
             for (MFIter mfi(tags1); mfi.isValid(); ++mfi) {
                 if (mfi.validbox().contains(iv1)) {
-                    tags1.array(mfi)(AMREX_D_DECL(iv1[0],iv1[1],iv1[2])) = TagBox::SET;
+                    tags1.array(mfi)(iv1) = TagBox::SET;
                 }
             }
             tags1.coarsen(ratio);
