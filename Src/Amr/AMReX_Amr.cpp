@@ -539,7 +539,7 @@ Amr::InitAmr ()
                  bx.refine(ref_ratio[lev-1]);
                  for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
                  {
-                     if (bx.length(idim) > max_grid_size[lev][idim])
+                     if (bx.length(idim) > effectiveMaxGridSize(lev)[idim])
                      {
                          std::ostringstream ss;
                          ss << "Grid " << bx << " too large" << '\n';
@@ -1123,12 +1123,15 @@ Amr::checkInput ()
         }
     }
     //
-    // Check that max_grid_size is even.
+    // Check that max_grid_size is even on level 0, where the grids are
+    // built in a domain coarsened by 2, and on finer levels with an even
+    // refinement ratio, so that the grids stay coarsenable.
     //
     for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (idim != no_chop_dir && max_grid_size[i][idim]%2 != 0) {
+            bool const need_even = (i == 0) || (ref_ratio[i-1][idim] % 2 == 0);
+            if (idim != no_chop_dir && need_even && max_grid_size[i][idim]%2 != 0) {
                 amrex::Error("max_grid_size is not even");
             }
         }

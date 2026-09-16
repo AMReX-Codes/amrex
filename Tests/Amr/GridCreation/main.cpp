@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <limits>
 
 using namespace amrex;
 
@@ -420,7 +421,7 @@ void test_fillpatch (TestMesh const& mesh, int lev, IndexType ityp,
     ParallelDescriptor::ReduceRealMax(maxerr);
     amrex::Print() << "    FillPatchTwoLevels " << name << " on level " << lev
                    << ": max error " << maxerr << '\n';
-    if (maxerr > Real(1.e-10)) {
+    if (maxerr > Real(100)*std::numeric_limits<Real>::epsilon()) {
         fail("FillPatchTwoLevels " + name + " on level " + std::to_string(lev)
              + " is not exact for a linear field");
     }
