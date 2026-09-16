@@ -65,6 +65,15 @@ struct AmrInfo {
      */
     int refine_whole_domain_dir = -1;
 
+    /**
+     * Direction in which the grid creation algorithm never chops the grids.
+     * The grids are then as long in that direction as the clustering of the
+     * tagged cells makes them, and max_grid_size and refine_grid_layout_dims
+     * are ignored in that direction.  A negative value means there is no such
+     * direction.
+     */
+    int no_chop_dir = -1;
+
     bool check_input = true;
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;
@@ -298,6 +307,15 @@ public:
 
     //! Return the largest allowable grid.
     [[nodiscard]] const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
+
+    /**
+     * \brief Return the largest allowable grid at level \p lev, with the
+     * no-chop direction (if any) relaxed to the extent of the domain so that
+     * grids are never chopped in that direction.
+     *
+     * \param lev Level whose domain and maximum grid size are used.
+     */
+    [[nodiscard]] IntVect effectiveMaxGridSize (int lev) const noexcept;
 
     //! Return true if valid grids/dmaps exist for level \p lev.
     [[nodiscard]] bool LevelDefined (int lev) const noexcept;

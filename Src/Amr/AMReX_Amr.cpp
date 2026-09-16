@@ -2907,7 +2907,7 @@ Amr::regrid_level_0_on_restart()
     //
     // Now split up into list of grids within max_grid_size[0] limit.
     //
-    lev0.maxSize(max_grid_size[0]/2);
+    lev0.maxSize(effectiveMaxGridSize(0)/2);
     //
     // Now refine these boxes back to level 0.
     //

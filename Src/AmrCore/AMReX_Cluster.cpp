@@ -258,7 +258,7 @@ private:
 }
 
 Cluster*
-Cluster::chop ()
+Cluster::chop (int no_chop_dir)
 {
     BL_ASSERT(m_len > 1);
     BL_ASSERT(m_ar != nullptr);
@@ -284,14 +284,20 @@ Cluster::chop ()
     // Find cutpoint and cutstatus in each index direction.
     //
     CutStatus mincut = InvalidCut;
-    CutStatus status[AMREX_SPACEDIM];
+    CutStatus status[AMREX_SPACEDIM] = {AMREX_D_DECL(InvalidCut,InvalidCut,InvalidCut)};
     IntVect cut;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
+        if (n == no_chop_dir) { continue; }
         cut[n] = FindCut(hist[n].data(), lo[n], hi[n], status[n]);
         mincut = std::min(status[n], mincut);
     }
-    BL_ASSERT(mincut != InvalidCut);
+    if (mincut == InvalidCut) {
+        //
+        // There is no direction in which this cluster may be chopped.
+        //
+        return nullptr;
+    }
     //
     // Select best cutpoint and direction.
     //
@@ -331,7 +337,7 @@ Cluster::chop ()
 }
 
 Cluster*
-Cluster::new_chop ()
+Cluster::new_chop (int no_chop_dir)
 {
     BL_ASSERT(m_len > 1);
     BL_ASSERT(m_ar != nullptr);
@@ -365,13 +371,18 @@ Cluster::new_chop ()
        IntVect cut;
        for (int n = 0; n < AMREX_SPACEDIM; n++)
        {
-           if (n != invalid_dir)
+           if (n != invalid_dir && n != no_chop_dir)
            {
               cut[n] = FindCut(hist[n].data(), lo[n], hi[n], status[n]);
               mincut = std::min(status[n], mincut);
            }
        }
-       BL_ASSERT(mincut != InvalidCut);
+       if (mincut == InvalidCut) {
+           // On the first pass this means the cluster cannot be chopped at
+           // all.  On the second pass it means the only direction we can
+           // chop in is the one we just rejected, so take that cut after all.
+           return (n_try == 0) ? nullptr : chop(no_chop_dir);
+       }
        //
        // Select best cutpoint and direction.
        //
@@ -395,7 +406,7 @@ Cluster::new_chop ()
            nlo += hist[dir][i-lo[dir]];
        }
 
-       if (nlo <= 0 || nlo >= m_len) { return chop(); }
+       if (nlo <= 0 || nlo >= m_len) { return chop(no_chop_dir); }
 
        Long nhi = m_len - nlo;
 
@@ -520,33 +531,37 @@ ClusterList::boxList (BoxList& blst) const
 }
 
 void
-ClusterList::chop (Real eff)
+ClusterList::chop (Real eff, int no_chop_dir)
 {
     BL_PROFILE("ClusterList::chop()");
 
     for (auto cli = lst.begin(); cli != lst.end(); )
     {
-        if ((*cli)->eff() < eff)
+        Cluster* c = ((*cli)->eff() < eff) ? (*cli)->chop(no_chop_dir) : nullptr;
+        if (c)
         {
-            lst.push_back((*cli)->chop());
+            lst.push_back(c);
         }
         else
         {
+            // Either the cluster is efficient enough or it cannot be chopped
+            // without cutting in no_chop_dir.  Either way we are done with it.
             ++cli;
         }
     }
 }
 
 void
-ClusterList::new_chop (Real eff)
+ClusterList::new_chop (Real eff, int no_chop_dir)
 {
     BL_PROFILE("ClusterList::new_chop()");
 
     for (auto cli = lst.begin(); cli != lst.end(); )
     {
-        if ((*cli)->eff() < eff)
+        Cluster* c = ((*cli)->eff() < eff) ? (*cli)->new_chop(no_chop_dir) : nullptr;
+        if (c)
         {
-            lst.push_back((*cli)->new_chop());
+            lst.push_back(c);
         }
         else
         {
