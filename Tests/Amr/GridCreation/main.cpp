@@ -208,9 +208,13 @@ void check_level (TestMesh const& mesh, int lev)
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " longer than max_grid_size in direction " + std::to_string(d));
             }
-            // Boxes at a truncated upper boundary are extended inward, so
-            // no box is thinner than the grid unit.
-            if (b.length(d) < unit[d]) {
+            // With an odd ref ratio, boxes at a truncated upper boundary
+            // are extended inward, so no box is thinner than the grid unit.
+            bool odd_rr = false;
+            for (int dd = 0; dd < AMREX_SPACEDIM; ++dd) {
+                if (rr[dd] != 1 && rr[dd] % 2 != 0) { odd_rr = true; }
+            }
+            if (odd_rr && b.length(d) < unit[d]) {
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " thinner than the blocking factor in direction " + std::to_string(d));
             }
