@@ -198,6 +198,12 @@ void check_level (TestMesh const& mesh, int lev)
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " longer than max_grid_size in direction " + std::to_string(d));
             }
+            // Boxes at a truncated upper boundary are extended inward, so
+            // no box is thinner than the grid unit.
+            if (b.length(d) < unit[d]) {
+                fail("level " + std::to_string(lev) + " box " + std::to_string(i)
+                     + " thinner than the blocking factor in direction " + std::to_string(d));
+            }
             if ((b.smallEnd(d) - domain.smallEnd(d)) % unit[d] != 0) {
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " lower end not aligned to blocking factor in direction "

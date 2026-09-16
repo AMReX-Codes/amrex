@@ -503,6 +503,66 @@ AmrMesh::bfLev (int lev) const noexcept
     return bf;
 }
 
+namespace {
+
+// Chop the boxes so that they are no longer than chunk, keeping them
+// coarsenable by rr in direction idim.  A box at the upper domain boundary
+// whose length in idim is not a multiple of unit is extended to a multiple
+// first, chopped, and clipped to the domain again, so that its pieces are
+// multiples of unit with the remainder attached to the last one.
+void chopBoxes (BoxArray& ba, int idim, int rr, IntVect const& chunk, int unit,
+                Box const& domain)
+{
+    IntVect crr(1);
+    crr[idim] = rr;
+    IntVect const cchunk = chunk / crr;
+    BoxList bl(ba.ixType());
+    for (int i = 0; i < ba.size(); ++i) {
+        Box const& b = ba[i];
+        int const len = b.length(idim);
+        int const rem = len % unit;
+        if (rem != 0 && len > chunk[idim] && b.bigEnd(idim) == domain.bigEnd(idim)) {
+            Box be = b;
+            be.growHi(idim, unit-rem);
+            IntVect c1 = cchunk;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                if (d != idim) { c1[d] = be.length(d); } // this direction only
+            }
+            BoxList pieces(be);
+            pieces.coarsen(crr);
+            pieces.maxSize(c1);
+            pieces.refine(crr);
+            Vector<Box> v;
+            for (auto const& p : pieces) {
+                Box const q = p & domain;
+                if (q.ok()) { v.push_back(q); }
+            }
+            if (v.size() >= 2 && v.back().length(idim) < unit) {
+                v[v.size()-2].setBig(idim, v.back().bigEnd(idim));
+                v.pop_back();
+            }
+            IntVect c2 = cchunk;
+            for (auto const& q : v) {
+                c2[idim] = q.length(idim) / rr; // no further chop in idim
+                BoxList tmp(q);
+                tmp.coarsen(crr);
+                tmp.maxSize(c2);
+                tmp.refine(crr);
+                bl.join(tmp);
+            }
+        } else {
+            BoxList tmp(b);
+            tmp.coarsen(crr);
+            tmp.maxSize(cchunk);
+            tmp.refine(crr);
+            bl.join(tmp);
+        }
+    }
+    ba = BoxArray(std::move(bl));
+}
+
+}
+
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
@@ -541,16 +601,8 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
                     new_chunk_size%blocking_factor[lev][idim] == 0)
                 {
                     chunk[idim] = new_chunk_size;
-                    if (rr == 1) {
-                        ba.maxSize(chunk);
-                    } else {
-                        IntVect bf(1);
-                        bf[idim] = rr;
-                        // Note that only idim-direction will be chopped by
-                        // minmaxSize because the sizes in other directions
-                        // are already smaller than chunk.
-                        ba.minmaxSize(bf, chunk);
-                    }
+                    int const unit = (lev > 0) ? bfLev(lev-1)[idim]*rr : 1;
+                    chopBoxes(ba, idim, rr, chunk, unit, Geom(lev).Domain());
                     break;
                 }
             }
@@ -901,6 +953,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     } else {
                         clist.chop(grid_eff);
                     }
+                    BoxArray const p_n_copy = p_n_ba[levc]; // intersect() below empties it
                     clist.intersect(p_n_ba[levc]);
                     //
                     // Efficient properly nested Clusters have been constructed
@@ -908,6 +961,36 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     clist.boxList(new_bx);
                     new_bx.simplify();
+
+                    // If the domain is not divisible by bf_lev, the last
+                    // coarsened cell at the upper boundary is a partial one.
+                    // A box that covers only that cell would become a thin
+                    // grid, so extend it by one cell into the interior.
+                    {
+                        bool extended = false;
+                        Box const& pcd = pc_domain[levc];
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            int const hi = pcd.bigEnd(idim);
+                            if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
+                                && hi > pcd.smallEnd(idim))
+                            {
+                                for (auto& b : new_bx) {
+                                    if (b.bigEnd(idim) == hi && b.length(idim) == 1) {
+                                        b.setSmall(idim, hi-1);
+                                        extended = true;
+                                    }
+                                }
+                            }
+                        }
+                        if (extended) {
+                            // Keep proper nesting and make the boxes disjoint again.
+                            BoxArray ba = amrex::intersect(BoxArray(std::move(new_bx)), p_n_copy);
+                            ba.removeOverlap(false);
+                            new_bx = ba.boxList();
+                            new_bx.simplify();
+                        }
+                    }
+
                     if (no_chop_dir >= 0) {
                         // No two grids may share a face normal to no_chop_dir.
                         // Nothing after this point chops in that direction.

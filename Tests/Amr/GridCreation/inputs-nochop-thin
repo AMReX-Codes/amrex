@@ -1,0 +1,23 @@
+# Tagged cells only in the partial last coarsened cell at the upper x and z
+# boundaries (145 = 18*8+1, 65 = 8*8+1).  Without the boundary extension
+# this would give a grid 3 cells wide in x and 1 cell thick in z.
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 0 0 0
+
+amr.n_cell = 145 131 65
+amr.max_level = 1
+amr.ref_ratio_vect = 3 3 1
+amr.no_chop_dir = 2
+amr.n_error_buf = 0
+
+amr.blocking_factor_x = 1 24
+amr.blocking_factor_y = 1 24
+amr.blocking_factor_z = 1 8
+amr.max_grid_size_x = 48 96
+amr.max_grid_size_y = 48 96
+amr.max_grid_size_z = 65 72
+amr.refine_grid_layout_z = 0
+
+test.centers = 0.9966 0.5 0.9923   0.3 0.4 0.5
+test.radius = 0.004

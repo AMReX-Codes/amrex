@@ -162,7 +162,9 @@ direction) between levels :math:`\ell-1` and :math:`\ell`.
 
 - The domain does not need to be divisible by the level :math:`\ell`
   :cpp:`blocking_factor`.  In non-periodic directions the grids touching the
-  upper domain boundary are simply truncated there.  In a periodic direction
+  upper domain boundary are simply truncated there; a grid that would consist
+  of the truncated part alone is extended inward by one :cpp:`blocking_factor`
+  so that no grid is thinner than the :cpp:`blocking_factor`.  In a periodic direction
   whose level :math:`\ell-1` domain size is not divisible by the
   :cpp:`blocking_factor` on level :math:`\ell` divided by :math:`r`, the tags
   are coarsened by the largest power of 2 that does divide the domain size
