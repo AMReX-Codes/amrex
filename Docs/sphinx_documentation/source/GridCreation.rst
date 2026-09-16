@@ -159,8 +159,9 @@ backward compatibility, but the grids are then multiples of 6 rather than
 
 **Max grid size on the fine levels.**  :cpp:`max_grid_size` must be a
 multiple of the :cpp:`blocking_factor`, e.g., 96 or 192 for a
-:cpp:`blocking_factor` of 24.  Larger values give fewer, larger grids;
-smaller values give more grids to distribute across processes.
+:cpp:`blocking_factor` of 24, and at least twice the :cpp:`blocking_factor`
+when :cpp:`n_cell` is not divisible by it.  Larger values give fewer, larger
+grids; smaller values give more grids to distribute across processes.
 
 **Level 0.**  The :cpp:`blocking_factor` on level 0 must divide
 :cpp:`n_cell`, so when :cpp:`n_cell` has no convenient factors it has to be

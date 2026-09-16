@@ -192,6 +192,13 @@ public:
     void coarsen (const IntVect& ratio);
 
     /**
+     * \brief Same as above, but the caller says whether the coarsened
+     * valid regions may overlap (i.e., the grids are not coarsenable by
+     * \p ratio), which avoids a scan of the BoxArray.
+     */
+    void coarsen (const IntVect& ratio, bool may_overlap);
+
+    /**
      * \brief Calls TagBox::collate() across all FABs, storing indices in \p TheGlobalCollateSpace.
      *
      * \param TheGlobalCollateSpace Output pinned vector that receives the global list of tag locations.

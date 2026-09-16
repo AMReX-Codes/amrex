@@ -751,6 +751,14 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
+    coarsen(ratio, !boxarray.coarsenable(ratio));
+}
+
+void
+TagBoxArray::coarsen (const IntVect & ratio, bool may_overlap)
+{
+    m_may_overlap = may_overlap;
+
     // If team is used, all team workers need to go through all the fabs,
     // including ones they don't own.
     int teamsize = ParallelDescriptor::TeamSize();
@@ -770,7 +778,6 @@ TagBoxArray::coarsen (const IntVect & ratio)
         this->fabPtr(mfi)->coarsen(ratio,cbox);
     }
 
-    m_may_overlap = !boxarray.coarsenable(ratio);
     boxarray.coarsen(ratio);
     n_grow = new_n_grow;
     clear_arrays(); // The cached Array4s are for the old boxes.

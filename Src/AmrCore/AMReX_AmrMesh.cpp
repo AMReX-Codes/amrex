@@ -832,7 +832,24 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             bl_max = std::max(bl_max,bf_lev[levc][n]);
         }
         if (bl_max >= 1) {
-            tags.coarsen(bf_lev[levc]);
+            // The coarsened tag boxes can only overlap if the grids are
+            // not coarsenable by bf_lev, which the checks in checkInput
+            // rule out unless the domain is not divisible by bf_lev or the
+            // level 0 grids are not multiples of it.  Only then is the
+            // BoxArray scanned.
+            bool may_overlap = false;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                int const bfl = bf_lev[levc][idim];
+                if (Geom(levc).Domain().length(idim) % bfl != 0) { may_overlap = true; }
+                if (levc == 0 && std::min(blocking_factor[0][idim],
+                                          max_grid_size[0][idim]) % bfl != 0) {
+                    may_overlap = true;
+                }
+            }
+            if (may_overlap) {
+                may_overlap = !grids[levc].coarsenable(bf_lev[levc]);
+            }
+            tags.coarsen(bf_lev[levc], may_overlap);
         } else {
             amrex::Abort("blocking factor is too small relative to ref_ratio");
         }
@@ -1582,6 +1599,29 @@ AmrMesh::checkInput ()
                         amrex::Error("max_grid_size not divisible by blocking_factor");
                     }
                 }
+            }
+        }
+    }
+
+    //
+    // With a domain that is not divisible by the blocking factor, the grid
+    // at the upper boundary can only be kept at least as thick as the
+    // blocking factor if max_grid_size allows grids of two blocking factors.
+    //
+    for (int i = 1; i <= max_level; i++) {
+        IntVect const emgs = effectiveMaxGridSize(i);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const bf_lev = bfLev(i-1)[idim];
+            int const unit = grid_unit(i,idim);
+            if (idim != no_chop_dir && Geom(i-1).Domain().length(idim) % bf_lev != 0
+                && emgs[idim] < 2*unit)
+            {
+                amrex::Print() << "On level " << i << " in direction " << idim
+                               << " max_grid_size is " << emgs[idim] << " and the grids are multiples of "
+                               << unit << ", but the level " << i-1 << " domain size "
+                               << Geom(i-1).Domain().length(idim) << " is not divisible by "
+                               << bf_lev << ".\n";
+                amrex::Error("max_grid_size must be at least twice the blocking factor when the domain is not divisible by it");
             }
         }
     }
