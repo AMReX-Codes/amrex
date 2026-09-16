@@ -135,46 +135,50 @@ all cells in the 7x7x7 box from lower corner "*(i-3,j-3,k-3)*" to "*(i+3,j+3,k+3
 Odd Refinement Ratios and Odd Domain Sizes
 ------------------------------------------
 
-Some applications (for example, atmospheric codes that nest a fine domain
-inside a coarse one) use odd refinement ratios such as 3 together with
+Some applications, for example atmospheric codes that nest a fine domain
+inside a coarse one, use odd refinement ratios such as 3 together with
 domains whose sizes are not powers of 2, e.g., :cpp:`n_cell = 749 679 69`.
-The rules above are relaxed for them as follows.  Consider a fine level
-:math:`\ell > 0` with refinement ratio :math:`r` (which may differ by
-direction) between levels :math:`\ell-1` and :math:`\ell`.
+The usual advice of powers of 2 everywhere does not apply to them.  This
+section explains how to choose :cpp:`blocking_factor` and
+:cpp:`max_grid_size` in that situation.
 
-- The :cpp:`blocking_factor` on level :math:`\ell` may be :math:`r` times a
-  power of 2 (e.g., 24 for :math:`r = 3`).  The tags on level :math:`\ell-1`
-  are then coarsened by that power of 2 before clustering, and the grids on
-  level :math:`\ell` are multiples of the :cpp:`blocking_factor` and are
-  coarsenable by :math:`r`.  As always, :cpp:`max_grid_size` on level
-  :math:`\ell` must be a multiple of the :cpp:`blocking_factor`.
+**Blocking factor on the fine levels.**  On a level with refinement ratio
+:math:`r`, choose a :cpp:`blocking_factor` that is :math:`r` times a power of
+2, for example 24 (that is, :math:`3 \times 8`) for :math:`r = 3`, or a plain
+power of 2 such as 8 in a direction where :math:`r = 1`.  The grids on that
+level are then multiples of the :cpp:`blocking_factor`, and regridding
+becomes much cheaper, because the grid generator works with blocks of that
+many coarse cells in each direction instead of individual cells (with 8,
+that is 512 times fewer cells in 3D).  A :cpp:`blocking_factor` of 1 is
+allowed, but it makes regridding expensive on large domains and produces
+many small grids, so it is best avoided.  A power of 2 that is not a
+multiple of :math:`r`, such as 8 with :math:`r = 3`, is accepted for
+backward compatibility, but the grids are then multiples of 6 rather than
+8, and a warning says so.
 
-- If the :cpp:`blocking_factor` on level :math:`\ell` is a power of 2 that is
-  not a multiple of :math:`r` (e.g., 8 with :math:`r = 3`), the grids are
-  multiples of :math:`\max(1, b/r) \cdot r` instead, where :math:`b` is the
-  :cpp:`blocking_factor` (6 in the example).  A warning is printed.
+**Max grid size on the fine levels.**  :cpp:`max_grid_size` must be a
+multiple of the :cpp:`blocking_factor`, e.g., 96 or 192 for a
+:cpp:`blocking_factor` of 24.  Larger values give fewer, larger grids;
+smaller values give more grids to distribute across processes.
 
-- The :cpp:`blocking_factor` on level 0 must still divide :cpp:`n_cell`, so it
-  is often 1 when :cpp:`n_cell` has no small factors.  This is harmless: it does
-  not affect regridding, only how :cpp:`refine_grid_layout` may subdivide the
-  level 0 grids.  The level 0 grids do not need to be aligned with the
-  blocking factor of level 1.
+**Level 0.**  The :cpp:`blocking_factor` on level 0 must divide
+:cpp:`n_cell`, so when :cpp:`n_cell` has no convenient factors it has to be
+1.  This costs nothing: the level 0 blocking factor has no effect on
+regridding, and the level 0 grids do not need to line up with the blocking
+factor of level 1.  :cpp:`max_grid_size` on level 0 can be anything; it just
+sets how the domain is split among processes.
 
-- The domain does not need to be divisible by the level :math:`\ell`
-  :cpp:`blocking_factor`.  In non-periodic directions the grids touching the
-  upper domain boundary are simply truncated there; a grid that would consist
-  of the truncated part alone is extended inward by one :cpp:`blocking_factor`
-  so that no grid is thinner than the :cpp:`blocking_factor`.  In a periodic direction
-  whose level :math:`\ell-1` domain size is not divisible by the
-  :cpp:`blocking_factor` on level :math:`\ell` divided by :math:`r`, the tags
-  are coarsened by the largest power of 2 that does divide the domain size
-  instead, and the grids are multiples of :math:`r` times that number in that
-  direction.  A warning is printed.
+**Domain sizes.**  The domain does not need to be divisible by the
+:cpp:`blocking_factor`.  In a non-periodic direction, the grids that reach
+the upper domain boundary are simply cut off there, but no grid is ever
+thinner than the :cpp:`blocking_factor`.  In a periodic direction, choose
+:cpp:`n_cell` to be a multiple of the :cpp:`blocking_factor` divided by
+:math:`r` (8 in the example above); if it is not, a smaller power of 2 is
+used in that direction, the grids there are only multiples of :math:`r`
+times that smaller number, and a warning is printed.
 
-For example, with :cpp:`n_cell = 749 679 69`, :cpp:`ref_ratio_vect = 3 3 1` and
-:cpp:`max_level = 1`, the following gives level 1 grids that are multiples of
-24 in *x* and *y* and coarsens the tags by 8 in every direction before
-clustering:
+For example, with :cpp:`n_cell = 749 679 69`, :cpp:`ref_ratio_vect = 3 3 1`
+and :cpp:`max_level = 1`, a good choice is
 
 .. code-block:: none
 
@@ -184,4 +188,20 @@ clustering:
    amr.max_grid_size_x   = 188 96
    amr.max_grid_size_y   = 188 96
    amr.max_grid_size_z   = 69 72
+
+- The level 0 blocking factor is 1 because 749, 679 and 69 are odd, so no
+  larger power of 2 divides them.
+- On level 1 the blocking factor is :math:`3 \times 8 = 24` in *x* and *y*,
+  where the refinement ratio is 3, and :math:`1 \times 8 = 8` in *z*, where it
+  is 1.  Level 1 grids are therefore multiples of 24 by 24 by 8 cells, except
+  where they are cut off at the upper domain boundary.
+- The level 0 max grid size of 188 splits 749 cells into four grids in *x*
+  and *y*; 69 in *z* keeps each level 0 grid whole in the vertical.
+- The level 1 max grid size is 96, a multiple of 24, in *x* and *y*, and 72,
+  a multiple of 8 that exceeds the 69 cells of the domain, in *z*, so that
+  level 1 grids are never split in the vertical either.
+
+Codes that require every grid to span whole vertical columns should also set
+:cpp:`amr.no_chop_dir = 2`, which then takes care of the level 0 layout and of
+the vertical extent of the fine grids automatically; see above.
 
