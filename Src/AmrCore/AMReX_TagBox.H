@@ -205,6 +205,10 @@ public:
 #ifdef AMREX_USE_GPU
     void local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const;
 #endif
+
+private:
+    //! Set by coarsen() when the coarsened valid regions may overlap.
+    bool m_may_overlap = false;
 };
 
 }

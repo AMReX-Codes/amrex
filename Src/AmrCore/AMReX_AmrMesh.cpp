@@ -1056,7 +1056,64 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                             chunk[idim] = emgs[idim] / unit;
                         }
                     }
-                    new_bx.maxSize(chunk);
+                    // Chop as before, except that a box at the upper
+                    // boundary of a direction with a partial last cell is
+                    // split with the larger pieces last if the usual split
+                    // would leave that cell alone as a thin grid.
+                    {
+                        Box const& pcd = pc_domain[levc];
+                        BoxList chopped(new_bx.ixType());
+                        Vector<Box> pieces, next;
+                        for (auto const& b : new_bx) {
+                            BoxList plain(b);
+                            plain.maxSize(chunk);
+                            IntVect fix(0);
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
+                                    && b.bigEnd(idim) == pcd.bigEnd(idim)
+                                    && b.length(idim) > chunk[idim])
+                                {
+                                    for (auto const& q : plain) {
+                                        if (q.bigEnd(idim) == b.bigEnd(idim) && q.length(idim) == 1) {
+                                            fix[idim] = 1;
+                                        }
+                                    }
+                                }
+                            }
+                            if (fix == 0) {
+                                chopped.join(plain);
+                                continue;
+                            }
+                            IntVect c = chunk;
+                            pieces.assign(1, b);
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                if (!fix[idim]) { continue; }
+                                next.clear();
+                                for (auto const& p : pieces) {
+                                    int const len = p.length(idim);
+                                    int const n = (len + chunk[idim] - 1) / chunk[idim];
+                                    int const base = len / n;
+                                    int const extra = len - base*n;
+                                    int lo = p.smallEnd(idim);
+                                    for (int k = 0; k < n; ++k) {
+                                        int const l = base + ((k >= n-extra) ? 1 : 0);
+                                        Box q = p;
+                                        q.setSmall(idim, lo);
+                                        q.setBig(idim, lo+l-1);
+                                        lo += l;
+                                        next.push_back(q);
+                                    }
+                                }
+                                pieces.swap(next);
+                                c[idim] = b.length(idim); // done in this direction
+                            }
+                            BoxList bl(new_bx.ixType());
+                            bl.join(pieces);
+                            bl.maxSize(c);
+                            chopped.join(bl);
+                        }
+                        new_bx = std::move(chopped);
+                    }
 
                     new_bx.refine(bf_lev[levc]);
                     if (new_bx.size()>0) {
