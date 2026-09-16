@@ -112,7 +112,7 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
 - On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
   domain is decomposed in those directions only, into nearly equal grids
   that all span the domain in :cpp:`amr.no_chop_dir`.  The number of grids is
-  the number of MPI processes or, if larger, the number implied by
+  at least the number of MPI processes, and no grid is longer than
   :cpp:`max_grid_size` in the decomposed directions.  Any :cpp:`n_cell` works.
   With a larger level 0 :cpp:`blocking_factor` the usual algorithm is used.
 

@@ -824,6 +824,17 @@ public:
     BoxArray& minmaxSize (const IntVect& min_size, const IntVect& max_size);
 
     /**
+     * \brief Replace the Boxes with a different partition of the same cells.
+     *
+     * Unlike define(), the cached simplified BoxList is kept, because the
+     * union of the Boxes does not change.  \p bl must cover exactly the
+     * same cells as the current Boxes.
+     *
+     * \param bl New Boxes.
+     */
+    void repartition (BoxList&& bl);
+
+    /**
      * \brief Refine each Box in the BoxArray by \p refinement_ratio.
      *
      * This refines every box individually, so it can be expensive for large

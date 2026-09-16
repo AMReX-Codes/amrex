@@ -143,6 +143,15 @@ void check_level0 (TestMesh const& mesh)
     if (ba.numPts() != domain.numPts() || !domain.contains(ba.minimalBox())) {
         fail("level 0 grids do not cover the domain");
     }
+    IntVect const mgs = mesh.effectiveMaxGridSize(0);
+    for (int i = 0; i < ba.size(); ++i) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if (ba[i].length(d) > mgs[d]) {
+                fail("level 0 box " + std::to_string(i)
+                     + " longer than max_grid_size in direction " + std::to_string(d));
+            }
+        }
+    }
 
     if (dir < 0) { return; }
 
@@ -457,6 +466,39 @@ void test_tag_overlap ()
             for (auto const& iv : v) { if (cdomain.contains(iv)) { ++ninside; } }
             if (ninside != cdomain.numPts()) { fail("coarsened tags do not cover the domain"); }
         }
+
+        // A single tag in a fine cell whose coarsened cell is also covered
+        // by the valid region of another (untagged) fab must survive, with
+        // and without ghost cells.  (Periodic images outside the domain
+        // are collated too, so only the tags inside the domain count.)
+        for (int ng = 0; ng <= 2; ng += 2) {
+            TagBoxArray tags1(ba, dm, IntVect(ng));
+            IntVect const iv1(AMREX_D_DECL(37,38,0));
+            for (MFIter mfi(tags1); mfi.isValid(); ++mfi) {
+                if (mfi.validbox().contains(iv1)) {
+                    tags1.array(mfi)(AMREX_D_DECL(iv1[0],iv1[1],iv1[2])) = TagBox::SET;
+                }
+            }
+            tags1.coarsen(ratio);
+            tags1.mapPeriodicRemoveDuplicates(cgeom);
+            Gpu::PinnedVector<IntVect> v1;
+            tags1.collate(v1);
+            if (ParallelDescriptor::IOProcessor()) {
+                Long ninside = 0;
+                bool right_cell = true;
+                for (auto const& iv : v1) {
+                    if (cdomain.contains(iv)) {
+                        ++ninside;
+                        if (iv != amrex::coarsen(iv1, ratio)) { right_cell = false; }
+                    }
+                }
+                amrex::Print() << "Single tag test (periodic " << pshift << ", ngrow " << ng
+                               << "): " << ninside << " tags inside the domain\n";
+                if (ninside != 1 || !right_cell) {
+                    fail("single tag lost or duplicated after coarsening");
+                }
+            }
+        }
     }
 }
 
@@ -486,7 +528,13 @@ int main (int argc, char* argv[])
             }
         }
 
+        // Optionally chop the grids as if there were this many processes,
+        // to exercise refine_grid_layout deterministically.
+        int chop_target = 0;
+        pp.query("chop_target", chop_target);
+
         BoxArray ba0 = mesh.MakeBaseGrids();
+        if (chop_target > 0) { mesh.ChopGrids(0, ba0, chop_target); }
         mesh.SetBoxArray(0, ba0);
         mesh.SetDistributionMap(0, DistributionMapping(ba0));
         mesh.SetFinestLevel(0);
@@ -503,6 +551,12 @@ int main (int argc, char* argv[])
             mesh.MakeNewGrids(lbase, 0.0, new_finest, new_grids);
             amrex::Print() << "MakeNewGrids from level 0 took " << amrex::second()-t0 << " s\n";
             for (int lev = lbase+1; lev <= new_finest; ++lev) {
+                if (chop_target > 0) {
+                    Long const nbefore = new_grids[lev].size();
+                    mesh.ChopGrids(lev, new_grids[lev], chop_target);
+                    amrex::Print() << "    ChopGrids on level " << lev << ": " << nbefore
+                                   << " -> " << new_grids[lev].size() << " grids\n";
+                }
                 mesh.SetBoxArray(lev, new_grids[lev]);
                 mesh.SetDistributionMap(lev, DistributionMapping(new_grids[lev]));
             }
@@ -513,6 +567,12 @@ int main (int argc, char* argv[])
             int const lbase = mesh.finestLevel()-1;
             mesh.MakeNewGrids(lbase, 0.0, new_finest, new_grids);
             for (int lev = lbase+1; lev <= new_finest; ++lev) {
+                if (chop_target > 0) {
+                    Long const nbefore = new_grids[lev].size();
+                    mesh.ChopGrids(lev, new_grids[lev], chop_target);
+                    amrex::Print() << "    ChopGrids on level " << lev << ": " << nbefore
+                                   << " -> " << new_grids[lev].size() << " grids\n";
+                }
                 mesh.SetBoxArray(lev, new_grids[lev]);
                 mesh.SetDistributionMap(lev, DistributionMapping(new_grids[lev]));
             }

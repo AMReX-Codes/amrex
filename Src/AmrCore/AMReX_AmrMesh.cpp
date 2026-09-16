@@ -474,6 +474,7 @@ AmrMesh::effectiveMaxGridSize (int lev) const noexcept
 {
     IntVect mgs = max_grid_size[lev];
     if (no_chop_dir >= 0) {
+        AMREX_ASSERT(no_chop_dir < AMREX_SPACEDIM);
         // A grid can never be longer than the domain, so this makes the
         // max_grid_size constraint vacuous in that direction.
         mgs[no_chop_dir] = std::max(mgs[no_chop_dir],
@@ -505,11 +506,29 @@ AmrMesh::bfLev (int lev) const noexcept
 
 namespace {
 
-// Chop the boxes so that they are no longer than chunk, keeping them
-// coarsenable by rr in direction idim.  A box at the upper domain boundary
-// whose length in idim is not a multiple of unit is extended to a multiple
-// first, chopped, and clipped to the domain again, so that its pieces are
-// multiples of unit with the remainder attached to the last one.
+// A "partial" box touches the upper domain boundary in idim, is longer
+// than chunk there, and its length is not a multiple of unit.  This only
+// happens when the domain is not divisible by the blocking factor.
+bool isPartialBox (Box const& b, int idim, int chunk, int unit, Box const& domain)
+{
+    int const len = b.length(idim);
+    return (len % unit != 0) && (len > chunk) && (b.bigEnd(idim) == domain.bigEnd(idim));
+}
+
+bool hasPartialBox (BoxArray const& ba, int idim, int chunk, int unit, Box const& domain)
+{
+    for (int i = 0; i < ba.size(); ++i) {
+        if (isPartialBox(ba[i], idim, chunk, unit, domain)) { return true; }
+    }
+    return false;
+}
+
+// Chop the boxes in direction idim only, so that they are no longer than
+// chunk there, keeping them coarsenable by rr.  A partial box (see above)
+// is extended to a multiple of unit first, chopped, and clipped to the
+// domain again, so that its pieces are multiples of unit with the
+// remainder attached to the last one.  chunk must not chop the other
+// directions.
 void chopBoxes (BoxArray& ba, int idim, int rr, IntVect const& chunk, int unit,
                 Box const& domain)
 {
@@ -520,17 +539,13 @@ void chopBoxes (BoxArray& ba, int idim, int rr, IntVect const& chunk, int unit,
     for (int i = 0; i < ba.size(); ++i) {
         Box const& b = ba[i];
         int const len = b.length(idim);
-        int const rem = len % unit;
-        if (rem != 0 && len > chunk[idim] && b.bigEnd(idim) == domain.bigEnd(idim)) {
+        if (isPartialBox(b, idim, chunk[idim], unit, domain)) {
+            int const rem = len % unit;
             Box be = b;
             be.growHi(idim, unit-rem);
-            IntVect c1 = cchunk;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                if (d != idim) { c1[d] = be.length(d); } // this direction only
-            }
             BoxList pieces(be);
             pieces.coarsen(crr);
-            pieces.maxSize(c1);
+            pieces.maxSize(cchunk);
             pieces.refine(crr);
             Vector<Box> v;
             for (auto const& p : pieces) {
@@ -541,15 +556,7 @@ void chopBoxes (BoxArray& ba, int idim, int rr, IntVect const& chunk, int unit,
                 v[v.size()-2].setBig(idim, v.back().bigEnd(idim));
                 v.pop_back();
             }
-            IntVect c2 = cchunk;
-            for (auto const& q : v) {
-                c2[idim] = q.length(idim) / rr; // no further chop in idim
-                BoxList tmp(q);
-                tmp.coarsen(crr);
-                tmp.maxSize(c2);
-                tmp.refine(crr);
-                bl.join(tmp);
-            }
+            bl.join(v);
         } else {
             BoxList tmp(b);
             tmp.coarsen(crr);
@@ -558,7 +565,7 @@ void chopBoxes (BoxArray& ba, int idim, int rr, IntVect const& chunk, int unit,
             bl.join(tmp);
         }
     }
-    ba = BoxArray(std::move(bl));
+    ba.repartition(std::move(bl));
 }
 
 }
@@ -602,7 +609,21 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
                 {
                     chunk[idim] = new_chunk_size;
                     int const unit = (lev > 0) ? bfLev(lev-1)[idim]*rr : 1;
-                    chopBoxes(ba, idim, rr, chunk, unit, Geom(lev).Domain());
+                    Box const& domain = Geom(lev).Domain();
+                    // Chop in idim only.  A box at a truncated domain
+                    // boundary may be longer than chunk in another
+                    // direction, and must not be split there.
+                    IntVect chunk1 = domain.length();
+                    chunk1[idim] = chunk[idim];
+                    if (hasPartialBox(ba, idim, chunk[idim], unit, domain)) {
+                        chopBoxes(ba, idim, rr, chunk1, unit, domain);
+                    } else if (rr == 1) {
+                        ba.maxSize(chunk1);
+                    } else {
+                        IntVect bf(1);
+                        bf[idim] = rr;
+                        ba.minmaxSize(bf, chunk1);
+                    }
                     break;
                 }
             }
@@ -647,6 +668,9 @@ AmrMesh::MakeBaseGrids () const
             nboxes = std::max(nboxes, ParallelDescriptor::NProcs());
         }
         ba = amrex::decompose(dom, nboxes, decomp);
+        // decompose only honors the total count; enforce max_grid_size
+        // direction by direction.
+        ba.maxSize(effectiveMaxGridSize(0));
     }
     else
     {
