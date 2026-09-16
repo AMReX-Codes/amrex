@@ -22,11 +22,20 @@ constrains grid creation in that each grid must be divisible by :cpp:`blocking_f
 Note that both the domain (at each level) and :cpp:`max_grid_size` must be divisible by :cpp:`blocking_factor`,
 and that :cpp:`blocking_factor` must be either 1 or a power of 2 (otherwise the gridding algorithm
 would not in fact create grids divisible by  :cpp:`blocking_factor` because of how  :cpp:`blocking_factor`
-is used in the gridding algorithm).
+is used in the gridding algorithm).  See :ref:`sec:grid_creation:odd` for the
+exceptions that apply with odd refinement ratios.
 
 If not specified by the user, :cpp:`blocking_factor` defaults to 8 in each coordinate direction.
 The typical purpose of :cpp:`blocking_factor` is to ensure that the grids will be
 sufficiently coarsenable for good multigrid performance.
+
+The :cpp:`blocking_factor` on a level :math:`\ell > 0` also controls the cost of
+regridding.  Before the tagged cells on level :math:`\ell-1` are clustered into
+grids, they are coarsened by :cpp:`blocking_factor` on level :math:`\ell` divided
+by the refinement ratio between the two levels.  A :cpp:`blocking_factor` of 1
+therefore means that the clustering algorithm works on every tagged cell,
+which is expensive for large domains.  The :cpp:`blocking_factor` on level 0 has
+no effect on regridding; it only constrains how the level 0 grids are subdivided.
 
 There is one more default behavior to be aware of.  There is a boolean :cpp:`refine_grid_layout`
 that defaults to true but can be overridden at run time.
@@ -96,4 +105,54 @@ way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the de
 This parameter is used to increase the number of tagged cells before the grids are defined;
 if cell "*(i,j,k)*" satisfies the tagging criteria, then, for example, if :cpp:`amr.n_error_buf` is 3,
 all cells in the 7x7x7 box from lower corner "*(i-3,j-3,k-3)*" to "*(i+3,j+3,k+3)*" will be tagged.
+
+.. _sec:grid_creation:odd:
+
+Odd Refinement Ratios and Odd Domain Sizes
+------------------------------------------
+
+Some applications (for example, atmospheric codes that nest a fine domain
+inside a coarse one) use odd refinement ratios such as 3 together with
+domains whose sizes are not powers of 2, e.g., :cpp:`n_cell = 749 679 69`.
+The rules above are relaxed for them as follows.  Consider a fine level
+:math:`\ell > 0` with refinement ratio :math:`r` (which may differ by
+direction) between levels :math:`\ell-1` and :math:`\ell`.
+
+- The :cpp:`blocking_factor` on level :math:`\ell` may be :math:`r` times a
+  power of 2 (e.g., 24 for :math:`r = 3`).  The tags on level :math:`\ell-1`
+  are then coarsened by that power of 2 before clustering, and the grids on
+  level :math:`\ell` are multiples of the :cpp:`blocking_factor` and are
+  coarsenable by :math:`r`.  As always, :cpp:`max_grid_size` on level
+  :math:`\ell` must be a multiple of the :cpp:`blocking_factor`.
+
+- If the :cpp:`blocking_factor` on level :math:`\ell` is a power of 2 that is
+  not a multiple of :math:`r` (e.g., 8 with :math:`r = 3`), the grids are
+  multiples of :math:`\max(1, b/r) \cdot r` instead, where :math:`b` is the
+  :cpp:`blocking_factor` (6 in the example).  A warning is printed.
+
+- The :cpp:`blocking_factor` on level 0 must still divide :cpp:`n_cell`, so it
+  is often 1 when :cpp:`n_cell` has no small factors.  This is harmless: it does
+  not affect regridding, only how :cpp:`refine_grid_layout` may subdivide the
+  level 0 grids.  The level 0 grids do not need to be aligned with the
+  blocking factor of level 1.
+
+- The domain does not need to be divisible by the level :math:`\ell`
+  :cpp:`blocking_factor` in non-periodic directions.  The grids touching the
+  upper domain boundary are simply truncated there.  In periodic directions,
+  the level :math:`\ell-1` domain must be divisible by the
+  :cpp:`blocking_factor` on level :math:`\ell` divided by :math:`r`.
+
+For example, with :cpp:`n_cell = 749 679 69`, :cpp:`ref_ratio_vect = 3 3 1` and
+:cpp:`max_level = 1`, the following gives level 1 grids that are multiples of
+24 in *x* and *y* and coarsens the tags by 8 in every direction before
+clustering:
+
+.. code-block:: none
+
+   amr.blocking_factor_x = 1 24
+   amr.blocking_factor_y = 1 24
+   amr.blocking_factor_z = 1 8
+   amr.max_grid_size_x   = 188 96
+   amr.max_grid_size_y   = 188 96
+   amr.max_grid_size_z   = 69 72
 
