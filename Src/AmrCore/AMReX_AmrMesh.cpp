@@ -854,15 +854,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     // now generate list of grids at level levf.
                     //
                     clist.boxList(new_bx);
-                    new_bx.refine(bf_lev[levc]);
                     new_bx.simplify();
-
-                    if (new_bx.size()>0) {
-                        // Chop new grids outside domain
-                        new_bx.intersect(Geom(levc).Domain());
-                    }
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
+
+                // The boxes are in the index space of level levc coarsened
+                // by bf_lev[levc].
 
                 bool odd_ref_ratio = false;
                 for (auto const& rr : ref_ratio[levc]) {
@@ -875,6 +872,32 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 {
                     // This approach imposes max_grid_size (suitably scaled) before
                     //     refining so as to ensure fine grids align with coarse grids
+
+                    // If max_grid_size is a multiple of the grid unit
+                    // bf_lev*ref_ratio, chop before refining by bf_lev so
+                    // that the grids are multiples of the unit even when the
+                    // domain is not divisible by it.  Otherwise, chop after
+                    // refining, as we have always done.
+                    IntVect chunk(0);
+                    bool chop_first = true;
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        int bf = bf_lev[levc][idim];
+                        int unit = bf * ref_ratio[levc][idim];
+                        if (((bf & (bf-1)) == 0) && (max_grid_size[levf][idim]%unit == 0)) {
+                            chunk[idim] = max_grid_size[levf][idim] / unit;
+                        } else {
+                            chop_first = false;
+                        }
+                    }
+                    if (chop_first) {
+                        new_bx.maxSize(chunk);
+                    }
+
+                    new_bx.refine(bf_lev[levc]);
+                    if (new_bx.size()>0) {
+                        // Chop new grids outside domain
+                        new_bx.intersect(Geom(levc).Domain());
+                    }
 
                     //
                     // Impose max_grid_size (suitably coarsened)
@@ -894,6 +917,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
                     //     but we leave it here so as not to change the gridding in
                     //     existing ref_ratio = 2 or 4 applications
+
+                    new_bx.refine(bf_lev[levc]);
+                    if (new_bx.size()>0) {
+                        // Chop new grids outside domain
+                        new_bx.intersect(Geom(levc).Domain());
+                    }
 
                     //
                     // Refine up to levf.
@@ -1244,34 +1273,58 @@ AmrMesh::checkInput ()
         }
     }
 
+    auto is_pow2 = [] (int k) { return k > 0 && (k & (k-1)) == 0; };
+
+    // Grids on level i > 0 are built from tags on level i-1 coarsened by
+    // bf_lev = max(1, blocking_factor[i]/ref_ratio[i-1]) and refined back,
+    // so they are multiples of the "grid unit" bf_lev*ref_ratio[i-1].
+    auto grid_unit = [&] (int i, int idim) {
+        int rr = ref_ratio[i-1][idim];
+        return std::max(1, blocking_factor[i][idim]/rr) * rr;
+    };
+
     //
-    // Check that blocking_factor is a power of 2.
+    // Check that blocking_factor is a power of 2.  With an odd refinement
+    // ratio, the blocking factor on a fine level may also be the ref ratio
+    // times a power of 2 (e.g., 24 for ref_ratio 3).
     //
     for (int i = 0; i <= max_level; i++)
     {
+        bool odd_rr = false;
+        if (i > 0) {
+            for (auto const& rr : ref_ratio[i-1]) {
+                if (rr != 1 && (rr%2 != 0)) { odd_rr = true; }
+            }
+        }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            int k = blocking_factor[i][idim];
-            while ( k > 0 && (k%2 == 0) ) {
-                k /= 2;
+            int bf = blocking_factor[i][idim];
+            bool ok = is_pow2(bf);
+            if (!ok && odd_rr) {
+                int rr = ref_ratio[i-1][idim];
+                ok = (bf%rr == 0) && is_pow2(bf/rr);
             }
-            if (k != 1) {
-                amrex::Error("Amr::checkInput: blocking_factor not power of 2. You can bypass this by setting ParmParse runtime parameter amr.check_input=0, although we do not recommend it.");
+            if (!ok) {
+                amrex::Print() << "blocking_factor on level " << i << " in direction "
+                               << idim << " is " << bf << '\n';
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2 (or, for odd ref_ratio, ref_ratio times power of 2). You can bypass this by setting ParmParse runtime parameter amr.check_input=0, although we do not recommend it.");
             }
         }
     }
 
     //
-    // Check that blocking_factor does not vary too much between levels
+    // Warn if the blocking factor cannot be satisfied with the ref ratio.
     //
-    for (int i = 0; i < max_level; i++) {
-        const IntVect bfrr = blocking_factor[i] * ref_ratio[i];
-        if (!bfrr.allGE(blocking_factor[i+1])) {
-            amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
-                           << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
-                           << ". Ref ratio is " << ref_ratio[i]
-                           << ".  They vary too much between levels." << '\n';
-            amrex::Error("Blocking factors vary too much between levels");
+    for (int i = 1; i <= max_level; i++) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int bf = blocking_factor[i][idim];
+            int unit = grid_unit(i,idim);
+            if (unit%bf != 0) {
+                amrex::Print() << "WARNING: blocking_factor " << bf << " on level " << i
+                               << " in direction " << idim << " cannot be satisfied with ref_ratio "
+                               << ref_ratio[i-1][idim] << ". Grids will be multiples of "
+                               << unit << " instead.\n";
+            }
         }
     }
 
@@ -1295,18 +1348,38 @@ AmrMesh::checkInput ()
         }
     }
 
-    // Make sure TagBoxArray has no overlapped valid cells after coarsening by block_factor/ref_ratio
+    //
+    // Check that blocking_factor does not vary too much between levels.
+    // Grids on level i (1 <= i < max_level) must be coarsenable by
+    // bf_lev[i] = max(1, blocking_factor[i+1]/ref_ratio[i]).  Level 0 is
+    // exempt because its grids cover the whole domain.
+    //
+    for (int i = 1; i < max_level; i++) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int bf_lev = std::max(1, blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            int unit = std::min(grid_unit(i,idim), max_grid_size[i][idim]);
+            if (unit % bf_lev != 0) {
+                amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
+                               << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
+                               << ". Ref ratio is " << ref_ratio[i]
+                               << ".  They vary too much between levels." << '\n';
+                amrex::Error("Blocking factors vary too much between levels");
+            }
+        }
+    }
+
+    //
+    // In periodic directions, the domain must be divisible by bf_lev.
+    //
     for (int i = 0; i < max_level; ++i) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int bf_lev = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
-            int min_grid_size = std::min(blocking_factor[i][idim],max_grid_size[i][idim]);
-            if (min_grid_size % bf_lev != 0) {
-                amrex::Print() << "On level " << i << " in direction " << idim
-                               << " max_grid_size is " << max_grid_size[i][idim]
-                               << " blocking factor is " << blocking_factor[i][idim] << "\n"
-                               << "On level " << i+1 << " in direction " << idim
-                               << " blocking_factor is " << blocking_factor[i+1][idim] << '\n';
-                amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
+            int bf_lev = std::max(1, blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            if (Geom(i).isPeriodic(idim) && Geom(i).Domain().length(idim) % bf_lev != 0) {
+                amrex::Print() << "Level " << i << " domain size in periodic direction " << idim
+                               << " is " << Geom(i).Domain().length(idim)
+                               << ", which is not divisible by blocking_factor/ref_ratio = "
+                               << bf_lev << '\n';
+                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in periodic direction");
             }
         }
     }
