@@ -921,8 +921,8 @@ BoxList::mergeAlongDir (int dir)
             for (auto const& [i,j] : pairs) {
                 auto& A = fpieces[i];
                 auto& B = npieces[j];
-                for (std::size_t ia = 0; ia < A.size(); ++ia) {
-                    for (std::size_t ib = 0; ib < B.size(); ++ib) {
+                for (Long ia = 0; ia < A.size(); ++ia) {
+                    for (Long ib = 0; ib < B.size(); ++ib) {
                         if (!B[ib].ok()) { continue; }
                         Box const aT = transverse_overlap(A[ia], B[ib]);
                         if (aT.ok()) {
