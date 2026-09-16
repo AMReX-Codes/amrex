@@ -16,9 +16,9 @@ void check (BoxList const& orig, BoxList const& bl, int dir)
     AMREX_ALWAYS_ASSERT(BoxArray(bl).numPts() == BoxArray(orig).numPts());
     AMREX_ALWAYS_ASSERT(bl.contains(orig));
     auto const& v = bl.data();
-    for (std::size_t i = 0; i < v.size(); ++i) {
+    for (Long i = 0; i < v.size(); ++i) {
         Box const s = amrex::shift(v[i], dir, 1);
-        for (std::size_t j = 0; j < v.size(); ++j) {
+        for (Long j = 0; j < v.size(); ++j) {
             AMREX_ALWAYS_ASSERT(i == j || !s.intersects(v[j]));
         }
     }
