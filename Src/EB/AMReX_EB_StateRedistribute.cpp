@@ -88,11 +88,16 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     Box const& bxg2 = amrex::grow(bx,2);
     Box const& bxg3 = amrex::grow(bx,3);
 
+    // Qhat is formed for every cell in bxg2, and the neighborhood of a cell in bxg2 can
+    //    reach one cell further out, so we must grow by 3 -- not 2 -- in the periodic
+    //    directions in order for the neighbors counted in nbhd_vol (see MakeStateRedistUtils,
+    //    which grows by 5) to also contribute their state to Qhat.  U_in and vfrac are
+    //    available on bxg3, so the data we need is there.
     Box domain_per_grown = domain;
-    if (is_periodic_x) { domain_per_grown.grow(0,2); }
-    if (is_periodic_y) { domain_per_grown.grow(1,2); }
+    if (is_periodic_x) { domain_per_grown.grow(0,3); }
+    if (is_periodic_y) { domain_per_grown.grow(1,3); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) { domain_per_grown.grow(2,2); }
+    if (is_periodic_z) { domain_per_grown.grow(2,3); }
 #endif
 
     // Solution at the centroid of my nbhd
@@ -449,11 +454,16 @@ StateRedistribute ( Box const& bx, int ncomp,
     Box const& bxg2 = amrex::grow(bx,2);
     Box const& bxg3 = amrex::grow(bx,3);
 
+    // Qhat is formed for every cell in bxg2, and the neighborhood of a cell in bxg2 can
+    //    reach one cell further out, so we must grow by 3 -- not 2 -- in the periodic
+    //    directions in order for the neighbors counted in nbhd_vol (see MakeStateRedistUtils,
+    //    which grows by 5) to also contribute their state to Qhat.  U_in and vfrac are
+    //    available on bxg3, so the data we need is there.
     Box domain_per_grown = domain;
-    if (is_periodic_x) { domain_per_grown.grow(0,2); }
-    if (is_periodic_y) { domain_per_grown.grow(1,2); }
+    if (is_periodic_x) { domain_per_grown.grow(0,3); }
+    if (is_periodic_y) { domain_per_grown.grow(1,3); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) { domain_per_grown.grow(2,2); }
+    if (is_periodic_z) { domain_per_grown.grow(2,3); }
 #endif
 
     // Solution at the centroid of my nbhd
