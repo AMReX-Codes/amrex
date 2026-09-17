@@ -529,7 +529,8 @@ AmrMesh::MakeBaseGrids () const
     const Box& dom = geom[0].Domain();
     const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (dom.length(idim) != dom2.length(idim)) {
+        if (dom.length(idim) != dom2.length(idim) ||
+            max_grid_size[0][idim] < 2) {
             fac[idim] = 1;
         }
     }

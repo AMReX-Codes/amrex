@@ -348,7 +348,8 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                 (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
         }
 
-        int const ng_space_interp = 8; // Need to be big enough
+        // Big enough to cover the coarse patch and the interp stencil
+        IntVect const ng_space_interp = m_nghost/m_ratio + 8;
         Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
         domain.convert(mf.ixType());
 
@@ -472,7 +473,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     Real r = Real(1) / Real(ncycle);
     Real xsi = Real(iteration-1) / Real(ncycle);
 
-    int const ng_space_interp = 8; // Need to be big enough
+    IntVect const ng_space_interp = m_nghost/m_ratio + 8;
     Box cdomain = m_cgeom.growPeriodicDomain(ng_space_interp);
     cdomain.convert(m_cf_crse_data_tmp->ixType());
 
