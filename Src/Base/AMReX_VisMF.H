@@ -48,7 +48,7 @@ public:
     * the FabArray not the name of the on-disk files.
     */
     explicit VisMF (std::string fafab_name);
-    ~VisMF () = default;
+    ~VisMF () { clear(); }
     VisMF (const VisMF&) = delete;
     VisMF (VisMF&&) = delete;
     VisMF& operator= (const VisMF&) = delete;
@@ -342,8 +342,7 @@ private:
     mutable Vector< Vector<FArrayBox*> > m_pa;
     /**
     * \brief Persistent streams.  These open on demand and should
-    * be closed when not needed with CloseAllStreams.
-    * ~VisMF also closes them.  [filename, pifs]
+    * be closed when not needed with CloseAllStreams.  [filename, pifs]
     */
     static AMREX_EXPORT std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
     //! The number of files to write for a FabArray<FArrayBox>.

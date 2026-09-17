@@ -10,6 +10,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_distFcnElement.H>
 
+#include <memory>
+
 /**
  * \file AMReX_EB2_IF_Spline.H
  *
@@ -28,19 +30,19 @@ class SplineIF {
    * Ownership stays with the SplineIF; callers must allocate on host.
    */
   void addSplineElement(std::vector<amrex::RealVect> pts) {
-    auto* theSpline = new SplineDistFcnElement2d();
+    auto theSpline = std::make_shared<SplineDistFcnElement2d>();
     theSpline->set_control_points(std::move(pts));
     theSpline->calc_D();
-    geomElements.push_back(theSpline);
+    geomElements.push_back(std::move(theSpline));
   }
 
   /**
    * \brief Append a straight line segment with endpoints/control points \p pts.
    */
   void addLineElement(std::vector<amrex::RealVect> pts) {
-    auto* theLine = new LineDistFcnElement2d();
+    auto theLine = std::make_shared<LineDistFcnElement2d>();
     theLine->set_control_points(std::move(pts));
-    geomElements.push_back(theLine);
+    geomElements.push_back(std::move(theLine));
   }
 
   /**
@@ -54,11 +56,11 @@ class SplineIF {
     amrex::Real dist;
     dist = 1.0e29_rt;
     amrex::RealVect x(AMREX_D_DECL(p[0], p[1], p[2]));
-    for (auto * geom : geomElements ) {
+    for (auto const& geom : geomElements ) {
       amrex::Real d = geom->cpdist(x, cp);
       if (d < dist) {
         dist = d;
-        closesetGeomElement = geom;
+        closesetGeomElement = geom.get();
       }
     }
     amrex::Real side = closesetGeomElement ? closesetGeomElement->cpside(x,cp) : Real(0.0);
@@ -66,7 +68,7 @@ class SplineIF {
   }
 
   //! Collection of geometry elements that define the curve.
-  amrex::Vector<distFcnElement2d*> geomElements;
+  amrex::Vector<std::shared_ptr<distFcnElement2d>> geomElements;
 };
 
 }

@@ -8,9 +8,10 @@
 #include <numbers>
 
 namespace {
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM < 3)
     constexpr double TWOPI = 2.0 * std::numbers::pi_v<double>;
-#elif (AMREX_SPACEDIM == 1)
+#endif
+#if (AMREX_SPACEDIM == 1)
     constexpr double FOURPI = 4.0 * std::numbers::pi_v<double>;
 #endif
 }
@@ -369,7 +370,16 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
         }
     }
 #elif (AMREX_SPACEDIM == 1)
-    if (c_sys == SPHERICAL)
+    if (c_sys == RZ)
+    {
+        int len = static_cast<int>(vc.size());
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len; i++) {
+            Real r = vc[i];
+            vc[i] = static_cast<Real>(0.5*TWOPI)*r*r;
+        }
+    }
+    else if (c_sys == SPHERICAL)
     {
         int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
@@ -432,7 +442,16 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
         }
     }
 #elif (AMREX_SPACEDIM == 1)
-    if (c_sys == SPHERICAL) {
+    if (c_sys == RZ)
+    {
+        int len = static_cast<int>(vc.size());
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len; i++) {
+            Real r = vc[i];
+            vc[i] = static_cast<Real>(0.5*TWOPI)*r*r;
+        }
+    }
+    else if (c_sys == SPHERICAL) {
         int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++) {
@@ -511,6 +530,13 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
         return AMREX_D_TERM((xhi[0]-xlo[0]),
                             *(xhi[1]-xlo[1]),
                             *(xhi[2]-xlo[2]));
+#if (AMREX_SPACEDIM==1)
+    case RZ:
+        return static_cast<Real>(0.5*TWOPI)*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
+    case SPHERICAL:
+        return static_cast<Real>(FOURPI/3.)*(xhi[0]-xlo[0]) *
+            (xhi[0]*xhi[0]+xhi[0]*xlo[0]+xlo[0]*xlo[0]);
+#endif
 #if (AMREX_SPACEDIM==2)
     case RZ:
         return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
@@ -528,6 +554,23 @@ Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
+#if (AMREX_SPACEDIM==1)
+    AMREX_ASSERT(dir == 0);
+    Real xlo[AMREX_SPACEDIM];
+    switch (c_sys)
+    {
+    case cartesian:
+        return 1._rt;
+    case RZ:
+        LoNode(point,xlo);
+        return Real(TWOPI)*xlo[0];
+    case SPHERICAL:
+        LoNode(point,xlo);
+        return Real(FOURPI)*xlo[0]*xlo[0];
+    default:
+        AMREX_ASSERT(0);
+    }
+#endif
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
     switch (c_sys)
@@ -582,6 +625,23 @@ Real
 CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
+#if (AMREX_SPACEDIM==1)
+    AMREX_ASSERT(dir == 0);
+    Real xhi[AMREX_SPACEDIM];
+    switch (c_sys)
+    {
+    case cartesian:
+        return 1._rt;
+    case RZ:
+        HiNode(point,xhi);
+        return Real(TWOPI)*xhi[0];
+    case SPHERICAL:
+        HiNode(point,xhi);
+        return Real(FOURPI)*xhi[0]*xhi[0];
+    default:
+        AMREX_ASSERT(0);
+    }
+#endif
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];
     switch (c_sys)

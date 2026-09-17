@@ -128,6 +128,11 @@ HypreABecLap::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap::prepareSolver()");
 
+    // Free handles from a previous call.
+    if (solver) { HYPRE_StructPFMGDestroy(solver); solver = nullptr; }
+    if (A) { HYPRE_StructMatrixDestroy(A); A = nullptr; }
+    if (grid) { HYPRE_StructGridDestroy(grid); grid = nullptr; }
+
     HYPRE_StructGridCreate(comm, AMREX_SPACEDIM, &grid);
 
     Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};

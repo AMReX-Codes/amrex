@@ -107,7 +107,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
     std::vector<Long> mymin(N, 0L);
     std::vector<Long> mymax(N, 0L);
 
-    mymin[0] = mymax[0] = std::accumulate(cur_min.begin(), cur_min.end(), 0L);
+    mymin[0] = mymax[0] = std::accumulate(cur_min.begin(), cur_min.end(), Long(0));
 
 #ifdef __linux__
     int ierr_proc_status = 0;

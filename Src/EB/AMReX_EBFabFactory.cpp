@@ -21,6 +21,8 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
       m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support)),
       m_parent(&a_level)
 {
+    if (m_support == EBSupport::none) { return; }
+
     auto const& ebflags = getMultiEBCellFlagFab();
     {
         // If we do not do this here, there would a race condition when
@@ -104,6 +106,8 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
       m_parent(&a_level),
       m_face_dir(face_dir)
 {
+    if (m_support == EBSupport::none) { return; }
+
     auto const& ebflags = getMultiEBCellFlagFab();
     {
         auto const& ma = ebflags.const_arrays();

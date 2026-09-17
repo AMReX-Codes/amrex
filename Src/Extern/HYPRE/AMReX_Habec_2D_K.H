@@ -477,12 +477,14 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            Real anorm = std::sqrt((apx(i,j,k) - apx(i+1,j,k))*(apx(i,j,k) - apx(i+1,j,k))
-                                 + (apy(i,j,k) - apy(i,j+1,k))*(apy(i,j,k) - apy(i,j+1,k)));
+            // Match mlebabeclap_adotx: physical-space normal, scaled by 1/(dx*dy).
+            Real dapx = (apx(i,j,k) - apx(i+1,j,k))*dx[1];
+            Real dapy = (apy(i,j,k) - apy(i,j+1,k))*dx[0];
+            Real anorm = std::hypot(dapx, dapy);
 
             Real anorminv = Real(1.0)/anorm;
-            Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
-            Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
+            Real anrmx = dapx*anorminv;
+            Real anrmy = dapy*anorminv;
             Real sx   = std::copysign(Real(1.0),anrmx);
             Real sy   = std::copysign(Real(1.0),anrmy);
             Real bctx = bcen(i,j,k,0);
@@ -501,10 +503,11 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             for (int ii=0; ii<4; ii++){
                 feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg);
             }
-            mat_tmp(0   , 0  ) -= feb(0)*fac[0];
-            mat_tmp(ioff, 0  ) -= feb(1)*fac[0];
-            mat_tmp(0   ,joff) -= feb(2)*fac[0];
-            mat_tmp(ioff,joff) -= feb(3)*fac[0];
+            Real faceb = sb/(dx[0]*dx[1]);
+            mat_tmp(0   , 0  ) -= feb(0)*faceb;
+            mat_tmp(ioff, 0  ) -= feb(1)*faceb;
+            mat_tmp(0   ,joff) -= feb(2)*faceb;
+            mat_tmp(ioff,joff) -= feb(3)*faceb;
         }
 
         for (int jj=-1; jj<=1; jj++) {

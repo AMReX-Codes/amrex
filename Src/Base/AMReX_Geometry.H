@@ -287,6 +287,15 @@ public:
 
             vol = dx[0];
         }
+        else if (coord == CoordSys::RZ) {
+            // Cylindrical
+
+            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real rr = rl + dx[0];
+
+            constexpr Real pi = std::numbers::pi_v<Real>;
+            vol = pi * (rl + rr) * dx[0];
+        }
         else {
             // Spherical
 
