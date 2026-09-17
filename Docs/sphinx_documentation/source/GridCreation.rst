@@ -164,7 +164,8 @@ allowed, but it makes regridding expensive on large domains and produces
 many small grids, so it is best avoided.  A power of 2 that is not a
 multiple of :math:`r`, such as 8 with :math:`r = 3`, is accepted for
 backward compatibility, but the grids are then multiples of 6 rather than
-8, and a warning says so.  In all cases
+8, and a warning says so.  The grids are then also no longer than the
+largest multiple of 6 that fits in :cpp:`max_grid_size`.  In all cases
 :cpp:`blocking_factor` divided by :math:`r`, rounded down, must be a power
 of 2 (or less than 1), so 16 is rejected for :math:`r = 3`.
 
