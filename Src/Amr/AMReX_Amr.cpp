@@ -1211,17 +1211,17 @@ Amr::checkInputExtended ()
     }
     //
     // Check that domain size is a multiple of blocking_factor[0], except
-    // in no_chop_dir where the blocking factor and max_grid_size are ignored.
+    // in no_box_split_dir where the blocking factor and max_grid_size are ignored.
     //
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (i != no_chop_dir && len%blocking_factor[0][i] != 0) {
+        if (i != no_box_split_dir && len%blocking_factor[0][i] != 0) {
             amrex::Error("domain size not divisible by blocking_factor");
         }
     }
     //
-    // Check that max_grid_size is even, except in no_chop_dir and in
+    // Check that max_grid_size is even, except in no_box_split_dir and in
     // directions with an odd refinement ratio.
     //
     for (int i = 0; i <= max_level; i++)
@@ -1229,7 +1229,7 @@ Amr::checkInputExtended ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const rr = (i == 0) ? 1 : ref_ratio[i-1][idim];
             bool const need_even = !(rr > 1 && rr%2 != 0);
-            if (idim != no_chop_dir && need_even && max_grid_size[i][idim]%2 != 0) {
+            if (idim != no_box_split_dir && need_even && max_grid_size[i][idim]%2 != 0) {
                 amrex::Error("max_grid_size is not even");
             }
         }
@@ -1241,7 +1241,7 @@ Amr::checkInputExtended ()
     for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (idim != no_chop_dir && max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+            if (idim != no_box_split_dir && max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                 amrex::Error("max_grid_size not divisible by blocking_factor");
             }
         }

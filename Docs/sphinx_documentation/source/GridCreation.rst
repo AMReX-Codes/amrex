@@ -23,7 +23,7 @@ Note that both the domain (at each level) and :cpp:`max_grid_size` must be divis
 and that :cpp:`blocking_factor` must be either 1 or a power of 2 (otherwise the gridding algorithm
 would not in fact create grids divisible by  :cpp:`blocking_factor` because of how  :cpp:`blocking_factor`
 is used in the gridding algorithm).  See :ref:`sec:grid_creation:odd` for the
-exceptions that apply when :cpp:`amr.no_chop_dir` is set.
+exceptions that apply when :cpp:`amr.no_box_split_dir` is set.
 
 If not specified by the user, :cpp:`blocking_factor` defaults to 8 in each coordinate direction.
 The typical purpose of :cpp:`blocking_factor` is to ensure that the grids will be
@@ -101,7 +101,7 @@ entire domain.
 
 Other applications do not want the grids decomposed in one coordinate
 direction (for example, atmospheric codes that solve implicitly along vertical
-columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
+columns).  Setting :cpp:`amr.no_box_split_dir` to that direction (0 for *x*, 1 for
 *y*, 2 for *z*; the default of -1 disables this) has the following effects.
 
 - :cpp:`max_grid_size` and :cpp:`refine_grid_layout` are ignored in that
@@ -111,7 +111,7 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
 
 - On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
   domain is split in those directions only, into nearly equal grids that all
-  span the domain in :cpp:`amr.no_chop_dir`.  Each direction gets the fewest
+  span the domain in :cpp:`amr.no_box_split_dir`.  Each direction gets the fewest
   pieces allowed by :cpp:`max_grid_size`.  If there are fewer grids than MPI
   processes and :cpp:`refine_grid_layout` permits, the number of pieces is
   doubled in the direction with the longest grids until there are enough.
@@ -149,7 +149,7 @@ domains whose sizes are not powers of 2, e.g., :cpp:`n_cell = 749 679 69`.
 The usual advice of powers of 2 everywhere does not apply to them.  This
 section explains how to choose :cpp:`blocking_factor` and
 :cpp:`max_grid_size` in that situation.  It applies only when
-:cpp:`amr.no_chop_dir` is set; otherwise the usual rules above apply to all
+:cpp:`amr.no_box_split_dir` is set; otherwise the usual rules above apply to all
 refinement ratios.
 
 **Blocking factor on the fine levels.**  On a level with refinement ratio
@@ -196,7 +196,7 @@ and :cpp:`max_level = 1`, a good choice is
 
 .. code-block:: none
 
-   amr.no_chop_dir       = 2
+   amr.no_box_split_dir  = 2
    amr.blocking_factor_x = 1 24
    amr.blocking_factor_y = 1 24
    amr.blocking_factor_z = 1 8
@@ -210,7 +210,7 @@ and :cpp:`max_level = 1`, a good choice is
   is 1.  Level 1 grids are therefore multiples of 24 by 24 by 8 cells, except
   where they are cut off at the upper domain boundary.
 - The level 0 max grid size of 188 splits 749 cells into four grids in *x*
-  and *y*.  With :cpp:`amr.no_chop_dir = 2`, grids are never split in *z*, so
+  and *y*.  With :cpp:`amr.no_box_split_dir = 2`, grids are never split in *z*, so
   :cpp:`max_grid_size_z` is not needed.
 - The level 1 max grid size is 96, a multiple of 24, in *x* and *y*.
 

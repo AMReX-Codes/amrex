@@ -1,4 +1,4 @@
-// Gridding with no_chop_dir. The legacy paths remain in AMReX_AmrMesh.cpp
+// Gridding with no_box_split_dir. The legacy paths remain in AMReX_AmrMesh.cpp
 // to preserve existing applications.
 #include <AMReX.H>
 #include <AMReX_AmrMesh.H>
@@ -13,12 +13,12 @@ IntVect
 AmrMesh::effectiveMaxGridSize (int lev) const noexcept
 {
     IntVect mgs = max_grid_size[lev];
-    if (no_chop_dir >= 0) {
-        AMREX_ASSERT(no_chop_dir < AMREX_SPACEDIM);
+    if (no_box_split_dir >= 0) {
+        AMREX_ASSERT(no_box_split_dir < AMREX_SPACEDIM);
         // A grid can never be longer than the domain, so this makes the
         // max_grid_size constraint vacuous in that direction.
-        mgs[no_chop_dir] = std::max(mgs[no_chop_dir],
-                                    Geom(lev).Domain().length(no_chop_dir));
+        mgs[no_box_split_dir] = std::max(mgs[no_box_split_dir],
+                                       Geom(lev).Domain().length(no_box_split_dir));
     }
     return mgs;
 }
@@ -138,7 +138,7 @@ void
 AmrMesh::ChopGridsExtended (int lev, BoxArray& ba, int target_size) const
 {
     IntVect chop_dims = refine_grid_layout_dims;
-    if (no_chop_dir >= 0) { chop_dims[no_chop_dir] = 0; }
+    if (no_box_split_dir >= 0) { chop_dims[no_box_split_dir] = 0; }
     if (chop_dims == 0) { return; }
 
     Box const& domain = Geom(lev).Domain();
@@ -153,7 +153,7 @@ AmrMesh::ChopGridsExtended (int lev, BoxArray& ba, int target_size) const
     if (lev > 0) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             unit[idim] = bfLev(lev-1)[idim] * ref_ratio[lev-1][idim];
-            if (idim != no_chop_dir && domain.length(idim) % unit[idim] != 0) {
+            if (idim != no_box_split_dir && domain.length(idim) % unit[idim] != 0) {
                 slack[idim] = unit[idim] - 1;
                 partial_any = true;
             }
@@ -208,17 +208,17 @@ AmrMesh::ChopGridsExtended (int lev, BoxArray& ba, int target_size) const
 }
 
 BoxArray
-AmrMesh::MakeBaseGridsNoChop () const
+AmrMesh::MakeBaseGridsNoBoxSplit () const
 {
     const Box& dom = geom[0].Domain();
     BoxArray ba;
 
-    // With no_chop_dir and blocking factor 1 in the other directions, the
+    // With no_box_split_dir and blocking factor 1 in the other directions, the
     // domain is split into nearly equal pieces without any alignment
     // requirement, which works for any number of cells.
-    bool use_split = (no_chop_dir >= 0);
+    bool use_split = (no_box_split_dir >= 0);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (idim != no_chop_dir && blocking_factor[0][idim] != 1) {
+        if (idim != no_box_split_dir && blocking_factor[0][idim] != 1) {
             use_split = false;
         }
     }
@@ -228,7 +228,7 @@ AmrMesh::MakeBaseGridsNoChop () const
         // Fewest pieces allowed by max_grid_size in each direction.
         IntVect npieces(1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (idim != no_chop_dir) {
+            if (idim != no_box_split_dir) {
                 int const mgs = max_grid_size[0][idim];
                 npieces[idim] = (dom.length(idim) + mgs - 1) / mgs;
             }
@@ -242,7 +242,7 @@ AmrMesh::MakeBaseGridsNoChop () const
                 int longest = 1;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     int const len = dom.length(idim) / npieces[idim];
-                    if (idim != no_chop_dir && refine_grid_layout_dims[idim] && len > longest) {
+                    if (idim != no_box_split_dir && refine_grid_layout_dims[idim] && len > longest) {
                         dir = idim;
                         longest = len;
                     }
@@ -635,10 +635,10 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                         new_bx.simplify();
                     }
 
-                    if (no_chop_dir >= 0) {
-                        // No two grids may share a face normal to no_chop_dir.
+                    if (no_box_split_dir >= 0) {
+                        // No two grids may share a face normal to no_box_split_dir.
                         // Nothing after this point chops in that direction.
-                        new_bx.mergeAlongDir(no_chop_dir);
+                        new_bx.mergeAlongDir(no_box_split_dir);
                     }
 
                     if (paired != 0) {
@@ -678,7 +678,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     IntVect chunk = pc_domain[levc].length();
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                         int unit = bf_lev[levc][idim] * ref_ratio[levc][idim];
-                        if (idim != no_chop_dir && emgs[idim] >= unit) {
+                        if (idim != no_box_split_dir && emgs[idim] >= unit) {
                             chunk[idim] = emgs[idim] / unit;
                         }
                     }
@@ -827,14 +827,14 @@ AmrMesh::checkInputExtended ()
     //
     // Check the direction in which the grids are never chopped.
     //
-    if (no_chop_dir >= 0)
+    if (no_box_split_dir >= 0)
     {
-        if (no_chop_dir >= AMREX_SPACEDIM) {
-            amrex::Error("Amr::checkInput: no_chop_dir is out of range");
+        if (no_box_split_dir >= AMREX_SPACEDIM) {
+            amrex::Error("Amr::checkInput: no_box_split_dir is out of range");
         }
 #ifdef AMREX_USE_BITTREE
         if (use_bittree) {
-            amrex::Error("Amr::checkInput: no_chop_dir does not work with bittree");
+            amrex::Error("Amr::checkInput: no_box_split_dir does not work with bittree");
         }
 #endif
     }
@@ -842,12 +842,12 @@ AmrMesh::checkInputExtended ()
     //
     // Check that domain size is a multiple of blocking_factor[0].
     //   (only check if blocking_factor <= max_grid_size, and not in
-    //   no_chop_dir where blocking_factor and max_grid_size are ignored)
+    //   no_box_split_dir where blocking_factor and max_grid_size are ignored)
     //
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
         int len = domain.length(idim);
-        if (idim != no_chop_dir && blocking_factor[0][idim] <= max_grid_size[0][idim]) {
+        if (idim != no_box_split_dir && blocking_factor[0][idim] <= max_grid_size[0][idim]) {
             if (len%blocking_factor[0][idim] != 0)
             {
                 amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
@@ -914,7 +914,7 @@ AmrMesh::checkInputExtended ()
         for (int i = 0; i <= max_level; i++)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (idim != no_chop_dir && blocking_factor[i][idim] <= max_grid_size[i][idim]) {
+                if (idim != no_box_split_dir && blocking_factor[i][idim] <= max_grid_size[i][idim]) {
                     if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                         amrex::Print() << "max_grid_size in direction " << idim
                                        << " is " << max_grid_size[i][idim] << '\n'
@@ -936,7 +936,7 @@ AmrMesh::checkInputExtended ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const bf_lev = bfLev(i-1)[idim];
             int const unit = grid_unit(i,idim);
-            if (idim != no_chop_dir && Geom(i-1).Domain().length(idim) % bf_lev != 0
+            if (idim != no_box_split_dir && Geom(i-1).Domain().length(idim) % bf_lev != 0
                 && emgs[idim] < 2*unit)
             {
                 amrex::Print() << "On level " << i << " in direction " << idim

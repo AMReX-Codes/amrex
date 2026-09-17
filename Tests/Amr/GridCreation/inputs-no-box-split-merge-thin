@@ -7,7 +7,7 @@ geometry.is_periodic = 0 0 0
 amr.n_cell = 749 679 69
 amr.max_level = 1
 amr.ref_ratio_vect = 3 3 1
-amr.no_chop_dir = 2
+amr.no_box_split_dir = 2
 amr.refine_grid_layout = 0
 
 amr.blocking_factor_x = 1 24

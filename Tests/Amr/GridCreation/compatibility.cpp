@@ -1,4 +1,4 @@
-// Default gridding must retain the results and validation used before no_chop_dir.
+// Default gridding must retain the results and validation used before no_box_split_dir.
 #include <AMReX.H>
 #include <AMReX_AmrMesh.H>
 #include <AMReX_ParmParse.H>
@@ -83,8 +83,8 @@ void test_legacy () {
     expected.maxSize(chunk);
     AMREX_ALWAYS_ASSERT(ba == expected);
 
-    // Unset and any negative no_chop_dir use the same legacy path.
-    info.no_chop_dir = -5;
+    // Unset and any negative no_box_split_dir use the same legacy path.
+    info.no_box_split_dir = -5;
     Mesh negative(geometry(IntVect(128)), info);
     ba = BoxArray(mesh.Geom(0).Domain());
     negative.ChopGrids(0, ba, 8);
@@ -134,7 +134,7 @@ void test_legacy () {
     AMREX_ALWAYS_ASSERT(rr62.finestLevel() == 2);
 }
 
-// Without no_chop_dir, odd ratios keep the original rules.
+// Without no_box_split_dir, odd ratios keep the original rules.
 void test_mixed_ratios () {
     AmrInfo info;
     info.max_level = 2;
@@ -159,14 +159,14 @@ void test_mixed_ratios () {
     AMREX_ALWAYS_ASSERT(ba == expected);
 
 #if AMREX_SPACEDIM >= 2
-    // With no_chop_dir, ChopGrids still honors max_grid_size in the other
+    // With no_box_split_dir, ChopGrids still honors max_grid_size in the other
     // directions.
-    info.no_chop_dir = AMREX_SPACEDIM-1;
+    info.no_box_split_dir = AMREX_SPACEDIM-1;
     info.blocking_factor = {IntVect(1), IntVect(24)};
     info.max_grid_size = {IntVect(32), IntVect(96)};
-    Mesh nochop(geometry(IntVect(128)), info);
-    ba = BoxArray(nochop.Geom(0).Domain());
-    nochop.ChopGrids(0, ba, 8);
+    Mesh no_box_split(geometry(IntVect(128)), info);
+    ba = BoxArray(no_box_split.Geom(0).Domain());
+    no_box_split.ChopGrids(0, ba, 8);
     for (int i = 0; i < ba.size(); ++i) {
         for (int d = 0; d < AMREX_SPACEDIM-1; ++d) {
             AMREX_ALWAYS_ASSERT(ba[i].length(d) <= 32);
@@ -177,7 +177,7 @@ void test_mixed_ratios () {
 
 void test_odd_ratio_inputs () {
     AmrInfo info;
-    info.no_chop_dir = AMREX_SPACEDIM-1;
+    info.no_box_split_dir = AMREX_SPACEDIM-1;
     info.max_level = 1;
     info.ref_ratio = {IntVect(3)};
     info.blocking_factor = {IntVect(1), IntVect(16)};
@@ -191,7 +191,7 @@ void test_odd_ratio_inputs () {
     info.max_level = 3;
     info.ref_ratio = {IntVect(3), IntVect(3), IntVect(3)};
     IntVect bf3(48);
-    bf3[AMREX_SPACEDIM-1] = 24; // max_grid_size does not apply in no_chop_dir
+    bf3[AMREX_SPACEDIM-1] = 24; // max_grid_size does not apply in no_box_split_dir
     info.blocking_factor = {IntVect(1), IntVect(24), IntVect(24), bf3};
     info.max_grid_size = {IntVect(32), IntVect(96), IntVect(16), IntVect(96)};
     info.n_error_buf = {IntVect(1)};
@@ -249,7 +249,7 @@ void test_amr_validation () {
         using Amr::checkInput;
         void unrefined_direction () { ref_ratio[0][AMREX_SPACEDIM-1] = 1; }
         void odd_ratio () {
-            no_chop_dir = 0;
+            no_box_split_dir = 0;
             ref_ratio[0] = IntVect(3);
             ref_ratio[0][AMREX_SPACEDIM-1] = 1;
         }
@@ -265,7 +265,7 @@ void test_amr_validation () {
     odd_mgs[AMREX_SPACEDIM-1] = 33;
     driver.SetMaxGridSize(Vector<IntVect>{IntVect(32), odd_mgs});
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
-    // With no_chop_dir, an odd ratio elsewhere does not exempt a direction
+    // With no_box_split_dir, an odd ratio elsewhere does not exempt a direction
     // with ratio 1.
     driver.odd_ratio();
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
@@ -273,21 +273,21 @@ void test_amr_validation () {
 }
 #endif
 
-void test_no_chop () {
+void test_no_box_split () {
     AmrInfo info;
     info.check_input = false;
-    info.no_chop_dir = AMREX_SPACEDIM;
-    rejects([&] { Mesh invalid(geometry(IntVect(128)), info); }, "no_chop_dir is out of range");
+    info.no_box_split_dir = AMREX_SPACEDIM;
+    rejects([&] { Mesh invalid(geometry(IntVect(128)), info); }, "no_box_split_dir is out of range");
     ParmParse pp("amr");
     pp.add("check_input", false);
-    pp.add("no_chop_dir", AMREX_SPACEDIM);
+    pp.add("no_box_split_dir", AMREX_SPACEDIM);
     pp.add("max_level", 0);
     pp.addarr("n_cell", Vector<int>(AMREX_SPACEDIM, 128));
-    rejects([] { Mesh invalid; }, "no_chop_dir is out of range");
+    rejects([] { Mesh invalid; }, "no_box_split_dir is out of range");
 
 #if AMREX_SPACEDIM == 3
     info.check_input = true;
-    info.no_chop_dir = 2;
+    info.no_box_split_dir = 2;
     info.blocking_factor = {IntVect(1)};
     info.max_grid_size = {IntVect(128)};
     info.refine_grid_layout_dims = IntVect(1,0,0);
@@ -303,7 +303,7 @@ void test_no_chop () {
     {
         // Level 0 honors max_grid_size in each direction.
         AmrInfo info0;
-        info0.no_chop_dir = AMREX_SPACEDIM-1;
+        info0.no_box_split_dir = AMREX_SPACEDIM-1;
         info0.blocking_factor = {IntVect(1)};
         IntVect mgs(64);
         mgs[0] = 16;
@@ -321,7 +321,7 @@ void test_no_chop () {
         // must not give grids thinner than the blocking factor.
         AmrInfo info1;
         info1.max_level = 1;
-        info1.no_chop_dir = AMREX_SPACEDIM-1;
+        info1.no_box_split_dir = AMREX_SPACEDIM-1;
         info1.blocking_factor = {IntVect(1), IntVect(8)};
         info1.max_grid_size = {IntVect(32)};
         info1.n_error_buf = {IntVect(0)};
@@ -349,13 +349,13 @@ void test_no_chop () {
 void test_supplied_grids () {
     AmrInfo info;
     info.max_level = 1;
-    info.no_chop_dir = AMREX_SPACEDIM-1;
+    info.no_box_split_dir = AMREX_SPACEDIM-1;
     info.n_error_buf = {IntVect(0)};
     info.refine_grid_layout = false;
     Mesh mesh(geometry(IntVect(32)), info);
     BoxArray ba(mesh.Geom(0).Domain());
     IntVect chunk(7);
-    chunk[info.no_chop_dir] = 32;
+    chunk[info.no_box_split_dir] = 32;
     ba.maxSize(chunk);
     IntVect const point(AMREX_D_DECL(7,5,5));
     mesh.tagged_boxes = {Box(point, point)};
@@ -375,7 +375,7 @@ void test_boundary_extension () {
             AmrInfo info;
             info.max_level = 1;
             info.ref_ratio = {IntVect(3)};
-            info.no_chop_dir = AMREX_SPACEDIM-1;
+            info.no_box_split_dir = AMREX_SPACEDIM-1;
             info.blocking_factor = {IntVect(1), IntVect(24)};
             info.max_grid_size = {IntVect(96)};
             info.n_error_buf = {IntVect(0)};
@@ -429,7 +429,7 @@ int main (int argc, char* argv[]) {
 #ifdef TEST_AMRLEVEL
         test_amr_validation();
 #endif
-        test_no_chop();
+        test_no_box_split();
         amrex::Print() << "Default gridding compatibility tests passed\n";
     }
     amrex::Finalize();

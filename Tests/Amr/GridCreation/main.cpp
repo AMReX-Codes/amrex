@@ -1,6 +1,6 @@
 // Exercise AmrMesh grid creation and check the properties of the resulting
 // grids: max_grid_size, blocking factor alignment, coarsenability by
-// ref_ratio, coverage of tagged cells, proper nesting, the no_chop_dir
+// ref_ratio, coverage of tagged cells, proper nesting, the no_box_split_dir
 // guarantees, and FillPatchTwoLevels on the resulting grids.
 
 #include <AMReX.H>
@@ -89,7 +89,7 @@ public:
         return g;
     }
 
-    [[nodiscard]] int noChopDir () const { return no_chop_dir; }
+    [[nodiscard]] int noBoxSplitDir () const { return no_box_split_dir; }
     [[nodiscard]] bool refineGridLayout () const { return refine_grid_layout; }
 
 private:
@@ -143,7 +143,7 @@ void check_level0 (TestMesh const& mesh)
 {
     BoxArray const& ba = mesh.boxArray(0);
     Box const& domain = mesh.Geom(0).Domain();
-    int const dir = mesh.noChopDir();
+    int const dir = mesh.noBoxSplitDir();
 
     if (!ba.isDisjoint()) { fail("level 0 grids overlap"); }
     if (ba.numPts() != domain.numPts() || !domain.contains(ba.minimalBox())) {
@@ -213,9 +213,9 @@ void check_level (TestMesh const& mesh, int lev)
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " longer than max_grid_size in direction " + std::to_string(d));
             }
-            // With no_chop_dir, boxes at a truncated upper boundary are
+            // With no_box_split_dir, boxes at a truncated upper boundary are
             // extended inward, so no box is thinner than the grid unit.
-            if (mesh.noChopDir() >= 0 && b.length(d) < unit[d]) {
+            if (mesh.noBoxSplitDir() >= 0 && b.length(d) < unit[d]) {
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " thinner than the blocking factor in direction " + std::to_string(d));
             }
@@ -234,9 +234,9 @@ void check_level (TestMesh const& mesh, int lev)
         }
     }
 
-    if (mesh.noChopDir() >= 0) {
-        check_no_faces(ba, mesh.noChopDir(), lev);
-        check_not_split(ba, mesh.noChopDir(), lev);
+    if (mesh.noBoxSplitDir() >= 0) {
+        check_no_faces(ba, mesh.noBoxSplitDir(), lev);
+        check_not_split(ba, mesh.noBoxSplitDir(), lev);
     }
 
     // Proper nesting relative to the coarser level.  All level lev grids

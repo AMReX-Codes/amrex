@@ -75,7 +75,7 @@ struct AmrInfo {
      * ignored, so the grids produced by clustering are not subdivided in
      * it.  A negative value means there is no such direction.
      */
-    int no_chop_dir = -1;
+    int no_box_split_dir = -1;
 };
 
 /// \ingroup amrex_amrcore
@@ -308,8 +308,8 @@ public:
 
     /**
      * \brief Return the largest allowable grid at level \p lev, with the
-     * no-chop direction (if any) relaxed to the extent of the domain so that
-     * grids are never chopped in that direction.
+     * no_box_split_dir (if set) relaxed to the extent of the domain so that
+     * grids are never split in that direction.
      *
      * \param lev Level whose domain and maximum grid size are used.
      */
@@ -320,7 +320,7 @@ public:
      * coarsened before they are clustered into level \p lev+1 grids.
      *
      * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  If
-     * no_chop_dir is set, it may be reduced in periodic directions to divide
+     * no_box_split_dir is set, it may be reduced in periodic directions to divide
      * the domain size. Requires 0 <= lev < maxLevel().
      */
     [[nodiscard]] IntVect bfLev (int lev) const noexcept;
@@ -449,7 +449,7 @@ protected:
     //! Validate AmrInfo inputs (throws if inconsistent).
     void checkInput();
 
-    //! Use the original gridding rules unless no_chop_dir is set.
+    //! Use the original gridding rules unless no_box_split_dir is set.
     [[nodiscard]] bool useLegacyGridding () const noexcept;
 
     //! True if ref_ratio[lev] is odd (and not 1) in some direction.
@@ -463,7 +463,7 @@ protected:
 
 private:
     void ChopGridsExtended (int lev, BoxArray& ba, int target_size) const;
-    [[nodiscard]] BoxArray MakeBaseGridsNoChop () const;
+    [[nodiscard]] BoxArray MakeBaseGridsNoBoxSplit () const;
     void MakeNewGridsExtended (int lbase, Real time, int& new_finest,
                               Vector<BoxArray>& new_grids);
     void checkInputExtended ();

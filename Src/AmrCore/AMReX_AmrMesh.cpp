@@ -43,8 +43,8 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
 AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
-    if (no_chop_dir >= AMREX_SPACEDIM) {
-        amrex::Error("AmrMesh: no_chop_dir is out of range");
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
     }
     int nlev = max_level + 1;
     AmrInfo def_amr_info;
@@ -380,9 +380,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     }
 
     pp.queryAdd("refine_whole_domain_dir", refine_whole_domain_dir);
-    pp.query("no_chop_dir", no_chop_dir);
-    if (no_chop_dir >= AMREX_SPACEDIM) {
-        amrex::Error("AmrMesh: no_chop_dir is out of range");
+    pp.query("no_box_split_dir", no_box_split_dir);
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
     }
 
     pp.queryAdd("check_input", check_input);
@@ -478,7 +478,7 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
 bool
 AmrMesh::useLegacyGridding () const noexcept
 {
-    return no_chop_dir < 0;
+    return no_box_split_dir < 0;
 }
 
 bool
@@ -549,7 +549,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrMesh::MakeBaseGrids () const
 {
-    if (no_chop_dir >= 0) { return MakeBaseGridsNoChop(); }
+    if (no_box_split_dir >= 0) { return MakeBaseGridsNoBoxSplit(); }
 
     IntVect fac(2);
     const Box& dom = geom[0].Domain();
@@ -1390,8 +1390,8 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
     os << "  refine_whole_domain_dir = " << amr_mesh.refine_whole_domain_dir << "\n";
-    if (amr_mesh.no_chop_dir >= 0) {
-        os << "  no_chop_dir = " << amr_mesh.no_chop_dir << "\n";
+    if (amr_mesh.no_box_split_dir >= 0) {
+        os << "  no_box_split_dir = " << amr_mesh.no_box_split_dir << "\n";
     }
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";

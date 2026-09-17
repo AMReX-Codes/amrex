@@ -139,7 +139,7 @@ can be set via :cpp:`ParmParse`.
    level. If the size of the integer array is less than the total number of
    levels, the last integer will be used for the unspecified levels. The
    default value is 8. The values must be powers of 2, except that with
-   :py:data:`amr.no_chop_dir` set, on a level with an odd refinement ratio the
+   :py:data:`amr.no_box_split_dir` set, on a level with an odd refinement ratio the
    blocking factor may also be the refinement ratio times a power of 2
    (e.g., 24 for ref_ratio 3), and the blocking factor divided by the ratio
    must be a power of 2. See
@@ -273,7 +273,7 @@ can be set via :cpp:`ParmParse`.
    the plane perpendicular to that direction. A negative value, the default,
    disables this.
 
-.. py:data:: amr.no_chop_dir
+.. py:data:: amr.no_box_split_dir
    :type: int
    :value: -1
 
