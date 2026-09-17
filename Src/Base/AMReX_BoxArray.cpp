@@ -589,6 +589,19 @@ BoxArray::minmaxSize (const IntVect& min_size, const IntVect& max_size)
     return *this;
 }
 
+void
+BoxArray::repartition (BoxList&& bl)
+{
+    AMREX_ASSERT(bl.ixType() == ixType());
+    if ((! m_bat.is_simple()) || (crseRatio() != IntVect::TheUnitVector())) {
+        m_simplified_list.reset();
+    }
+    std::shared_ptr<BoxList> bak;
+    bak.swap(m_simplified_list);
+    define(std::move(bl));
+    m_simplified_list = std::move(bak);
+}
+
 BoxArray&
 BoxArray::refine (int refinement_ratio)
 {

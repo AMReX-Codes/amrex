@@ -1,0 +1,19 @@
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 1 1 0
+
+amr.n_cell = 144 128 21
+amr.no_box_split_dir = 2
+amr.max_level = 2
+amr.ref_ratio = 3 3
+
+amr.blocking_factor_x = 8 24 24
+amr.blocking_factor_y = 8 24 24
+amr.blocking_factor_z = 1 24 24
+amr.max_grid_size_x = 48 96 96
+amr.max_grid_size_y = 48 96 96
+amr.max_grid_size_z = 21 72 72
+amr.refine_grid_layout_z = 0
+
+test.centers = 0.3 0.4 0.5   0.02 0.98 0.5
+test.radius = 0.2 0.15 0.1

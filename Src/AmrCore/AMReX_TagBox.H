@@ -187,9 +187,18 @@ public:
     /**
      * \brief Calls TagBox::coarsen() on every FAB using ratio \p ratio.
      *
+     * Assumes the coarsened valid regions do not overlap. Use
+     * coarsenMayOverlap() to handle grids with overlapping coarsened regions.
+     *
      * \param ratio Refinement ratio to apply when coarsening the tag layout.
      */
     void coarsen (const IntVect& ratio);
+
+    /**
+     * \brief Coarsen tags, allowing overlapping valid regions when \p may_overlap
+     * is true. In that case, mapPeriodicRemoveDuplicates() may add a ghost cell.
+     */
+    void coarsenMayOverlap (const IntVect& ratio, bool may_overlap);
 
     /**
      * \brief Calls TagBox::collate() across all FABs, storing indices in \p TheGlobalCollateSpace.
@@ -205,6 +214,10 @@ public:
 #ifdef AMREX_USE_GPU
     void local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const;
 #endif
+
+private:
+    //! Set by coarsenMayOverlap() when the coarsened valid regions may overlap.
+    bool m_may_overlap = false;
 };
 
 }

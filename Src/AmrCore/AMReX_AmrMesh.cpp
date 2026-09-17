@@ -43,6 +43,9 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
 AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
+    }
     int nlev = max_level + 1;
     AmrInfo def_amr_info;
     ref_ratio.resize      (nlev, amr_info.ref_ratio.empty()
@@ -377,6 +380,10 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     }
 
     pp.queryAdd("refine_whole_domain_dir", refine_whole_domain_dir);
+    pp.query("no_box_split_dir", no_box_split_dir);
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
+    }
 
     pp.queryAdd("check_input", check_input);
     pp.queryAdd("max_grid_iterations", max_grid_iterations);
@@ -468,9 +475,26 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
     }
 }
 
+bool
+AmrMesh::useLegacyGridding () const noexcept
+{
+    return no_box_split_dir < 0;
+}
+
+bool
+AmrMesh::hasOddRefRatio (int lev) const noexcept
+{
+    return std::ranges::any_of(ref_ratio[lev], [] (int rr) { return rr > 1 && rr%2 != 0; });
+}
+
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
+    if (!useLegacyGridding()) {
+        ChopGridsExtended(lev, ba, target_size);
+        return;
+    }
+
     if (refine_grid_layout_dims == 0) { return; }
 
     IntVect chunk = max_grid_size[lev];
@@ -525,6 +549,8 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrMesh::MakeBaseGrids () const
 {
+    if (no_box_split_dir >= 0) { return MakeBaseGridsNoBoxSplit(); }
+
     IntVect fac(2);
     const Box& dom = geom[0].Domain();
     const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
@@ -553,6 +579,11 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
 {
+    if (!useLegacyGridding()) {
+        MakeNewGridsExtended(lbase, time, new_finest, new_grids);
+        return;
+    }
+
     BL_PROFILE("AmrMesh::MakeNewGrids()");
 
     BL_ASSERT(lbase < max_level);
@@ -1189,6 +1220,11 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Box& domain,
 void
 AmrMesh::checkInput ()
 {
+    if (!useLegacyGridding()) {
+        checkInputExtended();
+        return;
+    }
+
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
     }
@@ -1355,6 +1391,9 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
     os << "  refine_whole_domain_dir = " << amr_mesh.refine_whole_domain_dir << "\n";
+    if (amr_mesh.no_box_split_dir >= 0) {
+        os << "  no_box_split_dir = " << amr_mesh.no_box_split_dir << "\n";
+    }
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";

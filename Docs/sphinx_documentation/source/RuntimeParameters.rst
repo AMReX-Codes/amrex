@@ -138,7 +138,12 @@ can be set via :cpp:`ParmParse`.
    This controls the blocking factor on AMR levels, one value for each
    level. If the size of the integer array is less than the total number of
    levels, the last integer will be used for the unspecified levels. The
-   default value is 8. Note that the user can also call
+   default value is 8. The values must be powers of 2, except that with
+   :py:data:`amr.no_box_split_dir` set, on a level with an odd refinement ratio the
+   blocking factor may also be the refinement ratio times a power of 2
+   (e.g., 24 for ref_ratio 3), and the blocking factor divided by the ratio
+   must be a power of 2. See
+   :ref:`sec:grid_creation:odd` for details. Note that the user can also call
    :cpp:`AmrMesh::SetBlockingFactor` to set the blocking
    factors. Additionally, the values set by this parameter can be overridden
    by :py:data:`amr.blocking_factor_x`, :py:data:`amr.blocking_factor_y` and
@@ -267,6 +272,19 @@ can be set via :cpp:`ParmParse`.
    tagged, and :py:data:`amr.grid_eff` refers to the fraction of tagged cells in
    the plane perpendicular to that direction. A negative value, the default,
    disables this.
+
+.. py:data:: amr.no_box_split_dir
+   :type: int
+   :value: -1
+
+   If this is 0, 1 or 2, the grids are never decomposed in that coordinate
+   direction: :py:data:`amr.max_grid_size` and
+   :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is split
+   in the other directions only (when the level 0 blocking factor is 1 in
+   those directions), and on finer levels no two grids share an interior face
+   normal to it. This does not exclude contact through a periodic boundary.
+   See :ref:`sec:grid_creation` for details. A negative value, the
+   default, disables this.
 
 .. py:data:: amr.check_input
    :type: bool

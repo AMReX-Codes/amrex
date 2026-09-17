@@ -69,6 +69,13 @@ struct AmrInfo {
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;
     int max_grid_iterations = 4;
+
+    /**
+     * Direction in which max_grid_size and refine_grid_layout_dims are
+     * ignored, so the grids produced by clustering are not subdivided in
+     * it.  A negative value means there is no such direction.
+     */
+    int no_box_split_dir = -1;
 };
 
 /// \ingroup amrex_amrcore
@@ -299,6 +306,25 @@ public:
     //! Return the largest allowable grid.
     [[nodiscard]] const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
 
+    /**
+     * \brief Return the largest allowable grid at level \p lev, with the
+     * no_box_split_dir (if set) relaxed to the extent of the domain so that
+     * grids are never split in that direction.
+     *
+     * \param lev Level whose domain and maximum grid size are used.
+     */
+    [[nodiscard]] IntVect effectiveMaxGridSize (int lev) const noexcept;
+
+    /**
+     * \brief Return the factor by which the tags on level \p lev are
+     * coarsened before they are clustered into level \p lev+1 grids.
+     *
+     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  If
+     * no_box_split_dir is set, it may be reduced in periodic directions to divide
+     * the domain size. Requires 0 <= lev < maxLevel().
+     */
+    [[nodiscard]] IntVect bfLev (int lev) const noexcept;
+
     //! Return true if valid grids/dmaps exist for level \p lev.
     [[nodiscard]] bool LevelDefined (int lev) const noexcept;
 
@@ -423,6 +449,12 @@ protected:
     //! Validate AmrInfo inputs (throws if inconsistent).
     void checkInput();
 
+    //! Use the original gridding rules unless no_box_split_dir is set.
+    [[nodiscard]] bool useLegacyGridding () const noexcept;
+
+    //! True if ref_ratio[lev] is odd (and not 1) in some direction.
+    [[nodiscard]] bool hasOddRefRatio (int lev) const noexcept;
+
     //! Disable the iterate-on-new-grids loop for the next MakeNewGrids call.
     void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }
 
@@ -430,6 +462,12 @@ protected:
     void SetUseNewChop () noexcept { use_new_chop = true; }
 
 private:
+    void ChopGridsExtended (int lev, BoxArray& ba, int target_size) const;
+    [[nodiscard]] BoxArray MakeBaseGridsNoBoxSplit () const;
+    void MakeNewGridsExtended (int lbase, Real time, int& new_finest,
+                              Vector<BoxArray>& new_grids);
+    void checkInputExtended ();
+
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                       Vector<IntVect> refrat = Vector<IntVect>(),
                       const RealBox* rb = nullptr, int coord = -1,

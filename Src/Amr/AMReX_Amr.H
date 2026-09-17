@@ -790,6 +790,8 @@ public:
     static bool first_smallplotfile;
 
 private:
+    void checkInputExtended ();
+
     void writePlotFileDoit (std::string const& pltfile, bool regular);
 };
 
