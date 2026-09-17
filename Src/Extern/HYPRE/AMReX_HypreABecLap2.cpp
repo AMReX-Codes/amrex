@@ -150,6 +150,13 @@ HypreABecLap2::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap2::prepareSolver()");
 
+    // Free handles from a previous call.
+    if (solver) { HYPRE_BoomerAMGDestroy(solver); solver = nullptr; }
+    if (A) { HYPRE_SStructMatrixDestroy(A); A = nullptr; }
+    if (graph) { HYPRE_SStructGraphDestroy(graph); graph = nullptr; }
+    if (stencil) { HYPRE_SStructStencilDestroy(stencil); stencil = nullptr; }
+    if (hgrid) { HYPRE_SStructGridDestroy(hgrid); hgrid = nullptr; }
+
     HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
 
     Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};
