@@ -529,6 +529,22 @@ int main (int argc, char* argv[])
                         [=] (double x) -> double { return std::pow(std::pow(x,2.0),3.0); },
                         {-3.0}, {3.0}, 101, 1.e-12, 1.e-15);
 
+        // Integer exponents too large for int must not take the powi path.
+        nerror += test1("x**3e9", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(x,3.e9); },
+                        {0.5}, {0.9}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x**-2147483648", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(x,-2147483648.); },
+                        {1.1}, {2.0}, 5, 1.e-12, 1.e-15);
+        nerror += test1("x**-2147483647", {}, {"x"},
+                        [=] (double x) -> double { return std::pow(x,-2147483647.); },
+                        {1.1}, {2.0}, 5, 1.e-12, 1.e-15);
+
+        // A // comment must end at its own line.
+        nerror += test1("x + 1 // add one\n + 2*x // add 2x\r\n - 3", {}, {"x"},
+                        [=] (double x) -> double { return 3.0*x - 2.0; },
+                        {-1.0}, {1.0}, 5, 1.e-12, 1.e-15);
+
         // pow with a constant zero base: std::pow(0,0) is 1 and pow(0,-1) is inf.
         nerror += test1("c**x", {{"c",0.0}}, {"x"},
                         [=] (double x) -> double { return std::pow(0.0,x); },
