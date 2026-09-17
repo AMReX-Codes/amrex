@@ -166,7 +166,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   }
   if(callbarrier) {
     // Force other processors to wait until directory is built.
-    ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectory");
+    ParallelContext::BarrierSub();
   }
 }
 
@@ -193,7 +193,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
   if(callbarrier)
   {
     // Force other processors to wait until directory is built.
-    ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectoryDestructive");
+    ParallelContext::BarrierSub();
   }
 }
 
@@ -218,7 +218,7 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
   }
   if(callbarrier) {
     // Force other processors to wait until directory is renamed.
-    ParallelDescriptor::Barrier("amrex::UtilRenameDirectoryToOld");
+    ParallelContext::BarrierSub();
   }
 }
 
