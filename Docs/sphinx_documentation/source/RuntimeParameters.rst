@@ -140,7 +140,8 @@ can be set via :cpp:`ParmParse`.
    levels, the last integer will be used for the unspecified levels. The
    default value is 8. The values must be powers of 2, except that on a
    level with an odd refinement ratio the blocking factor may also be the
-   refinement ratio times a power of 2 (e.g., 24 for ref_ratio 3). See
+   refinement ratio times a power of 2 (e.g., 24 for ref_ratio 3), and the
+   blocking factor divided by the ratio must be a power of 2. See
    :ref:`sec:grid_creation:odd` for details. Note that the user can also call
    :cpp:`AmrMesh::SetBlockingFactor` to set the blocking
    factors. Additionally, the values set by this parameter can be overridden
@@ -277,7 +278,7 @@ can be set via :cpp:`ParmParse`.
 
    If this is 0, 1 or 2, the grids are never decomposed in that coordinate
    direction: :py:data:`amr.max_grid_size` and
-   :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is decomposed
+   :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is split
    in the other directions only (when the level 0 blocking factor is 1 in
    those directions), and on finer levels no two grids share an interior face
    normal to it. This does not exclude contact through a periodic boundary.

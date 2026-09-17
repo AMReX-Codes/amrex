@@ -18,15 +18,40 @@ class Mesh : public AmrMesh {
 public:
     using AmrMesh::AmrMesh;
     using AmrMesh::checkInput;
+    using AmrMesh::bfLev;
     Vector<Box> tagged_boxes;
-    void ErrorEst (int, TagBoxArray& tags, Real, int) override {
+    bool scale_tags = false; // tagged_boxes are level 0 boxes
+    Vector<Box> fine_tagged_boxes; // if not empty, used on levels >= 2
+    void ErrorEst (int lev, TagBoxArray& tags, Real, int) override {
         if (tagged_boxes.empty()) {
             tags.setVal(tags.boxArray(), TagBox::SET);
         } else {
-            tags.setVal(BoxArray(BoxList(Vector<Box>(tagged_boxes))), TagBox::SET);
+            Vector<Box> v((lev >= 2 && !fine_tagged_boxes.empty()) ? fine_tagged_boxes : tagged_boxes);
+            for (int l = 0; scale_tags && l < lev; ++l) {
+                for (auto& b : v) { b.refine(refRatio(l)); }
+            }
+            tags.setVal(BoxArray(BoxList(std::move(v))), TagBox::SET);
         }
     }
 };
+
+// Regrid from level 0 until all levels exist.
+void regrid (Mesh& mesh) {
+    auto ba = mesh.MakeBaseGrids();
+    mesh.SetBoxArray(0, ba);
+    mesh.SetDistributionMap(0, DistributionMapping(ba));
+    mesh.SetFinestLevel(0);
+    Vector<BoxArray> grids;
+    for (int iter = 0; iter < mesh.maxLevel(); ++iter) {
+        int finest = 0;
+        mesh.MakeNewGrids(0, 0., finest, grids);
+        for (int lev = 1; lev <= finest; ++lev) {
+            mesh.SetBoxArray(lev, grids[lev]);
+            mesh.SetDistributionMap(lev, DistributionMapping(grids[lev]));
+        }
+        mesh.SetFinestLevel(finest);
+    }
+}
 
 Geometry geometry (IntVect const& size, bool periodic = false) {
     Array<int,AMREX_SPACEDIM> is_per{};
@@ -109,6 +134,78 @@ void test_legacy () {
     AMREX_ALWAYS_ASSERT(rr62.finestLevel() == 2);
 }
 
+// Odd ratios elsewhere in the hierarchy must not change the rules for
+// levels with even ratios.
+void test_mixed_ratios () {
+    AmrInfo info;
+    info.max_level = 2;
+    info.ref_ratio = {IntVect(3), IntVect(2)};
+    info.max_grid_size = {IntVect(32)};
+    info.refine_grid_layout = false;
+    Mesh mesh(geometry(IntVect(16)), info); // default blocking_factor 8
+    regrid(mesh);
+    AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 2);
+    AMREX_ALWAYS_ASSERT(mesh.boxArray(2).contains(BoxArray(mesh.Geom(2).Domain())));
+
+    // ChopGrids honors max_grid_size in every direction, as before.
+    info.max_level = 1;
+    info.ref_ratio = {IntVect(3)};
+    Mesh rr3(geometry(IntVect(128)), info);
+    BoxArray ba(rr3.Geom(0).Domain());
+    rr3.ChopGrids(0, ba, 8);
+    IntVect chunk(32);
+    chunk[AMREX_SPACEDIM-1] = 16;
+    BoxArray expected(rr3.Geom(0).Domain());
+    expected.maxSize(chunk);
+    AMREX_ALWAYS_ASSERT(ba == expected);
+}
+
+void test_odd_ratio_inputs () {
+    AmrInfo info;
+    info.max_level = 1;
+    info.ref_ratio = {IntVect(3)};
+    info.blocking_factor = {IntVect(1), IntVect(16)};
+    info.max_grid_size = {IntVect(32), IntVect(64)};
+    rejects([&] { Mesh invalid(geometry(IntVect(48)), info); },
+            "blocking_factor not power of 2");
+
+    // bfLev(1)*ref_ratio is not divisible by bfLev(2).  Regridding from
+    // level 1 must still keep level 3 properly nested in level 2 when the
+    // fine tags move to the edge of the level 1 grids.
+    info.max_level = 3;
+    info.ref_ratio = {IntVect(3), IntVect(3), IntVect(3)};
+    info.blocking_factor = {IntVect(1), IntVect(24), IntVect(24), IntVect(48)};
+    info.max_grid_size = {IntVect(32), IntVect(96), IntVect(16), IntVect(96)};
+    info.n_error_buf = {IntVect(1)};
+    info.refine_grid_layout = false;
+    Mesh mesh(geometry(IntVect(64)), info);
+    mesh.scale_tags = true;
+    mesh.tagged_boxes = {Box(IntVect(16), IntVect(27))};
+    regrid(mesh);
+    AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 3);
+    mesh.fine_tagged_boxes = {Box(IntVect(10), IntVect(13))};
+    {
+        Vector<BoxArray> grids;
+        int finest = 0;
+        mesh.MakeNewGrids(1, 0., finest, grids);
+        for (int lev = 2; lev <= finest; ++lev) {
+            mesh.SetBoxArray(lev, grids[lev]);
+            mesh.SetDistributionMap(lev, DistributionMapping(grids[lev]));
+        }
+        mesh.SetFinestLevel(finest);
+    }
+    for (int lev = 2; lev <= mesh.finestLevel(); ++lev) {
+        BoxArray const& cba = mesh.boxArray(lev-1);
+        IntVect const np = mesh.bfLev(lev-1) * mesh.nProper();
+        for (int i = 0; i < mesh.boxArray(lev).size(); ++i) {
+            Box b = amrex::coarsen(mesh.boxArray(lev)[i], mesh.refRatio(lev-1));
+            b.grow(np);
+            b &= mesh.Geom(lev-1).Domain();
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cba.contains(b, true), "Grids not properly nested");
+        }
+    }
+}
+
 void test_tag_shape () {
     auto geom = geometry(IntVect(10));
     BoxArray ba(geom.Domain());
@@ -133,6 +230,7 @@ void test_amr_validation () {
         using Amr::Amr;
         using Amr::checkInput;
         void unrefined_direction () { ref_ratio[0][AMREX_SPACEDIM-1] = 1; }
+        void odd_ratio () { ref_ratio[0] = IntVect(3); ref_ratio[0][AMREX_SPACEDIM-1] = 1; }
     };
     RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Driver driver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
@@ -144,6 +242,9 @@ void test_amr_validation () {
     IntVect odd_mgs(32);
     odd_mgs[AMREX_SPACEDIM-1] = 33;
     driver.SetMaxGridSize(Vector<IntVect>{IntVect(32), odd_mgs});
+    rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
+    // An odd ratio elsewhere does not exempt a direction with ratio 1.
+    driver.odd_ratio();
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
 #endif
 }
@@ -172,6 +273,51 @@ void test_no_chop () {
     AMREX_ALWAYS_ASSERT(ba.size() >= ParallelDescriptor::NProcs());
     for (int i = 0; i < ba.size(); ++i) {
         AMREX_ALWAYS_ASSERT(ba[i].length(1) == 128 && ba[i].length(2) == 64);
+    }
+#endif
+
+#if AMREX_SPACEDIM >= 2
+    {
+        // Level 0 honors max_grid_size in each direction.
+        AmrInfo info0;
+        info0.no_chop_dir = AMREX_SPACEDIM-1;
+        info0.blocking_factor = {IntVect(1)};
+        IntVect mgs(64);
+        mgs[0] = 16;
+        info0.max_grid_size = {mgs};
+        info0.refine_grid_layout = false;
+        Mesh mesh(geometry(IntVect(64)), info0);
+        auto ba0 = mesh.MakeBaseGrids();
+        AMREX_ALWAYS_ASSERT(ba0.size() == 4);
+        for (int i = 0; i < ba0.size(); ++i) {
+            AMREX_ALWAYS_ASSERT(ba0[i].length(0) == 16);
+        }
+    }
+    {
+        // An even ratio with a domain not divisible by the blocking factor
+        // must not give grids thinner than the blocking factor.
+        AmrInfo info1;
+        info1.max_level = 1;
+        info1.no_chop_dir = AMREX_SPACEDIM-1;
+        info1.blocking_factor = {IntVect(1), IntVect(8)};
+        info1.max_grid_size = {IntVect(32)};
+        info1.n_error_buf = {IntVect(0)};
+        info1.refine_grid_layout = false;
+        IntVect n_cell(32);
+        n_cell[0] = 30;
+        n_cell[AMREX_SPACEDIM-1] = 16;
+        Mesh mesh(geometry(n_cell), info1);
+        IntVect const point(AMREX_D_DECL(29,10,5));
+        mesh.tagged_boxes = {Box(point, point)};
+        regrid(mesh);
+        AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 1);
+        BoxArray const& ba1 = mesh.boxArray(1);
+        AMREX_ALWAYS_ASSERT(ba1.contains(amrex::refine(Box(point, point), 2)));
+        for (int i = 0; i < ba1.size(); ++i) {
+            for (int d = 0; d < AMREX_SPACEDIM-1; ++d) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ba1[i].length(d) >= 8, "Thin grid");
+            }
+        }
     }
 #endif
 }
@@ -249,6 +395,8 @@ int main (int argc, char* argv[]) {
     {
         amrex::system::throw_exception = true;
         test_legacy();
+        test_mixed_ratios();
+        test_odd_ratio_inputs();
         test_tag_shape();
 #if AMREX_SPACEDIM >= 2
         test_supplied_grids();

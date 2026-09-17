@@ -34,8 +34,7 @@ regridding.  Before the tagged cells on level :math:`\ell-1` are clustered into
 grids, they are coarsened by :cpp:`blocking_factor` on level :math:`\ell` divided
 by the refinement ratio between the two levels.  A :cpp:`blocking_factor` of 1
 therefore means that the clustering algorithm works on every tagged cell,
-which is expensive for large domains.  The :cpp:`blocking_factor` on level 0 has
-no effect on regridding; it only constrains how the level 0 grids are subdivided.
+which is expensive for large domains.
 
 There is one more default behavior to be aware of.  There is a boolean :cpp:`refine_grid_layout`
 that defaults to true but can be overridden at run time.
@@ -111,12 +110,13 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
   than :cpp:`AmrCore` still need an even :cpp:`n_cell` in every direction.)
 
 - On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
-  domain is decomposed in those directions only, into nearly equal grids
-  that all span the domain in :cpp:`amr.no_chop_dir`.  The number of grids is
-  increased to the number of MPI processes when permitted by
-  :cpp:`refine_grid_layout` and its per-direction settings, and no grid is
-  longer than :cpp:`max_grid_size` in the decomposed directions.  Any :cpp:`n_cell` works.
-  With a larger level 0 :cpp:`blocking_factor` the usual algorithm is used.
+  domain is split in those directions only, into nearly equal grids that all
+  span the domain in :cpp:`amr.no_chop_dir`.  Each direction gets the fewest
+  pieces allowed by :cpp:`max_grid_size`.  If there are fewer grids than MPI
+  processes and :cpp:`refine_grid_layout` permits, the number of pieces is
+  doubled in the direction with the longest grids until there are enough.
+  Any :cpp:`n_cell` works.  With a larger level 0 :cpp:`blocking_factor` the
+  usual algorithm is used.
 
 - On finer levels, the grids produced by the clustering are merged along that
   direction so that no two grids share an interior face normal to it, and
@@ -127,6 +127,10 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
   domain in that direction.
   Grids at opposite ends of a periodic domain can still touch through the
   periodic boundary.
+
+- The rules of :ref:`sec:grid_creation:odd` for domain sizes and
+  :cpp:`max_grid_size` apply to every fine level, including levels with an
+  even refinement ratio.
 
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).
@@ -144,7 +148,10 @@ inside a coarse one, use odd refinement ratios such as 3 together with
 domains whose sizes are not powers of 2, e.g., :cpp:`n_cell = 749 679 69`.
 The usual advice of powers of 2 everywhere does not apply to them.  This
 section explains how to choose :cpp:`blocking_factor` and
-:cpp:`max_grid_size` in that situation.
+:cpp:`max_grid_size` in that situation.  It applies to the levels created
+with an odd refinement ratio, and to all fine levels when
+:cpp:`amr.no_chop_dir` is set.  Other levels follow the usual rules, even
+when another level of the hierarchy has an odd refinement ratio.
 
 **Blocking factor on the fine levels.**  On a level with refinement ratio
 :math:`r`, choose a :cpp:`blocking_factor` that is :math:`r` times a power of
@@ -158,7 +165,9 @@ allowed, but it makes regridding expensive on large domains and produces
 many small grids, so it is best avoided.  A power of 2 that is not a
 multiple of :math:`r`, such as 8 with :math:`r = 3`, is accepted for
 backward compatibility, but the grids are then multiples of 6 rather than
-8, and a warning says so.
+8 (reported when :cpp:`amr.v` is positive).  In all cases
+:cpp:`blocking_factor` divided by :math:`r`, rounded down, must be a power
+of 2 (or less than 1), so 16 is rejected for :math:`r = 3`.
 
 **Max grid size on the fine levels.**  :cpp:`max_grid_size` must be a
 multiple of the :cpp:`blocking_factor`, e.g., 96 or 192 for a

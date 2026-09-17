@@ -480,11 +480,21 @@ AmrMesh::useLegacyGridding () const noexcept
 {
     if (no_chop_dir >= 0) { return false; }
     for (int lev = 0; lev < max_level; ++lev) {
-        for (int rr : ref_ratio[lev]) {
-            if (rr > 1 && rr%2 != 0) { return false; }
-        }
+        if (hasOddRefRatio(lev)) { return false; }
     }
     return true;
+}
+
+bool
+AmrMesh::hasOddRefRatio (int lev) const noexcept
+{
+    return std::ranges::any_of(ref_ratio[lev], [] (int rr) { return rr > 1 && rr%2 != 0; });
+}
+
+bool
+AmrMesh::useLegacyGridding (int lev) const noexcept
+{
+    return no_chop_dir < 0 && (lev == 0 || !hasOddRefRatio(lev-1));
 }
 
 void

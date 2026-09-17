@@ -65,17 +65,17 @@ struct AmrInfo {
      */
     int refine_whole_domain_dir = -1;
 
+    bool check_input = true;
+    bool use_new_chop = false;
+    bool iterate_on_new_grids = true;
+    int max_grid_iterations = 4;
+
     /**
      * Direction in which max_grid_size and refine_grid_layout_dims are
      * ignored, so the grids produced by clustering are not subdivided in
      * it.  A negative value means there is no such direction.
      */
     int no_chop_dir = -1;
-
-    bool check_input = true;
-    bool use_new_chop = false;
-    bool iterate_on_new_grids = true;
-    int max_grid_iterations = 4;
 };
 
 /// \ingroup amrex_amrcore
@@ -319,8 +319,8 @@ public:
      * \brief Return the factor by which the tags on level \p lev are
      * coarsened before they are clustered into level \p lev+1 grids.
      *
-     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  With odd
-     * refinement ratios or no_chop_dir enabled, it may be reduced in periodic
+     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  If ref_ratio[lev] is
+     * odd or no_chop_dir is set, it may be reduced in periodic
      * directions to divide the domain size. Requires 0 <= lev < maxLevel().
      */
     [[nodiscard]] IntVect bfLev (int lev) const noexcept;
@@ -451,6 +451,12 @@ protected:
 
     //! Preserve the original gridding rules unless odd ratios or no_chop_dir are used.
     [[nodiscard]] bool useLegacyGridding () const noexcept;
+
+    //! True if ref_ratio[lev] is odd (and not 1) in some direction.
+    [[nodiscard]] bool hasOddRefRatio (int lev) const noexcept;
+
+    //! True if level lev grids follow the original gridding rules.
+    [[nodiscard]] bool useLegacyGridding (int lev) const noexcept;
 
     //! Disable the iterate-on-new-grids loop for the next MakeNewGrids call.
     void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }

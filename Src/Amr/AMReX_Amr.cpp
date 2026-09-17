@@ -1181,20 +1181,15 @@ Amr::checkInputExtended ()
         amrex::Error("checkInput: max_level not set");
     }
     // SetBlockingFactor may have changed these since the AmrMesh constructor.
+    auto is_pow2 = [] (int k) { return k > 0 && (k & (k-1)) == 0; };
     for (int i = 0; i <= max_level; ++i) {
-        bool odd_rr = false;
-        if (i > 0) {
-            for (int rr : ref_ratio[i-1]) {
-                if (rr > 1 && rr%2 != 0) { odd_rr = true; }
-            }
-        }
+        bool const odd_rr = (i > 0) && hasOddRefRatio(i-1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const bf = blocking_factor[i][idim];
-            bool ok = bf > 0 && (bf & (bf-1)) == 0;
-            if (!ok && odd_rr) {
+            bool ok = is_pow2(bf);
+            if (odd_rr) {
                 int const rr = ref_ratio[i-1][idim];
-                int const b = bf / rr;
-                ok = (bf%rr == 0) && b > 0 && (b & (b-1)) == 0;
+                ok = (ok || bf%rr == 0) && is_pow2(std::max(1, bf/rr));
             }
             if (!ok) {
                 amrex::Error("Amr::checkInput: blocking_factor not power of 2");
@@ -1226,14 +1221,14 @@ Amr::checkInputExtended ()
         }
     }
     //
-    // Check that max_grid_size is even on level 0, where the grids are
-    // built in a domain coarsened by 2, and on finer levels with an even
-    // refinement ratio, so that the grids stay coarsenable.
+    // Check that max_grid_size is even, except in no_chop_dir and in
+    // directions with an odd refinement ratio.
     //
     for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            bool const need_even = (i == 0) || (ref_ratio[i-1][idim] % 2 == 0);
+            int const rr = (i == 0) ? 1 : ref_ratio[i-1][idim];
+            bool const need_even = !(rr > 1 && rr%2 != 0);
             if (idim != no_chop_dir && need_even && max_grid_size[i][idim]%2 != 0) {
                 amrex::Error("max_grid_size is not even");
             }

@@ -443,8 +443,6 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
     }
 }
 
-
-
 void
 TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 {
