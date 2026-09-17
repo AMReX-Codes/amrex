@@ -227,6 +227,11 @@ reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
        std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
    }
 
+An enumerator may be given an explicit value, which must be either the name of
+a preceding enumerator or a decimal, octal or hexadecimal integer literal.
+Binary literals and expressions such as :cpp:`1 << 2` are not supported and
+result in a runtime error.
+
 Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
 class template.
 

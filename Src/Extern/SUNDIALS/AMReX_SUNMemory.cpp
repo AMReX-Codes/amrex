@@ -14,28 +14,28 @@
 
 namespace amrex::sundials {
 
-namespace {
-    amrex::Arena* getArena (SUNMemoryType mem_type)
-    {
-        if (mem_type == SUNMEMTYPE_HOST) {
-            return The_Cpu_Arena();
-        } else if (mem_type == SUNMEMTYPE_UVM) {
-                if (The_Arena()->isManaged()) {
-                    return The_Arena();
-                } else if (The_Managed_Arena()->isManaged()) {
-                    return The_Managed_Arena();
-                } else {
-                    return nullptr;
-                }
-        } else if (mem_type == SUNMEMTYPE_DEVICE) {
-            return The_Device_Arena();
-        } else if (mem_type == SUNMEMTYPE_PINNED) {
-            return The_Pinned_Arena();
+amrex::Arena* getArena (SUNMemoryType mem_type)
+{
+    if (mem_type == SUNMEMTYPE_HOST) {
+        return The_Cpu_Arena();
+    } else if (mem_type == SUNMEMTYPE_UVM) {
+        if (The_Arena()->isManaged()) {
+            return The_Arena();
+        } else if (The_Managed_Arena()->isManaged()) {
+            return The_Managed_Arena();
         } else {
             return nullptr;
         }
+    } else if (mem_type == SUNMEMTYPE_DEVICE) {
+        return The_Device_Arena();
+    } else if (mem_type == SUNMEMTYPE_PINNED) {
+        return The_Pinned_Arena();
+    } else {
+        return nullptr;
     }
+}
 
+namespace {
     int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
     {
 #if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
