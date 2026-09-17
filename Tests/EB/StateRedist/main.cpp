@@ -26,6 +26,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Math.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #include <AMReX_Reduce.H>
@@ -87,6 +88,40 @@ int count_outside (Array4<int const> const& itracker, int i, int j, int k,
     }
     return nbad;
 }
+
+// Implicit function with period 1 in every direction
+class PeriodicIF
+    : public GPUable
+{
+public:
+    PeriodicIF (RealArray const& a_phase, RealArray const& a_amp, Real a_shift)
+        : m_phase{AMREX_D_DECL(a_phase[0],a_phase[1],a_phase[2])},
+          m_amp{AMREX_D_DECL(a_amp[0],a_amp[1],a_amp[2])},
+          m_shift(a_shift)
+    {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+    {
+        const GpuArray<Real,AMREX_SPACEDIM> p{AMREX_D_DECL(x,y,z)};
+        Real f = -m_shift;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            const Real u = p[d] - std::floor(p[d]); // so periodic images match exactly
+            f += m_amp[d] * std::cos(Real(2)*Math::pi<Real>()*(u - m_phase[d]));
+        }
+        return f;
+    }
+
+    [[nodiscard]] AMREX_FORCE_INLINE Real operator() (RealArray const& p) const noexcept
+    {
+        return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
+    }
+
+private:
+    GpuArray<Real,AMREX_SPACEDIM> m_phase;
+    GpuArray<Real,AMREX_SPACEDIM> m_amp;
+    Real m_shift;
+};
 
 //
 // Test 1: hand-built fractions.
@@ -168,11 +203,11 @@ int synthetic_case (int n_cell, IntVect const& cell, Real vfrac_of_cell,
 //
 // Test 2: cut-cell geometry.
 //
-// Cut the domain with a plane, check the same invariant everywhere, then
+// Cut the domain with a surface, check the same invariant everywhere, then
 // redistribute a constant state and check that it comes back unchanged.
 //
-int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per,
-                   RealArray const& point, RealArray const& normal,
+template <typename IF>
+int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per, IF const& impfunc,
                    int max_grid_size, std::string const& label)
 {
     const Box domain(IntVect(0), IntVect(n_cell-1));
@@ -180,7 +215,7 @@ int geometry_case (int n_cell, Array<int,AMREX_SPACEDIM> const& is_per,
                      {AMREX_D_DECL(Real(1),Real(1),Real(1))});
     const Geometry geom(domain, rb, 0, is_per);
 
-    EB2::Build(EB2::makeShop(EB2::PlaneIF(point,normal)), geom, 0, 0);
+    EB2::Build(EB2::makeShop(impfunc), geom, 0, 0);
 
     BoxArray ba(domain);
     ba.maxSize(max_grid_size);
@@ -328,18 +363,20 @@ int main (int argc, char* argv[])
 
         amrex::Print() << "Redistributing a constant state across a cut domain:\n";
 #if (AMREX_SPACEDIM == 2)
-        nfail += geometry_case(17, {0,0}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0}, {0.42_rt,0.42_rt}, {0.9_rt,0.4_rt},  9, "non-periodic,   4 boxes");
-        nfail += geometry_case(17, {1,0}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt},  9, "x-periodic,     4 boxes");
-        nfail += geometry_case(16, {1,1}, {0.30_rt,0.30_rt}, {0.9_rt,0.8_rt},  4, "fully periodic, 16 boxes");
+        using EB2::PlaneIF;
+        nfail += geometry_case(17, {0,0}, PlaneIF({0.30_rt,0.30_rt}, {0.9_rt,0.8_rt}), 17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0}, PlaneIF({0.42_rt,0.42_rt}, {0.9_rt,0.4_rt}),  9, "non-periodic,   4 boxes");
+        nfail += geometry_case(16, {1,0}, PeriodicIF({0.30_rt,0.30_rt}, {0.9_rt,0.8_rt}, 0.3_rt), 9, "x-periodic,     4 boxes");
+        nfail += geometry_case(16, {1,1}, PeriodicIF({0.42_rt,0.17_rt}, {0.9_rt,0.8_rt}, 0.3_rt), 4, "fully periodic, 16 boxes");
 #else
-        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0,0}, {0.42_rt,0.42_rt,0.42_rt}, {0.9_rt,0.8_rt,0.7_rt}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,-0.8_rt,0.7_rt}, 9, "non-periodic,   8 boxes");
-        nfail += geometry_case(17, {0,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.4_rt,0.2_rt}, 17, "non-periodic,   1 box ");
-        nfail += geometry_case(17, {1,0,0}, {0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt},  9, "x-periodic,     8 boxes");
-        nfail += geometry_case(16, {1,1,1}, {0.42_rt,0.42_rt,0.42_rt}, {0.9_rt,0.8_rt,0.7_rt},  8, "fully periodic, 8 boxes");
-        nfail += geometry_case(16, {1,1,1}, {0.55_rt,0.55_rt,0.55_rt}, {0.6_rt,0.5_rt,0.4_rt},  4, "fully periodic, 64 boxes");
+        using EB2::PlaneIF;
+        nfail += geometry_case(17, {0,0,0}, PlaneIF({0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt}),  17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0,0}, PlaneIF({0.42_rt,0.42_rt,0.42_rt}, {0.9_rt,0.8_rt,0.7_rt}),  17, "non-periodic,   1 box ");
+        nfail += geometry_case(17, {0,0,0}, PlaneIF({0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,-0.8_rt,0.7_rt}),  9, "non-periodic,   8 boxes");
+        nfail += geometry_case(17, {0,0,0}, PlaneIF({0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.4_rt,0.2_rt}),  17, "non-periodic,   1 box ");
+        nfail += geometry_case(16, {1,0,0}, PeriodicIF({0.30_rt,0.30_rt,0.30_rt}, {0.9_rt,0.8_rt,0.7_rt}, 0.3_rt), 9, "x-periodic,     8 boxes");
+        nfail += geometry_case(16, {1,1,1}, PeriodicIF({0.42_rt,0.17_rt,0.61_rt}, {0.9_rt,0.8_rt,0.7_rt}, 0.3_rt), 8, "fully periodic, 8 boxes");
+        nfail += geometry_case(16, {1,1,1}, PeriodicIF({0.55_rt,0.05_rt,0.80_rt}, {0.6_rt,0.5_rt,0.4_rt}, -0.2_rt), 4, "fully periodic, 64 boxes");
 #endif
 
         if (nfail > 0) {
