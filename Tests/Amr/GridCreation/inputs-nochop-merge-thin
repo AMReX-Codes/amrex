@@ -1,0 +1,21 @@
+# Merging columns splits boxes in x and y.  Without pairing the partial last
+# coarsened cell through the merge, a level 1 grid is 21 cells thick in y.
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 0 0 0
+
+amr.n_cell = 749 679 69
+amr.max_level = 1
+amr.ref_ratio_vect = 3 3 1
+amr.no_chop_dir = 2
+amr.refine_grid_layout = 0
+
+amr.blocking_factor_x = 1 24
+amr.blocking_factor_y = 1 24
+amr.blocking_factor_z = 1 8
+amr.max_grid_size_x = 188 96
+amr.max_grid_size_y = 188 96
+amr.max_grid_size_z = 69 72
+
+test.centers = 0.3 0.4 0.5   0.9 0.95 0.5
+test.radius = 0.04

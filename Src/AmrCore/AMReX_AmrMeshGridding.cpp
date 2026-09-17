@@ -585,62 +585,62 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     clist.boxList(new_bx);
                     new_bx.simplify();
 
-                    // Pair a partial last cell with its neighbor before removing
-                    // overlaps, so the extension cannot be trimmed back to one cell.
-                    {
-                        Box const& pcd = pc_domain[levc];
-                        IntVect paired(0);
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
-                                && pcd.length(idim) > 1)
-                            {
-                                paired[idim] = 1;
-                            }
+                    // Pair a partial last cell with its neighbor by temporarily
+                    // identifying the last two cells, so that neither removing
+                    // overlaps nor merging columns can leave it alone as a thin grid.
+                    Box const& pcd = pc_domain[levc];
+                    IntVect paired(0);
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
+                            && pcd.length(idim) > 1)
+                        {
+                            paired[idim] = 1;
                         }
-                        bool thin = false;
-                        for (auto const& b : new_bx) {
+                    }
+                    if (paired != 0) {
+                        for (auto& b : new_bx) {
                             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                                if (paired[idim] && b.bigEnd(idim) == pcd.bigEnd(idim)
-                                    && b.length(idim) == 1) { thin = true; }
+                                if (paired[idim]) {
+                                    int const hi = pcd.bigEnd(idim)-1;
+                                    b.setSmall(idim, std::min(b.smallEnd(idim), hi));
+                                    b.setBig(idim, std::min(b.bigEnd(idim), hi));
+                                }
                             }
                         }
-                        if (thin) {
-                            // Temporarily identify the last two cells. Disjoint boxes
-                            // in this space stay disjoint when the pair is expanded.
-                            for (auto& b : new_bx) {
-                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                                    if (paired[idim]) {
-                                        int const hi = pcd.bigEnd(idim)-1;
-                                        b.setSmall(idim, std::min(b.smallEnd(idim), hi));
-                                        b.setBig(idim, std::min(b.bigEnd(idim), hi));
-                                    }
-                                }
-                            }
-                            BoxArray ba(std::move(new_bx));
-                            ba.removeOverlap(false);
-                            new_bx = ba.boxList();
-                            BoxList nested(new_bx.ixType());
-                            for (auto b : new_bx) {
-                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                                    if (paired[idim] && b.bigEnd(idim) == pcd.bigEnd(idim)-1) {
-                                        b.setBig(idim, pcd.bigEnd(idim));
-                                    }
-                                }
-                                if (p_n_copy.contains(b)) {
-                                    nested.push_back(b);
-                                } else {
-                                    nested.join(amrex::intersect(p_n_copy, b).boxList());
-                                }
-                            }
-                            new_bx = std::move(nested);
-                            new_bx.simplify();
-                        }
+                        BoxArray ba(std::move(new_bx));
+                        ba.removeOverlap(false);
+                        new_bx = ba.boxList();
+                        new_bx.simplify();
                     }
 
                     if (no_chop_dir >= 0) {
                         // No two grids may share a face normal to no_chop_dir.
                         // Nothing after this point chops in that direction.
                         new_bx.mergeAlongDir(no_chop_dir);
+                    }
+
+                    if (paired != 0) {
+                        // Disjoint boxes in the identified space stay disjoint
+                        // when the pair is expanded.
+                        bool clipped = false;
+                        BoxList nested(new_bx.ixType());
+                        for (auto b : new_bx) {
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                if (paired[idim] && b.bigEnd(idim) == pcd.bigEnd(idim)-1) {
+                                    b.setBig(idim, pcd.bigEnd(idim));
+                                }
+                            }
+                            if (p_n_copy.contains(b)) {
+                                nested.push_back(b);
+                            } else {
+                                nested.join(amrex::intersect(p_n_copy, b).boxList());
+                                clipped = true;
+                            }
+                        }
+                        new_bx = std::move(nested);
+                        if (clipped && no_chop_dir >= 0) {
+                            new_bx.mergeAlongDir(no_chop_dir);
+                        }
                     }
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
@@ -652,21 +652,17 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     // This approach imposes max_grid_size (suitably scaled) before
                     //     refining so as to ensure fine grids align with coarse grids
 
-                    // In each direction where max_grid_size is a multiple
-                    // of the grid unit bf_lev*ref_ratio, chop before
-                    // refining by bf_lev so that the grids are multiples of
-                    // the unit even when the domain is not divisible by it.
-                    // Other directions are chopped after refining, as we
-                    // have always done.  The boxes are inside pc_domain, so
-                    // using its length as chunk means no chop.
+                    // Chop before refining by bf_lev so that the grids are
+                    // multiples of the grid unit bf_lev*ref_ratio, using the
+                    // largest multiple not exceeding max_grid_size.  If
+                    // max_grid_size is smaller than the unit, chop after
+                    // refining.  The boxes are inside pc_domain, so using
+                    // its length as chunk means no chop.
                     IntVect const emgs = effectiveMaxGridSize(levf);
                     IntVect chunk = pc_domain[levc].length();
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        int bf = bf_lev[levc][idim];
-                        int unit = bf * ref_ratio[levc][idim];
-                        if (idim != no_chop_dir && ((bf & (bf-1)) == 0)
-                            && (emgs[idim]%unit == 0))
-                        {
+                        int unit = bf_lev[levc][idim] * ref_ratio[levc][idim];
+                        if (idim != no_chop_dir && emgs[idim] >= unit) {
                             chunk[idim] = emgs[idim] / unit;
                         }
                     }
