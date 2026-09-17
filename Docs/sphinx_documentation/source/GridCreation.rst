@@ -23,7 +23,7 @@ Note that both the domain (at each level) and :cpp:`max_grid_size` must be divis
 and that :cpp:`blocking_factor` must be either 1 or a power of 2 (otherwise the gridding algorithm
 would not in fact create grids divisible by  :cpp:`blocking_factor` because of how  :cpp:`blocking_factor`
 is used in the gridding algorithm).  See :ref:`sec:grid_creation:odd` for the
-exceptions that apply with odd refinement ratios.
+exceptions that apply when :cpp:`amr.no_chop_dir` is set.
 
 If not specified by the user, :cpp:`blocking_factor` defaults to 8 in each coordinate direction.
 The typical purpose of :cpp:`blocking_factor` is to ensure that the grids will be
@@ -128,9 +128,9 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
   Grids at opposite ends of a periodic domain can still touch through the
   periodic boundary.
 
-- The rules of :ref:`sec:grid_creation:odd` for domain sizes and
-  :cpp:`max_grid_size` apply to every fine level, including levels with an
-  even refinement ratio.
+- The rules of :ref:`sec:grid_creation:odd` for :cpp:`blocking_factor`,
+  :cpp:`max_grid_size` and domain sizes apply, for odd and even refinement
+  ratios alike.
 
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).
@@ -148,10 +148,9 @@ inside a coarse one, use odd refinement ratios such as 3 together with
 domains whose sizes are not powers of 2, e.g., :cpp:`n_cell = 749 679 69`.
 The usual advice of powers of 2 everywhere does not apply to them.  This
 section explains how to choose :cpp:`blocking_factor` and
-:cpp:`max_grid_size` in that situation.  It applies to the levels created
-with an odd refinement ratio, and to all fine levels when
-:cpp:`amr.no_chop_dir` is set.  Other levels follow the usual rules, even
-when another level of the hierarchy has an odd refinement ratio.
+:cpp:`max_grid_size` in that situation.  It applies only when
+:cpp:`amr.no_chop_dir` is set; otherwise the usual rules above apply to all
+refinement ratios.
 
 **Blocking factor on the fine levels.**  On a level with refinement ratio
 :math:`r`, choose a :cpp:`blocking_factor` that is :math:`r` times a power of
@@ -165,7 +164,7 @@ allowed, but it makes regridding expensive on large domains and produces
 many small grids, so it is best avoided.  A power of 2 that is not a
 multiple of :math:`r`, such as 8 with :math:`r = 3`, is accepted for
 backward compatibility, but the grids are then multiples of 6 rather than
-8 (reported when :cpp:`amr.v` is positive).  In all cases
+8, and a warning says so.  In all cases
 :cpp:`blocking_factor` divided by :math:`r`, rounded down, must be a power
 of 2 (or less than 1), so 16 is rejected for :math:`r = 3`.
 
@@ -196,12 +195,12 @@ and :cpp:`max_level = 1`, a good choice is
 
 .. code-block:: none
 
+   amr.no_chop_dir       = 2
    amr.blocking_factor_x = 1 24
    amr.blocking_factor_y = 1 24
    amr.blocking_factor_z = 1 8
    amr.max_grid_size_x   = 188 96
    amr.max_grid_size_y   = 188 96
-   amr.max_grid_size_z   = 69 72
 
 - The level 0 blocking factor is 1 because 749, 679 and 69 are odd, so no
   larger power of 2 divides them.
@@ -210,12 +209,7 @@ and :cpp:`max_level = 1`, a good choice is
   is 1.  Level 1 grids are therefore multiples of 24 by 24 by 8 cells, except
   where they are cut off at the upper domain boundary.
 - The level 0 max grid size of 188 splits 749 cells into four grids in *x*
-  and *y*; 69 in *z* keeps each level 0 grid whole in the vertical.
-- The level 1 max grid size is 96, a multiple of 24, in *x* and *y*, and 72,
-  a multiple of 8 that exceeds the 69 cells of the domain, in *z*, so that
-  level 1 grids are never split in the vertical either.
-
-Codes that require every grid to span whole vertical columns should also set
-:cpp:`amr.no_chop_dir = 2`, which then takes care of the level 0 layout and of
-the vertical extent of the fine grids automatically; see above.
+  and *y*.  With :cpp:`amr.no_chop_dir = 2`, grids are never split in *z*, so
+  :cpp:`max_grid_size_z` is not needed.
+- The level 1 max grid size is 96, a multiple of 24, in *x* and *y*.
 

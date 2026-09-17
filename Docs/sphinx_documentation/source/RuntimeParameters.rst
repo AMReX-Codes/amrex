@@ -138,10 +138,11 @@ can be set via :cpp:`ParmParse`.
    This controls the blocking factor on AMR levels, one value for each
    level. If the size of the integer array is less than the total number of
    levels, the last integer will be used for the unspecified levels. The
-   default value is 8. The values must be powers of 2, except that on a
-   level with an odd refinement ratio the blocking factor may also be the
-   refinement ratio times a power of 2 (e.g., 24 for ref_ratio 3), and the
-   blocking factor divided by the ratio must be a power of 2. See
+   default value is 8. The values must be powers of 2, except that with
+   :py:data:`amr.no_chop_dir` set, on a level with an odd refinement ratio the
+   blocking factor may also be the refinement ratio times a power of 2
+   (e.g., 24 for ref_ratio 3), and the blocking factor divided by the ratio
+   must be a power of 2. See
    :ref:`sec:grid_creation:odd` for details. Note that the user can also call
    :cpp:`AmrMesh::SetBlockingFactor` to set the blocking
    factors. Additionally, the values set by this parameter can be overridden

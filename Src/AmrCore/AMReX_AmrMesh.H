@@ -319,9 +319,9 @@ public:
      * \brief Return the factor by which the tags on level \p lev are
      * coarsened before they are clustered into level \p lev+1 grids.
      *
-     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  If ref_ratio[lev] is
-     * odd or no_chop_dir is set, it may be reduced in periodic
-     * directions to divide the domain size. Requires 0 <= lev < maxLevel().
+     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  If
+     * no_chop_dir is set, it may be reduced in periodic directions to divide
+     * the domain size. Requires 0 <= lev < maxLevel().
      */
     [[nodiscard]] IntVect bfLev (int lev) const noexcept;
 
@@ -449,14 +449,11 @@ protected:
     //! Validate AmrInfo inputs (throws if inconsistent).
     void checkInput();
 
-    //! Preserve the original gridding rules unless odd ratios or no_chop_dir are used.
+    //! Use the original gridding rules unless no_chop_dir is set.
     [[nodiscard]] bool useLegacyGridding () const noexcept;
 
     //! True if ref_ratio[lev] is odd (and not 1) in some direction.
     [[nodiscard]] bool hasOddRefRatio (int lev) const noexcept;
-
-    //! True if level lev grids follow the original gridding rules.
-    [[nodiscard]] bool useLegacyGridding (int lev) const noexcept;
 
     //! Disable the iterate-on-new-grids loop for the next MakeNewGrids call.
     void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }

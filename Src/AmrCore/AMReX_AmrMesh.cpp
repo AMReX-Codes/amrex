@@ -478,23 +478,13 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
 bool
 AmrMesh::useLegacyGridding () const noexcept
 {
-    if (no_chop_dir >= 0) { return false; }
-    for (int lev = 0; lev < max_level; ++lev) {
-        if (hasOddRefRatio(lev)) { return false; }
-    }
-    return true;
+    return no_chop_dir < 0;
 }
 
 bool
 AmrMesh::hasOddRefRatio (int lev) const noexcept
 {
     return std::ranges::any_of(ref_ratio[lev], [] (int rr) { return rr > 1 && rr%2 != 0; });
-}
-
-bool
-AmrMesh::useLegacyGridding (int lev) const noexcept
-{
-    return no_chop_dir < 0 && (lev == 0 || !hasOddRefRatio(lev-1));
 }
 
 void

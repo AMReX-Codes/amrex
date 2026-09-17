@@ -1,12 +1,11 @@
-// Gridding for odd refinement ratios and no_chop_dir. The legacy paths
-// remain in AMReX_AmrMesh.cpp to preserve existing applications.
+// Gridding with no_chop_dir. The legacy paths remain in AMReX_AmrMesh.cpp
+// to preserve existing applications.
 #include <AMReX.H>
 #include <AMReX_AmrMesh.H>
 #include <AMReX_Cluster.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
-#include <optional>
 
 namespace amrex {
 
@@ -28,7 +27,7 @@ IntVect
 AmrMesh::bfLev (int lev) const noexcept
 {
     AMREX_ASSERT(lev >= 0 && lev < max_level);
-    if (useLegacyGridding(lev+1)) {
+    if (useLegacyGridding()) {
         return IntVect(1).max(blocking_factor[lev+1]/ref_ratio[lev]);
     }
     IntVect bf;
@@ -151,7 +150,7 @@ AmrMesh::ChopGridsExtended (int lev, BoxArray& ba, int target_size) const
     IntVect unit(1);
     IntVect slack(0);
     bool partial_any = false;
-    if (lev > 0 && !useLegacyGridding(lev)) {
+    if (lev > 0) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             unit[idim] = bfLev(lev-1)[idim] * ref_ratio[lev-1][idim];
             if (idim != no_chop_dir && domain.length(idim) % unit[idim] != 0) {
@@ -564,9 +563,6 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
             }
 
             if (levf > useFixedUpToLevel()) {
-                // Levels with even ratios and no no_chop_dir keep the old gridding.
-                bool const new_rules = !useLegacyGridding(levf);
-
                 BoxList new_bx;
                 if (ParallelDescriptor::IOProcessor()) {
                     BL_PROFILE("AmrMesh-cluster");
@@ -580,9 +576,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     } else {
                         clist.chop(grid_eff);
                     }
-                    // Only the new rules need a copy for the boundary extension.
-                    std::optional<BoxArray> p_n_copy;
-                    if (new_rules) { p_n_copy = p_n_ba[levc]; }
+                    BoxArray const p_n_copy = p_n_ba[levc]; // for the boundary extension
                     clist.intersect(p_n_ba[levc]);
                     //
                     // Efficient properly nested Clusters have been constructed
@@ -593,7 +587,6 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
 
                     // Pair a partial last cell with its neighbor before removing
                     // overlaps, so the extension cannot be trimmed back to one cell.
-                    if (new_rules)
                     {
                         Box const& pcd = pc_domain[levc];
                         IntVect paired(0);
@@ -633,10 +626,10 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                                         b.setBig(idim, pcd.bigEnd(idim));
                                     }
                                 }
-                                if (p_n_copy->contains(b)) {
+                                if (p_n_copy.contains(b)) {
                                     nested.push_back(b);
                                 } else {
-                                    nested.join(amrex::intersect(*p_n_copy, b).boxList());
+                                    nested.join(amrex::intersect(p_n_copy, b).boxList());
                                 }
                             }
                             new_bx = std::move(nested);
@@ -655,7 +648,6 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                 // The boxes are in the index space of level levc coarsened
                 // by bf_lev[levc].
 
-                if (new_rules)
                 {
                     // This approach imposes max_grid_size (suitably scaled) before
                     //     refining so as to ensure fine grids align with coarse grids
@@ -754,29 +746,6 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     // Refine up to levf.
                     //
                     new_grids[levf].refine(ref_ratio[levc]);
-                }
-                else
-                {
-                    // This approach imposes max_grid_size after refining.
-                    // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
-                    //     but we leave it here so as not to change the gridding in
-                    //     existing ref_ratio = 2 or 4 applications
-
-                    new_bx.refine(bf_lev[levc]);
-                    if (new_bx.size()>0) {
-                        // Chop new grids outside domain
-                        new_bx.intersect(Geom(levc).Domain());
-                    }
-
-                    //
-                    // Refine up to levf.
-                    //
-                    new_bx.refine(ref_ratio[levc]);
-
-                    //
-                    // Impose max_grid_size
-                    //
-                    new_grids[levf] = BoxArray(std::move(new_bx), effectiveMaxGridSize(levf));
                 }
                 BL_ASSERT(new_grids[levf].isDisjoint());
             }
@@ -910,37 +879,18 @@ AmrMesh::checkInputExtended ()
     }
 
     //
-    // Report if the blocking factor cannot be satisfied with the ref ratio.
+    // Warn if the blocking factor cannot be satisfied with the ref ratio.
     //
-    if (verbose > 0) {
-        for (int i = 1; i <= max_level; i++) {
-            if (useLegacyGridding(i)) { continue; }
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                int bf = blocking_factor[i][idim];
-                int rr = ref_ratio[i-1][idim];
-                int unit = std::max(1, bf/rr) * rr; // before any periodic reduction
-                if (unit%bf != 0) {
-                    amrex::Print() << "WARNING: blocking_factor " << bf << " on level " << i
-                                   << " in direction " << idim << " cannot be satisfied with ref_ratio "
-                                   << rr << ". Grids will be multiples of " << unit << " instead.\n";
-                }
+    for (int i = 1; i <= max_level; i++) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int bf = blocking_factor[i][idim];
+            int rr = ref_ratio[i-1][idim];
+            int unit = std::max(1, bf/rr) * rr; // before any periodic reduction
+            if (unit%bf != 0) {
+                amrex::Print() << "WARNING: blocking_factor " << bf << " on level " << i
+                               << " in direction " << idim << " cannot be satisfied with ref_ratio "
+                               << rr << ". Grids will be multiples of " << unit << " instead.\n";
             }
-        }
-    }
-
-    //
-    // Check that blocking_factor does not vary too much between levels, for
-    // levels that keep the original gridding rules.
-    //
-    for (int i = 0; i < max_level; i++) {
-        if (!useLegacyGridding(i+1)) { continue; }
-        const IntVect bfrr = blocking_factor[i] * ref_ratio[i];
-        if (!bfrr.allGE(blocking_factor[i+1])) {
-            amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
-                           << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
-                           << ". Ref ratio is " << ref_ratio[i]
-                           << ".  They vary too much between levels." << '\n';
-            amrex::Error("Blocking factors vary too much between levels");
         }
     }
 
@@ -964,31 +914,12 @@ AmrMesh::checkInputExtended ()
         }
     }
 
-    // Make sure TagBoxArray has no overlapped valid cells after coarsening by
-    // block_factor/ref_ratio, for levels that keep the original gridding rules.
-    for (int i = 0; i < max_level; ++i) {
-        if (!useLegacyGridding(i+1)) { continue; }
-        IntVect const bf_lev = bfLev(i);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int min_grid_size = std::min(blocking_factor[i][idim],max_grid_size[i][idim]);
-            if (min_grid_size % bf_lev[idim] != 0) {
-                amrex::Print() << "On level " << i << " in direction " << idim
-                               << " max_grid_size is " << max_grid_size[i][idim]
-                               << " blocking factor is " << blocking_factor[i][idim] << "\n"
-                               << "On level " << i+1 << " in direction " << idim
-                               << " blocking_factor is " << blocking_factor[i+1][idim] << '\n';
-                amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
-            }
-        }
-    }
-
     //
     // With a domain that is not divisible by the blocking factor, the grid
     // at the upper boundary can only be kept at least as thick as the
     // blocking factor if max_grid_size allows grids of two blocking factors.
     //
     for (int i = 1; i <= max_level; i++) {
-        if (useLegacyGridding(i)) { continue; }
         IntVect const emgs = effectiveMaxGridSize(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const bf_lev = bfLev(i-1)[idim];
@@ -1007,17 +938,15 @@ AmrMesh::checkInputExtended ()
     }
 
     //
-    // Check that blocking_factor does not vary too much between levels, for
-    // levels that use the new gridding rules.  Grids on level i
-    // (1 <= i < max_level) should be coarsenable by bfLev(i).  Level 0 is
-    // exempt because its grids cover the whole domain.
+    // Check that blocking_factor does not vary too much between levels.
+    // Grids on level i (1 <= i < max_level) should be coarsenable by
+    // bfLev(i).  Level 0 is exempt because its grids cover the whole domain.
     //
     for (int i = 1; i < max_level; i++) {
-        if (useLegacyGridding(i+1)) { continue; }
         IntVect const bf_lev = bfLev(i);
         IntVect const emgs = effectiveMaxGridSize(i);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            int const gu = useLegacyGridding(i) ? blocking_factor[i][idim] : grid_unit(i,idim);
+            int const gu = grid_unit(i,idim);
             int unit = std::min(gu, emgs[idim]);
             if (unit % bf_lev[idim] != 0) {
                 amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
@@ -1062,17 +991,6 @@ AmrMesh::checkInputExtended ()
             amrex::Error("Amr::checkInput: refine_whole_domain_dir does not work with bittree");
         }
 #endif
-        for (int i = 0; i < max_level; ++i) {
-            if (!useLegacyGridding(i+1)) { continue; }
-            // The tags are coarsened by this factor before they are clustered.
-            int bf = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
-            if (Geom(i).Domain().length(idim) % bf != 0) {
-                amrex::Print() << "On level " << i << " the domain size in direction " << idim
-                               << " is " << Geom(i).Domain().length(idim)
-                               << ", which is not divisible by " << bf << '\n';
-                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in refine_whole_domain_dir");
-            }
-        }
     }
 
     if( ! (Geom(0).ProbDomain().volume() > 0.0) ) {

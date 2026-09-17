@@ -11,11 +11,18 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     set(_sources main.cpp)
-    set(_input_files inputs inputs-bf1 inputs-erf inputs-rr2 inputs-rr3-bf8 inputs-rr3-periodic
+    set(_input_files inputs inputs-bf1 inputs-rr2 inputs-rr3-bf8 inputs-rr3-periodic
                      inputs-nochop inputs-nochop-whole inputs-nochop-rr3 inputs-nochop-periodic inputs-nochop-thin inputs-nochop-mgs0
                      inputs-rr2-bf32 inputs-mgs48 inputs-erf-nochop)
 
-    setup_test(${D} _sources _input_files)
+    # In 2D, inputs files with no_chop_dir = 2 use direction 1 instead, and
+    # 2D tag centers so that tagged regions do not share columns.
+    set(_args)
+    if (D EQUAL 2)
+        set(_args amr.no_chop_dir=1 test.centers=0.3 0.4 0.9 0.95)
+    endif ()
+
+    setup_test(${D} _sources _input_files CMDLINE_PARAMS_AFTER_INPUTS ${_args})
 
     # More inputs files as separate tests using the same executable.
     set(_extra inputs-rr2-bf32 inputs-rr3-bf8 inputs-mgs48)
@@ -25,16 +32,21 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
     set(_exe ${CMAKE_CURRENT_BINARY_DIR}/${D}d/Test_Amr_GridCreation_${D}d)
     foreach(_inp IN LISTS _extra)
+        set(_inp_args)
+        file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/${_inp} _nochop REGEX "no_chop_dir")
+        if (_nochop)
+            set(_inp_args ${_args})
+        endif ()
         set(_tname Amr_GridCreation_${_inp}_${D}d)
         if (AMReX_OMP)
-            add_test(NAME ${_tname} COMMAND ${_exe} ${_inp}
+            add_test(NAME ${_tname} COMMAND ${_exe} ${_inp} ${_inp_args}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
             set_tests_properties(${_tname} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
         elseif (AMReX_MPI)
-            add_test(NAME ${_tname} COMMAND mpiexec -n 2 ${_exe} ${_inp}
+            add_test(NAME ${_tname} COMMAND mpiexec -n 2 ${_exe} ${_inp} ${_inp_args}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
         else ()
-            add_test(NAME ${_tname} COMMAND ${_exe} ${_inp}
+            add_test(NAME ${_tname} COMMAND ${_exe} ${_inp} ${_inp_args}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
         endif ()
     endforeach()
@@ -42,5 +54,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     unset(_sources)
     unset(_input_files)
     unset(_extra)
+    unset(_args)
+    unset(_inp_args)
+    unset(_nochop)
     unset(_exe)
 endforeach()

@@ -134,8 +134,7 @@ void test_legacy () {
     AMREX_ALWAYS_ASSERT(rr62.finestLevel() == 2);
 }
 
-// Odd ratios elsewhere in the hierarchy must not change the rules for
-// levels with even ratios.
+// Without no_chop_dir, odd ratios keep the original rules.
 void test_mixed_ratios () {
     AmrInfo info;
     info.max_level = 2;
@@ -158,10 +157,27 @@ void test_mixed_ratios () {
     BoxArray expected(rr3.Geom(0).Domain());
     expected.maxSize(chunk);
     AMREX_ALWAYS_ASSERT(ba == expected);
+
+#if AMREX_SPACEDIM >= 2
+    // With no_chop_dir, ChopGrids still honors max_grid_size in the other
+    // directions.
+    info.no_chop_dir = AMREX_SPACEDIM-1;
+    info.blocking_factor = {IntVect(1), IntVect(24)};
+    info.max_grid_size = {IntVect(32), IntVect(96)};
+    Mesh nochop(geometry(IntVect(128)), info);
+    ba = BoxArray(nochop.Geom(0).Domain());
+    nochop.ChopGrids(0, ba, 8);
+    for (int i = 0; i < ba.size(); ++i) {
+        for (int d = 0; d < AMREX_SPACEDIM-1; ++d) {
+            AMREX_ALWAYS_ASSERT(ba[i].length(d) <= 32);
+        }
+    }
+#endif
 }
 
 void test_odd_ratio_inputs () {
     AmrInfo info;
+    info.no_chop_dir = AMREX_SPACEDIM-1;
     info.max_level = 1;
     info.ref_ratio = {IntVect(3)};
     info.blocking_factor = {IntVect(1), IntVect(16)};
@@ -174,7 +190,9 @@ void test_odd_ratio_inputs () {
     // fine tags move to the edge of the level 1 grids.
     info.max_level = 3;
     info.ref_ratio = {IntVect(3), IntVect(3), IntVect(3)};
-    info.blocking_factor = {IntVect(1), IntVect(24), IntVect(24), IntVect(48)};
+    IntVect bf3(48);
+    bf3[AMREX_SPACEDIM-1] = 24; // max_grid_size does not apply in no_chop_dir
+    info.blocking_factor = {IntVect(1), IntVect(24), IntVect(24), bf3};
     info.max_grid_size = {IntVect(32), IntVect(96), IntVect(16), IntVect(96)};
     info.n_error_buf = {IntVect(1)};
     info.refine_grid_layout = false;
@@ -230,7 +248,11 @@ void test_amr_validation () {
         using Amr::Amr;
         using Amr::checkInput;
         void unrefined_direction () { ref_ratio[0][AMREX_SPACEDIM-1] = 1; }
-        void odd_ratio () { ref_ratio[0] = IntVect(3); ref_ratio[0][AMREX_SPACEDIM-1] = 1; }
+        void odd_ratio () {
+            no_chop_dir = 0;
+            ref_ratio[0] = IntVect(3);
+            ref_ratio[0][AMREX_SPACEDIM-1] = 1;
+        }
     };
     RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Driver driver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
@@ -243,7 +265,8 @@ void test_amr_validation () {
     odd_mgs[AMREX_SPACEDIM-1] = 33;
     driver.SetMaxGridSize(Vector<IntVect>{IntVect(32), odd_mgs});
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
-    // An odd ratio elsewhere does not exempt a direction with ratio 1.
+    // With no_chop_dir, an odd ratio elsewhere does not exempt a direction
+    // with ratio 1.
     driver.odd_ratio();
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
 #endif
@@ -352,6 +375,7 @@ void test_boundary_extension () {
             AmrInfo info;
             info.max_level = 1;
             info.ref_ratio = {IntVect(3)};
+            info.no_chop_dir = AMREX_SPACEDIM-1;
             info.blocking_factor = {IntVect(1), IntVect(24)};
             info.max_grid_size = {IntVect(96)};
             info.n_error_buf = {IntVect(0)};

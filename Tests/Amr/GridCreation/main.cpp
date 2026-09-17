@@ -90,7 +90,6 @@ public:
     }
 
     [[nodiscard]] int noChopDir () const { return no_chop_dir; }
-    [[nodiscard]] bool legacyLevel (int lev) const { return useLegacyGridding(lev); }
     [[nodiscard]] bool refineGridLayout () const { return refine_grid_layout; }
 
 private:
@@ -214,10 +213,9 @@ void check_level (TestMesh const& mesh, int lev)
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " longer than max_grid_size in direction " + std::to_string(d));
             }
-            // With the new gridding rules, boxes at a truncated upper
-            // boundary are extended inward, so no box is thinner than the
-            // grid unit.
-            if (!mesh.legacyLevel(lev) && b.length(d) < unit[d]) {
+            // With no_chop_dir, boxes at a truncated upper boundary are
+            // extended inward, so no box is thinner than the grid unit.
+            if (mesh.noChopDir() >= 0 && b.length(d) < unit[d]) {
                 fail("level " + std::to_string(lev) + " box " + std::to_string(i)
                      + " thinner than the blocking factor in direction " + std::to_string(d));
             }

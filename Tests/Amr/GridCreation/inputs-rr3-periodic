@@ -3,6 +3,7 @@ geometry.prob_hi = 1. 1. 1.
 geometry.is_periodic = 1 1 0
 
 amr.n_cell = 144 128 21
+amr.no_chop_dir = 2
 amr.max_level = 2
 amr.ref_ratio = 3 3
 
