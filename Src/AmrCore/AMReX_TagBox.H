@@ -187,14 +187,16 @@ public:
     /**
      * \brief Calls TagBox::coarsen() on every FAB using ratio \p ratio.
      *
+     * Assumes the coarsened valid regions do not overlap. Use
+     * coarsenMayOverlap() to handle grids with overlapping coarsened regions.
+     *
      * \param ratio Refinement ratio to apply when coarsening the tag layout.
      */
     void coarsen (const IntVect& ratio);
 
     /**
-     * \brief Same as above, but the caller says whether the coarsened
-     * valid regions may overlap (i.e., the grids are not coarsenable by
-     * \p ratio), which avoids a scan of the BoxArray.
+     * \brief Coarsen tags, allowing overlapping valid regions when \p may_overlap
+     * is true. In that case, mapPeriodicRemoveDuplicates() may add a ghost cell.
      */
     void coarsenMayOverlap (const IntVect& ratio, bool may_overlap);
 
@@ -214,7 +216,7 @@ public:
 #endif
 
 private:
-    //! Set by coarsen() when the coarsened valid regions may overlap.
+    //! Set by coarsenMayOverlap() when the coarsened valid regions may overlap.
     bool m_may_overlap = false;
 };
 

@@ -39,6 +39,22 @@ void test_structured ()
     }
 }
 
+void test_repartition ()
+{
+    BoxArray ba(Box(IntVect(0), IntVect(63)));
+    ba.maxSize(16);
+    // Populate the cache, then share and lazily coarsen the boxes.
+    auto const original = ba.simplified_list();
+    BoxArray shared = ba;
+    ba.coarsen(2);
+    BoxList pieces = ba.boxList();
+    pieces.maxSize(4);
+    ba.repartition(std::move(pieces));
+    AMREX_ALWAYS_ASSERT(ba.isDisjoint());
+    AMREX_ALWAYS_ASSERT(ba.simplified_list().minimalBox() == Box(IntVect(0), IntVect(31)));
+    AMREX_ALWAYS_ASSERT(shared.simplified_list() == original);
+}
+
 #if (AMREX_SPACEDIM >= 2)
 // Cuts are staggered across the x-interface, but the union is a single box.
 void test_staggered ()
@@ -95,6 +111,7 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     {
         test_structured();
+        test_repartition();
 #if (AMREX_SPACEDIM >= 2)
         test_staggered();
 #endif

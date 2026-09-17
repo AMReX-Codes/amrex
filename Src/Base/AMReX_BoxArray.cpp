@@ -594,7 +594,7 @@ BoxArray::repartition (BoxList&& bl)
 {
     AMREX_ASSERT(bl.ixType() == ixType());
     if ((! m_bat.is_simple()) || (crseRatio() != IntVect::TheUnitVector())) {
-        uniqify();
+        m_simplified_list.reset();
     }
     std::shared_ptr<BoxList> bak;
     bak.swap(m_simplified_list);

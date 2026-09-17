@@ -113,17 +113,20 @@ columns).  Setting :cpp:`amr.no_chop_dir` to that direction (0 for *x*, 1 for
 - On level 0, if the :cpp:`blocking_factor` is 1 in the other directions, the
   domain is decomposed in those directions only, into nearly equal grids
   that all span the domain in :cpp:`amr.no_chop_dir`.  The number of grids is
-  at least the number of MPI processes, and no grid is longer than
-  :cpp:`max_grid_size` in the decomposed directions.  Any :cpp:`n_cell` works.
+  increased to the number of MPI processes when permitted by
+  :cpp:`refine_grid_layout` and its per-direction settings, and no grid is
+  longer than :cpp:`max_grid_size` in the decomposed directions.  Any :cpp:`n_cell` works.
   With a larger level 0 :cpp:`blocking_factor` the usual algorithm is used.
 
 - On finer levels, the grids produced by the clustering are merged along that
-  direction so that no two grids share a face normal to it, and they are never
-  chopped in it afterwards.  A grid still covers only the part of the domain
+  direction so that no two grids share an interior face normal to it, and
+  they are never chopped in it afterwards.  A grid still covers only the part of the domain
   where cells are tagged; two tagged regions at different heights in the same
   column give two grids that do not touch.  Use
   :cpp:`amr.refine_whole_domain_dir` as well if every grid must span the entire
   domain in that direction.
+  Grids at opposite ends of a periodic domain can still touch through the
+  periodic boundary.
 
 Users often like to ensure that coarse/fine boundaries are not too close to tagged cells; the
 way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the default is 1).

@@ -1,4 +1,11 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
+    set(_sources compatibility.cpp)
+    set(_input_files)
+    setup_test(${D} _sources _input_files BASE_NAME Amr_GridCreation_compatibility)
+    if (AMReX_AMRLEVEL)
+        target_compile_definitions(Test_Amr_GridCreation_compatibility_${D}d PRIVATE TEST_AMRLEVEL)
+    endif ()
+
     if (D EQUAL 1)
        continue()
     endif ()

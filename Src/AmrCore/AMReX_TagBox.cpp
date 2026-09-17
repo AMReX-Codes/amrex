@@ -318,77 +318,114 @@ TagBoxArray::buffer (const IntVect& nbuf)
     }
 }
 
+namespace {
+
 void
-TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
+mapPeriodicRemoveDuplicatesOverlapping (TagBoxArray& tags, const Geometry& geom)
 {
     BL_PROFILE("TagBoxArray::mapPRD");
 
-    // ParallelAdd takes a shortcut for identical layouts without ghost
-    // cells that assumes the valid regions do not overlap.  After
-    // coarsening by a factor the grids are not divisible by, they may
-    // overlap.  A ghost cell on the result then forces the general path.
-    IntVect ngrow = nGrowVect();
-    if (m_may_overlap && ngrow == 0 && !geom.isAnyPeriodic()) {
-        ngrow = IntVect(1);
+    // A ghost cell bypasses ParallelAdd's shortcut for identical layouts.
+    IntVect const ngrow(1);
+
+    if (Gpu::inLaunchRegion())
+    {
+        // There is not atomicAdd for char.  So we have to use int.
+        auto itag = amrex::cast<iMultiFab>(tags);
+        iMultiFab tmp(tags.boxArray(),tags.DistributionMap(),1,ngrow);
+        tmp.setVal(0);
+        tmp.ParallelAdd(itag, 0, 0, 1, tags.nGrowVect(), ngrow, geom.periodicity());
+
+        // We need to keep tags in periodic boundary
+        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), ngrow);
+
+        TagBoxArray result(tags.boxArray(),tags.DistributionMap(),ngrow);
+        for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
+            Box const& box = mfi.fabbox();
+            Array4<TagBox::TagType> const& tag = result.array(mfi);
+            Array4<int const> const& tmptag = tmp.const_array(mfi);
+            Array4<int const> const& msk = owner_mask->const_array(mfi);
+            amrex::ParallelFor(box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (msk(i,j,k)) {
+                    tag(i,j,k) = static_cast<char>(tmptag(i,j,k));
+                } else {
+                    tag(i,j,k) = TagBox::CLEAR;
+                }
+            });
+        }
+        std::swap(tags, result);
     }
+    else
+    {
+        TagBoxArray tmp(tags.boxArray(),tags.DistributionMap(),ngrow); // note that tmp is filled w/ CLEAR.
+        tmp.ParallelAdd(tags, 0, 0, 1, tags.nGrowVect(), ngrow, geom.periodicity());
+
+        // We need to keep tags in periodic boundary
+        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), ngrow);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
+            Box const& box = mfi.fabbox();
+            Array4<TagBox::TagType> const& tag = tmp.array(mfi);
+            Array4<int const> const& msk = owner_mask->const_array(mfi);
+            AMREX_LOOP_3D(box, i, j, k,
+            {
+                if (!msk(i,j,k)) { tag(i,j,k) = TagBox::CLEAR; }
+            });
+        }
+
+        std::swap(tags, tmp);
+    }
+}
+
+}
+
+void
+TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
+{
+    if (m_may_overlap && nGrowVect() == 0 && !geom.isAnyPeriodic()) {
+        mapPeriodicRemoveDuplicatesOverlapping(*this, geom);
+        return;
+    }
+
+    BL_PROFILE("TagBoxArray::mapPRD");
 
     if (Gpu::inLaunchRegion())
     {
         // There is not atomicAdd for char.  So we have to use int.
         auto itag = amrex::cast<iMultiFab>(*this);
-        iMultiFab tmp(boxArray(),DistributionMap(),1,ngrow);
+        iMultiFab tmp(boxArray(),DistributionMap(),1,nGrowVect());
         tmp.setVal(0);
-        tmp.ParallelAdd(itag, 0, 0, 1, nGrowVect(), ngrow, geom.periodicity());
+        tmp.ParallelAdd(itag, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
 
         // We need to keep tags in periodic boundary
-        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), ngrow);
-
-        if (ngrow == nGrowVect())
-        {
-            for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
-                Box const& box = mfi.fabbox();
-                Array4<TagType> const& tag =this->array(mfi);
-                Array4<int const> const& tmptag = tmp.const_array(mfi);
-                Array4<int const> const& msk = owner_mask->const_array(mfi);
-                amrex::ParallelFor(box,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (msk(i,j,k)) {
-                        tag(i,j,k) = static_cast<char>(tmptag(i,j,k));
-                    } else {
-                        tag(i,j,k) = TagBox::CLEAR;
-                    }
-                });
-            }
-        }
-        else
-        {
-            TagBoxArray result(boxArray(),DistributionMap(),ngrow);
-            for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
-                Box const& box = mfi.fabbox();
-                Array4<TagType> const& tag = result.array(mfi);
-                Array4<int const> const& tmptag = tmp.const_array(mfi);
-                Array4<int const> const& msk = owner_mask->const_array(mfi);
-                amrex::ParallelFor(box,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (msk(i,j,k)) {
-                        tag(i,j,k) = static_cast<char>(tmptag(i,j,k));
-                    } else {
-                        tag(i,j,k) = TagBox::CLEAR;
-                    }
-                });
-            }
-            std::swap(*this, result);
+        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
+        for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
+            Box const& box = mfi.fabbox();
+            Array4<TagType> const& tag =this->array(mfi);
+            Array4<int const> const& tmptag = tmp.const_array(mfi);
+            Array4<int const> const& msk = owner_mask->const_array(mfi);
+            amrex::ParallelFor(box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (msk(i,j,k)) {
+                    tag(i,j,k) = static_cast<char>(tmptag(i,j,k));
+                } else {
+                    tag(i,j,k) = TagBox::CLEAR;
+                }
+            });
         }
     }
     else
     {
-        TagBoxArray tmp(boxArray(),DistributionMap(),ngrow); // note that tmp is filled w/ CLEAR.
-        tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), ngrow, geom.periodicity());
+        TagBoxArray tmp(boxArray(),DistributionMap(),nGrowVect()); // note that tmp is filled w/ CLEAR.
+        tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
 
         // We need to keep tags in periodic boundary
-        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), ngrow);
+        const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -405,6 +442,8 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
         std::swap(*this, tmp);
     }
 }
+
+
 
 void
 TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
@@ -751,13 +790,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    coarsenMayOverlap(ratio, !boxarray.coarsenable(ratio));
-}
-
-void
-TagBoxArray::coarsenMayOverlap (const IntVect & ratio, bool may_overlap)
-{
-    m_may_overlap = may_overlap;
+    m_may_overlap = false;
 
     // If team is used, all team workers need to go through all the fabs,
     // including ones they don't own.
@@ -781,6 +814,13 @@ TagBoxArray::coarsenMayOverlap (const IntVect & ratio, bool may_overlap)
     boxarray.coarsen(ratio);
     n_grow = new_n_grow;
     clear_arrays(); // The cached Array4s are for the old boxes.
+}
+
+void
+TagBoxArray::coarsenMayOverlap (const IntVect & ratio, bool may_overlap)
+{
+    coarsen(ratio);
+    m_may_overlap = may_overlap;
 }
 
 bool

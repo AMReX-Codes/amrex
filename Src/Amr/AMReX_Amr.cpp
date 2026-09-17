@@ -1094,9 +1094,112 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 void
 Amr::checkInput ()
 {
-    // The blocking factors themselves have been checked by AmrMesh::checkInput.
+    if (!useLegacyGridding()) {
+        checkInputExtended();
+        return;
+    }
+
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
+    }
+    //
+    // Check that blocking_factor is a power of 2.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            int k = blocking_factor[i][idim];
+            while ( k > 0 && (k%2 == 0) ) {
+                k /= 2;
+            }
+            if (k != 1) {
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+            }
+        }
+    }
+    //
+    // Check level dependent values.
+    //
+    for (int i = 0; i < max_level; i++)
+    {
+        if (MaxRefRatio(i) < 2) {
+            amrex::Error("Amr::checkInput: bad ref_ratios");
+        }
+    }
+    const Box& domain = Geom(0).Domain();
+    if (!domain.ok()) {
+        amrex::Error("level 0 domain bad or not set");
+    }
+    //
+    // Check that domain size is a multiple of blocking_factor[0].
+    //
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        int len = domain.length(i);
+        if (len%blocking_factor[0][i] != 0) {
+            amrex::Error("domain size not divisible by blocking_factor");
+        }
+    }
+    //
+    // Check that max_grid_size is even.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (max_grid_size[i][idim]%2 != 0) {
+                amrex::Error("max_grid_size is not even");
+            }
+        }
+    }
+
+    //
+    // Check that max_grid_size is a multiple of blocking_factor at every level.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                amrex::Error("max_grid_size not divisible by blocking_factor");
+            }
+        }
+    }
+
+    if( ! Geom(0).ProbDomain().ok()) {
+        amrex::Error("Amr::checkInput: bad physical problem size");
+    }
+
+    if(verbose > 0) {
+        amrex::Print() << "Successfully read inputs file ... " << '\n';
+    }
+}
+
+void
+Amr::checkInputExtended ()
+{
+    if (max_level < 0) {
+        amrex::Error("checkInput: max_level not set");
+    }
+    // SetBlockingFactor may have changed these since the AmrMesh constructor.
+    for (int i = 0; i <= max_level; ++i) {
+        bool odd_rr = false;
+        if (i > 0) {
+            for (int rr : ref_ratio[i-1]) {
+                if (rr > 1 && rr%2 != 0) { odd_rr = true; }
+            }
+        }
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const bf = blocking_factor[i][idim];
+            bool ok = bf > 0 && (bf & (bf-1)) == 0;
+            if (!ok && odd_rr) {
+                int const rr = ref_ratio[i-1][idim];
+                int const b = bf / rr;
+                ok = (bf%rr == 0) && b > 0 && (b & (b-1)) == 0;
+            }
+            if (!ok) {
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+            }
+        }
     }
     //
     // Check level dependent values.

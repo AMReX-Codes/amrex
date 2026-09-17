@@ -64,13 +64,18 @@ public:
     void ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/) override
     {
         for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
-            auto const& arr = tags.array(mfi);
+            TagBox host(mfi.fabbox(), 1, The_Pinned_Arena());
+            Gpu::copy(Gpu::deviceToHost, tags[mfi].dataPtr(),
+                      tags[mfi].dataPtr() + host.size(), host.dataPtr());
+            auto const& arr = host.array();
             amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
             {
                 if (tagged(lev, IntVect(AMREX_D_DECL(i,j,k)))) {
                     arr(i,j,k) = TagBox::SET;
                 }
             });
+            Gpu::copy(Gpu::hostToDevice, host.dataPtr(), host.dataPtr() + host.size(),
+                      tags[mfi].dataPtr());
         }
     }
 
@@ -100,7 +105,7 @@ void fail (std::string const& msg)
     ++nfail;
 }
 
-// No two boxes share a face normal to dir.
+// No two boxes share an interior face normal to dir.
 void check_no_faces (BoxArray const& ba, int dir, int lev)
 {
     std::vector<std::pair<int,Box>> isects;
@@ -270,7 +275,10 @@ void check_level (TestMesh const& mesh, int lev)
                                              nbuf, ba, rr, period, 0, 1);
         Long ntagged = 0, nuncovered = 0;
         for (MFIter mfi(mask); mfi.isValid(); ++mfi) {
-            auto const& m = mask.const_array(mfi);
+            IArrayBox host(mfi.fabbox(), 1, The_Pinned_Arena());
+            Gpu::copy(Gpu::deviceToHost, mask[mfi].dataPtr(),
+                      mask[mfi].dataPtr() + host.size(), host.dataPtr());
+            auto const& m = host.const_array();
             amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
             {
                 amrex::ignore_unused(k); // unused in 2D
@@ -310,27 +318,43 @@ struct LinearField
     IndexType ityp;
     RealVect slope;
 
+    struct Evaluator {
+        GpuArray<Real,AMREX_SPACEDIM> dx, plo;
+        IndexType type;
+        RealVect s;
+
+        AMREX_GPU_HOST_DEVICE
+        Real operator() (int i, int j, int k) const noexcept
+        {
+            amrex::ignore_unused(j, k);
+            IntVect const iv(AMREX_D_DECL(i,j,k));
+            Real f = 1.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                Real const off = type.nodeCentered(d) ? Real(0.0) : Real(0.5);
+                f += s[d] * (plo[d] + (Real(iv[d])+off)*dx[d]);
+            }
+            return f;
+        }
+    };
+
+    [[nodiscard]] Evaluator evaluator () const
+    {
+        return {geom.CellSizeArray(), geom.ProbLoArray(), ityp, slope};
+    }
+
     [[nodiscard]] Real operator() (int i, int j, int k) const
     {
-        amrex::ignore_unused(k); // unused in 2D
-        IntVect const iv(AMREX_D_DECL(i,j,k));
-        auto const dx = geom.CellSizeArray();
-        auto const plo = geom.ProbLoArray();
-        Real f = 1.0;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            Real const off = ityp.nodeCentered(d) ? Real(0.0) : Real(0.5);
-            f += slope[d] * (plo[d] + (Real(iv[d])+off)*dx[d]);
-        }
-        return f;
+        return evaluator()(i,j,k);
     }
 
     void fillAll (MultiFab& mf) const
     {
+        auto const value = evaluator();
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             auto const& a = mf.array(mfi);
-            amrex::LoopOnCpu(mfi.fabbox(), [&] (int i, int j, int k)
+            amrex::ParallelFor(mfi.fabbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                a(i,j,k) = (*this)(i,j,k);
+                a(i,j,k) = value(i,j,k);
             });
         }
     }
@@ -341,12 +365,13 @@ struct LinearField
                      Real /*time*/, int /*bccomp*/) const
     {
         Box const pdomain = amrex::convert(geom.growPeriodicDomain(1024), ityp);
+        auto const value = evaluator();
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             auto const& a = mf.array(mfi);
-            amrex::LoopOnCpu(mfi.fabbox(), [&] (int i, int j, int k)
+            amrex::ParallelFor(mfi.fabbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (!pdomain.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                    a(i,j,k) = (*this)(i,j,k);
+                    a(i,j,k) = value(i,j,k);
                 }
             });
         }
@@ -416,7 +441,10 @@ void test_fillpatch (TestMesh const& mesh, int lev, IndexType ityp,
     }
     Real maxerr = 0;
     for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
-        auto const& a = dst.const_array(mfi);
+        FArrayBox host(mfi.fabbox(), 1, The_Pinned_Arena());
+        Gpu::copy(Gpu::deviceToHost, dst[mfi].dataPtr(),
+                  dst[mfi].dataPtr() + host.size(), host.dataPtr());
+        auto const& a = host.const_array();
         amrex::LoopOnCpu(mfi.fabbox() & check_region, [&] (int i, int j, int k)
         {
             maxerr = std::max(maxerr, std::abs(a(i,j,k) - ffield(i,j,k)));
@@ -450,7 +478,7 @@ void test_tag_overlap ()
         TagBoxArray tags(ba, dm, IntVect(2));
         tags.setVal(ba, TagBox::SET);
         tags.buffer(IntVect(2));
-        tags.coarsen(ratio);
+        tags.coarsenMayOverlap(ratio, true);
         Box cdomain = amrex::coarsen(domain, ratio);
         Geometry cgeom(cdomain, RealBox(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.)),
                        0, is_per);
@@ -479,12 +507,8 @@ void test_tag_overlap ()
         for (int ng = 0; ng <= 2; ng += 2) {
             TagBoxArray tags1(ba, dm, IntVect(ng));
             IntVect const iv1(AMREX_D_DECL(37,38,0));
-            for (MFIter mfi(tags1); mfi.isValid(); ++mfi) {
-                if (mfi.validbox().contains(iv1)) {
-                    tags1.array(mfi)(iv1) = TagBox::SET;
-                }
-            }
-            tags1.coarsen(ratio);
+            tags1.setVal(BoxArray(Box(iv1, iv1)), TagBox::SET);
+            tags1.coarsenMayOverlap(ratio, true);
             tags1.mapPeriodicRemoveDuplicates(cgeom);
             Gpu::PinnedVector<IntVect> v1;
             tags1.collate(v1);

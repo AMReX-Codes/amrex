@@ -319,9 +319,9 @@ public:
      * \brief Return the factor by which the tags on level \p lev are
      * coarsened before they are clustered into level \p lev+1 grids.
      *
-     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  In a
-     * periodic direction whose domain size is not divisible by that, it is
-     * reduced to the largest power of 2 that divides the domain size.
+     * This is blocking_factor[lev+1]/ref_ratio[lev] (at least 1).  With odd
+     * refinement ratios or no_chop_dir enabled, it may be reduced in periodic
+     * directions to divide the domain size. Requires 0 <= lev < maxLevel().
      */
     [[nodiscard]] IntVect bfLev (int lev) const noexcept;
 
@@ -449,6 +449,9 @@ protected:
     //! Validate AmrInfo inputs (throws if inconsistent).
     void checkInput();
 
+    //! Preserve the original gridding rules unless odd ratios or no_chop_dir are used.
+    [[nodiscard]] bool useLegacyGridding () const noexcept;
+
     //! Disable the iterate-on-new-grids loop for the next MakeNewGrids call.
     void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }
 
@@ -456,6 +459,12 @@ protected:
     void SetUseNewChop () noexcept { use_new_chop = true; }
 
 private:
+    void ChopGridsExtended (int lev, BoxArray& ba, int target_size) const;
+    [[nodiscard]] BoxArray MakeBaseGridsNoChop () const;
+    void MakeNewGridsExtended (int lbase, Real time, int& new_finest,
+                              Vector<BoxArray>& new_grids);
+    void checkInputExtended ();
+
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                       Vector<IntVect> refrat = Vector<IntVect>(),
                       const RealBox* rb = nullptr, int coord = -1,

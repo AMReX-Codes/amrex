@@ -279,8 +279,9 @@ can be set via :cpp:`ParmParse`.
    direction: :py:data:`amr.max_grid_size` and
    :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is decomposed
    in the other directions only (when the level 0 blocking factor is 1 in
-   those directions), and on finer levels no two grids share a face normal to
-   it. See :ref:`sec:grid_creation` for details. A negative value, the
+   those directions), and on finer levels no two grids share an interior face
+   normal to it. This does not exclude contact through a periodic boundary.
+   See :ref:`sec:grid_creation` for details. A negative value, the
    default, disables this.
 
 .. py:data:: amr.check_input
