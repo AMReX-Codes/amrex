@@ -6,9 +6,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
-#ifdef AMREX_USE_BITTREE
-#include <AMReX_Bittree.H>
-#endif
 #include <optional>
 
 namespace amrex {
@@ -260,16 +257,16 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
 {
     BL_PROFILE("AmrMesh::MakeNewGrids()");
 
+#ifdef AMREX_USE_BITTREE
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_bittree,
+                                    "AmrMesh::MakeNewGridsExtended does not support Bittree");
+#endif
     BL_ASSERT(lbase < max_level);
 
     // Add at most one new level
     int max_crse = std::min(finest_level, max_level-1);
 
     if (new_grids.size() < max_crse+2) { new_grids.resize(max_crse+2); }
-
-#ifdef AMREX_USE_BITTREE
-    if(!use_bittree) {
-#endif
 
     //
     // Construct problem domain at each level.
@@ -780,71 +777,6 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
             }
         }
     }
-
-#ifdef AMREX_USE_BITTREE
-    }
-#endif
-
-#ifdef AMREX_USE_BITTREE
-    // Bittree version
-    if(use_bittree) {
-        // Initialize BT refinement
-        btmesh->refine_init();
-
-        // -------------------------------------------------------------------
-        // Use tagging data to mark BT for refinement, then use the new bitmap
-        // to calculate the new grids.
-        auto tree0 = btmesh->getTree();
-
-        // [1] Error Estimation and tagging
-        // btTags is indexed by bitid, Bittree's internal indexing scheme.
-        // For any id, btTags = 1 if should be parent, -1 if should not be parent (or not exist).
-        std::vector<int> btTags(tree0->id_upper_bound(),0);
-
-        for (int lev=max_crse; lev>=lbase; --lev) {
-
-            TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
-            ErrorEst(lev, tags, time, 0);
-            tags.buffer(n_error_buf[lev]);
-
-            for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
-                auto const& tagbox = tags.const_array(mfi);
-                bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
-                                                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                                                         {
-                                                              return tagbox(i,j,k)!=TagBox::CLEAR;
-                                                         });
-
-                // Set the values of btTags.
-                int bitid = btUnit::getBitid(btmesh.get(),false,lev,mfi.index());
-                // TODO Check lev == tree0->block_level(bitid)
-                if(has_set_tags) {
-                    btTags[bitid] = 1;
-                }
-                else {
-                    btTags[bitid] = -1;
-                }
-            }
-        }
-
-        // [2] btRefine - check for proper octree nesting and update bitmap
-        MPI_Comm comm = ParallelContext::CommunicatorSub();
-        int changed = btUnit::btRefine(btmesh.get(), btTags, max_crse, lbase, grids, dmap, comm);
-
-        // [3] btCalculateGrids - use new bitmap to generate new grids
-        if (changed>0) {
-            btUnit::btCalculateGrids(btmesh.get(),lbase,new_finest,new_grids,max_grid_size);
-        } else {
-            new_finest = finest_level;
-            for(int i=0; i<=finest_level; ++i) {
-                new_grids[i] = grids[i];
-            }
-        }
-
-        // Finalize BT refinement
-        btmesh->refine_apply();
-    }
-#endif
 
 }
 
