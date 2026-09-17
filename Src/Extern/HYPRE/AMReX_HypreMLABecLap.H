@@ -72,7 +72,7 @@ public:
      * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients.
      * \param a_lobc      Low-side boundary-condition types.
      * \param a_hibc      High-side boundary-condition types.
-     * \param a_levelbcdata BC data per level.
+     * \param a_levelbcdata BC data per level; a missing or null entry means zero.
      * \param a_coarse_bc Optional BC data from even coarser AMR level.
      */
     void setup (Real a_ascalar, Real a_bscalar,
