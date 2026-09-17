@@ -1248,7 +1248,8 @@ BoxArray::intersections (const Box&                         bx,
         const IntVect& doilo = getDoiLo();
         const IntVect& doihi = getDoiHi();
 
-        gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        // gbx is now in the index space of the stored (cell-centered) boxes.
+        gbx.setSmall(glo - doihi).setBig(ghi + doilo).setType(IndexType::TheCellType());
         gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
@@ -1368,7 +1369,8 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     const IntVect& doilo = getDoiLo();
     const IntVect& doihi = getDoiHi();
 
-    gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+    // gbx is now in the index space of the stored (cell-centered) boxes.
+    gbx.setSmall(glo - doihi).setBig(ghi + doilo).setType(IndexType::TheCellType());
     gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 
     const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
