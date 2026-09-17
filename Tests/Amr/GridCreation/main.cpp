@@ -570,7 +570,9 @@ int main (int argc, char* argv[])
         int new_finest = 0;
         // Add one level at a time until all levels exist, regridding from
         // level 0 each time.
-        for (int iter = 0; iter < mesh.maxLevel()+1; ++iter) {
+        int initial_levels = mesh.maxLevel()+1;
+        pp.query("initial_levels", initial_levels);
+        for (int iter = 0; iter < initial_levels; ++iter) {
             int const lbase = 0;
             auto const t0 = amrex::second();
             mesh.MakeNewGrids(lbase, 0.0, new_finest, new_grids);
@@ -587,9 +589,10 @@ int main (int argc, char* argv[])
             }
             mesh.SetFinestLevel(new_finest);
         }
-        // Regrid from the finest base level too.
-        if (mesh.finestLevel() >= 2) {
-            int const lbase = mesh.finestLevel()-1;
+        // Regrid from a nonzero base level too.
+        int lbase = mesh.finestLevel()-1;
+        pp.query("regrid_lbase", lbase);
+        if (lbase >= 1 && lbase <= mesh.finestLevel() && lbase < mesh.maxLevel()) {
             mesh.MakeNewGrids(lbase, 0.0, new_finest, new_grids);
             for (int lev = lbase+1; lev <= new_finest; ++lev) {
                 if (chop_target > 0) {

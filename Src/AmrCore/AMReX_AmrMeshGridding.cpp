@@ -558,6 +558,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
             //
             // Created new level, now generate efficient grids.
             //
+            int const prev_finest = new_finest;
             if ( !(useFixedCoarseGrids() && levc<useFixedUpToLevel()) ) {
                 new_finest = std::max(new_finest,levf);
             }
@@ -576,18 +577,11 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     } else {
                         clist.chop(grid_eff);
                     }
-                    BoxArray const p_n_copy = p_n_ba[levc]; // for the boundary extension
-                    clist.intersect(p_n_ba[levc]);
-                    //
-                    // Efficient properly nested Clusters have been constructed
-                    // now generate list of grids at level levf.
-                    //
-                    clist.boxList(new_bx);
-                    new_bx.simplify();
 
                     // Pair a partial last cell with its neighbor by temporarily
-                    // identifying the last two cells, so that neither removing
-                    // overlaps nor merging columns can leave it alone as a thin grid.
+                    // identifying the last two cells, so that neither proper
+                    // nesting, removing overlaps nor merging columns can leave it
+                    // alone as a thin grid.
                     Box const& pcd = pc_domain[levc];
                     IntVect paired(0);
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -597,19 +591,47 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                             paired[idim] = 1;
                         }
                     }
-                    if (paired != 0) {
-                        for (auto& b : new_bx) {
-                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                                if (paired[idim]) {
-                                    int const hi = pcd.bigEnd(idim)-1;
-                                    b.setSmall(idim, std::min(b.smallEnd(idim), hi));
-                                    b.setBig(idim, std::min(b.bigEnd(idim), hi));
-                                }
+                    auto identify = [&] (Box& b) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (paired[idim]) {
+                                int const hi = pcd.bigEnd(idim)-1;
+                                b.setSmall(idim, std::min(b.smallEnd(idim), hi));
+                                b.setBig(idim, std::min(b.bigEnd(idim), hi));
                             }
                         }
+                    };
+                    BoxList comp; // cells not properly nested
+                    if (paired != 0) { comp.complementIn(pcd, p_n_ba[levc]); }
+
+                    clist.intersect(p_n_ba[levc]);
+                    //
+                    // Efficient properly nested Clusters have been constructed
+                    // now generate list of grids at level levf.
+                    //
+                    clist.boxList(new_bx);
+                    new_bx.simplify();
+
+                    if (paired != 0) {
+                        // An identified cell is nested only if all its cells are.
+                        for (auto& b : comp) { identify(b); }
+                        Box idom = pcd;
+                        identify(idom);
+                        BoxList pn_id;
+                        pn_id.complementIn(idom, comp);
+                        BoxArray const pn_id_ba(std::move(pn_id));
+
+                        for (auto& b : new_bx) { identify(b); }
                         BoxArray ba(std::move(new_bx));
                         ba.removeOverlap(false);
-                        new_bx = ba.boxList();
+                        BoxList nested(ba.ixType());
+                        for (int i = 0; i < ba.size(); ++i) {
+                            if (pn_id_ba.contains(ba[i])) {
+                                nested.push_back(ba[i]);
+                            } else {
+                                nested.join(amrex::intersect(pn_id_ba, ba[i]).boxList());
+                            }
+                        }
+                        new_bx = std::move(nested);
                         new_bx.simplify();
                     }
 
@@ -621,29 +643,23 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
 
                     if (paired != 0) {
                         // Disjoint boxes in the identified space stay disjoint
-                        // when the pair is expanded.
-                        bool clipped = false;
-                        BoxList nested(new_bx.ixType());
-                        for (auto b : new_bx) {
+                        // and nested when the pair is expanded.
+                        for (auto& b : new_bx) {
                             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                                 if (paired[idim] && b.bigEnd(idim) == pcd.bigEnd(idim)-1) {
                                     b.setBig(idim, pcd.bigEnd(idim));
                                 }
                             }
-                            if (p_n_copy.contains(b)) {
-                                nested.push_back(b);
-                            } else {
-                                nested.join(amrex::intersect(p_n_copy, b).boxList());
-                                clipped = true;
-                            }
-                        }
-                        new_bx = std::move(nested);
-                        if (clipped && no_chop_dir >= 0) {
-                            new_bx.mergeAlongDir(no_chop_dir);
                         }
                     }
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
+
+                // Proper nesting of the paired cells may remove all tags.
+                if (new_bx.isEmpty()) {
+                    new_finest = prev_finest;
+                    continue;
+                }
 
                 // The boxes are in the index space of level levc coarsened
                 // by bf_lev[levc].
