@@ -490,9 +490,9 @@ int main (int argc, char* argv[])
 
             // Truncation radius: larger than the largest distance between
             // two points of the domain.
-            Real const L = 1.1_rt * std::sqrt(AMREX_D_TERM(  std::pow(domain3.length(0)*dx3[0],2),
-                                                           + std::pow(domain3.length(1)*dx3[1],2),
-                                                           + std::pow(domain3.length(2)*dx3[2],2)));
+            Real const L = 1.1_rt * std::sqrt(AMREX_D_TERM(  Math::powi<2>(domain3.length(0)*dx3[0]),
+                                                           + Math::powi<2>(domain3.length(1)*dx3[1]),
+                                                           + Math::powi<2>(domain3.length(2)*dx3[2])));
             // Fourier transform of -1/(4 pi r) truncated at radius L:
             // -2 sin^2(L|k|/2)/|k|^2, with limit -L^2/2 at k = 0, sampled at
             // k = pi*n/(K*dx) for a half period K. One solver is reused
