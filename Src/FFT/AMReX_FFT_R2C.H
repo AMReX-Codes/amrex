@@ -869,8 +869,10 @@ void R2C<T,D,C>::prepare_openbc ()
             Box box = fab->box() & bottom_half;
             if (box.ok()) {
                 auto* pr = fab->dataPtr();
-                auto* pc = (typename Plan<T>::VendorComplex *)
-                    detail::get_fab(m_cx)->dataPtr();
+                auto* cfab = detail::get_fab(m_cx);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cfab != nullptr,
+                    "R2C::prepare_openbc: missing local spectral FAB");
+                auto* pc = (typename Plan<T>::VendorComplex *) cfab->dataPtr();
 #ifdef AMREX_USE_SYCL
                 m_fft_fwd_x_half.template init_r2c<Direction::forward>
                     (box, pr, pc, m_slab_decomp, ncomp);

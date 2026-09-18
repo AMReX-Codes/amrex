@@ -56,10 +56,21 @@ enum struct Direction { forward, backward, both, none };
 
 enum struct DomainStrategy { automatic, slab, pencil };
 
-AMREX_ENUM( Boundary, periodic, even, odd );
+/**
+ * \brief Boundary types for real-to-real transforms.
+ *
+ * - periodic
+ * - even: mirror symmetry about the cell face at the boundary (DCT-II/III)
+ * - odd: anti-symmetry about the cell face at the boundary (DST-II/III)
+ * - even_node: mirror symmetry about the first and last data points
+ *   themselves (DCT-I, FFTW_REDFT00), which is the transform of an even
+ *   periodic signal of period 2*(n-1) stored as its n unique values.
+ *   It is its own inverse and must be paired with even_node.
+ */
+AMREX_ENUM( Boundary, periodic, even, odd, even_node );
 
 enum struct Kind { none, r2c_f, r2c_b, c2c_f, c2c_b, r2r_ee_f, r2r_ee_b,
-                   r2r_oo_f, r2r_oo_b, r2r_eo, r2r_oe };
+                   r2r_oo_f, r2r_oo_b, r2r_eo, r2r_oe, r2r_ee_node };
 
 /**
  * \brief Return the default factor count used for selecting fast FFT lengths.
@@ -740,6 +751,10 @@ struct Plan
         {
             return (D == Direction::forward) ? FFTW_RODFT10 : FFTW_RODFT01;
         }
+        else if (bc.first == Boundary::even_node && bc.second == Boundary::even_node)
+        {
+            return FFTW_REDFT00;
+        }
         else {
             amrex::Abort("FFT: unsupported BC");
             return fftw_r2r_kind{};
@@ -773,6 +788,10 @@ struct Plan
         {
             return (D == Direction::forward) ? Kind::r2r_oo_f : Kind::r2r_oo_b;
         }
+        else if (bc.first == Boundary::even_node && bc.second == Boundary::even_node)
+        {
+            return Kind::r2r_ee_node;
+        }
         else {
             amrex::Abort("FFT: unsupported BC");
             return Kind::none;
@@ -802,6 +821,10 @@ struct Plan
         n = box.length(0);
         howmany = AMREX_D_TERM(howmany_initval, *box.length(1), *box.length(2));
 
+        if (bc.first == Boundary::even_node) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n >= 2, "FFT: even_node requires at least 2 points");
+        }
+
 #if defined(AMREX_USE_GPU)
         int nex=0;
         if (bc.first == Boundary::odd && bc.second == Boundary::odd &&
@@ -819,6 +842,10 @@ struct Plan
         } else if ((bc.first == Boundary::even && bc.second == Boundary::odd) ||
                    (bc.first == Boundary::odd && bc.second == Boundary::even)) {
             nex = 4*n;
+        } else if (bc.first == Boundary::even_node && bc.second == Boundary::even_node) {
+            // DCT-I of n points is the r2c transform of the even extension
+            // of length 2*(n-1): x_0, ..., x_{n-1}, x_{n-2}, ..., x_1.
+            nex = 2*(n-1);
         } else {
             amrex::Abort("FFT: unsupported BC");
         }
@@ -1045,6 +1072,8 @@ struct Plan
         } else if (kind == Kind::r2r_oo_b || kind == Kind::r2r_ee_b ||
                    kind == Kind::r2r_oe || kind == Kind::r2r_eo) {
             nc = 2*n+1;
+        } else if (kind == Kind::r2r_ee_node) {
+            nc = n;
         } else {
             amrex::Abort("FFT: alloc_scratch_space: unsupported kind");
         }
@@ -1289,6 +1318,41 @@ struct Plan
                     }
                 });
             }
+        } else if (kind == Kind::r2r_ee_node) {
+            int ostride = n*2; // nc*2 with nc = n
+            int istride = n;
+            int nex = 2*(n-1);
+            int norig = n;
+            Long nelems = Long(nex)*howmany;
+            if (r2r_data_is_complex) {
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                {
+                    auto batch = ielem / Long(nex);
+                    auto i = int(ielem - batch*nex);
+                    for (int ir = 0; ir < 2; ++ir) {
+                        auto* po = pdst + (2*batch+ir)*ostride + i;
+                        auto const* pi = psrc + 2*batch*istride + ir;
+                        if (i < norig) {
+                            *po = pi[i*2];
+                        } else {
+                            *po = pi[(nex-i)*2];
+                        }
+                    }
+                });
+            } else {
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                {
+                    auto batch = ielem / Long(nex);
+                    auto i = int(ielem - batch*nex);
+                    auto* po = pdst + batch*ostride + i;
+                    auto const* pi = psrc + batch*istride;
+                    if (i < norig) {
+                        *po = pi[i];
+                    } else {
+                        *po = pi[nex-i];
+                    }
+                });
+            }
         } else {
             amrex::Abort("FFT: pack_r2r_buffer: unsupported kind");
         }
@@ -1441,6 +1505,29 @@ struct Plan
                     auto [s, c] = Math::sincospi((k+T(0.5))/T(2*norig));
                     auto const& yk = psrc[batch*istride+2*k+1];
                     pdst[batch*ostride+k] = T(0.5) * (s * yk.real() - c * yk.imag());
+                });
+            }
+        } else if (kind == Kind::r2r_ee_node) {
+            // The r2c transform of an even extension is real, and its first
+            // n coefficients are the DCT-I.
+            int istride = n;
+            if (r2r_data_is_complex) {
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                {
+                    auto batch = ielem / Long(norig);
+                    auto k = int(ielem - batch*norig);
+                    for (int ir = 0; ir < 2; ++ir) {
+                        auto const& yk = psrc[(2*batch+ir)*istride+k];
+                        pdst[2*batch*ostride+ir+k*2] = yk.real();
+                    }
+                });
+            } else {
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                {
+                    auto batch = ielem / Long(norig);
+                    auto k = int(ielem - batch*norig);
+                    auto const& yk = psrc[batch*istride+k];
+                    pdst[batch*ostride+k] = yk.real();
                 });
             }
         } else {

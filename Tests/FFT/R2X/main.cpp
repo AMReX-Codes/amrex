@@ -67,11 +67,13 @@ int main (int argc, char* argv[])
 
         MultiFab mf2(ba,dm,1,0);
 
-        // For each dimension, there are 5 possibilities
-        constexpr int ncases = 5;
+        // For each dimension, there are 6 possibilities
+        constexpr int ncases = 6;
         Array<std::pair<FFT::Boundary,FFT::Boundary>,ncases>
             bcs{std::pair<FFT::Boundary,FFT::Boundary>{FFT::Boundary::periodic,
                                                        FFT::Boundary::periodic},
+                std::pair<FFT::Boundary,FFT::Boundary>{FFT::Boundary::even_node,
+                                                       FFT::Boundary::even_node},
                 std::pair<FFT::Boundary,FFT::Boundary>{FFT::Boundary::even,
                                                        FFT::Boundary::even},
                 std::pair<FFT::Boundary,FFT::Boundary>{FFT::Boundary::even,
