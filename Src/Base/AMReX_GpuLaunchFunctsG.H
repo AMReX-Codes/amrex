@@ -944,10 +944,9 @@ void launch (T const& n, L const& f)
         const T nleft = n - start_idx;
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            // This will not overflow, even though nblocks*MT might.
-            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
-            if (tid < nleft) {
-                f(tid+start_idx);
+            auto tid = std::uint64_t(MT)*blockIdx.x+threadIdx.x;
+            if (tid < std::uint64_t(nleft)) {
+                f(T(tid)+start_idx);
             }
         });
     }
@@ -992,11 +991,10 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
         const T nleft = n - start_idx;
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            // This will not overflow, even though nblocks*MT might.
-            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
-            if (tid < nleft) {
-                detail::call_f_scalar_handler(f, tid+start_idx,
-                    Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
+            auto tid = std::uint64_t(MT)*blockIdx.x+threadIdx.x;
+            if (tid < std::uint64_t(nleft)) {
+                detail::call_f_scalar_handler(f, T(tid)+start_idx,
+                    Gpu::Handler(amrex::min((std::uint64_t(nleft)-tid+(std::uint64_t)threadIdx.x),
                     (std::uint64_t)MT)));
             }
         });
