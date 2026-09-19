@@ -156,15 +156,15 @@ CSR<T,V> spgemm_local_cusparse (Long nrows, Long ncols,
     void* rowC = (void*)ciC.row_offset.data();
 #endif
 
-    cusparseSpMatDescr_t matA, matB, matC;
+    cusparseSpMatDescr_t mat_A, mat_B, mat_C;
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&matA, nrows, B.nrows, A.nnz, rowA, colA, (void*)A.mat,
+        (cusparseCreateCsr(&mat_A, nrows, B.nrows, A.nnz, rowA, colA, (void*)A.mat,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&matB, B.nrows, ncols, B.nnz, rowB, colB, (void*)B.mat,
+        (cusparseCreateCsr(&mat_B, B.nrows, ncols, B.nnz, rowB, colB, (void*)B.mat,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&matC, nrows, ncols, 0, rowC, nullptr, nullptr,
+        (cusparseCreateCsr(&mat_C, nrows, ncols, 0, rowC, nullptr, nullptr,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
 
     cusparseSpGEMMDescr_t spgemm_descr;
@@ -176,28 +176,28 @@ CSR<T,V> spgemm_local_cusparse (Long nrows, Long ncols,
 
     std::size_t buffer_size1 = 0;
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, matA, matB, &beta, matC,
+        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
                                        data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
                                        &buffer_size1, nullptr));
     auto* buffer1 = (void*)The_Arena()->alloc(buffer_size1);
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, matA, matB, &beta, matC,
+        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
                                        data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
                                        &buffer_size1, buffer1));
 
     std::size_t buffer_size2 = 0;
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_compute(handle, op, op, &alpha, matA, matB, &beta, matC,
+        (cusparseSpGEMM_compute(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
                                 data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
                                 &buffer_size2, nullptr));
     auto* buffer2 = (void*)The_Arena()->alloc(buffer_size2);
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_compute(handle, op, op, &alpha, matA, matB, &beta, matC,
+        (cusparseSpGEMM_compute(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
                                 data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
                                 &buffer_size2, buffer2));
 
     std::int64_t c_nrows, c_ncols, c_nnz;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSpMatGetSize(matC, &c_nrows, &c_ncols, &c_nnz));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseSpMatGetSize(mat_C, &c_nrows, &c_ncols, &c_nnz));
     AMREX_ALWAYS_ASSERT(c_nrows == nrows && c_ncols == ncols);
 #if (CUDART_VERSION < 13000)
     AMREX_ALWAYS_ASSERT(c_nnz < std::int64_t(std::numeric_limits<int>::max()));
@@ -212,11 +212,11 @@ CSR<T,V> spgemm_local_cusparse (Long nrows, Long ncols,
     ciC.col_index.resize(c_nnz);
     void* colC = (void*)ciC.col_index.data();
 #endif
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCsrSetPointers(matC, rowC, colC, (void*)C.mat.data()));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseCsrSetPointers(mat_C, rowC, colC, (void*)C.mat.data()));
 
     // cuSPARSE guarantees sorted column indices in C.
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_copy(handle, op, op, &alpha, matA, matB, &beta, matC,
+        (cusparseSpGEMM_copy(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
                              data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr));
 
 #if (CUDART_VERSION < 13000)
@@ -225,9 +225,9 @@ CSR<T,V> spgemm_local_cusparse (Long nrows, Long ncols,
 
     Gpu::streamSynchronize();
     AMREX_CUSPARSE_SAFE_CALL(cusparseSpGEMM_destroyDescr(spgemm_descr));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(matA));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(matB));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(matC));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_A));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_B));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_C));
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
     The_Arena()->free(buffer1);
     The_Arena()->free(buffer2);
@@ -266,22 +266,22 @@ CSR<T,V> spgemm_local_rocsparse (Long nrows, Long ncols,
     CSR<T,V> C;
     C.row_offset.resize(nrows+1);
 
-    rocsparse_spmat_descr matA, matB, matC, matD;
+    rocsparse_spmat_descr mat_A, mat_B, mat_C, mat_D;
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&matA, nrows, B.nrows, A.nnz,
+        (rocsparse_create_csr_descr(&mat_A, nrows, B.nrows, A.nnz,
                                     (void*)A.row_offset, (void*)A.col_index, (void*)A.mat,
                                     index_type, index_type, index_base, data_type));
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&matB, B.nrows, ncols, B.nnz,
+        (rocsparse_create_csr_descr(&mat_B, B.nrows, ncols, B.nnz,
                                     (void*)B.row_offset, (void*)B.col_index, (void*)B.mat,
                                     index_type, index_type, index_base, data_type));
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&matC, nrows, ncols, 0,
+        (rocsparse_create_csr_descr(&mat_C, nrows, ncols, 0,
                                     (void*)C.row_offset.data(), nullptr, nullptr,
                                     index_type, index_type, index_base, data_type));
     // D is unused because beta is zero, but a valid descriptor is required.
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&matD, 0, 0, 0, nullptr, nullptr, nullptr,
+        (rocsparse_create_csr_descr(&mat_D, 0, 0, 0, nullptr, nullptr, nullptr,
                                     index_type, index_type, index_base, data_type));
 
     T alpha = T(1);
@@ -291,38 +291,38 @@ CSR<T,V> spgemm_local_rocsparse (Long nrows, Long ncols,
 
     std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, matA, matB, &beta, matD, matC,
+        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
                           data_type, alg, rocsparse_spgemm_stage_buffer_size,
                           &buffer_size, nullptr));
     auto* buffer = (void*)The_Arena()->alloc(buffer_size);
 
     // This stage fills C's row offsets.
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, matA, matB, &beta, matD, matC,
+        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
                           data_type, alg, rocsparse_spgemm_stage_nnz,
                           &buffer_size, buffer));
 
     std::int64_t c_nrows, c_ncols, c_nnz;
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_spmat_get_size(matC, &c_nrows, &c_ncols, &c_nnz));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_spmat_get_size(mat_C, &c_nrows, &c_ncols, &c_nnz));
     AMREX_ALWAYS_ASSERT(c_nrows == nrows && c_ncols == ncols);
 
     C.mat.resize(c_nnz);
     C.col_index.resize(c_nnz);
     C.nnz = c_nnz;
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_csr_set_pointers(matC, (void*)C.row_offset.data(),
+        (rocsparse_csr_set_pointers(mat_C, (void*)C.row_offset.data(),
                                     (void*)C.col_index.data(), (void*)C.mat.data()));
 
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, matA, matB, &beta, matD, matC,
+        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
                           data_type, alg, rocsparse_spgemm_stage_compute,
                           &buffer_size, buffer));
 
     Gpu::streamSynchronize();
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(matA));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(matB));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(matC));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(matD));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_A));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_B));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_C));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_D));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
     The_Arena()->free(buffer);
 
