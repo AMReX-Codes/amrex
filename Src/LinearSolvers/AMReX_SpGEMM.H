@@ -35,6 +35,7 @@ CSR<T,V> spgemm_local_cpu (Long nrows, Long ncols,
     CSR<T,V> C;
     C.row_offset.resize(nrows+1);
     Long* AMREX_RESTRICT crow = C.row_offset.data();
+    AMREX_ASSUME(crow != nullptr); // gcc -Wnull-dereference false positive
     crow[0] = 0;
 
 #ifdef AMREX_USE_OMP
