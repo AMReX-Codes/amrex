@@ -1,0 +1,117 @@
+cff-version: 1.2.0
+title: AMReX
+abstract: >-
+  A software framework for massively parallel block-structured adaptive mesh
+  refinement applications.
+message: >-
+  If you use AMReX, we ask you to cite the JOSS paper (the preferred citation
+  below) and the first IJHPCA paper.  If you have also used pyAMReX and/or you
+  use more modern features of AMReX, please also cite the second IJHPCA paper.
+  You should also cite the Zenodo DOI for the code release you used; a BibTeX
+  entry for the latest release can be found at
+  https://doi.org/10.5281/zenodo.2555438.
+type: software
+authors:
+  - name: The AMReX Development Team
+license: BSD-3-Clause
+repository-code: https://github.com/AMReX-Codes/amrex
+url: https://amrex-codes.github.io/
+doi: 10.5281/zenodo.2555438
+keywords:
+  - adaptive mesh refinement
+  - block-structured
+  - numerical methods
+  - high performance computing
+preferred-citation:
+  type: article
+  title: "AMReX: A Framework for Block-Structured Adaptive Mesh Refinement"
+  authors:
+    - family-names: Zhang
+      given-names: Weiqun
+    - family-names: Almgren
+      given-names: Ann
+    - family-names: Beckner
+      given-names: Vince
+    - family-names: Bell
+      given-names: John
+    - family-names: Blaschke
+      given-names: Johannes
+    - family-names: Chan
+      given-names: Cy
+    - family-names: Day
+      given-names: Marcus
+    - family-names: Friesen
+      given-names: Brian
+    - family-names: Gott
+      given-names: Kevin
+    - family-names: Graves
+      given-names: Daniel
+    - family-names: Katz
+      given-names: Max
+    - family-names: Myers
+      given-names: Andrew
+    - family-names: Nguyen
+      given-names: Tan
+    - family-names: Nonaka
+      given-names: Andrew
+    - family-names: Rosso
+      given-names: Michele
+    - family-names: Williams
+      given-names: Samuel
+    - family-names: Zingale
+      given-names: Michael
+  journal: Journal of Open Source Software
+  publisher:
+    name: The Open Journal
+  year: 2019
+  month: 5
+  volume: 4
+  issue: 37
+  start: 1370
+  doi: 10.21105/joss.01370
+  keywords:
+    - methods:numerical
+    - adaptive mesh refinement
+references:
+  - type: article
+    title: "AMReX: Block-structured adaptive mesh refinement for multiphysics applications"
+    authors:
+      - family-names: Zhang
+        given-names: Weiqun
+      - family-names: Myers
+        given-names: Andrew
+      - family-names: Gott
+        given-names: Kevin
+      - family-names: Almgren
+        given-names: Ann
+      - family-names: Bell
+        given-names: John
+    journal: The International Journal of High Performance Computing Applications
+    year: 2021
+    volume: 35
+    issue: 6
+    start: 508
+    end: 526
+    doi: 10.1177/10943420211022811
+  - type: article
+    title: "AMReX and pyAMReX: Looking Beyond the Exascale Computing Project"
+    authors:
+      - family-names: Myers
+        given-names: Andrew
+      - family-names: Zhang
+        given-names: Weiqun
+      - family-names: Almgren
+        given-names: Ann
+      - family-names: Antoun
+        given-names: Thierry
+      - family-names: Bell
+        given-names: John
+      - family-names: Huebl
+        given-names: Axel
+      - family-names: Sinn
+        given-names: Alexander
+    journal: The International Journal of High Performance Computing Applications
+    year: 2024
+    volume: 38
+    issue: 6
+    doi: 10.1177/10943420241271017
