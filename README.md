@@ -30,6 +30,7 @@ refinement applications.
 [Gallery](#Gallery) -
 [Get Help](#get-help) -
 [Contribute](#Contribute) -
+[Governance](#Governance) -
 [Copyright Notice](#copyright-notice) -
 [License](#License) -
 [Citation](#Citation)
@@ -101,6 +102,12 @@ new solvers, etc. For more details on how to contribute to AMReX, please see
 If you're using AMReX in your own GitHub projects, consider adding `amrex`
 as a [repository topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)!
 This helps others discover related work and strengthens the AMReX ecosystem.
+
+## Governance
+
+AMReX is led in an open governance model. The steering committee, the technical
+committee, and the contributor roles, along with their decision and appointment
+processes, are described in [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Copyright Notice
 
