@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
+#include <set>
 #include <vector>
 
 void
@@ -24,6 +25,7 @@ namespace {
     struct ParserWorkspace {
         struct parser_node* root = nullptr;
         std::vector<void*> ptrs;
+        std::set<struct parser_node*> parens; // parenthesized comparisons
     };
 
     thread_local ParserWorkspace parser_workspace;
@@ -259,8 +261,8 @@ bool parser_is_boolean (struct parser_node* node)
 struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
                                         struct parser_node* nr)
 {
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::parser_is_comparison(nl)) {
+    /* If left side is an unparenthesized comparison, this extends the chain */
+    if (amrex::parser_is_comparison(nl) && !parser_workspace.parens.contains(nl)) {
        return amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, nl,
                                   amrex::parser_newf2(cmp,
                                                       amrex::parser_get_rightmost_operand(nl),
@@ -268,6 +270,15 @@ struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t
     } else {
         return amrex::parser_newf2(cmp, nl, nr); // Initial comparison
     }
+}
+
+struct parser_node* parser_newparen (struct parser_node* n)
+{
+    /* A parenthesized comparison must not become part of a chain. */
+    if (amrex::parser_is_comparison(n)) {
+        parser_workspace.parens.insert(n);
+    }
+    return n;
 }
 
 /*******************************************************************/
@@ -313,6 +324,7 @@ amrex_parser_delete_ptrs ()
         std::free(p);
     }
     parser_workspace.ptrs.clear();
+    parser_workspace.parens.clear();
     parser_workspace.root = nullptr;
 }
 
@@ -2096,6 +2108,73 @@ void parser_ast_get_user_functions (struct parser_node* node,
     }
 }
 
+void parser_ast_get_device_unsupported_functions (struct parser_node* node,
+                                                  std::set<std::string>& functions)
+{
+#if !defined(AMREX_USE_SYCL)
+    // Only SYCL device code has unsupported functions.
+    amrex::ignore_unused(node, functions);
+#else
+    switch (node->type)
+    {
+    case PARSER_NUMBER:
+        break;
+    case PARSER_SYMBOL:
+        break;
+    case PARSER_ADD:
+    case PARSER_SUB:
+    case PARSER_MUL:
+    case PARSER_DIV:
+    case PARSER_LIST:
+        parser_ast_get_device_unsupported_functions(node->l, functions);
+        parser_ast_get_device_unsupported_functions(node->r, functions);
+        break;
+    case PARSER_F1:
+        parser_ast_get_device_unsupported_functions(((struct parser_f1*)node)->l, functions);
+        break;
+    case PARSER_F2:
+#if !defined(AMREX_SYCL_EXT_INTEL_MATH)
+        if (((struct parser_f2*)node)->ftype == PARSER_JN) { functions.insert("jn"); }
+        if (((struct parser_f2*)node)->ftype == PARSER_YN) { functions.insert("yn"); }
+#endif
+        parser_ast_get_device_unsupported_functions(((struct parser_f2*)node)->l, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f2*)node)->r, functions);
+        break;
+    case PARSER_F3:
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n1, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n2, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n3, functions);
+        break;
+    case PARSER_USRF1:
+        functions.insert(((struct parser_usrf1*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf1*)node)->l, functions);
+        break;
+    case PARSER_USRF2:
+        functions.insert(((struct parser_usrf2*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf2*)node)->l, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf2*)node)->r, functions);
+        break;
+    case PARSER_USRFN:
+    {
+        short argc = ((struct parser_usrfn*)node)->argc;
+        functions.insert(((struct parser_usrfn*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrfn*)node)->n1, functions);
+        for (short iarg = 0; iarg < argc-1; ++iarg) {
+            parser_ast_get_device_unsupported_functions
+                (((struct parser_usrfn*)node)->others[iarg], functions);
+        }
+        break;
+    }
+    case PARSER_ASSIGN:
+        parser_ast_get_device_unsupported_functions(((struct parser_assign*)node)->v, functions);
+        break;
+    default:
+        amrex::Abort("parser_ast_get_device_unsupported_functions: unknown node type "
+                     + std::to_string(node->type));
+    }
+#endif
+}
+
 void
 parser_regvar (struct amrex_parser* parser, char const* name, int i)
 {
@@ -2147,6 +2226,14 @@ parser_get_user_functions (struct amrex_parser* parser)
     std::map<std::string,int> user_functions;
     parser_ast_get_user_functions(parser->ast, user_functions);
     return user_functions;
+}
+
+std::set<std::string>
+parser_get_device_unsupported_functions (struct amrex_parser* parser)
+{
+    std::set<std::string> functions;
+    parser_ast_get_device_unsupported_functions(parser->ast, functions);
+    return functions;
 }
 
 int

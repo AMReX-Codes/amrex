@@ -803,19 +803,30 @@ void R2C<T,D,C>::setLocalDomain (std::array<int,AMREX_SPACEDIM> const& local_sta
                                  std::array<int,AMREX_SPACEDIM> const& local_size)
 {
     auto const& [ba, dm] = make_layout_from_local_domain(local_start, local_size);
-    m_raw_mf = MF(ba, dm, m_rx.nComp(), 0, MFInfo().SetAlloc(false));
+    m_raw_mf = MF(ba, dm, m_info.batch_size, 0, MFInfo().SetAlloc(false));
 }
 
 template <typename T, Direction D, bool C>
 std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
 R2C<T,D,C>::getLocalDomain () const
 {
-    m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), m_rx.nComp(), 0,
-                  MFInfo{}.SetAlloc(false));
+    auto const ncomp = m_info.batch_size;
+
+#if (AMREX_SPACEDIM > 1)
+    if (m_r2c_sub) {
+        m_raw_mf = MF(m_sub_helper.inverse_boxarray(m_r2c_sub->m_rx.boxArray()),
+                      m_r2c_sub->m_rx.DistributionMap(), ncomp, 0,
+                      MFInfo{}.SetAlloc(false));
+    } else
+#endif
+    {
+        m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), ncomp, 0,
+                      MFInfo{}.SetAlloc(false));
+    }
 
     auto const myproc = ParallelContext::MyProcSub();
-    if (myproc < m_rx.size()) {
-        Box const& box = m_rx.box(myproc);
+    if (myproc < m_raw_mf.size()) {
+        Box const& box = m_raw_mf.box(myproc);
         return std::make_pair(box.smallEnd().toArray(),
                               box.length().toArray());
     } else {
@@ -829,7 +840,7 @@ void R2C<T,D,C>::setLocalSpectralDomain (std::array<int,AMREX_SPACEDIM> const& l
                                          std::array<int,AMREX_SPACEDIM> const& local_size)
 {
     auto const& [ba, dm] = make_layout_from_local_domain(local_start, local_size);
-    m_raw_cmf = cMF(ba, dm, m_rx.nComp(), 0, MFInfo().SetAlloc(false));
+    m_raw_cmf = cMF(ba, dm, m_info.batch_size, 0, MFInfo().SetAlloc(false));
 }
 
 template <typename T, Direction D, bool C>
@@ -1362,8 +1373,14 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
 template <typename T, Direction D, bool C>
 T R2C<T,D,C>::scalingFactor () const
 {
+#if (AMREX_SPACEDIM > 1)
+    // The sub-object knows which axes are actually transformed.
+    if (m_r2c_sub) { return m_r2c_sub->scalingFactor(); }
+#endif
+
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.oned_mode && !m_info.twod_mode) {
+    // oned_mode wins over twod_mode, like it does when the plans are made.
+    if (m_info.oned_mode) {
         return T(1)/T(Long(m_real_domain.length(0)));
     } else if (m_info.twod_mode) {
         return T(1)/T(Long(m_real_domain.length(0)) *

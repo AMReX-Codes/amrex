@@ -116,6 +116,101 @@ int main (int argc, char* argv[])
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
         }}}
+
+#if (AMREX_SPACEDIM > 1)
+        // Degenerate domains and 2D/1D modes.  scalingFactor must count only
+        // the directions actually transformed.
+        {
+            Vector<Box> domains
+#if (AMREX_SPACEDIM == 2)
+                {Box(IntVect(0),IntVect(0,31)),
+                 Box(IntVect(0),IntVect(31,0)),
+                 Box(IntVect(0),IntVect(31,15))};
+#else
+                {Box(IntVect(0),IntVect(0,31,15)),
+                 Box(IntVect(0),IntVect(31,0,15)),
+                 Box(IntVect(0),IntVect(31,15,0)),
+                 Box(IntVect(0),IntVect(31,15,7))};
+#endif
+            Vector<std::pair<std::string,FFT::Info>> modes;
+            modes.emplace_back("plain", FFT::Info{});
+#if (AMREX_SPACEDIM == 2)
+            modes.emplace_back("oned_mode", FFT::Info{}.setOneDMode(true));
+#else
+            modes.emplace_back("twod_mode", FFT::Info{}.setTwoDMode(true));
+            modes.emplace_back("oned+twod_mode",
+                               FFT::Info{}.setOneDMode(true).setTwoDMode(true));
+#endif
+            Vector<Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>> dbcs
+                {{AMREX_D_DECL(bcs[0],bcs[0],bcs[0])},
+                 {AMREX_D_DECL(bcs[1],bcs[4],bcs[2])},
+                 {AMREX_D_DECL(bcs[0],bcs[3],bcs[1])},
+                 {AMREX_D_DECL(bcs[2],bcs[0],bcs[4])},
+                 {AMREX_D_DECL(bcs[3],bcs[1],bcs[0])}};
+
+            for (auto const& dom : domains) {
+            for (auto const& [tag, info] : modes) {
+            for (auto const& dbc : dbcs) {
+                BoxArray dba(dom);
+                DistributionMapping ddm(dba);
+                MultiFab dmf(dba,ddm,1,0), dmf2(dba,ddm,1,0);
+                auto const& dma = dmf.arrays();
+                ParallelFor(dmf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                {
+                    dma[b](i,j,k) = std::sin(0.3_rt*Real(i) + 0.1_rt)
+                        * std::cos(0.7_rt*Real(j) + 0.2_rt)
+                        * std::sin(0.5_rt*Real(k) + 0.3_rt);
+                });
+                dmf2.setVal(std::numeric_limits<Real>::max());
+
+                FFT::R2X fft(dom, dbc, info);
+                auto const dscaling = fft.scalingFactor();
+
+                // Expected: the first two non-degenerate directions in
+                // twod_mode, only the first one in oned_mode, all otherwise.
+                int ntrans = AMREX_SPACEDIM;
+                if (info.oned_mode) { ntrans = 1; } else if (info.twod_mode) { ntrans = 2; }
+                Long r = 1;
+                for (int idim = 0; idim < AMREX_SPACEDIM && ntrans > 0; ++idim) {
+                    if (dom.length(idim) > 1) {
+                        r *= dom.length(idim);
+                        if (dbc[idim].first != FFT::Boundary::periodic) { r *= 2; }
+                        --ntrans;
+                    }
+                }
+                auto const expected = Real(1)/Real(r);
+
+                amrex::Print() << "  Degenerate " << dom << " " << tag << " (";
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    amrex::Print() << getEnumNameString(dbc[idim].first)[0]
+                                   << getEnumNameString(dbc[idim].second)[0]
+                                   << (idim+1 < AMREX_SPACEDIM ? "," : "");
+                }
+                amrex::Print() << "), scaling factor " << dscaling
+                               << ", expected " << expected;
+                AMREX_ALWAYS_ASSERT(dscaling == expected);
+
+                if (!info.twod_mode) {
+                    // Only the default mode has a public transform interface.
+                    fft.forwardThenBackward(dmf, dmf2,
+                        [=] AMREX_GPU_DEVICE (int, int, int, auto& sp)
+                    {
+                        sp *= dscaling;
+                    });
+                    MultiFab::Subtract(dmf2, dmf, 0, 0, 1, 0);
+                    auto error = dmf2.norminf();
+                    amrex::Print() << ", roundtrip error " << error;
+#ifdef AMREX_USE_FLOAT
+                    auto deps = 1.e-6F;
+#else
+                    auto deps = 1.e-13;
+#endif
+                    AMREX_ALWAYS_ASSERT(error < deps);
+                }
+                amrex::Print() << "\n";
+            }}}
+        }
+#endif
     }
     amrex::Finalize();
 }

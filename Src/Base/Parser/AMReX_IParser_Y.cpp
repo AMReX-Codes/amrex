@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdarg>
+#include <set>
 #include <vector>
 
 void
@@ -23,6 +24,7 @@ namespace {
     struct IParserWorkspace {
         struct iparser_node* root = nullptr;
         std::vector<void*> ptrs;
+        std::set<struct iparser_node*> parens; // parenthesized comparisons
     };
 
     thread_local IParserWorkspace iparser_workspace;
@@ -170,8 +172,8 @@ bool iparser_is_comparison (struct iparser_node* node)
 struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
                                           struct iparser_node* nr)
 {
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::iparser_is_comparison(nl)) {
+    /* If left side is an unparenthesized comparison, this extends the chain */
+    if (amrex::iparser_is_comparison(nl) && !iparser_workspace.parens.contains(nl)) {
        return amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, nl,
                                    amrex::iparser_newf2(cmp,
                                                         amrex::iparser_get_rightmost_operand(nl),
@@ -179,6 +181,15 @@ struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_
     } else {
         return amrex::iparser_newf2(cmp, nl, nr); // Initial comparison
     }
+}
+
+struct iparser_node* iparser_newparen (struct iparser_node* n)
+{
+    /* A parenthesized comparison must not become part of a chain. */
+    if (amrex::iparser_is_comparison(n)) {
+        iparser_workspace.parens.insert(n);
+    }
+    return n;
 }
 
 /*******************************************************************/
@@ -219,6 +230,7 @@ amrex_iparser_delete_ptrs ()
         std::free(p);
     }
     iparser_workspace.ptrs.clear();
+    iparser_workspace.parens.clear();
     iparser_workspace.root = nullptr;
 }
 
