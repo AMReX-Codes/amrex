@@ -416,21 +416,28 @@ struct CsrIndex
         });
     }
 
-    template <typename T, template <typename> class U>
-    void copyTo (CSR<T,U>& csr) const
+    template <typename T>
+    void copyTo (CsrView<T> const& csr) const
     {
+        static_assert(!std::is_const_v<T>);
         auto N = static_cast<I>(std::max(col_index.size(), row_offset.size()));
         auto lnnz = static_cast<I>(col_index.size());
         auto lnro = static_cast<I>(row_offset.size());
         auto const* col_src = col_index.data();
         auto const* row_src = row_offset.data();
-        auto* col_dst = csr.col_index.data();
-        auto* row_dst = csr.row_offset.data();
+        auto* col_dst = csr.col_index;
+        auto* row_dst = csr.row_offset;
         ParallelFor(N, [=] AMREX_GPU_DEVICE (I i)
         {
             if (i < lnnz) { col_dst[i] = static_cast<Long>(col_src[i]); }
             if (i < lnro) { row_dst[i] = static_cast<Long>(row_src[i]); }
         });
+    }
+
+    template <typename T, template <typename> class U>
+    void copyTo (CSR<T,U>& csr) const
+    {
+        copyTo(csr.view());
     }
 };
 

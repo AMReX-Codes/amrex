@@ -552,24 +552,16 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
         amrex::Abort("SpMatrix transpose: unsupported data type");
     }
 
-    AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
-                        ncols < Long(std::numeric_limits<int>::max()) &&
-                        nnz   < Long(std::numeric_limits<int>::max()));
+    AMREX_ALWAYS_ASSERT(ncols < Long(std::numeric_limits<int>::max()));
 
-    auto* csr_col_index = (int*)The_Arena()->alloc(csr.nnz*sizeof(int));
-    auto* csr_row_offset = (int*)The_Arena()->alloc((csr.nrows+1)*sizeof(int));
-    auto* csrt_col_index = (int*)The_Arena()->alloc(csrt.nnz*sizeof(int));
-    auto* csrt_row_offset = (int*)The_Arena()->alloc((csrt.nrows+1)*sizeof(int));
-
-    ParallelFor(std::max(csr.nnz, csr.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-    {
-        if (i < csr.nnz) {
-            csr_col_index[i] = int(csr.col_index[i]);
-        }
-        if (i < csr.nrows+1) {
-            csr_row_offset[i] = int(csr.row_offset[i]);
-        }
-    });
+    CsrIndex<int,Gpu::DeviceVector> ci, cit;
+    ci.copyFrom(csr);
+    cit.col_index.resize(csrt.nnz);
+    cit.row_offset.resize(csrt.nrows+1);
+    auto const* csr_col_index = ci.col_index.data();
+    auto const* csr_row_offset = ci.row_offset.data();
+    auto* csrt_col_index = cit.col_index.data();
+    auto* csrt_row_offset = cit.row_offset.data();
 
     std::size_t buffer_size;
     AMREX_CUSPARSE_SAFE_CALL(
@@ -592,23 +584,11 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                            CUSPARSE_CSR2CSC_ALG1,
                            pbuffer));
 
-    ParallelFor(std::max(csrt.nnz, csrt.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-    {
-        if (i < csrt.nnz) {
-            csrt.col_index[i] = csrt_col_index[i];
-        }
-        if (i < csrt.nrows+1) {
-            csrt.row_offset[i] = csrt_row_offset[i];
-        }
-    });
+    cit.copyTo(csrt);
 
     Gpu::streamSynchronize();
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
     The_Arena()->free(pbuffer);
-    The_Arena()->free(csr_row_offset);
-    The_Arena()->free(csr_col_index);
-    The_Arena()->free(csrt_row_offset);
-    The_Arena()->free(csrt_col_index);
 
 #elif defined(AMREX_USE_HIP)
 
@@ -616,33 +596,27 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
 
-    AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<rocsparse_int>::max()) &&
-                        ncols < Long(std::numeric_limits<rocsparse_int>::max()) &&
-                        nnz   < Long(std::numeric_limits<rocsparse_int>::max()));
+    constexpr bool same_int = (sizeof(rocsparse_int) == sizeof(Long));
 
-    rocsparse_int* csr_col_index;
-    rocsparse_int* csr_row_offset;
+    rocsparse_int const* csr_col_index;
+    rocsparse_int const* csr_row_offset;
     rocsparse_int* csrt_col_index;
     rocsparse_int* csrt_row_offset;
-    if (std::is_same_v<rocsparse_int,Long>) {
-        csr_col_index = (rocsparse_int*)csr.col_index;
-        csr_row_offset = (rocsparse_int*)csr.row_offset;
-        csrt_col_index = (rocsparse_int*)csrt.col_index;
-        csrt_row_offset = (rocsparse_int*)csrt.row_offset;
+    CsrIndex<rocsparse_int,Gpu::DeviceVector> ci, cit;
+    if constexpr (same_int) {
+        csr_col_index = reinterpret_cast<rocsparse_int const*>(csr.col_index);
+        csr_row_offset = reinterpret_cast<rocsparse_int const*>(csr.row_offset);
+        csrt_col_index = reinterpret_cast<rocsparse_int*>(csrt.col_index);
+        csrt_row_offset = reinterpret_cast<rocsparse_int*>(csrt.row_offset);
     } else {
-        csr_col_index = (rocsparse_int*)The_Arena()->alloc(csr.nnz*sizeof(rocsparse_int));
-        csr_row_offset = (rocsparse_int*)The_Arena()->alloc((csr.nrows+1)*sizeof(rocsparse_int));
-        csrt_col_index = (rocsparse_int*)The_Arena()->alloc(csrt.nnz*sizeof(rocsparse_int));
-        csrt_row_offset = (rocsparse_int*)The_Arena()->alloc((csrt.nrows+1)*sizeof(rocsparse_int));
-        ParallelFor(std::max(csr.nnz, csr.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-        {
-            if (i < csr.nnz) {
-                csr_col_index[i] = rocsparse_int(csr.col_index[i]);
-            }
-            if (i < csr.nrows+1) {
-                csr_row_offset[i] = rocsparse_int(csr.row_offset[i]);
-            }
-        });
+        AMREX_ALWAYS_ASSERT(ncols < Long(std::numeric_limits<rocsparse_int>::max()));
+        ci.copyFrom(csr);
+        cit.col_index.resize(csrt.nnz);
+        cit.row_offset.resize(csrt.nrows+1);
+        csr_col_index = ci.col_index.data();
+        csr_row_offset = ci.row_offset.data();
+        csrt_col_index = cit.col_index.data();
+        csrt_row_offset = cit.row_offset.data();
     }
 
     std::size_t buffer_size;
@@ -695,27 +669,13 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
         amrex::Abort("SpMatrix transpose: unsupported data type");
     }
 
-    if (! std::is_same_v<rocsparse_int,Long>) {
-        ParallelFor(std::max(csrt.nnz, csrt.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-        {
-            if (i < csrt.nnz) {
-                csrt.col_index[i] = csrt_col_index[i];
-            }
-            if (i < csrt.nrows+1) {
-                csrt.row_offset[i] = csrt_row_offset[i];
-            }
-        });
+    if constexpr (!same_int) {
+        cit.copyTo(csrt);
     }
 
     Gpu::streamSynchronize();
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
     The_Arena()->free(pbuffer);
-    if (! std::is_same_v<rocsparse_int,Long>) {
-        The_Arena()->free(csr_row_offset);
-        The_Arena()->free(csr_col_index);
-        The_Arena()->free(csrt_row_offset);
-        The_Arena()->free(csrt_col_index);
-    }
 
 #elif defined(AMREX_USE_SYCL)
 
