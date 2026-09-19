@@ -331,6 +331,15 @@ template <int N>
 ParserExecutor<N>
 Parser::compile () const
 {
+    if (m_data && m_data->m_parser) {
+        auto const unsupported = parser_get_device_unsupported_functions(m_data->m_parser);
+        if (!unsupported.empty()) {
+            std::string msg("amrex::Parser: these functions cannot be used in device code:");
+            for (auto const& f : unsupported) { msg.append(" ").append(f); }
+            amrex::Abort(msg + ". Use compileHost instead for " + m_data->m_expression);
+        }
+    }
+
     auto exe = compileHost<N>();
 
 #ifdef AMREX_USE_GPU

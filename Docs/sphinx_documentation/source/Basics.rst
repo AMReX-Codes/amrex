@@ -903,7 +903,9 @@ Supported Operators and Functions
 **Special functions:** ``erf``, ``jn(n,x)`` (Bessel function of the first
 kind of order ``n``), ``yn(n,x)`` (Bessel function of the second kind of
 order ``n``), ``comp_ellint_1(k)`` and ``comp_ellint_2(k)`` (complete
-elliptic integrals of the first and second kind).
+elliptic integrals of the first and second kind).  In SYCL builds without the
+Intel math extension, ``jn`` and ``yn`` are host-only, so :cpp:`compile` aborts
+for expressions using them; use :cpp:`compileHost` instead.
 
 **Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
 ``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
@@ -997,6 +999,10 @@ The registration functions are :cpp:`registerUserFn1`, :cpp:`registerUserFn2`,
 :cpp:`registerUserFn3`, and :cpp:`registerUserFn4` for functions with one, two,
 three, and four arguments, respectively. In CPU-only builds, either function
 pointer argument may be ``nullptr`` and the non-null one will be used.
+
+Note that user-defined functions are not supported in device code in SYCL
+builds.  :cpp:`compile` aborts for such an expression; use
+:cpp:`compileHost` and evaluate it on the host instead.
 
 Querying the Parser
 -------------------
