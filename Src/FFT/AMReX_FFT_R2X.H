@@ -623,16 +623,17 @@ R2X<T>::~R2X ()
 template <typename T>
 T R2X<T>::scalingFactor () const
 {
+    // The sub-object knows which axes are actually transformed.
+    if (m_r2x_sub) { return m_r2x_sub->scalingFactor(); }
+
+    // Same rules as the constructor: y is skipped in oned_mode, z in twod_mode.
     Long r = 1;
-    int ndims = m_info.twod_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
-#if (AMREX_SPACEDIM == 3)
-    if (m_info.twod_mode && m_dom_0.length(2) == 1) { ndims = 1; };
-#endif
-    for (int idim = 0; idim < ndims; ++idim) {
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if ((idim == 1 && m_info.oned_mode) ||
+            (idim == 2 && m_info.twod_mode) ||
+            (m_dom_0.length(idim) == 1)) { continue; }
         r *= m_dom_0.length(idim);
-        if (m_bc[idim].first != Boundary::periodic && (m_dom_0.length(idim) > 1)) {
-            r *= 2;
-        }
+        if (m_bc[idim].first != Boundary::periodic) { r *= 2; }
     }
     return T(1)/T(r);
 }
