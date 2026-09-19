@@ -33,7 +33,12 @@ void chop_boxes (Box* bxv, const Box& bx, int nboxes)
         Box bxleft = bx;
         Box bxright = bxleft.chop(longdir, chop_pnt);
 
-        int nleft = nboxes / 2;
+        // Keep the even split unless a side would get more boxes than cells.
+        Long npl = bxleft.numPts();
+        Long npr = bxright.numPts();
+        int nleft = static_cast<int>(std::clamp(Long(nboxes/2),
+                                                std::max(Long(1)       , Long(nboxes)-npr),
+                                                std::min(Long(nboxes-1), npl)));
         chop_boxes(bxv, bxleft, nleft);
 
         int nright = nboxes - nleft;
@@ -338,7 +343,10 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
         *this = amrex::boxDiff(b, mbox);
         auto mytyp = ixType();
 
-        BoxList bl_mesh(mbox & b);
+        Box const mesh_box = mbox & b;
+        if (mesh_box.isEmpty()) { return *this; }
+
+        BoxList bl_mesh(mesh_box);
 
 #if (AMREX_SPACEDIM == 1)
         Real s_avgbox = static_cast<Real>(npts_avgbox);
@@ -427,7 +435,10 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
         *this = amrex::boxDiff(b, mbox);
         auto mytyp = ixType();
 
-        BoxList bl_mesh(mbox & b);
+        Box const mesh_box = mbox & b;
+        if (mesh_box.isEmpty()) { return *this; }
+
+        BoxList bl_mesh(mesh_box);
 
 #if (AMREX_SPACEDIM == 1)
         Real s_avgbox = static_cast<Real>(npts_avgbox);
