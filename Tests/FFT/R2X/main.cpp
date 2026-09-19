@@ -124,7 +124,8 @@ int main (int argc, char* argv[])
             Vector<Box> domains
 #if (AMREX_SPACEDIM == 2)
                 {Box(IntVect(0),IntVect(0,31)),
-                 Box(IntVect(0),IntVect(31,0))};
+                 Box(IntVect(0),IntVect(31,0)),
+                 Box(IntVect(0),IntVect(31,15))};
 #else
                 {Box(IntVect(0),IntVect(0,31,15)),
                  Box(IntVect(0),IntVect(31,0,15)),
@@ -133,7 +134,9 @@ int main (int argc, char* argv[])
 #endif
             Vector<std::pair<std::string,FFT::Info>> modes;
             modes.emplace_back("plain", FFT::Info{});
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 2)
+            modes.emplace_back("oned_mode", FFT::Info{}.setOneDMode(true));
+#else
             modes.emplace_back("twod_mode", FFT::Info{}.setTwoDMode(true));
             modes.emplace_back("oned+twod_mode",
                                FFT::Info{}.setOneDMode(true).setTwoDMode(true));

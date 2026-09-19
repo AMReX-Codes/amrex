@@ -718,12 +718,14 @@ void R2X<T>::forwardThenBackward_doit_1 (MF const& inmf, MF& outmf,
 
         // post-forward
 
-        int actual_dim = AMREX_SPACEDIM;
+        // The post-forward data live in the last transformed direction. In
+        // oned_mode, y (and z) are batched, so their MultiFabs are not defined.
+        int actual_dim = 1;
 #if (AMREX_SPACEDIM >= 2)
-        if (m_dom_0.length(1) == 1) { actual_dim = 1; }
+        if (!m_ry.empty() || !m_cy.empty()) { actual_dim = 2; }
 #endif
 #if (AMREX_SPACEDIM == 3)
-        if ((m_dom_0.length(2) == 1) && (m_dom_0.length(1) > 1)) { actual_dim = 2; }
+        if (!m_rz.empty() || !m_cz.empty()) { actual_dim = 3; }
 #endif
 
         if (actual_dim == 1) {
