@@ -139,6 +139,7 @@ SpMatrix<T,Allocator> RandomMatrix (AlgPartition partition, Long nrows, Long nco
 
         for (int j = nnz_row; j < nnz_per_row_max; ++j) {
             pcol[os+j] = -1;
+            pmat[os+j] = T(0);
         }
     });
 

@@ -579,6 +579,7 @@ SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
     }
 
     // Compact column space: [local columns | sorted remote columns].
+    // TODO: this serial host loop over ext.nnz limits scaling on GPUs.
     Vector<Long> ru_h = Bm.m_remote_cols_v;
     for (Long i = 0; i < ext.nnz; ++i) {
         auto g = ext.col_index[i];
@@ -638,6 +639,9 @@ SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
     return C;
 
 #else
+
+    Am.setColumnPartition(Bm.partition());
+    Bm.setColumnPartition(col_partition);
 
     Long const ncols = col_partition.numGlobalRows();
     csr_type Ch = detail::spgemm_local<T,SpMat::template container_type>
