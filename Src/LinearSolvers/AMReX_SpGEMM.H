@@ -550,34 +550,35 @@ namespace amrex {
  */
 template <typename T, template <typename> class Allocator>
 SpMatrix<T,Allocator>
-SpGEMM (SpMatrix<T,Allocator> const& A_, SpMatrix<T,Allocator> const& B_,
+SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
         AlgPartition const& col_partition)
 {
     using SpMat = SpMatrix<T,Allocator>;
     using csr_type = typename SpMat::csr_type;
-    using LongVec = typename SpMat::template container_type<Long>;
 
-    auto& A = const_cast<SpMat&>(A_);
-    auto& B = const_cast<SpMat&>(B_);
-    Long const nrows = A.numLocalRows();
+    auto& Am = const_cast<SpMat&>(A);
+    auto& Bm = const_cast<SpMat&>(B);
+    Long const nrows = Am.numLocalRows();
 
 #ifdef AMREX_USE_MPI
-    A.setColumnPartition(B.partition());
-    B.setColumnPartition(col_partition);
+    using LongVec = typename SpMat::template container_type<Long>;
 
-    Long const nb = B.numLocalRows();
+    Am.setColumnPartition(Bm.partition());
+    Bm.setColumnPartition(col_partition);
+
+    Long const nb = Bm.numLocalRows();
     Long const c0 = col_partition.globalRowBegin();
     Long const c1 = col_partition.globalRowEnd();
     Long const nlocal = c1 - c0;
 
     // Rows of B needed by A's off-diagonal columns, global column indices.
     typename SpMat::RemoteRowsMM ext;
-    if (! detail::spmat_comm_is_local(A.partition(), B.partition())) {
-        ext = A.fetch_remote_rows_mm(B);
+    if (! detail::spmat_comm_is_local(Am.partition(), Bm.partition())) {
+        ext = Am.fetch_remote_rows_mm(Bm);
     }
 
     // Compact column space: [local columns | sorted remote columns].
-    Vector<Long> ru_h = B.m_remote_cols_v;
+    Vector<Long> ru_h = Bm.m_remote_cols_v;
     for (Long i = 0; i < ext.nnz; ++i) {
         auto g = ext.col_index[i];
         if (g < c0 || g >= c1) { ru_h.push_back(g); }
@@ -590,17 +591,17 @@ SpGEMM (SpMatrix<T,Allocator> const& A_, SpMatrix<T,Allocator> const& B_,
     Long const ncols_hat = nlocal + nru;
 
     csr_type Ah = detail::concat_csr_cols<T,SpMat::template container_type>
-        (nrows, A.m_csr.const_view(), A.remote_full_const_view(),
+        (nrows, Am.m_csr.const_view(), Am.remote_full_const_view(),
          [=] AMREX_GPU_DEVICE (Long c) { return c; },
          [=] AMREX_GPU_DEVICE (Long j) { return nb + j; });
 
 #ifdef AMREX_USE_GPU
-    Long const* b_rcols = B.m_remote_cols_dv.data();
+    Long const* b_rcols = Bm.m_remote_cols_dv.data();
 #else
-    Long const* b_rcols = B.m_remote_cols_v.data();
+    Long const* b_rcols = Bm.m_remote_cols_v.data();
 #endif
     csr_type Bh = detail::concat_csr_cols<T,SpMat::template container_type>
-        (nb, B.m_csr.const_view(), B.remote_full_const_view(),
+        (nb, Bm.m_csr.const_view(), Bm.remote_full_const_view(),
          [=] AMREX_GPU_DEVICE (Long c) { return c; },
          [=] AMREX_GPU_DEVICE (Long j) {
              return nlocal + (amrex::lower_bound(ru, ru+nru, b_rcols[j]) - ru); });
@@ -631,7 +632,7 @@ SpGEMM (SpMatrix<T,Allocator> const& A_, SpMatrix<T,Allocator> const& B_,
         Gpu::streamSynchronize();
     }
 
-    SpMat C(A.partition(), std::move(Ch));
+    SpMat C(Am.partition(), std::move(Ch));
     C.setColumnPartition(col_partition);
     return C;
 
@@ -639,8 +640,8 @@ SpGEMM (SpMatrix<T,Allocator> const& A_, SpMatrix<T,Allocator> const& B_,
 
     Long const ncols = col_partition.numGlobalRows();
     csr_type Ch = detail::spgemm_local<T,SpMat::template container_type>
-        (nrows, ncols, A.m_csr.const_view(), B.m_csr.const_view());
-    SpMat C(A.partition(), std::move(Ch));
+        (nrows, ncols, Am.m_csr.const_view(), Bm.m_csr.const_view());
+    SpMat C(Am.partition(), std::move(Ch));
     C.setColumnPartition(col_partition);
     return C;
 

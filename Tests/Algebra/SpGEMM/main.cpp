@@ -87,7 +87,7 @@ int main (int argc, char *argv[])
             auto Ir = IdentityMatrix<Real>(rpart);
             auto Ic = IdentityMatrix<Real>(cpart);
 
-            Real lambda = 2.8;
+            Real lambda = Real(2.8);
             int nnz_per_row_max = int(nrows/3);
             auto A = RandomMatrix<Real>(rpart, nrows, ncols, lambda, nnz_per_row_max);
 
@@ -242,7 +242,7 @@ int main (int argc, char *argv[])
             AlgPartition pt1 = (ipart == 0) ? AlgPartition(n1) : make_partition(n1, 0, 4);
             AlgPartition pt2 = (ipart == 0) ? AlgPartition(n2) : make_partition(n2, nprocs/2, 5);
             AlgPartition pt3 = (ipart == 0) ? AlgPartition(n3) : make_partition(n3, nprocs-1, 6);
-            Real lambda = 3.4;
+            Real lambda = Real(3.4);
             int nnz_per_row_max = 9;
             auto A = RandomMatrix<Real>(pt1, n1, n2, lambda, nnz_per_row_max);
             auto B = RandomMatrix<Real>(pt2, n2, n3, lambda, nnz_per_row_max);
@@ -266,8 +266,8 @@ int main (int argc, char *argv[])
             AlgPartition pt3 = make_partition(n3, -1, 9);
             SpMatrix<Real> Z1(pt1, 0);
             SpMatrix<Real> Z2(pt2, 0);
-            auto A = RandomMatrix<Real>(pt1, n1, n2, 3.0, 6);
-            auto B = RandomMatrix<Real>(pt2, n2, n3, 3.0, 6);
+            auto A = RandomMatrix<Real>(pt1, n1, n2, Real(3), 6);
+            auto B = RandomMatrix<Real>(pt2, n2, n3, Real(3), 6);
             auto ZB = amrex::SpGEMM(Z1, B, pt3);
             auto AZ = amrex::SpGEMM(A, Z2, pt3);
             AMREX_ALWAYS_ASSERT(all_true(ZB.numLocalNonZeros() == 0 &&
