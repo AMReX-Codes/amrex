@@ -155,6 +155,7 @@ struct iparser_node* iparser_newassign (struct iparser_symbol* s, struct iparser
 struct iparser_node* iparser_newlist (struct iparser_node* nl, struct iparser_node* nr);
 struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
                                           struct iparser_node* nr);
+struct iparser_node* iparser_newparen (struct iparser_node* n);
 
 /*******************************************************************/
 

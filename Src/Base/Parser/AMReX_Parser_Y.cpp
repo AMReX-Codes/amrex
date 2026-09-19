@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
+#include <set>
 #include <vector>
 
 void
@@ -24,6 +25,7 @@ namespace {
     struct ParserWorkspace {
         struct parser_node* root = nullptr;
         std::vector<void*> ptrs;
+        std::set<struct parser_node*> parens; // parenthesized comparisons
     };
 
     thread_local ParserWorkspace parser_workspace;
@@ -259,8 +261,8 @@ bool parser_is_boolean (struct parser_node* node)
 struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
                                         struct parser_node* nr)
 {
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::parser_is_comparison(nl)) {
+    /* If left side is an unparenthesized comparison, this extends the chain */
+    if (amrex::parser_is_comparison(nl) && !parser_workspace.parens.contains(nl)) {
        return amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, nl,
                                   amrex::parser_newf2(cmp,
                                                       amrex::parser_get_rightmost_operand(nl),
@@ -268,6 +270,15 @@ struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t
     } else {
         return amrex::parser_newf2(cmp, nl, nr); // Initial comparison
     }
+}
+
+struct parser_node* parser_newparen (struct parser_node* n)
+{
+    /* A parenthesized comparison must not become part of a chain. */
+    if (amrex::parser_is_comparison(n)) {
+        parser_workspace.parens.insert(n);
+    }
+    return n;
 }
 
 /*******************************************************************/
@@ -313,6 +324,7 @@ amrex_parser_delete_ptrs ()
         std::free(p);
     }
     parser_workspace.ptrs.clear();
+    parser_workspace.parens.clear();
     parser_workspace.root = nullptr;
 }
 

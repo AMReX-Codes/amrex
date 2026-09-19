@@ -313,6 +313,7 @@ struct parser_node* parser_newassign (struct parser_symbol* s, struct parser_nod
 struct parser_node* parser_newlist (struct parser_node* nl, struct parser_node* nr);
 struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
                                         struct parser_node* nr);
+struct parser_node* parser_newparen (struct parser_node* n);
 
 /*******************************************************************/
 
