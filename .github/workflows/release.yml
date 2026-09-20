@@ -1,20 +1,16 @@
 name: Release Artifacts
 
 # Attaches an SBOM and a signed build-provenance attestation to a published
-# release. The source tarball itself is left alone: if one is already attached
-# it is used as the attestation subject, otherwise one is generated from the
-# tag. Re-runnable via workflow_dispatch if the tarball is uploaded after the
-# release is published.
+# release. A tarball already attached to the release is the attestation
+# subject; otherwise one is generated from the tag and uploaded as well.
+# Re-runnable via workflow_dispatch, e.g. after attaching a tarball by hand:
+# select the release tag under "Use workflow from", since the provenance
+# records the commit the workflow ran from.
 
 on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag to attach artifacts to
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -32,16 +28,19 @@ jobs:
     steps:
       - name: Resolve tag
         id: tag
-        env:
-          TAG: ${{ inputs.tag || github.event.release.tag_name }}
-        run: echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "::error::Run this workflow from the release tag, not from $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.tag.outputs.tag }}
           fetch-depth: 0
 
       - name: Collect the release tarball
+        id: tarball
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}
@@ -55,6 +54,7 @@ jobs:
             echo "No tarball attached to $TAG; generating one from the tag."
             git archive --format=tar.gz --prefix="amrex-$TAG/" \
                 -o "dist/amrex-$TAG.tar.gz" "$TAG"
+            echo "generated=dist/amrex-$TAG.tar.gz" >> "$GITHUB_OUTPUT"
           fi
           ls -l dist
 
@@ -78,9 +78,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          GENERATED: ${{ steps.tarball.outputs.generated }}
         run: |
           cp "$BUNDLE" "dist/amrex-$TAG.intoto.jsonl"
-          gh release upload "$TAG" \
+          # A generated tarball is uploaded too, so the attested file is
+          # the one users download. $GENERATED is empty otherwise.
+          gh release upload "$TAG" $GENERATED \
              "dist/amrex-$TAG.spdx.json" \
              "dist/amrex-$TAG.intoto.jsonl" \
              --repo "$GITHUB_REPOSITORY" --clobber
