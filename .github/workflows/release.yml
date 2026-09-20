@@ -1,0 +1,108 @@
+name: Release Artifacts
+
+# Attaches a signed build-provenance attestation and an SBOM to a published
+# release. The attestation covers the source tarball and the SBOM. A tarball
+# already attached to the release is used, so attach it before publishing;
+# otherwise one is generated from the tag and uploaded as well.
+#
+# The SBOM is an inventory of the CI dependencies (the GitHub Actions under
+# .github/workflows), not of AMReX's own build dependencies: a C++ source tree
+# has no package manifests for the scanner to read.
+#
+# Re-runnable via workflow_dispatch, e.g. after attaching a tarball by hand:
+# select the release tag under "Use workflow from", since the provenance
+# records the commit the workflow ran from.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# A release event and a manual rerun on the same tag must not interleave
+# their uploads.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  attest:
+    name: SBOM and provenance
+    runs-on: ubuntu-latest
+    if: github.repository == 'AMReX-Codes/amrex'
+    permissions:
+      contents: write      # upload assets to the release
+      id-token: write      # OIDC token used to sign the attestation
+      attestations: write  # record the attestation
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "::error::Run this workflow from the release tag, not from $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Collect the release tarball
+        id: tarball
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          mkdir -p dist
+          # Prefer the tarball already attached to the release so the
+          # attestation covers exactly what users download. The assets are
+          # listed first so an API failure stops the job instead of being
+          # mistaken for a missing asset.
+          attached=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+                        --json assets --jq '.assets[].name | select(endswith(".tar.gz"))')
+          if [ -n "$attached" ]; then
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+               --dir dist --pattern '*.tar.gz'
+          else
+            echo "No tarball attached to $TAG; generating one from the tag."
+            git archive --format=tar.gz --prefix="amrex-$TAG/" \
+                -o "dist/amrex-$TAG.tar.gz" "$TAG"
+            echo "generated=dist/amrex-$TAG.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+          ls -l dist
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/amrex-${{ steps.tag.outputs.tag }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: dist/*
+
+      - name: Upload artifacts to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          GENERATED: ${{ steps.tarball.outputs.generated }}
+        run: |
+          cp "$BUNDLE" "dist/amrex-$TAG.intoto.jsonl"
+          # A generated tarball is uploaded too, so the attested file is the
+          # one users download. Never with --clobber: a tarball attached in
+          # the meantime is not the one attested, so fail rather than replace.
+          if [ -n "$GENERATED" ]; then
+            gh release upload "$TAG" "$GENERATED" --repo "$GITHUB_REPOSITORY"
+          fi
+          gh release upload "$TAG" \
+             "dist/amrex-$TAG.spdx.json" \
+             "dist/amrex-$TAG.intoto.jsonl" \
+             --repo "$GITHUB_REPOSITORY" --clobber
