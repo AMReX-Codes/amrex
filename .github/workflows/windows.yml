@@ -78,7 +78,10 @@ jobs:
         CDASH_BUILD_NAME: windows-msvc-shared
         CDASH_SITE: github-actions
         CDASH_AUTH_TOKEN: ${{ secrets.CDASH_AUTH_TOKEN }}
-      run: ctest -S ${{ github.workspace }}/Tools/CTest/submit.cmake -C RelWithDebInfo
+      run: |
+        # The shared-library tests need the installed DLL; PATH changes do not persist between steps.
+        $Env:PATH += ";D:\\a\amrex\amrex\installdir\bin"
+        ctest -S ${{ github.workspace }}/Tools/CTest/submit.cmake -C RelWithDebInfo
 
   # Build libamrex and all test (static)
   test_msvc_static:
