@@ -47,10 +47,15 @@ jobs:
         run: |
           mkdir -p dist
           # Prefer the tarball already attached to the release so the
-          # attestation covers exactly what users download.
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
-             --dir dist --pattern '*.tar.gz' || true
-          if [ -z "$(ls -A dist)" ]; then
+          # attestation covers exactly what users download. The assets are
+          # listed first so an API failure stops the job instead of being
+          # mistaken for a missing asset.
+          attached=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+                        --json assets --jq '.assets[].name | select(endswith(".tar.gz"))')
+          if [ -n "$attached" ]; then
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+               --dir dist --pattern '*.tar.gz'
+          else
             echo "No tarball attached to $TAG; generating one from the tag."
             git archive --format=tar.gz --prefix="amrex-$TAG/" \
                 -o "dist/amrex-$TAG.tar.gz" "$TAG"
@@ -81,9 +86,13 @@ jobs:
           GENERATED: ${{ steps.tarball.outputs.generated }}
         run: |
           cp "$BUNDLE" "dist/amrex-$TAG.intoto.jsonl"
-          # A generated tarball is uploaded too, so the attested file is
-          # the one users download. $GENERATED is empty otherwise.
-          gh release upload "$TAG" $GENERATED \
+          # A generated tarball is uploaded too, so the attested file is the
+          # one users download. Never with --clobber: a tarball attached in
+          # the meantime is not the one attested, so fail rather than replace.
+          if [ -n "$GENERATED" ]; then
+            gh release upload "$TAG" "$GENERATED" --repo "$GITHUB_REPOSITORY"
+          fi
+          gh release upload "$TAG" \
              "dist/amrex-$TAG.spdx.json" \
              "dist/amrex-$TAG.intoto.jsonl" \
              --repo "$GITHUB_REPOSITORY" --clobber
