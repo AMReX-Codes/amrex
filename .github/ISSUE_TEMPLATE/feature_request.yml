@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest a new capability or an improvement to an existing one
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve
+      description: >-
+        What are you trying to do that AMReX makes difficult or impossible
+        today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: >-
+        What you would like AMReX to do. A sketch of the interface you have in
+        mind is helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you have tried, or other designs you weighed.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: >-
+        The application or solver this comes from, references, and whether you
+        would be able to contribute the implementation.

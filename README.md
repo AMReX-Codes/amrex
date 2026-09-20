@@ -26,6 +26,9 @@ refinement applications.
 
 [Overview](#Overview) -
 [Features](#Features) -
+[Installation](#Installation) -
+[Usage](#Usage) -
+[Examples](#Examples) -
 [Documentation](#Documentation) -
 [Gallery](#Gallery) -
 [Get Help](#get-help) -
@@ -64,6 +67,48 @@ More information is available at the [AMReX website](https://amrex-codes.github.
 - Parallel I/O
 - Plotfile format supported by Amrvis, VisIt, ParaView and yt
 - Built-in profiling tools
+
+## Installation
+
+AMReX runs on Linux, macOS and Windows, and is deployed on DOE HPC systems
+including Perlmutter, Frontier and Aurora. Building it requires a C++20
+compiler and CMake 3.25 or newer. MPI is enabled by default and can be turned
+off with `-DAMReX_MPI=OFF`; OpenMP and a GPU toolchain (CUDA, HIP or SYCL) are
+optional.
+
+```bash
+git clone https://github.com/AMReX-Codes/amrex.git
+cd amrex
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/path/to/installdir
+cmake --build build -j8 --target install
+```
+
+Build options are set with `-D<var>=<value>`, for example `-DAMReX_MPI=OFF`,
+`-DAMReX_SPACEDIM=2` or `-DAMReX_GPU_BACKEND=CUDA`. AMReX can also be built
+with GNU Make, and is packaged for Spack. See the
+[Building AMReX](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html)
+chapter of the User's Guide for the full set of options and for the GNU Make
+workflow.
+
+## Usage
+
+The quickest way to start is to build one of the
+[guided tutorials](https://amrex-codes.github.io/amrex/tutorials_html/GuidedTutorials.html),
+which introduce `MultiFab` data, parallel iteration and the AMR hierarchy one
+step at a time. To use an installed AMReX from your own CMake project:
+
+```cmake
+find_package(AMReX REQUIRED)
+target_link_libraries(my_app PUBLIC AMReX::amrex)
+```
+
+## Examples
+
+Runnable example codes covering basic usage, linear solvers, particles,
+embedded boundaries and GPU offloading live in the
+[amrex-tutorials](https://github.com/AMReX-Codes/amrex-tutorials) repository and
+are published as
+[Example Codes](https://amrex-codes.github.io/amrex/tutorials_html/#example-codes).
 
 ## Documentation
 

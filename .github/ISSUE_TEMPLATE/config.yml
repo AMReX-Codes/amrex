@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/AMReX-Codes/amrex/discussions
+    about: Ask about building, using, or getting started with AMReX.
+  - name: Documentation
+    url: https://amrex-codes.github.io/amrex/docs_html/
+    about: The AMReX User's Guide.
+  - name: Security report
+    url: https://github.com/AMReX-Codes/amrex/security/policy
+    about: Report a security issue privately.
