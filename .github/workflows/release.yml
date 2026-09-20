@@ -1,8 +1,14 @@
 name: Release Artifacts
 
-# Attaches an SBOM and a signed build-provenance attestation to a published
-# release. A tarball already attached to the release is the attestation
-# subject; otherwise one is generated from the tag and uploaded as well.
+# Attaches a signed build-provenance attestation and an SBOM to a published
+# release. The attestation covers the source tarball and the SBOM. A tarball
+# already attached to the release is used, so attach it before publishing;
+# otherwise one is generated from the tag and uploaded as well.
+#
+# The SBOM is an inventory of the CI dependencies (the GitHub Actions under
+# .github/workflows), not of AMReX's own build dependencies: a C++ source tree
+# has no package manifests for the scanner to read.
+#
 # Re-runnable via workflow_dispatch, e.g. after attaching a tarball by hand:
 # select the release tag under "Use workflow from", since the provenance
 # records the commit the workflow ran from.
@@ -11,6 +17,12 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+
+# A release event and a manual rerun on the same tag must not interleave
+# their uploads.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -36,8 +48,6 @@ jobs:
           echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Collect the release tarball
         id: tarball
