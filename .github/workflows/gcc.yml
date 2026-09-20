@@ -136,6 +136,21 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+    # Publish this configuration to https://my.cdash.org/index.php?project=AMReX
+    # Only on pushes: pull requests from forks get no secrets, and per-PR
+    # submissions would swamp the dashboard. Runs even when the tests failed
+    # so that failures reach the dashboard, and never changes the job status.
+    - name: Submit to CDash
+      if: ${{ !cancelled() && github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' }}
+      continue-on-error: true
+      env:
+        CDASH_SOURCE_DIR: ${{ github.workspace }}
+        CDASH_BINARY_DIR: ${{ github.workspace }}/build
+        CDASH_BUILD_NAME: ubuntu-gcc-debug-3d
+        CDASH_SITE: github-actions
+        CDASH_AUTH_TOKEN: ${{ secrets.CDASH_AUTH_TOKEN }}
+      run: ctest -S ${{ github.workspace }}/Tools/CTest/submit.cmake
+
   tests_build_2D:
     name: GNU@13 2D Debug Fortran [tests]
     runs-on: ubuntu-24.04

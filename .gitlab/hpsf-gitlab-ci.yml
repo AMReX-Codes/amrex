@@ -45,7 +45,20 @@ Nvidia-H100-single-precision:
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
     - export AMREX_THE_ARENA_INIT_SIZE=1e9
-    - ctest -j 2 --test-dir build --output-on-failure
+    # Publish nightly results to https://my.cdash.org/index.php?project=AMReX
+    # Scheduled pipelines only. Submits even when the tests failed, then exits
+    # with the test status; a failed submission never fails the job.
+    - |
+      status=0
+      ctest -j 2 --test-dir build --output-on-failure || status=$?
+      if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
+        CDASH_SOURCE_DIR="$CI_PROJECT_DIR" \
+        CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
+        CDASH_BUILD_NAME="nvidia-h100-cuda-single" \
+        CDASH_SITE="hpsf-gitlab" \
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+      fi
+      exit $status
 
 AMD-MI300A:
   extends: .dependency-n-fetch-pr
@@ -75,7 +88,20 @@ AMD-MI300A:
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
     - export AMREX_THE_ARENA_INIT_SIZE=1e9
-    - ctest -j 2 --test-dir build --output-on-failure
+    # Publish nightly results to https://my.cdash.org/index.php?project=AMReX
+    # Scheduled pipelines only. Submits even when the tests failed, then exits
+    # with the test status; a failed submission never fails the job.
+    - |
+      status=0
+      ctest -j 2 --test-dir build --output-on-failure || status=$?
+      if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
+        CDASH_SOURCE_DIR="$CI_PROJECT_DIR" \
+        CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
+        CDASH_BUILD_NAME="amd-mi300a-hip" \
+        CDASH_SITE="hpsf-gitlab" \
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+      fi
+      exit $status
 
 Intel-PVC:
   extends: .dependency-n-fetch-pr
@@ -101,7 +127,20 @@ Intel-PVC:
           -DAMReX_PARALLEL_LINK_JOBS=8
     - cmake --build build -j 16
     - export AMREX_THE_ARENA_INIT_SIZE=1e9
-    - ctest -j 4 --test-dir build --output-on-failure
+    # Publish nightly results to https://my.cdash.org/index.php?project=AMReX
+    # Scheduled pipelines only. Submits even when the tests failed, then exits
+    # with the test status; a failed submission never fails the job.
+    - |
+      status=0
+      ctest -j 4 --test-dir build --output-on-failure || status=$?
+      if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
+        CDASH_SOURCE_DIR="$CI_PROJECT_DIR" \
+        CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
+        CDASH_BUILD_NAME="intel-pvc-sycl" \
+        CDASH_SITE="hpsf-gitlab" \
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+      fi
+      exit $status
 
 post_github_comment:
   stage: .post
