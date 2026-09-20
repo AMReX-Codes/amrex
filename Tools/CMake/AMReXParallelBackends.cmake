@@ -16,7 +16,7 @@ endforeach()
 #
 #
 if (AMReX_MPI)
-   set(_mpi_comps C CXX)  # Do we need MPI_C ?
+   set(_mpi_comps CXX)
    if (AMReX_FORTRAN_INTERFACES)
       list(APPEND _mpi_comps Fortran)
    endif ()
