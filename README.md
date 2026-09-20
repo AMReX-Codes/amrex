@@ -12,7 +12,10 @@
   <img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/28563/badge.svg">
   </a>
   <a href="https://www.bestpractices.dev/projects/11299">
-  <img alt="OpenSSF Beset Practices Status" src="https://www.bestpractices.dev/projects/11299/badge">
+  <img alt="OpenSSF Best Practices Status" src="https://www.bestpractices.dev/projects/11299/badge">
+  </a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/AMReX-Codes/amrex">
+  <img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/AMReX-Codes/amrex/badge">
   </a>
   <a href="https://opensource.org/licenses/BSD-3-Clause">
   <img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg">
