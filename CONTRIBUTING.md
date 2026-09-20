@@ -8,6 +8,9 @@ Development generally follows the following ideas:
     Nightly regression testing is used to ensure that no answers
     change (or if they do, that the changes were expected).
 
+    Pull requests that add major new functionality must also add tests
+    for it to the automated test suite.
+
   * Bug fixes, questions and contributions of new features are welcome!
 
        * Bugs should be reported through GitHub Issues.
