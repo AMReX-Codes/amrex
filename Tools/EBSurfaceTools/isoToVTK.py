@@ -15,11 +15,11 @@ with open(sys.argv[1],'r') as f:
     Points = vtk.vtkPoints()
 
     print("Reading %d nodes..." % Nnodes)
-    for i in range(Nnodes):
+    for _ in range(Nnodes):
         line = f.readline()
         line.strip()
         d = line.split(' ')
-        id = Points.InsertNextPoint(float(d[0]),float(d[1]),float(d[2]))
+        Points.InsertNextPoint(float(d[0]),float(d[1]),float(d[2]))
 
     print("Done")
 
@@ -27,7 +27,7 @@ with open(sys.argv[1],'r') as f:
     Triangle = vtk.vtkTriangle()
 
     print("Reading %d elements..." % Nelts)
-    for i in range(Nelts):
+    for _ in range(Nelts):
         line = f.readline()
         d = line.split()
         Triangle.GetPointIds().SetId(0,int(d[0])-1)
