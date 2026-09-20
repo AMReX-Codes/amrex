@@ -51,7 +51,10 @@ jobs:
           EOF
           cat > smoke/CMakeLists.txt <<'EOF'
           cmake_minimum_required(VERSION 3.25)
-          project(smoke CXX)
+          # C as well as CXX: AMReXConfig.cmake asks for the C and CXX MPI
+          # components whenever AMReX was built with MPI, so a CXX-only
+          # project fails to find MPI_C.
+          project(smoke C CXX)
           find_package(AMReX REQUIRED)
           add_executable(smoke main.cpp)
           target_link_libraries(smoke PUBLIC AMReX::amrex)
