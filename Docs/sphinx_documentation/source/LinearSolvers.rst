@@ -971,3 +971,53 @@ https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
 AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
 linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
 the preconditioner.
+
+Sparse Linear Algebra
+=====================
+
+AMReX provides distributed sparse matrices and vectors in
+``AMReX_Algebra.H``. An :cpp:`AlgPartition` describes how global row indices
+are divided among MPI processes: each process owns a contiguous range of
+rows. :cpp:`AlgVector<T>` is a vector distributed with such a partition, and
+:cpp:`SpMatrix<T>` is a sparse matrix in compressed sparse row (CSR) format
+whose rows are distributed with a partition. The data live in GPU memory in
+GPU builds.
+
+A matrix can be built with a fixed number of nonzeros per row and filled
+with a functor that sets the global column indices and values of each row,
+or from existing CSR arrays with :cpp:`define`.
+
+.. highlight:: c++
+
+::
+
+    // 1D Laplacian with n global rows, 3 nonzeros per row
+    AlgPartition partition(n);
+    SpMatrix<Real> A(partition, 3);
+    A.setVal([=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
+    {
+        col[0] = (row+n-1) % n; val[0] = Real(-1);
+        col[1] = row;           val[1] = Real(2);
+        col[2] = (row+1) % n;   val[2] = Real(-1);
+    }, CsrSorted{false});
+
+The following operations are available.
+
+- :cpp:`SpMV(y, A, x)` computes :math:`y = A x`.
+- :cpp:`transpose(A, col_partition)` returns :math:`A^T`, where
+  ``col_partition`` is the column partition of ``A`` and becomes the row
+  partition of the result.
+- :cpp:`SpGEMM(A, B, col_partition)` returns the product :math:`A B`. Its
+  rows are partitioned like ``A``, and ``col_partition`` is the column
+  partition of ``B`` and of the product. The rows of ``B`` needed by other
+  processes are exchanged with MPI, and the local product uses cuSPARSE,
+  rocSPARSE or oneMKL on GPUs and an OpenMP-parallel kernel on CPUs.
+
+Column partitions are set on first use. Since a matrix keeps its column
+partition, a given matrix must always be used with the same column
+partition; for example, the same ``col_partition`` must be passed every time
+a matrix appears on the right-hand side of :cpp:`SpGEMM`.
+
+Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
+:cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See
+``Tests/Algebra`` for examples.

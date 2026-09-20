@@ -41,16 +41,29 @@ public:
 
     //! Starting global row index owned by rank \p i.
     [[nodiscard]] Long operator[] (int i) const { return m_ref->m_row[i]; }
-    /**
-     * \brief Total number of rows covered by the partition.
-     */
+    //! Number of local rows.
+    [[nodiscard]] Long numLocalRows () const {
+        int myproc = ParallelDescriptor::MyProc();
+        return m_ref->m_row[myproc+1] - m_ref->m_row[myproc];
+    }
+    //! Total number of rows covered by the partition.
     [[nodiscard]] Long numGlobalRows () const { return m_ref->m_row.back(); }
     //! Number of MPI ranks that own at least one row.
     [[nodiscard]] int numActiveProcs () const { return m_ref->m_n_active_procs; }
     //! The sole rank owning rows if numActiveProcs() is one, otherwise -1.
     [[nodiscard]] int singleActiveProc () const { return m_ref->m_single_active_proc; }
 
-    //! Underlying prefix array describing row offsets (size nproc+1).
+    //! Inclusive global index begin on this process.
+    [[nodiscard]] Long globalRowBegin () const {
+        return m_ref->m_row[ParallelDescriptor::MyProc()];
+    }
+
+    //! Exclusive global index end on this process.
+    [[nodiscard]] Long globalRowEnd () const {
+        return m_ref->m_row[ParallelDescriptor::MyProc()+1];
+    }
+
+    //! Underlying array describing row offsets (size nproc+1).
     [[nodiscard]] Vector<Long> const& dataVector () const { return m_ref->m_row; }
 
     //! Compare partitions for identical layouts.
