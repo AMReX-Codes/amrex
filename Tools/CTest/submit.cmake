@@ -1,9 +1,10 @@
 # Runs the test suite and publishes the results to the AMReX dashboard at
 # https://my.cdash.org/index.php?project=AMReX
 #
-#   ctest -S /path/to/amrex/Tools/CTest/submit.cmake
+#   ctest -S /path/to/amrex/Tools/CTest/submit.cmake [-C <config>]
 #
-# The build must already be configured and built. Driven by environment
+# The build must already be configured and built; multi-config generators
+# such as Visual Studio need -C <config>. Driven by environment
 # variables so the same script serves GitHub Actions and GitLab CI:
 #
 #   CDASH_SOURCE_DIR   top of the AMReX source tree

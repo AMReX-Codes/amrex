@@ -240,9 +240,10 @@ jobs:
 
     # Publish this configuration to https://my.cdash.org/index.php?project=AMReX
     # Only on pushes: pull requests from forks get no secrets, and per-PR
-    # submissions would swamp the dashboard. Never fails the job.
+    # submissions would swamp the dashboard. Runs even when the tests failed
+    # so that failures reach the dashboard, and never changes the job status.
     - name: Submit to CDash
-      if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex'
+      if: ${{ !cancelled() && github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' }}
       continue-on-error: true
       env:
         CDASH_SOURCE_DIR: ${{ github.workspace }}
