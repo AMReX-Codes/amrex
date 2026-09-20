@@ -8,6 +8,11 @@ env:
   GITLAB_PROJECT_PATH: "amrex/amrex"
   GITLAB_PROJECT_ID: "70"
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 jobs:
   run-hpsf-gitlab-ci:
     if: |
