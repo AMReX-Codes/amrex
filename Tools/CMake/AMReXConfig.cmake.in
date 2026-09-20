@@ -192,7 +192,7 @@ set( THREADS_PREFER_PTHREAD_FLAG on)
 find_dependency(Threads REQUIRED)
 
 if (@AMReX_MPI@)
-   set( _mpi_components C CXX )
+   set( _mpi_components CXX )
    if (@AMReX_FORTRAN_INTERFACES@)
       list(APPEND _mpi_components Fortran)
    endif ()

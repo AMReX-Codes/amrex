@@ -1,0 +1,14 @@
+# Keep local build output and history out of the image build context.
+.git
+.github
+build*/
+install*/
+tmp_build_dir/
+tmp_install_dir/
+Docs/sphinx_documentation/build/
+Docs/Doxygen/
+*.o
+*.a
+*.exe
+*.mod
+__pycache__/
