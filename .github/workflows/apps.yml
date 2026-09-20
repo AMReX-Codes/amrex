@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-apps
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
@@ -20,7 +23,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Get Latest Release Tag
       run: |
         CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
@@ -28,13 +31,13 @@ jobs:
         MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
     - name: Download Castro
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: 'AMReX-Astro/Castro'
         ref: ${{env.CASTRO_TAG}}
         path: 'Castro'
     - name: Download Microphysics
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: 'AMReX-Astro/Microphysics'
         ref: ${{env.MICROPHYSICS_TAG}}
@@ -44,7 +47,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -75,9 +78,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Download WarpX
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: 'BLAST-WarpX/warpx'
         ref: development
@@ -87,7 +90,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -120,9 +123,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Checkout pyamrex
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: 'AMReX-Codes/pyamrex'
         ref: 'development'
@@ -132,7 +135,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}

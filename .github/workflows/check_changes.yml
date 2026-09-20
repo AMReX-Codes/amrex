@@ -6,14 +6,17 @@ on:
       has_non_docs_changes:
         value: ${{ jobs.check.outputs.has_non_docs_changes }}
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
       has_non_docs_changes: ${{ steps.set-output.outputs.has_non_docs_changes }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
           filters: |
