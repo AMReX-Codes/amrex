@@ -1,0 +1,86 @@
+name: Release Artifacts
+
+# Attaches an SBOM and a signed build-provenance attestation to a published
+# release. The source tarball itself is left alone: if one is already attached
+# it is used as the attestation subject, otherwise one is generated from the
+# tag. Re-runnable via workflow_dispatch if the tarball is uploaded after the
+# release is published.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach artifacts to
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  attest:
+    name: SBOM and provenance
+    runs-on: ubuntu-latest
+    if: github.repository == 'AMReX-Codes/amrex'
+    permissions:
+      contents: write      # upload assets to the release
+      id-token: write      # OIDC token used to sign the attestation
+      attestations: write  # record the attestation
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Collect the release tarball
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          mkdir -p dist
+          # Prefer the tarball already attached to the release so the
+          # attestation covers exactly what users download.
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+             --dir dist --pattern '*.tar.gz' || true
+          if [ -z "$(ls -A dist)" ]; then
+            echo "No tarball attached to $TAG; generating one from the tag."
+            git archive --format=tar.gz --prefix="amrex-$TAG/" \
+                -o "dist/amrex-$TAG.tar.gz" "$TAG"
+          fi
+          ls -l dist
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/amrex-${{ steps.tag.outputs.tag }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: dist/*
+
+      - name: Upload artifacts to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" "dist/amrex-$TAG.intoto.jsonl"
+          gh release upload "$TAG" \
+             "dist/amrex-$TAG.spdx.json" \
+             "dist/amrex-$TAG.intoto.jsonl" \
+             --repo "$GITHUB_REPOSITORY" --clobber
