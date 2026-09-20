@@ -1,0 +1,63 @@
+name: Docker
+
+# Builds the Dockerfile and checks that the installed AMReX is usable from a
+# downstream CMake project. Runs when the image definition changes, and on
+# demand.
+
+on:
+  push:
+    branches: [development]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docker
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build image and link against it
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build the image
+        run: docker build -t amrex:ci --build-arg BUILD_JOBS=4 .
+
+      - name: Write a downstream project
+        run: |
+          mkdir -p smoke
+          cat > smoke/main.cpp <<'EOF'
+          #include <AMReX.H>
+          int main (int argc, char* argv[])
+          {
+              amrex::Initialize(argc, argv);
+              amrex::Finalize();
+              return 0;
+          }
+          EOF
+          cat > smoke/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.25)
+          project(smoke CXX)
+          find_package(AMReX REQUIRED)
+          add_executable(smoke main.cpp)
+          target_link_libraries(smoke PUBLIC AMReX::amrex)
+          EOF
+
+      - name: Link it against the installed AMReX
+        run: |
+          docker run --rm -v "$PWD/smoke:/smoke:ro" amrex:ci \
+            bash -c 'cmake -S /smoke -B /tmp/build && cmake --build /tmp/build -j 4 && test -x /tmp/build/smoke'
