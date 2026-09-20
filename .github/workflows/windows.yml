@@ -65,6 +65,20 @@ jobs:
 
         #ccache -s
 
+    # Publish this configuration to https://my.cdash.org/index.php?project=AMReX
+    # Only on pushes: pull requests from forks get no secrets, and per-PR
+    # submissions would swamp the dashboard. Never fails the job.
+    - name: Submit to CDash
+      if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex'
+      continue-on-error: true
+      env:
+        CDASH_SOURCE_DIR: ${{ github.workspace }}
+        CDASH_BINARY_DIR: ${{ github.workspace }}/build
+        CDASH_BUILD_NAME: windows-msvc-shared
+        CDASH_SITE: github-actions
+        CDASH_AUTH_TOKEN: ${{ secrets.CDASH_AUTH_TOKEN }}
+      run: ctest -S ${{ github.workspace }}/Tools/CTest/submit.cmake
+
   # Build libamrex and all test (static)
   test_msvc_static:
     name: MSVC w/o Fortran w/o MPI static

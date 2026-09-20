@@ -171,6 +171,9 @@ endif()
 # Enable CTests
 #
 if (AMReX_ENABLE_TESTS)
-   enable_testing()
+   # include(CTest) calls enable_testing() and, unlike it, reads
+   # CTestConfig.cmake so that `ctest -D Experimental|Nightly` can publish
+   # results to the dashboard.
+   include(CTest)
    add_subdirectory(Tests)
 endif ()
