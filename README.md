@@ -72,8 +72,9 @@ More information is available at the [AMReX website](https://amrex-codes.github.
 
 AMReX runs on Linux, macOS and Windows, and is deployed on DOE HPC systems
 including Perlmutter, Frontier and Aurora. Building it requires a C++20
-compiler and CMake 3.25 or newer; MPI, OpenMP and a GPU toolchain (CUDA, HIP
-or SYCL) are optional.
+compiler and CMake 3.25 or newer. MPI is enabled by default and can be turned
+off with `-DAMReX_MPI=OFF`; OpenMP and a GPU toolchain (CUDA, HIP or SYCL) are
+optional.
 
 ```bash
 git clone https://github.com/AMReX-Codes/amrex.git
@@ -82,7 +83,7 @@ cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/path/to/installdir
 cmake --build build -j8 --target install
 ```
 
-Build options are set with `-D<var>=<value>`, for example `-DAMReX_MPI=ON`,
+Build options are set with `-D<var>=<value>`, for example `-DAMReX_MPI=OFF`,
 `-DAMReX_SPACEDIM=2` or `-DAMReX_GPU_BACKEND=CUDA`. AMReX can also be built
 with GNU Make, and is packaged for Spack. See the
 [Building AMReX](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html)
