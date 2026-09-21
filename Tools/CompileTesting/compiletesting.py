@@ -21,10 +21,9 @@ def compiletesting(arg_string):
 
     if args.redo_failed:
         test_list = []
-        f = open("failed_tests", 'r')
-        for line in f.readlines():
-            test_list.append(line[:-1])
-        f.close()
+        with open("failed_tests", 'r') as f:
+            for line in f.readlines():
+                test_list.append(line[:-1])
     elif args.full:
         test_list = ['Tutorials/Basic/HelloWorld_C',
                      'Tutorials/Basic/HelloWorld_F',
