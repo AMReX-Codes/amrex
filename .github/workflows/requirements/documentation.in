@@ -5,5 +5,5 @@
 #       --no-header documentation.in -o documentation.txt
 # Keep --python-version in sync with the python3 of the GitHub runner image.
 pip
-sphinx==5.0.0
+sphinx==7.3.7
 sphinx_rtd_theme
