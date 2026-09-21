@@ -1767,13 +1767,18 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           readRanks.push_back(*setIter);
         }
 
+        // ---- all ranks must draw the tag here, not just the readers, so that
+        // ---- the tag matches and the tag sequence stays in sync across ranks
+        const int readChainTag = ParallelDescriptor::SeqNum();
+
         if(rfrSet.contains(myProc)) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
           std::string fullFileName(VisMF::DirName(mf_name) + fileName);
           frcIter = FileReadChains.find(fileName);
           BL_ASSERT(frcIter != FileReadChains.end());
           Vector<FabReadLink> &frc = frcIter->second;
-          for(NFilesIter nfi(std::move(fullFileName), std::move(readRanks)); nfi.ReadyToRead(); ++nfi) {
+          for(NFilesIter nfi(std::move(fullFileName), std::move(readRanks), false, readChainTag);
+              nfi.ReadyToRead(); ++nfi) {
 
               // ---- confirm the data is contiguous in the stream
               Long firstOffset(-1);

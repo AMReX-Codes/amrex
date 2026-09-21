@@ -68,13 +68,20 @@ class NFilesIter
     /**
     * \brief constructor for reading
     *
+    * The ranks in readRanks take turns reading the file and hand off with
+    * point-to-point messages.  If there is more than one reader, mpi_tag must
+    * be a valid tag that is the same on every rank in readRanks.  Obtain it
+    * from ParallelDescriptor::SeqNum() called by all ranks, not only readers.
+    *
     * \param &fileName
     * \param &readRanks
     * \param setBuf
+    * \param mpi_tag
     */
     NFilesIter(std::string fileName,
                Vector<int> readRanks,
-               bool setBuf = false);
+               bool setBuf = false,
+               int mpi_tag = -1);
 
     ~NFilesIter();
 
