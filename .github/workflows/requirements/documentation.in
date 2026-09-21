@@ -1,0 +1,9 @@
+# Direct pip dependencies of the docs workflow (.github/workflows/docs.yml).
+#
+# documentation.txt is the hash-pinned lock file compiled from this file:
+#   uv pip compile --python-version 3.12 --generate-hashes --no-annotate \
+#       --no-header documentation.in -o documentation.txt
+# Keep --python-version in sync with the python3 of the GitHub runner image.
+pip
+sphinx==5.0.0
+sphinx_rtd_theme

@@ -1,0 +1,7 @@
+# Direct pip dependencies of .github/workflows/codespell.yml.
+#
+# codespell.txt is the hash-pinned lock file compiled from this file:
+#   uv pip compile --python-version 3.12 --generate-hashes --no-annotate \
+#       --no-header codespell.in -o codespell.txt
+# Keep --python-version in sync with the python3 of the GitHub runner image.
+codespell

@@ -5,7 +5,7 @@
 # License: BSD-3-Clause-LBNL
 
 # Don't want to use the following line because apt-get remove may fail if
-# the package specfied does not exist.
+# the package specified does not exist.
 # set -eu -o pipefail
 
 # Large packages

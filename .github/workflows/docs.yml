@@ -26,8 +26,8 @@ jobs:
       - name: Dependencies
         run: |
           .github/workflows/dependencies/documentation.sh
-          python3 -m pip install --upgrade pip
-          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme
+          python3 -m pip install --require-hashes \
+              -r .github/workflows/requirements/documentation.txt
 
       - name: Install and Build
         run: |
