@@ -7,3 +7,16 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "development"
+
+  # Hash-pinned pip requirements of the CI workflows. Dependabot recompiles
+  # the *.txt lock files from the *.in sources, so all of them are bumped in
+  # a single grouped PR instead of one per package.
+  - package-ecosystem: "pip"
+    directory: "/.github/workflows/requirements"
+    schedule:
+      interval: "weekly"
+    target-branch: "development"
+    groups:
+      ci-requirements:
+        patterns:
+          - "*"

@@ -149,9 +149,8 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        python3 -m pip install -U pip setuptools[core] wheel
-        python3 -m pip install -U cmake
-        python3 -m pip install -U pandas pytest mpi4py
+        python3 -m pip install --require-hashes \
+            -r .github/workflows/requirements/pyamrex.txt
 
         export AMREX_HOME=${PWD}
         cd pyamrex
