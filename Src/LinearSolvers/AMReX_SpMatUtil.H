@@ -2,6 +2,7 @@
 #define AMREX_SPMAT_UTIL_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_BLProfiler.H>
 #include <AMReX_SpMatrix.H>
 #include <AMReX_Random.H>
 
@@ -20,12 +21,12 @@ namespace amrex {
  * \param ncols Total number of columns in the source matrix.
  * \return CSR representing the transpose.
  */
-template <typename T, template <typename> class V>
-CSR<T,V> transpose (CSR<T,V> const& csr, Long ncols)
+template <typename IO = Long, typename T, template <typename> class V, typename I>
+CSR<T,V,IO> transpose (CSR<T,V,I> const& csr, Long ncols)
 {
     Long nnz = csr.nnz;
 
-    CSR<T,V> csrt;
+    CSR<T,V,IO> csrt;
     csrt.mat.resize(nnz);
     csrt.col_index.resize(nnz);
     csrt.row_offset.resize(ncols+1);
@@ -48,19 +49,31 @@ template <typename T, template<typename> class Allocator>
 SpMatrix<T,Allocator> transpose (SpMatrix<T,Allocator> const& A,
                                  AlgPartition const& col_partition)
 {
-    const_cast<SpMatrix<T,Allocator>&>(A).startComm_tr(col_partition);
+    BL_PROFILE("SpMatrix::transpose");
 
+    auto& Am = const_cast<SpMatrix<T,Allocator>&>(A);
+    Am.setColumnPartition(col_partition);
+    Am.startComm_tr(col_partition);
+
+    // The transpose is built directly in split form: its local block is
+    // the transpose of A's local block (columns are A's local row
+    // indices), and its remote block comes from the other ranks.
     SpMatrix<T,Allocator> AT;
     AT.m_row_begin = col_partition[ParallelDescriptor::MyProc()];
     AT.m_row_end   = col_partition[ParallelDescriptor::MyProc()+1];
     AT.m_partition = col_partition;
-    AT.m_nnz       = A.m_csr.nnz;
+    AT.m_nnz       = A.m_csr_local.nnz;
+    AT.m_csr_local = transpose<int>(A.m_csr_local, AT.numLocalRows());
+    AT.m_col_partition = A.partition();
+    AT.m_col_begin = A.globalRowBegin();
+    AT.m_col_end   = A.globalRowEnd();
+    AT.m_split = true;
+#ifdef AMREX_USE_MPI
+    AT.m_ri_ltor.resize(AT.numLocalRows(), -1);
+    AT.m_remote_cols_vv.resize(ParallelDescriptor::NProcs());
+#endif
 
-    // transpose the diagonal part
-    auto at_csr = transpose(A.m_csr, AT.numLocalRows());
-    AT.m_csr = std::move(at_csr);
-
-    const_cast<SpMatrix<T,Allocator>&>(A).finishComm_tr(AT);
+    Am.finishComm_tr(AT);
 
     return AT;
 }
@@ -163,7 +176,8 @@ SpMatrix<T,Allocator> RandomMatrix (AlgPartition partition, Long nrows, Long nco
  * with `ParallelDescriptor::ReduceBoolAnd` if a global answer is needed.
  *
  * If only one matrix has a column partition, the other one is given the
- * same column partition, which it then keeps.
+ * same column partition, which it then keeps. If neither has one, the
+ * unsplit matrices are compared.
  *
  * \param A First matrix.
  * \param B Second matrix.
@@ -181,6 +195,35 @@ bool almostEqual (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B
         const_cast<SpMatrix<T,Allocator>&>(A).setColumnPartition(col_partition_B);
     } else if (! col_partition_A.empty() && col_partition_B.empty()) {
         const_cast<SpMatrix<T,Allocator>&>(B).setColumnPartition(col_partition_A);
+    } else if (col_partition_A.empty() && col_partition_B.empty()) {
+        // Neither has been split: compare the unsplit CSR with global columns.
+        auto& a = const_cast<SpMatrix<T,Allocator>&>(A);
+        auto& b = const_cast<SpMatrix<T,Allocator>&>(B);
+        Long const nnz = a.numLocalNonZeros();
+        Long const nrows = a.numLocalRows();
+        if (a.globalRowBegin() != b.globalRowBegin() ||
+            nnz != b.numLocalNonZeros() || nrows != b.numLocalRows())
+        {
+            return false;
+        }
+        T const* amat = a.data();
+        T const* bmat = b.data();
+        Long const* acol = a.columnIndex();
+        Long const* bcol = b.columnIndex();
+        Long const* arow = a.rowOffset();
+        Long const* brow = b.rowOffset();
+        Long N = std::max(nnz, nrows);
+        auto r = Reduce::Min<int>(N, [=] AMREX_GPU_DEVICE (Long i) {
+            bool t = true;
+            if (i < nnz) {
+                t = amrex::almostEqual(amat[i], bmat[i], ulp) && acol[i] == bcol[i];
+            }
+            if (t && i < nrows) {
+                t = arow[i] == brow[i];
+            }
+            return int(t);
+        }, 1);
+        return r;
     }
 
     auto const& pca = A.const_parcsr();

@@ -79,6 +79,13 @@ int main (int argc, char *argv[])
         mat.printToFile("mat-"+std::to_string(nrows)+"x"+std::to_string(ncols));
 #endif
 
+        {
+            // Neither matrix has a column partition: compares the unsplit form.
+            bool eq = amrex::almostEqual(mat, mat);
+            ParallelDescriptor::ReduceBoolAnd(eq);
+            AMREX_ALWAYS_ASSERT(eq);
+        }
+
         auto matt = amrex::transpose(mat, col_part);
 #ifdef AMREX_DEBUG
         ParallelDescriptor::Barrier();

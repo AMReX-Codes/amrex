@@ -15,9 +15,11 @@ namespace amrex {
  * Back-end implementations of sparse matrix-vector products (CSR).
  */
 
-template <typename T>
+template <typename T, typename I = Long>
 /**
  * \brief Perform y = A * x using CSR data (GPU/CPU aware).
+ *
+ * With CUDA the product is asynchronous with respect to the host.
  *
  * \param nrows Number of matrix rows.
  * \param ncols Number of matrix columns.
@@ -25,7 +27,7 @@ template <typename T>
  * \param A     CSR view of the matrix.
  * \param px    Source vector (length ncols).
  */
-void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const& A,
+void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> const& A,
            T const* AMREX_RESTRICT px)
 {
     T const* AMREX_RESTRICT mat = A.mat;
@@ -55,13 +57,16 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    cusparseIndexType_t index_type = CUSPARSE_INDEX_64I;
+    // Row offsets are Long, column indices are I.
+    cusparseIndexType_t row_index_type = CUSPARSE_INDEX_64I;
+    cusparseIndexType_t col_index_type = std::is_same_v<I,int>
+        ? CUSPARSE_INDEX_32I : CUSPARSE_INDEX_64I;
 
     cusparseSpMatDescr_t mat_descr;
     AMREX_CUSPARSE_SAFE_CALL
         (cusparseCreateCsr(&mat_descr, nrows, ncols, nnz,
                            (void*)row, (void*)col, (void*)mat,
-                           index_type, index_type, CUSPARSE_INDEX_BASE_ZERO,
+                           row_index_type, col_index_type, CUSPARSE_INDEX_BASE_ZERO,
                            data_type));
 
     cusparseDnVecDescr_t x_descr;
@@ -80,20 +85,20 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
                                  data_type, CUSPARSE_SPMV_ALG_DEFAULT,
                                  &buffer_size));
 
-    auto* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    auto* pbuffer = (void*)The_Async_Arena()->alloc(buffer_size);
 
     AMREX_CUSPARSE_SAFE_CALL
         (cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                       &alpha, mat_descr, x_descr, &beta, y_descr,
                       data_type, CUSPARSE_SPMV_ALG_DEFAULT, pbuffer));
 
-    Gpu::streamSynchronize();
-
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_descr));
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroyDnVec(x_descr));
+    // No sync needed: the descriptors are host objects, cusparseDestroy defers
+    // the release of GPU resources, and the buffer is freed in stream order.
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroyDnVec(y_descr));
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
-    The_Arena()->free(pbuffer);
+    The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_HIP)
 
@@ -114,13 +119,15 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    rocsparse_indextype index_type = rocsparse_indextype_i64;
+    rocsparse_indextype row_index_type = rocsparse_indextype_i64;
+    rocsparse_indextype col_index_type = std::is_same_v<I,int>
+        ? rocsparse_indextype_i32 : rocsparse_indextype_i64;
 
     rocsparse_spmat_descr mat_descr;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_create_csr_descr(&mat_descr, nrows, ncols, nnz,
                                    (void*)row, (void*)col, (void*)mat,
-                                   index_type, index_type,
+                                   row_index_type, col_index_type,
                                    rocsparse_index_base_zero, data_type));
 
     rocsparse_dnvec_descr x_descr;
@@ -261,13 +268,18 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
     mkl::sparse::matrix_handle_t handle{};
     mkl::sparse::init_matrix_handle(&handle);
 
+    // oneMKL uses one index type for rows and columns.
+    Gpu::DeviceVector<Long> lcol(nnz);
+    {
+        auto* pl = lcol.data();
+        ParallelFor(nnz, [=] AMREX_GPU_DEVICE (Long i) { pl[i] = Long(col[i]); });
+    }
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    amrex::ignore_unused(nnz);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols,
-                              mkl::index_base::zero, (Long*)row, (Long*)col, (T*)mat);
+                              mkl::index_base::zero, (Long*)row, lcol.data(), (T*)mat);
 #else
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols, nnz,
-                              mkl::index_base::zero, (Long*)row, (Long*)col, (T*)mat);
+                              mkl::index_base::zero, (Long*)row, lcol.data(), (T*)mat);
 #endif
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);
@@ -308,15 +320,17 @@ template <typename T, template<typename> class AllocM, typename AllocV>
 void SpMV (AlgVector<T,AllocV>& y, SpMatrix<T,AllocM> const& A,
            AlgVector<T,AllocV> const& x)
 {
-    // xxxxx TODO: Is it worth to cache cusparse and rocsparse handles?
+    BL_PROFILE("SpMV");
 
-    const_cast<SpMatrix<T,AllocM>&>(A).startComm_mv(x);
+    auto& Am = const_cast<SpMatrix<T,AllocM>&>(A);
+    Am.setColumnPartition(x.partition());
+    Am.startComm_mv(x);
 
     // Diagonal part
-    SpMV<T>(y.numLocalRows(), x.numLocalRows(), y.data(), A.m_csr.const_view(),
-            x.data());
+    SpMV<T,int>(y.numLocalRows(), x.numLocalRows(), y.data(), A.m_csr_local.const_view(),
+                x.data());
 
-    const_cast<SpMatrix<T,AllocM>&>(A).finishComm_mv(y);
+    Am.finishComm_mv(y);
 }
 
 /**

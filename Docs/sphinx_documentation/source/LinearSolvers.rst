@@ -1021,3 +1021,7 @@ a matrix appears on the right-hand side of :cpp:`SpGEMM`.
 Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See
 ``Tests/Algebra`` for examples.
+
+Solvers for :cpp:`SpMatrix` systems are :cpp:`GMRES_MV<T>`
+(``AMReX_GMRES_MV.H``), which accepts a preconditioner functor such as
+:cpp:`JacobiSmoother<T>` (``AMReX_Smoother_MV.H``).

@@ -28,13 +28,16 @@ namespace amrex {
  * \brief Lightweight non-owning CSR view that can point to host or device buffers.
  *
  * The template parameter \p T controls constness of the value array; the
- * column/row arrays follow suit.
+ * column/row arrays follow suit. \p I is the column index type; row
+ * offsets are always `Long`.
  */
-template <typename T>
+template <typename T, typename I = Long>
 struct CsrView {
+    using index_type = I;
     using U = std::conditional_t<std::is_const_v<T>, Long const, Long>;
+    using CI = std::conditional_t<std::is_const_v<T>, I const, I>;
     T* AMREX_RESTRICT mat = nullptr;
-    U* AMREX_RESTRICT col_index = nullptr;
+    CI* AMREX_RESTRICT col_index = nullptr;
     U* AMREX_RESTRICT row_offset = nullptr;
     Long nnz = 0;
     Long nrows = 0;
@@ -45,11 +48,13 @@ struct CsrView {
  *
  * @tparam T Value type stored in the matrix.
  * @tparam V Vector-like container template (e.g., PODVector, Gpu::DeviceVector).
+ * @tparam I Column index type; row offsets are always `Long`.
  */
-template <typename T, template <typename> class V>
+template <typename T, template <typename> class V, typename I = Long>
 struct CSR {
+    using index_type = I;
     V<T> mat;
-    V<Long> col_index;
+    V<I> col_index;
     V<Long> row_offset;
     Long nnz = 0;
 
@@ -75,24 +80,24 @@ struct CSR {
     }
 
     //! Mutable view of the underlying buffers.
-    CsrView<T> view () {
-        return CsrView<T>{mat.data(), col_index.data(), row_offset.data(),
-                          nnz, Long(row_offset.size())-1};
+    CsrView<T,I> view () {
+        return CsrView<T,I>{mat.data(), col_index.data(), row_offset.data(),
+                            nnz, Long(row_offset.size())-1};
     }
 
     //! Const view of the underlying buffers.
-    [[nodiscard]] CsrView<T const> view () const {
-        return CsrView<T const>{.mat = mat.data(),
-                                .col_index = col_index.data(),
-                                .row_offset = row_offset.data(),
-                                .nnz = nnz,
-                                .nrows = Long(row_offset.size())-1};
+    [[nodiscard]] CsrView<T const,I> view () const {
+        return CsrView<T const,I>{.mat = mat.data(),
+                                  .col_index = col_index.data(),
+                                  .row_offset = row_offset.data(),
+                                  .nnz = nnz,
+                                  .nrows = Long(row_offset.size())-1};
     }
 
     //! Convenience alias for view() const.
-    [[nodiscard]] CsrView<T const> const_view () const {
-        return CsrView<T const>{mat.data(), col_index.data(), row_offset.data(),
-                                nnz, Long(row_offset.size())-1};
+    [[nodiscard]] CsrView<T const,I> const_view () const {
+        return CsrView<T const,I>{mat.data(), col_index.data(), row_offset.data(),
+                                  nnz, Long(row_offset.size())-1};
     }
 
     /**
@@ -106,7 +111,8 @@ struct CSR {
     void sort_on_host ();
 };
 
-template <typename C, typename T, template<typename> class AD, template<typename> class AS>
+template <typename C, typename T, template<typename> class AD, template<typename> class AS,
+          typename I>
 requires (std::same_as<C,Gpu::HostToDevice> ||
           std::same_as<C,Gpu::DeviceToHost> ||
           std::same_as<C,Gpu::DeviceToDevice>)
@@ -117,7 +123,7 @@ requires (std::same_as<C,Gpu::HostToDevice> ||
  * \param dst Destination CSR that will be resized and filled.
  * \param src Source CSR whose buffers are copied verbatim.
  */
-void duplicateCSR (C c, CSR<T,AD>& dst, CSR<T,AS> const& src)
+void duplicateCSR (C c, CSR<T,AD,I>& dst, CSR<T,AS,I> const& src)
 {
     dst.mat.resize(src.mat.size());
     dst.col_index.resize(src.col_index.size());
@@ -137,8 +143,8 @@ void duplicateCSR (C c, CSR<T,AD>& dst, CSR<T,AS> const& src)
     dst.nnz = src.nnz;
 }
 
-template <typename T, template <typename> class V>
-void CSR<T,V>::sort ()
+template <typename T, template <typename> class V, typename I>
+void CSR<T,V,I>::sort ()
 {
     if (nnz <= 0) { return; }
 
@@ -161,6 +167,39 @@ void CSR<T,V>::sort ()
     auto* pmat = mat.data();
     auto* pcol = col_index.data();
     auto* prow = row_offset.data();
+
+    // Short rows (the common case on fine AMG levels): one thread per row,
+    // insertion sort in registers. Longer rows are left to the warp kernel
+    // below, which skips rows that are already sorted.
+    constexpr int SHORT_ROW = 16;
+    ParallelFor(nr, [=] AMREX_GPU_DEVICE (int r) noexcept
+    {
+        Long const b = prow[r];
+        int const len = int(prow[r+1] - b);
+        if (len <= 1 || len > SHORT_ROW) { return; }
+        I keys[SHORT_ROW];
+        T vals[SHORT_ROW];
+        for (int i = 0; i < len; ++i) {
+            keys[i] = pcol[b+i];
+            vals[i] = pmat[b+i];
+        }
+        for (int i = 1; i < len; ++i) {
+            I const k = keys[i];
+            T const v = vals[i];
+            int j = i - 1;
+            while (j >= 0 && keys[j] > k) {
+                keys[j+1] = keys[j];
+                vals[j+1] = vals[j];
+                --j;
+            }
+            keys[j+1] = k;
+            vals[j+1] = v;
+        }
+        for (int i = 0; i < len; ++i) {
+            pcol[b+i] = keys[i];
+            pmat[b+i] = vals[i];
+        }
+    });
 
     Gpu::Buffer<int> needs_fallback({0});
     auto* d_needs_fallback = needs_fallback.data();
@@ -196,14 +235,14 @@ void CSR<T,V>::sort ()
         if (len <= ITEMS_PER_WARP)
         {
 #if defined(AMREX_USE_CUDA)
-            using WarpSort = cub::WarpMergeSort<Long, ITEMS_PER_THREAD, Gpu::Device::warp_size, T>;
+            using WarpSort = cub::WarpMergeSort<I, ITEMS_PER_THREAD, Gpu::Device::warp_size, T>;
             __shared__ typename WarpSort::TempStorage temp_storage[nwarps_per_block];
 #elif defined(AMREX_USE_HIP)
-            using WarpSort = rocprim::warp_sort<Long, Gpu::Device::warp_size, T>;
+            using WarpSort = rocprim::warp_sort<I, Gpu::Device::warp_size, T>;
             __shared__ typename WarpSort::storage_type temp_storage[nwarps_per_block];
 #endif
 
-            Long keys[ITEMS_PER_THREAD];
+            I keys[ITEMS_PER_THREAD];
             T values[ITEMS_PER_THREAD];
 
             #pragma unroll
@@ -213,7 +252,7 @@ void CSR<T,V>::sort ()
                     keys[i] = pcol[b + idx];
                     values[i] = pmat[b + idx];
                 } else {
-                    keys[i] = std::numeric_limits<Long>::max();
+                    keys[i] = std::numeric_limits<I>::max();
                     values[i] = T{};
                 }
             }
@@ -221,7 +260,7 @@ void CSR<T,V>::sort ()
             AMREX_HIP_OR_CUDA(
                 WarpSort{}.sort(keys, values, temp_storage[wid]),
                 WarpSort(temp_storage[wid]).Sort(
-                    keys, values, [](Long x, Long y) {return x < y;}));
+                    keys, values, [](I x, I y) {return x < y;}));
 
             #pragma unroll
             for (int i = 0; i < ITEMS_PER_THREAD; ++i) {
@@ -245,7 +284,7 @@ void CSR<T,V>::sort ()
         // The item count of the segmented sort below is 32-bit.
         AMREX_ALWAYS_ASSERT(nnz < Long(std::numeric_limits<int>::max()));
 
-        V<Long> col_index_out(col_index.size());
+        V<I> col_index_out(col_index.size());
         V<T> mat_out(mat.size());
         auto* d_col_out = col_index_out.data();
         auto* d_val_out = mat_out.data();
@@ -256,7 +295,7 @@ void CSR<T,V>::sort ()
                                 rocprim::segmented_radix_sort_pairs,
                                 cub::DeviceSegmentedRadixSort::SortPairs)
                             (nullptr, temp_bytes, pcol, d_col_out, pmat, d_val_out,
-                             nnz, nr, prow, prow+1, 0, int(sizeof(Long)*CHAR_BIT),
+                             nnz, nr, prow, prow+1, 0, int(sizeof(I)*CHAR_BIT),
                              stream));
 
         auto* d_temp = (void*) The_Arena()->alloc(temp_bytes);
@@ -265,7 +304,7 @@ void CSR<T,V>::sort ()
                                 rocprim::segmented_radix_sort_pairs,
                                 cub::DeviceSegmentedRadixSort::SortPairs)
                             (d_temp, temp_bytes, pcol, d_col_out, pmat, d_val_out,
-                             nnz, nr, prow, prow+1, 0, int(sizeof(Long)*CHAR_BIT),
+                             nnz, nr, prow, prow+1, 0, int(sizeof(I)*CHAR_BIT),
                              stream));
 
         std::swap(col_index, col_index_out);
@@ -282,7 +321,7 @@ void CSR<T,V>::sort ()
 #elif defined(AMREX_USE_SYCL)
 
     // xxxxx TODO SYCL: Let's not worry about performance for now.
-    CSR<T,Gpu::PinnedVector> h_csr;
+    CSR<T,Gpu::PinnedVector,I> h_csr;
     duplicateCSR(Gpu::deviceToHost, h_csr, *this);
     Gpu::streamSynchronize();
     h_csr.sort_on_host();
@@ -298,8 +337,8 @@ void CSR<T,V>::sort ()
 #endif
 }
 
-template <typename T, template <typename> class V>
-void CSR<T,V>::sort_on_host ()
+template <typename T, template <typename> class V, typename I>
+void CSR<T,V,I>::sort_on_host ()
 {
     if (nnz <= 0) { return; }
 
@@ -311,12 +350,12 @@ void CSR<T,V>::sort_on_host ()
 #pragma omp parallel
 #endif
     {
-        V<Long> lcols;
-        V<T   > lvals;
-        V<int > perm;
+        V<I> lcols;
+        V<T> lvals;
+        V<int> perm;
 
-        Long scols[SMALL];
-        T    svals[SMALL];
+        I scols[SMALL];
+        T svals[SMALL];
 
 #ifdef AMREX_USE_OMP
 #pragma omp for
@@ -393,8 +432,8 @@ struct CsrIndex
     V<I> col_index;
     V<I> row_offset;
 
-    template <typename T>
-    void copyFrom (CsrView<T> const& csr)
+    template <typename T, typename J>
+    void copyFrom (CsrView<T,J> const& csr)
     {
         AMREX_ALWAYS_ASSERT(csr.nnz < Long(std::numeric_limits<I>::max()) &&
                             csr.nrows < Long(std::numeric_limits<I>::max()));
@@ -416,8 +455,8 @@ struct CsrIndex
         });
     }
 
-    template <typename T>
-    void copyTo (CsrView<T> const& csr) const
+    template <typename T, typename J>
+    void copyTo (CsrView<T,J> const& csr) const
     {
         static_assert(!std::is_const_v<T>);
         auto N = static_cast<I>(std::max(col_index.size(), row_offset.size()));
@@ -429,13 +468,13 @@ struct CsrIndex
         auto* row_dst = csr.row_offset;
         ParallelFor(N, [=] AMREX_GPU_DEVICE (I i)
         {
-            if (i < lnnz) { col_dst[i] = static_cast<Long>(col_src[i]); }
+            if (i < lnnz) { col_dst[i] = static_cast<J>(col_src[i]); }
             if (i < lnro) { row_dst[i] = static_cast<Long>(row_src[i]); }
         });
     }
 
-    template <typename T, template <typename> class U>
-    void copyTo (CSR<T,U>& csr) const
+    template <typename T, template <typename> class U, typename J>
+    void copyTo (CSR<T,U,J>& csr) const
     {
         copyTo(csr.view());
     }
