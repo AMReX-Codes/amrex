@@ -1077,3 +1077,108 @@ their scaling on first use, so the first application, and
   CPUs and GPUs.
 - :cpp:`L1GaussSeidelSmoother<T>`: hybrid Gauss-Seidel with l1
   correction. CPU builds only.
+
+The algebraic multigrid solver :cpp:`AMG<T>` in ``AMReX_AMG.H`` is
+described below.
+
+Algebraic Multigrid
+-------------------
+
+:cpp:`AMG<T>` solves :math:`A x = b` for a square :cpp:`SpMatrix<T>` with
+V-cycles. The setup selects coarse points with PMIS coarsening
+[DeSterck2006]_ based on the classical strength of connection [Ruge1987]_,
+builds the interpolation :math:`P`, and forms the coarse operator
+:math:`A_c = P^T A P`. By default, the interpolation is extended+i
+[DeSterck2008]_ [Li2021]_, the smoother is Chebyshev [Adams2003]_, and the
+coarsest level is solved with smoother sweeps.
+
+.. highlight:: c++
+
+::
+
+    AMG<Real> amg(A);   // A must outlive amg
+    amg.setVerbose(1);
+    amg.setRelTol(1.e-10);
+    amg.setBottomSolver(AMG<Real>::BottomSolver::BiCGStab);
+    amg.solve(x, b);    // x holds the initial guess
+
+The iteration stops when the residual 2-norm is below :cpp:`setRelTol` times
+the norm of the right-hand side; ``x`` holds the initial guess. The V-cycle
+is also available on its own as :cpp:`precond(x, b)` for use in other
+solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
+set per solver object, so several solvers with different settings can
+coexist. The solver runs on CPUs and GPUs with any number of MPI processes.
+The following can be tuned:
+
+- :cpp:`setInterpType`: extended+i (``MMExtI``, the default), extended
+  (``MMExt``) or classical direct (``Direct``) [Ruge1987]_ interpolation.
+- :cpp:`setSmoother`: Chebyshev (``Chebyshev``, the default), l1-Jacobi
+  (``L1Jacobi``) [Baker2011]_, weighted Jacobi (``Jacobi``) or, in CPU
+  builds, l1 hybrid Gauss-Seidel (``L1GaussSeidel``) [Baker2011]_. In the
+  Poisson tests l1 hybrid Gauss-Seidel needs fewer cycles than the other
+  smoothers, but each sweep is sequential within a process or OpenMP thread.
+- :cpp:`setChebyshevDegree` and :cpp:`setChebyshevRatio`: the Chebyshev
+  smoother is a polynomial of the given degree (2) that damps the
+  eigenvalues between the largest one divided by the given ratio (6) and the
+  largest one.
+- :cpp:`setRelaxWeight`: weight of the l1-Jacobi (4/3) and weighted Jacobi
+  (2/3) smoothers.
+- :cpp:`setPreSmooth` and :cpp:`setPostSmooth`: number of smoother sweeps
+  before and after the coarse correction (1 for Chebyshev, 2 for the other
+  smoothers).
+- :cpp:`setBottomSolver`: smoother sweeps (``Jacobi``, the default), or
+  BiCGStab (``BiCGStab``) or GMRES (``GMRES``) preconditioned by the same
+  smoother.
+- :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom
+  solver (:math:`10^{-4}`).
+- :cpp:`setKrylovSolver`: use one V-cycle as the preconditioner of an outer
+  BiCGStab (``BiCGStab``), GMRES (``GMRES``) or conjugate gradient (``PCG``)
+  solver instead of iterating it on its own (``None``, the default). In the
+  tests in ``Tests/Algebra/AMG`` this roughly halved the number of V-cycles.
+  BiCGStab and GMRES accept any matrix; PCG requires a symmetric positive
+  definite matrix. With PCG or GMRES, use smoother sweeps as the bottom
+  solver, and with PCG also the same number of pre- and post-smoothing
+  sweeps.
+- :cpp:`setSingular(true)`: for singular matrices whose null space is the
+  constant vector, such as the Poisson operator with periodic or Neumann
+  boundaries. As in MLMG, the mean of the right-hand side is removed, but
+  the caller's right-hand side is not modified, and the solution is returned
+  with zero mean.
+- :cpp:`setStrongThreshold`: threshold of the strength of connection (0.25).
+- :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
+  truncated to at most four entries by default (0 disables the limit), and
+  entries below the given fraction of the row maximum are dropped (0 by
+  default).
+- :cpp:`setMaxCoarseSize` and :cpp:`setMaxLevels`: coarsening stops when a
+  level has at most this many rows (9) or this many levels (25) have been
+  built.
+- :cpp:`setAggNumLevels(n)`: the first ``n`` levels use aggressive
+  coarsening [Yang2010]_ (0 by default). In the tests this roughly halved
+  the operator complexity at the price of more cycles.
+- :cpp:`setAggDirectInterp(true)`: makes the setup of the aggressive levels
+  cheaper but costs further cycles, so it is off by default.
+
+.. [Ruge1987] J. W. Ruge and K. Stüben, Algebraic multigrid, in
+   *Multigrid Methods*, S. F. McCormick, ed., SIAM, Philadelphia, 1987,
+   pp. 73-130, https://doi.org/10.1137/1.9781611971057.ch4.
+.. [DeSterck2006] H. De Sterck, U. M. Yang and J. J. Heys, Reducing
+   complexity in parallel algebraic multigrid preconditioners, *SIAM J.
+   Matrix Anal. Appl.* 27 (2006), pp. 1019-1039,
+   https://doi.org/10.1137/040615729.
+.. [DeSterck2008] H. De Sterck, R. D. Falgout, J. W. Nolting and
+   U. M. Yang, Distance-two interpolation for parallel algebraic multigrid,
+   *Numer. Linear Algebra Appl.* 15 (2008), pp. 115-139,
+   https://doi.org/10.1002/nla.559.
+.. [Li2021] R. Li, B. Sjögreen and U. M. Yang, A new class of AMG
+   interpolation methods based on matrix-matrix multiplications, *SIAM J.
+   Sci. Comput.* 43 (2021), pp. S540-S564,
+   https://doi.org/10.1137/20M134931X.
+.. [Adams2003] M. Adams, M. Brezina, J. Hu and R. Tuminaro, Parallel
+   multigrid smoothing: polynomial versus Gauss-Seidel, *J. Comput. Phys.*
+   188 (2003), pp. 593-610, https://doi.org/10.1016/S0021-9991(03)00194-3.
+.. [Baker2011] A. H. Baker, R. D. Falgout, T. V. Kolev and U. M. Yang,
+   Multigrid smoothers for ultraparallel computing, *SIAM J. Sci. Comput.*
+   33 (2011), pp. 2864-2887, https://doi.org/10.1137/100798806.
+.. [Yang2010] U. M. Yang, On long-range interpolation operators for
+   aggressive coarsening, *Numer. Linear Algebra Appl.* 17 (2010),
+   pp. 453-472, https://doi.org/10.1002/nla.689.
