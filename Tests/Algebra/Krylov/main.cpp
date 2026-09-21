@@ -1,30 +1,34 @@
-#include <AMReX_GMRES_MV.H>
-
+#include <AMReX_BiCGStab_MV.H>
+#include <AMReX_PCG_MV.H>
+#include <AMReX_Smoother_MV.H>
 #include <AMReX.H>
+#include <AMReX_ParmParse.H>
 
 #include <cmath>
+#include <limits>
 
 using namespace amrex;
 
+// Periodic a*phi - lap(phi) with phi = prod sin^5, solved with BiCGStab and
+// PCG, each with the Jacobi and the Chebyshev preconditioner.
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     {
-        Box domain(IntVect(0),IntVect(15));
+        int n_cell = 16;
+        ParmParse pp;
+        pp.query("n_cell", n_cell);
+        Box domain(IntVect(0),IntVect(n_cell-1));
         Long n = domain.numPts();
         AlgVector<Real> xvec(n);
         AlgVector<Real> bvec(xvec.partition());
         AlgVector<Real> exact(xvec.partition());
 
-        Real a = Real(1.e-6);
+        Real a = Real(1);
         Real dx = Real(2)*amrex::Math::pi<Real>()/Real(domain.length(0));
-
-        // The system is a * phi - del dot grad phi.
-        // Where phi = sin^5(x)*sin^5(y)*sin^5(z)
 
         BoxIndexer box_indexer(domain);
 
-        // Initialzie bvec
         {
             auto* rhs = bvec.data();
             auto* phi = exact.data();
@@ -66,9 +70,6 @@ int main (int argc, char* argv[])
             });
         }
 
-        // Initial guess
-        xvec.setVal(0);
-
         // cross stencil w/ periodic boundaries
         auto set_stencil = [=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
         {
@@ -104,43 +105,60 @@ int main (int argc, char* argv[])
         SpMatrix<Real> mat(xvec.partition(), num_non_zeros);
         mat.setVal(set_stencil, CsrSorted{false});
 
-        GMRES_MV<Real> gmres(&mat);
-        gmres.setPrecond(JacobiSmoother<Real>(&mat));
-        gmres.setVerbose(2);
+        auto eps = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-10);
+        auto check = [&] (char const* name)
+        {
+            amrex::Axpy(xvec, Real(-1.0), exact);
+            auto error = xvec.norminf();
+            amrex::Print() << name << ": max norm error " << error << "\n";
+            AMREX_ALWAYS_ASSERT(error < Real(1.e3)*eps);
+        };
 
-        auto eps = (sizeof(Real) == 4) ? Real(1.e-5) : Real (1.e-12);
-        gmres.solve(xvec, bvec, eps, Real(0.0));
+        for (int pc = 0; pc < 2; ++pc) {
+            using PC = std::function<void(AlgVector<Real>&, AlgVector<Real> const&)>;
+            PC precond = (pc == 0) ? PC(JacobiSmoother<Real>(&mat, true))     // l1-Jacobi
+                                   : PC(ChebyshevSmoother<Real>(&mat));
+            char const* pcname = (pc == 0) ? "l1-Jacobi" : "Chebyshev";
 
-        // Check the solution
-        amrex::Axpy(xvec, Real(-1.0), exact);
-        auto error = xvec.norminf();
-        amrex::Print() << " Max norm error: " << error << "\n";
-#ifdef AMREX_USE_FLOAT
-        AMREX_ALWAYS_ASSERT(error < eps);
-#else
-        AMREX_ALWAYS_ASSERT(error*10 < eps);
-#endif
+            // l1-Jacobi: default zero guess, so a NaN x must be ignored.
+            // Chebyshev: nonzero initial guess.
+            xvec.setVal((pc == 0) ? std::numeric_limits<Real>::quiet_NaN() : Real(1));
+            BiCGStab_MV<Real> bicgstab(&mat);
+            bicgstab.getSolver().setInitialGuessNonzero(pc == 1);
+            bicgstab.setPrecond(precond);
+            bicgstab.setVerbose(1);
+            bicgstab.solve(xvec, bvec, eps, Real(0.0));
+            AMREX_ALWAYS_ASSERT(bicgstab.getSolver().getStatus() == 0);
+            check((std::string("BiCGStab/") + pcname).c_str());
 
-        // Again with a nonzero initial guess
-        xvec.copyAsync(exact);
-        xvec.scaleAsync(Real(0.5));
-        gmres.getGMRES().setInitialGuessNonzero(true);
-        gmres.solve(xvec, bvec, eps, Real(0.0));
-        amrex::Axpy(xvec, Real(-1.0), exact);
-        error = xvec.norminf();
-        amrex::Print() << " Max norm error with nonzero initial guess: " << error << "\n";
-#ifdef AMREX_USE_FLOAT
-        AMREX_ALWAYS_ASSERT(error < eps);
-#else
-        AMREX_ALWAYS_ASSERT(error*10 < eps);
-#endif
+            xvec.setVal((pc == 0) ? std::numeric_limits<Real>::quiet_NaN() : Real(1));
+            PCG_MV<Real> pcg(&mat);
+            pcg.getSolver().setInitialGuessNonzero(pc == 1);
+            pcg.setPrecond(precond);
+            pcg.setVerbose(1);
+            pcg.solve(xvec, bvec, eps, Real(0.0));
+            AMREX_ALWAYS_ASSERT(pcg.getSolver().getStatus() == 0);
+            check((std::string("PCG/") + pcname).c_str());
+        }
 
         // Starting from the solution must take no iterations.
-        xvec.copyAsync(exact);
-        gmres.getGMRES().setInitialGuessNonzero(true);
-        gmres.solve(xvec, bvec, Real(0.0), std::sqrt(eps)*bvec.norm2());
-        AMREX_ALWAYS_ASSERT(gmres.getGMRES().getStatus() == 0 &&
-                            gmres.getGMRES().getNumIters() == 0);
+        auto const atol = std::sqrt(eps) * bvec.norm2();
+        {
+            xvec.copyAsync(exact);
+            BiCGStab_MV<Real> bicgstab(&mat);
+            bicgstab.getSolver().setInitialGuessNonzero(true);
+            bicgstab.solve(xvec, bvec, Real(0.0), atol);
+            AMREX_ALWAYS_ASSERT(bicgstab.getSolver().getStatus() == 0 &&
+                                bicgstab.getSolver().getNumIters() == 0);
+        }
+        {
+            xvec.copyAsync(exact);
+            PCG_MV<Real> pcg(&mat);
+            pcg.getSolver().setInitialGuessNonzero(true);
+            pcg.solve(xvec, bvec, Real(0.0), atol);
+            AMREX_ALWAYS_ASSERT(pcg.getSolver().getStatus() == 0 &&
+                                pcg.getSolver().getNumIters() == 0);
+        }
     }
     amrex::Finalize();
 }
