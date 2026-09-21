@@ -60,6 +60,7 @@ jobs:
             -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx1010                      \
             -DAMReX_ROCTX=ON                              \
+            -DBUILD_SHARED_LIBS=ON                        \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
