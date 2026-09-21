@@ -10,8 +10,6 @@ env:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
 
 jobs:
   run-hpsf-gitlab-ci:
@@ -20,6 +18,10 @@ jobs:
       contains(fromJson('["atmyers","asalmgren","ax3l","WeiqunZhang"]'), github.actor) &&
       contains(github.event.comment.body, '/run-hpsf-gitlab-ci')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Determine PR merge ref
