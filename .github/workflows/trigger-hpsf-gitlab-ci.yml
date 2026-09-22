@@ -20,8 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
-      pull-requests: read
+      pull-requests: write
 
     steps:
       - name: Determine PR merge ref
