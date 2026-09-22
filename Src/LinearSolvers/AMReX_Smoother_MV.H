@@ -112,6 +112,8 @@ public: // NOLINT  Private, but public for CUDA
     {
         if (!m_l1) { return m_A->diagonalVector(); }
         if (!m_scaling) {
+            // The matrix might not have been split yet (e.g., no SpMV so far).
+            const_cast<SpMatrix<T>*>(m_A)->setColumnPartition(m_A->partition());
             m_scaling = std::make_shared<AlgVector<T>>(m_A->partition());
             auto* AMREX_RESTRICT p = m_scaling->data();
             auto const& a = m_A->const_parcsr();
@@ -310,6 +312,8 @@ public:
 #else
         BL_PROFILE("L1GaussSeidelSmoother");
         auto& A = *const_cast<SpMatrix<T>*>(m_A);
+        // The matrix might not have been split yet (e.g., no SpMV so far).
+        A.setColumnPartition(A.partition());
         auto const& a = A.const_parcsr();
         Long const nrows = xvec.numLocalRows();
         auto const& dl1 = scaling();
