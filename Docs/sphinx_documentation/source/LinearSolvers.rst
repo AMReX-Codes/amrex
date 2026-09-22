@@ -1028,11 +1028,12 @@ Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 
 Solvers for :cpp:`SpMatrix` systems are :cpp:`GMRES_MV<T>`
 (``AMReX_GMRES_MV.H``), which accepts a preconditioner functor. The
-smoothers in ``AMReX_Smoother_MV.H`` serve as preconditioners and as
-multigrid smoothers: :cpp:`JacobiSmoother<T>` (weighted Jacobi, or
-l1-Jacobi with the l1 option), :cpp:`ChebyshevSmoother<T>` (a Chebyshev
-polynomial in the l1-scaled operator, with the largest eigenvalue
-estimated by power iteration) and, in CPU builds,
-:cpp:`L1GaussSeidelSmoother<T>` (hybrid Gauss-Seidel within each process
-and OpenMP thread, l1-corrected across blocks). All run on CPUs, GPUs and
-across MPI ranks with the same kernels.
+smoothers in ``AMReX_Smoother_MV.H`` can be used as preconditioners and
+as multigrid smoothers. All of them work with MPI.
+
+- :cpp:`JacobiSmoother<T>`: weighted Jacobi, or l1-Jacobi with the l1
+  option. Works on CPUs and GPUs.
+- :cpp:`ChebyshevSmoother<T>`: Chebyshev polynomial smoother. Works on
+  CPUs and GPUs.
+- :cpp:`L1GaussSeidelSmoother<T>`: hybrid Gauss-Seidel with l1
+  correction. CPU builds only.
