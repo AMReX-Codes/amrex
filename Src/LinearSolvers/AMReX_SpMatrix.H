@@ -589,6 +589,11 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
         return;
     }
 
+    // The row indices become the column indices of the transpose.
+    if constexpr (!std::is_same_v<IO,Long>) {
+        AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<IO>::max()));
+    }
+
 #ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA)
