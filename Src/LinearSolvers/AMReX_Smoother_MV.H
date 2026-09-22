@@ -317,6 +317,7 @@ public:
         auto const& a = A.const_parcsr();
         Long const nrows = xvec.numLocalRows();
         auto const& dl1 = scaling();
+        int const nblocks = m_nblocks;
         T const* AMREX_RESTRICT d = dl1.data();
         T const* AMREX_RESTRICT b = bvec.data();
         T* AMREX_RESTRICT x = xvec.data();
@@ -345,10 +346,10 @@ public:
                 A.finishComm_mv(yrem);
             }
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
-            {
-                auto const [rlo, rhi] = thread_block(nrows);
+            for (int iblock = 0; iblock < nblocks; ++iblock) {
+                auto const [rlo, rhi] = row_block(nrows, iblock, nblocks);
                 auto const& c0 = a.csr0;
                 for (Long n = 0; n < rhi-rlo; ++n) {
                     Long const i = backward ? (rhi-1-n) : (rlo+n);
@@ -372,17 +373,15 @@ public:
 private:
     SpMatrix<T> const* m_A;
     int m_niters = 2;
-    int m_nthreads = -1;
-    std::shared_ptr<AlgVector<T>> m_scaling; // a_ii + l1 term for the current thread count
+    int m_nblocks = -1;
+    std::shared_ptr<AlgVector<T>> m_scaling; // a_ii + l1 term for the current row blocks
     std::shared_ptr<Array<AlgVector<T>,2>> m_work; // previous iterate, remote part
 
-    //! Contiguous row block of the calling thread.
-    static std::pair<Long,Long> thread_block (Long nrows)
+    //! Row range of a block. The blocks, not the threads, define the sweep.
+    static std::pair<Long,Long> row_block (Long nrows, int iblock, int nblocks)
     {
-        int const nt = OpenMP::get_num_threads();
-        int const it = OpenMP::get_thread_num();
-        Long const lo = (nrows * it) / nt;
-        Long const hi = (nrows * (it+1)) / nt;
+        Long const lo = (nrows * iblock) / nblocks;
+        Long const hi = (nrows * (iblock+1)) / nblocks;
         return {lo, hi};
     }
 
@@ -398,18 +397,18 @@ private:
     AlgVector<T> const& scaling ()
     {
 #ifndef AMREX_USE_GPU
-        int const nt = OpenMP::get_max_threads();
-        if (!m_scaling || nt != m_nthreads) {
-            m_nthreads = nt;
+        int const nb = OpenMP::get_max_threads();
+        if (!m_scaling || nb != m_nblocks) {
+            m_nblocks = nb;
             m_scaling = std::make_shared<AlgVector<T>>(m_A->partition());
             T* AMREX_RESTRICT p = m_scaling->data();
             auto const& a = m_A->const_parcsr();
             Long const nrows = m_scaling->numLocalRows();
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
-            {
-                auto const [rlo, rhi] = thread_block(nrows);
+            for (int iblock = 0; iblock < nb; ++iblock) {
+                auto const [rlo, rhi] = row_block(nrows, iblock, nb);
                 auto const& c0 = a.csr0;
                 for (Long i = rlo; i < rhi; ++i) {
                     T aii = T(0);
