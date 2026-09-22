@@ -54,6 +54,27 @@ int main(int argc, char *argv[]) {
     });
 
 
+    // The diagonal can be read before the matrix is first used in a
+    // product, and the values can still be set afterwards.
+    {
+        auto check_diag = [&] () {
+            auto const* pd = mat.diagonalVector().data();
+            int nbad = Reduce::Sum<int>(nrows, [=] AMREX_GPU_DEVICE (Long lrow) -> int {
+                Real expect = (lrow == 0) ? Real(1.0) : Real(2.0);
+                return (pd[lrow] == expect) ? 0 : 1; });
+            AMREX_ALWAYS_ASSERT(nbad == 0);
+        };
+        check_diag();
+        mat.setVal([=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val) {
+            if (row == ib) {
+                col[0] = ib; col[1] = ib+1; val[0] = Real(1.0); val[1] = Real(0.0);
+            } else {
+                col[0] = row; col[1] = row-1; val[0] = Real(2.0); val[1] = Real(1.0);
+            }
+        }, CsrSorted{false});
+        check_diag();
+    }
+
     // GMRES relative residual target.
     auto eps = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-12);
     // The conditioning of the matrix amplifies the residual, so the error in
