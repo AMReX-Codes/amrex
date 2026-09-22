@@ -68,24 +68,31 @@ public:
         BL_PROFILE("JacobiSmoother");
         AMREX_ASSERT(xvec.partition() == m_A->partition());
         auto const& diag = scaling();
-        auto& Axvec = workspace(xvec.partition());
         if ( ! with_initial_guess) {
             xvec.setValAsync(0);
         }
         T const w = m_weight;
         for (int iter = 0; iter < m_niters; ++iter) {
             if ((iter == 0) && ! with_initial_guess) {
-                Axvec.setValAsync(0);
+                // A x is zero, so this sweep is just x = w b / d.
+                ForEach(xvec, bvec, diag,
+                        [=] AMREX_GPU_DEVICE (T& x, T const& b, T const& d)
+                        {
+                            if (d != T(0)) {
+                                x += w * b/d;
+                            }
+                        });
             } else {
+                auto& Axvec = workspace(xvec.partition()); // allocated on first need
                 SpMV(Axvec, *m_A, xvec);
+                ForEach(xvec, Axvec, bvec, diag,
+                        [=] AMREX_GPU_DEVICE (T& x, T const& ax, T const& b, T const& d)
+                        {
+                            if (d != T(0)) {
+                                x += w * (b-ax)/d;
+                            }
+                        });
             }
-            ForEach(xvec, Axvec, bvec, diag,
-                    [=] AMREX_GPU_DEVICE (T& x, T const& ax, T const& b, T const& d)
-                    {
-                        if (d != T(0)) {
-                            x += w * (b-ax)/d;
-                        }
-                    });
         }
         Gpu::streamSynchronize();
     }
@@ -209,29 +216,45 @@ public:
         auto& ad = (*m_work)[2];
         if ( ! with_initial_guess) { xvec.setValAsync(0); }
 
+        T const c0 = T(1) / theta;
         for (int it = 0; it < m_niters; ++it) {
+            // r = b - A x; d = D^{-1} r / theta; x += d
             if (it == 0 && ! with_initial_guess) {
-                r.copyAsync(bvec);
+                ForEach(xvec, d, r, bvec, diag,
+                        [=] AMREX_GPU_DEVICE (T& xi, T& di, T& ri, T const& bi,
+                                              T const& dd)
+                        {
+                            ri = bi;
+                            di = (dd != T(0)) ? c0 * ri / dd : T(0);
+                            xi += di;
+                        });
             } else {
-                computeResidual(r, *m_A, xvec, bvec);
+                SpMV(r, *m_A, xvec);
+                ForEach(xvec, d, r, bvec, diag,
+                        [=] AMREX_GPU_DEVICE (T& xi, T& di, T& ri, T const& bi,
+                                              T const& dd)
+                        {
+                            ri = bi - ri;
+                            di = (dd != T(0)) ? c0 * ri / dd : T(0);
+                            xi += di;
+                        });
             }
-            // d = D^{-1} r / theta; x += d
-            T const c0 = T(1) / theta;
-            ForEach(d, r, diag, [=] AMREX_GPU_DEVICE (T& di, T const& ri, T const& dd)
-                    { di = (dd != T(0)) ? c0 * ri / dd : T(0); });
-            xvec.plusAsync(d);
             T rho_old = T(1) / sigma;
             for (int k = 1; k < m_degree; ++k) {
                 // r -= A d; rho = 1/(2 sigma - rho_old);
                 // d = rho rho_old d + (2 rho / delta) D^{-1} r; x += d
                 SpMV(ad, *m_A, d);
-                amrex::Axpy(r, T(-1), ad);
                 T const rho = T(1) / (T(2)*sigma - rho_old);
                 T const c1 = rho * rho_old;
                 T const c2 = T(2) * rho / delta;
-                ForEach(d, r, diag, [=] AMREX_GPU_DEVICE (T& di, T const& ri, T const& dd)
-                        { di = c1 * di + ((dd != T(0)) ? c2 * ri / dd : T(0)); });
-                xvec.plusAsync(d);
+                ForEach(xvec, d, r, ad, diag,
+                        [=] AMREX_GPU_DEVICE (T& xi, T& di, T& ri, T const& adi,
+                                              T const& dd)
+                        {
+                            ri -= adi;
+                            di = c1 * di + ((dd != T(0)) ? c2 * ri / dd : T(0));
+                            xi += di;
+                        });
                 rho_old = rho;
             }
         }
