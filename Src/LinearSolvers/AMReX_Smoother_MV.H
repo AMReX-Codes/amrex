@@ -43,16 +43,17 @@ public:
     /**
      * \brief Update how many Jacobi sweeps to perform per apply.
      *
-     * \param a_niters Desired number of smoothing iterations.
+     * \param a_niters Desired number of smoothing iterations (4 by default).
      * \return Previous iteration count.
      */
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
 
-    //! Set the relaxation weight.
+    //! Set the relaxation weight. Call this after setL1(), which resets it.
     void setWeight (T w) { m_weight = w; }
 
-    //! Switch between l1-Jacobi and weighted Jacobi scaling.
-    void setL1 (bool b) { m_l1 = b; m_scaling.reset(); }
+    //! Switch between l1-Jacobi and weighted Jacobi, resetting the weight
+    //! to the default of the new mode.
+    void setL1 (bool b) { m_l1 = b; m_weight = b ? T(1) : T(2./3.); m_scaling.reset(); }
 
     /**
      * \brief Apply the smoother to solve approximately for \p xvec.
@@ -65,6 +66,7 @@ public:
                      bool with_initial_guess = false)
     {
         BL_PROFILE("JacobiSmoother");
+        AMREX_ASSERT(xvec.partition() == m_A->partition());
         auto const& diag = scaling();
         auto& Axvec = workspace(xvec.partition());
         if ( ! with_initial_guess) {
@@ -107,7 +109,7 @@ private:
     }
 
 public: // NOLINT  Private, but public for CUDA
-    //! Diagonal or l1 scaling vector, built on first use.
+    //! Diagonal or l1 scaling vector. The first call is collective.
     AlgVector<T> const& scaling ()
     {
         if (!m_l1) { return m_A->diagonalVector(); }
@@ -160,17 +162,19 @@ public:
     explicit ChebyshevSmoother (SpMatrix<T> const* a_A, bool a_l1 = false)
         : m_jacobi(a_A, a_l1), m_A(a_A), m_l1(a_l1) {}
 
-    //! Polynomial degree (number of matrix-vector products per application).
+    //! Polynomial degree (number of matrix-vector products per application, 2 by default).
     void setDegree (int d) { m_degree = d; }
-    //! Ratio between the largest eigenvalue and the lower end of the smoothing interval.
+    //! Ratio between the largest eigenvalue and the lower end of the smoothing
+    //! interval (20 by default).
     void setEigRatio (T r) { m_ratio = r; }
-    //! Number of power iterations for the eigenvalue estimate.
+    //! Number of power iterations for the eigenvalue estimate (10 by default).
     void setNumEigIters (int n) { m_eig_iters = n; }
-    //! Number of polynomial applications per call.
+    //! Number of polynomial applications per call (1 by default).
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
     //! Set the largest eigenvalue of the scaled operator instead of estimating it.
     void setLambdaMax (T l) { m_lambda_max = l; }
-    //! Largest eigenvalue of the scaled operator, estimated on first use.
+    //! Largest eigenvalue of the scaled operator, estimated on first use. The
+    //! estimate is collective, so all processes must call this together.
     T lambdaMax ()
     {
         if (m_lambda_max <= T(0)) { estimate(); }
@@ -188,6 +192,7 @@ public:
                      bool with_initial_guess = false)
     {
         BL_PROFILE("ChebyshevSmoother");
+        AMREX_ASSERT(xvec.partition() == m_A->partition());
         T const lmax = lambdaMax();
         T const lmin = lmax / m_ratio;
         T const theta = (lmax + lmin) / T(2);
@@ -278,10 +283,11 @@ public: // NOLINT  Private, but public for CUDA
 /**
  * \brief l1 hybrid Gauss-Seidel smoother for CPUs.
  *
- * Gauss-Seidel within each process, and within each OpenMP thread's block
- * of rows; couplings to other blocks and to other processes use the
- * previous iterate and their absolute values are added to the diagonal,
- * which keeps the sweep convergent for any SPD matrix and any partition
+ * Gauss-Seidel within each process, and within each of a fixed number of
+ * row blocks that the OpenMP threads share out; couplings to other blocks
+ * and to other processes use the previous iterate and their absolute
+ * values are added to the diagonal, which keeps the sweep convergent for
+ * any SPD matrix and any partition
  * [Baker, Falgout, Kolev, Yang, SIAM J. Sci. Comput. 33 (2011), 2864-2887].
  * Forward and backward sweeps are available to keep a V-cycle symmetric.
  * Not available in GPU builds.
@@ -290,9 +296,14 @@ template <typename T>
 class L1GaussSeidelSmoother
 {
 public:
+    /**
+     * \brief Construct a smoother that operates on \p a_A.
+     *
+     * \param a_A Sparse matrix supplying the stencil and SpMV.
+     */
     explicit L1GaussSeidelSmoother (SpMatrix<T> const* a_A) : m_A(a_A) {}
 
-    //! Number of sweeps per application.
+    //! Number of sweeps per application (2 by default).
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
 
     /**
@@ -311,6 +322,7 @@ public:
         amrex::Abort("L1GaussSeidelSmoother is only available in CPU builds");
 #else
         BL_PROFILE("L1GaussSeidelSmoother");
+        AMREX_ASSERT(xvec.partition() == m_A->partition());
         auto& A = *const_cast<SpMatrix<T>*>(m_A);
         // The matrix might not have been split yet (e.g., no SpMV so far).
         A.setColumnPartition(A.partition());
@@ -394,9 +406,9 @@ private:
         return T(0);
     }
 
+#ifndef AMREX_USE_GPU
     AlgVector<T> const& scaling ()
     {
-#ifndef AMREX_USE_GPU
         int const nb = OpenMP::get_max_threads();
         if (!m_scaling || nb != m_nblocks) {
             m_nblocks = nb;
@@ -411,13 +423,11 @@ private:
                 auto const [rlo, rhi] = row_block(nrows, iblock, nb);
                 auto const& c0 = a.csr0;
                 for (Long i = rlo; i < rhi; ++i) {
-                    T aii = T(0);
+                    T const aii = diag_of(c0, i); // same entry the sweep uses
                     T l1 = T(0);
                     for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
                         Long const j = c0.col_index[idx];
-                        if (j == i) {
-                            aii = c0.mat[idx];
-                        } else if (j < rlo || j >= rhi) {
+                        if (j != i && (j < rlo || j >= rhi)) {
                             l1 += std::abs(c0.mat[idx]);
                         }
                     }
@@ -431,9 +441,9 @@ private:
                 }
             }
         }
-#endif
         return *m_scaling;
     }
+#endif
 };
 
 }
