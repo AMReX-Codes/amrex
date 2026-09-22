@@ -170,7 +170,7 @@ void CSR<T,V,I>::sort ()
 
     // Short rows (the common case on fine AMG levels): one thread per row,
     // insertion sort in registers. Longer rows are left to the warp kernel
-    // below, which skips rows that are already sorted.
+    // below. Both kernels skip rows that are already sorted.
     constexpr int SHORT_ROW = 16;
     ParallelFor(nr, [=] AMREX_GPU_DEVICE (int r) noexcept
     {
@@ -178,9 +178,14 @@ void CSR<T,V,I>::sort ()
         int const len = int(prow[r+1] - b);
         if (len <= 1 || len > SHORT_ROW) { return; }
         I keys[SHORT_ROW];
-        T vals[SHORT_ROW];
+        bool sorted = true;
         for (int i = 0; i < len; ++i) {
             keys[i] = pcol[b+i];
+            if (i > 0) { sorted = sorted && (keys[i-1] <= keys[i]); }
+        }
+        if (sorted) { return; }
+        T vals[SHORT_ROW];
+        for (int i = 0; i < len; ++i) {
             vals[i] = pmat[b+i];
         }
         for (int i = 1; i < len; ++i) {

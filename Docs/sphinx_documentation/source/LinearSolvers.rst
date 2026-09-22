@@ -1016,7 +1016,11 @@ The following operations are available.
 Column partitions are set on first use. Since a matrix keeps its column
 partition, a given matrix must always be used with the same column
 partition; for example, the same ``col_partition`` must be passed every time
-a matrix appears on the right-hand side of :cpp:`SpGEMM`.
+a matrix appears on the right-hand side of :cpp:`SpGEMM`. The first use in
+:cpp:`SpMV`, :cpp:`SpGEMM` or :cpp:`transpose` also ends the setup of a
+matrix, in serial builds too: afterwards its entries can no longer be
+changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
+:cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
 Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See

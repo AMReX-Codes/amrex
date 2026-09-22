@@ -1666,6 +1666,8 @@ void SpMatrix<T,Allocator>::define_split (AlgPartition partition,
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    AMREX_ASSERT(compact.nrows() == this->numLocalRows());
+    AMREX_ASSERT(nremote >= 0 && (nremote == 0 || remote_cols != nullptr));
     m_diagonal = AlgVector<T,AllocT>{};
     m_col_partition = col_partition;
     m_col_begin = col_partition[ParallelDescriptor::MyProc()];
