@@ -171,7 +171,8 @@ void CSR<T,V,I>::sort ()
     // Short rows (the common case on fine AMG levels): one thread per row,
     // insertion sort in registers. Longer rows are left to the warp kernel
     // below. Both kernels skip rows that are already sorted.
-    constexpr int SHORT_ROW = 16;
+    // The cap keeps the per-thread arrays at ~256 bytes for wide value types.
+    constexpr int SHORT_ROW = std::clamp(int(256/(sizeof(I)+sizeof(T))), 4, 16);
     ParallelFor(nr, [=] AMREX_GPU_DEVICE (int r) noexcept
     {
         Long const b = prow[r];
