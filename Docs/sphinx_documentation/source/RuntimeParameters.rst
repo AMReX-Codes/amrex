@@ -1514,9 +1514,11 @@ documentation
 
 .. py:data:: integration.abs_tol
    :type: amrex::Real
-   :value: 1.e-9
+   :value: [depend on the type of amrex::Real]
 
-   Absolute tolerance for temporal error control.
+   Absolute tolerance for temporal error control. The default value is
+   ``1.e-9`` if :cpp:`amrex::Real` is ``double``, or ``1.e-6`` if
+   :cpp:`amrex::Real` is ``float``.
 
 .. py:data:: integration.fast_rel_tol
    :type: amrex::Real
@@ -1527,10 +1529,11 @@ documentation
 
 .. py:data:: integration.fast_abs_tol
    :type: amrex::Real
-   :value: 1.e-9
+   :value: [depend on the type of amrex::Real]
 
    Absolute tolerance for the temporal error at the fast time scale with
-   multrate methods.
+   multrate methods. The default value is ``1.e-9`` if :cpp:`amrex::Real` is
+   ``double``, or ``1.e-6`` if :cpp:`amrex::Real` is ``float``.
 
 .. _sec:inputs:timeintegration:sundials:algebraicsolvers:
 

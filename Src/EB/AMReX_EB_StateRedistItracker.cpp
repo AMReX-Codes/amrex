@@ -23,7 +23,11 @@ MakeITracker ( Box const& bx,
     int debug_verbose = 0;
 #endif
 
-    const Real small_norm_diff = Real(1e-8);
+#ifdef AMREX_USE_FLOAT
+    const Real small_norm_diff = Real(1.e-4);
+#else
+    const Real small_norm_diff = Real(1.e-8);
+#endif
 
     const Box domain = lev_geom.Domain();
 
@@ -309,7 +313,11 @@ MakeITracker ( Box const& bx,
      bool debug_print = false;
 #endif
 
+#ifdef AMREX_USE_FLOAT
+    const Real small_norm_diff = Real(1.e-4);
+#else
     const Real small_norm_diff = Real(1.e-8);
+#endif
 
     const Box domain = lev_geom.Domain();
 

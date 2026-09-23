@@ -403,6 +403,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
       if (apx(i,j,k) == 0)
@@ -425,7 +430,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           edg_x(i,j,k,n) = 0.5_rt * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
       }
-      else if (apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < Real(1.e-8)) )
+      else if (apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < small_ctr) )
       {
           Real d0 = 0.5_rt + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1 = 0.5_rt - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
@@ -437,7 +442,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           int ii = i - 1;
           int jj;
-          if (std::abs(fcx(i,j,k)) > Real(1.e-8)) {
+          if (std::abs(fcx(i,j,k)) > small_ctr) {
               jj = (fcx(i,j,k) < 0.0_rt) ? j - 1 : j + 1;
           } else {
 
@@ -487,6 +492,11 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
    {
       if (apy(i,j,k) == 0)
@@ -509,7 +519,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
       {
           edg_y(i,j,k,n) = 0.5_rt * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
       }
-      else if (apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < Real(1.e-8)) )
+      else if (apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < small_ctr) )
       {
           Real d0 = 0.5_rt + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ) to face(i,j)
           Real d1 = 0.5_rt - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1) to face(i,j)
@@ -524,7 +534,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 
           // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
-          if (std::abs(fcy(i,j,k)) > Real(1.e-8)) {
+          if (std::abs(fcy(i,j,k)) > small_ctr) {
               ii = (fcy(i,j,k) < 0.0_rt) ? i - 1 : i + 1;
           } else {
               // We must add an additional test to avoid the case where fcx is very close to zero,
