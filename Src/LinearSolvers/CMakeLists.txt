@@ -34,9 +34,14 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson.H
        MLMG/AMReX_MLPoisson_K.H
        MLMG/AMReX_MLPoisson_${D}D_K.H
+       AMReX_BiCGStab.H
+       AMReX_BiCGStab_MV.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
        AMReX_GMRES_MV.H
+       AMReX_KrylovMV.H
+       AMReX_PCG.H
+       AMReX_PCG_MV.H
        AMReX_Smoother_MV.H
        AMReX_Algebra.H
        AMReX_AlgPartition.H

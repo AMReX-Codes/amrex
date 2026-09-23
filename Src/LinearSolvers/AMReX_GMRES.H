@@ -105,13 +105,21 @@ public:
     /**
      * \brief Solve the linear system
      *
+     * The initial guess is zero unless setInitialGuessNonzero(true) was
+     * called, in which case it is the value of \p a_sol on entry.
+     *
      * \param a_sol     unknowns, i.e., x in A x = b.
      * \param a_rhs     RHS, i.e., b in A x = b.
-     * \param a_tol_rel relative tolerance.
+     * \param a_tol_rel relative tolerance, relative to the initial residual
+     *                  norm, which is ||b|| for a zero initial guess.
      * \param a_tol_abs absolute tolerance.
      * \param a_its     optional argument specifying the maximum number of iterations.
      */
     void solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int a_its=-1);
+
+    //! Use \p a_sol passed to solve() as the initial guess (default: false,
+    //! i.e., start from zero).
+    void setInitialGuessNonzero (bool flag) { m_nonzero_guess = flag; }
 
     //! Set verbosity level \p v (0 = silent).
     void setVerbose (int v) { m_verbose = v; }
@@ -156,6 +164,7 @@ private:
     int m_its = 0;
     int m_status = -1;
     int m_restrtlen = 30;
+    bool m_nonzero_guess = false;
     RT m_res = std::numeric_limits<RT>::max();
     RT m_rtol = RT(0);
     RT m_atol = RT(0);
@@ -258,8 +267,12 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 
     auto rnorm0 = RT(0);
 
-    m_linop->assign(m_vv[0], a_rhs);
-    m_linop->setToZero(a_sol);
+    if (m_nonzero_guess) {
+        compute_residual(m_vv[0], a_sol, a_rhs);
+    } else {
+        m_linop->assign(m_vv[0], a_rhs);
+        m_linop->setToZero(a_sol);
+    }
 
     m_its = 0;
     m_status = -1;

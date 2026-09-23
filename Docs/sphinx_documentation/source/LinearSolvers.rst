@@ -964,13 +964,41 @@ must provide some basic operations such as dot product and linear
 combination. For the full set of requirements on the operator class, see
 https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1GMRES.html#details.
 
+By default, :cpp:`GMRES<V,M>::solve` starts from a zero initial guess and
+overwrites the solution vector passed in. Call
+:cpp:`setInitialGuessNonzero(true)` to use the solution vector passed in as
+the initial guess instead. The relative tolerance is relative to the initial
+residual norm, which is the norm of the right-hand side only for a zero
+initial guess. BiCGStab and PCG below behave the same way.
+
 An example of using GMRES combined with a Jacobi preconditioner to solve
 Poisson's equation can be found at
 https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
 
 AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
 linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
-the preconditioner.
+the preconditioner. Like :cpp:`MLMG`, its :cpp:`solve` uses the solution
+passed in as the initial guess.
+
+BiCGStab
+========
+
+:cpp:`BiCGStab<V,M>` in ``AMReX_BiCGStab.H`` is a right-preconditioned
+BiCGStab solver with the same template parameters and operator requirements
+as :cpp:`GMRES<V,M>`, so an operator class written for GMRES can be used
+with BiCGStab without changes. Compared with GMRES, it needs a fixed number
+of vectors and performs a fixed number of dot products per iteration. Use
+:cpp:`getStatus` to check for a breakdown.
+
+PCG
+===
+
+:cpp:`PCG<V,M>` in ``AMReX_PCG.H`` is the preconditioned conjugate gradient
+method with the same operator requirements as :cpp:`GMRES<V,M>`. It needs a
+symmetric positive definite operator and preconditioner, and is then the
+cheapest of the three: one operator and one preconditioner application and
+three global reductions per iteration. :cpp:`getStatus` reports a loss of
+positive definiteness.
 
 Sparse Linear Algebra
 =====================
@@ -1026,9 +1054,19 @@ Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See
 ``Tests/Algebra`` for examples.
 
-Solvers for :cpp:`SpMatrix` systems are :cpp:`GMRES_MV<T>`
-(``AMReX_GMRES_MV.H``), which accepts a preconditioner functor. The
-smoothers in ``AMReX_Smoother_MV.H`` can be used as preconditioners and
+The following Krylov solvers work with :cpp:`SpMatrix` systems. Each of
+them accepts a preconditioner functor.
+
+- :cpp:`GMRES_MV<T>` in ``AMReX_GMRES_MV.H``: GMRES.
+- :cpp:`BiCGStab_MV<T>` in ``AMReX_BiCGStab_MV.H``: BiCGStab.
+- :cpp:`PCG_MV<T>` in ``AMReX_PCG_MV.H``: preconditioned conjugate
+  gradient, for symmetric positive definite systems.
+
+All three are aliases of :cpp:`KrylovMV<S,T>` in ``AMReX_KrylovMV.H``. Use
+:cpp:`getSolver` to reach the underlying solver, e.g., to call
+:cpp:`setInitialGuessNonzero` or :cpp:`getStatus`.
+
+The smoothers in ``AMReX_Smoother_MV.H`` can be used as preconditioners and
 as multigrid smoothers. All of them work with MPI, and all of them build
 their scaling on first use, so the first application, and
 :cpp:`ChebyshevSmoother::lambdaMax`, must be called on all processes.

@@ -42,6 +42,9 @@ public:
     /**
      * \brief Solve the linear system
      *
+     * \p a_sol on entry is always the initial guess;
+     * GMRES::setInitialGuessNonzero has no effect here.
+     *
      * \param a_sol     unknowns, i.e., x in A x = b.
      * \param a_rhs     RHS, i.e., b in A x = b.
      * \param a_tol_rel relative tolerance.
@@ -317,6 +320,7 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         m_linop->setDirichletNodesToZero(ilev,0,res[ilev]);
     }
+    m_gmres.setInitialGuessNonzero(false); // cor starts at zero
     m_gmres.solve(cor, res, a_tol_rel, a_tol_abs); // L(cor) = res
     // sol = sol - cor
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
