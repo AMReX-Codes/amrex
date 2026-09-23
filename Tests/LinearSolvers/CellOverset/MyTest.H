@@ -40,13 +40,15 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 
-    amrex::Real ascalar = 1.e-3;
+    amrex::Real ascalar = amrex::Real(1.e-3);
     amrex::Real bscalar = 1.0;
 
     int do_overset = 1;
     amrex::Vector<amrex::iMultiFab> oversetmask;
 
+#ifdef AMREX_USE_HYPRE
     int use_hypre = 0;
+#endif
 };
 
 #endif
