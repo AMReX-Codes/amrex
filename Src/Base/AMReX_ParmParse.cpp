@@ -912,10 +912,10 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
     }
 }
 
-std::size_t find_next_unquoted (std::string const& str, std::size_t start, char target);
+std::size_t find_next_array_sep (std::string const& str, std::size_t start);
 
-// Splits the array body on unquoted commas, just like countval does, so that
-// the number of elements found here agrees with countval.
+// Splits the array body on commas outside quotes and parentheses, so that
+// elements like (1,2,3) stay whole.
 template <typename T>
 void read_array_1d (std::vector<T>& ref, std::string const& str)
 {
@@ -930,7 +930,7 @@ void read_array_1d (std::vector<T>& ref, std::string const& str)
     }
     ++pos;
     while (pos < last) {
-        auto comma = find_next_unquoted(str, pos, ',');
+        auto comma = find_next_array_sep(str, pos);
         if (comma == std::string::npos || comma > last) { comma = last; }
         auto const elem = str.substr(pos, comma-pos);
         T v{};
@@ -969,6 +969,28 @@ std::size_t find_next_unquoted (std::string const& str, std::size_t start, char 
     return std::string::npos;
 }
 
+// Finds the next ',' outside quotes and parentheses.
+std::size_t find_next_array_sep (std::string const& str, std::size_t start)
+{
+    bool in_string = false;
+    int depth = 0;
+    for (std::size_t i = start; i < str.size(); ++i) {
+        char c = str[i];
+        if (c == '"' && !is_escaped_quote(str, i)) {
+            in_string = !in_string;
+        } else if (!in_string) {
+            if (c == '(') {
+                ++depth;
+            } else if (c == ')') {
+                --depth;
+            } else if (c == ',' && depth == 0) {
+                return i;
+            }
+        }
+    }
+    return std::string::npos;
+}
+
 void read_array_1d (std::vector<std::string>& ref, std::string const& str)
 {
     ref.clear();
@@ -977,7 +999,7 @@ void read_array_1d (std::vector<std::string>& ref, std::string const& str)
     if (pos == std::string::npos || last == std::string::npos || last < pos) { return; }
     ++pos;
     while (pos < last) {
-        auto comma = find_next_unquoted(str, pos, ',');
+        auto comma = find_next_array_sep(str, pos);
         if (comma == std::string::npos || comma > last) { comma = last; }
         auto elem = str.substr(pos, comma-pos);
         if (elem.empty()) {
