@@ -1017,8 +1017,8 @@ Column partitions are set on first use. Since a matrix keeps its column
 partition, a given matrix must always be used with the same column
 partition; for example, the same ``col_partition`` must be passed every time
 a matrix appears on the right-hand side of :cpp:`SpGEMM`. The first use in
-:cpp:`SpMV`, :cpp:`SpGEMM` or :cpp:`transpose` also ends the setup of a
-matrix, in serial builds too: afterwards its entries can no longer be
+:cpp:`SpMV`, :cpp:`SpGEMM`, :cpp:`transpose` or a smoother also ends the
+setup of a matrix, in serial builds too: afterwards its entries can no longer be
 changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
@@ -1027,5 +1027,15 @@ Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 ``Tests/Algebra`` for examples.
 
 Solvers for :cpp:`SpMatrix` systems are :cpp:`GMRES_MV<T>`
-(``AMReX_GMRES_MV.H``), which accepts a preconditioner functor such as
-:cpp:`JacobiSmoother<T>` (``AMReX_Smoother_MV.H``).
+(``AMReX_GMRES_MV.H``), which accepts a preconditioner functor. The
+smoothers in ``AMReX_Smoother_MV.H`` can be used as preconditioners and
+as multigrid smoothers. All of them work with MPI, and all of them build
+their scaling on first use, so the first application, and
+:cpp:`ChebyshevSmoother::lambdaMax`, must be called on all processes.
+
+- :cpp:`JacobiSmoother<T>`: weighted Jacobi, or l1-Jacobi with the l1
+  option. Works on CPUs and GPUs.
+- :cpp:`ChebyshevSmoother<T>`: Chebyshev polynomial smoother. Works on
+  CPUs and GPUs.
+- :cpp:`L1GaussSeidelSmoother<T>`: hybrid Gauss-Seidel with l1
+  correction. CPU builds only.
