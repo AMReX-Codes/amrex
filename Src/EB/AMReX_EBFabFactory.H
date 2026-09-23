@@ -100,7 +100,7 @@ public:
     //! Boundary centroid.
     [[nodiscard]] const MultiCutFab& getBndryCent () const noexcept { return m_ebdc->getBndryCent(); }
 
-    //! Boundary normals.
+    //! Boundary normal: unit vector in physical space pointing toward the covered part.
     [[nodiscard]] const MultiCutFab& getBndryNormal () const noexcept { return m_ebdc->getBndryNormal(); }
 
     //! Boundary area.

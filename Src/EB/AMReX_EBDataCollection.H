@@ -77,7 +77,7 @@ public:
     [[nodiscard]] const MultiCutFab& getBndryCent () const;
     //! Boundary area MultiCutFab.
     [[nodiscard]] const MultiCutFab& getBndryArea () const;
-    //! Boundary normal MultiCutFab.
+    //! Boundary normal MultiCutFab: unit vector in physical space pointing toward the covered part.
     [[nodiscard]] const MultiCutFab& getBndryNormal () const;
     //! Area fractions for faces in each coordinate direction.
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
