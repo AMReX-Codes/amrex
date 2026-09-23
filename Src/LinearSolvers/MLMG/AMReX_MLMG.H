@@ -1745,6 +1745,8 @@ void MLMGT<MF>::oneIter (int iter)
     {
         // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
+        // Known overset cells must not receive the interpolated correction.
+        linop.applyOverset(alev, cor[alev][0]);
 
         IntVect nghost(0);
         if (cf_strategy == CFStrategy::ghostnodes) { nghost = IntVect(linop.getNGrow(alev)); }
