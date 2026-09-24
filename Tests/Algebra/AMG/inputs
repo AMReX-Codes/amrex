@@ -1,6 +1,6 @@
 # Inputs for the AMG test. Command-line arguments override them, e.g.
 #   ./main3d.gnu.ex inputs problem=checker interp=direct verbose=1
-# Unless `bottom` is set, each problem runs every bottom solver and
+# With `variations = 1`, each problem runs every bottom solver and
 # variations of the interpolation, coarsening, truncation, smoother and
 # Krylov options, so the default run covers most of the solver.
 
@@ -16,6 +16,7 @@ jump    = 1.e3
 block   = 4
 eps     = 1.e-3
 
+variations = 1  # 0: run only the options given here
 max_iter = 200
 # reltol = 1.e-10 # 1.e-5 in single precision
 # seed = 1        # seed of the random coarse point selection
@@ -26,7 +27,7 @@ max_iter = 200
 interp   = ext+i     # direct, ext, ext+i
 smoother = chebyshev # jacobi, l1jacobi, chebyshev, l1gs (CPU only)
 krylov   = none      # none, bicgstab, gmres, pcg
-# bottom = bicgstab  # jacobi, bicgstab, gmres; runs only this case
+bottom   = jacobi    # jacobi, bicgstab, gmres; used as is with variations = 0
 # theta = 0.25            # strength threshold
 # aggressive_levels = 0   # levels with aggressive coarsening
 # p_max_elmts = 4         # max entries per row of P (0: no limit)

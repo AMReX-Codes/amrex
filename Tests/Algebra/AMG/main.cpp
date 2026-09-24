@@ -25,7 +25,8 @@ struct Params {
     int fixed_iter = 0;
     Real reltol = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-10);
     Real alpha = Real(1); // 1.e-6 makes the constant mode nearly null
-    std::string bottom; // empty: run all bottom solvers
+    int variations = 1; // 1: also run variations of the options; 0: only them
+    std::string bottom = "jacobi"; // jacobi, bicgstab, gmres
     std::string interp = "ext+i"; // direct, ext, ext+i
     std::string smoother = "chebyshev"; // jacobi, l1jacobi, chebyshev, l1gs (CPU)
     std::string krylov = "none"; // none, bicgstab, gmres, pcg
@@ -404,9 +405,9 @@ Result run (Params const& p)
             .niters = amg.getNumIters()};
 }
 
-// The cases run for one problem: the given options with each bottom solver,
-// and unless a bottom solver is given, variations of the other options
-// with the BiCGStab bottom solver.
+// The cases run for one problem: the given options, or with `variations`,
+// the given options with each bottom solver and variations of the other
+// options with the BiCGStab bottom solver.
 Vector<Params> make_cases (Params const& p)
 {
     Vector<Params> cases;
@@ -415,8 +416,8 @@ Vector<Params> make_cases (Params const& p)
         cases.back().bottom = bottom;
         return cases.back();
     };
-    if (!p.bottom.empty()) {
-        add(p.bottom);
+    if (!p.variations) {
+        cases.push_back(p);
         return cases;
     }
     for (auto const& b : {"jacobi", "bicgstab", "gmres"}) { add(b); }
@@ -490,6 +491,7 @@ int main (int argc, char* argv[])
         pp.query("fixed_iter", p.fixed_iter);
         pp.query("reltol", p.reltol);
         pp.query("alpha", p.alpha);
+        pp.query("variations", p.variations);
         pp.query("bottom", p.bottom);
         pp.query("interp", p.interp);
         pp.query("smoother", p.smoother);
