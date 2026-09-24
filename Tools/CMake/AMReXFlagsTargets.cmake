@@ -51,10 +51,13 @@ add_library(AMReX::Flags_CXX ALIAS Flags_CXX)
 if (NOT AMReX_HIP)
 target_compile_options( Flags_CXX
    INTERFACE
-   $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
+# -Wno-deprecated-openmp: newer GNU compilers (e.g., GCC16) warn about constructs deprecated in OpenMP 5.1,
+#                         specifically suggesting to replace "#pragma omp master" with "#pragma omp masked".
+#                         However, AMReX supports GCC11, which does not implement "#pragma omp masked".
+   $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type -Wno-deprecated-openmp>
 #    $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.0>:-Wnull-dereference>
-   $<${_cxx_gnu_rwdbg}:-Werror=return-type>
-   $<${_cxx_gnu_rel}:-Werror=return-type>
+   $<${_cxx_gnu_rwdbg}:-Werror=return-type -Wno-deprecated-openmp>
+   $<${_cxx_gnu_rel}:-Werror=return-type -Wno-deprecated-openmp>
    $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
    $<${_cxx_intel_rwdbg}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
@@ -159,7 +162,7 @@ target_compile_options ( Flags_FPE
    # Flang has no FPE trapping option.
    $<${_fortran_llvmflang}:>
    $<${_cxx_clang}:-ftrapv>
-   $<${_cxx_appleclang}:-ftrapv>	
+   $<${_cxx_appleclang}:-ftrapv>
    )
 endif()
 

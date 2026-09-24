@@ -121,6 +121,12 @@ ifeq ($(WARN_ALL),TRUE)
   CFLAGS += $(warning_flags)
 endif
 
+# disable warning: newer GNU compilers (e.g., GCC16) warn about constructs deprecated in OpenMP 5.1,
+#                  specifically suggesting to replace "#pragma omp master" with "#pragma omp masked".
+#                  However, AMReX supports GCC11, which does not implement "#pragma omp masked".
+CXXFLAGS += -Wno-deprecated-openmp
+CFLAGS += -Wno-deprecated-openmp
+
 ifeq ($(WARN_ERROR),TRUE)
   CXXFLAGS += -Werror
   CFLAGS += -Werror
