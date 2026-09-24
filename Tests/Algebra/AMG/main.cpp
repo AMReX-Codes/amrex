@@ -35,8 +35,8 @@ struct Params {
     int row_scale = 0;      // divide each row of A (and the rhs) by its diagonal
     int mlmg = 0;           // also solve with geometric MLMG for comparison
     int max_grid_size = 64; // for MLMG
-    std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels, agg_levels,
-                       cheby_degree, agg_direct;
+    std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
+                       aggressive_levels, cheby_degree, aggressive_direct;
     std::optional<Long> max_coarse_size;
     std::optional<Real> bottom_tol, trunc_factor, relax_weight, cheby_ratio, theta;
 };
@@ -294,8 +294,8 @@ Result run (Params const& p)
     if (p.p_max_elmts) { amg.setPMaxElmts(*p.p_max_elmts); }
     if (p.trunc_factor) { amg.setTruncFactor(*p.trunc_factor); }
     if (p.max_levels) { amg.setMaxLevels(*p.max_levels); }
-    if (p.agg_levels) { amg.setAggNumLevels(*p.agg_levels); }
-    if (p.agg_direct) { amg.setAggDirectInterp(*p.agg_direct != 0); }
+    if (p.aggressive_levels) { amg.setAggressiveNumLevels(*p.aggressive_levels); }
+    if (p.aggressive_direct) { amg.setAggressiveDirectInterp(*p.aggressive_direct != 0); }
     bool const singular = (p.alpha == Real(0));
     if (singular) { amg.setSingular(true); }
     if (p.max_coarse_size) { amg.setMaxCoarseSize(*p.max_coarse_size); }
@@ -362,7 +362,7 @@ Result run (Params const& p)
     auto error = xvec.norminf();
     amrex::Print() << "AMG(" << interp << ", " << p.smoother << ", " << bottom << ", n_cell=" << n_cell
                    << ", levels=" << amg.numLevels()
-                   << (p.agg_levels.value_or(0) > 0 ? ", aggressive" : "")
+                   << (p.aggressive_levels.value_or(0) > 0 ? ", aggressive" : "")
                    << (p.krylov != "none" ? ", krylov=" + p.krylov : "")
                    << (singular ? ", singular" : "")
                    << (p.row_scale ? ", row-scaled" : "")
@@ -413,8 +413,8 @@ int main (int argc, char* argv[])
         query_opt("cheby_ratio", p.cheby_ratio);
         query_opt("theta", p.theta);
         query_opt("max_levels", p.max_levels);
-        query_opt("agg_levels", p.agg_levels);
-        query_opt("agg_direct", p.agg_direct);
+        query_opt("aggressive_levels", p.aggressive_levels);
+        query_opt("aggressive_direct", p.aggressive_direct);
         query_opt("max_coarse_size", p.max_coarse_size);
 
         Vector<std::string> bottoms;
@@ -435,10 +435,10 @@ int main (int argc, char* argv[])
                     cases.back().bottom = "bicgstab";
                 }
             }
-            if (!p.agg_levels) {
+            if (!p.aggressive_levels) {
                 cases.push_back(p);
                 cases.back().bottom = "bicgstab";
-                cases.back().agg_levels = 1;
+                cases.back().aggressive_levels = 1;
             }
             if (p.alpha != Real(0)) {
                 // Singular periodic Poisson: plain cycles and PCG.

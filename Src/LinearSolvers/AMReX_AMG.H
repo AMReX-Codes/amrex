@@ -200,9 +200,9 @@ struct MMInterpRow
  * [2], distance-two interpolation [3] in the matrix-matrix form of [4]
  * (or classical direct interpolation [1]), R = P^T and A_c = R A P,
  * repeated until the coarsest level has at most `max_coarse_size` rows.
- * On the first `agg_num_levels` levels, aggressive coarsening [5] applies
- * PMIS a second time on the distance-two graph of the C-points, with a
- * two-stage interpolation P = P1 P2 built with the same matrix-matrix
+ * On the first `aggressive_num_levels` levels, aggressive coarsening [5]
+ * applies PMIS a second time on the distance-two graph of the C-points,
+ * with a two-stage interpolation P = P1 P2 built with the same matrix-matrix
  * formulas. The solve runs V-cycles with Chebyshev [7] (default),
  * l1-Jacobi [6], weighted Jacobi or, on CPUs, l1 hybrid Gauss-Seidel [6]
  * smoothing. The coarsest level is solved with smoother sweeps (default),
@@ -315,10 +315,10 @@ public:
     //! Stop coarsening when a level has at most this many rows. Next setup.
     void setMaxCoarseSize (Long n) { m_max_coarse_size = n; m_prepared = false; }
     //! Number of levels with aggressive coarsening, starting at the finest. Next setup.
-    void setAggNumLevels (int n) { m_agg_num_levels = n; m_prepared = false; }
+    void setAggressiveNumLevels (int n) { m_aggressive_num_levels = n; m_prepared = false; }
     //! Use classical direct interpolation for the first stage of the
     //! two-stage aggressive interpolation (cheaper setup, more cycles).
-    void setAggDirectInterp (bool b) { m_agg_direct_interp = b; m_prepared = false; }
+    void setAggressiveDirectInterp (bool b) { m_aggressive_direct_interp = b; m_prepared = false; }
     //! Singular matrix with the constant vector in its null space (e.g.
     //! Poisson with periodic or Neumann boundaries). The mean is removed
     //! from the right-hand side and the coarsest residuals, and the
@@ -392,8 +392,8 @@ private:
 
     int m_max_levels = 25;
     Long m_max_coarse_size = 9;
-    int m_agg_num_levels = 0;
-    bool m_agg_direct_interp = false;
+    int m_aggressive_num_levels = 0;
+    bool m_aggressive_direct_interp = false;
     bool m_singular = false;
     std::unique_ptr<AlgVector<T>> m_bproj; // rhs with the mean removed
     T m_strong_threshold = T(0.25);
@@ -907,7 +907,7 @@ void AMG<T>::setup ()
         ncoarse = cpart.numGlobalRows();
         if (ncoarse == 0 || ncoarse == A.numGlobalRows()) { break; }
 
-        if (lev < m_agg_num_levels) {
+        if (lev < m_aggressive_num_levels) {
             // Second PMIS pass on the C-points connected at distance two.
             auto S2 = second_pass_strength(S, state, cidx, cpart);
             S2.setColumnPartition(cpart);
@@ -940,8 +940,8 @@ void AMG<T>::setup ()
                 Gpu::streamSynchronize();
 
                 bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
-                auto P1 = m_agg_direct_interp ? build_interp(A, S, state, cidx, cpart)
-                                              : interpolation(A, S, ST, state, cidx, cpart);
+                auto P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
+                                                     : interpolation(A, S, ST, state, cidx, cpart);
                 if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
                 note_memory(lev, "P1");
                 auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2,

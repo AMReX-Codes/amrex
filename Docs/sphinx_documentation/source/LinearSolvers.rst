@@ -1152,11 +1152,11 @@ The following can be tuned:
 - :cpp:`setMaxCoarseSize` and :cpp:`setMaxLevels`: coarsening stops when a
   level has at most this many rows (9) or this many levels (25) have been
   built.
-- :cpp:`setAggNumLevels(n)`: the first ``n`` levels use aggressive
+- :cpp:`setAggressiveNumLevels(n)`: the first ``n`` levels use aggressive
   coarsening [Yang2010]_ (0 by default). In the tests this roughly halved
   the operator complexity at the price of more cycles.
-- :cpp:`setAggDirectInterp(true)`: makes the setup of the aggressive levels
-  cheaper but costs further cycles, so it is off by default.
+- :cpp:`setAggressiveDirectInterp(true)`: makes the setup of the aggressive
+  levels cheaper but costs further cycles, so it is off by default.
 
 .. [Ruge1987] J. W. Ruge and K. Stüben, Algebraic multigrid, in
    *Multigrid Methods*, S. F. McCormick, ed., SIAM, Philadelphia, 1987,
