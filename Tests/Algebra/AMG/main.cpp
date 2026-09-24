@@ -31,6 +31,8 @@ struct Params {
     std::string interp = "ext+i"; // direct, ext, ext+i
     std::string smoother = "chebyshev"; // jacobi, l1jacobi, chebyshev, l1gs (CPU)
     std::string krylov = "none"; // none, bicgstab, gmres, pcg
+    // periodic, or dirichlet: homogeneous Dirichlet on the domain faces
+    std::string bc = "periodic";
     // Input `problem` is a list (all four by default); each run has one.
     // constant: a*phi - lap(phi);
     // jump: coefficient `jump` in the central cube;
@@ -103,7 +105,9 @@ void run_mlmg (Params const& p)
     Coef const coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain};
     Real const L = Real(2)*Math::pi<Real>();
     RealBox rb(AMREX_D_DECL(Real(0),Real(0),Real(0)), AMREX_D_DECL(L,L,L));
-    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
+    bool const dirichlet = (p.bc == "dirichlet");
+    int const per = dirichlet ? 0 : 1;
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(per,per,per)};
     Geometry geom(domain, rb, CoordSys::cartesian, is_periodic);
     BoxArray ba(domain);
     ba.maxSize(p.max_grid_size);
@@ -133,12 +137,16 @@ void run_mlmg (Params const& p)
         auto const& bfa = bcoef[idim].arrays();
         ParallelFor(bcoef[idim], [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            IntVect const hi(AMREX_D_DECL(i,j,k));
+            IntVect hi(AMREX_D_DECL(i,j,k));
             IntVect lo = hi;
             lo[idim] -= 1;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) { // periodic wrap
-                int const n = domain.length(d);
-                lo[d] = ((lo[d] % n) + n) % n;
+            int const n = domain.length(idim);
+            if (dirichlet) { // boundary faces take the inside cell's coefficient
+                if (lo[idim] < 0) { lo = hi; }
+                if (hi[idim] >= n) { hi = lo; }
+            } else { // periodic wrap
+                lo[idim] = ((lo[idim] % n) + n) % n;
+                hi[idim] = hi[idim] % n;
             }
             Real const b0 = coef(lo, idim);
             Real const b1 = coef(hi, idim);
@@ -148,8 +156,8 @@ void run_mlmg (Params const& p)
     Gpu::streamSynchronize();
 
     MLABecLaplacian mlabec({geom}, {ba}, {dm});
-    mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,LinOpBCType::Periodic,LinOpBCType::Periodic)},
-                       {AMREX_D_DECL(LinOpBCType::Periodic,LinOpBCType::Periodic,LinOpBCType::Periodic)});
+    auto const lbc = dirichlet ? LinOpBCType::Dirichlet : LinOpBCType::Periodic;
+    mlabec.setDomainBC({AMREX_D_DECL(lbc,lbc,lbc)}, {AMREX_D_DECL(lbc,lbc,lbc)});
     mlabec.setLevelBC(0, nullptr);
     mlabec.setScalars(a, Real(1));
     mlabec.setACoeffs(0, Real(1));
@@ -175,7 +183,7 @@ void run_mlmg (Params const& p)
     mlmg.compResidual({&res}, {&phi}, {&rhs});
     Real const rel_res = res.norminf(0, 0) / rhs.norminf(0, 0);
     MultiFab::Subtract(phi, exact, 0, 0, 1, 0);
-    if (a == Real(0)) { // solution defined up to a constant
+    if (a == Real(0) && !dirichlet) { // solution defined up to a constant
         phi.plus(-phi.sum(0) / Real(domain.numPts()), 0, 1, 0);
     }
     amrex::Print() << "  MLMG for comparison: ";
@@ -191,8 +199,9 @@ void run_mlmg (Params const& p)
     }
 }
 
-// Periodic a*phi - div(beta grad phi) with phi = prod sin^5; the rhs is the
-// analytic discrete Laplacian for the constant problem and A*phi otherwise.
+// a*phi - div(beta grad phi) with phi = prod sin^5, periodic or with
+// Dirichlet on the domain faces. The rhs is the analytic discrete Laplacian
+// for the periodic constant problem and A*phi otherwise.
 Result run (Params const& p)
 {
     int const n_cell = p.n_cell;
@@ -256,7 +265,9 @@ Result run (Params const& p)
 
     xvec.setVal(0);
 
-    // cross stencil w/ periodic boundaries, harmonic face coefficients
+    // Cross stencil with harmonic face coefficients. A Dirichlet boundary
+    // face adds 2 b / dx^2 to the diagonal (as in MLMG) and has no neighbor.
+    bool const dirichlet = (p.bc == "dirichlet");
     auto set_stencil = [=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
     {
         IntVect cell = box_indexer.intVect(row);
@@ -264,41 +275,53 @@ Result run (Params const& p)
         Real diag = a;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             Real const b0 = coef(cell, idim);
-            IntVect cell2 = cell;
-            if (cell[idim] == domain.smallEnd(idim)) {
-                cell2[idim] = domain.bigEnd(idim);
-            } else {
-                cell2[idim] = cell[idim] - 1;
+            for (int side = -1; side <= 1; side += 2) {
+                IntVect cell2 = cell;
+                cell2[idim] += side;
+                bool const outside = (cell2[idim] < domain.smallEnd(idim) ||
+                                      cell2[idim] > domain.bigEnd(idim));
+                if (outside && dirichlet) {
+                    col[i] = -1; // dropped
+                    val[i] = Real(0);
+                    diag += Real(2)*b0/(dx*dx);
+                } else {
+                    if (outside) { // periodic wrap
+                        cell2[idim] = (side < 0) ? domain.bigEnd(idim) : domain.smallEnd(idim);
+                    }
+                    Real const b1 = coef(cell2, idim);
+                    Real const bf = Real(2)*b0*b1/(b0+b1);
+                    col[i] = domain.index(cell2);
+                    val[i] = -bf/(dx*dx);
+                    diag += bf/(dx*dx);
+                }
+                ++i;
             }
-            Long row2 = domain.index(cell2);
-            Real b1 = coef(cell2, idim);
-            Real bf = Real(2)*b0*b1/(b0+b1);
-            col[i] = row2;
-            val[i] = -bf/(dx*dx);
-            diag += bf/(dx*dx);
-            ++i;
-
-            if (cell[idim] == domain.bigEnd(idim)) {
-                cell2[idim] = domain.smallEnd(idim);
-            } else {
-                cell2[idim] = cell[idim] + 1;
-            }
-            row2 = domain.index(cell2);
-            b1 = coef(cell2, idim);
-            bf = Real(2)*b0*b1/(b0+b1);
-            col[i] = row2;
-            val[i] = -bf/(dx*dx);
-            diag += bf/(dx*dx);
-            ++i;
         }
         col[i] = row;
         val[i] = diag;
     };
 
-    int num_non_zeros = 2*AMREX_SPACEDIM+1;
-    SpMatrix<Real> mat(xvec.partition(), num_non_zeros);
-    mat.setVal(set_stencil, CsrSorted{false});
-    if (ptype != 0) { SpMV(bvec, mat, exact); } // rhs = A*phi
+    int const nnz_row = 2*AMREX_SPACEDIM+1;
+    Long const nlocal = xvec.numLocalRows();
+    SpMatrix<Real> mat;
+    {
+        Gpu::DeviceVector<Real> vals(nlocal*nnz_row);
+        Gpu::DeviceVector<Long> cols(nlocal*nnz_row);
+        Gpu::DeviceVector<Long> offsets(nlocal+1);
+        auto* pv = vals.data();
+        auto* pc = cols.data();
+        auto* po = offsets.data();
+        Long const ib = xvec.globalBegin();
+        ParallelFor(nlocal+1, [=] AMREX_GPU_DEVICE (Long lrow)
+        {
+            po[lrow] = lrow*nnz_row;
+            if (lrow < nlocal) { set_stencil(lrow+ib, pc+lrow*nnz_row, pv+lrow*nnz_row); }
+        });
+        Gpu::streamSynchronize();
+        mat.define(xvec.partition(), pv, pc, nlocal*nnz_row, po, CsrSorted{false},
+                   CsrValid{!dirichlet});
+    }
+    if (ptype != 0 || dirichlet) { SpMV(bvec, mat, exact); } // rhs = A*phi
 
     AMG<Real> amg(mat);
     amg.setMaxIter(p.max_iter);
@@ -314,7 +337,7 @@ Result run (Params const& p)
     if (p.max_levels) { amg.setMaxLevels(*p.max_levels); }
     if (p.aggressive_levels) { amg.setAggressiveNumLevels(*p.aggressive_levels); }
     if (p.aggressive_direct) { amg.setAggressiveDirectInterp(*p.aggressive_direct != 0); }
-    bool const singular = (p.alpha == Real(0));
+    bool const singular = (p.alpha == Real(0) && !dirichlet);
     if (singular) { amg.setSingular(true); }
     if (p.max_coarse_size) { amg.setMaxCoarseSize(*p.max_coarse_size); }
     if (interp == "direct") {
@@ -384,12 +407,16 @@ Result run (Params const& p)
     auto rel_res = rnorm / bnorm;
 
     // A is symmetric and A e = -r, so |e|_inf <= |e|_2 <= |r|_2 / lambda_min.
-    // lambda_min is alpha, or for the singular problem (mean-zero error) at
-    // least the smallest coefficient times the lowest periodic Laplacian
-    // eigenvalue.
+    // Periodic: lambda_min is alpha, or for the singular problem (mean-zero
+    // error) at least the smallest coefficient times the lowest nonzero
+    // Laplacian eigenvalue. Dirichlet: at least alpha plus the smallest
+    // coefficient times the lowest eigenvalue with the boundary one cell out.
     Real const cmin = (ptype == 0) ? Real(1) : (ptype == 3) ? std::min(Real(1), p.eps)
                                              : std::min(Real(1), p.jump);
-    Real const lam_min = singular ? cmin * (Real(2) - Real(2)*std::cos(dx)) / (dx*dx) : a;
+    Real const lam_min = dirichlet
+        ? a + cmin * Real(AMREX_SPACEDIM) *
+              (Real(2) - Real(2)*std::cos(amrex::Math::pi<Real>()/Real(n_cell+1))) / (dx*dx)
+        : singular ? cmin * (Real(2) - Real(2)*std::cos(dx)) / (dx*dx) : a;
     Real const err_bound = Real(1.01) * rnorm / lam_min
         + Real(100) * std::numeric_limits<Real>::epsilon();
 
@@ -454,7 +481,7 @@ std::string given_options (Params const& p)
 std::string problem_line (Params const& p)
 {
     std::ostringstream os;
-    os << p.problem << ": n_cell=" << p.n_cell << " alpha=" << p.alpha;
+    os << p.problem << ": n_cell=" << p.n_cell << " bc=" << p.bc << " alpha=" << p.alpha;
     if (p.problem == "jump" || p.problem == "checker") { os << " jump=" << p.jump; }
     if (p.problem == "checker") { os << " block=" << p.block; }
     if (p.problem == "aniso") { os << " eps=" << p.eps; }
@@ -588,6 +615,8 @@ int main (int argc, char* argv[])
         pp.query("interp", p.interp);
         pp.query("smoother", p.smoother);
         pp.query("krylov", p.krylov);
+        pp.query("bc", p.bc);
+        if (p.bc != "periodic" && p.bc != "dirichlet") { amrex::Abort("Unknown bc: " + p.bc); }
         Vector<std::string> problems; // queryarr does not shrink a vector
         pp.queryarr("problem", problems);
         if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso"}; }
@@ -622,8 +651,8 @@ int main (int argc, char* argv[])
         query_opt("max_coarse_size", p.max_coarse_size);
 
         if (p.n_cell < 3) {
-            // With fewer cells the periodic stencil wraps onto one cell and
-            // the matrix would have duplicate entries.
+            // Periodic: the stencil would wrap onto one cell. Dirichlet: the
+            // exact solution would be zero.
             amrex::Abort("n_cell must be at least 3");
         }
 
