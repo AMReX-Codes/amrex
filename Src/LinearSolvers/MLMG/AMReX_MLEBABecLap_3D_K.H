@@ -27,6 +27,8 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         Real alpha, Real beta, int ncomp) noexcept
 {
+    amrex::ignore_unused(ba);
+
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
@@ -187,27 +189,24 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued()) {
-                Real dapx = apxm-apxp;
-                Real dapy = apym-apyp;
-                Real dapz = apzm-apzp;
-                Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-                Real anorminv = Real(1.0)/anorm;
-                Real anrmx = dapx * anorminv;
-                Real anrmy = dapy * anorminv;
-                Real anrmz = dapz * anorminv;
+                // The least-squares gradient is in index space, so this
+                // weighting gives the EB flux per cell volume.
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
+                Real anrmz = dhz*(apzm-apzp);
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,anrmz,is_eb_inhomog,
                                                          on_x_face,domlo_x,domhi_x,
                                                          on_y_face,domlo_y,domhi_y,
                                                          on_z_face,domlo_z,domhi_z);
-                feb *= ba(i,j,k) * beb(i,j,k,n);
+                feb *= beb(i,j,k,n);
             }
 
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
                 (dhx*(apxm*fxm - apxp*fxp) +
                  dhy*(apym*fym - apyp*fyp) +
-                 dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
+                 dhz*(apzm*fzm - apzp*fzp) - feb);
         }
     });
 }

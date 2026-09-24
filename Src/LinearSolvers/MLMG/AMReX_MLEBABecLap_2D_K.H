@@ -25,9 +25,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         Real alpha, Real beta, int ncomp) noexcept
 {
+    amrex::ignore_unused(ba);
+
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dh  = beta*dxinv[0]*dxinv[1];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -139,25 +140,22 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
             {
-                Real dapx = (apxm-apxp)/dxinv[1];
-                Real dapy = (apym-apyp)/dxinv[0];
-                Real anorm = std::hypot(dapx,dapy);
-                Real anorminv = Real(1.0)/anorm;
-                Real anrmx = dapx * anorminv;
-                Real anrmy = dapy * anorminv;
-
+                // The least-squares gradient is in index space, so this
+                // weighting gives the EB flux per cell volume.
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,is_eb_inhomog,
                                                          on_x_face, domlo_x, domhi_x,
                                                          on_y_face, domlo_y, domhi_y);
 
-                feb *= ba(i,j,k) * beb(i,j,k,n);
+                feb *= beb(i,j,k,n);
             }
 
 
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
-                (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - dh*feb);
+                (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - feb);
         }
     });
 }
