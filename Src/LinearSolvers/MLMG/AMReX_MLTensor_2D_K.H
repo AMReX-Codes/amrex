@@ -35,12 +35,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     if (icorner == 0) { // xlo & ylo
         int const i = vlo.x-1;
         int const j = vlo.y-1;
-        if (mxlo(i,j,k) != BndryData::covered && (dlo.x != vlo.x || dlo.y != vlo.y)) {
+        if (mxlo(i,j,k) != BndryData::covered) {
             bool x_interior = mylo(i+1,j  ,k) == BndryData::covered; // i+1,j is a valid cell inside domain
             bool x_exterior = mylo(i+1,j  ,k) == BndryData::not_covered; // i+1,j is a ghost cell inside domain
             bool y_interior = mxlo(i  ,j+1,k) == BndryData::covered;
             bool y_exterior = mxlo(i  ,j+1,k) == BndryData::not_covered;
-            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+            if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+                (dlo.x == vlo.x && dlo.y == vlo.y)) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -72,12 +73,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     } else if (icorner == 1) { // xhi & ylo
         int const i = vhi.x+1;
         int const j = vlo.y-1;
-        if (mxhi(i,j,k) != BndryData::covered && (dhi.x != vhi.x || dlo.y != vlo.y)) {
+        if (mxhi(i,j,k) != BndryData::covered) {
             bool x_interior = mylo(i-1,j  ,k) == BndryData::covered;
             bool x_exterior = mylo(i-1,j  ,k) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j+1,k) == BndryData::covered;
             bool y_exterior = mxhi(i  ,j+1,k) == BndryData::not_covered;
-            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+            if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+                (dhi.x == vhi.x && dlo.y == vlo.y)) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -109,12 +111,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     } else if (icorner == 2) { // xlo & yhi
         int const i = vlo.x-1;
         int const j = vhi.y+1;
-        if (mxlo(i,j,k) != BndryData::covered && (dlo.x != vlo.x || dhi.y != vhi.y)) {
+        if (mxlo(i,j,k) != BndryData::covered) {
             bool x_interior = myhi(i+1,j  ,k) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k) == BndryData::not_covered;
             bool y_interior = mxlo(i  ,j-1,k) == BndryData::covered;
             bool y_exterior = mxlo(i  ,j-1,k) == BndryData::not_covered;
-            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+            if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+                (dlo.x == vlo.x && dhi.y == vhi.y)) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -146,12 +149,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     } else if (icorner == 3) { // xhi & yhi
         int const i = vhi.x+1;
         int const j = vhi.y+1;
-        if (mxhi(i,j,k) != BndryData::covered && (dhi.x != vhi.x || dhi.y != vhi.y)) {
+        if (mxhi(i,j,k) != BndryData::covered) {
             bool x_interior = myhi(i-1,j  ,k) == BndryData::covered;
             bool x_exterior = myhi(i-1,j  ,k) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j-1,k) == BndryData::covered;
             bool y_exterior = mxhi(i  ,j-1,k) == BndryData::not_covered;
-            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+            if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+                (dhi.x == vhi.x && dhi.y == vhi.y)) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),

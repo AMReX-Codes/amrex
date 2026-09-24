@@ -846,9 +846,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 
                     if (is_dirichlet)
                     {
-                        Real dapx = apx(i+1,j,k)-apx(i,j,k);
-                        Real dapy = apy(i,j+1,k)-apy(i,j,k);
-                        Real dapz = apz(i,j,k+1)-apz(i,j,k);
+                        Real dapx = (apx(i+1,j,k)-apx(i,j,k)) / (dyi*dzi);
+                        Real dapy = (apy(i,j+1,k)-apy(i,j,k)) / (dxi*dzi);
+                        Real dapz = (apz(i,j,k+1)-apz(i,j,k)) / (dxi*dyi);
                         Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                         Real anrmx = -dapx * anorminv;
                         Real anrmy = -dapy * anorminv;
@@ -862,14 +862,18 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                             velb_2 = velb(i,j,k,2);
                         }
 
+                        // g is displaced along the physical normal; dg is the physical distance
                         Real dx_eb = amrex::max(Real(0.3), (kappa*kappa-Real(0.25))/(Real(2.)*kappa));
-                        Real dg = dx_eb / amrex::max(std::abs(anrmx),
-                                                     std::abs(anrmy),
-                                                     std::abs(anrmz));
+                        Real mx = anrmx*dxi;
+                        Real my = anrmy*dyi;
+                        Real mz = anrmz*dzi;
+                        Real dg = dx_eb / amrex::max(std::abs(mx),
+                                                     std::abs(my),
+                                                     std::abs(mz));
                         Real dginv = Real(1.0)/dg;
-                        Real gx = bc(i,j,k,0) - dg*anrmx;
-                        Real gy = bc(i,j,k,1) - dg*anrmy;
-                        Real gz = bc(i,j,k,2) - dg*anrmz;
+                        Real gx = bc(i,j,k,0) - dg*mx;
+                        Real gy = bc(i,j,k,1) - dg*my;
+                        Real gz = bc(i,j,k,2) - dg*mz;
                         int isx = (anrmx > Real(0.0)) ? 1 : -1;
                         int isy = (anrmy > Real(0.0)) ? 1 : -1;
                         int isz = (anrmz > Real(0.0)) ? 1 : -1;
@@ -940,25 +944,24 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real tauzz = mu*dwdz + tautmp;
                         Real tauxz = mu*dudz;
                         Real tauyz = mu*dvdz;
-                        // assuming dxi == dyi == dzi
-                        feb_0 = dxi*(dapx*tauxx + dapy*tauyx + dapz*tauzx);
-                        feb_1 = dxi*(dapx*tauxy + dapy*tauyy + dapz*tauzy);
-                        feb_2 = dxi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
+                        feb_0 = dxi*dyi*dzi*(dapx*tauxx + dapy*tauyx + dapz*tauzx);
+                        feb_1 = dxi*dyi*dzi*(dapx*tauxy + dapy*tauyy + dapz*tauzy);
+                        feb_2 = dxi*dyi*dzi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
                     }
 
                     Real volinv = bscalar / kappa;
                     Ax(i,j,k,0) += volinv * (dxi*(apx(i+1,j,k)*fxp_0-apx(i,j,k)*fxm_0)
                                             +dyi*(apy(i,j+1,k)*fyp_0-apy(i,j,k)*fym_0)
                                             +dzi*(apz(i,j,k+1)*fzp_0-apz(i,j,k)*fzm_0)
-                                            +dxi*                               feb_0);
+                                            +                                   feb_0);
                     Ax(i,j,k,1) += volinv * (dxi*(apx(i+1,j,k)*fxp_1-apx(i,j,k)*fxm_1)
                                             +dyi*(apy(i,j+1,k)*fyp_1-apy(i,j,k)*fym_1)
                                             +dzi*(apz(i,j,k+1)*fzp_1-apz(i,j,k)*fzm_1)
-                                            +dxi*                               feb_1);
+                                            +                                   feb_1);
                     Ax(i,j,k,2) += volinv * (dxi*(apx(i+1,j,k)*fxp_2-apx(i,j,k)*fxm_2)
                                             +dyi*(apy(i,j+1,k)*fyp_2-apy(i,j,k)*fym_2)
                                             +dzi*(apz(i,j,k+1)*fzp_2-apz(i,j,k)*fzm_2)
-                                            +dxi*                               feb_2);
+                                            +                                   feb_2);
                 }
             }
         }

@@ -187,7 +187,6 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
     auto const& apy  = ebdata.get<EBData_t::apy>();
     auto const& fcx  = ebdata.get<EBData_t::fcx>();
     auto const& fcy  = ebdata.get<EBData_t::fcy>();
-    auto const& ba   = ebdata.get<EBData_t::bndryarea>();
     auto const& bc   = ebdata.get<EBData_t::bndrycent>();
 
     if (flag(i,j,k).isCovered())
@@ -273,16 +272,15 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
             Real bcty = bc(i,j,k,1);
             Real dx_eb = get_dx_eb(kappa);
 
-            Real dg, gx, gy, sx, sy;
-            if (std::abs(anrmx) > std::abs(anrmy)) {
-                dg = dx_eb / std::abs(anrmx);
-            } else {
-                dg = dx_eb / std::abs(anrmy);
-            }
-            gx = (bctx - dg*anrmx);
-            gy = (bcty - dg*anrmy);
-            sx = std::copysign(Real(1.0),anrmx);
-            sy = std::copysign(Real(1.0),anrmy);
+            // Move g from the boundary centroid along the physical normal.
+            // dg is the physical distance and anorm the physical EB length.
+            Real mx = anrmx*dxinv[0];
+            Real my = anrmy*dxinv[1];
+            Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+            Real gx = bctx - dg*mx;
+            Real gy = bcty - dg*my;
+            Real sx = std::copysign(Real(1.0),anrmx);
+            Real sy = std::copysign(Real(1.0),anrmy);
 
             int ii = i - static_cast<int>(sx);
             int jj = j - static_cast<int>(sy);
@@ -294,7 +292,7 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
             Real dphidn = (phib-phig) / dg;
 
-            feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
+            feb = dphidn * anorm * beb(i,j,k,n);
         }
 
         y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
@@ -336,9 +334,6 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real anorminv = Real(1.0)/anorm;
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
-        const Real bareascaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
-                (anrmy/dxinv[1])*(anrmy/dxinv[1]) );
-
 
         Real phib = is_inhomog ? phieb(i,j,k,n) : Real(0.0);
 
@@ -346,16 +341,14 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real bcty = bc(i,j,k,1);
         Real dx_eb = get_dx_eb(kappa);
 
-        Real dg, gx, gy, sx, sy;
-        if (std::abs(anrmx) > std::abs(anrmy)) {
-            dg = dx_eb / std::abs(anrmx);
-        } else {
-            dg = dx_eb / std::abs(anrmy);
-        }
-        gx = bctx - dg*anrmx;
-        gy = bcty - dg*anrmy;
-        sx = std::copysign(Real(1.0),anrmx);
-        sy = std::copysign(Real(1.0),anrmy);
+        // g is displaced along the physical normal; dg is the physical distance
+        Real mx = anrmx*dxinv[0];
+        Real my = anrmy*dxinv[1];
+        Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+        Real gx = bctx - dg*mx;
+        Real gy = bcty - dg*my;
+        Real sx = std::copysign(Real(1.0),anrmx);
+        Real sy = std::copysign(Real(1.0),anrmy);
 
         int ii = i - static_cast<int>(sx);
         int jj = j - static_cast<int>(sy);
@@ -365,7 +358,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (            - gy*sy - gx*gy*sx*sy) * x(i ,jj,k,n)
             +       (                    + gx*gy*sx*sy) * x(ii,jj,k,n) ;
 
-        Real dphidn = (phib-phig)/(dg * bareascaling);
+        Real dphidn = (phib-phig)/dg;
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }
@@ -545,16 +538,14 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     Real bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
                     Real dx_eb = get_dx_eb(kappa);
 
-                    Real dg, gx, gy, sx, sy;
-                    if (std::abs(anrmx) > std::abs(anrmy)) {
-                        dg = dx_eb / std::abs(anrmx);
-                    } else {
-                        dg = dx_eb / std::abs(anrmy);
-                    }
-                    gx = bctx - dg*anrmx;
-                    gy = bcty - dg*anrmy;
-                    sx = std::copysign(Real(1.0),anrmx);
-                    sy = std::copysign(Real(1.0),anrmy);
+                    // g is displaced along the physical normal; dg is the physical distance
+                    Real mx = anrmx/dx[0];
+                    Real my = anrmy/dx[1];
+                    Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+                    Real gx = bctx - dg*mx;
+                    Real gy = bcty - dg*my;
+                    Real sx = std::copysign(Real(1.0),anrmx);
+                    Real sy = std::copysign(Real(1.0),anrmy);
 
                     int ii = i - static_cast<int>(sx);
                     int jj = j - static_cast<int>(sy);
@@ -567,12 +558,10 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     // In gsrb we are always in residual-correction form so phib = 0
                     Real dphidn =  (    -phig)/dg;
 
-                    Real ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
-
-                    Real feb = dphidn * ba * beb(i,j,k,n);
+                    Real feb = dphidn * anorm * beb(i,j,k,n);
                     rho += -vfrcinv*(-dh)*feb;
 
-                    Real feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
+                    Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
                     gamma += vfrcinv*(-dh)*feb_gamma;
                 }
 
@@ -777,6 +766,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& beb,
                             bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
+    amrex::ignore_unused(ba);
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isRegular())
@@ -841,19 +831,17 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real bcty = bc(i,j,k,1);
                 Real dx_eb = get_dx_eb(vfrc(i,j,k));
 
-                Real dg, gx, gy, sx, sy;
-                if (std::abs(anrmx) > std::abs(anrmy)) {
-                    dg = dx_eb / std::abs(anrmx);
-                } else {
-                    dg = dx_eb / std::abs(anrmy);
-                }
-                gx = bctx - dg*anrmx;
-                gy = bcty - dg*anrmy;
-                sx = std::copysign(Real(1.0),anrmx);
-                sy = std::copysign(Real(1.0),anrmy);
+                // g is displaced along the physical normal; dg is the physical distance
+                Real mx = anrmx/dx[0];
+                Real my = anrmy/dx[1];
+                Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+                Real gx = bctx - dg*mx;
+                Real gy = bcty - dg*my;
+                Real sx = std::copysign(Real(1.0),anrmx);
+                Real sy = std::copysign(Real(1.0),anrmy);
 
                 Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
-                Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
+                Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
                 gamma += vfrcinv*(-dh)*feb_gamma;
             }
 

@@ -23,12 +23,13 @@ void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool ylo_domain) noexcept
 {
-    if (mxlo(i,j,k) != BndryData::covered && (!xlo_domain || !ylo_domain)) {
+    if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mylo(i+1,j  ,k) == BndryData::covered;
         bool x_exterior = mylo(i+1,j  ,k) == BndryData::not_covered;
         bool y_interior = mxlo(i  ,j+1,k) == BndryData::covered;
         bool y_exterior = mxlo(i  ,j+1,k) == BndryData::not_covered;
-        if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+        if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+            (xlo_domain && ylo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                    bct(Orientation::xlo(), icomp),
@@ -76,12 +77,13 @@ void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool ylo_domain) noexcept
 {
-    if (mxhi(i,j,k) != BndryData::covered && (!xhi_domain || !ylo_domain)) {
+    if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mylo(i-1,j  ,k) == BndryData::covered;
         bool x_exterior = mylo(i-1,j  ,k) == BndryData::not_covered;
         bool y_interior = mxhi(i  ,j+1,k) == BndryData::covered;
         bool y_exterior = mxhi(i  ,j+1,k) == BndryData::not_covered;
-        if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+        if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+            (xhi_domain && ylo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -129,12 +131,13 @@ void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool yhi_domain) noexcept
 {
-    if (mxlo(i,j,k) != BndryData::covered && (!xlo_domain || !yhi_domain)) {
+    if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = myhi(i+1,j  ,k) == BndryData::covered;
         bool x_exterior = myhi(i+1,j  ,k) == BndryData::not_covered;
         bool y_interior = mxlo(i  ,j-1,k) == BndryData::covered;
         bool y_exterior = mxlo(i  ,j-1,k) == BndryData::not_covered;
-        if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+        if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+            (xlo_domain && yhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                    bct(Orientation::xlo(), icomp),
@@ -182,12 +185,13 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool yhi_domain) noexcept
 {
-    if (mxhi(i,j,k) != BndryData::covered && (!xhi_domain || !yhi_domain)) {
+    if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = myhi(i-1,j  ,k) == BndryData::covered;
         bool x_exterior = myhi(i-1,j  ,k) == BndryData::not_covered;
         bool y_interior = mxhi(i  ,j-1,k) == BndryData::covered;
         bool y_exterior = mxhi(i  ,j-1,k) == BndryData::not_covered;
-        if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+        if ((x_interior && y_interior) || (x_exterior && y_exterior) ||
+            (xhi_domain && yhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -235,12 +239,13 @@ void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool zlo_domain) noexcept
 {
-    if (mxlo(i,j,k) != BndryData::covered && (!xlo_domain || !zlo_domain)) {
+    if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mzlo(i+1,j,k  ) == BndryData::covered;
         bool x_exterior = mzlo(i+1,j,k  ) == BndryData::not_covered;
         bool z_interior = mxlo(i  ,j,k+1) == BndryData::covered;
         bool z_exterior = mxlo(i  ,j,k+1) == BndryData::not_covered;
-        if ((x_interior && z_interior) || (x_exterior && z_exterior)) {
+        if ((x_interior && z_interior) || (x_exterior && z_exterior) ||
+            (xlo_domain && zlo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                    bct(Orientation::xlo(), icomp),
@@ -288,12 +293,13 @@ void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool zlo_domain) noexcept
 {
-    if (mxhi(i,j,k) != BndryData::covered && (!xhi_domain || !zlo_domain)) {
+    if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mzlo(i-1,j,k  ) == BndryData::covered;
         bool x_exterior = mzlo(i-1,j,k  ) == BndryData::not_covered;
         bool z_interior = mxhi(i  ,j,k+1) == BndryData::covered;
         bool z_exterior = mxhi(i  ,j,k+1) == BndryData::not_covered;
-        if ((x_interior && z_interior) || (x_exterior && z_exterior)) {
+        if ((x_interior && z_interior) || (x_exterior && z_exterior) ||
+            (xhi_domain && zlo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -341,12 +347,13 @@ void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool zhi_domain) noexcept
 {
-    if (mxlo(i,j,k) != BndryData::covered && (!xlo_domain || !zhi_domain)) {
+    if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mzhi(i+1,j,k  ) == BndryData::covered;
         bool x_exterior = mzhi(i+1,j,k  ) == BndryData::not_covered;
         bool z_interior = mxlo(i  ,j,k-1) == BndryData::covered;
         bool z_exterior = mxlo(i  ,j,k-1) == BndryData::not_covered;
-        if ((x_interior && z_interior) || (x_exterior && z_exterior)) {
+        if ((x_interior && z_interior) || (x_exterior && z_exterior) ||
+            (xlo_domain && zhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                    bct(Orientation::xlo(), icomp),
@@ -394,12 +401,13 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool zhi_domain) noexcept
 {
-    if (mxhi(i,j,k) != BndryData::covered && (!xhi_domain || !zhi_domain)) {
+    if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mzhi(i-1,j,k  ) == BndryData::covered;
         bool x_exterior = mzhi(i-1,j,k  ) == BndryData::not_covered;
         bool z_interior = mxhi(i  ,j,k-1) == BndryData::covered;
         bool z_exterior = mxhi(i  ,j,k-1) == BndryData::not_covered;
-        if ((x_interior && z_interior) || (x_exterior && z_exterior)) {
+        if ((x_interior && z_interior) || (x_exterior && z_exterior) ||
+            (xhi_domain && zhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -447,12 +455,13 @@ void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool ylo_domain, bool zlo_domain) noexcept
 {
-    if (mylo(i,j,k) != BndryData::covered && (!ylo_domain || !zlo_domain)) {
+    if (mylo(i,j,k) != BndryData::covered) {
         bool y_interior = mzlo(i,j+1,k  ) == BndryData::covered;
         bool y_exterior = mzlo(i,j+1,k  ) == BndryData::not_covered;
         bool z_interior = mylo(i,j  ,k+1) == BndryData::covered;
         bool z_exterior = mylo(i,j  ,k+1) == BndryData::not_covered;
-        if ((y_interior && z_interior) || (y_exterior && z_exterior)) {
+        if ((y_interior && z_interior) || (y_exterior && z_exterior) ||
+            (ylo_domain && zlo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                    bct(Orientation::ylo(), icomp),
@@ -500,12 +509,13 @@ void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool yhi_domain, bool zlo_domain) noexcept
 {
-    if (myhi(i,j,k) != BndryData::covered && (!yhi_domain || !zlo_domain)) {
+    if (myhi(i,j,k) != BndryData::covered) {
         bool y_interior = mzlo(i,j-1,k  ) == BndryData::covered;
         bool y_exterior = mzlo(i,j-1,k  ) == BndryData::not_covered;
         bool z_interior = myhi(i,j  ,k+1) == BndryData::covered;
         bool z_exterior = myhi(i,j  ,k+1) == BndryData::not_covered;
-        if ((y_interior && z_interior) || (y_exterior && z_exterior)) {
+        if ((y_interior && z_interior) || (y_exterior && z_exterior) ||
+            (yhi_domain && zlo_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                    bct(Orientation::yhi(), icomp),
@@ -553,12 +563,13 @@ void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool ylo_domain, bool zhi_domain) noexcept
 {
-    if (mylo(i,j,k) != BndryData::covered && (!ylo_domain || !zhi_domain)) {
+    if (mylo(i,j,k) != BndryData::covered) {
         bool y_interior = mzhi(i,j+1,k  ) == BndryData::covered;
         bool y_exterior = mzhi(i,j+1,k  ) == BndryData::not_covered;
         bool z_interior = mylo(i,j  ,k-1) == BndryData::covered;
         bool z_exterior = mylo(i,j  ,k-1) == BndryData::not_covered;
-        if ((y_interior && z_interior) || (y_exterior && z_exterior)) {
+        if ((y_interior && z_interior) || (y_exterior && z_exterior) ||
+            (ylo_domain && zhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                    bct(Orientation::ylo(), icomp),
@@ -606,12 +617,13 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
                                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                   bool yhi_domain, bool zhi_domain) noexcept
 {
-    if (myhi(i,j,k) != BndryData::covered && (!yhi_domain || !zhi_domain)) {
+    if (myhi(i,j,k) != BndryData::covered) {
         bool y_interior = mzhi(i,j-1,k  ) == BndryData::covered;
         bool y_exterior = mzhi(i,j-1,k  ) == BndryData::not_covered;
         bool z_interior = myhi(i,j  ,k-1) == BndryData::covered;
         bool z_exterior = myhi(i,j  ,k-1) == BndryData::not_covered;
-        if ((y_interior && z_interior) || (y_exterior && z_exterior)) {
+        if ((y_interior && z_interior) || (y_exterior && z_exterior) ||
+            (yhi_domain && zhi_domain)) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                    bct(Orientation::yhi(), icomp),
@@ -685,8 +697,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int i = vlo.x-1;
             int j = vlo.y-1;
             int k = vlo.z-1;
-            if (mxlo(i,j,k) != BndryData::covered &&
-                (!xlo_domain || !ylo_domain || !zlo_domain)) {
+            if (mxlo(i,j,k) != BndryData::covered) {
                 bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
                 bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
                 bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
@@ -694,7 +705,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
                 bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xlo_domain && ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -710,7 +722,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xlo_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -721,7 +733,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xlo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -732,7 +744,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -773,10 +785,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
             bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
-            if (mxhi(i,j,k) != BndryData::covered &&
-                (!xhi_domain || !ylo_domain || !zlo_domain)) {
+            if (mxhi(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xhi_domain && ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -792,7 +804,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xhi_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -803,7 +815,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -814,7 +826,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -855,10 +867,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxlo(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
             bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
-            if (mxlo(i,j,k) != BndryData::covered &&
-                (!xlo_domain || !yhi_domain || !zlo_domain)) {
+            if (mxlo(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xlo_domain && yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -874,7 +886,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xlo_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -885,7 +897,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xlo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -896,7 +908,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -937,10 +949,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxhi(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
             bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
-            if (mxhi(i,j,k) != BndryData::covered &&
-                (!xhi_domain || !yhi_domain || !zlo_domain)) {
+            if (mxhi(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xhi_domain && yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -956,7 +968,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xhi_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -967,7 +979,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -978,7 +990,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1019,10 +1031,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
             bool z_interior = mxlo(i  ,j  ,k-1) == BndryData::covered;
             bool z_exterior = mxlo(i  ,j  ,k-1) == BndryData::not_covered;
-            if (mxlo(i,j,k) != BndryData::covered &&
-                (!xlo_domain || !ylo_domain || !zhi_domain)) {
+            if (mxlo(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xlo_domain && ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1038,7 +1050,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xlo_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1049,7 +1061,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xlo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1060,7 +1072,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1101,10 +1113,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k-1) == BndryData::covered;
             bool z_exterior = mxhi(i  ,j  ,k-1) == BndryData::not_covered;
-            if (mxhi(i,j,k) != BndryData::covered &&
-                (!xhi_domain || !ylo_domain || !zhi_domain)) {
+            if (mxhi(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xhi_domain && ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1120,7 +1132,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xhi_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1131,7 +1143,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1142,7 +1154,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1183,10 +1195,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxlo(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxlo(i  ,j  ,k-1) == BndryData::covered;
             bool z_exterior = mxlo(i  ,j  ,k-1) == BndryData::not_covered;
-            if (mxlo(i,j,k) != BndryData::covered &&
-                (!xlo_domain || !yhi_domain || !zhi_domain)) {
+            if (mxlo(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xlo_domain && yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1202,7 +1214,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xlo_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1213,7 +1225,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xlo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
@@ -1224,7 +1236,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1265,10 +1277,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool y_exterior = mxhi(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k-1) == BndryData::covered;
             bool z_exterior = mxhi(i  ,j  ,k-1) == BndryData::not_covered;
-            if (mxhi(i,j,k) != BndryData::covered &&
-                (!xhi_domain || !yhi_domain || !zhi_domain)) {
+            if (mxhi(i,j,k) != BndryData::covered) {
                 if ((x_interior && y_interior && z_interior) ||
-                    (x_exterior && y_exterior && z_exterior)) {
+                    (x_exterior && y_exterior && z_exterior) ||
+                    (xhi_domain && yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1284,7 +1296,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && y_interior) {
+                } else if ((x_interior && y_interior) || (xhi_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1295,7 +1307,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (x_interior && z_interior) {
+                } else if ((x_interior && z_interior) || (xhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
@@ -1306,7 +1318,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
-                } else if (y_interior && z_interior) {
+                } else if ((y_interior && z_interior) || (yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
