@@ -133,7 +133,11 @@ MyTest::solve ()
         amrex::Print() << "\n";
         MultiFab::Copy(error, solution, idim, 0, 1, 0);
         MultiFab::Subtract(error, exact, idim, 0, 1, 0);
-        amrex::Print() << "  max-norm error = " << error.norm0() << '\n';
+        const Real errmax = error.norm0();
+        amrex::Print() << "  max-norm error = " << errmax << '\n';
+        if (max_error > 0 && errmax > max_error) {
+            amrex::Abort("MyTest::solve: max-norm error exceeds max_error");
+        }
         const MultiFab& vfrc = factory->getVolFrac();
         MultiFab::Multiply(error, vfrc, 0, 0, 1, 0);
         const auto dx = geom.CellSize();
@@ -160,6 +164,7 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
+    pp.query("max_error", max_error);
 }
 
 void

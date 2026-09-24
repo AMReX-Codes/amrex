@@ -5,3 +5,5 @@ eb2.geom_type = sphere
 eb2.sphere_center = 0.0 0.0
 eb2.sphere_radius = 0.9
 eb2.sphere_has_fluid_inside = 1
+
+max_error = 0.02

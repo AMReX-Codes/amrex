@@ -37,6 +37,7 @@ private:
     bool agglomeration = true;
     bool consolidation = true;
     int max_coarsening_level = 30;
+    amrex::Real max_error = -1; // abort if a max-norm error exceeds it (if > 0)
 
     amrex::Geometry geom;
     amrex::BoxArray grids;

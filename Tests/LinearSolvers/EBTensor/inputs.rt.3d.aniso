@@ -7,3 +7,5 @@ eb2.cylinder_center = 0.0 0.0 0.0
 eb2.cylinder_radius = 0.9
 eb2.cylinder_height = -1.0
 eb2.cylinder_has_fluid_inside = 1
+
+max_error = 0.1
