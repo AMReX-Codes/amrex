@@ -705,7 +705,9 @@ int main (int argc, char* argv[])
                     print_row(icase, pb, r, why.empty() ? "pass" : "FAIL",
                               variation(p, pb));
                     if (!why.empty()) {
-                        failures.push_back(problem + " #" + std::to_string(icase) + ": " + why);
+                        failures.push_back(problem);
+                        failures.back().append(" #").append(std::to_string(icase))
+                                       .append(": ").append(why);
                     }
                 }
             }
