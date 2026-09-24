@@ -1,7 +1,7 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 AMREX_HOME := ../../..
 
-DEBUG        = TRUE
+DEBUG        = FALSE
 USE_MPI      = FALSE
 USE_OMP      = FALSE
 COMP         = gnu

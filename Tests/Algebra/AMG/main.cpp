@@ -25,7 +25,8 @@ struct Params {
     std::string interp = "ext+i"; // direct, ext, ext+i
     std::string smoother = "chebyshev"; // jacobi, l1jacobi, chebyshev, l1gs (CPU)
     std::string krylov = "none"; // none, bicgstab, gmres, pcg
-    // constant: a*phi - lap(phi); jump: coefficient `jump` in the central cube;
+    // constant: a*phi - lap(phi);
+    // jump: coefficient `jump` in the central cube;
     // checker: blocks of `block` cells alternating 1 and `jump`;
     // aniso: coefficient `eps` in x, 1 in the other directions.
     std::string problem = "constant";
