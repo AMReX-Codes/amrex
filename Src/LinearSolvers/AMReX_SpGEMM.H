@@ -63,8 +63,17 @@ CSR<T,V,I> spgemm_local_cpu (Long nrows, Long ncols,
         }
     }
 
-    for (Long i = 0; i < nrows; ++i) { crow[i+1] += crow[i]; }
-    C.nnz = crow[nrows];
+    // Exclusive scan in Long: the result may not fit the index type.
+    Long total = 0;
+    for (Long i = 0; i < nrows; ++i) {
+        Long const cnt = crow[i+1];
+        crow[i] = I(total);
+        total += cnt;
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(total <= Long(std::numeric_limits<I>::max()),
+                                     "SpGEMM: too many nonzeros for the index type");
+    crow[nrows] = I(total);
+    C.nnz = total;
     C.col_index.resize(C.nnz);
     C.mat.resize(C.nnz);
     I*    AMREX_RESTRICT ccol = C.col_index.data();
