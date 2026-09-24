@@ -21,7 +21,7 @@ max_iter = 200
 # reltol = 1.e-10 # 1.e-5 in single precision
 # seed = 1        # seed of the random coarse point selection
 # repeat = 1      # run each case this many times
-# mlmg = 1        # also solve with geometric multigrid (MLMG)
+mlmg = 1          # also solve with geometric multigrid (MLMG); 0 to skip
 
 # AMG options. Commented-out ones show the solver's defaults.
 interp   = ext+i     # direct, ext, ext+i

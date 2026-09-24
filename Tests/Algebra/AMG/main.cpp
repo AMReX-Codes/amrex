@@ -40,7 +40,7 @@ struct Params {
     Real jump = Real(1.e3);
     int block = 4;
     Real eps = Real(1.e-3);
-    int mlmg = 0;           // also solve with geometric MLMG for comparison
+    int mlmg = 1;           // also solve with geometric MLMG for comparison
     int max_grid_size = 64; // for MLMG
     std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
                        aggressive_levels, cheby_degree, aggressive_direct;
@@ -178,11 +178,17 @@ void run_mlmg (Params const& p)
     if (a == Real(0)) { // solution defined up to a constant
         phi.plus(-phi.sum(0) / Real(domain.numPts()), 0, 1, 0);
     }
-    amrex::Print() << "  MLMG for comparison: " << mlmg.getNumIters() << " iterations, "
-                   << std::fixed << std::setprecision(4) << (t1-t0) << std::defaultfloat
-                   << " s, rel_res " << sci(rel_res) << " (max norm), error "
-                   << sci(phi.norminf(0, 0))
-                   << (failure.empty() ? "" : ", FAILED: " + failure) << "\n";
+    amrex::Print() << "  MLMG for comparison: ";
+    if (failure.empty()) {
+        amrex::Print() << mlmg.getNumIters() << " iterations, "
+                       << std::fixed << std::setprecision(4) << (t1-t0) << std::defaultfloat
+                       << " s, rel_res " << sci(rel_res) << " (max norm), error "
+                       << sci(phi.norminf(0, 0)) << "\n";
+    } else {
+        if (failure.back() == '.') { failure.pop_back(); }
+        amrex::Print() << "did not converge after " << mlmg.getNumIters() << " iterations ("
+                       << failure << "); informational only, not an AMG result\n";
+    }
 }
 
 // Periodic a*phi - div(beta grad phi) with phi = prod sin^5; the rhs is the
