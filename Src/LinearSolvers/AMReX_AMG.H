@@ -1071,9 +1071,6 @@ void AMG<T>::setup ()
             m_cheby.push_back(std::make_unique<ChebyshevSmoother<T>>(m_a[lev], true));
             m_cheby.back()->setDegree(m_cheby_degree);
             m_cheby.back()->setEigRatio(m_cheby_ratio);
-            // One bounds the spectrum of the l1-scaled operator. A power
-            // iteration estimate can be low, and the modes above it grow.
-            m_cheby.back()->setLambdaMax(T(1));
         } else {
             bool const l1 = (m_smoother_type == Smoother::L1Jacobi);
             m_smoother.push_back(std::make_unique<JacobiSmoother<T>>(m_a[lev], l1));

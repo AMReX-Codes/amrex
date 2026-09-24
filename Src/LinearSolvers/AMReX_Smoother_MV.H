@@ -155,8 +155,9 @@ public: // NOLINT  Private, but public for CUDA
  * `D^{-1} A` that damps the spectrum in `[lambda_max / ratio, lambda_max]`
  * [Adams, Brezina, Hu, Tuminaro, J. Comput. Phys. 188 (2003), 593-610].
  * Each application costs `degree` matrix-vector products. `lambda_max` is
- * estimated with power iterations on first use and multiplied by a safety
- * factor of 1.1; with l1 scaling it is at most one.
+ * the Gershgorin bound `max_i sum_j |a_ij| / |d_i|` of the scaled operator,
+ * which is one with l1 scaling. An upper bound, unlike an estimate, leaves
+ * no mode above the damped interval to be amplified.
  */
 template <typename T>
 class ChebyshevSmoother
@@ -174,17 +175,15 @@ public:
     //! Ratio between the largest eigenvalue and the lower end of the smoothing
     //! interval (20 by default).
     void setEigRatio (T r) { m_ratio = r; }
-    //! Number of power iterations for the eigenvalue estimate (10 by default).
-    void setNumEigIters (int n) { m_eig_iters = n; }
     //! Number of polynomial applications per call (1 by default).
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
-    //! Set the largest eigenvalue of the scaled operator instead of estimating it.
+    //! Set the largest eigenvalue of the scaled operator instead of the bound.
     void setLambdaMax (T l) { m_lambda_max = l; }
-    //! Largest eigenvalue of the scaled operator, estimated on first use. The
-    //! estimate is collective, so all processes must call this together.
+    //! Upper bound of the eigenvalues of the scaled operator, computed on
+    //! first use. The first call is collective.
     T lambdaMax ()
     {
-        if (m_lambda_max <= T(0)) { estimate(); }
+        if (m_lambda_max <= T(0)) { bound(); }
         return m_lambda_max;
     }
 
@@ -267,39 +266,35 @@ private:
     bool m_l1 = false;
     int m_degree = 2;
     T m_ratio = T(20);
-    int m_eig_iters = 10;
     int m_niters = 1;
     T m_lambda_max = T(-1);
     std::shared_ptr<Array<AlgVector<T>,3>> m_work; // r, d, A d
 
 public: // NOLINT  Private, but public for CUDA
-    //! Power iteration for the largest eigenvalue of D^{-1} A.
-    void estimate ()
+    //! Gershgorin bound of the eigenvalues of D^{-1} A.
+    void bound ()
     {
-        auto const& diag = m_jacobi.scaling();
-        AlgVector<T> v(m_A->partition());
-        AlgVector<T> w(m_A->partition());
+        if (m_l1) { m_lambda_max = T(1); return; }
+        // The matrix might not have been split yet (e.g., no SpMV so far).
+        const_cast<SpMatrix<T>*>(m_A)->setColumnPartition(m_A->partition());
+        auto const& a = m_A->const_parcsr();
+        auto const* AMREX_RESTRICT pd = m_A->diagonalVector().data();
+        T lmax = Reduce::Max<T>(m_A->numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) -> T
         {
-            auto* pv = v.data();
-            ParallelForRNG(v.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng) noexcept
-            {
-                pv[i] = T(Random(eng)) - T(0.5);
-            });
-        }
-        T lambda = T(0);
-        for (int it = 0; it < m_eig_iters; ++it) {
-            T const nv = v.norm2();
-            if (nv == T(0)) { break; }
-            v.scaleAsync(T(1)/nv);
-            SpMV(w, *m_A, v);
-            ForEach(w, diag, [=] AMREX_GPU_DEVICE (T& wi, T const& dd)
-                    { wi = (dd != T(0)) ? wi / dd : T(0); });
-            lambda = amrex::Dot(v, w);
-            std::swap(v, w);
-        }
-        m_lambda_max = lambda * T(1.1);
-        if (m_l1) { m_lambda_max = std::min(m_lambda_max, T(1)); }
-        if (m_lambda_max <= T(0)) { m_lambda_max = T(1); }
+            T s = T(0);
+            for (auto idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
+                s += std::abs(a.csr0.mat[idx]);
+            }
+            if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+                auto ii = a.row_map[i];
+                for (auto idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
+                    s += std::abs(a.csr1.mat[idx]);
+                }
+            }
+            return (pd[i] != T(0)) ? s / std::abs(pd[i]) : T(0);
+        });
+        ParallelAllReduce::Max(lmax, ParallelContext::CommunicatorSub());
+        m_lambda_max = (lmax > T(0)) ? lmax : T(1);
     }
 };
 
