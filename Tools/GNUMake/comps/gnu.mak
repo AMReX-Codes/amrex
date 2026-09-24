@@ -43,6 +43,10 @@ gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
 gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
 gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
+gcc_major_ge_13 = $(shell expr $(gcc_major_version) \>= 13)
+gcc_major_ge_14 = $(shell expr $(gcc_major_version) \>= 14)
+gcc_major_ge_15 = $(shell expr $(gcc_major_version) \>= 15)
+gcc_major_ge_16 = $(shell expr $(gcc_major_version) \>= 16)
 
 INLINE_LIMIT ?= 43210
 
@@ -124,8 +128,11 @@ endif
 # disable warning: newer GNU compilers (e.g., GCC16) warn about constructs deprecated in OpenMP 5.1,
 #                  specifically suggesting to replace "#pragma omp master" with "#pragma omp masked".
 #                  However, AMReX supports GCC11, which does not implement "#pragma omp masked".
-CXXFLAGS += -Wno-deprecated-openmp
-CFLAGS += -Wno-deprecated-openmp
+ifeq ($(gcc_major_ge_16),1)
+  CXXFLAGS += -Wno-deprecated-openmp
+  CFLAGS += -Wno-deprecated-openmp
+endif
+
 
 ifeq ($(WARN_ERROR),TRUE)
   CXXFLAGS += -Werror
