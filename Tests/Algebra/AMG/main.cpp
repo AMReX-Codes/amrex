@@ -5,7 +5,11 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 
+#include <cmath>
+#include <limits>
 #include <optional>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 
 using namespace amrex;
@@ -25,6 +29,7 @@ struct Params {
     std::string interp = "ext+i"; // direct, ext, ext+i
     std::string smoother = "chebyshev"; // jacobi, l1jacobi, chebyshev, l1gs (CPU)
     std::string krylov = "none"; // none, bicgstab, gmres, pcg
+    // Input `problem` is a list (all four by default); each run has one.
     // constant: a*phi - lap(phi);
     // jump: coefficient `jump` in the central cube;
     // checker: blocks of `block` cells alternating 1 and `jump`;
@@ -42,8 +47,9 @@ struct Params {
 };
 
 struct Result {
-    Real error;   // max-norm error of the solution
-    Real rel_res; // final residual 2-norm relative to the rhs
+    Real error;     // max-norm error of the solution
+    Real err_bound; // upper bound of the error implied by the residual
+    Real rel_res;   // final residual 2-norm relative to the rhs
     int niters;
 };
 
@@ -342,10 +348,33 @@ Result run (Params const& p)
     auto bnorm = bvec.norm2();
     Gpu::streamSynchronize();
     auto const t0 = amrex::second();
-    amg.solve(xvec, bvec);
+    // Divergence is a failed case, not the end of the run.
+    amg.setThrowException(true);
+    bool blew_up = false;
+    try {
+        amg.solve(xvec, bvec);
+    } catch (std::runtime_error const&) {
+        blew_up = true;
+    }
     Gpu::streamSynchronize();
     auto const t1 = amrex::second();
-    auto rel_res = amg.getResidualNorm() / bnorm;
+
+    // Residual computed here rather than taken from the solver.
+    AlgVector<Real> rvec(xvec.partition());
+    SpMV(rvec, mat, xvec);
+    amrex::Axpy(rvec, Real(-1), bvec);
+    auto const rnorm = rvec.norm2();
+    auto rel_res = rnorm / bnorm;
+
+    // A is symmetric and A e = -r, so |e|_inf <= |e|_2 <= |r|_2 / lambda_min.
+    // lambda_min is alpha, or for the singular problem (mean-zero error) at
+    // least the smallest coefficient times the lowest periodic Laplacian
+    // eigenvalue.
+    Real const cmin = (ptype == 0) ? Real(1) : (ptype == 3) ? std::min(Real(1), p.eps)
+                                             : std::min(Real(1), p.jump);
+    Real const lam_min = singular ? cmin * (Real(2) - Real(2)*std::cos(dx)) / (dx*dx) : a;
+    Real const err_bound = Real(1.01) * rnorm / lam_min
+        + Real(100) * std::numeric_limits<Real>::epsilon();
 
     amrex::Axpy(xvec, Real(-1), exact);
     if (singular) { // the solution is defined up to a constant
@@ -355,15 +384,96 @@ Result run (Params const& p)
         amrex::Axpy(xvec, -mean, ones);
     }
     auto error = xvec.norminf();
-    amrex::Print() << "AMG(" << interp << ", " << p.smoother << ", " << bottom << ", n_cell=" << n_cell
-                   << ", levels=" << amg.numLevels()
-                   << (p.aggressive_levels.value_or(0) > 0 ? ", aggressive" : "")
-                   << (p.krylov != "none" ? ", krylov=" + p.krylov : "")
-                   << (singular ? ", singular" : "")
-                   << (p.problem != "constant" ? ", " + p.problem : "") << "): "
+    std::ostringstream label;
+    label << interp << ", " << p.smoother << ", " << bottom << ", n_cell=" << n_cell
+          << ", levels=" << amg.numLevels();
+    if (p.aggressive_levels.value_or(0) > 0) {
+        label << (p.aggressive_direct.value_or(0) ? ", aggressive(direct)" : ", aggressive");
+    }
+    if (p.krylov != "none") { label << ", krylov=" << p.krylov; }
+    if (p.p_max_elmts) { label << ", p_max_elmts=" << *p.p_max_elmts; }
+    if (p.trunc_factor) { label << ", trunc_factor=" << *p.trunc_factor; }
+    if (p.max_coarse_size) { label << ", max_coarse_size=" << *p.max_coarse_size; }
+    if (singular) { label << ", singular"; }
+    if (p.problem != "constant") { label << ", " << p.problem; }
+    amrex::Print() << "AMG(" << label.str() << "): "
                    << amg.getNumIters() << " iterations, " << (t1-t0) << " s, rel. residual = "
-                   << rel_res << ", max norm error = " << error << "\n";
-    return {.error = error, .rel_res = rel_res, .niters = amg.getNumIters()};
+                   << rel_res << ", max norm error = " << error
+                   << " (bound " << err_bound << ")" << (blew_up ? ", blew up" : "") << "\n";
+    return {.error = error, .err_bound = err_bound, .rel_res = rel_res,
+            .niters = amg.getNumIters()};
+}
+
+// The cases run for one problem: the given options with each bottom solver,
+// and unless a bottom solver is given, variations of the other options
+// with the BiCGStab bottom solver.
+Vector<Params> make_cases (Params const& p)
+{
+    Vector<Params> cases;
+    auto add = [&] (std::string const& bottom) -> Params& {
+        cases.push_back(p);
+        cases.back().bottom = bottom;
+        return cases.back();
+    };
+    if (!p.bottom.empty()) {
+        add(p.bottom);
+        return cases;
+    }
+    for (auto const& b : {"jacobi", "bicgstab", "gmres"}) { add(b); }
+    for (auto const& it : {"direct", "ext", "ext+i"}) {
+        if (it != p.interp) { add("bicgstab").interp = it; }
+    }
+    if (!p.aggressive_levels) {
+        add("bicgstab").aggressive_levels = 1;
+        if (!p.aggressive_direct) {
+            auto& c = add("bicgstab");
+            c.aggressive_levels = 1;
+            c.aggressive_direct = 1;
+        }
+    }
+    if (!p.p_max_elmts && !p.trunc_factor) {
+        add("bicgstab").p_max_elmts = 0; // no truncation
+        add("bicgstab").trunc_factor = Real(0.2);
+    }
+    if (!p.max_coarse_size) { add("bicgstab").max_coarse_size = 1; }
+    // PCG needs a symmetric cycle: as many pre- as post-smoothing sweeps and
+    // smoother sweeps at the bottom.
+    bool const symmetric = (p.nu1 == p.nu2);
+    if (p.alpha != Real(0)) {
+        // Singular periodic problem: plain cycles and PCG.
+        add("bicgstab").alpha = Real(0);
+        if (symmetric) {
+            auto& c = add("jacobi");
+            c.alpha = Real(0);
+            c.krylov = "pcg";
+        }
+    }
+    if (p.krylov == "none") {
+        // GMRES with smoother sweeps at the bottom, so that the cycle is a
+        // fixed linear operator; BiCGStab tolerates the Krylov bottom solver.
+        add("bicgstab").krylov = "bicgstab";
+        add("jacobi").krylov = "gmres";
+        if (symmetric) { add("jacobi").krylov = "pcg"; }
+    }
+    Vector<std::string> smoothers = {"jacobi", "l1jacobi", "chebyshev"};
+#ifndef AMREX_USE_GPU
+    smoothers.push_back("l1gs");
+#endif
+    for (auto const& sm : smoothers) {
+        if (sm != p.smoother) { add("bicgstab").smoother = sm; }
+    }
+#ifndef AMREX_USE_GPU
+    if (p.krylov == "none") {
+        // PCG with symmetric Gauss-Seidel sweeps at the bottom: one level
+        // makes the bottom the whole problem.
+        auto& c = add("jacobi");
+        c.smoother = "l1gs";
+        c.krylov = "pcg";
+        c.max_levels = 1;
+        c.max_iter = std::max(p.max_iter, 50*p.n_cell); // not scalable
+    }
+#endif
+    return cases;
 }
 
 }
@@ -384,12 +494,19 @@ int main (int argc, char* argv[])
         pp.query("interp", p.interp);
         pp.query("smoother", p.smoother);
         pp.query("krylov", p.krylov);
-        pp.query("problem", p.problem);
+        Vector<std::string> problems; // queryarr does not shrink a vector
+        pp.queryarr("problem", problems);
+        if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso"}; }
         pp.query("jump", p.jump);
         pp.query("block", p.block);
         pp.query("eps", p.eps);
         pp.query("mlmg", p.mlmg);
         pp.query("max_grid_size", p.max_grid_size);
+        // Seed of the random PMIS weights; each rank adds its rank.
+        if (Long seed = 0; pp.query("seed", seed)) {
+            auto const s = ULong(seed + ParallelDescriptor::MyProc());
+            amrex::ResetRandomSeed(s, s);
+        }
         auto query_opt = [&] (char const* name, auto& opt) {
             std::remove_reference_t<decltype(*opt)> v;
             if (pp.query(name, v)) { opt = v; }
@@ -410,91 +527,44 @@ int main (int argc, char* argv[])
         query_opt("aggressive_direct", p.aggressive_direct);
         query_opt("max_coarse_size", p.max_coarse_size);
 
-        Vector<std::string> bottoms;
-        if (p.bottom.empty()) {
-            bottoms = {"jacobi", "bicgstab", "gmres"};
-        } else {
-            bottoms = {p.bottom};
+        if (p.n_cell < 3) {
+            // With fewer cells the periodic stencil wraps onto one cell and
+            // the matrix would have duplicate entries.
+            amrex::Abort("n_cell must be at least 3");
         }
-        // Cover the other interpolations and aggressive coarsening with
-        // the BiCGStab bottom solver.
-        Vector<Params> cases;
-        for (auto const& b : bottoms) { cases.push_back(p); cases.back().bottom = b; }
-        if (p.bottom.empty()) {
-            for (auto const& it : {"direct", "ext"}) {
-                if (it != p.interp) {
-                    cases.push_back(p);
-                    cases.back().interp = it;
-                    cases.back().bottom = "bicgstab";
+
+        // Report every failed check, then abort once at the end.
+        int nfail = 0;
+        auto check = [&] (bool ok, char const* what) {
+            if (!ok) {
+                ++nfail;
+                amrex::Print() << "  FAILED: " << what << "\n";
+            }
+        };
+        for (auto const& problem : problems) {
+            p.problem = problem;
+            for (auto const& pb : make_cases(p)) {
+                if (pb.bottom == "jacobi" && pb.krylov == "none" && pb.fixed_iter <= 0) {
+                    // Inexact coarse solve: only check that the cycles reduce
+                    // the residual.
+                    Params pj = pb;
+                    pj.fixed_iter = 10;
+                    auto r = run(pj);
+                    check(r.error <= r.err_bound, "error <= bound");
+                    check(r.rel_res < Real(0.9), "rel_res < 0.9");
+                } else {
+                    for (int rep = 0; rep < p.repeat; ++rep) {
+                        auto r = run(pb);
+                        check(r.error <= r.err_bound, "error <= bound");
+                        if (pb.fixed_iter <= 0) {
+                            check(r.rel_res < pb.reltol, "rel_res < reltol");
+                        }
+                    }
                 }
             }
-            if (!p.aggressive_levels) {
-                cases.push_back(p);
-                cases.back().bottom = "bicgstab";
-                cases.back().aggressive_levels = 1;
-            }
-            if (p.alpha != Real(0)) {
-                // Singular periodic Poisson: plain cycles and PCG.
-                cases.push_back(p);
-                cases.back().alpha = Real(0);
-                cases.back().bottom = "bicgstab";
-                cases.push_back(p);
-                cases.back().alpha = Real(0);
-                cases.back().bottom = "jacobi";
-                cases.back().krylov = "pcg";
-            }
-            if (p.krylov == "none") {
-                // Krylov solvers; PCG and GMRES with smoother sweeps at
-                // the bottom so that the cycle is a fixed (symmetric) linear
-                // operator; BiCGStab tolerates the Krylov bottom solver.
-                for (auto const& ks : {"bicgstab", "gmres", "pcg"}) {
-                    cases.push_back(p);
-                    cases.back().bottom = (ks == std::string("bicgstab")) ? "bicgstab" : "jacobi";
-                    cases.back().krylov = ks;
-                }
-            }
-            Vector<std::string> smoothers = {"jacobi", "l1jacobi", "chebyshev"};
-#ifndef AMREX_USE_GPU
-            smoothers.push_back("l1gs");
-#endif
-            for (auto const& sm : smoothers) {
-                if (sm != p.smoother) {
-                    cases.push_back(p);
-                    cases.back().bottom = "bicgstab";
-                    cases.back().smoother = sm;
-                }
-            }
-#ifndef AMREX_USE_GPU
-            if (p.krylov == "none") {
-                // PCG needs symmetric Gauss-Seidel sweeps at the bottom:
-                // one level makes the bottom the whole problem.
-                cases.push_back(p);
-                cases.back().bottom = "jacobi";
-                cases.back().smoother = "l1gs";
-                cases.back().krylov = "pcg";
-                cases.back().max_levels = 1;
-            }
-#endif
+            if (p.mlmg) { run_mlmg(p); }
         }
-        for (auto const& pb : cases) {
-            auto const& b = pb.bottom;
-            if (b == "jacobi" && pb.krylov == "none" && pb.fixed_iter <= 0) {
-                // Inexact coarse solve: only check that the cycles reduce
-                // the residual.
-                Params pj = pb;
-                pj.fixed_iter = 10;
-                auto r = run(pj);
-                AMREX_ALWAYS_ASSERT(r.rel_res < Real(0.9));
-            } else {
-                Result r{};
-                for (int rep = 0; rep < p.repeat; ++rep) { r = run(pb); }
-                if (pb.fixed_iter <= 0) {
-                    AMREX_ALWAYS_ASSERT(r.error < Real(1.e3)*pb.reltol);
-                    AMREX_ALWAYS_ASSERT(r.rel_res < pb.reltol);
-                }
-            }
-        }
-        if (p.mlmg) { run_mlmg(p); }
+        if (nfail > 0) { amrex::Abort(std::to_string(nfail) + " AMG check(s) failed"); }
     }
     amrex::Finalize();
 }
