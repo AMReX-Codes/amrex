@@ -204,6 +204,17 @@ MLEBTensorOp::prepareForSolve ()
 }
 
 void
+MLEBTensorOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
+                       const MLMGBndry* bndry, bool skip_fillboundary) const
+{
+    // The EB stencils of both the scalar and the tensor parts read the
+    // ghost cells outside two or three domain faces, so fill them here,
+    // before any stencil is evaluated.
+    MLEBABecLap::applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry, skip_fillboundary);
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
+}
+
+void
 MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                      StateMode s_mode, const MLMGBndry* bndry) const
 {
@@ -211,8 +222,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
     if (mglev >= m_kappa[amrlev].size()) { return; }
-
-    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -521,8 +530,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     if (mglev >= m_kappa[amrlev].size()) { return; }
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
-
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -634,7 +641,6 @@ MLEBTensorOp::compVelGrad (int amrlev,
 
     MLMGBndry const* bndry = m_bndry_sol[amrlev].get();
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
 
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
