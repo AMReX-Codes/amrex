@@ -668,6 +668,7 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
 {
     BL_PROFILE("AMG::solve_krylov");
 
+    // Bound on every solve so that a moved AMG object stays usable.
     auto pc = [this] (AlgVector<T>& x, AlgVector<T> const& b) { this->precond(x, b); };
     int const niters = (m_fixediter > 0) ? m_fixediter : m_maxiter;
     T const atol = (m_fixediter > 0) ? T(0) : res_target;
@@ -705,22 +706,22 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
         name = "BiCGStab";
         if (!m_krylov_bicgstab) {
             m_krylov_bicgstab = std::make_unique<BiCGStab_MV<T>>(m_mat);
-            m_krylov_bicgstab->setPrecond(pc);
         }
+        m_krylov_bicgstab->setPrecond(pc);
         run(m_krylov_bicgstab->getSolver());
     } else if (m_krylov == KrylovSolver::GMRES) {
         name = "GMRES";
         if (!m_krylov_gmres) {
             m_krylov_gmres = std::make_unique<GMRES_MV<T>>(m_mat);
-            m_krylov_gmres->setPrecond(pc);
         }
+        m_krylov_gmres->setPrecond(pc);
         run(m_krylov_gmres->getSolver());
     } else {
         name = "PCG";
         if (!m_krylov_pcg) {
             m_krylov_pcg = std::make_unique<PCG_MV<T>>(m_mat);
-            m_krylov_pcg->setPrecond(pc);
         }
+        m_krylov_pcg->setPrecond(pc);
         run(m_krylov_pcg->getSolver());
     }
 
@@ -1103,7 +1104,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT A_ii = Ad.data();
     auto const threshold = m_strong_threshold;
-    T const inv_scale = T(1)/strength_scale(A);
+    T const scale = strength_scale(A);
 
     // Strength test for one entry of row i.
     auto row_amin = [=] AMREX_GPU_DEVICE (Long i) -> T {
@@ -1165,7 +1166,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
         auto const& c0 = a.csr0;
         for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
             if (c0.col_index[idx] != i && sgn*c0.mat[idx] < amin) {
-                ps[p] = TS(c0.mat[idx]*inv_scale);
+                ps[p] = TS(c0.mat[idx]/scale);
                 pc[p] = c0.col_index[idx];
                 ++p;
             }
@@ -1175,7 +1176,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
             Long const ii = a.row_map[i];
             for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
                 if (sgn*c1.mat[idx] < amin) {
-                    ps[p] = TS(c1.mat[idx]*inv_scale);
+                    ps[p] = TS(c1.mat[idx]/scale);
                     pc[p] = nlocal + c1.col_index[idx];
                     ++p;
                 }
@@ -1495,7 +1496,7 @@ struct TruncRow
     }
 
     //! Number of entries of row i at or above the threshold.
-    AMREX_GPU_HOST_DEVICE int count (Long i, T thresh) const
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE int count (Long i, T thresh) const
     {
         int n = 0;
         walk(i, [&] (int, T v) { if (std::abs(v) >= thresh) { ++n; } });
@@ -1877,7 +1878,7 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
     // alpha_i = a_ii + weak off-diagonal row sum = rowsum(A) - rowsum(S),
     // in the units of S. The weights do not depend on the scaling.
-    T const inv_scale = T(1)/strength_scale(A);
+    T const scale = strength_scale(A);
     auto const rsA = A.rowSum();
     auto const rsS = S.rowSum();
     auto const* AMREX_RESTRICT prsA = rsA.data();
@@ -1982,7 +1983,7 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
         // Strong F neighbors without a usable denominator are lumped into
         // the diagonal as weak connections (remark after Eq. (3.8)).
-        T alpha = prsA[i]*inv_scale - T(prsS[i]);
+        T alpha = prsA[i]/scale - T(prsS[i]);
         T theta = T(0);
         w.walk(i, [&] (int, int, T aij, T aji, int st_j, T db_j) {
             if (st_j == F) {
