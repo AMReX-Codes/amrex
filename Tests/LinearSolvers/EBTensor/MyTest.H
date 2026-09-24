@@ -25,6 +25,7 @@ private:
     void readParameters ();
 
     int n_cell = 128;
+    amrex::IntVect n_cells; // number of cells in each direction, n_cell by default
     int max_grid_size = 64;
 
     // For MLMG solver

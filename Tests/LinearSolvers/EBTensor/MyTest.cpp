@@ -23,7 +23,7 @@ MyTest::MyTest ()
     RealBox rb({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain(IntVect(0), n_cells-1);
     geom.define(domain);
 
     {
@@ -148,6 +148,8 @@ MyTest::readParameters ()
     ParmParse pp;
 
     pp.query("n_cell", n_cell);
+    n_cells = IntVect(n_cell);
+    pp.queryarr("n_cells", n_cells);
     pp.query("max_grid_size", max_grid_size);
 
     pp.query("verbose", verbose);
