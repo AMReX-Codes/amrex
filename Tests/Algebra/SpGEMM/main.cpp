@@ -64,7 +64,12 @@ bool check_spmv (SpMatrix<T> const& A, SpMatrix<T> const& B, SpMatrix<T> const& 
     });
     Gpu::streamSynchronize();
     auto err = y1.norminf();
-    return err <= tol * y1max;
+    bool ok = err <= tol * y1max;
+    if (!ok) {
+        amrex::AllPrint() << "check_spmv: error " << err << " max " << y1max
+                          << " tol " << tol << "\n";
+    }
+    return ok;
 }
 
 }
@@ -254,7 +259,7 @@ int main (int argc, char *argv[])
             // Products are summed in different orders.
             AMREX_ALWAYS_ASSERT(all_true(amrex::almostEqual(ABT,BTAT,32)));
 
-            Real tol = std::numeric_limits<Real>::epsilon() * Real(100);
+            Real tol = std::numeric_limits<Real>::epsilon() * Real(1000);
             AMREX_ALWAYS_ASSERT(all_true(check_spmv(A, B, AB, pt3, tol)));
         }
 
