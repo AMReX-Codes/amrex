@@ -1878,7 +1878,7 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
     // alpha_i = a_ii + weak off-diagonal row sum = rowsum(A) - rowsum(S),
     // in the units of S. The weights do not depend on the scaling.
-    T const scale = strength_scale(A);
+    T const sscale = strength_scale(A);
     auto const rsA = A.rowSum();
     auto const rsS = S.rowSum();
     auto const* AMREX_RESTRICT prsA = rsA.data();
@@ -1983,7 +1983,7 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
         // Strong F neighbors without a usable denominator are lumped into
         // the diagonal as weak connections (remark after Eq. (3.8)).
-        T alpha = prsA[i]/scale - T(prsS[i]);
+        T alpha = prsA[i]/sscale - T(prsS[i]);
         T theta = T(0);
         w.walk(i, [&] (int, int, T aij, T aji, int st_j, T db_j) {
             if (st_j == F) {
