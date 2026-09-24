@@ -352,7 +352,8 @@ following data:
   cell's local coordinates with respect to the regular cell's center.
 
 - **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
-  components representing the unit vector pointing toward the covered part.
+  components representing the unit vector in physical space pointing toward
+  the covered part.
 
 - **Boundary area** is in a :cpp:`MultiCutFab` with a single component
   representing the dimensionless boundary area. When the cell is isotropic

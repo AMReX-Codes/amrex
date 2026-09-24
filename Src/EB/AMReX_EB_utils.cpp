@@ -282,20 +282,23 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                          Real axp = apx(i+1,j  , k  );
                          Real aym = apy(i,  j  , k  );
                          Real ayp = apy(i,  j+1, k  );
+                         // weighted by transverse face areas to give the physical normal
 #if (AMREX_SPACEDIM == 3)
                          Real azm = apz(i,  j  , k  );
                          Real azp = apz(i,  j  , k+1);
-                         Real apnorm = std::sqrt((axm-axp)*(axm-axp) +
-                                                 (aym-ayp)*(aym-ayp) +
-                                                 (azm-azp)*(azm-azp));
+                         Real dapx = (axp-axm) * dx_eb[1]*dx_eb[2];
+                         Real dapy = (ayp-aym) * dx_eb[0]*dx_eb[2];
+                         Real dapz = (azp-azm) * dx_eb[0]*dx_eb[1];
+                         Real apnorm = std::sqrt(dapx*dapx + dapy*dapy + dapz*dapz);
 #else
-                         Real apnorm = std::sqrt((axm-axp)*(axm-axp) +
-                                                 (aym-ayp)*(aym-ayp));
+                         Real dapx = (axp-axm) * dx_eb[1];
+                         Real dapy = (ayp-aym) * dx_eb[0];
+                         Real apnorm = std::sqrt(dapx*dapx + dapy*dapy);
 #endif
                          Real apnorminv = 1._rt / apnorm;
-                         AMREX_D_TERM(Real anrmx = (axp-axm) * apnorminv;,   // pointing to the wall
-                                      Real anrmy = (ayp-aym) * apnorminv;,
-                                      Real anrmz = (azp-azm) * apnorminv);
+                         AMREX_D_TERM(Real anrmx = dapx * apnorminv;,   // pointing to the wall
+                                      Real anrmy = dapy * apnorminv;,
+                                      Real anrmz = dapz * apnorminv);
 
                          // pointing to the fluid
                          AMREX_D_TERM(fac[AMREX_SPACEDIM+0] = -anrmx;,
