@@ -1236,12 +1236,15 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
     auto* AMREX_RESTRICT ps = state.data();
     auto* AMREX_RESTRICT ps2 = state2.data();
 
+    // A point nobody depends on gets a weight below one: it never blocks
+    // a neighbor, becomes F once a dependency is C, and becomes C only if
+    // all its dependencies are F, so that it does not end up as an F-point
+    // without a C neighbor to interpolate from.
     ParallelForRNG(nrows, [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng) noexcept
     {
-        if (pm[i] <= 0) {
+        if (pm[i] < 0) {
             pw[i] = T(0);
-            ps[i] = (pm[i] < 0 && isolated_as_coarse) ? PointType::coarse
-                                                       : PointType::fine;
+            ps[i] = isolated_as_coarse ? PointType::coarse : PointType::fine;
         } else {
             pw[i] = T(pm[i]) + T(Random(eng));
             ps[i] = PointType::undecided;
