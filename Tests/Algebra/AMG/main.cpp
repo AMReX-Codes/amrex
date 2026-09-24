@@ -6,6 +6,7 @@
 #include <AMReX_ParmParse.H>
 
 #include <cmath>
+#include <iomanip>
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -52,7 +53,17 @@ struct Result {
     Real err_bound; // upper bound of the error implied by the residual
     Real rel_res;   // final residual 2-norm relative to the rhs
     int niters;
+    int nlevels;
+    double time;    // solve time in seconds
+    bool blew_up;
 };
+
+std::string sci (Real v)
+{
+    std::ostringstream os;
+    os << std::scientific << std::setprecision(2) << v;
+    return os.str();
+}
 
 // Cell-centered diffusion coefficient of the test problems.
 struct Coef
@@ -167,12 +178,11 @@ void run_mlmg (Params const& p)
     if (a == Real(0)) { // solution defined up to a constant
         phi.plus(-phi.sum(0) / Real(domain.numPts()), 0, 1, 0);
     }
-    amrex::Print() << "MLMG(n_cell=" << n_cell
-                   << (p.problem != "constant" ? ", " + p.problem : "") << "): "
-                   << (failure.empty() ? "" : "FAILED, ") << mlmg.getNumIters()
-                   << " iterations, " << (t1-t0) << " s, max-norm rel. residual = "
-                   << rel_res << ", max norm error = " << phi.norminf(0, 0)
-                   << (failure.empty() ? "" : " (" + failure + ")") << "\n";
+    amrex::Print() << "  MLMG for comparison: " << mlmg.getNumIters() << " iterations, "
+                   << std::fixed << std::setprecision(4) << (t1-t0) << std::defaultfloat
+                   << " s, rel_res " << sci(rel_res) << " (max norm), error "
+                   << sci(phi.norminf(0, 0))
+                   << (failure.empty() ? "" : ", FAILED: " + failure) << "\n";
 }
 
 // Periodic a*phi - div(beta grad phi) with phi = prod sin^5; the rhs is the
@@ -385,24 +395,100 @@ Result run (Params const& p)
         amrex::Axpy(xvec, -mean, ones);
     }
     auto error = xvec.norminf();
-    std::ostringstream label;
-    label << interp << ", " << p.smoother << ", " << bottom << ", n_cell=" << n_cell
-          << ", levels=" << amg.numLevels();
-    if (p.aggressive_levels.value_or(0) > 0) {
-        label << (p.aggressive_direct.value_or(0) ? ", aggressive(direct)" : ", aggressive");
-    }
-    if (p.krylov != "none") { label << ", krylov=" << p.krylov; }
-    if (p.p_max_elmts) { label << ", p_max_elmts=" << *p.p_max_elmts; }
-    if (p.trunc_factor) { label << ", trunc_factor=" << *p.trunc_factor; }
-    if (p.max_coarse_size) { label << ", max_coarse_size=" << *p.max_coarse_size; }
-    if (singular) { label << ", singular"; }
-    if (p.problem != "constant") { label << ", " << p.problem; }
-    amrex::Print() << "AMG(" << label.str() << "): "
-                   << amg.getNumIters() << " iterations, " << (t1-t0) << " s, rel. residual = "
-                   << rel_res << ", max norm error = " << error
-                   << " (bound " << err_bound << ")" << (blew_up ? ", blew up" : "") << "\n";
     return {.error = error, .err_bound = err_bound, .rel_res = rel_res,
-            .niters = amg.getNumIters()};
+            .niters = amg.getNumIters(), .nlevels = amg.numLevels(),
+            .time = t1-t0, .blew_up = blew_up};
+}
+
+// Options of the case that differ from the base options, other than those
+// with their own column, as inputs that reproduce it.
+std::string variation (Params const& b, Params const& c)
+{
+    std::ostringstream os;
+    auto sep = [&] () { if (os.tellp() > 0) { os << " "; } };
+    auto opt = [&] (char const* name, auto const& x, auto const& y) {
+        if (y && x != y) { sep(); os << name << "=" << *y; }
+    };
+    if (c.alpha != b.alpha) { sep(); os << "alpha=" << c.alpha; }
+    if (c.fixed_iter != b.fixed_iter) { sep(); os << "fixed_iter=" << c.fixed_iter; }
+    if (c.max_iter != b.max_iter) { sep(); os << "max_iter=" << c.max_iter; }
+    opt("aggressive_levels", b.aggressive_levels, c.aggressive_levels);
+    opt("aggressive_direct", b.aggressive_direct, c.aggressive_direct);
+    opt("p_max_elmts", b.p_max_elmts, c.p_max_elmts);
+    opt("trunc_factor", b.trunc_factor, c.trunc_factor);
+    opt("max_coarse_size", b.max_coarse_size, c.max_coarse_size);
+    opt("max_levels", b.max_levels, c.max_levels);
+    return os.str();
+}
+
+// Options given in the inputs besides the ones with their own column.
+std::string given_options (Params const& p)
+{
+    std::ostringstream os;
+    auto opt = [&] (char const* name, auto const& x) {
+        if (x) { os << " " << name << "=" << *x; }
+    };
+    opt("theta", p.theta);
+    opt("aggressive_levels", p.aggressive_levels);
+    opt("aggressive_direct", p.aggressive_direct);
+    opt("p_max_elmts", p.p_max_elmts);
+    opt("trunc_factor", p.trunc_factor);
+    opt("max_coarse_size", p.max_coarse_size);
+    opt("max_levels", p.max_levels);
+    opt("nu1", p.nu1);
+    opt("nu2", p.nu2);
+    opt("nu_bottom", p.nu_bottom);
+    opt("bottom_tol", p.bottom_tol);
+    opt("relax_weight", p.relax_weight);
+    opt("cheby_degree", p.cheby_degree);
+    opt("cheby_ratio", p.cheby_ratio);
+    return os.str();
+}
+
+std::string problem_line (Params const& p)
+{
+    std::ostringstream os;
+    os << p.problem << ": n_cell=" << p.n_cell << " alpha=" << p.alpha;
+    if (p.problem == "jump" || p.problem == "checker") { os << " jump=" << p.jump; }
+    if (p.problem == "checker") { os << " block=" << p.block; }
+    if (p.problem == "aniso") { os << " eps=" << p.eps; }
+    return os.str();
+}
+
+// Table columns: case, interp, smoother, bottom, krylov, levels, iterations,
+// time, rel_res, error, bound, result, variation.
+std::string table_row (std::string const& icase, std::string const& interp,
+                       std::string const& smoother, std::string const& bottom,
+                       std::string const& krylov, std::string const& lev,
+                       std::string const& iter, std::string const& time,
+                       std::string const& rel_res, std::string const& error,
+                       std::string const& bound, std::string const& result,
+                       std::string const& var)
+{
+    std::ostringstream os;
+    os << std::right << std::setw(4) << icase << "   " << std::left
+       << std::setw(8) << interp << std::setw(11) << smoother
+       << std::setw(10) << bottom << std::setw(10) << krylov << std::right
+       << std::setw(4) << lev << std::setw(6) << iter << std::setw(10) << time
+       << std::setw(11) << rel_res << std::setw(11) << error << std::setw(11) << bound
+       << "   " << std::left;
+    if (var.empty()) {
+        os << result;
+    } else {
+        os << std::setw(8) << result << var;
+    }
+    return os.str();
+}
+
+void print_row (int icase, Params const& c, Result const& r, std::string const& result,
+                std::string const& var)
+{
+    std::ostringstream time;
+    time << std::fixed << std::setprecision(4) << r.time;
+    amrex::Print() << table_row(std::to_string(icase), c.interp, c.smoother, c.bottom,
+                                c.krylov, std::to_string(r.nlevels), std::to_string(r.niters),
+                                time.str(), sci(r.rel_res), sci(r.error), sci(r.err_bound),
+                                result, var) << "\n";
 }
 
 // The cases run for one problem: the given options, or with `variations`,
@@ -535,38 +621,70 @@ int main (int argc, char* argv[])
             amrex::Abort("n_cell must be at least 3");
         }
 
-        // Report every failed check, then abort once at the end.
-        int nfail = 0;
-        auto check = [&] (bool ok, char const* what) {
-            if (!ok) {
-                ++nfail;
-                amrex::Print() << "  FAILED: " << what << "\n";
-            }
-        };
+        int const nprocs = ParallelDescriptor::NProcs();
+        amrex::Print() << "\nAMG test: " << AMREX_SPACEDIM << "D, " << nprocs
+                       << (nprocs == 1 ? " MPI process" : " MPI processes")
+                       << ", reltol=" << p.reltol << ", max_iter=" << p.max_iter
+                       << (p.variations ? ", with variations" : "") << "\n"
+                       << "Base options: interp=" << p.interp << " smoother=" << p.smoother
+                       << " bottom=" << p.bottom << " krylov=" << p.krylov
+                       << given_options(p) << "\n"
+                       << "A case passes if rel_res < reltol (rel_res < 0.9 with fixed_iter)"
+                       << " and error <= bound.\n"
+                       << "Variation lists the inputs that differ from the base options.\n";
+        std::string const head = table_row("#", "interp", "smoother", "bottom", "krylov",
+                                           "lev", "iter", "time[s]", "rel_res", "error",
+                                           "bound", "result", "variation");
+        std::string const rule(head.size(), '-');
+
+        // Report every failed case, then abort once at the end.
+        int ncases = 0;
+        Vector<std::string> failures;
         for (auto const& problem : problems) {
             p.problem = problem;
-            for (auto const& pb : make_cases(p)) {
-                if (pb.bottom == "jacobi" && pb.krylov == "none" && pb.fixed_iter <= 0) {
-                    // Inexact coarse solve: only check that the cycles reduce
-                    // the residual.
-                    Params pj = pb;
-                    pj.fixed_iter = 10;
-                    auto r = run(pj);
-                    check(r.error <= r.err_bound, "error <= bound");
-                    check(r.rel_res < Real(0.9), "rel_res < 0.9");
-                } else {
-                    for (int rep = 0; rep < p.repeat; ++rep) {
-                        auto r = run(pb);
-                        check(r.error <= r.err_bound, "error <= bound");
-                        if (pb.fixed_iter <= 0) {
-                            check(r.rel_res < pb.reltol, "rel_res < reltol");
-                        }
+            amrex::Print() << "\n" << problem_line(p) << "\n" << rule << "\n" << head
+                           << "\n" << rule << "\n";
+            int icase = 0;
+            for (auto pb : make_cases(p)) {
+                // Jacobi bottom: an inexact coarse solve, so only check that
+                // ten cycles reduce the residual.
+                bool const inexact = (pb.bottom == "jacobi" && pb.krylov == "none"
+                                      && pb.fixed_iter <= 0);
+                if (inexact) { pb.fixed_iter = 10; }
+                ++icase;
+                for (int rep = 0; rep < (inexact ? 1 : p.repeat); ++rep) {
+                    auto r = run(pb);
+                    ++ncases;
+                    std::string why;
+                    if (r.blew_up) {
+                        why = "diverged";
+                    } else if (inexact && !(r.rel_res < Real(0.9))) {
+                        why = "rel_res " + sci(r.rel_res) + " >= 0.9";
+                    } else if (pb.fixed_iter <= 0 && !(r.rel_res < pb.reltol)) {
+                        why = "rel_res " + sci(r.rel_res) + " >= reltol " + sci(pb.reltol);
+                    }
+                    if (!(r.error <= r.err_bound)) {
+                        why += (why.empty() ? "" : ", ");
+                        why += "error " + sci(r.error) + " > bound " + sci(r.err_bound);
+                    }
+                    print_row(icase, pb, r, why.empty() ? "pass" : "FAIL",
+                              variation(p, pb));
+                    if (!why.empty()) {
+                        failures.push_back(problem + " #" + std::to_string(icase) + ": " + why);
                     }
                 }
             }
+            amrex::Print() << rule << "\n";
             if (p.mlmg) { run_mlmg(p); }
         }
-        if (nfail > 0) { amrex::Abort(std::to_string(nfail) + " AMG check(s) failed"); }
+        amrex::Print() << "\nSummary: " << ncases << (ncases == 1 ? " case, " : " cases, ")
+                       << ncases - failures.size()
+                       << " passed, " << failures.size() << " failed\n";
+        for (auto const& f : failures) { amrex::Print() << "  FAILED " << f << "\n"; }
+        amrex::Print() << "\n";
+        if (!failures.empty()) {
+            amrex::Abort(std::to_string(failures.size()) + " AMG case(s) failed");
+        }
     }
     amrex::Finalize();
 }
