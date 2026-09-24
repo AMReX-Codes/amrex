@@ -16,7 +16,7 @@ public:
     void solve ();
     void writePlotfile () const;
 
-public: // make these public for cuda
+    // public for cuda
     void initProb ();
     void initData ();
 

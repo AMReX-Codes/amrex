@@ -211,9 +211,9 @@ MyTest::initData ()
                     if (cylinder_direction == 2) {
                         init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                     } else if (cylinder_direction == 0) {
-                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
+                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta); // NOLINT(readability-suspicious-call-argument)
                     } else {
-                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
+                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta); // NOLINT(readability-suspicious-call-argument)
                     }
 #endif
                     AMREX_D_TERM(velfab(i,j,k,0) = u;,
@@ -242,9 +242,9 @@ MyTest::initData ()
                         if (cylinder_direction == 2) {
                             init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                         } else if (cylinder_direction == 0) {
-                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
+                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta); // NOLINT(readability-suspicious-call-argument)
                         } else {
-                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
+                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta); // NOLINT(readability-suspicious-call-argument)
                         }
 #endif
                         AMREX_D_TERM(velfab(i,j,k,0) = u;,

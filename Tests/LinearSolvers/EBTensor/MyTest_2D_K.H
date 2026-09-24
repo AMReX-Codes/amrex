@@ -23,7 +23,6 @@ inline void init (amrex::Real x, amrex::Real y, amrex::Real R2,
 
     amrex::Real f1 = std::sin(   pi*r2R2);
     amrex::Real f2 = std::sin(2.*pi*r2R2);
-    amrex::Real f3 = std::sin(3.*pi*r2R2);
 
     u = sinx * (1. + siny) * f1;
     v = (1. + sinx) * siny * f2;
@@ -33,8 +32,6 @@ inline void init (amrex::Real x, amrex::Real y, amrex::Real R2,
     amrex::Real df1dy = std::cos(   pi*r2R2) * (2.*pi)/R2 * y;
     amrex::Real df2dx = std::cos(2.*pi*r2R2) * (4.*pi)/R2 * x;
     amrex::Real df2dy = std::cos(2.*pi*r2R2) * (4.*pi)/R2 * y;
-    amrex::Real df3dx = std::cos(3.*pi*r2R2) * (6.*pi)/R2 * x;
-    amrex::Real df3dy = std::cos(3.*pi*r2R2) * (6.*pi)/R2 * y;
 
     amrex::Real df1dx2 =  -std::sin(pi*r2R2) * (4.*pi*pi)/R4 * x2
                           +std::cos(pi*r2R2) * (2.*pi)/R2;
@@ -47,11 +44,6 @@ inline void init (amrex::Real x, amrex::Real y, amrex::Real R2,
     amrex::Real df2dy2 =  -std::sin(2.*pi*r2R2) * (16.*pi*pi)/R4 * y2
                           +std::cos(2.*pi*r2R2) * (4.*pi)/R2;
     amrex::Real df2dxdy = -std::sin(2.*pi*r2R2) * (16.*pi*pi)/R4 * x * y;
-
-    amrex::Real df3dx2 = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * x2
-                         +std::cos(3.*pi*r2R2) * (6.*pi)/R2;
-    amrex::Real df3dy2 = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * y2
-                         +std::cos(3.*pi*r2R2) * (6.*pi)/R2;
 
     amrex::Real detadx = cosx * siny;
     amrex::Real detady = sinx * cosy;
