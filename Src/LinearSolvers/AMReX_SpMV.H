@@ -57,16 +57,16 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    // Row offsets are Long, column indices are I.
-    cusparseIndexType_t row_index_type = CUSPARSE_INDEX_64I;
-    cusparseIndexType_t col_index_type = std::is_same_v<I,int>
+    // cuSPARSE needs the same index type for the row offsets and the
+    // column indices (mixed types came with CUDA 13.3).
+    constexpr cusparseIndexType_t index_type = std::is_same_v<I,int>
         ? CUSPARSE_INDEX_32I : CUSPARSE_INDEX_64I;
 
     cusparseSpMatDescr_t mat_descr;
     AMREX_CUSPARSE_SAFE_CALL
         (cusparseCreateCsr(&mat_descr, nrows, ncols, nnz,
                            (void*)row, (void*)col, (void*)mat,
-                           row_index_type, col_index_type, CUSPARSE_INDEX_BASE_ZERO,
+                           index_type, index_type, CUSPARSE_INDEX_BASE_ZERO,
                            data_type));
 
     cusparseDnVecDescr_t x_descr;
@@ -119,15 +119,14 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    rocsparse_indextype row_index_type = rocsparse_indextype_i64;
-    rocsparse_indextype col_index_type = std::is_same_v<I,int>
+    constexpr rocsparse_indextype index_type = std::is_same_v<I,int>
         ? rocsparse_indextype_i32 : rocsparse_indextype_i64;
 
     rocsparse_spmat_descr mat_descr;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_create_csr_descr(&mat_descr, nrows, ncols, nnz,
                                    (void*)row, (void*)col, (void*)mat,
-                                   row_index_type, col_index_type,
+                                   index_type, index_type,
                                    rocsparse_index_base_zero, data_type));
 
     rocsparse_dnvec_descr x_descr;
@@ -268,18 +267,13 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
     mkl::sparse::matrix_handle_t handle{};
     mkl::sparse::init_matrix_handle(&handle);
 
-    // oneMKL uses one index type for rows and columns.
-    Gpu::DeviceVector<Long> lcol(nnz);
-    {
-        auto* pl = lcol.data();
-        ParallelFor(nnz, [=] AMREX_GPU_DEVICE (Long i) { pl[i] = Long(col[i]); });
-    }
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols,
-                              mkl::index_base::zero, (Long*)row, lcol.data(), (T*)mat);
+    amrex::ignore_unused(nnz);
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, I(nrows), I(ncols),
+                              mkl::index_base::zero, (I*)row, (I*)col, (T*)mat);
 #else
-    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols, nnz,
-                              mkl::index_base::zero, (Long*)row, lcol.data(), (T*)mat);
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, I(nrows), I(ncols),
+                              I(nnz), mkl::index_base::zero, (I*)row, (I*)col, (T*)mat);
 #endif
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);

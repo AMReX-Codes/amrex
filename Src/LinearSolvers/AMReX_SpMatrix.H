@@ -32,8 +32,9 @@ namespace amrex {
  * Sparse matrix container built on top of CSR partitions (GPU-aware).
  */
 
-//! GPU-ready non-owning CSR data container. The blocks use 32-bit column
-//! indices: local indices in csr0, indices into `col_map` in csr1.
+//! GPU-ready non-owning CSR data container. The blocks use 32-bit row
+//! offsets and column indices: local indices in csr0, indices into
+//! `col_map` in csr1.
 template <typename T>
 struct ParCsr {
     CsrView<T,int> csr0; // diagonal part
@@ -67,7 +68,7 @@ public:
     template <class U> using allocator_type = Allocator<U>;
     template <class U> using container_type = PODVector<U,Allocator<U> >;
     using csr_type = CSR<T,container_type>;            // global Long columns (unsplit)
-    using local_csr_type = CSR<T,container_type,int>;  // split blocks, 32-bit columns
+    using local_csr_type = CSR<T,container_type,int>;  // split blocks, 32-bit indices
     using AllocT = Allocator<T>;
 
     SpMatrix () = default;
@@ -390,7 +391,7 @@ private:
     // The `row_offset` in m_csr_remote does not contain empty rows. The
     // full list of row offsets is available in m_remote_row_offset, which
     // is built on demand by expand_remote_row_offset.
-    mutable container_type<Long> m_remote_row_offset;
+    mutable container_type<int> m_remote_row_offset;
 
     // It should be noted that m_csr and m_csr_remote may have different
     // number of rows, because some rows may be purely local and they do not
@@ -629,25 +630,20 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
     int* csrt_row_offset;
     if constexpr (in32) {
         csr_col_index = csr.col_index;
-        ci.row_offset.resize(nrows+1);
-        {
-            auto* pd = ci.row_offset.data();
-            auto const* ps = csr.row_offset;
-            ParallelFor(nrows+1, [=] AMREX_GPU_DEVICE (Long i) { pd[i] = int(ps[i]); });
-        }
-        csr_row_offset = ci.row_offset.data();
+        csr_row_offset = csr.row_offset;
     } else {
         ci.copyFrom(csr);
         csr_col_index = ci.col_index.data();
         csr_row_offset = ci.row_offset.data();
     }
-    cit.row_offset.resize(csrt.nrows+1);
-    csrt_row_offset = cit.row_offset.data();
     if constexpr (out32) {
         csrt_col_index = csrt.col_index;
+        csrt_row_offset = csrt.row_offset;
     } else {
         cit.col_index.resize(csrt.nnz);
+        cit.row_offset.resize(csrt.nrows+1);
         csrt_col_index = cit.col_index.data();
+        csrt_row_offset = cit.row_offset.data();
     }
 
     std::size_t buffer_size;
@@ -671,12 +667,7 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
                            CUSPARSE_CSR2CSC_ALG1,
                            pbuffer));
 
-    if constexpr (out32) {
-        auto* pd = csrt.row_offset;
-        auto const* ps = cit.row_offset.data();
-        Long const n = csrt.nrows+1;
-        ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) { pd[i] = Long(ps[i]); });
-    } else {
+    if constexpr (!out32) {
         cit.copyTo(csrt);
     }
 
@@ -691,8 +682,8 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
 
-    constexpr bool same_int = (sizeof(rocsparse_int) == sizeof(Long)) &&
-        std::is_same_v<II,Long> && std::is_same_v<IO,Long>;
+    constexpr bool same_int = (sizeof(rocsparse_int) == sizeof(II)) &&
+                              (sizeof(rocsparse_int) == sizeof(IO));
 
     rocsparse_int const* csr_col_index;
     rocsparse_int const* csr_row_offset;
@@ -780,32 +771,48 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
     mkl::sparse::init_matrix_handle(&handle_in);
     mkl::sparse::init_matrix_handle(&handle_out);
 
+    // oneMKL needs one index type per handle: Long copies unless already Long.
+    Gpu::DeviceVector<Long> lrow_in, lcol_in, lrow_out, lcol_out;
+    Long const* prow_in;
+    Long const* pcol_in;
+    Long* prow_out;
+    Long* pcol_out;
+    if constexpr (std::is_same_v<II,Long>) {
+        prow_in = csr.row_offset;
+        pcol_in = csr.col_index;
+    } else {
+        lrow_in.resize(nrows+1);
+        lcol_in.resize(nnz);
+        auto* pr = lrow_in.data(); auto const* sr = csr.row_offset;
+        auto* pc = lcol_in.data(); auto const* sc = csr.col_index;
+        ParallelFor(std::max(nrows+1,nnz), [=] AMREX_GPU_DEVICE (Long i) {
+            if (i < nrows+1) { pr[i] = Long(sr[i]); }
+            if (i < nnz) { pc[i] = Long(sc[i]); }
+        });
+        prow_in = lrow_in.data();
+        pcol_in = lcol_in.data();
+    }
+    if constexpr (std::is_same_v<IO,Long>) {
+        prow_out = csrt.row_offset;
+        pcol_out = csrt.col_index;
+    } else {
+        lrow_out.resize(ncols+1);
+        lcol_out.resize(nnz);
+        prow_out = lrow_out.data();
+        pcol_out = lcol_out.data();
+    }
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    amrex::ignore_unused(nnz);
-    // oneMKL needs one index type per handle: use Long copies of the indices.
-    Gpu::DeviceVector<Long> lcol_in(nnz), lcol_out(nnz);
-    {
-        auto* pi = lcol_in.data(); auto const* si = csr.col_index;
-        ParallelFor(nnz, [=] AMREX_GPU_DEVICE (Long i) { pi[i] = Long(si[i]); });
-    }
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_in, nrows, ncols,
-                              mkl::index_base::zero, (Long*)csr.row_offset,
-                              lcol_in.data(), (T*)csr.mat);
+                              mkl::index_base::zero, (Long*)prow_in, (Long*)pcol_in,
+                              (T*)csr.mat);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_out, ncols, nrows,
-                              mkl::index_base::zero, (Long*)csrt.row_offset,
-                              lcol_out.data(), (T*)csrt.mat);
+                              mkl::index_base::zero, prow_out, pcol_out, (T*)csrt.mat);
 #else
-    Gpu::DeviceVector<Long> lcol_in(nnz), lcol_out(nnz);
-    {
-        auto* pi = lcol_in.data(); auto const* si = csr.col_index;
-        ParallelFor(nnz, [=] AMREX_GPU_DEVICE (Long i) { pi[i] = Long(si[i]); });
-    }
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_in, nrows, ncols, nnz,
-                              mkl::index_base::zero, (Long*)csr.row_offset,
-                              lcol_in.data(), (T*)csr.mat);
+                              mkl::index_base::zero, (Long*)prow_in, (Long*)pcol_in,
+                              (T*)csr.mat);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_out, ncols, nrows, nnz,
-                              mkl::index_base::zero, (Long*)csrt.row_offset,
-                              lcol_out.data(), (T*)csrt.mat);
+                              mkl::index_base::zero, prow_out, pcol_out, (T*)csrt.mat);
 #endif
 
     mkl::sparse::omatcopy(Gpu::Device::streamQueue(), mkl::transpose::trans,
@@ -814,9 +821,13 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
     mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle_in);
     auto ev = mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle_out);
     ev.wait();
-    {
+    if constexpr (!std::is_same_v<IO,Long>) {
         auto* po = csrt.col_index; auto const* so = lcol_out.data();
-        ParallelFor(nnz, [=] AMREX_GPU_DEVICE (Long i) { po[i] = IO(so[i]); });
+        auto* pr = csrt.row_offset; auto const* sr = lrow_out.data();
+        ParallelFor(std::max(nnz,ncols+1), [=] AMREX_GPU_DEVICE (Long i) {
+            if (i < nnz) { po[i] = IO(so[i]); }
+            if (i < ncols+1) { pr[i] = IO(sr[i]); }
+        });
         Gpu::streamSynchronize();
     }
 
@@ -1703,7 +1714,7 @@ void SpMatrix<T,Allocator>::define_split (AlgPartition partition,
         m_csr_local.resize(nlocalrows, local_nnz);
         container_type<Long> remote_gcols(remote_nnz);
         container_type<T> remote_mat(remote_nnz);
-        container_type<Long> remote_row_offset(nlocalrows+1);
+        container_type<int> remote_row_offset(nlocalrows+1);
         auto const* pmat = compact.mat.data();
         auto* pmat_l = m_csr_local.mat.data();
         auto* pcol_l = m_csr_local.col_index.data();
@@ -1728,8 +1739,8 @@ void SpMatrix<T,Allocator>::define_split (AlgPartition partition,
         {
             Long ro_l = (i < noffset-1)
                 ? ((pro[i] < nnz) ? p_pfsum[pro[i]] : local_nnz) : local_nnz;
-            pro_l[i] = ro_l;
-            pro_r[i] = pro[i] - ro_l;
+            pro_l[i] = int(ro_l);
+            pro_r[i] = int(pro[i] - ro_l);
         });
         Gpu::streamSynchronize();
         compact = local_csr_type{};
@@ -1803,11 +1814,15 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
                                           Scan::Type::exclusive, Scan::retSum);
     }
     Long const remote_nnz = m_nnz - local_nnz;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (local_nnz < Long(std::numeric_limits<int>::max()) &&
+         remote_nnz < Long(std::numeric_limits<int>::max()),
+         "SpMatrix: too many local nonzeros for 32-bit row offsets");
 
     m_csr_local.resize(nlocalrows, local_nnz);
     container_type<Long> remote_gcols;
     container_type<T> remote_mat;
-    container_type<Long> remote_row_offset;
+    container_type<int> remote_row_offset;
 #ifdef AMREX_USE_MPI
     remote_gcols.resize(remote_nnz);
     remote_mat.resize(remote_nnz);
@@ -1847,8 +1862,8 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
             } else {
                 ro_l = local_nnz;
             }
-            pro_l[i] = ro_l;
-            if (pro_r) { pro_r[i] = pro[i] - ro_l; }
+            pro_l[i] = int(ro_l);
+            if (pro_r) { pro_r[i] = int(pro[i] - ro_l); }
         });
         Gpu::streamSynchronize();
     }
@@ -1883,7 +1898,7 @@ void SpMatrix<T,Allocator>::trim_remote_rows ()
     m_ri_rtol.resize(old_size-1);
     auto* p_ltor = m_ri_ltor.data();
     auto* p_rtol = m_ri_rtol.data();
-    container_type<Long> trimmed_row_offset(old_size);
+    container_type<int> trimmed_row_offset(old_size);
     auto const* p_ro = m_csr_remote.row_offset.data();
     auto* p_tro = trimmed_row_offset.data();
     // This is basically std::unique.
@@ -2205,9 +2220,8 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
         }
     }
 
-    std::exclusive_scan(row_nnz.begin(), row_nnz.end(), csrr.row_offset.begin(),
-                        Long(0));
-    csrr.row_offset.back() = csrr.nnz;
+    std::exclusive_scan(row_nnz.begin(), row_nnz.end(), csrr.row_offset.begin(), 0);
+    csrr.row_offset.back() = int(csrr.nnz);
 
     auto rowpos = csrr.row_offset; // make a copy to keep track of offset
 
@@ -2233,7 +2247,7 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
             auto os_dst = rowpos[p];
             std::memcpy(csrr.mat.data()+os_dst, mat+os_src, sizeof(T)*nvals);
             std::memcpy(gcols.data()+os_dst, col_index+os_src, sizeof(Long)*nvals);
-            rowpos[p] += nvals;
+            rowpos[p] += int(nvals);
         }
     }
 
@@ -2469,7 +2483,7 @@ void SpMatrix<T,Allocator>::expand_remote_row_offset () const
         // split_csr only builds m_ri_ltor when remote entries exist.
         ParallelForOMP(nrows+1, [=] AMREX_GPU_DEVICE (Long i) { pro_full[i] = 0; });
         Gpu::streamSynchronize();
-    } else if (nnz_r < Long(std::numeric_limits<int>::max())) {
+    } else {
         Scan::PrefixSum<int>(nrows,
                              [=] AMREX_GPU_DEVICE (Long i) -> int {
                                  Long rrow = ri_ltor[i];
@@ -2485,22 +2499,6 @@ void SpMatrix<T,Allocator>::expand_remote_row_offset () const
                                  pro_full[i+1] = x;
                              },
                              Scan::Type::inclusive, Scan::noRetSum);
-    } else {
-        Scan::PrefixSum<Long>(nrows,
-                              [=] AMREX_GPU_DEVICE (Long i) -> Long {
-                                  Long rrow = ri_ltor[i];
-                                  if (rrow == -1) {
-                                      return Long(0);
-                                  } else {
-                                      return pro_comp[rrow+1]-pro_comp[rrow];
-                                  }},
-                              [=] AMREX_GPU_DEVICE (Long i, Long x) {
-                                  if (i == 0) {
-                                      pro_full[0] = 0;
-                                  }
-                                  pro_full[i+1] = x;
-                              },
-                              Scan::Type::inclusive, Scan::noRetSum);
     }
 }
 
