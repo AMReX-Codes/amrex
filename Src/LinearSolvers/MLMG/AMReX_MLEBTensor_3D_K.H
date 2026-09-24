@@ -945,7 +945,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real tauzz = mu*dwdz + tautmp;
                         Real tauxz = mu*dudz;
                         Real tauyz = mu*dvdz;
-                        Real febfac = dyi*dzi/dxi;
+                        Real febfac = dyi*(dzi/dxi);
                         feb_0 = febfac*(dapx*tauxx + dapy*tauyx + dapz*tauzx);
                         feb_1 = febfac*(dapx*tauxy + dapy*tauyy + dapz*tauzy);
                         feb_2 = febfac*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
