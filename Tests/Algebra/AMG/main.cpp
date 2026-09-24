@@ -32,7 +32,6 @@ struct Params {
     Real jump = Real(1.e3);
     int block = 4;
     Real eps = Real(1.e-3);
-    int row_scale = 0;      // divide each row of A (and the rhs) by its diagonal
     int mlmg = 0;           // also solve with geometric MLMG for comparison
     int max_grid_size = 64; // for MLMG
     std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
@@ -189,8 +188,6 @@ Result run (Params const& p)
                     : (p.problem == "checker") ? 2 : (p.problem == "aniso") ? 3 : -1;
     if (ptype < 0) { amrex::Abort("Unknown problem: " + p.problem); }
     Coef const coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain};
-    bool const row_scale = (p.row_scale != 0);
-    if (row_scale && ptype == 0) { amrex::Abort("row_scale needs problem != constant"); }
 
     {
         auto* rhs = bvec.data();
@@ -272,9 +269,6 @@ Result run (Params const& p)
         }
         col[i] = row;
         val[i] = diag;
-        if (row_scale) {
-            for (int m = 0; m <= i; ++m) { val[m] /= diag; }
-        }
     };
 
     int num_non_zeros = 2*AMREX_SPACEDIM+1;
@@ -365,7 +359,6 @@ Result run (Params const& p)
                    << (p.aggressive_levels.value_or(0) > 0 ? ", aggressive" : "")
                    << (p.krylov != "none" ? ", krylov=" + p.krylov : "")
                    << (singular ? ", singular" : "")
-                   << (p.row_scale ? ", row-scaled" : "")
                    << (p.problem != "constant" ? ", " + p.problem : "") << "): "
                    << amg.getNumIters() << " iterations, " << (t1-t0) << " s, rel. residual = "
                    << rel_res << ", max norm error = " << error << "\n";
@@ -395,7 +388,6 @@ int main (int argc, char* argv[])
         pp.query("block", p.block);
         pp.query("eps", p.eps);
         pp.query("mlmg", p.mlmg);
-        pp.query("row_scale", p.row_scale);
         pp.query("max_grid_size", p.max_grid_size);
         auto query_opt = [&] (char const* name, auto& opt) {
             std::remove_reference_t<decltype(*opt)> v;

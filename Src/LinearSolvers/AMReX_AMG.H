@@ -224,7 +224,8 @@ struct MMInterpRow
  * Parameters are set per object with the setters below.
  *
  * The matrix must be square with rows sorted by column index (see
- * SpMatrix), and it must stay alive while the solver is in use.
+ * SpMatrix), and it must stay alive while the solver is in use. With
+ * R = P^T, the coarsening assumes a symmetric or nearly symmetric matrix.
  *
  * References:
  * [1] J. W. Ruge and K. Stüben, Algebraic multigrid, in Multigrid
@@ -1628,9 +1629,9 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::second_pass_strength (SpMatrix<TS>& S,
 {
     BL_PROFILE("AMG::second_pass_strength");
 
-    // The C-C block of S^2 is S_CF S_FC after PMIS (S_CC is empty). Both
-    // factors are built in compact C and F numberings, so the product never
-    // forms the full S^2.
+    // Distance-two C-C connections: S_CF S_FC. The few direct C-C
+    // connections PMIS leaves are ignored. Both factors are built in
+    // compact C and F numberings, so the product never forms the full S^2.
     auto const& s = S.const_parcsr();
     Long const nrows = s.csr0.nrows;
     Long const nc = cpart.numLocalRows();

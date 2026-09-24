@@ -1135,8 +1135,10 @@ The following can be tuned:
   BiCGStab (``BiCGStab``), GMRES (``GMRES``) or conjugate gradient (``PCG``)
   solver instead of iterating it on its own (``None``, the default). In the
   tests in ``Tests/Algebra/AMG`` this roughly halved the number of V-cycles.
-  BiCGStab and GMRES accept any matrix; PCG requires a symmetric positive
-  definite matrix. With PCG or GMRES, use smoother sweeps as the bottom
+  The coarse operators are Galerkin products with :math:`R = P^T`, so the
+  matrix should be symmetric or nearly so (solve row-scaled systems in
+  their unscaled form); PCG also requires positive definiteness. With PCG
+  or GMRES, use smoother sweeps as the bottom
   solver, and with PCG also the same number of pre- and post-smoothing
   sweeps.
 - :cpp:`setSingular(true)`: for singular matrices whose null space is the
