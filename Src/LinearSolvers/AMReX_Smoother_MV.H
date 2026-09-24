@@ -346,7 +346,7 @@ public:
         A.setColumnPartition(A.partition());
         auto const& a = A.const_parcsr();
         Long const nrows = xvec.numLocalRows();
-        T const* AMREX_RESTRICT dinv = inverse_scaling().data();
+        T const* AMREX_RESTRICT dl1 = l1_diagonal().data();
         int const nblocks = m_nblocks;
         bool const has_remote = ParallelContext::NProcsSub() > 1;
         T const* AMREX_RESTRICT b = bvec.data();
@@ -388,7 +388,7 @@ public:
                             r -= c0.mat[idx] * x[j];
                         }
                     }
-                    x[i] += r * dinv[i];
+                    if (dl1[i] != T(0)) { x[i] += r / dl1[i]; }
                 }
             }
         };
@@ -421,7 +421,7 @@ private:
     SpMatrix<T> const* m_A;
     int m_niters = 2;
     int m_nblocks = -1;
-    std::shared_ptr<AlgVector<T>> m_dinv; // 1 / (a_ii + l1 term) for the current row blocks
+    std::shared_ptr<AlgVector<T>> m_dl1; // a_ii + l1 term for the current row blocks
     std::shared_ptr<Array<AlgVector<T>,2>> m_work; // previous iterate, remote part
 
     //! Row range of a block. The blocks, not the threads, define the sweep.
@@ -442,16 +442,16 @@ private:
     }
 
 #ifndef AMREX_USE_GPU
-    AlgVector<T> const& inverse_scaling ()
+    AlgVector<T> const& l1_diagonal ()
     {
         int const nb = OpenMP::get_max_threads();
-        if (!m_dinv || nb != m_nblocks) {
+        if (!m_dl1 || nb != m_nblocks) {
             m_nblocks = nb;
             m_work.reset(); // its vectors depend on the number of blocks
-            m_dinv = std::make_shared<AlgVector<T>>(m_A->partition());
-            T* AMREX_RESTRICT p = m_dinv->data();
+            m_dl1 = std::make_shared<AlgVector<T>>(m_A->partition());
+            T* AMREX_RESTRICT p = m_dl1->data();
             auto const& a = m_A->const_parcsr();
-            Long const nrows = m_dinv->numLocalRows();
+            Long const nrows = m_dl1->numLocalRows();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -473,12 +473,11 @@ private:
                             l1 += std::abs(a.csr1.mat[idx]);
                         }
                     }
-                    T const d = aii + std::copysign(l1, aii);
-                    p[i] = (d != T(0)) ? T(1) / d : T(0);
+                    p[i] = aii + std::copysign(l1, aii);
                 }
             }
         }
-        return *m_dinv;
+        return *m_dl1;
     }
 #endif
 };
