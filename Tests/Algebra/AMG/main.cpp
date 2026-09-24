@@ -471,6 +471,17 @@ int main (int argc, char* argv[])
                     cases.back().smoother = sm;
                 }
             }
+#ifndef AMREX_USE_GPU
+            if (p.krylov == "none") {
+                // PCG needs symmetric Gauss-Seidel sweeps at the bottom:
+                // one level makes the bottom the whole problem.
+                cases.push_back(p);
+                cases.back().bottom = "jacobi";
+                cases.back().smoother = "l1gs";
+                cases.back().krylov = "pcg";
+                cases.back().max_levels = 1;
+            }
+#endif
         }
         for (auto const& pb : cases) {
             auto const& b = pb.bottom;

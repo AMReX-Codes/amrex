@@ -1127,8 +1127,8 @@ The following can be tuned:
   before and after the coarse correction (1 for Chebyshev, 2 for the other
   smoothers).
 - :cpp:`setBottomSolver`: smoother sweeps (``Jacobi``, the default), or
-  BiCGStab (``BiCGStab``) or GMRES (``GMRES``) preconditioned by the same
-  smoother.
+  BiCGStab (``BiCGStab``) or GMRES (``GMRES``) preconditioned by l1-Jacobi
+  (weighted Jacobi when the smoother is ``Jacobi``).
 - :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom
   solver (:math:`10^{-4}`).
 - :cpp:`setKrylovSolver`: use one V-cycle as the preconditioner of an outer

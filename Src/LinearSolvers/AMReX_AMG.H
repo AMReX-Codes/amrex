@@ -837,7 +837,14 @@ void AMG<T>::bottom_solve ()
     project_out(m_res[lev]); // keep the coarsest solve consistent
     switch (m_bottom_solver) {
     case BottomSolver::Jacobi:
-        smooth(lev, m_cor[lev], m_res[lev], numBottomSmooth(), false);
+        if (m_smoother_type == Smoother::L1GaussSeidel) {
+            // Forward then backward sweeps keep the cycle symmetric.
+            int const nu = (numBottomSmooth()+1)/2;
+            smooth(lev, m_cor[lev], m_res[lev], nu, false);
+            smooth(lev, m_cor[lev], m_res[lev], nu, true, true);
+        } else {
+            smooth(lev, m_cor[lev], m_res[lev], numBottomSmooth(), false);
+        }
         break;
     case BottomSolver::GMRES:
         if (!m_gmres) {
