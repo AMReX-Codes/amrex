@@ -83,8 +83,8 @@ void run_mlmg (Params const& p)
                     : (p.problem == "checker") ? 2 : 3;
     Box domain(IntVect(0), IntVect(n_cell-1));
     Coef const coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain};
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)},
-               {AMREX_D_DECL(2.*Math::pi<Real>(), 2.*Math::pi<Real>(), 2.*Math::pi<Real>())});
+    Real const L = Real(2)*Math::pi<Real>();
+    RealBox rb(AMREX_D_DECL(Real(0),Real(0),Real(0)), AMREX_D_DECL(L,L,L));
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
     Geometry geom(domain, rb, CoordSys::cartesian, is_periodic);
     BoxArray ba(domain);
@@ -98,12 +98,12 @@ void run_mlmg (Params const& p)
     ParallelFor(exact, IntVect(1), [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
     {
         amrex::ignore_unused(j, k);
-        Real v = std::sin((i+Real(0.5))*dx);
+        Real v = std::sin((Real(i)+Real(0.5))*dx);
 #if (AMREX_SPACEDIM >= 2)
-        v *= std::sin((j+Real(0.5))*dx);
+        v *= std::sin((Real(j)+Real(0.5))*dx);
 #endif
 #if (AMREX_SPACEDIM == 3)
-        v *= std::sin((k+Real(0.5))*dx);
+        v *= std::sin((Real(k)+Real(0.5))*dx);
 #endif
         exa[b](i,j,k) = Math::powi<5>(v);
     });
@@ -202,14 +202,14 @@ Result run (Params const& p)
             auto row = lrow + ib; // global row index
             IntVect cell = box_indexer.intVect(row);
 #if (AMREX_SPACEDIM == 1)
-            auto x = (cell[0]+Real(0.5))*dx;
+            auto x = (Real(cell[0])+Real(0.5))*dx;
             auto phi0 = Math::powi<5>(std::sin(x));
             auto phixm = Math::powi<5>(std::sin(x-dx));
             auto phixp = Math::powi<5>(std::sin(x+dx));
             rhs[lrow] = a*phi0 + (Real(2)*phi0-phixm-phixp) / (dx*dx);
 #elif (AMREX_SPACEDIM == 2)
-            auto x = (cell[0]+Real(0.5))*dx;
-            auto y = (cell[1]+Real(0.5))*dx;
+            auto x = (Real(cell[0])+Real(0.5))*dx;
+            auto y = (Real(cell[1])+Real(0.5))*dx;
             auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y));
             auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y));
             auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y));
@@ -217,9 +217,9 @@ Result run (Params const& p)
             auto phiyp = Math::powi<5>(std::sin(x)*std::sin(y+dx));
             rhs[lrow] = a*phi0 + (Real(4)*phi0-phixm-phixp-phiym-phiyp) / (dx*dx);
 #else
-            auto x = (cell[0]+Real(0.5))*dx;
-            auto y = (cell[1]+Real(0.5))*dx;
-            auto z = (cell[2]+Real(0.5))*dx;
+            auto x = (Real(cell[0])+Real(0.5))*dx;
+            auto y = (Real(cell[1])+Real(0.5))*dx;
+            auto z = (Real(cell[2])+Real(0.5))*dx;
             auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y)*std::sin(z));
             auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y)*std::sin(z));
             auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y)*std::sin(z));

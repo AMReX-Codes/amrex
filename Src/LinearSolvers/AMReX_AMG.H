@@ -253,7 +253,8 @@ template <typename T>
 class AMG
 {
 public:
-    //! Value type of the strength matrices: float when T is double.
+    //! Value type of the strength matrices: float when T is double. Their
+    //! entries are the matrix entries divided by `strength_scale`.
     using TS = std::conditional_t<std::is_same_v<T,double>, float, T>;
 
     enum class BottomSolver { Jacobi, BiCGStab, GMRES };
@@ -472,8 +473,12 @@ public: // NOLINT
 
     void setup ();
 
-    //! Strong part of A: S_ij = a_ij if i strongly depends on j, else absent.
+    //! Strong part of A: S_ij = a_ij / strength_scale if i strongly depends
+    //! on j, else absent.
     SpMatrix<TS> create_soc (SpMatrix<T> const& A) const;
+
+    //! Largest |a_ii|, the unit of the strength matrix entries.
+    static T strength_scale (SpMatrix<T> const& A);
 
     //! PMIS C/F selection. `state` gets PointType values. Points without
     //! any strong connection become F, or C if `isolated_as_coarse`.
@@ -550,6 +555,10 @@ void AMG<T>::define (SpMatrix<T>& a_mat)
 {
     m_mat = &a_mat;
     m_prepared = false;
+    m_bproj.reset();
+    m_krylov_bicgstab.reset();
+    m_krylov_gmres.reset();
+    m_krylov_pcg.reset();
 }
 
 template <typename T>
@@ -575,7 +584,7 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     m_niters = 0;
 
     if (m_bnorm == 0) {
-        if (m_rnorm != 0) { a_sol.setVal(0); }
+        a_sol.setVal(0); // also the zero-mean solution of a singular system
         m_rnorm = 0;
         return;
     }
@@ -590,6 +599,7 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         if (m_verbose >= 1) {
             amrex::Print() << m_print_ident << "AMG: No iterations needed\n";
         }
+        project_out(a_sol);
         return;
     }
 
@@ -1071,6 +1081,17 @@ void AMG<T>::setup ()
 }
 
 template <typename T>
+T AMG<T>::strength_scale (SpMatrix<T> const& A)
+{
+    auto const& Ad = A.diagonalVector();
+    auto const* AMREX_RESTRICT p = Ad.data();
+    T dmax = Reduce::Max<T>(Ad.numLocalRows(),
+        [=] AMREX_GPU_DEVICE (Long i) -> T { return std::abs(p[i]); });
+    ParallelAllReduce::Max(dmax, ParallelContext::CommunicatorSub());
+    return (dmax > T(0)) ? dmax : T(1);
+}
+
+template <typename T>
 SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
 {
     BL_PROFILE("AMG::create_soc");
@@ -1082,6 +1103,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT A_ii = Ad.data();
     auto const threshold = m_strong_threshold;
+    T const inv_scale = T(1)/strength_scale(A);
 
     // Strength test for one entry of row i.
     auto row_amin = [=] AMREX_GPU_DEVICE (Long i) -> T {
@@ -1143,7 +1165,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
         auto const& c0 = a.csr0;
         for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
             if (c0.col_index[idx] != i && sgn*c0.mat[idx] < amin) {
-                ps[p] = TS(c0.mat[idx]);
+                ps[p] = TS(c0.mat[idx]*inv_scale);
                 pc[p] = c0.col_index[idx];
                 ++p;
             }
@@ -1153,7 +1175,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
             Long const ii = a.row_map[i];
             for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
                 if (sgn*c1.mat[idx] < amin) {
-                    ps[p] = TS(c1.mat[idx]);
+                    ps[p] = TS(c1.mat[idx]*inv_scale);
                     pc[p] = nlocal + c1.col_index[idx];
                     ++p;
                 }
@@ -1432,7 +1454,8 @@ SpMatrix<T> AMG<T>::build_interp (SpMatrix<T>& A, SpMatrix<TS> const& S,
 namespace detail {
 
 //! Selects the entries of a row of P that survive truncation. Entries come
-//! from the local and remote blocks; columns are returned as global.
+//! from the local and remote blocks; columns are compact: the local index
+//! or nlocal plus the remote index.
 template <typename T, int KMAX>
 struct TruncRow
 {
@@ -1441,39 +1464,53 @@ struct TruncRow
     T trunc_factor;
     int nlocal_cols;
 
-    //! Returns the number of kept entries; fills cols/vals (unordered,
-    //! compact columns: local index or nlocal plus remote index) and the
-    //! positive/negative sums of the full row.
-    AMREX_GPU_HOST_DEVICE
-    int select (Long i, int* cols, T* vals, T& sum_pos, T& sum_neg) const
+    //! Calls f(compact column, value) for each entry of row i.
+    template <typename F>
+    AMREX_GPU_HOST_DEVICE void walk (Long i, F const& f) const
     {
         auto const& c0 = p.csr0;
-        bool const remote = has_remote_row(p, i);
-        Long const ii = remote ? p.row_map[i] : 0;
-        auto const& c1 = p.csr1;
+        for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
+            f(c0.col_index[idx], c0.mat[idx]);
+        }
+        if (has_remote_row(p, i)) {
+            auto const& c1 = p.csr1;
+            Long const ii = p.row_map[i];
+            for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
+                f(nlocal_cols + c1.col_index[idx], c1.mat[idx]);
+            }
+        }
+    }
 
+    //! Drop threshold of row i, with the positive and negative row sums.
+    AMREX_GPU_HOST_DEVICE T threshold (Long i, T& sum_pos, T& sum_neg) const
+    {
         T amax = T(0);
         sum_pos = T(0);
         sum_neg = T(0);
-        for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
-            T const v = c0.mat[idx];
+        walk(i, [&] (int, T v) {
             amax = std::max(amax, std::abs(v));
             if (v > T(0)) { sum_pos += v; } else { sum_neg += v; }
-        }
-        if (remote) {
-            for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
-                T const v = c1.mat[idx];
-                amax = std::max(amax, std::abs(v));
-                if (v > T(0)) { sum_pos += v; } else { sum_neg += v; }
-            }
-        }
-        T const thresh = trunc_factor * amax;
-        int const kmax = (max_elmts > 0) ? std::min(max_elmts, KMAX) : KMAX;
+        });
+        return trunc_factor * amax;
+    }
 
-        // Insertion into a buffer sorted by decreasing magnitude.
-        int const nlocal = nlocal_cols;
+    //! Number of entries of row i at or above the threshold.
+    AMREX_GPU_HOST_DEVICE int count (Long i, T thresh) const
+    {
         int n = 0;
-        auto insert = [&] (int col, T v) {
+        walk(i, [&] (int, T v) { if (std::abs(v) >= thresh) { ++n; } });
+        return n;
+    }
+
+    //! For max_elmts > 0: returns the number of kept entries and fills
+    //! cols/vals by decreasing magnitude.
+    AMREX_GPU_HOST_DEVICE
+    int select (Long i, int* cols, T* vals, T& sum_pos, T& sum_neg) const
+    {
+        T const thresh = threshold(i, sum_pos, sum_neg);
+        int const kmax = std::min(max_elmts, KMAX);
+        int n = 0;
+        walk(i, [&] (int col, T v) {
             T const av = std::abs(v);
             if (av < thresh) { return; }
             if (n == kmax && av <= std::abs(vals[n-1])) { return; }
@@ -1486,15 +1523,7 @@ struct TruncRow
             cols[pos] = col;
             vals[pos] = v;
             if (n < kmax) { ++n; }
-        };
-        for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
-            insert(c0.col_index[idx], c0.mat[idx]);
-        }
-        if (remote) {
-            for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
-                insert(nlocal + c1.col_index[idx], c1.mat[idx]);
-            }
-        }
+        });
         return n;
     }
 };
@@ -1755,10 +1784,14 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
         (nrows+1,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
-             int cols[KMAX];
-             T vals[KMAX];
              T sp, sn;
-             return tr.select(i, cols, vals, sp, sn);
+             if (max_elmts > 0) {
+                 int cols[KMAX];
+                 T vals[KMAX];
+                 return tr.select(i, cols, vals, sp, sn);
+             } else {
+                 return tr.count(i, tr.threshold(i, sp, sn));
+             }
          },
          [=] AMREX_GPU_DEVICE (Long i, Long const& x) { prow[i] = x; },
          Scan::Type::exclusive, Scan::retSum);
@@ -1770,21 +1803,40 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
     auto* AMREX_RESTRICT pcol = csr.col_index.data();
     ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        int cols[KMAX];
-        T vals[KMAX];
         T sum_pos, sum_neg;
-        int const n = tr.select(i, cols, vals, sum_pos, sum_neg);
-        T kept_pos = T(0), kept_neg = T(0);
-        for (int k = 0; k < n; ++k) {
-            if (vals[k] > T(0)) { kept_pos += vals[k]; } else { kept_neg += vals[k]; }
-        }
-        T const fpos = (kept_pos != T(0)) ? sum_pos/kept_pos : T(1);
-        T const fneg = (kept_neg != T(0)) ? sum_neg/kept_neg : T(1);
         Long q = prow[i];
-        for (int k = 0; k < n; ++k) {
-            pcol[q] = cols[k];
-            pmat[q] = vals[k] * ((vals[k] > T(0)) ? fpos : fneg);
-            ++q;
+        if (max_elmts > 0) {
+            int cols[KMAX];
+            T vals[KMAX];
+            int const n = tr.select(i, cols, vals, sum_pos, sum_neg);
+            T kept_pos = T(0), kept_neg = T(0);
+            for (int k = 0; k < n; ++k) {
+                if (vals[k] > T(0)) { kept_pos += vals[k]; } else { kept_neg += vals[k]; }
+            }
+            T const fpos = (kept_pos != T(0)) ? sum_pos/kept_pos : T(1);
+            T const fneg = (kept_neg != T(0)) ? sum_neg/kept_neg : T(1);
+            for (int k = 0; k < n; ++k) {
+                pcol[q] = cols[k];
+                pmat[q] = vals[k] * ((vals[k] > T(0)) ? fpos : fneg);
+                ++q;
+            }
+        } else { // threshold only, no limit on the count
+            T const thresh = tr.threshold(i, sum_pos, sum_neg);
+            T kept_pos = T(0), kept_neg = T(0);
+            tr.walk(i, [&] (int, T v) {
+                if (std::abs(v) >= thresh) {
+                    if (v > T(0)) { kept_pos += v; } else { kept_neg += v; }
+                }
+            });
+            T const fpos = (kept_pos != T(0)) ? sum_pos/kept_pos : T(1);
+            T const fneg = (kept_neg != T(0)) ? sum_neg/kept_neg : T(1);
+            tr.walk(i, [&] (int col, T v) {
+                if (std::abs(v) >= thresh) {
+                    pcol[q] = col;
+                    pmat[q] = v * ((v > T(0)) ? fpos : fneg);
+                    ++q;
+                }
+            });
         }
     });
     Gpu::streamSynchronize();
@@ -1823,7 +1875,9 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
     int const C = PointType::coarse;
     int const F = PointType::fine;
 
-    // alpha_i = a_ii + weak off-diagonal row sum = rowsum(A) - rowsum(S).
+    // alpha_i = a_ii + weak off-diagonal row sum = rowsum(A) - rowsum(S),
+    // in the units of S. The weights do not depend on the scaling.
+    T const inv_scale = T(1)/strength_scale(A);
     auto const rsA = A.rowSum();
     auto const rsS = S.rowSum();
     auto const* AMREX_RESTRICT prsA = rsA.data();
@@ -1928,7 +1982,7 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
         // Strong F neighbors without a usable denominator are lumped into
         // the diagonal as weak connections (remark after Eq. (3.8)).
-        T alpha = prsA[i] - T(prsS[i]);
+        T alpha = prsA[i]*inv_scale - T(prsS[i]);
         T theta = T(0);
         w.walk(i, [&] (int, int, T aij, T aji, int st_j, T db_j) {
             if (st_j == F) {
