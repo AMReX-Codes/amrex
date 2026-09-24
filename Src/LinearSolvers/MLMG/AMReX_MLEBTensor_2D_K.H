@@ -284,8 +284,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 Real feb_1 = Real(0.0);
                 if (is_dirichlet)
                 {
-                    Real dapx = (apx(i+1,j,0)-apx(i,j,0)) / dyi;
-                    Real dapy = (apy(i,j+1,0)-apy(i,j,0)) / dxi;
+                    // EB area vector divided by dx, so that it stays O(1)
+                    Real dapx = (apx(i+1,j,0)-apx(i,j,0)) * (dxi/dyi);
+                    Real dapy = (apy(i,j+1,0)-apy(i,j,0));
                     Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy);
                     Real anrmx = -dapx * anorminv;
                     Real anrmy = -dapy * anorminv;
@@ -341,8 +342,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real tauyx = mu*dvdx;
                     Real tauyy = mu*dvdy + tautmp;
                     Real tauxy = mu*dudy;
-                    feb_0 = dxi*dyi*(dapx*tauxx + dapy*tauyx);
-                    feb_1 = dxi*dyi*(dapx*tauxy + dapy*tauyy);
+                    feb_0 = dyi*(dapx*tauxx + dapy*tauyx);
+                    feb_1 = dyi*(dapx*tauxy + dapy*tauyy);
                 }
 
                 Real volinv = bscalar / kappa;
