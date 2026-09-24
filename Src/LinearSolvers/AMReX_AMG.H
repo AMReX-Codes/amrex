@@ -1320,7 +1320,9 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
         Long nc = Reduce::Sum<Long>(nrows, [=] AMREX_GPU_DEVICE (Long i) -> Long {
             return (ps[i] == C) ? 1 : 0;
         });
-        // Two C-points must not be strongly connected.
+        // C-points that strongly depend on another C-point. A point becomes
+        // F only through its own dependencies, so a few one-directional
+        // C-C connections remain where the strength is asymmetric.
         Long ncc = Reduce::Sum<Long>(nrows, [=] AMREX_GPU_DEVICE (Long i) -> Long {
             if (ps[i] != C) { return 0; }
             return (detail::csr_row_has_state(s.csr0, i, ps, C) ||
