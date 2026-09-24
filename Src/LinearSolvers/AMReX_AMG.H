@@ -272,8 +272,9 @@ public:
     //! operator by one, so 4/3 is the optimal damping for the upper half of
     //! the spectrum and the sweep converges for any SPD matrix.
     //! Chebyshev (default): polynomial of degree `cheby_degree` (2) on the
-    //! l1-scaled operator, damping [lambda_max / cheby_ratio, lambda_max]
-    //! with ratio 6; one sweep costs `cheby_degree` matrix-vector products.
+    //! l1-scaled operator, damping [1 / cheby_ratio, 1] with ratio 6 (one
+    //! bounds its eigenvalues); one sweep costs `cheby_degree` matrix-vector
+    //! products.
     //! One sweep per pre- and post-smoothing step by default, versus two
     //! for the Jacobi smoothers, so the cost per cycle is the same.
     //! L1GaussSeidel: l1 hybrid Gauss-Seidel, forward before and backward
@@ -309,7 +310,9 @@ public:
     //! Number of smoother sweeps on the coarsest level with the Jacobi
     //! bottom solver; negative restores the default.
     void setBottomSmooth (int nu) { m_nu_bottom = nu; }
-    //! Takes effect at the next setup, i.e., the next solve after define.
+    //! Strength threshold (0.25). A row whose sum exceeds 0.9 times its
+    //! diagonal has no strong connection. Takes effect at the next setup,
+    //! i.e., the next solve after define.
     void setStrongThreshold (T theta) { m_strong_threshold = theta; m_prepared = false; }
     //! Maximum number of levels. Two means a two-level method. Takes
     //! effect at the next setup, i.e., the next solve after define.
@@ -516,6 +519,8 @@ public: // NOLINT
     //! weights are rescaled to preserve the row's positive and negative sums.
     static SpMatrix<T> truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
                                         int max_elmts, T trunc_factor);
+    //! Scales the nonempty rows of P to sum to one.
+    static void normalize_rows (SpMatrix<T>& P);
 
     //! Strength graph between C-points connected through a strong path of
     //! length two, in C-point numbering (rows partitioned by cpart).
@@ -836,8 +841,7 @@ void AMG<T>::bottom_solve ()
 
     int const lev = numLevels()-1;
     project_out(m_res[lev]); // keep the coarsest solve consistent
-    switch (m_bottom_solver) {
-    case BottomSolver::Jacobi:
+    auto smooth_bottom = [&] () {
         if (m_smoother_type == Smoother::L1GaussSeidel) {
             // Forward then backward sweeps keep the cycle symmetric.
             int const nu = (numBottomSmooth()+1)/2;
@@ -846,26 +850,39 @@ void AMG<T>::bottom_solve ()
         } else {
             smooth(lev, m_cor[lev], m_res[lev], numBottomSmooth(), false);
         }
+    };
+    // As in MLMG, a Krylov solve that does not reduce the residual is
+    // discarded; its iterate can be far worse than no correction.
+    auto krylov_bottom = [&] (auto& krylov) {
+        krylov.setVerbose(m_bottom_verbose);
+        krylov.getSolver().setMaxIters(m_bottom_maxiter);
+        T const rnorm0 = m_res[lev].norm2();
+        m_cor[lev].setVal(0);
+        krylov.solve(m_cor[lev], m_res[lev], m_bottom_reltol, T(0));
+        if (!(krylov.getSolver().getResidualNorm() < rnorm0)) {
+            if (m_verbose >= 2) {
+                amrex::Print() << m_print_ident << "AMG: bottom solve failed, smoothing instead\n";
+            }
+            smooth_bottom();
+        }
+    };
+    switch (m_bottom_solver) {
+    case BottomSolver::Jacobi:
+        smooth_bottom();
         break;
     case BottomSolver::GMRES:
         if (!m_gmres) {
             m_gmres = std::make_unique<GMRES_MV<T>>(m_a[lev]);
             m_gmres->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::Jacobi));
         }
-        m_gmres->setVerbose(m_bottom_verbose);
-        m_gmres->getSolver().setMaxIters(m_bottom_maxiter);
-        m_cor[lev].setVal(0);
-        m_gmres->solve(m_cor[lev], m_res[lev], m_bottom_reltol, T(0));
+        krylov_bottom(*m_gmres);
         break;
     case BottomSolver::BiCGStab:
         if (!m_bicgstab) {
             m_bicgstab = std::make_unique<BiCGStab_MV<T>>(m_a[lev]);
             m_bicgstab->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::Jacobi));
         }
-        m_bicgstab->setVerbose(m_bottom_verbose);
-        m_bicgstab->getSolver().setMaxIters(m_bottom_maxiter);
-        m_cor[lev].setVal(0);
-        m_bicgstab->solve(m_cor[lev], m_res[lev], m_bottom_reltol, T(0));
+        krylov_bottom(*m_bicgstab);
         break;
     }
     project_out(m_cor[lev]);
@@ -994,6 +1011,9 @@ void AMG<T>::setup ()
                                << nnz[1] << " nonzeros\n";
             }
         }
+        // P 1 = 1 only to single precision, since the weights come from the
+        // strength matrix; singular problems need it exactly.
+        if (m_singular) { normalize_rows(P); }
         if (m_verbose >= 2 && aggressive) {
             amrex::Print() << m_print_ident << "AMG: level " << lev
                            << ": aggressive coarsening, " << ncoarse << " -> "
@@ -1051,10 +1071,9 @@ void AMG<T>::setup ()
             m_cheby.push_back(std::make_unique<ChebyshevSmoother<T>>(m_a[lev], true));
             m_cheby.back()->setDegree(m_cheby_degree);
             m_cheby.back()->setEigRatio(m_cheby_ratio);
-            if (m_verbose >= 2) {
-                amrex::Print() << m_print_ident << "AMG: level " << lev
-                               << ": Chebyshev lambda_max = " << m_cheby.back()->lambdaMax() << "\n";
-            }
+            // One bounds the spectrum of the l1-scaled operator. A power
+            // iteration estimate can be low, and the modes above it grow.
+            m_cheby.back()->setLambdaMax(T(1));
         } else {
             bool const l1 = (m_smoother_type == Smoother::L1Jacobi);
             m_smoother.push_back(std::make_unique<JacobiSmoother<T>>(m_a[lev], l1));
@@ -1090,6 +1109,29 @@ void AMG<T>::setup ()
 }
 
 template <typename T>
+void AMG<T>::normalize_rows (SpMatrix<T>& P)
+{
+    auto const rs = P.rowSum();
+    auto const* AMREX_RESTRICT prs = rs.data();
+    auto a = P.parcsr();
+    ParallelForOMP(rs.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) noexcept
+    {
+        if (prs[i] == T(0)) { return; }
+        T const f = T(1) / prs[i];
+        for (Long idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
+            a.csr0.mat[idx] *= f;
+        }
+        if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+            Long const ii = a.row_map[i];
+            for (Long idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
+                a.csr1.mat[idx] *= f;
+            }
+        }
+    });
+    Gpu::streamSynchronize();
+}
+
+template <typename T>
 T AMG<T>::strength_scale (SpMatrix<T> const& A)
 {
     auto const& Ad = A.diagonalVector();
@@ -1113,9 +1155,15 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto const* AMREX_RESTRICT A_ii = Ad.data();
     auto const threshold = m_strong_threshold;
     T const scale = strength_scale(A);
+    auto const rsA = A.rowSum();
+    auto const* AMREX_RESTRICT prs = rsA.data();
 
-    // Strength test for one entry of row i.
+    // Strength test for one entry of row i. As hypre's max_row_sum (0.9),
+    // rows dominated by their diagonal have no strong connection.
     auto row_amin = [=] AMREX_GPU_DEVICE (Long i) -> T {
+        if (std::abs(prs[i]) > T(0.9)*std::abs(A_ii[i])) {
+            return std::numeric_limits<T>::lowest();
+        }
         auto const& c0 = a.csr0;
         T const sgn = std::copysign(T(1), A_ii[i]);
         T amin = std::numeric_limits<T>::max();

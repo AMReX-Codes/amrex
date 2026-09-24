@@ -1118,9 +1118,9 @@ The following can be tuned:
   Poisson tests l1 hybrid Gauss-Seidel needs fewer cycles than the other
   smoothers, but each sweep is sequential within a process or OpenMP thread.
 - :cpp:`setChebyshevDegree` and :cpp:`setChebyshevRatio`: the Chebyshev
-  smoother is a polynomial of the given degree (2) that damps the
-  eigenvalues between the largest one divided by the given ratio (6) and the
-  largest one.
+  smoother is a polynomial of the given degree (2) in the l1-scaled
+  operator that damps its eigenvalues between one divided by the given
+  ratio (6) and one, the upper bound of its spectrum.
 - :cpp:`setRelaxWeight`: weight of the l1-Jacobi (4/3) and weighted Jacobi
   (2/3) smoothers.
 - :cpp:`setPreSmooth` and :cpp:`setPostSmooth`: number of smoother sweeps
@@ -1147,6 +1147,8 @@ The following can be tuned:
   the caller's right-hand side is not modified, and the solution is returned
   with zero mean.
 - :cpp:`setStrongThreshold`: threshold of the strength of connection (0.25).
+  A row whose sum exceeds 0.9 times its diagonal has no strong connection
+  and is left to the smoother.
 - :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
   truncated to at most four entries by default (0 disables the limit), and
   entries below the given fraction of the row maximum are dropped (0 by
