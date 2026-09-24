@@ -14,6 +14,8 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_VisMF.H>
 
+#include <type_traits>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -45,7 +47,8 @@ MyTest::solve ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-11;
+    // Single precision cannot reach 1e-11.
+    const Real tol_rel = std::is_same_v<Real,float> ? 1.e-5_rt : 1.e-11_rt;
     const Real tol_abs = 0.0;
 
     MLEBTensorOp ebtensorop({geom}, {grids}, {dmap}, info, {factory.get()});
@@ -115,7 +118,7 @@ MyTest::solve ()
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
 
-    mlmg.setBottomTolerance(1.e-4);
+    mlmg.setBottomTolerance(1.e-4_rt);
 
     MultiFab::Saxpy(rhs, a, exact, 0, 0, AMREX_SPACEDIM, 0);
 
@@ -204,9 +207,9 @@ MyTest::initData ()
         const Array4<Real> etafab = eta.array(mfi);
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
              {
-                    AMREX_D_TERM(Real x = (i+0.5)*dx[0] + problo[0];,
-                                 Real y = (j+0.5)*dx[1] + problo[1];,
-                                 Real z = (k+0.5)*dx[2] + problo[2];)
+                    AMREX_D_TERM(Real x = (i+0.5_rt)*dx[0] + problo[0];,
+                                 Real y = (j+0.5_rt)*dx[1] + problo[1];,
+                                 Real z = (k+0.5_rt)*dx[2] + problo[2];)
 
                     Real u,v,urhs,vrhs,seta;
 #if (AMREX_SPACEDIM == 2)
@@ -238,9 +241,9 @@ MyTest::initData ()
                         z < -1.0 || z > 1.0)
 #endif
                     {
-                        AMREX_D_TERM(x = amrex::max(-1.0,amrex::min(1.0,x));,
-                                     y = amrex::max(-1.0,amrex::min(1.0,y));,
-                                     z = amrex::max(-1.0,amrex::min(1.0,z));)
+                        AMREX_D_TERM(x = amrex::max(-1.0_rt,amrex::min(1.0_rt,x));,
+                                     y = amrex::max(-1.0_rt,amrex::min(1.0_rt,y));,
+                                     z = amrex::max(-1.0_rt,amrex::min(1.0_rt,z));)
 #if (AMREX_SPACEDIM == 2)
                             init(x,y,R2,u,v,urhs,vrhs,seta);
 #elif (AMREX_SPACEDIM == 3)
