@@ -346,35 +346,29 @@ public:
         A.setColumnPartition(A.partition());
         auto const& a = A.const_parcsr();
         Long const nrows = xvec.numLocalRows();
-        auto const& dl1 = scaling();
+        T const* AMREX_RESTRICT dinv = inverse_scaling().data();
         int const nblocks = m_nblocks;
-        T const* AMREX_RESTRICT d = dl1.data();
+        bool const has_remote = ParallelContext::NProcsSub() > 1;
         T const* AMREX_RESTRICT b = bvec.data();
         T* AMREX_RESTRICT x = xvec.data();
 
-        if (!m_work || (*m_work)[0].partition() != xvec.partition()) {
+        // The previous iterate is needed for couplings between row blocks,
+        // and the remote part of A x for couplings to other processes.
+        if (!m_work) {
             m_work = std::make_shared<Array<AlgVector<T>,2>>();
-            for (auto& v : *m_work) { v.define(xvec.partition()); }
+            if (nblocks > 1) { (*m_work)[0].define(xvec.partition()); }
+            if (has_remote) { (*m_work)[1].define(xvec.partition()); }
         }
         auto& xold = (*m_work)[0];
         auto& yrem = (*m_work)[1];
-        T* AMREX_RESTRICT px_old = xold.data();
-        T* AMREX_RESTRICT py_rem = yrem.data();
+        T const* AMREX_RESTRICT px_old = (nblocks > 1) ? xold.data() : nullptr;
+        T const* AMREX_RESTRICT py_rem = has_remote ? yrem.data() : nullptr;
 
         if ( ! with_initial_guess) { xvec.setVal(0); }
 
-        for (int iter = 0; iter < m_niters; ++iter) {
-            bool const zero_guess = (iter == 0 && ! with_initial_guess);
-            if (zero_guess) {
-                xold.setVal(0);
-                yrem.setVal(0);
-            } else {
-                xold.copy(xvec);
-                // Remote contribution with the previous iterate.
-                yrem.setVal(0);
-                A.startComm_mv(xvec);
-                A.finishComm_mv(yrem);
-            }
+        // x_i += (b_i - (A x)_i) / d_i, row by row, with d_i = a_ii + l1 term.
+        auto sweep = [&] (auto multi_block, auto remote)
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -383,18 +377,41 @@ public:
                 auto const& c0 = a.csr0;
                 for (Long n = 0; n < rhi-rlo; ++n) {
                     Long const i = backward ? (rhi-1-n) : (rlo+n);
-                    T s = b[i] - py_rem[i];
+                    T r = b[i];
+                    if constexpr (remote) { r -= py_rem[i]; }
                     for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
                         Long const j = c0.col_index[idx];
-                        if (j == i) { continue; }
-                        // Rows of this block use the current iterate, others the old one.
-                        s -= c0.mat[idx] * ((j >= rlo && j < rhi) ? x[j] : px_old[j]);
+                        if constexpr (multi_block) {
+                            // Rows of this block use the current iterate, others the old one.
+                            r -= c0.mat[idx] * ((j >= rlo && j < rhi) ? x[j] : px_old[j]);
+                        } else {
+                            r -= c0.mat[idx] * x[j];
+                        }
                     }
-                    if (d[i] != T(0)) {
-                        // (s - a_ii x_i) / d_i with d_i = a_ii + l1 term.
-                        x[i] += (s - diag_of(c0, i) * x[i]) / d[i];
-                    }
+                    x[i] += r * dinv[i];
                 }
+            }
+        };
+
+        for (int iter = 0; iter < m_niters; ++iter) {
+            bool const zero_guess = (iter == 0 && ! with_initial_guess);
+            if (nblocks > 1) {
+                if (zero_guess) { xold.setVal(0); } else { xold.copy(xvec); }
+            }
+            if (has_remote) {
+                // Remote contribution with the previous iterate.
+                yrem.setVal(0);
+                if (!zero_guess) {
+                    A.startComm_mv(xvec);
+                    A.finishComm_mv(yrem);
+                }
+            }
+            if (nblocks > 1) {
+                if (has_remote) { sweep(std::true_type{}, std::true_type{}); }
+                else            { sweep(std::true_type{}, std::false_type{}); }
+            } else {
+                if (has_remote) { sweep(std::false_type{}, std::true_type{}); }
+                else            { sweep(std::false_type{}, std::false_type{}); }
             }
         }
 #endif
@@ -404,7 +421,7 @@ private:
     SpMatrix<T> const* m_A;
     int m_niters = 2;
     int m_nblocks = -1;
-    std::shared_ptr<AlgVector<T>> m_scaling; // a_ii + l1 term for the current row blocks
+    std::shared_ptr<AlgVector<T>> m_dinv; // 1 / (a_ii + l1 term) for the current row blocks
     std::shared_ptr<Array<AlgVector<T>,2>> m_work; // previous iterate, remote part
 
     //! Row range of a block. The blocks, not the threads, define the sweep.
@@ -425,15 +442,16 @@ private:
     }
 
 #ifndef AMREX_USE_GPU
-    AlgVector<T> const& scaling ()
+    AlgVector<T> const& inverse_scaling ()
     {
         int const nb = OpenMP::get_max_threads();
-        if (!m_scaling || nb != m_nblocks) {
+        if (!m_dinv || nb != m_nblocks) {
             m_nblocks = nb;
-            m_scaling = std::make_shared<AlgVector<T>>(m_A->partition());
-            T* AMREX_RESTRICT p = m_scaling->data();
+            m_work.reset(); // its vectors depend on the number of blocks
+            m_dinv = std::make_shared<AlgVector<T>>(m_A->partition());
+            T* AMREX_RESTRICT p = m_dinv->data();
             auto const& a = m_A->const_parcsr();
-            Long const nrows = m_scaling->numLocalRows();
+            Long const nrows = m_dinv->numLocalRows();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -455,11 +473,12 @@ private:
                             l1 += std::abs(a.csr1.mat[idx]);
                         }
                     }
-                    p[i] = aii + std::copysign(l1, aii);
+                    T const d = aii + std::copysign(l1, aii);
+                    p[i] = (d != T(0)) ? T(1) / d : T(0);
                 }
             }
         }
-        return *m_scaling;
+        return *m_dinv;
     }
 #endif
 };
