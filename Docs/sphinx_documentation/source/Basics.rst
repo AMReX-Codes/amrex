@@ -1202,7 +1202,11 @@ The class has a static function :cpp:`TheZeroVector()` returning the zero
 vector, :cpp:`TheUnitVector()` returning the unit vector, and
 :cpp:`TheDimensionVector (int dir)` returning a reference to a constant
 :cpp:`IntVect` that is zero except in the :cpp:`dir`-direction. Note the
-direction is zero-based. :cpp:`IntVect` has a number of relational operators,
+direction is zero-based. For index types, :cpp:`TheCellVector()` and
+:cpp:`TheNodeVector()` return the cell-centered and nodal types,
+:cpp:`TheFaceVector (int dir)` the type of faces normal to :cpp:`dir`, and
+:cpp:`TheEdgeVector (int dir)` the type of edges parallel to :cpp:`dir`.
+:cpp:`IntVect` has a number of relational operators,
 :cpp:`==`, :cpp:`!=`, :cpp:`<`, :cpp:`<=`, :cpp:`>`, and :cpp:`>=` that can be
 used for lexicographical comparison (e.g., key of :cpp:`std::map`), and a class
 :cpp:`IntVect::shift_hasher` that can be used as a hash function (e.g., for

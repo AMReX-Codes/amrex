@@ -37,12 +37,6 @@ void fill_domain_ghost (MultiFab& mf, Geometry const& geom, int flip_dir)
     }
 }
 
-//! Index type of the edges in direction idim: cell-centered in idim, nodal otherwise.
-IntVect edge_type (int idim)
-{
-    return IntVect::TheNodeVector() - IntVect::TheDimensionVector(idim);
-}
-
 Dim3 unit_vector (int idim)
 {
     return Dim3{.x = (idim == 0) ? 1 : 0,
@@ -283,7 +277,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
             m_levset[amrlev][mglev].define(amrex::convert(ba,IntVect(1)), dm, 1, 1);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_edge_len[amrlev][mglev][idim].define
-                    (amrex::convert(ba,edge_type(idim)), dm, 1, 1);
+                    (amrex::convert(ba,IntVect::TheEdgeVector(idim)), dm, 1, 1);
             }
             m_has_eb[amrlev][mglev].define(ba, dm);
         }
@@ -340,7 +334,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
                                    1, 0, MFInfo().SetArena(The_Async_Arena()));
                 pclevset = &clevset_tmp;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    cel_tmp[idim].define(amrex::convert(cba,edge_type(idim)),
+                    cel_tmp[idim].define(amrex::convert(cba,IntVect::TheEdgeVector(idim)),
                                          flevset.DistributionMap(), 1, 0,
                                          MFInfo().SetArena(The_Async_Arena()));
                     pcel[idim] = &cel_tmp[idim];
@@ -360,7 +354,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
                     cls(i,j,k) = fls(i*rr.x, j*rr.y, k*rr.z);
                 });
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    Box const& ebx = mfi.tilebox(edge_type(idim));
+                    Box const& ebx = mfi.tilebox(IntVect::TheEdgeVector(idim));
                     Array4<Real> const& cela = pcel[idim]->array(mfi);
                     Array4<Real const> const& fela = fel[idim].const_array(mfi);
                     Dim3 const off = unit_vector(idim);
@@ -870,9 +864,9 @@ void
 MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                                     MultiFab& sol) const
 {
-    AMREX_ASSERT(AMREX_D_TERM(grad[0]->ixType() == IndexType(IntVect(AMREX_D_DECL(0,1,1))),
-                           && grad[1]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,0,1))),
-                           && grad[2]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,1,0)))));
+    AMREX_ASSERT(AMREX_D_TERM(grad[0]->ixType() == IndexType(IntVect::TheEdgeVector(0)),
+                           && grad[1]->ixType() == IndexType(IntVect::TheEdgeVector(1)),
+                           && grad[2]->ixType() == IndexType(IntVect::TheEdgeVector(2))));
 
     const int mglev = 0;
     AMREX_D_TERM(const auto dxi = m_geom[amrlev][mglev].InvCellSize(0);,
@@ -890,9 +884,9 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 #endif
     for (MFIter mfi(*grad[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        AMREX_D_TERM(const Box& xbox = mfi.tilebox(IntVect(AMREX_D_DECL(0,1,1)));,
-                     const Box& ybox = mfi.tilebox(IntVect(AMREX_D_DECL(1,0,1)));,
-                     const Box& zbox = mfi.tilebox(IntVect(AMREX_D_DECL(1,1,0)));)
+        AMREX_D_TERM(const Box& xbox = mfi.tilebox(IntVect::TheEdgeVector(0));,
+                     const Box& ybox = mfi.tilebox(IntVect::TheEdgeVector(1));,
+                     const Box& zbox = mfi.tilebox(IntVect::TheEdgeVector(2));)
         Array4<Real const> const& p = sol.const_array(mfi);
         AMREX_D_TERM(Array4<Real> const& gpx = grad[0]->array(mfi);,
                      Array4<Real> const& gpy = grad[1]->array(mfi);,
@@ -1163,7 +1157,7 @@ MLEBNodeFDLaplacian::update_sigma ()
                 auto& se = m_sigma_edge[amrlev][mglev][idim];
                 if (se.empty()) {
                     se.define(amrex::convert(this->m_grids[amrlev][mglev],
-                                             edge_type(idim)),
+                                             IntVect::TheEdgeVector(idim)),
                               this->m_dmap[amrlev][mglev], 1, 1);
                 }
             }
@@ -1235,7 +1229,7 @@ MLEBNodeFDLaplacian::update_sigma ()
             if (need_parallel_copy) {
                 BoxArray const& cba = amrex::coarsen(m_grids[amrlev][mglev-1], ratio);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    cse_tmp[idim].define(amrex::convert(cba,edge_type(idim)),
+                    cse_tmp[idim].define(amrex::convert(cba,IntVect::TheEdgeVector(idim)),
                                          fse[idim].DistributionMap(), 1, 0,
                                          MFInfo().SetArena(The_Async_Arena()));
                     pcse[idim] = &cse_tmp[idim];
