@@ -1,0 +1,42 @@
+# Inputs for the AMG test. Command-line arguments override them, e.g.
+#   ./main3d.gnu.ex inputs problem=checker interp=direct verbose=1
+# With `variations = 1`, each problem runs every bottom solver and
+# variations of the interpolation, coarsening, truncation, smoother and
+# Krylov options, so the default run covers most of the solver.
+
+# Test problems (one or more): a*phi - div(b grad phi) on a periodic box.
+#   constant: b = 1
+#   jump:     b = jump in the central cube, 1 elsewhere
+#   checker:  blocks of `block` cells alternating between 1 and jump
+#   aniso:    b = eps in x, 1 in the other directions
+problem = constant jump checker aniso
+n_cell  = 32       # cells per direction, at least 3
+bc      = periodic # periodic or dirichlet (on the domain faces)
+alpha   = 1.0      # 0 gives the singular problem if periodic
+jump    = 1.e3
+block   = 4
+eps     = 1.e-3
+
+variations = 1  # 0: run only the options given here
+max_iter = 200
+# reltol = 1.e-10 # 1.e-5 in single precision
+# seed = 1        # seed of the random coarse point selection
+# repeat = 1      # run each case this many times
+mlmg = 1          # also solve with geometric multigrid (MLMG); 0 to skip
+
+# AMG options. Commented-out ones show the solver's defaults.
+interp   = ext+i     # direct, ext, ext+i
+smoother = chebyshev # jacobi, l1jacobi, chebyshev, l1gs (CPU only)
+krylov   = none      # none, bicgstab, gmres, pcg
+bottom   = jacobi    # jacobi, bicgstab, gmres; used as is with variations = 0
+# theta = 0.25            # strength threshold
+# aggressive_levels = 0   # levels with aggressive coarsening
+# p_max_elmts = 4         # max entries per row of P (0: no limit)
+# trunc_factor = 0        # drop P entries below this fraction of the row max
+# max_coarse_size = 9
+# max_levels = 25
+# nu1 = 1                 # pre-smoothing sweeps (2 for Jacobi smoothers)
+# nu2 = 1                 # post-smoothing sweeps (2 for Jacobi smoothers)
+# cheby_degree = 2
+# cheby_ratio = 6
+# verbose = 0

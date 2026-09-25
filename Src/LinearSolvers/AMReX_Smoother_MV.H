@@ -155,8 +155,9 @@ public: // NOLINT  Private, but public for CUDA
  * `D^{-1} A` that damps the spectrum in `[lambda_max / ratio, lambda_max]`
  * [Adams, Brezina, Hu, Tuminaro, J. Comput. Phys. 188 (2003), 593-610].
  * Each application costs `degree` matrix-vector products. `lambda_max` is
- * estimated with power iterations on first use and multiplied by a safety
- * factor of 1.1; with l1 scaling it is at most one.
+ * the Gershgorin bound `max_i sum_j |a_ij| / |d_i|` of the scaled operator,
+ * which is one with l1 scaling. An upper bound, unlike an estimate, leaves
+ * no mode above the damped interval to be amplified.
  */
 template <typename T>
 class ChebyshevSmoother
@@ -174,17 +175,15 @@ public:
     //! Ratio between the largest eigenvalue and the lower end of the smoothing
     //! interval (20 by default).
     void setEigRatio (T r) { m_ratio = r; }
-    //! Number of power iterations for the eigenvalue estimate (10 by default).
-    void setNumEigIters (int n) { m_eig_iters = n; }
     //! Number of polynomial applications per call (1 by default).
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
-    //! Set the largest eigenvalue of the scaled operator instead of estimating it.
+    //! Set the largest eigenvalue of the scaled operator instead of the bound.
     void setLambdaMax (T l) { m_lambda_max = l; }
-    //! Largest eigenvalue of the scaled operator, estimated on first use. The
-    //! estimate is collective, so all processes must call this together.
+    //! Upper bound of the eigenvalues of the scaled operator, computed on
+    //! first use. The first call is collective.
     T lambdaMax ()
     {
-        if (m_lambda_max <= T(0)) { estimate(); }
+        if (m_lambda_max <= T(0)) { bound(); }
         return m_lambda_max;
     }
 
@@ -267,39 +266,35 @@ private:
     bool m_l1 = false;
     int m_degree = 2;
     T m_ratio = T(20);
-    int m_eig_iters = 10;
     int m_niters = 1;
     T m_lambda_max = T(-1);
     std::shared_ptr<Array<AlgVector<T>,3>> m_work; // r, d, A d
 
 public: // NOLINT  Private, but public for CUDA
-    //! Power iteration for the largest eigenvalue of D^{-1} A.
-    void estimate ()
+    //! Gershgorin bound of the eigenvalues of D^{-1} A.
+    void bound ()
     {
-        auto const& diag = m_jacobi.scaling();
-        AlgVector<T> v(m_A->partition());
-        AlgVector<T> w(m_A->partition());
+        if (m_l1) { m_lambda_max = T(1); return; }
+        // The matrix might not have been split yet (e.g., no SpMV so far).
+        const_cast<SpMatrix<T>*>(m_A)->setColumnPartition(m_A->partition());
+        auto const& a = m_A->const_parcsr();
+        auto const* AMREX_RESTRICT pd = m_A->diagonalVector().data();
+        T lmax = Reduce::Max<T>(m_A->numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) -> T
         {
-            auto* pv = v.data();
-            ParallelForRNG(v.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng) noexcept
-            {
-                pv[i] = T(Random(eng)) - T(0.5);
-            });
-        }
-        T lambda = T(0);
-        for (int it = 0; it < m_eig_iters; ++it) {
-            T const nv = v.norm2();
-            if (nv == T(0)) { break; }
-            v.scaleAsync(T(1)/nv);
-            SpMV(w, *m_A, v);
-            ForEach(w, diag, [=] AMREX_GPU_DEVICE (T& wi, T const& dd)
-                    { wi = (dd != T(0)) ? wi / dd : T(0); });
-            lambda = amrex::Dot(v, w);
-            std::swap(v, w);
-        }
-        m_lambda_max = lambda * T(1.1);
-        if (m_l1) { m_lambda_max = std::min(m_lambda_max, T(1)); }
-        if (m_lambda_max <= T(0)) { m_lambda_max = T(1); }
+            T s = T(0);
+            for (auto idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
+                s += std::abs(a.csr0.mat[idx]);
+            }
+            if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+                auto ii = a.row_map[i];
+                for (auto idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
+                    s += std::abs(a.csr1.mat[idx]);
+                }
+            }
+            return (pd[i] != T(0)) ? s / std::abs(pd[i]) : T(0);
+        });
+        ParallelAllReduce::Max(lmax, ParallelContext::CommunicatorSub());
+        m_lambda_max = (lmax > T(0)) ? lmax : T(1);
     }
 };
 
@@ -351,35 +346,29 @@ public:
         A.setColumnPartition(A.partition());
         auto const& a = A.const_parcsr();
         Long const nrows = xvec.numLocalRows();
-        auto const& dl1 = scaling();
+        T const* AMREX_RESTRICT dl1 = l1_diagonal().data();
         int const nblocks = m_nblocks;
-        T const* AMREX_RESTRICT d = dl1.data();
+        bool const has_remote = ParallelContext::NProcsSub() > 1;
         T const* AMREX_RESTRICT b = bvec.data();
         T* AMREX_RESTRICT x = xvec.data();
 
-        if (!m_work || (*m_work)[0].partition() != xvec.partition()) {
+        // The previous iterate is needed for couplings between row blocks,
+        // and the remote part of A x for couplings to other processes.
+        if (!m_work) {
             m_work = std::make_shared<Array<AlgVector<T>,2>>();
-            for (auto& v : *m_work) { v.define(xvec.partition()); }
+            if (nblocks > 1) { (*m_work)[0].define(xvec.partition()); }
+            if (has_remote) { (*m_work)[1].define(xvec.partition()); }
         }
         auto& xold = (*m_work)[0];
         auto& yrem = (*m_work)[1];
-        T* AMREX_RESTRICT px_old = xold.data();
-        T* AMREX_RESTRICT py_rem = yrem.data();
+        T const* AMREX_RESTRICT px_old = (nblocks > 1) ? xold.data() : nullptr;
+        T const* AMREX_RESTRICT py_rem = has_remote ? yrem.data() : nullptr;
 
         if ( ! with_initial_guess) { xvec.setVal(0); }
 
-        for (int iter = 0; iter < m_niters; ++iter) {
-            bool const zero_guess = (iter == 0 && ! with_initial_guess);
-            if (zero_guess) {
-                xold.setVal(0);
-                yrem.setVal(0);
-            } else {
-                xold.copy(xvec);
-                // Remote contribution with the previous iterate.
-                yrem.setVal(0);
-                A.startComm_mv(xvec);
-                A.finishComm_mv(yrem);
-            }
+        // x_i += (b_i - (A x)_i) / d_i, row by row, with d_i = a_ii + l1 term.
+        auto sweep = [&] (auto multi_block, auto remote)
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -388,18 +377,41 @@ public:
                 auto const& c0 = a.csr0;
                 for (Long n = 0; n < rhi-rlo; ++n) {
                     Long const i = backward ? (rhi-1-n) : (rlo+n);
-                    T s = b[i] - py_rem[i];
+                    T r = b[i];
+                    if constexpr (remote) { r -= py_rem[i]; }
                     for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
                         Long const j = c0.col_index[idx];
-                        if (j == i) { continue; }
-                        // Rows of this block use the current iterate, others the old one.
-                        s -= c0.mat[idx] * ((j >= rlo && j < rhi) ? x[j] : px_old[j]);
+                        if constexpr (multi_block) {
+                            // Rows of this block use the current iterate, others the old one.
+                            r -= c0.mat[idx] * ((j >= rlo && j < rhi) ? x[j] : px_old[j]);
+                        } else {
+                            r -= c0.mat[idx] * x[j];
+                        }
                     }
-                    if (d[i] != T(0)) {
-                        // (s - a_ii x_i) / d_i with d_i = a_ii + l1 term.
-                        x[i] += (s - diag_of(c0, i) * x[i]) / d[i];
-                    }
+                    if (dl1[i] != T(0)) { x[i] += r / dl1[i]; }
                 }
+            }
+        };
+
+        for (int iter = 0; iter < m_niters; ++iter) {
+            bool const zero_guess = (iter == 0 && ! with_initial_guess);
+            if (nblocks > 1) {
+                if (zero_guess) { xold.setVal(0); } else { xold.copy(xvec); }
+            }
+            if (has_remote) {
+                // Remote contribution with the previous iterate.
+                yrem.setVal(0);
+                if (!zero_guess) {
+                    A.startComm_mv(xvec);
+                    A.finishComm_mv(yrem);
+                }
+            }
+            if (nblocks > 1) {
+                if (has_remote) { sweep(std::true_type{}, std::true_type{}); }
+                else            { sweep(std::true_type{}, std::false_type{}); }
+            } else {
+                if (has_remote) { sweep(std::false_type{}, std::true_type{}); }
+                else            { sweep(std::false_type{}, std::false_type{}); }
             }
         }
 #endif
@@ -409,7 +421,7 @@ private:
     SpMatrix<T> const* m_A;
     int m_niters = 2;
     int m_nblocks = -1;
-    std::shared_ptr<AlgVector<T>> m_scaling; // a_ii + l1 term for the current row blocks
+    std::shared_ptr<AlgVector<T>> m_dl1; // a_ii + l1 term for the current row blocks
     std::shared_ptr<Array<AlgVector<T>,2>> m_work; // previous iterate, remote part
 
     //! Row range of a block. The blocks, not the threads, define the sweep.
@@ -430,15 +442,16 @@ private:
     }
 
 #ifndef AMREX_USE_GPU
-    AlgVector<T> const& scaling ()
+    AlgVector<T> const& l1_diagonal ()
     {
         int const nb = OpenMP::get_max_threads();
-        if (!m_scaling || nb != m_nblocks) {
+        if (!m_dl1 || nb != m_nblocks) {
             m_nblocks = nb;
-            m_scaling = std::make_shared<AlgVector<T>>(m_A->partition());
-            T* AMREX_RESTRICT p = m_scaling->data();
+            m_work.reset(); // its vectors depend on the number of blocks
+            m_dl1 = std::make_shared<AlgVector<T>>(m_A->partition());
+            T* AMREX_RESTRICT p = m_dl1->data();
             auto const& a = m_A->const_parcsr();
-            Long const nrows = m_scaling->numLocalRows();
+            Long const nrows = m_dl1->numLocalRows();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -464,7 +477,7 @@ private:
                 }
             }
         }
-        return *m_scaling;
+        return *m_dl1;
     }
 #endif
 };
