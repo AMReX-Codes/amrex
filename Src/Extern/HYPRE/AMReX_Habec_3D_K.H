@@ -286,8 +286,6 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
-    amrex::ignore_unused(ba);
-
     for (int m = 0; m < 27; ++m) {
         sten[m] = Real(0.0);
     }
@@ -958,11 +956,12 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                                                                    + gxz       + gxyz,
                                                                          + gyz + gxyz,
                                                                                - gxyz};
+            Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, anrmz, dx[1]/dx[0], dx[2]/dx[0]);
             Array1D<Real,0,7> feb;
             for (int ii=0; ii<8; ii++) {
-                feb(ii) = -phig1(ii) * (anorm * beb(i,j,k) / dg);
+                feb(ii) = -phig1(ii) * (ebarea * beb(i,j,k) / dg);
             }
-            // sb*dx^2/(dx*dy*dz), since anorm is the EB area over dx^2
+            // sb*dx^2/(dx*dy*dz), since ebarea is over dx^2
             Real faceb = (fac[0]*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
             mat_tmp(0   , 0  , 0  ) -= feb(0)*faceb;
             mat_tmp(ioff, 0  , 0  ) -= feb(1)*faceb;
