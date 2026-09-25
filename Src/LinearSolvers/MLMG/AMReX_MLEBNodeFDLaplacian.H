@@ -33,7 +33,8 @@ namespace amrex {
 //
 // The EB information needed on the coarse MG levels (covered nodes and open
 // edge lengths) is built here from the level-0 factory, so multigrid
-// coarsening is not limited by the EB index space.
+// coarsening is not limited by the EB index space.  Coarsening stops at the
+// last level that still has a handful of open nodes.
 
 /**
  * \brief Nodal finite-difference Laplacian with optional embedded boundaries.

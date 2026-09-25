@@ -4,6 +4,8 @@
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLNodeTensorLap_K.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParallelReduce.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_SingleBoxCGSolver.H>
 
 #ifdef AMREX_USE_GPU
@@ -20,6 +22,32 @@ namespace {
 
 // Fill ghost cells outside the domain by reflection.  See
 // mlebndfdlap_fill_domain_ghost for flip_dir.
+#ifdef AMREX_USE_EB
+//! Number of local nodes in the domain that are not covered by the EB.
+Long count_open_nodes_local (MultiFab const& levset, Geometry const& geom)
+{
+    Box const nddom = amrex::convert(geom.Domain(), IntVect(1));
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    for (MFIter mfi(levset); mfi.isValid(); ++mfi) {
+        // Nodes on the high faces are shared with the next box.  Count
+        // them only at the domain boundary.
+        Box bx = mfi.validbox();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (bx.bigEnd(idim) < nddom.bigEnd(idim)) { bx.growHi(idim,-1); }
+        }
+        Array4<Real const> const& a = levset.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            return { (a(i,j,k) < Real(0.0)) ? Long(1) : Long(0) };
+        });
+    }
+    return amrex::get<0>(reduce_data.value(reduce_op));
+}
+#endif
+
 void fill_domain_ghost (MultiFab& mf, Geometry const& geom, int flip_dir)
 {
     mf.FillBoundary(geom.periodicity());
@@ -237,13 +265,13 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 
+    build_eb_data(); // This may reduce the number of MG levels.
+
     m_sigma_mf.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
     }
-
-    build_eb_data();
 }
 
 void
@@ -260,7 +288,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
         auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (!factory || factory->isAllRegular()) { continue; }
 
-        int const nmglevs = m_num_mg_levels[amrlev];
+        int nmglevs = m_num_mg_levels[amrlev];
         m_levset[amrlev].resize(nmglevs);
         m_edge_len[amrlev].resize(nmglevs);
         m_has_eb[amrlev].resize(nmglevs);
@@ -371,6 +399,33 @@ MLEBNodeFDLaplacian::build_eb_data ()
             }
         }
 
+        // Stop coarsening at the last MG level that still has enough open
+        // nodes for a meaningful bottom solve.
+        if (amrlev == 0 && nmglevs > 1) {
+            constexpr Long min_open_nodes = 9;
+            Vector<Long> nopen(nmglevs-1);
+            for (int mglev = 1; mglev < nmglevs; ++mglev) {
+                nopen[mglev-1] = count_open_nodes_local(m_levset[0][mglev],
+                                                        m_geom[0][mglev]);
+            }
+            ParallelAllReduce::Sum(nopen.data(), static_cast<int>(nopen.size()),
+                                   ParallelContext::CommunicatorSub());
+            int last_good = 0;
+            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
+                if (nopen[mglev-1] >= min_open_nodes) {
+                    last_good = mglev;
+                    break;
+                }
+            }
+            if (last_good+1 < nmglevs) {
+                resizeMultiGrid(last_good+1);
+                nmglevs = m_num_mg_levels[0];
+                m_levset[0].resize(nmglevs);
+                m_edge_len[0].resize(nmglevs);
+                m_has_eb[0].resize(nmglevs);
+            }
+        }
+
         for (int mglev = 0; mglev < nmglevs; ++mglev) {
             auto const& levset = m_levset[amrlev][mglev];
             auto const& el = m_edge_len[amrlev][mglev];
@@ -410,15 +465,15 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
 
+#ifdef AMREX_USE_EB
+    build_eb_data();
+#endif
+
     m_sigma_mf.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
     }
-
-#ifdef AMREX_USE_EB
-    build_eb_data();
-#endif
 }
 
 void
