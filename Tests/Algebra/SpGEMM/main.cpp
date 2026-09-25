@@ -259,7 +259,7 @@ int main (int argc, char *argv[])
             // Products are summed in different orders.
             AMREX_ALWAYS_ASSERT(all_true(amrex::almostEqual(ABT,BTAT,32)));
 
-            Real tol = std::numeric_limits<Real>::epsilon() * Real(1000);
+            Real tol = std::numeric_limits<Real>::epsilon() * Real(100);
             AMREX_ALWAYS_ASSERT(all_true(check_spmv(A, B, AB, pt3, tol)));
         }
 

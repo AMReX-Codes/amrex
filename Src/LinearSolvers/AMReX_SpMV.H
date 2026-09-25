@@ -38,6 +38,12 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
 
     Long const nnz = A.nnz;
 
+    // cuSPARSE 12 leaves y untouched when the matrix has no nonzeros.
+    if (nnz == 0) {
+        ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) { py[i] = T(0); });
+        return;
+    }
+
 #if defined(AMREX_USE_CUDA)
 
     cusparseHandle_t handle;
