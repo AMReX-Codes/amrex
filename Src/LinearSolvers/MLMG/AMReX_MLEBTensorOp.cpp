@@ -207,10 +207,11 @@ void
 MLEBTensorOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                        const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    // The EB stencils of both the scalar and the tensor parts read the
-    // ghost cells outside two or three domain faces, so fill them here,
-    // before any stencil is evaluated.
+    // The tensor EB stencil reads the ghost cells outside two or three
+    // domain faces. Fill them here, before any stencil runs, on the levels
+    // that have the tensor terms.
     MLEBABecLap::applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry, skip_fillboundary);
+    if (mglev >= m_kappa[amrlev].size()) { return; }
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 }
 
