@@ -1138,6 +1138,24 @@ Real get_dx_eb (Real kappa) noexcept {
     return amrex::max(Real(0.3),(kappa*kappa-Real(0.25))/(Real(2.0)*kappa));
 }
 
+/**
+ * \brief EB area in physical units divided by dx^(AMREX_SPACEDIM-1).
+ *
+ * \p ba is the dimensionless EB boundary area, (\p nx, \p ny, \p nz) is the
+ * physical unit normal, \p ry = dy/dx and \p rz = dz/dx.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real get_eb_area (Real ba, Real nx, Real ny, Real ry) noexcept {
+    if (ry == Real(1.0)) { return ba; } // exact for isotropic cells
+    return ba * std::sqrt((nx*ry)*(nx*ry) + ny*ny);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real get_eb_area (Real ba, Real nx, Real ny, Real nz, Real ry, Real rz) noexcept {
+    if (ry == Real(1.0) && rz == Real(1.0)) { return ba; } // exact for isotropic cells
+    return ba * std::sqrt((nx*ry*rz)*(nx*ry*rz) + (ny*rz)*(ny*rz) + (nz*ry)*(nz*ry));
+}
+
 #endif
 
 }
