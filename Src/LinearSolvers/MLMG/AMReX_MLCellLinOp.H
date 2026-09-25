@@ -220,7 +220,7 @@ public:
      * \param niter  Number of smoothing passes to execute.
      */
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                 bool skip_fillboundary, int niter) const final;
+                 bool skip_fillboundary, int niter) const override;
 
     /**
      * \brief Compute the residual `resid = b - A(x)` using solution boundary data.

@@ -286,6 +286,8 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
+    amrex::ignore_unused(ba);
+
     for (int m = 0; m < 27; ++m) {
         sten[m] = Real(0.0);
     }
@@ -914,24 +916,30 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            Real anorm = std::sqrt((apx(i,j,k) - apx(i+1,j,k))*(apx(i,j,k) - apx(i+1,j,k))
-                                 + (apy(i,j,k) - apy(i,j+1,k))*(apy(i,j,k) - apy(i,j+1,k))
-                                 + (apz(i,j,k) - apz(i,j,k+1))*(apz(i,j,k) - apz(i,j,k+1)));
+            // Match mlebabeclap_adotx: EB area vector divided by dx^2
+            Real dapx = (apx(i,j,k) - apx(i+1,j,k)) * (dx[1]/dx[0])*(dx[2]/dx[0]);
+            Real dapy = (apy(i,j,k) - apy(i,j+1,k)) * (dx[2]/dx[0]);
+            Real dapz = (apz(i,j,k) - apz(i,j,k+1)) * (dx[1]/dx[0]);
+            Real anorm = std::sqrt(dapx*dapx + dapy*dapy + dapz*dapz);
 
             Real anorminv = Real(1.0)/anorm;
-            Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
-            Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
-            Real anrmz = (apz(i,j,k) - apz(i,j,k+1))*anorminv;
+            Real anrmx = dapx*anorminv;
+            Real anrmy = dapy*anorminv;
+            Real anrmz = dapz*anorminv;
             Real sx   = std::copysign(Real(1.0),anrmx);
             Real sy   = std::copysign(Real(1.0),anrmy);
             Real sz   = std::copysign(Real(1.0),anrmz);
             Real bctx = bcen(i,j,k,0);
             Real bcty = bcen(i,j,k,1);
             Real bctz = bcen(i,j,k,2);
-            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(std::abs(anrmx), std::abs(anrmy), std::abs(anrmz));
-            Real gx   = bctx - dg*anrmx;
-            Real gy   = bcty - dg*anrmy;
-            Real gz   = bctz - dg*anrmz;
+            // g is displaced along the physical normal; dg is the physical distance
+            Real mx   = anrmx/dx[0];
+            Real my   = anrmy/dx[1];
+            Real mz   = anrmz/dx[2];
+            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(std::abs(mx), std::abs(my), std::abs(mz));
+            Real gx   = bctx - dg*mx;
+            Real gy   = bcty - dg*my;
+            Real gz   = bctz - dg*mz;
             int ioff = -static_cast<int>(sx);
             int joff = -static_cast<int>(sy);
             int koff = -static_cast<int>(sz);
@@ -952,16 +960,18 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                                                                                - gxyz};
             Array1D<Real,0,7> feb;
             for (int ii=0; ii<8; ii++) {
-                feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg);
+                feb(ii) = -phig1(ii) * (anorm * beb(i,j,k) / dg);
             }
-            mat_tmp(0   , 0  , 0  ) -= feb(0)*fac[0];
-            mat_tmp(ioff, 0  , 0  ) -= feb(1)*fac[0];
-            mat_tmp(0   ,joff, 0  ) -= feb(2)*fac[0];
-            mat_tmp(0   , 0  ,koff) -= feb(3)*fac[0];
-            mat_tmp(ioff,joff, 0  ) -= feb(4)*fac[0];
-            mat_tmp(ioff, 0  ,koff) -= feb(5)*fac[0];
-            mat_tmp(0   ,joff,koff) -= feb(6)*fac[0];
-            mat_tmp(ioff,joff,koff) -= feb(7)*fac[0];
+            // sb*dx^2/(dx*dy*dz), since anorm is the EB area over dx^2
+            Real faceb = (fac[0]*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
+            mat_tmp(0   , 0  , 0  ) -= feb(0)*faceb;
+            mat_tmp(ioff, 0  , 0  ) -= feb(1)*faceb;
+            mat_tmp(0   ,joff, 0  ) -= feb(2)*faceb;
+            mat_tmp(0   , 0  ,koff) -= feb(3)*faceb;
+            mat_tmp(ioff,joff, 0  ) -= feb(4)*faceb;
+            mat_tmp(ioff, 0  ,koff) -= feb(5)*faceb;
+            mat_tmp(0   ,joff,koff) -= feb(6)*faceb;
+            mat_tmp(ioff,joff,koff) -= feb(7)*faceb;
         }
 
         for (int kk=-1; kk<=1; kk++) {

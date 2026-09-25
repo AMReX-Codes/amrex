@@ -323,7 +323,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             {
                 mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_2D_ONLY_ARGS(dh,h)
+                                 AMREX_2D_ONLY_ARGS(dh) h,
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
                                  AMREX_D_DECL(m0,m2,m4),
                                  AMREX_D_DECL(m1,m3,m5),

@@ -25,9 +25,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         Real alpha, Real beta, int ncomp) noexcept
 {
+    amrex::ignore_unused(ba);
+
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dh  = beta*dxinv[0]*dxinv[1];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -139,25 +140,22 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
             {
-                Real dapx = (apxm-apxp)/dxinv[1];
-                Real dapy = (apym-apyp)/dxinv[0];
-                Real anorm = std::hypot(dapx,dapy);
-                Real anorminv = Real(1.0)/anorm;
-                Real anrmx = dapx * anorminv;
-                Real anrmy = dapy * anorminv;
-
+                // The least-squares gradient is in index space, so this
+                // weighting gives the EB flux per cell volume.
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,is_eb_inhomog,
                                                          on_x_face, domlo_x, domhi_x,
                                                          on_y_face, domlo_y, domhi_y);
 
-                feb *= ba(i,j,k) * beb(i,j,k,n);
+                feb *= beb(i,j,k,n);
             }
 
 
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
-                (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - dh*feb);
+                (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - feb);
         }
     });
 }
@@ -175,8 +173,6 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 {
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dh  = beta*dxinv[0]*dxinv[1];
-
 
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
@@ -187,7 +183,6 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
     auto const& apy  = ebdata.get<EBData_t::apy>();
     auto const& fcx  = ebdata.get<EBData_t::fcx>();
     auto const& fcy  = ebdata.get<EBData_t::fcy>();
-    auto const& ba   = ebdata.get<EBData_t::bndryarea>();
     auto const& bc   = ebdata.get<EBData_t::bndrycent>();
 
     if (flag(i,j,k).isCovered())
@@ -260,8 +255,9 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
         Real feb = Real(0.0);
         if (is_dirichlet) {
-            Real dapx = (apxm-apxp)/dxinv[1];
-            Real dapy = (apym-apyp)/dxinv[0];
+            // EB length vector divided by dx, so that it stays O(1)
+            Real dapx = (apxm-apxp)*(dxinv[0]/dxinv[1]);
+            Real dapy = (apym-apyp);
             Real anorm = std::hypot(dapx,dapy);
             Real anorminv = Real(1.0)/anorm;
             Real anrmx = dapx * anorminv;
@@ -273,16 +269,14 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
             Real bcty = bc(i,j,k,1);
             Real dx_eb = get_dx_eb(kappa);
 
-            Real dg, gx, gy, sx, sy;
-            if (std::abs(anrmx) > std::abs(anrmy)) {
-                dg = dx_eb / std::abs(anrmx);
-            } else {
-                dg = dx_eb / std::abs(anrmy);
-            }
-            gx = (bctx - dg*anrmx);
-            gy = (bcty - dg*anrmy);
-            sx = std::copysign(Real(1.0),anrmx);
-            sy = std::copysign(Real(1.0),anrmy);
+            // g is displaced along the physical normal; dg is the physical distance
+            Real mx = anrmx*dxinv[0];
+            Real my = anrmy*dxinv[1];
+            Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+            Real gx = bctx - dg*mx;
+            Real gy = bcty - dg*my;
+            Real sx = std::copysign(Real(1.0),anrmx);
+            Real sy = std::copysign(Real(1.0),anrmy);
 
             int ii = i - static_cast<int>(sx);
             int jj = j - static_cast<int>(sy);
@@ -294,12 +288,14 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
             Real dphidn = (phib-phig) / dg;
 
-            feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
+            // beta*dx/(dx*dy), since anorm is the EB length over dx
+            Real febfac = beta*dxinv[1];
+            feb = febfac * dphidn * anorm * beb(i,j,k,n);
         }
 
         y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
             (dhx*(apxm*fxm-apxp*fxp) +
-             dhy*(apym*fym-apyp*fyp) - dh*feb);
+             dhy*(apym*fym-apyp*fyp) - feb);
     }
 }
 
@@ -330,15 +326,12 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real apym = apy(i,j,k);
         Real apyp = apy(i,j+1,k);
 
-        Real dapx = (apxm-apxp)/dxinv[1];
-        Real dapy = (apym-apyp)/dxinv[0];
+        Real dapx = (apxm-apxp)*(dxinv[0]/dxinv[1]);
+        Real dapy = (apym-apyp);
         Real anorm = std::hypot(dapx,dapy);
         Real anorminv = Real(1.0)/anorm;
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
-        const Real bareascaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
-                (anrmy/dxinv[1])*(anrmy/dxinv[1]) );
-
 
         Real phib = is_inhomog ? phieb(i,j,k,n) : Real(0.0);
 
@@ -346,16 +339,14 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real bcty = bc(i,j,k,1);
         Real dx_eb = get_dx_eb(kappa);
 
-        Real dg, gx, gy, sx, sy;
-        if (std::abs(anrmx) > std::abs(anrmy)) {
-            dg = dx_eb / std::abs(anrmx);
-        } else {
-            dg = dx_eb / std::abs(anrmy);
-        }
-        gx = bctx - dg*anrmx;
-        gy = bcty - dg*anrmy;
-        sx = std::copysign(Real(1.0),anrmx);
-        sy = std::copysign(Real(1.0),anrmy);
+        // g is displaced along the physical normal; dg is the physical distance
+        Real mx = anrmx*dxinv[0];
+        Real my = anrmy*dxinv[1];
+        Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+        Real gx = bctx - dg*mx;
+        Real gy = bcty - dg*my;
+        Real sx = std::copysign(Real(1.0),anrmx);
+        Real sy = std::copysign(Real(1.0),anrmy);
 
         int ii = i - static_cast<int>(sx);
         int jj = j - static_cast<int>(sy);
@@ -365,7 +356,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (            - gy*sy - gx*gy*sx*sy) * x(i ,jj,k,n)
             +       (                    + gx*gy*sx*sy) * x(ii,jj,k,n) ;
 
-        Real dphidn = (phib-phig)/(dg * bareascaling);
+        Real dphidn = (phib-phig)/dg;
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }
@@ -534,8 +525,9 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                      dhy*(apym*oym-apyp*oyp));
 
                 if (is_dirichlet) {
-                    Real dapx = (apxm-apxp)*dx[1];
-                    Real dapy = (apym-apyp)*dx[0];
+                    // EB length vector divided by dx, so that it stays O(1)
+                    Real dapx = (apxm-apxp)*(dx[1]/dx[0]);
+                    Real dapy = (apym-apyp);
                     Real anorm = std::hypot(dapx,dapy);
                     Real anorminv = Real(1.0)/anorm;
                     Real anrmx = dapx * anorminv;
@@ -545,16 +537,14 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     Real bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
                     Real dx_eb = get_dx_eb(kappa);
 
-                    Real dg, gx, gy, sx, sy;
-                    if (std::abs(anrmx) > std::abs(anrmy)) {
-                        dg = dx_eb / std::abs(anrmx);
-                    } else {
-                        dg = dx_eb / std::abs(anrmy);
-                    }
-                    gx = bctx - dg*anrmx;
-                    gy = bcty - dg*anrmy;
-                    sx = std::copysign(Real(1.0),anrmx);
-                    sy = std::copysign(Real(1.0),anrmy);
+                    // g is displaced along the physical normal; dg is the physical distance
+                    Real mx = anrmx/dx[0];
+                    Real my = anrmy/dx[1];
+                    Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+                    Real gx = bctx - dg*mx;
+                    Real gy = bcty - dg*my;
+                    Real sx = std::copysign(Real(1.0),anrmx);
+                    Real sy = std::copysign(Real(1.0),anrmy);
 
                     int ii = i - static_cast<int>(sx);
                     int jj = j - static_cast<int>(sy);
@@ -567,13 +557,14 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     // In gsrb we are always in residual-correction form so phib = 0
                     Real dphidn =  (    -phig)/dg;
 
-                    Real ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
+                    // beta*dx/(dx*dy), since anorm is the EB length over dx
+                    Real dheb = dh*dx[0];
 
-                    Real feb = dphidn * ba * beb(i,j,k,n);
-                    rho += -vfrcinv*(-dh)*feb;
+                    Real feb = dphidn * anorm * beb(i,j,k,n);
+                    rho += -vfrcinv*(-dheb)*feb;
 
-                    Real feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
-                    gamma += vfrcinv*(-dh)*feb_gamma;
+                    Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                    gamma += vfrcinv*(-dheb)*feb_gamma;
                 }
 
                 Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
@@ -777,6 +768,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& beb,
                             bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
+    amrex::ignore_unused(ba);
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isRegular())
@@ -830,8 +822,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                  dhy*(apym*sym-apyp*syp));
 
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp)*dx[1];
-                Real dapy = (apym-apyp)*dx[0];
+                // EB length vector divided by dx, so that it stays O(1)
+                Real dapx = (apxm-apxp)*(dx[1]/dx[0]);
+                Real dapy = (apym-apyp);
                 Real anorm = std::hypot(dapx,dapy);
                 Real anorminv = Real(1.0)/anorm;
                 Real anrmx = dapx * anorminv;
@@ -841,20 +834,20 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real bcty = bc(i,j,k,1);
                 Real dx_eb = get_dx_eb(vfrc(i,j,k));
 
-                Real dg, gx, gy, sx, sy;
-                if (std::abs(anrmx) > std::abs(anrmy)) {
-                    dg = dx_eb / std::abs(anrmx);
-                } else {
-                    dg = dx_eb / std::abs(anrmy);
-                }
-                gx = bctx - dg*anrmx;
-                gy = bcty - dg*anrmy;
-                sx = std::copysign(Real(1.0),anrmx);
-                sy = std::copysign(Real(1.0),anrmy);
+                // g is displaced along the physical normal; dg is the physical distance
+                Real mx = anrmx/dx[0];
+                Real my = anrmy/dx[1];
+                Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
+                Real gx = bctx - dg*mx;
+                Real gy = bcty - dg*my;
+                Real sx = std::copysign(Real(1.0),anrmx);
+                Real sy = std::copysign(Real(1.0),anrmy);
 
                 Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
-                Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
-                gamma += vfrcinv*(-dh)*feb_gamma;
+                // beta*dx/(dx*dy), since anorm is the EB length over dx
+                Real dheb = dh*dx[0];
+                Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                gamma += vfrcinv*(-dheb)*feb_gamma;
             }
 
             phi(i,j,k,n) /= gamma;
