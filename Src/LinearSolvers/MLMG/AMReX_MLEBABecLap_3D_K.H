@@ -27,8 +27,6 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         Real alpha, Real beta, int ncomp) noexcept
 {
-    amrex::ignore_unused(ba);
-
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
@@ -189,11 +187,22 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued()) {
+                Real ry = dxinv[0]/dxinv[1];
+                Real rz = dxinv[0]/dxinv[2];
+                Real dapx = (apxm-apxp) * ry*rz;
+                Real dapy = (apym-apyp) * rz;
+                Real dapz = (apzm-apzp) * ry;
+                Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                Real nx = dapx * anorminv;
+                Real ny = dapy * anorminv;
+                Real nz = dapz * anorminv;
                 // The least-squares gradient is in index space, so this
                 // weighting gives the EB flux per cell volume.
-                Real anrmx = dhx*(apxm-apxp);
-                Real anrmy = dhy*(apym-apyp);
-                Real anrmz = dhz*(apzm-apzp);
+                Real febfac = beta*dxinv[1]*(dxinv[2]/dxinv[0])
+                    * get_eb_area(ba(i,j,k),nx,ny,nz,ry,rz);
+                Real anrmx = febfac*nx*dxinv[0];
+                Real anrmy = febfac*ny*dxinv[1];
+                Real anrmz = febfac*nz*dxinv[2];
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,anrmz,is_eb_inhomog,
@@ -237,6 +246,7 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
     auto const& fcx  = ebdata.get<EBData_t::fcx>();
     auto const& fcy  = ebdata.get<EBData_t::fcy>();
     auto const& fcz  = ebdata.get<EBData_t::fcz>();
+    auto const& ba   = ebdata.get<EBData_t::bndryarea>();
     auto const& bc   = ebdata.get<EBData_t::bndrycent>();
 
     if (flag(i,j,k).isCovered())
@@ -459,7 +469,9 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
             Real dphidn = (phib-phig)/dg;
 
             Real febfac = beta*dxinv[1]*(dxinv[2]/dxinv[0]);
-            feb = febfac * dphidn * anorm * beb(i,j,k,n);
+            Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, anrmz,
+                                    dxinv[0]/dxinv[1], dxinv[0]/dxinv[2]);
+            feb = febfac * dphidn * ebarea * beb(i,j,k,n);
         }
 
         y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
@@ -885,13 +897,15 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                         + (gxy + gxyz) * phi(ii,jj,k,n)
                         + (-gxyz) * phi(ii,jj,kk,n);
 
-                    // beta*dx^2/(dx*dy*dz), since anorm is the EB area over dx^2
+                    // beta*dx^2/(dx*dy*dz), since ebarea is over dx^2
                     Real dheb = (dhx*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
+                    Real ebarea = get_eb_area(ebdata.get<EBData_t::bndryarea>(i,j,k),
+                                            anrmx, anrmy, anrmz, dx[1]/dx[0], dx[2]/dx[0]);
 
                     Real dphidn    = (    -phig)/dg;
-                    Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                    Real feb_gamma = -phig_gamma/dg * ebarea * beb(i,j,k,n);
                     gamma += vfrcinv*(-dheb)*feb_gamma;
-                    Real feb = dphidn * anorm * beb(i,j,k,n);
+                    Real feb = dphidn * ebarea * beb(i,j,k,n);
                     rho += -vfrcinv*(-dheb)*feb;
                 }
 
@@ -1241,7 +1255,6 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& beb,
                             bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
-    amrex::ignore_unused(ba);
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isRegular())
@@ -1368,9 +1381,10 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real gyz = gy*gz;
                 Real gxyz = gx*gy*gz;
                 Real phig_gamma = (Real(1.0)+gx+gy+gz+gxy+gxz+gyz+gxyz);
-                // beta*dx^2/(dx*dy*dz), since anorm is the EB area over dx^2
+                // beta*dx^2/(dx*dy*dz), since ebarea is over dx^2
                 Real dheb = (dhx*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
-                Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, anrmz, dx[1]/dx[0], dx[2]/dx[0]);
+                Real feb_gamma = -phig_gamma/dg * ebarea * beb(i,j,k,n);
                 gamma += vfrcinv*(-dheb)*feb_gamma;
             }
 

@@ -25,8 +25,6 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         Real alpha, Real beta, int ncomp) noexcept
 {
-    amrex::ignore_unused(ba);
-
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
 
@@ -140,10 +138,16 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
             {
+                Real dapx = (apxm-apxp)*(dxinv[0]/dxinv[1]);
+                Real dapy = (apym-apyp);
+                Real anorminv = Real(1.0)/std::hypot(dapx,dapy);
+                Real nx = dapx * anorminv;
+                Real ny = dapy * anorminv;
                 // The least-squares gradient is in index space, so this
                 // weighting gives the EB flux per cell volume.
-                Real anrmx = dhx*(apxm-apxp);
-                Real anrmy = dhy*(apym-apyp);
+                Real febfac = beta*dxinv[1]*get_eb_area(ba(i,j,k),nx,ny,dxinv[0]/dxinv[1]);
+                Real anrmx = febfac*nx*dxinv[0];
+                Real anrmy = febfac*ny*dxinv[1];
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,is_eb_inhomog,
@@ -183,6 +187,7 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
     auto const& apy  = ebdata.get<EBData_t::apy>();
     auto const& fcx  = ebdata.get<EBData_t::fcx>();
     auto const& fcy  = ebdata.get<EBData_t::fcy>();
+    auto const& ba   = ebdata.get<EBData_t::bndryarea>();
     auto const& bc   = ebdata.get<EBData_t::bndrycent>();
 
     if (flag(i,j,k).isCovered())
@@ -288,9 +293,10 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
             Real dphidn = (phib-phig) / dg;
 
-            // beta*dx/(dx*dy), since anorm is the EB length over dx
+            // beta*dx/(dx*dy), since ebarea is the EB length over dx
             Real febfac = beta*dxinv[1];
-            feb = febfac * dphidn * anorm * beb(i,j,k,n);
+            Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, dxinv[0]/dxinv[1]);
+            feb = febfac * dphidn * ebarea * beb(i,j,k,n);
         }
 
         y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
@@ -557,13 +563,15 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     // In gsrb we are always in residual-correction form so phib = 0
                     Real dphidn =  (    -phig)/dg;
 
-                    // beta*dx/(dx*dy), since anorm is the EB length over dx
+                    // beta*dx/(dx*dy), since ebarea is the EB length over dx
                     Real dheb = dh*dx[0];
+                    Real ebarea = get_eb_area(ebdata.get<EBData_t::bndryarea>(i,j,k),
+                                            anrmx, anrmy, dx[1]/dx[0]);
 
-                    Real feb = dphidn * anorm * beb(i,j,k,n);
+                    Real feb = dphidn * ebarea * beb(i,j,k,n);
                     rho += -vfrcinv*(-dheb)*feb;
 
-                    Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                    Real feb_gamma = -phig_gamma/dg * ebarea * beb(i,j,k,n);
                     gamma += vfrcinv*(-dheb)*feb_gamma;
                 }
 
@@ -768,7 +776,6 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& beb,
                             bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
-    amrex::ignore_unused(ba);
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isRegular())
@@ -844,9 +851,10 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real sy = std::copysign(Real(1.0),anrmy);
 
                 Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
-                // beta*dx/(dx*dy), since anorm is the EB length over dx
+                // beta*dx/(dx*dy), since ebarea is the EB length over dx
                 Real dheb = dh*dx[0];
-                Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
+                Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, dx[1]/dx[0]);
+                Real feb_gamma = -phig_gamma/dg * ebarea * beb(i,j,k,n);
                 gamma += vfrcinv*(-dheb)*feb_gamma;
             }
 
