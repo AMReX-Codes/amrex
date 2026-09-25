@@ -71,8 +71,33 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
-//! Applies the boundary condition at cell (i,j,k). The boundary value
-//! is read at \p bciv, which differs from (i,j,k) at domain corners.
+/**
+ * \brief Boundary value for a ghost cell outside two or three domain faces.
+ *
+ * The face data are not required to be set there. \p shift points toward
+ * the domain in each tangential direction that is a domain boundary (0
+ * otherwise), and \p len is the box length. The value is extrapolated
+ * linearly along the face from the cells inside the domain.
+ */
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T mllinop_bcval_extrap (Array4<T const> const& bcval, int i, int j, int k, int icomp,
+                        Dim3 const& shift, Dim3 const& len) noexcept
+{
+    int const i1 = i + shift.x;
+    int const j1 = j + shift.y;
+    int const k1 = k + shift.z;
+    T const v1 = bcval(i1,j1,k1,icomp);
+    T v = v1;
+    if (shift.x != 0 && len.x >= 2) { v += v1 - bcval(i1+shift.x,j1,k1,icomp); }
+    if (shift.y != 0 && len.y >= 2) { v += v1 - bcval(i1,j1+shift.y,k1,icomp); }
+    if (shift.z != 0 && len.z >= 2) { v += v1 - bcval(i1,j1,k1+shift.z,icomp); }
+    return v;
+}
+
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
@@ -81,7 +106,7 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
                          int maxorder, T dxinv, int inhomog, int icomp,
-                         Dim3 const& bciv) noexcept
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side;  // +1 for lo and -1 for hi
@@ -108,7 +133,7 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
@@ -127,7 +152,8 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_x(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dxinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
+                       maxorder, dxinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
@@ -192,8 +218,9 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
-//! Applies the boundary condition at cell (i,j,k). The boundary value
-//! is read at \p bciv, which differs from (i,j,k) at domain corners.
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
@@ -202,7 +229,7 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
                          int maxorder, T dyinv, int inhomog, int icomp,
-                         Dim3 const& bciv) noexcept
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -229,7 +256,7 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
@@ -248,7 +275,8 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_y(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dyinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
+                       maxorder, dyinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
@@ -313,8 +341,9 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
-//! Applies the boundary condition at cell (i,j,k). The boundary value
-//! is read at \p bciv, which differs from (i,j,k) at domain corners.
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
@@ -323,7 +352,7 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
                          int maxorder, T dzinv, int inhomog, int icomp,
-                         Dim3 const& bciv) noexcept
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -350,7 +379,7 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
@@ -369,7 +398,8 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_z(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dzinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
+                       maxorder, dzinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
