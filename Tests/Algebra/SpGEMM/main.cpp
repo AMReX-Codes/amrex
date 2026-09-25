@@ -64,7 +64,12 @@ bool check_spmv (SpMatrix<T> const& A, SpMatrix<T> const& B, SpMatrix<T> const& 
     });
     Gpu::streamSynchronize();
     auto err = y1.norminf();
-    return err <= tol * y1max;
+    bool ok = err <= tol * y1max;
+    if (!ok) {
+        amrex::AllPrint() << "check_spmv: error " << err << " max " << y1max
+                          << " tol " << tol << "\n";
+    }
+    return ok;
 }
 
 }
