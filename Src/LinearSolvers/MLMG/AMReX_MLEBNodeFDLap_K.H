@@ -6,7 +6,7 @@
 #include <AMReX_LO_BCTYPES.H>
 
 namespace amrex {
-//! Open length of an edge measured from its high node.  See mlebndfdlap_edge_len_from_cent.
+//! Open length of an edge measured from its high node.  See mlebndfdlap_eb_pos_from_cent.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlebndfdlap_hm (Real p) noexcept
 {
@@ -72,27 +72,28 @@ struct EBNodeFDEdgeSigma
 };
 
 /**
- * \brief Convert an EB edge centroid into the edge length used by the kernels.
+ * \brief Convert an EB edge centroid into the EB position used by the kernels.
  *
  * The stored value p is the position of the EB on the edge measured from the
- * low node in units of dx, with 1 meaning the edge is not cut.  The open
- * length is p from the low node and mlebndfdlap_hm(p) from the high node.
- * A centroid of 1 is an uncut edge and -1 a covered edge; otherwise it is
- * the centroid of the open part, which lies next to the uncovered node.
+ * low node in units of dx, with 1 meaning the edge is not cut and 0 that it
+ * is covered.  The open length is p from the low node and mlebndfdlap_hm(p)
+ * from the high node.  A centroid of 1 is an uncut edge and -1 a covered
+ * edge; otherwise it is the centroid of the open part, which lies next to
+ * the uncovered node.
  *
  * \param off unit vector in the edge direction
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_edge_len_from_cent (int i, int j, int k, Array4<Real> const& el,
+void mlebndfdlap_eb_pos_from_cent (int i, int j, int k, Array4<Real> const& ebp,
                                      Array4<Real const> const& ec,
                                      Array4<Real const> const& levset,
                                      Dim3 const& off) noexcept
 {
     Real const c = ec(i,j,k);
     if (c == Real(1.0)) {
-        el(i,j,k) = Real(1.0);
+        ebp(i,j,k) = Real(1.0);
     } else if (c == Real(-1.0)) {
-        el(i,j,k) = Real(0.0);
+        ebp(i,j,k) = Real(0.0);
     } else {
         bool const lo_covered = levset(i,j,k) >= Real(0.0);
         bool const hi_covered = levset(i+off.x,j+off.y,k+off.z) >= Real(0.0);
@@ -104,12 +105,12 @@ void mlebndfdlap_edge_len_from_cent (int i, int j, int k, Array4<Real> const& el
         } else {
             p = Real(1.0) + Real(2.0)*c;
         }
-        el(i,j,k) = amrex::min(Real(1.0), amrex::max(Real(0.0), p));
+        ebp(i,j,k) = amrex::min(Real(1.0), amrex::max(Real(0.0), p));
     }
 }
 
 /**
- * \brief Edge length of a coarse edge from the two fine edges it contains.
+ * \brief EB position on a coarse edge from the two fine edges it contains.
  *
  * When both coarse nodes are uncovered but the fine node between them is
  * covered, the coarse edge is blocked and the EB is placed at the middle of
@@ -120,8 +121,8 @@ void mlebndfdlap_edge_len_from_cent (int i, int j, int k, Array4<Real> const& el
  *              ratio in the edge direction is 1
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_coarsen_edge_len (int ic, int jc, int kc, Array4<Real> const& cel,
-                                   Array4<Real const> const& fel,
+void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& cebp,
+                                   Array4<Real const> const& febp,
                                    Array4<Real const> const& flevset,
                                    Dim3 const& off, Dim3 const& ratio) noexcept
 {
@@ -129,7 +130,7 @@ void mlebndfdlap_coarsen_edge_len (int ic, int jc, int kc, Array4<Real> const& c
     int const j = jc*ratio.y;
     int const k = kc*ratio.z;
     if (off.x*ratio.x + off.y*ratio.y + off.z*ratio.z == 1) {
-        cel(ic,jc,kc) = fel(i,j,k);
+        cebp(ic,jc,kc) = febp(i,j,k);
     } else {
         int const im = i+off.x;
         int const jm = j+off.y;
@@ -140,8 +141,8 @@ void mlebndfdlap_coarsen_edge_len (int ic, int jc, int kc, Array4<Real> const& c
         bool const a_covered = flevset(i ,j ,k ) >= Real(0.0);
         bool const m_covered = flevset(im,jm,km) >= Real(0.0);
         bool const b_covered = flevset(ib,jb,kb) >= Real(0.0);
-        Real const p1 = fel(i ,j ,k );
-        Real const p2 = fel(im,jm,km);
+        Real const p1 = febp(i ,j ,k );
+        Real const p2 = febp(im,jm,km);
         Real const hp1 = p1;                  // from a toward m
         Real const hm1 = mlebndfdlap_hm(p1);  // from m toward a
         Real const hp2 = p2;                  // from m toward b
@@ -161,7 +162,7 @@ void mlebndfdlap_coarsen_edge_len (int ic, int jc, int kc, Array4<Real> const& c
         } else {
             p = Real(0.5) + Real(0.25)*(la - lb);
         }
-        cel(ic,jc,kc) = p;
+        cebp(ic,jc,kc) = p;
     }
 }
 
@@ -206,13 +207,13 @@ void mlebndfdlap_cc_to_edge_sigma (int i, int j, int k, Array4<Real> const& se,
 
 //! Total open length of a fine edge, used as a weight when coarsening sigma.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mlebndfdlap_open_len (int i, int j, int k, Array4<Real const> const& el,
+Real mlebndfdlap_open_len (int i, int j, int k, Array4<Real const> const& ebp,
                            Array4<Real const> const& levset, Dim3 const& off) noexcept
 {
-    if (!el) { return Real(1.0); }
+    if (!ebp) { return Real(1.0); }
     bool const lo_covered = levset(i,j,k) >= Real(0.0);
     bool const hi_covered = levset(i+off.x,j+off.y,k+off.z) >= Real(0.0);
-    Real const p = el(i,j,k);
+    Real const p = ebp(i,j,k);
     if (lo_covered && hi_covered) {
         return Real(0.0);
     } else if (hi_covered) {
@@ -231,7 +232,7 @@ Real mlebndfdlap_open_len (int i, int j, int k, Array4<Real const> const& el,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const& cs,
                                      Array4<Real const> const& fs,
-                                     Array4<Real const> const& fel,
+                                     Array4<Real const> const& febp,
                                      Array4<Real const> const& flevset,
                                      Dim3 const& off, Dim3 const& ratio) noexcept
 {
@@ -246,8 +247,8 @@ void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const&
         int const km = k+off.z;
         Real const s1 = fs(i,j,k);
         Real const s2 = fs(im,jm,km);
-        Real const h1 = mlebndfdlap_open_len(i ,j ,k , fel, flevset, off);
-        Real const h2 = mlebndfdlap_open_len(im,jm,km, fel, flevset, off);
+        Real const h1 = mlebndfdlap_open_len(i ,j ,k , febp, flevset, off);
+        Real const h2 = mlebndfdlap_open_len(im,jm,km, febp, flevset, off);
         if (h1 == Real(0.0)) {
             cs(ic,jc,kc) = s2;
         } else if (h2 == Real(0.0)) {
@@ -267,7 +268,7 @@ void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const&
  * boundary face.  Periodic directions are skipped.
  *
  * \param flip_dir when the ghost cell is outside the domain in this direction,
- *                 an edge length p is mirrored to mlebndfdlap_hm(p); -1 disables this.
+ *                 an EB position p is mirrored to mlebndfdlap_hm(p); -1 disables this.
  */
 inline
 void mlebndfdlap_fill_domain_ghost (Box const& gbx, Array4<Real> const& a,
@@ -316,17 +317,17 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& elx, F const& phieb, Real dxi)
+                              Array4<Real const> const& ebpx, F const& phieb, Real dxi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i+1,j,k) >= 0) {
         px(i,j,k) = dxi * (p(i+1,j,k) - p(i,j,k));
     } else if (dmsk(i,j,k) < 0 && dmsk(i+1,j,k) < 0) {
         px(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        Real const h = mlebndfdlap_hm(elx(i,j,k));
+        Real const h = mlebndfdlap_hm(ebpx(i,j,k));
         px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
-        Real const h = elx(i,j,k);
+        Real const h = ebpx(i,j,k);
         px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
@@ -335,17 +336,17 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& ely, F const& phieb, Real dyi)
+                              Array4<Real const> const& ebpy, F const& phieb, Real dyi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i,j+1,k) >= 0) {
         py(i,j,k) = dyi * (p(i,j+1,k) - p(i,j,k));
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j+1,k) < 0) {
         py(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        Real const h = mlebndfdlap_hm(ely(i,j,k));
+        Real const h = mlebndfdlap_hm(ebpy(i,j,k));
         py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
-        Real const h = ely(i,j,k);
+        Real const h = ebpy(i,j,k);
         py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
@@ -355,17 +356,17 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& elz, F const& phieb, Real dzi)
+                              Array4<Real const> const& ebpz, F const& phieb, Real dzi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i,j,k+1) >= 0) {
         pz(i,j,k) = dzi * (p(i,j,k+1) - p(i,j,k));
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j,k+1) < 0) {
         pz(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        Real const h = mlebndfdlap_hm(elz(i,j,k));
+        Real const h = mlebndfdlap_hm(ebpz(i,j,k));
         pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     } else {
-        Real const h = elz(i,j,k);
+        Real const h = ebpz(i,j,k);
         pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) * mlebndfdlap_scaled_hinv(Real(1.0), h);
     }
 }
@@ -373,12 +374,12 @@ void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& elx,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpx,
                          Real phieb, Real dxi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk, elx,
+        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk, ebpx,
                                 [=] (int, int, int) -> Real { return phieb; },
                                 dxi);
     });
@@ -386,12 +387,12 @@ void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& elx,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpx,
                          Array4<Real const> const& phieb, Real dxi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk, elx,
+        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk, ebpx,
                                 [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
                                 dxi);
     });
@@ -399,12 +400,12 @@ void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& ely,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpy,
                          Real phieb, Real dyi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk, ely,
+        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk, ebpy,
                                 [=] (int, int, int) -> Real { return phieb; },
                                 dyi);
     });
@@ -412,12 +413,12 @@ void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& ely,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpy,
                          Array4<Real const> const& phieb, Real dyi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk, ely,
+        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk, ebpy,
                                 [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
                                 dyi);
     });
@@ -427,12 +428,12 @@ void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& elz,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpz,
                          Real phieb, Real dzi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk, elz,
+        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk, ebpz,
                                 [=] (int, int, int) -> Real { return phieb; },
                                 dzi);
     });
@@ -440,12 +441,12 @@ void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const> const& p,
-                         Array4<int const> const& dmsk, Array4<Real const> const& elz,
+                         Array4<int const> const& dmsk, Array4<Real const> const& ebpz,
                          Array4<Real const> const& phieb, Real dzi)
 {
     AMREX_LOOP_3D(b, i, j, k,
     {
-        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk, elz,
+        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk, ebpz,
                                 [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
                                 dzi);
     });
@@ -536,7 +537,7 @@ Real edge_sigma (int i, int j, int k, int idim, int side, bool has_sig,
  * \param has_sig     whether sigma is given as a MultiFab
  * \param bcoef       sigma_d / dx_d^2 per direction
  * \param sig         edge sigma per direction
- * \param el          open edge lengths per direction
+ * \param ebp          EB positions on the edges per direction
  * \param ndlo, ndhi  bounds of the nodal domain
  * \param reflect_lo  whether the low-side domain BC mirrors ghost nodes
  * \param reflect_hi  whether the high-side domain BC mirrors ghost nodes
@@ -550,7 +551,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
                        GpuArray<Real,AMREX_SPACEDIM> const& bcoef,
                        GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& sig,
                        Array4<Real const> const& levset,
-                       GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& el,
+                       GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& ebp,
                        Dim3 const& ndlo, Dim3 const& ndhi,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_lo,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_hi) noexcept
@@ -574,8 +575,8 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
         Real hp = Real(1.0);
         Real hm = Real(1.0);
         if (has_eb) {
-            hp = el[idim](i,j,k);
-            hm = mlebndfdlap_hm(el[idim](i-di,j-dj,k-dk));
+            hp = ebp[idim](i,j,k);
+            hm = mlebndfdlap_hm(ebp[idim](i-di,j-dj,k-dk));
             cut_hi_arr[idim] = (levset(i+di,j+dj,k+dk) >= Real(0.0)) || (hp != Real(1.0));
             cut_lo_arr[idim] = (levset(i-di,j-dj,k-dk) >= Real(0.0)) || (hm != Real(1.0));
             scale = amrex::min(scale, hm, hp);

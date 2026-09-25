@@ -32,7 +32,7 @@ namespace amrex {
 // New feature: sigma can also be a single-component cell-centered multifab.
 //
 // The EB information needed on the coarse MG levels (covered nodes and open
-// edge lengths) is built here from the level-0 factory, so multigrid
+// EB positions on edges) is built here from the level-0 factory, so multigrid
 // coarsening is not limited by the EB index space.  Coarsening stops at the
 // last level that still has a handful of open nodes.
 
@@ -237,8 +237,10 @@ private:
     //! Nodal level set on every MG level.  A node is covered if it's >= 0.
     Vector<Vector<MultiFab>> m_levset;
     //! Position of the EB on every edge on every MG level, measured from
-    //! the low node in units of dx.  1 means the edge is not cut.
-    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_edge_len;
+    //! the low node in units of dx.  1 means the edge is not cut and 0
+    //! that it is covered.  The open length from the high node is 1 minus
+    //! this value.
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_eb_pos;
     //! Whether a box (grown by one) has any covered node or cut edge
     Vector<Vector<LayoutData<int>>> m_has_eb;
 #endif

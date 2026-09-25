@@ -3,20 +3,21 @@
 
 namespace amrex {
 
-// Edge data convention used by these kernels: elx(i,j,k) is the open length
-// of the x-edge between nodes i and i+1 measured from node i, and
-// mlebndfdlap_hm(elx(i,j,k)) is the open length measured from node i+1.
-// An edge is open all the way to a neighbor only if the length is 1 and the
+// Edge data convention used by these kernels: ebpx(i,j,k) is the position
+// of the EB on the x-edge between nodes i and i+1 measured from node i in
+// units of dx, so it is also the open length seen from node i, and
+// mlebndfdlap_hm(ebpx(i,j,k)) is the open length seen from node i+1.
+// An edge is open all the way to a neighbor only if the value is 1 and the
 // neighbor node is not covered (levset < 0).
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_scale_rhs (int i, int j, int, Array4<Real> const& rhs,
-                            Array4<int const> const& dmsk, Array4<Real const> const& elx,
-                            Array4<Real const> const& ely) noexcept
+                            Array4<int const> const& dmsk, Array4<Real const> const& ebpx,
+                            Array4<Real const> const& ebpy) noexcept
 {
     if (!dmsk(i,j,0)) {
-        Real const s = amrex::min(mlebndfdlap_hm(elx(i-1,j,0)), elx(i,j,0),
-                                  mlebndfdlap_hm(ely(i,j-1,0)), ely(i,j,0));
+        Real const s = amrex::min(mlebndfdlap_hm(ebpx(i-1,j,0)), ebpx(i,j,0),
+                                  mlebndfdlap_hm(ebpy(i,j-1,0)), ebpy(i,j,0));
         rhs(i,j,0) *= s;
     }
 }
@@ -81,17 +82,17 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                 Array4<Real const> const& x, Array4<Real const> const& levset,
                                 Array4<int const> const& dmsk,
-                                Array4<Real const> const& elx, Array4<Real const> const& ely,
+                                Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                                 S const& sig, F const& xeb, Real bx, Real by) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
     } else {
         Real const xc = x(i,j,k);
-        Real const hpx = elx(i  ,j  ,k);
-        Real const hmx = mlebndfdlap_hm(elx(i-1,j  ,k));
-        Real const hpy = ely(i  ,j  ,k);
-        Real const hmy = mlebndfdlap_hm(ely(i  ,j-1,k));
+        Real const hpx = ebpx(i  ,j  ,k);
+        Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k));
+        Real const hpy = ebpy(i  ,j  ,k);
+        Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k));
         Real const scale = amrex::min(hmx,hpx,hmy,hpy);
 
         Real out = Real(0.0);
@@ -132,10 +133,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<Real const> const& levset,
                            Array4<int const> const& dmsk,
-                           Array4<Real const> const& elx, Array4<Real const> const& ely,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                            S const& sig, Real xeb, Real bx, Real by) noexcept
 {
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, sig,
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, sig,
                               [=] (int, int, int) -> Real { return xeb; },
                               bx, by);
 }
@@ -145,10 +146,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<Real const> const& levset,
                            Array4<int const> const& dmsk,
-                           Array4<Real const> const& elx, Array4<Real const> const& ely,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                            S const& sig, Array4<Real const> const& xeb, Real bx, Real by) noexcept
 {
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, sig,
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, sig,
                               [=] (int i1, int i2, int i3) -> Real {
                                   return xeb(i1,i2,i3); },
                               bx, by);
@@ -159,17 +160,17 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                           Array4<Real const> const& rhs, Array4<Real const> const& levset,
                           Array4<int const> const& dmsk,
-                          Array4<Real const> const& elx, Array4<Real const> const& ely,
+                          Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                           S const& sig, Real bx, Real by, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
             x(i,j,k) = Real(0.);
         } else {
-            Real const hpx = elx(i  ,j  ,k);
-            Real const hmx = mlebndfdlap_hm(elx(i-1,j  ,k));
-            Real const hpy = ely(i  ,j  ,k);
-            Real const hmy = mlebndfdlap_hm(ely(i  ,j-1,k));
+            Real const hpx = ebpx(i  ,j  ,k);
+            Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k));
+            Real const hpy = ebpy(i  ,j  ,k);
+            Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k));
             Real const scale = amrex::min(hmx,hpx,hmy,hpy);
 
             Real gamma = Real(0.0);
@@ -286,7 +287,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                    Array4<Real const> const& x, Array4<Real const> const& levset,
                                    Array4<int const> const& dmsk,
-                                   Array4<Real const> const& elx, Array4<Real const> const& ely,
+                                   Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                                    S const& sig, F const& xeb,
                                    Real dr, Real dz, Real rlo, Real alpha) noexcept
 {
@@ -295,10 +296,10 @@ void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
         y(i,j,k) = Real(0.0);
     } else {
         Real const xc = x(i,j,k);
-        Real const hp  = elx(i  ,j  ,k);
-        Real const hm  = mlebndfdlap_hm(elx(i-1,j  ,k));
-        Real const hpz = ely(i  ,j  ,k);
-        Real const hmz = mlebndfdlap_hm(ely(i  ,j-1,k));
+        Real const hp  = ebpx(i  ,j  ,k);
+        Real const hm  = mlebndfdlap_hm(ebpx(i-1,j  ,k));
+        Real const hpz = ebpy(i  ,j  ,k);
+        Real const hmz = mlebndfdlap_hm(ebpy(i  ,j-1,k));
         Real scale, out, tmp;
 
         if (r == Real(0.0)) {
@@ -357,10 +358,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb (int i, int j, int k, Array4<Real> const& y,
                               Array4<Real const> const& x, Array4<Real const> const& levset,
                               Array4<int const> const& dmsk,
-                              Array4<Real const> const& elx, Array4<Real const> const& ely,
+                              Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                               S const& sig, Real xeb, Real dr, Real dz, Real rlo, Real alpha) noexcept
 {
-    mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, sig,
+    mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, sig,
                                  [=] (int, int, int) -> Real { return xeb; },
                                  dr, dz, rlo, alpha);
 }
@@ -370,11 +371,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb (int i, int j, int k, Array4<Real> const& y,
                               Array4<Real const> const& x, Array4<Real const> const& levset,
                               Array4<int const> const& dmsk,
-                              Array4<Real const> const& elx, Array4<Real const> const& ely,
+                              Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                               S const& sig, Array4<Real const> const& xeb,
                               Real dr, Real dz, Real rlo, Real alpha) noexcept
 {
-    mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, sig,
+    mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, sig,
                                  [=] (int i1, int i2, int i3) -> Real {
                                      return xeb(i1,i2,i3); },
                                  dr, dz, rlo, alpha);
@@ -385,7 +386,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
                              Array4<Real const> const& rhs, Array4<Real const> const& levset,
                              Array4<int const> const& dmsk,
-                             Array4<Real const> const& elx, Array4<Real const> const& ely,
+                             Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
                              S const& sig, Real dr, Real dz, Real rlo, int redblack,
                              Real alpha) noexcept
 {
@@ -395,10 +396,10 @@ void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
             x(i,j,k) = Real(0.);
         } else {
             Real const xc = x(i,j,k);
-            Real const hp  = elx(i  ,j  ,k);
-            Real const hm  = mlebndfdlap_hm(elx(i-1,j  ,k));
-            Real const hpz = ely(i  ,j  ,k);
-            Real const hmz = mlebndfdlap_hm(ely(i  ,j-1,k));
+            Real const hp  = ebpx(i  ,j  ,k);
+            Real const hm  = mlebndfdlap_hm(ebpx(i-1,j  ,k));
+            Real const hpz = ebpy(i  ,j  ,k);
+            Real const hmz = mlebndfdlap_hm(ebpy(i  ,j-1,k));
             // Ax = tmp1 + tmp0*xc for each direction, gamma is the diagonal.
             Real scale, Ax, gamma, tmp0, tmp1;
 

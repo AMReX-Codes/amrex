@@ -3,17 +3,17 @@
 
 namespace amrex {
 
-// See the 2D header for the edge length convention.
+// See the 2D header for the EB position convention.
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_scale_rhs (int i, int j, int k, Array4<Real> const& rhs,
-                            Array4<int const> const& dmsk, Array4<Real const> const& elx,
-                            Array4<Real const> const& ely, Array4<Real const> const& elz) noexcept
+                            Array4<int const> const& dmsk, Array4<Real const> const& ebpx,
+                            Array4<Real const> const& ebpy, Array4<Real const> const& ebpz) noexcept
 {
     if (!dmsk(i,j,k)) {
-        Real const s = amrex::min(mlebndfdlap_hm(elx(i-1,j,k)), elx(i,j,k),
-                                  mlebndfdlap_hm(ely(i,j-1,k)), ely(i,j,k),
-                                  mlebndfdlap_hm(elz(i,j,k-1)), elz(i,j,k));
+        Real const s = amrex::min(mlebndfdlap_hm(ebpx(i-1,j,k)), ebpx(i,j,k),
+                                  mlebndfdlap_hm(ebpy(i,j-1,k)), ebpy(i,j,k),
+                                  mlebndfdlap_hm(ebpz(i,j,k-1)), ebpz(i,j,k));
         rhs(i,j,k) *= s;
     }
 }
@@ -78,20 +78,20 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                 Array4<Real const> const& x, Array4<Real const> const& levset,
                                 Array4<int const> const& dmsk,
-                                Array4<Real const> const& elx, Array4<Real const> const& ely,
-                                Array4<Real const> const& elz,
+                                Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                                Array4<Real const> const& ebpz,
                                 S const& sig, F const& xeb, Real bx, Real by, Real bz) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
     } else {
         Real const xc = x(i,j,k);
-        Real const hpx = elx(i  ,j  ,k  );
-        Real const hmx = mlebndfdlap_hm(elx(i-1,j  ,k  ));
-        Real const hpy = ely(i  ,j  ,k  );
-        Real const hmy = mlebndfdlap_hm(ely(i  ,j-1,k  ));
-        Real const hpz = elz(i  ,j  ,k  );
-        Real const hmz = mlebndfdlap_hm(elz(i  ,j  ,k-1));
+        Real const hpx = ebpx(i  ,j  ,k  );
+        Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k  ));
+        Real const hpy = ebpy(i  ,j  ,k  );
+        Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k  ));
+        Real const hpz = ebpz(i  ,j  ,k  );
+        Real const hmz = mlebndfdlap_hm(ebpz(i  ,j  ,k-1));
         Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
 
         Real out = Real(0.0);
@@ -146,11 +146,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<Real const> const& levset,
                            Array4<int const> const& dmsk,
-                           Array4<Real const> const& elx, Array4<Real const> const& ely,
-                           Array4<Real const> const& elz,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                           Array4<Real const> const& ebpz,
                            S const& sig, Real xeb, Real bx, Real by, Real bz) noexcept
 {
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, elz, sig,
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, ebpz, sig,
                               [=] (int, int, int) -> Real { return xeb; },
                               bx, by, bz);
 }
@@ -160,12 +160,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<Real const> const& levset,
                            Array4<int const> const& dmsk,
-                           Array4<Real const> const& elx, Array4<Real const> const& ely,
-                           Array4<Real const> const& elz,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                           Array4<Real const> const& ebpz,
                            S const& sig, Array4<Real const> const& xeb,
                            Real bx, Real by, Real bz) noexcept
 {
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, elx, ely, elz, sig,
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, ebpz, sig,
                               [=] (int i1, int i2, int i3) -> Real {
                                   return xeb(i1,i2,i3); },
                               bx, by, bz);
@@ -176,20 +176,20 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                           Array4<Real const> const& rhs, Array4<Real const> const& levset,
                           Array4<int const> const& dmsk,
-                          Array4<Real const> const& elx, Array4<Real const> const& ely,
-                          Array4<Real const> const& elz,
+                          Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                          Array4<Real const> const& ebpz,
                           S const& sig, Real bx, Real by, Real bz, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
             x(i,j,k) = Real(0.);
         } else {
-            Real const hpx = elx(i  ,j  ,k  );
-            Real const hmx = mlebndfdlap_hm(elx(i-1,j  ,k  ));
-            Real const hpy = ely(i  ,j  ,k  );
-            Real const hmy = mlebndfdlap_hm(ely(i  ,j-1,k  ));
-            Real const hpz = elz(i  ,j  ,k  );
-            Real const hmz = mlebndfdlap_hm(elz(i  ,j  ,k-1));
+            Real const hpx = ebpx(i  ,j  ,k  );
+            Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k  ));
+            Real const hpy = ebpy(i  ,j  ,k  );
+            Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k  ));
+            Real const hpz = ebpz(i  ,j  ,k  );
+            Real const hmz = mlebndfdlap_hm(ebpz(i  ,j  ,k-1));
             Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
 
             Real gamma = Real(0.0);
