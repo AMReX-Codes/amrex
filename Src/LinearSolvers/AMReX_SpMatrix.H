@@ -2169,6 +2169,8 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
 
     auto nnz = ctr.total_counts_recv[0];
     if (nnz == 0) { return; }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnz < Long(std::numeric_limits<int>::max()),
+                                     "SpMatrix: too many received nonzeros for 32-bit row offsets");
 
     m_nnz += nnz;
     auto nb = int(ctr.recv_from.size()); // # of blocked CSRs to be merged

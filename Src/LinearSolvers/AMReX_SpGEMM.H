@@ -455,6 +455,7 @@ template <typename T, template<typename> class V, typename I, typename F0, typen
 CSR<T,V,int> concat_csr_cols (Long nrows, CsrView<T const,I> const& X0, CsrView<T const,I> const& X1,
                               F0 const& map0, F1 const& map1)
 {
+    AMREX_ALWAYS_ASSERT(X0.nnz + X1.nnz < Long(std::numeric_limits<int>::max()));
     CSR<T,V,int> C;
     C.resize(nrows, X0.nnz + X1.nnz);
     int*  AMREX_RESTRICT crow = C.row_offset.data();
