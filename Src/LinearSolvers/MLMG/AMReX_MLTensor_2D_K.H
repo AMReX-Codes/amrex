@@ -35,6 +35,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     if (icorner == 0) { // xlo & ylo
         int const i = vlo.x-1;
         int const j = vlo.y-1;
+        // At a domain corner the boundary value comes from the nearest
+        // face cell inside the domain, not from the corner ghost cell.
+        Dim3 const bcx{i, (dlo.y == vlo.y) ? j+1 : j, k};
+        Dim3 const bcy{(dlo.x == vlo.x) ? i+1 : i, j, k};
         if (mxlo(i,j,k) != BndryData::covered) {
             bool x_interior = mylo(i+1,j  ,k) == BndryData::covered; // i+1,j is a valid cell inside domain
             bool x_exterior = mylo(i+1,j  ,k) == BndryData::not_covered; // i+1,j is a ghost cell inside domain
@@ -46,12 +50,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp, bcx);
                     Real tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp, bcy);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dlo.x == vlo.x) {
@@ -59,20 +63,24 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp, bcx);
                 }
             } else if (y_interior || dlo.y == vlo.y) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp, bcy);
                 }
             }
         }
     } else if (icorner == 1) { // xhi & ylo
         int const i = vhi.x+1;
         int const j = vlo.y-1;
+        // At a domain corner the boundary value comes from the nearest
+        // face cell inside the domain, not from the corner ghost cell.
+        Dim3 const bcx{i, (dlo.y == vlo.y) ? j+1 : j, k};
+        Dim3 const bcy{(dhi.x == vhi.x) ? i-1 : i, j, k};
         if (mxhi(i,j,k) != BndryData::covered) {
             bool x_interior = mylo(i-1,j  ,k) == BndryData::covered;
             bool x_exterior = mylo(i-1,j  ,k) == BndryData::not_covered;
@@ -84,12 +92,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp, bcx);
                     Real tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp, bcy);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dhi.x == vhi.x) {
@@ -97,20 +105,24 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp, bcx);
                 }
             } else if (y_interior || dlo.y == vlo.y) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp, bcy);
                 }
             }
         }
     } else if (icorner == 2) { // xlo & yhi
         int const i = vlo.x-1;
         int const j = vhi.y+1;
+        // At a domain corner the boundary value comes from the nearest
+        // face cell inside the domain, not from the corner ghost cell.
+        Dim3 const bcx{i, (dhi.y == vhi.y) ? j-1 : j, k};
+        Dim3 const bcy{(dlo.x == vlo.x) ? i+1 : i, j, k};
         if (mxlo(i,j,k) != BndryData::covered) {
             bool x_interior = myhi(i+1,j  ,k) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k) == BndryData::not_covered;
@@ -122,12 +134,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp, bcx);
                     Real tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp, bcy);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dlo.x == vlo.x) {
@@ -135,20 +147,24 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp, bcx);
                 }
             } else if (y_interior || dhi.y == vhi.y) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp, bcy);
                 }
             }
         }
     } else if (icorner == 3) { // xhi & yhi
         int const i = vhi.x+1;
         int const j = vhi.y+1;
+        // At a domain corner the boundary value comes from the nearest
+        // face cell inside the domain, not from the corner ghost cell.
+        Dim3 const bcx{i, (dhi.y == vhi.y) ? j-1 : j, k};
+        Dim3 const bcy{(dhi.x == vhi.x) ? i-1 : i, j, k};
         if (mxhi(i,j,k) != BndryData::covered) {
             bool x_interior = myhi(i-1,j  ,k) == BndryData::covered;
             bool x_exterior = myhi(i-1,j  ,k) == BndryData::not_covered;
@@ -160,12 +176,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp, bcx);
                     Real tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp, bcy);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dhi.x == vhi.x) {
@@ -173,14 +189,14 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp, bcx);
                 }
             } else if (y_interior || dhi.y == vhi.y) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp, bcy);
                 }
             }
         }

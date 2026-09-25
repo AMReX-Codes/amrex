@@ -71,6 +71,8 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
+//! Applies the boundary condition at cell (i,j,k). The boundary value
+//! is read at \p bciv, which differs from (i,j,k) at domain corners.
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
@@ -78,7 +80,8 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dxinv, int inhomog, int icomp,
+                         Dim3 const& bciv) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side;  // +1 for lo and -1 for hi
@@ -105,13 +108,26 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_x(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dxinv, inhomog, icomp, Dim3{i,j,k});
 }
 
 template <typename T>
@@ -176,6 +192,8 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
+//! Applies the boundary condition at cell (i,j,k). The boundary value
+//! is read at \p bciv, which differs from (i,j,k) at domain corners.
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
@@ -183,7 +201,8 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dyinv, int inhomog, int icomp,
+                         Dim3 const& bciv) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -210,13 +229,26 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_y(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dyinv, inhomog, icomp, Dim3{i,j,k});
 }
 
 template <typename T>
@@ -281,6 +313,8 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
+//! Applies the boundary condition at cell (i,j,k). The boundary value
+//! is read at \p bciv, which differs from (i,j,k) at domain corners.
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
@@ -288,7 +322,8 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dzinv, int inhomog, int icomp,
+                         Dim3 const& bciv) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -315,13 +350,26 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += bcval(bciv.x,bciv.y,bciv.z,icomp)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_z(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dzinv, inhomog, icomp, Dim3{i,j,k});
 }
 
 template <typename T>
