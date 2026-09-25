@@ -37,13 +37,6 @@ void fill_domain_ghost (MultiFab& mf, Geometry const& geom, int flip_dir)
     }
 }
 
-Dim3 unit_vector (int idim)
-{
-    return Dim3{.x = (idim == 0) ? 1 : 0,
-                .y = (idim == 1) ? 1 : 0,
-                .z = (idim == 2) ? 1 : 0};
-}
-
 template <typename S, typename P>
 void fapply_box (Box const& box, Array4<Real> const& y, Array4<Real const> const& x,
                  Array4<int const> const& dmsk, S const& sig,
@@ -293,7 +286,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto& el = m_edge_len[amrlev][0][idim];
                 el.setVal(Real(1.0));
-                Dim3 const off = unit_vector(idim);
+                auto const off = IntVect::TheDimensionVector(idim).dim3();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -357,7 +350,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
                     Box const& ebx = mfi.tilebox(IntVect::TheEdgeVector(idim));
                     Array4<Real> const& cela = pcel[idim]->array(mfi);
                     Array4<Real const> const& fela = fel[idim].const_array(mfi);
-                    Dim3 const off = unit_vector(idim);
+                    auto const off = IntVect::TheDimensionVector(idim).dim3();
                     AMREX_HOST_DEVICE_FOR_3D(ebx, i, j, k,
                     {
                         mlebndfdlap_coarsen_edge_len(i,j,k,cela,fela,fls,off,rr);
@@ -1237,7 +1230,7 @@ MLEBNodeFDLaplacian::update_sigma ()
             }
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                Dim3 const off = unit_vector(idim);
+                auto const off = IntVect::TheDimensionVector(idim).dim3();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
