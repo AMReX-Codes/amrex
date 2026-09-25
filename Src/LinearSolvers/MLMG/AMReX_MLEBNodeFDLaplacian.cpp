@@ -5,7 +5,7 @@
 #include <AMReX_MLNodeTensorLap_K.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelReduce.H>
-#include <AMReX_Reduce.H>
+#include <AMReX_ParReduce.H>
 #include <AMReX_SingleBoxCGSolver.H>
 
 #ifdef AMREX_USE_GPU
@@ -22,32 +22,6 @@ namespace {
 
 // Fill ghost cells outside the domain by reflection.  See
 // mlebndfdlap_fill_domain_ghost for flip_dir.
-#ifdef AMREX_USE_EB
-//! Number of local nodes in the domain that are not covered by the EB.
-Long count_open_nodes_local (MultiFab const& levset, Geometry const& geom)
-{
-    Box const nddom = amrex::convert(geom.Domain(), IntVect(1));
-    ReduceOps<ReduceOpSum> reduce_op;
-    ReduceData<Long> reduce_data(reduce_op);
-    using ReduceTuple = typename decltype(reduce_data)::Type;
-    for (MFIter mfi(levset); mfi.isValid(); ++mfi) {
-        // Nodes on the high faces are shared with the next box.  Count
-        // them only at the domain boundary.
-        Box bx = mfi.validbox();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (bx.bigEnd(idim) < nddom.bigEnd(idim)) { bx.growHi(idim,-1); }
-        }
-        Array4<Real const> const& a = levset.const_array(mfi);
-        reduce_op.eval(bx, reduce_data,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
-        {
-            return { (a(i,j,k) < Real(0.0)) ? Long(1) : Long(0) };
-        });
-    }
-    return amrex::get<0>(reduce_data.value(reduce_op));
-}
-#endif
-
 void fill_domain_ghost (MultiFab& mf, Geometry const& geom, int flip_dir)
 {
     mf.FillBoundary(geom.periodicity());
@@ -403,11 +377,20 @@ MLEBNodeFDLaplacian::build_eb_data ()
         // Stop coarsening at the last MG level that still has enough open
         // nodes for a meaningful bottom solve.
         if (amrlev == 0 && nmglevs > 1) {
-            constexpr Long min_open_nodes = 9;
+            constexpr Long min_open_nodes = 18;
+            // Nodes shared by boxes are counted more than once.  This is
+            // only an estimate.
             Vector<Long> nopen(nmglevs-1);
             for (int mglev = 1; mglev < nmglevs; ++mglev) {
-                nopen[mglev-1] = count_open_nodes_local(m_levset[0][mglev],
-                                                        m_geom[0][mglev]);
+                auto const& levset = m_levset[0][mglev];
+                auto const& ma = levset.const_arrays();
+                nopen[mglev-1] = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Long>{},
+                                           levset, IntVect(0),
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    -> GpuTuple<Long>
+                {
+                    return { (ma[box_no](i,j,k) < Real(0.0)) ? Long(1) : Long(0) };
+                });
             }
             ParallelAllReduce::Sum(nopen.data(), static_cast<int>(nopen.size()),
                                    ParallelContext::CommunicatorSub());
