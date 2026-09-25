@@ -127,7 +127,7 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_x(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dxinv, inhomog, icomp, Dim3{i,j,k});
+                       maxorder, dxinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
 }
 
 template <typename T>
@@ -248,7 +248,7 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_y(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dyinv, inhomog, icomp, Dim3{i,j,k});
+                       maxorder, dyinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
 }
 
 template <typename T>
@@ -369,7 +369,7 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     mllinop_apply_bc_z(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
-                       maxorder, dzinv, inhomog, icomp, Dim3{i,j,k});
+                       maxorder, dzinv, inhomog, icomp, Dim3{.x=i, .y=j, .z=k});
 }
 
 template <typename T>

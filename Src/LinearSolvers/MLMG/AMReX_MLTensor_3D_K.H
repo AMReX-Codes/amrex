@@ -25,8 +25,8 @@ void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, ylo_domain ? j+1 : j, k};
-    Dim3 const bcy{xlo_domain ? i+1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=k};
+    Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=k};
     if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mylo(i+1,j  ,k) == BndryData::covered;
         bool x_exterior = mylo(i+1,j  ,k) == BndryData::not_covered;
@@ -83,8 +83,8 @@ void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, ylo_domain ? j+1 : j, k};
-    Dim3 const bcy{xhi_domain ? i-1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=k};
+    Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=k};
     if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mylo(i-1,j  ,k) == BndryData::covered;
         bool x_exterior = mylo(i-1,j  ,k) == BndryData::not_covered;
@@ -141,8 +141,8 @@ void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, yhi_domain ? j-1 : j, k};
-    Dim3 const bcy{xlo_domain ? i+1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=k};
+    Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=k};
     if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = myhi(i+1,j  ,k) == BndryData::covered;
         bool x_exterior = myhi(i+1,j  ,k) == BndryData::not_covered;
@@ -199,8 +199,8 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, yhi_domain ? j-1 : j, k};
-    Dim3 const bcy{xhi_domain ? i-1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=k};
+    Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=k};
     if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = myhi(i-1,j  ,k) == BndryData::covered;
         bool x_exterior = myhi(i-1,j  ,k) == BndryData::not_covered;
@@ -257,8 +257,8 @@ void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, j, zlo_domain ? k+1 : k};
-    Dim3 const bcz{xlo_domain ? i+1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=j, .z=zlo_domain ? k+1 : k};
+    Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=j, .z=k};
     if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mzlo(i+1,j,k  ) == BndryData::covered;
         bool x_exterior = mzlo(i+1,j,k  ) == BndryData::not_covered;
@@ -315,8 +315,8 @@ void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, j, zlo_domain ? k+1 : k};
-    Dim3 const bcz{xhi_domain ? i-1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=j, .z=zlo_domain ? k+1 : k};
+    Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=j, .z=k};
     if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mzlo(i-1,j,k  ) == BndryData::covered;
         bool x_exterior = mzlo(i-1,j,k  ) == BndryData::not_covered;
@@ -373,8 +373,8 @@ void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, j, zhi_domain ? k-1 : k};
-    Dim3 const bcz{xlo_domain ? i+1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=j, .z=zhi_domain ? k-1 : k};
+    Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=j, .z=k};
     if (mxlo(i,j,k) != BndryData::covered) {
         bool x_interior = mzhi(i+1,j,k  ) == BndryData::covered;
         bool x_exterior = mzhi(i+1,j,k  ) == BndryData::not_covered;
@@ -431,8 +431,8 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcx{i, j, zhi_domain ? k-1 : k};
-    Dim3 const bcz{xhi_domain ? i-1 : i, j, k};
+    Dim3 const bcx{.x=i, .y=j, .z=zhi_domain ? k-1 : k};
+    Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=j, .z=k};
     if (mxhi(i,j,k) != BndryData::covered) {
         bool x_interior = mzhi(i-1,j,k  ) == BndryData::covered;
         bool x_exterior = mzhi(i-1,j,k  ) == BndryData::not_covered;
@@ -489,8 +489,8 @@ void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcy{i, j, zlo_domain ? k+1 : k};
-    Dim3 const bcz{i, ylo_domain ? j+1 : j, k};
+    Dim3 const bcy{.x=i, .y=j, .z=zlo_domain ? k+1 : k};
+    Dim3 const bcz{.x=i, .y=ylo_domain ? j+1 : j, .z=k};
     if (mylo(i,j,k) != BndryData::covered) {
         bool y_interior = mzlo(i,j+1,k  ) == BndryData::covered;
         bool y_exterior = mzlo(i,j+1,k  ) == BndryData::not_covered;
@@ -547,8 +547,8 @@ void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcy{i, j, zlo_domain ? k+1 : k};
-    Dim3 const bcz{i, yhi_domain ? j-1 : j, k};
+    Dim3 const bcy{.x=i, .y=j, .z=zlo_domain ? k+1 : k};
+    Dim3 const bcz{.x=i, .y=yhi_domain ? j-1 : j, .z=k};
     if (myhi(i,j,k) != BndryData::covered) {
         bool y_interior = mzlo(i,j-1,k  ) == BndryData::covered;
         bool y_exterior = mzlo(i,j-1,k  ) == BndryData::not_covered;
@@ -605,8 +605,8 @@ void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcy{i, j, zhi_domain ? k-1 : k};
-    Dim3 const bcz{i, ylo_domain ? j+1 : j, k};
+    Dim3 const bcy{.x=i, .y=j, .z=zhi_domain ? k-1 : k};
+    Dim3 const bcz{.x=i, .y=ylo_domain ? j+1 : j, .z=k};
     if (mylo(i,j,k) != BndryData::covered) {
         bool y_interior = mzhi(i,j+1,k  ) == BndryData::covered;
         bool y_exterior = mzhi(i,j+1,k  ) == BndryData::not_covered;
@@ -663,8 +663,8 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
 {
     // At a domain edge the boundary value comes from the nearest face
     // cell inside the domain, not from the edge ghost cell.
-    Dim3 const bcy{i, j, zhi_domain ? k-1 : k};
-    Dim3 const bcz{i, yhi_domain ? j-1 : j, k};
+    Dim3 const bcy{.x=i, .y=j, .z=zhi_domain ? k-1 : k};
+    Dim3 const bcz{.x=i, .y=yhi_domain ? j-1 : j, .z=k};
     if (myhi(i,j,k) != BndryData::covered) {
         bool y_interior = mzhi(i,j-1,k  ) == BndryData::covered;
         bool y_exterior = mzhi(i,j-1,k  ) == BndryData::not_covered;
@@ -747,9 +747,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vlo.z-1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, ylo_domain ? j+1 : j, zlo_domain ? k+1 : k};
-            Dim3 const bcy{xlo_domain ? i+1 : i, j, zlo_domain ? k+1 : k};
-            Dim3 const bcz{xlo_domain ? i+1 : i, ylo_domain ? j+1 : j, k};
+            Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=ylo_domain ? j+1 : j, .z=k};
             if (mxlo(i,j,k) != BndryData::covered) {
                 bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
                 bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
@@ -834,9 +834,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vlo.z-1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, ylo_domain ? j+1 : j, zlo_domain ? k+1 : k};
-            Dim3 const bcy{xhi_domain ? i-1 : i, j, zlo_domain ? k+1 : k};
-            Dim3 const bcz{xhi_domain ? i-1 : i, ylo_domain ? j+1 : j, k};
+            Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=ylo_domain ? j+1 : j, .z=k};
             bool x_interior = mylo(i-1,j  ,k  ) == BndryData::covered;
             bool x_exterior = mylo(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
@@ -921,9 +921,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vlo.z-1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, yhi_domain ? j-1 : j, zlo_domain ? k+1 : k};
-            Dim3 const bcy{xlo_domain ? i+1 : i, j, zlo_domain ? k+1 : k};
-            Dim3 const bcz{xlo_domain ? i+1 : i, yhi_domain ? j-1 : j, k};
+            Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=yhi_domain ? j-1 : j, .z=k};
             bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxlo(i  ,j-1,k  ) == BndryData::covered;
@@ -1008,9 +1008,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vlo.z-1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, yhi_domain ? j-1 : j, zlo_domain ? k+1 : k};
-            Dim3 const bcy{xhi_domain ? i-1 : i, j, zlo_domain ? k+1 : k};
-            Dim3 const bcz{xhi_domain ? i-1 : i, yhi_domain ? j-1 : j, k};
+            Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=zlo_domain ? k+1 : k};
+            Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=yhi_domain ? j-1 : j, .z=k};
             bool x_interior = myhi(i-1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j-1,k  ) == BndryData::covered;
@@ -1095,9 +1095,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vhi.z+1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, ylo_domain ? j+1 : j, zhi_domain ? k-1 : k};
-            Dim3 const bcy{xlo_domain ? i+1 : i, j, zhi_domain ? k-1 : k};
-            Dim3 const bcz{xlo_domain ? i+1 : i, ylo_domain ? j+1 : j, k};
+            Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=ylo_domain ? j+1 : j, .z=k};
             bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
             bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
@@ -1182,9 +1182,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vhi.z+1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, ylo_domain ? j+1 : j, zhi_domain ? k-1 : k};
-            Dim3 const bcy{xhi_domain ? i-1 : i, j, zhi_domain ? k-1 : k};
-            Dim3 const bcz{xhi_domain ? i-1 : i, ylo_domain ? j+1 : j, k};
+            Dim3 const bcx{.x=i, .y=ylo_domain ? j+1 : j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=ylo_domain ? j+1 : j, .z=k};
             bool x_interior = mylo(i-1,j  ,k  ) == BndryData::covered;
             bool x_exterior = mylo(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
@@ -1269,9 +1269,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vhi.z+1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, yhi_domain ? j-1 : j, zhi_domain ? k-1 : k};
-            Dim3 const bcy{xlo_domain ? i+1 : i, j, zhi_domain ? k-1 : k};
-            Dim3 const bcz{xlo_domain ? i+1 : i, yhi_domain ? j-1 : j, k};
+            Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcy{.x=xlo_domain ? i+1 : i, .y=j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcz{.x=xlo_domain ? i+1 : i, .y=yhi_domain ? j-1 : j, .z=k};
             bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxlo(i  ,j-1,k  ) == BndryData::covered;
@@ -1356,9 +1356,9 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vhi.z+1;
             // At a domain corner the boundary value comes from the nearest
             // face cell inside the domain, not from the corner ghost cell.
-            Dim3 const bcx{i, yhi_domain ? j-1 : j, zhi_domain ? k-1 : k};
-            Dim3 const bcy{xhi_domain ? i-1 : i, j, zhi_domain ? k-1 : k};
-            Dim3 const bcz{xhi_domain ? i-1 : i, yhi_domain ? j-1 : j, k};
+            Dim3 const bcx{.x=i, .y=yhi_domain ? j-1 : j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcy{.x=xhi_domain ? i-1 : i, .y=j, .z=zhi_domain ? k-1 : k};
+            Dim3 const bcz{.x=xhi_domain ? i-1 : i, .y=yhi_domain ? j-1 : j, .z=k};
             bool x_interior = myhi(i-1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j-1,k  ) == BndryData::covered;
