@@ -458,7 +458,10 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
 
 #ifdef AMREX_USE_EB
-    build_eb_data();
+    // No EB factory here, but the per-level vectors must exist.
+    m_levset.resize(this->m_num_amr_levels);
+    m_eb_pos.resize(this->m_num_amr_levels);
+    m_has_eb.resize(this->m_num_amr_levels);
 #endif
 
     m_sigma_mf.resize(this->m_num_amr_levels);
