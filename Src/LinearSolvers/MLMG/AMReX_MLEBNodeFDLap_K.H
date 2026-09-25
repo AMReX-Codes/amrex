@@ -54,7 +54,7 @@ struct EBNodeFDEdgeSigma
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real x (int i, int j, int k) const noexcept { return s[0](i,j,k); }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real y (int i, int j, int k) const noexcept {
+    Real y (int i, int j, int k) const noexcept { // NOLINT(readability-convert-member-functions-to-static)
 #if (AMREX_SPACEDIM > 1)
         return s[1](i,j,k);
 #else
@@ -62,7 +62,7 @@ struct EBNodeFDEdgeSigma
 #endif
     }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real z (int i, int j, int k) const noexcept {
+    Real z (int i, int j, int k) const noexcept { // NOLINT(readability-convert-member-functions-to-static)
 #if (AMREX_SPACEDIM > 2)
         return s[2](i,j,k);
 #else

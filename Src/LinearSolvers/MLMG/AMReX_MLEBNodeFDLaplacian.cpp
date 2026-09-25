@@ -1195,9 +1195,9 @@ MLEBNodeFDLaplacian::update_sigma ()
             Real const rlo = geom.ProbLo(0);
             MultiFab const* vfrac = nullptr;
 #ifdef AMREX_USE_EB
-            if (!m_levset[amrlev].empty()) {
-                auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>
-                    (m_factory[amrlev][0].get());
+            auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>
+                (m_factory[amrlev][0].get());
+            if (factory && !m_levset[amrlev].empty()) {
                 vfrac = &(factory->getVolFrac());
             }
 #endif
