@@ -339,7 +339,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
         for (int mglev = 1; mglev < nmglevs; ++mglev)
         {
             IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
-            Dim3 const rr = ratio.dim3();
+            Dim3 const rr = ratio.dim3(1);
             auto const& flevset = m_levset[amrlev][mglev-1];
             auto& clevset = m_levset[amrlev][mglev];
             auto const& febp = m_eb_pos[amrlev][mglev-1];
@@ -1268,7 +1268,7 @@ MLEBNodeFDLaplacian::update_sigma ()
         for (int mglev = 1; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
             IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
-            Dim3 const rr = ratio.dim3();
+            Dim3 const rr = ratio.dim3(1);
             auto const& fse = m_sigma_edge[amrlev][mglev-1];
             auto& cse = m_sigma_edge[amrlev][mglev];
 
