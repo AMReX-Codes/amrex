@@ -154,8 +154,8 @@ void test_mlmg_lifetime (gpuStream_t external)
     constexpr int ncell = 16;
     Box domain(IntVect(AMREX_D_DECL(0,0,0)),
                IntVect(AMREX_D_DECL(ncell-1, ncell-1, ncell-1)));
-    RealBox real_box({AMREX_D_DECL(0.0, 0.0, 0.0)},
-                     {AMREX_D_DECL(1.0, 1.0, 1.0)});
+    RealBox real_box(AMREX_D_DECL(0.0, 0.0, 0.0),
+                     AMREX_D_DECL(1.0, 1.0, 1.0));
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry geom(domain, real_box, CoordSys::cartesian, is_periodic);
     BoxArray ba(domain);
