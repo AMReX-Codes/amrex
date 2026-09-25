@@ -306,22 +306,21 @@ MLEBNodeFDLaplacian::build_eb_data ()
         // Level 0: copy from the factory.
         {
             auto const& levset_f = factory->getLevelSet();
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levset_f.nGrow() >= 1,
+            auto const& edgecent = factory->getEdgeCent();
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levset_f.nGrow() >= 1 &&
+                                             edgecent[0]->nGrow() >= 1,
                 "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
             MultiFab::Copy(m_levset[amrlev][0], levset_f, 0, 0, 1, 1);
 
-            auto const& edgecent = factory->getEdgeCent();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto& el = m_edge_len[amrlev][0][idim];
-                el.setVal(Real(1.0));
                 auto const off = IntVect::TheDimensionVector(idim).dim3();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(el); mfi.isValid(); ++mfi) {
                     if (edgecent[idim]->ok(mfi)) {
-                        Box const& bx = mfi.fabbox() & (*edgecent[idim])[mfi].box()
-                            & amrex::convert(levset_f[mfi].box(), el.ixType());
+                        Box const& bx = mfi.fabbox();
                         Array4<Real> const& ela = el.array(mfi);
                         Array4<Real const> const& eca = edgecent[idim]->const_array(mfi);
                         Array4<Real const> const& lsa = levset_f.const_array(mfi);
@@ -329,6 +328,8 @@ MLEBNodeFDLaplacian::build_eb_data ()
                         {
                             mlebndfdlap_edge_len_from_cent(i,j,k,ela,eca,lsa,off);
                         });
+                    } else {
+                        el[mfi].setVal<RunOn::Device>(Real(1.0)); // regular or covered
                     }
                 }
             }
