@@ -204,6 +204,35 @@ MLEBTensorOp::prepareForSolve ()
 }
 
 void
+MLEBTensorOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
+                       const MLMGBndry* bndry, bool skip_fillboundary) const
+{
+    // The tensor EB stencil reads the ghost cells outside two or three
+    // domain faces. Fill them here, before any stencil runs, on the levels
+    // that have the tensor terms.
+    MLEBABecLap::applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry, skip_fillboundary);
+    if (mglev >= m_kappa[amrlev].size()) { return; }
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
+}
+
+void
+MLEBTensorOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                      bool skip_fillboundary, int niter) const
+{
+    BL_PROFILE("MLEBTensorOp::smooth()");
+    // The smoother is the scalar one and reads no tensor cross terms, so
+    // the corner and edge fill of applyBC is not needed here.
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 2; ++redblack) {
+            MLEBABecLap::applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
+                                 nullptr, skip_fillboundary);
+            Fsmooth(amrlev, mglev, sol, rhs, redblack);
+            skip_fillboundary = false;
+        }
+    }
+}
+
+void
 MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                      StateMode s_mode, const MLMGBndry* bndry) const
 {
@@ -211,8 +240,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
     if (mglev >= m_kappa[amrlev].size()) { return; }
-
-    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -521,8 +548,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     if (mglev >= m_kappa[amrlev].size()) { return; }
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
-
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -634,7 +659,6 @@ MLEBTensorOp::compVelGrad (int amrlev,
 
     MLMGBndry const* bndry = m_bndry_sol[amrlev].get();
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
 
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 

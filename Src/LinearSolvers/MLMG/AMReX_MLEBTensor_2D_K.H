@@ -284,8 +284,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 Real feb_1 = Real(0.0);
                 if (is_dirichlet)
                 {
-                    Real dapx = apx(i+1,j,0)-apx(i,j,0);
-                    Real dapy = apy(i,j+1,0)-apy(i,j,0);
+                    // EB area vector divided by dx, so that it stays O(1)
+                    Real dapx = (apx(i+1,j,0)-apx(i,j,0)) * (dxi/dyi);
+                    Real dapy = (apy(i,j+1,0)-apy(i,j,0));
                     Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy);
                     Real anrmx = -dapx * anorminv;
                     Real anrmy = -dapy * anorminv;
@@ -297,11 +298,14 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         velb_1 = velb(i,j,0,1);
                     }
 
+                    // g is displaced along the physical normal; dg is the physical distance
                     Real dx_eb = amrex::max(Real(0.3), (kappa*kappa-Real(0.25))/(Real(2.)*kappa));
-                    Real dg = dx_eb / amrex::max(std::abs(anrmx),std::abs(anrmy));
+                    Real mx = anrmx*dxi;
+                    Real my = anrmy*dyi;
+                    Real dg = dx_eb / amrex::max(std::abs(mx),std::abs(my));
                     Real dginv = Real(1.0)/dg;
-                    Real gx = bc(i,j,0,0) - dg*anrmx;
-                    Real gy = bc(i,j,0,1) - dg*anrmy;
+                    Real gx = bc(i,j,0,0) - dg*mx;
+                    Real gy = bc(i,j,0,1) - dg*my;
                     int isx = (anrmx > Real(0.0)) ? 1 : -1;
                     int isy = (anrmy > Real(0.0)) ? 1 : -1;
                     int ii = i - isx;
@@ -338,18 +342,17 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real tauyx = mu*dvdx;
                     Real tauyy = mu*dvdy + tautmp;
                     Real tauxy = mu*dudy;
-                    // assuming dxi == dyi == dzi
-                    feb_0 = dxi*(dapx*tauxx + dapy*tauyx);
-                    feb_1 = dxi*(dapx*tauxy + dapy*tauyy);
+                    feb_0 = dyi*(dapx*tauxx + dapy*tauyx);
+                    feb_1 = dyi*(dapx*tauxy + dapy*tauyy);
                 }
 
                 Real volinv = bscalar / kappa;
                 Ax(i,j,0,0) += volinv * (dxi*(apx(i+1,j,0)*fxp_0-apx(i,j,0)*fxm_0)
                                         +dyi*(apy(i,j+1,0)*fyp_0-apy(i,j,0)*fym_0)
-                                        +dxi*                               feb_0);
+                                        +                                   feb_0);
                 Ax(i,j,0,1) += volinv * (dxi*(apx(i+1,j,0)*fxp_1-apx(i,j,0)*fxm_1)
                                         +dyi*(apy(i,j+1,0)*fyp_1-apy(i,j,0)*fym_1)
-                                        +dxi*                               feb_1);
+                                        +                                   feb_1);
             }
         }
     }

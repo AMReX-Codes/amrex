@@ -71,6 +71,33 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
+/**
+ * \brief Boundary value for a ghost cell outside two or three domain faces.
+ *
+ * The face data are not required to be set there. \p shift points toward
+ * the domain in each tangential direction that is a domain boundary (0
+ * otherwise), and \p len is the box length. The value is extrapolated
+ * linearly along the face from the cells inside the domain.
+ */
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T mllinop_bcval_extrap (Array4<T const> const& bcval, int i, int j, int k, int icomp,
+                        Dim3 const& shift, Dim3 const& len) noexcept
+{
+    int const i1 = i + shift.x;
+    int const j1 = j + shift.y;
+    int const k1 = k + shift.z;
+    T const v1 = bcval(i1,j1,k1,icomp);
+    T v = v1;
+    if (shift.x != 0 && len.x >= 2) { v += v1 - bcval(i1+shift.x,j1,k1,icomp); }
+    if (shift.y != 0 && len.y >= 2) { v += v1 - bcval(i1,j1+shift.y,k1,icomp); }
+    if (shift.z != 0 && len.z >= 2) { v += v1 - bcval(i1,j1,k1+shift.z,icomp); }
+    return v;
+}
+
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
@@ -78,7 +105,8 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dxinv, int inhomog, int icomp,
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side;  // +1 for lo and -1 for hi
@@ -105,13 +133,27 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_x(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dxinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
@@ -176,6 +218,9 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
@@ -183,7 +228,8 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dyinv, int inhomog, int icomp,
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -210,13 +256,27 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_y(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dyinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
@@ -281,6 +341,9 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
+//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! several domain faces, \p shift and \p len select the boundary value
+//! (see mllinop_bcval_extrap).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
@@ -288,7 +351,8 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, T bcl,
                          Array4<T const> const& bcval,
-                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
+                         int maxorder, T dzinv, int inhomog, int icomp,
+                         Dim3 const& shift, Dim3 const& len) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -315,13 +379,27 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
             }
             phi(i,j,k,icomp) = tmp;
             if (inhomog) {
-                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+                phi(i,j,k,icomp) += mllinop_bcval_extrap(bcval, i, j, k, icomp, shift, len)*coef[0];
             }
             break;
         }
         default: {}
         }
     }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
+                         Array4<T> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
+{
+    mllinop_apply_bc_z(side, i, j, k, blen, phi, mask, bct, bcl, bcval,
+                       maxorder, dzinv, inhomog, icomp,
+                       Dim3{.x=0, .y=0, .z=0}, Dim3{.x=0, .y=0, .z=0});
 }
 
 template <typename T>
@@ -1058,6 +1136,24 @@ void mllinop_apply_innu_zhi (int i, int j, int k,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real get_dx_eb (Real kappa) noexcept {
     return amrex::max(Real(0.3),(kappa*kappa-Real(0.25))/(Real(2.0)*kappa));
+}
+
+/**
+ * \brief EB area in physical units divided by dx^(AMREX_SPACEDIM-1).
+ *
+ * \p ba is the dimensionless EB boundary area, (\p nx, \p ny, \p nz) is the
+ * physical unit normal, \p ry = dy/dx and \p rz = dz/dx.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real get_eb_area (Real ba, Real nx, Real ny, Real ry) noexcept {
+    if (ry == Real(1.0)) { return ba; } // exact for isotropic cells
+    return ba * std::sqrt((nx*ry)*(nx*ry) + ny*ny);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real get_eb_area (Real ba, Real nx, Real ny, Real nz, Real ry, Real rz) noexcept {
+    if (ry == Real(1.0) && rz == Real(1.0)) { return ba; } // exact for isotropic cells
+    return ba * std::sqrt((nx*ry*rz)*(nx*ry*rz) + (ny*rz)*(ny*rz) + (nz*ry)*(nz*ry));
 }
 
 #endif

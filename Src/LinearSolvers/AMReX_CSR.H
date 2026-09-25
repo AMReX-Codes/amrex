@@ -28,17 +28,16 @@ namespace amrex {
  * \brief Lightweight non-owning CSR view that can point to host or device buffers.
  *
  * The template parameter \p T controls constness of the value array; the
- * column/row arrays follow suit. \p I is the column index type; row
- * offsets are always `Long`.
+ * column/row arrays follow suit. \p I is the type of both the column
+ * indices and the row offsets.
  */
 template <typename T, typename I = Long>
 struct CsrView {
     using index_type = I;
-    using U = std::conditional_t<std::is_const_v<T>, Long const, Long>;
     using CI = std::conditional_t<std::is_const_v<T>, I const, I>;
     T* AMREX_RESTRICT mat = nullptr;
     CI* AMREX_RESTRICT col_index = nullptr;
-    U* AMREX_RESTRICT row_offset = nullptr;
+    CI* AMREX_RESTRICT row_offset = nullptr;
     Long nnz = 0;
     Long nrows = 0;
 };
@@ -48,14 +47,14 @@ struct CsrView {
  *
  * @tparam T Value type stored in the matrix.
  * @tparam V Vector-like container template (e.g., PODVector, Gpu::DeviceVector).
- * @tparam I Column index type; row offsets are always `Long`.
+ * @tparam I Index type of both the column indices and the row offsets.
  */
 template <typename T, template <typename> class V, typename I = Long>
 struct CSR {
     using index_type = I;
     V<T> mat;
     V<I> col_index;
-    V<Long> row_offset;
+    V<I> row_offset;
     Long nnz = 0;
 
     //! Number of logical rows represented by the CSR offset array.
@@ -475,7 +474,7 @@ struct CsrIndex
         ParallelFor(N, [=] AMREX_GPU_DEVICE (I i)
         {
             if (i < lnnz) { col_dst[i] = static_cast<J>(col_src[i]); }
-            if (i < lnro) { row_dst[i] = static_cast<Long>(row_src[i]); }
+            if (i < lnro) { row_dst[i] = static_cast<J>(row_src[i]); }
         });
     }
 

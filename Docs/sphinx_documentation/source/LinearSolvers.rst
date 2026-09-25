@@ -317,6 +317,29 @@ store the numerical values in the condition,
 
 Note this is an integer (not bool) MultiFab, so the values must be only either 0 or 1.
 
+5) Cell-centered solvers :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
+:cpp:`MLTensorOp` and :cpp:`MLEBABecLap` also accept an overset mask,
+passed to the constructor or :cpp:`define` with one mask per AMR level:
+
+.. highlight:: c++
+
+::
+
+   // 1 means the cell is an unknown. 0 means it's known.
+   MLABecLaplacian (const Vector<Geometry>& a_geom,
+                    const Vector<BoxArray>& a_grids,
+                    const Vector<DistributionMapping>& a_dmap,
+                    const Vector<iMultiFab const*>& a_overset_mask,
+                    const LPInfo& a_info = LPInfo());
+
+The solver does not change the solution in known cells. Their values come
+from the solution MultiFab passed to :cpp:`MLMG::solve`, and the right-hand
+side there is ignored. The mask needs no ghost cells. Multi-level composite
+solves are supported. Convergence is best when the edges of the masked
+region on each fine level fall on faces of the next coarser level's cells.
+With an overset mask, :cpp:`MLPoisson` does not support metric terms; use
+:cpp:`MLABecLaplacian` instead.
+
 
 .. _sec:linearsolver:pars:
 

@@ -201,7 +201,7 @@ public:
 
     //! Apply physical BCs to \p in on (\p amrlev,\p mglev) using the supplied BC metadata.
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
-                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const override;
     //! Apply the discrete operator to \p in on (\p amrlev,\p mglev) and store the result in \p out.
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;

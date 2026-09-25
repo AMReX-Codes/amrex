@@ -14,6 +14,8 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_VisMF.H>
 
+#include <type_traits>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -23,7 +25,7 @@ MyTest::MyTest ()
     RealBox rb({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain(IntVect(0), n_cells-1);
     geom.define(domain);
 
     {
@@ -45,7 +47,8 @@ MyTest::solve ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-11;
+    // Single precision cannot reach 1e-11.
+    const Real tol_rel = std::is_same_v<Real,float> ? 1.e-5_rt : 1.e-11_rt;
     const Real tol_abs = 0.0;
 
     MLEBTensorOp ebtensorop({geom}, {grids}, {dmap}, info, {factory.get()});
@@ -115,7 +118,7 @@ MyTest::solve ()
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
 
-    mlmg.setBottomTolerance(1.e-4);
+    mlmg.setBottomTolerance(1.e-4_rt);
 
     MultiFab::Saxpy(rhs, a, exact, 0, 0, AMREX_SPACEDIM, 0);
 
@@ -133,7 +136,11 @@ MyTest::solve ()
         amrex::Print() << "\n";
         MultiFab::Copy(error, solution, idim, 0, 1, 0);
         MultiFab::Subtract(error, exact, idim, 0, 1, 0);
-        amrex::Print() << "  max-norm error = " << error.norm0() << '\n';
+        const Real errmax = error.norm0();
+        amrex::Print() << "  max-norm error = " << errmax << '\n';
+        if (max_error > 0 && errmax > max_error) {
+            amrex::Abort("MyTest::solve: max-norm error exceeds max_error");
+        }
         const MultiFab& vfrc = factory->getVolFrac();
         MultiFab::Multiply(error, vfrc, 0, 0, 1, 0);
         const auto dx = geom.CellSize();
@@ -148,6 +155,8 @@ MyTest::readParameters ()
     ParmParse pp;
 
     pp.query("n_cell", n_cell);
+    n_cells = IntVect(n_cell);
+    pp.queryarr("n_cells", n_cells);
     pp.query("max_grid_size", max_grid_size);
 
     pp.query("verbose", verbose);
@@ -158,6 +167,7 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
+    pp.query("max_error", max_error);
 }
 
 void
@@ -197,9 +207,9 @@ MyTest::initData ()
         const Array4<Real> etafab = eta.array(mfi);
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
              {
-                    AMREX_D_TERM(Real x = (i+0.5)*dx[0] + problo[0];,
-                                 Real y = (j+0.5)*dx[1] + problo[1];,
-                                 Real z = (k+0.5)*dx[2] + problo[2];)
+                    AMREX_D_TERM(Real x = (i+0.5_rt)*dx[0] + problo[0];,
+                                 Real y = (j+0.5_rt)*dx[1] + problo[1];,
+                                 Real z = (k+0.5_rt)*dx[2] + problo[2];)
 
                     Real u,v,urhs,vrhs,seta;
 #if (AMREX_SPACEDIM == 2)
@@ -209,9 +219,9 @@ MyTest::initData ()
                     if (cylinder_direction == 2) {
                         init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                     } else if (cylinder_direction == 0) {
-                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
+                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta); // NOLINT(readability-suspicious-call-argument)
                     } else {
-                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
+                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta); // NOLINT(readability-suspicious-call-argument)
                     }
 #endif
                     AMREX_D_TERM(velfab(i,j,k,0) = u;,
@@ -231,18 +241,18 @@ MyTest::initData ()
                         z < -1.0 || z > 1.0)
 #endif
                     {
-                        AMREX_D_TERM(x = amrex::max(-1.0,amrex::min(1.0,x));,
-                                     y = amrex::max(-1.0,amrex::min(1.0,y));,
-                                     z = amrex::max(-1.0,amrex::min(1.0,z));)
+                        AMREX_D_TERM(x = amrex::max(-1.0_rt,amrex::min(1.0_rt,x));,
+                                     y = amrex::max(-1.0_rt,amrex::min(1.0_rt,y));,
+                                     z = amrex::max(-1.0_rt,amrex::min(1.0_rt,z));)
 #if (AMREX_SPACEDIM == 2)
                             init(x,y,R2,u,v,urhs,vrhs,seta);
 #elif (AMREX_SPACEDIM == 3)
                         if (cylinder_direction == 2) {
                             init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                         } else if (cylinder_direction == 0) {
-                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
+                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta); // NOLINT(readability-suspicious-call-argument)
                         } else {
-                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
+                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta); // NOLINT(readability-suspicious-call-argument)
                         }
 #endif
                         AMREX_D_TERM(velfab(i,j,k,0) = u;,
