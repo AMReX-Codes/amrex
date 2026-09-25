@@ -216,6 +216,23 @@ MLEBTensorOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, Stat
 }
 
 void
+MLEBTensorOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                      bool skip_fillboundary, int niter) const
+{
+    BL_PROFILE("MLEBTensorOp::smooth()");
+    // The smoother is the scalar one and reads no tensor cross terms, so
+    // the corner and edge fill of applyBC is not needed here.
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 2; ++redblack) {
+            MLEBABecLap::applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
+                                 nullptr, skip_fillboundary);
+            Fsmooth(amrlev, mglev, sol, rhs, redblack);
+            skip_fillboundary = false;
+        }
+    }
+}
+
+void
 MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                      StateMode s_mode, const MLMGBndry* bndry) const
 {
