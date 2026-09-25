@@ -173,8 +173,6 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 {
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dh  = beta*dxinv[0]*dxinv[1];
-
 
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
@@ -257,8 +255,9 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
         Real feb = Real(0.0);
         if (is_dirichlet) {
-            Real dapx = (apxm-apxp)/dxinv[1];
-            Real dapy = (apym-apyp)/dxinv[0];
+            // EB length vector divided by dx, so that it stays O(1)
+            Real dapx = (apxm-apxp)*(dxinv[0]/dxinv[1]);
+            Real dapy = (apym-apyp);
             Real anorm = std::hypot(dapx,dapy);
             Real anorminv = Real(1.0)/anorm;
             Real anrmx = dapx * anorminv;
@@ -270,8 +269,7 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
             Real bcty = bc(i,j,k,1);
             Real dx_eb = get_dx_eb(kappa);
 
-            // Move g from the boundary centroid along the physical normal.
-            // dg is the physical distance and anorm the physical EB length.
+            // g is displaced along the physical normal; dg is the physical distance
             Real mx = anrmx*dxinv[0];
             Real my = anrmy*dxinv[1];
             Real dg = dx_eb / amrex::max(std::abs(mx), std::abs(my));
@@ -290,12 +288,14 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
 
             Real dphidn = (phib-phig) / dg;
 
-            feb = dphidn * anorm * beb(i,j,k,n);
+            // beta*dx/(dx*dy), since anorm is the EB length over dx
+            Real febfac = beta*dxinv[1];
+            feb = febfac * dphidn * anorm * beb(i,j,k,n);
         }
 
         y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
             (dhx*(apxm*fxm-apxp*fxp) +
-             dhy*(apym*fym-apyp*fyp) - dh*feb);
+             dhy*(apym*fym-apyp*fyp) - feb);
     }
 }
 
@@ -326,8 +326,8 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real apym = apy(i,j,k);
         Real apyp = apy(i,j+1,k);
 
-        Real dapx = (apxm-apxp)/dxinv[1];
-        Real dapy = (apym-apyp)/dxinv[0];
+        Real dapx = (apxm-apxp)*(dxinv[0]/dxinv[1]);
+        Real dapy = (apym-apyp);
         Real anorm = std::hypot(dapx,dapy);
         Real anorminv = Real(1.0)/anorm;
         Real anrmx = dapx * anorminv;
@@ -525,8 +525,9 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                      dhy*(apym*oym-apyp*oyp));
 
                 if (is_dirichlet) {
-                    Real dapx = (apxm-apxp)*dx[1];
-                    Real dapy = (apym-apyp)*dx[0];
+                    // EB length vector divided by dx, so that it stays O(1)
+                    Real dapx = (apxm-apxp)*(dx[1]/dx[0]);
+                    Real dapy = (apym-apyp);
                     Real anorm = std::hypot(dapx,dapy);
                     Real anorminv = Real(1.0)/anorm;
                     Real anrmx = dapx * anorminv;
@@ -556,11 +557,14 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
                     // In gsrb we are always in residual-correction form so phib = 0
                     Real dphidn =  (    -phig)/dg;
 
+                    // beta*dx/(dx*dy), since anorm is the EB length over dx
+                    Real dheb = dh*dx[0];
+
                     Real feb = dphidn * anorm * beb(i,j,k,n);
-                    rho += -vfrcinv*(-dh)*feb;
+                    rho += -vfrcinv*(-dheb)*feb;
 
                     Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
-                    gamma += vfrcinv*(-dh)*feb_gamma;
+                    gamma += vfrcinv*(-dheb)*feb_gamma;
                 }
 
                 Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
@@ -818,8 +822,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                  dhy*(apym*sym-apyp*syp));
 
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp)*dx[1];
-                Real dapy = (apym-apyp)*dx[0];
+                // EB length vector divided by dx, so that it stays O(1)
+                Real dapx = (apxm-apxp)*(dx[1]/dx[0]);
+                Real dapy = (apym-apyp);
                 Real anorm = std::hypot(dapx,dapy);
                 Real anorminv = Real(1.0)/anorm;
                 Real anrmx = dapx * anorminv;
@@ -839,8 +844,10 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real sy = std::copysign(Real(1.0),anrmy);
 
                 Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
+                // beta*dx/(dx*dy), since anorm is the EB length over dx
+                Real dheb = dh*dx[0];
                 Real feb_gamma = -phig_gamma/dg * anorm * beb(i,j,k,n);
-                gamma += vfrcinv*(-dh)*feb_gamma;
+                gamma += vfrcinv*(-dheb)*feb_gamma;
             }
 
             phi(i,j,k,n) /= gamma;

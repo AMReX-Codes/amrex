@@ -479,9 +479,9 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            // Match mlebabeclap_adotx: physical-space normal, scaled by 1/(dx*dy).
-            Real dapx = (apx(i,j,k) - apx(i+1,j,k))*dx[1];
-            Real dapy = (apy(i,j,k) - apy(i,j+1,k))*dx[0];
+            // Match mlebabeclap_adotx: EB length vector divided by dx
+            Real dapx = (apx(i,j,k) - apx(i+1,j,k))*(dx[1]/dx[0]);
+            Real dapy = (apy(i,j,k) - apy(i,j+1,k));
             Real anorm = std::hypot(dapx, dapy);
 
             Real anorminv = Real(1.0)/anorm;
@@ -508,7 +508,8 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             for (int ii=0; ii<4; ii++){
                 feb(ii) = -phig1(ii) * (anorm * beb(i,j,k) / dg);
             }
-            Real faceb = sb/(dx[0]*dx[1]);
+            // sb*dx/(dx*dy), since anorm is the EB length over dx
+            Real faceb = sb/dx[1];
             mat_tmp(0   , 0  ) -= feb(0)*faceb;
             mat_tmp(ioff, 0  ) -= feb(1)*faceb;
             mat_tmp(0   ,joff) -= feb(2)*faceb;
