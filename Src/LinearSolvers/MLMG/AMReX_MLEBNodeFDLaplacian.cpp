@@ -377,26 +377,34 @@ MLEBNodeFDLaplacian::build_eb_data ()
         // Stop coarsening at the last MG level that still has enough open
         // nodes for a meaningful bottom solve.
         if (amrlev == 0 && nmglevs > 1) {
-            constexpr Long min_open_nodes = 18;
+            constexpr int min_open_nodes = 18;
+            // Levels with more cells than this are assumed to have enough
+            // open nodes and are not examined.
+            constexpr Long max_npts_to_check = 65536;
             // Nodes shared by boxes are counted more than once.  This is
-            // only an estimate.
-            Vector<Long> nopen(nmglevs-1);
-            for (int mglev = 1; mglev < nmglevs; ++mglev) {
+            // only an estimate.  Only the ntest coarsest levels are examined.
+            Vector<int> nopen(nmglevs, 0);
+            int ntest = 0;
+            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
                 auto const& levset = m_levset[0][mglev];
+                if (levset.boxArray().numPts() > max_npts_to_check) { break; }
                 auto const& ma = levset.const_arrays();
-                nopen[mglev-1] = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Long>{},
-                                           levset, IntVect(0),
+                nopen[mglev] = ParReduce(TypeList<ReduceOpSum>{}, TypeList<int>{},
+                                         levset, IntVect(0),
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                    -> GpuTuple<Long>
+                    -> GpuTuple<int>
                 {
-                    return { (ma[box_no](i,j,k) < Real(0.0)) ? Long(1) : Long(0) };
+                    return { (ma[box_no](i,j,k) < Real(0.0)) ? 1 : 0 };
                 });
+                ++ntest;
             }
-            ParallelAllReduce::Sum(nopen.data(), static_cast<int>(nopen.size()),
-                                   ParallelContext::CommunicatorSub());
+            if (ntest > 0) {
+                ParallelAllReduce::Sum(nopen.data()+(nmglevs-ntest), ntest,
+                                       ParallelContext::CommunicatorSub());
+            }
             int last_good = 0;
             for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-                if (nopen[mglev-1] >= min_open_nodes) {
+                if (mglev < nmglevs-ntest || nopen[mglev] >= min_open_nodes) {
                     last_good = mglev;
                     break;
                 }
