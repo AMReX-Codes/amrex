@@ -355,6 +355,13 @@ MLEBNodeFDLaplacian::build_eb_data ()
             auto const& febp = m_eb_pos[amrlev][mglev-1];
             auto& cebp = m_eb_pos[amrlev][mglev];
 
+            // Ghost nodes inside the domain but outside all grids are not
+            // filled below.  Make them regular.
+            clevset.setBndry(Real(-1.0));
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                cebp[idim].setBndry(Real(1.0));
+            }
+
             bool const need_parallel_copy = !amrex::isMFIterSafe(clevset, flevset);
             MultiFab clevset_tmp;
             Array<MultiFab,AMREX_SPACEDIM> cebp_tmp;
@@ -496,18 +503,16 @@ MLEBNodeFDLaplacian::limit_coarsening ()
     }
 
     // A level without covered nodes or cut edges has lost the EB Dirichlet
-    // condition, which can make it singular.  Coarse EB data come from
-    // injection, so an EB on a level implies an EB on all finer levels.
-    // Hence the local search can stop at the first level with an EB.
+    // condition, and the coarse correction then diverges near the EB even
+    // with Dirichlet domain BCs.  Coarse EB data come from injection, so
+    // an EB on a level implies an EB on all finer levels.  Hence only the
+    // coarsest level with an EB is needed.
     for (int mglev = nmglevs-1; mglev > 0; --mglev) {
         auto const& ld = m_has_eb[0][mglev];
         for (int li = 0; li < ld.local_size(); ++li) {
             if (ld.data()[li]) { has_eb[mglev] = 1; break; }
         }
-        if (has_eb[mglev]) {
-            for (int lev = 1; lev < mglev; ++lev) { has_eb[lev] = 1; }
-            break;
-        }
+        if (has_eb[mglev]) { break; }
     }
 
     ParallelAllReduce::Sum(buf.data(), int(buf.size()), ParallelContext::CommunicatorSub());
