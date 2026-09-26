@@ -20,22 +20,58 @@ namespace amrex {
 
 namespace {
 
-// Fill ghost cells outside the domain by reflection.  See
-// mlebndfdlap_fill_domain_ghost for flip_dir.
+// Fill ghost cells outside the domain by reflection.  A direction in which the
+// data are nodal is mirrored about the boundary node, a cell-centered direction
+// about the boundary face.  Periodic directions are skipped.  When the ghost
+// cell is outside the domain in direction flip_dir, an EB position p is mirrored
+// to mlebndfdlap_hm(p), or to mlebndfdlap_pmax() if p is 0; -1 disables this.
 void fill_domain_ghost (MultiFab& mf, Geometry const& geom, int flip_dir)
 {
     mf.FillBoundary(geom.periodicity());
     Box const domain = amrex::convert(geom.Domain(), mf.ixType());
+    auto const dlo = amrex::lbound(domain);
+    auto const dhi = amrex::ubound(domain);
     GpuArray<bool,AMREX_SPACEDIM> is_periodic;
+    GpuArray<int,AMREX_SPACEDIM> nodal;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         is_periodic[idim] = geom.isPeriodic(idim);
+        nodal[idim] = domain.type(idim) == IndexType::NODE ? 1 : 0;
     }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        mlebndfdlap_fill_domain_ghost(mfi.fabbox(), mf.array(mfi), domain,
-                                      is_periodic, flip_dir);
+        Box const& gbx = mfi.fabbox();
+        if (domain.contains(gbx)) { continue; }
+        auto const& a = mf.array(mfi);
+        amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int idx[3];
+            idx[0] = i; idx[1] = j; idx[2] = k;
+            int lo[3];
+            lo[0] = dlo.x; lo[1] = dlo.y; lo[2] = dlo.z;
+            int hi[3];
+            hi[0] = dhi.x; hi[1] = dhi.y; hi[2] = dhi.z;
+            bool outside = false;
+            bool flip = false;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                if (!is_periodic[d]) {
+                    if (idx[d] < lo[d]) {
+                        idx[d] = 2*lo[d] - idx[d] - (1-nodal[d]);
+                        outside = true;
+                        flip = flip || (d == flip_dir);
+                    } else if (idx[d] > hi[d]) {
+                        idx[d] = 2*hi[d] - idx[d] + (1-nodal[d]);
+                        outside = true;
+                        flip = flip || (d == flip_dir);
+                    }
+                }
+            }
+            if (outside) {
+                Real const v = a(idx[0],idx[1],idx[2]);
+                a(i,j,k) = !flip ? v : ((v == Real(0.0)) ? mlebndfdlap_pmax() : mlebndfdlap_hm(v));
+            }
+        });
     }
 }
 

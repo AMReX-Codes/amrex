@@ -276,60 +276,6 @@ void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const&
     }
 }
 
-/**
- * \brief Fill ghost cells outside the domain by reflection.
- *
- * Works for any index type: a direction in which the data are nodal is
- * mirrored about the boundary node, a cell-centered direction about the
- * boundary face.  Periodic directions are skipped.
- *
- * \param flip_dir when the ghost cell is outside the domain in this direction,
- *                 an EB position p is mirrored to mlebndfdlap_hm(p), or to
- *                 mlebndfdlap_pmax() if p is 0; -1 disables this.
- */
-inline
-void mlebndfdlap_fill_domain_ghost (Box const& gbx, Array4<Real> const& a,
-                                    Box const& domain,
-                                    GpuArray<bool,AMREX_SPACEDIM> const& is_periodic,
-                                    int flip_dir) noexcept
-{
-    if (domain.contains(gbx)) { return; }
-    auto const dlo = amrex::lbound(domain);
-    auto const dhi = amrex::ubound(domain);
-    GpuArray<int,AMREX_SPACEDIM> nodal;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        nodal[d] = domain.type(d) == IndexType::NODE ? 1 : 0;
-    }
-    amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        int idx[3];
-        idx[0] = i; idx[1] = j; idx[2] = k;
-        int lo[3];
-        lo[0] = dlo.x; lo[1] = dlo.y; lo[2] = dlo.z;
-        int hi[3];
-        hi[0] = dhi.x; hi[1] = dhi.y; hi[2] = dhi.z;
-        bool outside = false;
-        bool flip = false;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            if (!is_periodic[d]) {
-                if (idx[d] < lo[d]) {
-                    idx[d] = 2*lo[d] - idx[d] - (1-nodal[d]);
-                    outside = true;
-                    flip = flip || (d == flip_dir);
-                } else if (idx[d] > hi[d]) {
-                    idx[d] = 2*hi[d] - idx[d] + (1-nodal[d]);
-                    outside = true;
-                    flip = flip || (d == flip_dir);
-                }
-            }
-        }
-        if (outside) {
-            Real const v = a(idx[0],idx[1],idx[2]);
-            a(i,j,k) = !flip ? v : ((v == Real(0.0)) ? mlebndfdlap_pmax() : mlebndfdlap_hm(v));
-        }
-    });
-}
-
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
