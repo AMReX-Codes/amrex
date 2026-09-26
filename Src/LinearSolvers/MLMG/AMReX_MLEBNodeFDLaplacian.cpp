@@ -434,6 +434,10 @@ MLEBNodeFDLaplacian::build_eb_data ()
                     bool const covered = lsa(i,j,k) >= Real(0.0);
                     return { !covered, covered };
                 });
+                // The level set is injected, so a coarse edge can be cut
+                // between two open nodes when only the fine midpoint node
+                // is covered.  Such a box has no covered node but needs
+                // the EB stencil.
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     auto const& ea = ebp[idim].const_array(mfi);
                     rops[li]->eval(ebp[idim][mfi].box(), *rdata[li],
