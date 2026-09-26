@@ -254,8 +254,14 @@ void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const&
         } else if (h2 == Real(0.0)) {
             cs(ic,jc,kc) = s1;
         } else {
-            Real const den = h1*s2 + h2*s1;
-            cs(ic,jc,kc) = (den > Real(0.0)) ? (h1+h2)*s1*s2/den : Real(0.0);
+            // Avoid s1*s2, which can overflow or underflow.
+            bool const lo1 = s1 <= s2;
+            Real const slo = lo1 ? s1 : s2;
+            Real const shi = lo1 ? s2 : s1;
+            Real const hlo = lo1 ? h1 : h2;
+            Real const hhi = lo1 ? h2 : h1;
+            Real const den = (shi > Real(0.0)) ? hlo + hhi*(slo/shi) : Real(0.0);
+            cs(ic,jc,kc) = (den > Real(0.0)) ? slo*((h1+h2)/den) : Real(0.0);
         }
     }
 }
