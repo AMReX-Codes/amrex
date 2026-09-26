@@ -292,6 +292,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
     m_levset.resize(m_num_amr_levels);
     m_eb_pos.resize(m_num_amr_levels);
     m_has_eb.resize(m_num_amr_levels);
+    m_eb_lost.resize(m_num_amr_levels);
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -302,6 +303,7 @@ MLEBNodeFDLaplacian::build_eb_data ()
         m_levset[amrlev].resize(nmglevs);
         m_eb_pos[amrlev].resize(nmglevs);
         m_has_eb[amrlev].resize(nmglevs);
+        m_eb_lost[amrlev].resize(nmglevs, 0);
         for (int mglev = 0; mglev < nmglevs; ++mglev) {
             BoxArray const& ba = m_grids[amrlev][mglev];
             DistributionMapping const& dm = m_dmap[amrlev][mglev];
@@ -404,6 +406,28 @@ MLEBNodeFDLaplacian::build_eb_data ()
                 }
             }
 
+            // Covered fine nodes that no coarse node or edge represents, in
+            // cells without any EB.  limit_coarsening drops such levels.
+            {
+                ReduceOps<ReduceOpLogicalOr> rop;
+                ReduceData<int> rdata(rop);
+                for (MFIter mfi(*pclevset); mfi.isValid(); ++mfi) {
+                    Box const& cbx = amrex::enclosedCells(mfi.validbox());
+                    Array4<Real const> const& cls = pclevset->const_array(mfi);
+                    Array4<Real const> const& fls = flevset.const_array(mfi);
+                    GpuArray<Array4<Real const>,AMREX_SPACEDIM> cep;
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        cep[idim] = pcebp[idim]->const_array(mfi);
+                    }
+                    rop.eval(cbx, rdata,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> GpuTuple<int>
+                    {
+                        return { mlebndfdlap_eb_lost(i,j,k,cls,cep,fls,rr) ? 1 : 0 };
+                    });
+                }
+                m_eb_lost[amrlev][mglev] = amrex::get<0>(rdata.value(rop));
+            }
+
             if (need_parallel_copy) {
                 clevset.ParallelCopy(clevset_tmp);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -472,16 +496,18 @@ MLEBNodeFDLaplacian::limit_coarsening ()
     if (m_levset.empty() || m_levset[0].empty() || nmglevs <= 1) { return; }
 
     // Stop coarsening at the last MG level that still has enough unknowns
-    // for a meaningful bottom solve and still has an EB.
+    // for a meaningful bottom solve, still has an EB, and hides no EB
+    // feature inside a cell.
     constexpr int min_open_nodes = 18;
     // Levels with more cells than this are assumed to have enough unknowns
     // and are not examined.
     constexpr Long max_npts_to_check = 65536;
 
-    // nopen and has_eb share one buffer for a single MPI reduction.
-    Vector<int> buf(2*nmglevs, 0);
+    // nopen, has_eb and lost share one buffer for a single MPI reduction.
+    Vector<int> buf(3*nmglevs, 0);
     int* nopen = buf.data();
     int* has_eb = buf.data() + nmglevs;
+    int* lost = buf.data() + 2*nmglevs;
 
     // Unknowns: nodes that are neither Dirichlet nor covered, each counted
     // once by its owner.  Only the ntest coarsest levels are examined.
@@ -515,6 +541,12 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         if (has_eb[mglev]) { break; }
     }
 
+    // A covered fine node hidden inside a coarse cell without any EB makes
+    // the coarse correction diverge near it.  See mlebndfdlap_eb_lost.
+    for (int mglev = 1; mglev < nmglevs; ++mglev) {
+        lost[mglev] = m_eb_lost[0][mglev];
+    }
+
     ParallelAllReduce::Sum(buf.data(), int(buf.size()), ParallelContext::CommunicatorSub());
 
     int last_good = 0;
@@ -532,7 +564,15 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         }
     }
 
-    int const new_nmglevs = std::min(last_good, last_eb) + 1;
+    int first_lost = nmglevs;
+    for (int mglev = 1; mglev < nmglevs; ++mglev) {
+        if (lost[mglev]) {
+            first_lost = mglev;
+            break;
+        }
+    }
+
+    int const new_nmglevs = std::min({last_good, last_eb, first_lost-1}) + 1;
     if (new_nmglevs < nmglevs) {
         resizeMultiGrid(new_nmglevs);
         if (verbose > 1) {
@@ -544,6 +584,7 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         m_levset[0].resize(nmglevs);
         m_eb_pos[0].resize(nmglevs);
         m_has_eb[0].resize(nmglevs);
+        m_eb_lost[0].resize(nmglevs);
         m_sigma_edge[0].resize(nmglevs);
     }
 }

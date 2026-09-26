@@ -177,6 +177,58 @@ void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& ceb
 }
 
 /**
+ * \brief Whether an EB feature is lost inside a coarse cell.
+ *
+ * True when a covered fine node lies on neither a node nor an edge of the
+ * coarse cell while all the cell's nodes are open and all its edges are
+ * uncut.  The coarse operator cannot see such a feature, and multigrid
+ * diverges near it.
+ *
+ * \param ratio coarsening ratio, 1 in directions that are not coarsened
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool mlebndfdlap_eb_lost (int ic, int jc, int kc, Array4<Real const> const& clevset,
+                          GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& cebp,
+                          Array4<Real const> const& flevset, Dim3 const& ratio) noexcept
+{
+#if (AMREX_SPACEDIM == 3)
+    constexpr int cmax = 1;
+#else
+    constexpr int cmax = 0;
+#endif
+    for (int c = 0; c <= cmax; ++c) {
+    for (int b = 0; b <= 1; ++b) {
+    for (int a = 0; a <= 1; ++a) {
+        if (clevset(ic+a,jc+b,kc+c) >= Real(0.0)) { return false; }
+    }}}
+    for (int c = 0; c <= cmax; ++c) {
+    for (int b = 0; b <= 1; ++b) {
+        if (cebp[0](ic,jc+b,kc+c) != Real(1.0)) { return false; }
+        if (cebp[1](ic+b,jc,kc+c) != Real(1.0)) { return false; }
+    }}
+#if (AMREX_SPACEDIM == 3)
+    for (int b = 0; b <= 1; ++b) {
+    for (int a = 0; a <= 1; ++a) {
+        if (cebp[2](ic+a,jc+b,kc) != Real(1.0)) { return false; }
+    }}
+#endif
+    int const i0 = ic*ratio.x;
+    int const j0 = jc*ratio.y;
+    int const k0 = kc*ratio.z;
+    for (int c = 0; c <= ratio.z*cmax; ++c) {
+    for (int b = 0; b <= ratio.y; ++b) {
+    for (int a = 0; a <= ratio.x; ++a) {
+        // A fine node strictly inside the cell in two or more directions
+        // is on neither a coarse node nor a coarse edge.
+        int const ninterior = int(a > 0 && a < ratio.x)
+                            + int(b > 0 && b < ratio.y)
+                            + int(c > 0 && c < ratio.z);
+        if (ninterior >= 2 && flevset(i0+a,j0+b,k0+c) >= Real(0.0)) { return true; }
+    }}}
+    return false;
+}
+
+/**
  * \brief Edge sigma from cell-centered sigma.
  *
  * The 2^(D-1) cells touching the edge are averaged with weight

@@ -242,13 +242,16 @@ private:
     //! Whether a box (grown by one) has open nodes and also covered nodes or
     //! cut edges.  An all-covered box is false.
     Vector<Vector<LayoutData<int>>> m_has_eb;
+    //! Whether a local coarse cell on an MG level hides a covered fine
+    //! node.  See mlebndfdlap_eb_lost.  Not reduced across processes.
+    Vector<Vector<int>> m_eb_lost;
 #endif
 
 public:
     // These are public only because they launch GPU kernels.
 #ifdef AMREX_USE_EB
     void build_eb_data ();
-    //! Drop coarse MG levels with too few unknowns or no EB.
+    //! Drop coarse MG levels with too few unknowns, no EB, or a hidden EB feature.
     void limit_coarsening ();
 #endif
     void update_sigma ();
