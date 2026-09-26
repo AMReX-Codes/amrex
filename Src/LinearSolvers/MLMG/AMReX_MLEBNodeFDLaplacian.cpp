@@ -319,8 +319,11 @@ MLEBNodeFDLaplacian::build_eb_data ()
         {
             auto const& levset_f = factory->getLevelSet();
             auto const& edgecent = factory->getEdgeCent();
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(edgecent[0] != nullptr,
+                "MLEBNodeFDLaplacian: the EB factory needs EBSupport::full");
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levset_f.nGrow() >= 1 &&
-                                             edgecent[0]->nGrow() >= 1,
+                                             edgecent[0]->nGrow() >= 1 &&
+                                             factory->getVolFrac().nGrow() >= 1,
                 "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
             MultiFab::Copy(m_levset[amrlev][0], levset_f, 0, 0, 1, 1);
 
@@ -406,23 +409,24 @@ MLEBNodeFDLaplacian::build_eb_data ()
                 }
             }
 
-            // Covered fine nodes that no coarse node or edge represents, in
-            // cells without any EB.  limit_coarsening drops such levels.
+            // Fine EB edges that no coarse edge represents, in cells without
+            // any EB.  limit_coarsening drops such levels.
             {
                 ReduceOps<ReduceOpLogicalOr> rop;
                 ReduceData<int> rdata(rop);
                 for (MFIter mfi(*pclevset); mfi.isValid(); ++mfi) {
                     Box const& cbx = amrex::enclosedCells(mfi.validbox());
                     Array4<Real const> const& cls = pclevset->const_array(mfi);
-                    Array4<Real const> const& fls = flevset.const_array(mfi);
                     GpuArray<Array4<Real const>,AMREX_SPACEDIM> cep;
+                    GpuArray<Array4<Real const>,AMREX_SPACEDIM> fep;
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                         cep[idim] = pcebp[idim]->const_array(mfi);
+                        fep[idim] = febp[idim].const_array(mfi);
                     }
                     rop.eval(cbx, rdata,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> GpuTuple<int>
                     {
-                        return { mlebndfdlap_eb_lost(i,j,k,cls,cep,fls,rr) ? 1 : 0 };
+                        return { mlebndfdlap_eb_lost(i,j,k,cls,cep,fep,rr) ? 1 : 0 };
                     });
                 }
                 m_eb_lost[amrlev][mglev] = amrex::get<0>(rdata.value(rop));
@@ -1078,7 +1082,7 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 #ifdef AMREX_USE_EB
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
     const auto phieb = m_s_phi_eb;
-    bool const has_eb = !m_levset[amrlev].empty();
+    bool const has_eb_level = !m_levset[amrlev].empty();
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -1086,6 +1090,9 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 #endif
     for (MFIter mfi(*grad[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
+#ifdef AMREX_USE_EB
+        bool const has_eb = has_eb_level && m_has_eb[amrlev][mglev][mfi];
+#endif
         AMREX_D_TERM(const Box& xbox = mfi.tilebox(IntVect::TheEdgeVector(0));,
                      const Box& ybox = mfi.tilebox(IntVect::TheEdgeVector(1));,
                      const Box& zbox = mfi.tilebox(IntVect::TheEdgeVector(2));)

@@ -179,17 +179,19 @@ void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& ceb
 /**
  * \brief Whether an EB feature is lost inside a coarse cell.
  *
- * True when a covered fine node lies on neither a node nor an edge of the
- * coarse cell while all the cell's nodes are open and all its edges are
- * uncut.  The coarse operator cannot see such a feature, and multigrid
- * diverges near it.
+ * True when a fine edge with an EB (position below 1) lies on no edge line
+ * of the coarse cell while all the cell's nodes are open and all its edges
+ * are uncut.  Such an EB, from a covered fine node or from an edge blocked
+ * by an earlier coarsening, is invisible to the coarse operator, and
+ * multigrid diverges near it.
  *
  * \param ratio coarsening ratio, 1 in directions that are not coarsened
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool mlebndfdlap_eb_lost (int ic, int jc, int kc, Array4<Real const> const& clevset,
                           GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& cebp,
-                          Array4<Real const> const& flevset, Dim3 const& ratio) noexcept
+                          GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& febp,
+                          Dim3 const& ratio) noexcept
 {
 #if (AMREX_SPACEDIM == 3)
     constexpr int cmax = 1;
@@ -215,16 +217,25 @@ bool mlebndfdlap_eb_lost (int ic, int jc, int kc, Array4<Real const> const& clev
     int const i0 = ic*ratio.x;
     int const j0 = jc*ratio.y;
     int const k0 = kc*ratio.z;
+    // A fine edge is on a coarse edge line if its transverse positions are
+    // at the cell boundary.
     for (int c = 0; c <= ratio.z*cmax; ++c) {
-    for (int b = 0; b <= ratio.y; ++b) {
-    for (int a = 0; a <= ratio.x; ++a) {
-        // A fine node strictly inside the cell in two or more directions
-        // is on neither a coarse node nor a coarse edge.
-        int const ninterior = int(a > 0 && a < ratio.x)
-                            + int(b > 0 && b < ratio.y)
-                            + int(c > 0 && c < ratio.z);
-        if (ninterior >= 2 && flevset(i0+a,j0+b,k0+c) >= Real(0.0)) { return true; }
-    }}}
+        bool const cb = (c == 0 || c == ratio.z);
+        for (int b = 0; b <= ratio.y; ++b) {
+            bool const bb = (b == 0 || b == ratio.y);
+            for (int a = 0; a <= ratio.x; ++a) {
+                bool const ab = (a == 0 || a == ratio.x);
+                if (a < ratio.x && !(bb && cb) &&
+                    febp[0](i0+a,j0+b,k0+c) != Real(1.0)) { return true; }
+                if (b < ratio.y && !(ab && cb) &&
+                    febp[1](i0+a,j0+b,k0+c) != Real(1.0)) { return true; }
+#if (AMREX_SPACEDIM == 3)
+                if (c < ratio.z && !(ab && bb) &&
+                    febp[2](i0+a,j0+b,k0+c) != Real(1.0)) { return true; }
+#endif
+            }
+        }
+    }
     return false;
 }
 
