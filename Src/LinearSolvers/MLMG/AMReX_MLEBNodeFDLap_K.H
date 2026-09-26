@@ -5,12 +5,21 @@
 #include <AMReX_MLEBNodeFDLaplacian.H>
 #include <AMReX_LO_BCTYPES.H>
 
+#include <limits>
+
 namespace amrex {
 //! Open length of an edge measured from its high node.  See mlebndfdlap_eb_pos_from_cent.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlebndfdlap_hm (Real p) noexcept
 {
     return (p == Real(1.0)) ? Real(1.0) : Real(1.0) - p;
+}
+
+//! Largest EB position below 1.  It puts the EB on the high node, since 1 means uncut.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebndfdlap_pmax () noexcept
+{
+    return Real(1.0) - std::numeric_limits<Real>::epsilon();
 }
 }
 
@@ -75,11 +84,11 @@ struct EBNodeFDEdgeSigma
  * \brief Convert an EB edge centroid into the EB position used by the kernels.
  *
  * The stored value p is the position of the EB on the edge measured from the
- * low node in units of dx, with 1 meaning the edge is not cut and 0 that it
- * is covered.  The open length is p from the low node and mlebndfdlap_hm(p)
- * from the high node.  A centroid of 1 is an uncut edge and -1 a covered
- * edge; otherwise it is the centroid of the open part, which lies next to
- * the uncovered node.
+ * low node in units of dx, with 1 meaning the edge is not cut and
+ * mlebndfdlap_pmax() that the EB is on the high node.  The open length is p
+ * from the low node and mlebndfdlap_hm(p) from the high node.  A centroid of
+ * 1 is an uncut edge and -1 a covered edge; otherwise it is the centroid of
+ * the open part, which lies next to the uncovered node.
  *
  * \param off unit vector in the edge direction
  */
@@ -92,8 +101,6 @@ void mlebndfdlap_eb_pos_from_cent (int i, int j, int k, Array4<Real> const& ebp,
     Real const c = ec(i,j,k);
     if (c == Real(1.0)) {
         ebp(i,j,k) = Real(1.0);
-    } else if (c == Real(-1.0)) {
-        ebp(i,j,k) = Real(0.0);
     } else {
         bool const lo_covered = levset(i,j,k) >= Real(0.0);
         bool const hi_covered = levset(i+off.x,j+off.y,k+off.z) >= Real(0.0);
@@ -101,11 +108,12 @@ void mlebndfdlap_eb_pos_from_cent (int i, int j, int k, Array4<Real> const& ebp,
         if (lo_covered && hi_covered) {
             p = Real(0.0);
         } else if (lo_covered) {
-            p = Real(2.0)*c;
+            // A covered edge (c == -1) has the EB on the uncovered high node.
+            p = (c == Real(-1.0)) ? Real(1.0) : Real(2.0)*c;
         } else {
-            p = Real(1.0) + Real(2.0)*c;
+            p = (c == Real(-1.0)) ? Real(0.0) : Real(1.0) + Real(2.0)*c;
         }
-        ebp(i,j,k) = amrex::min(Real(1.0), amrex::max(Real(0.0), p));
+        ebp(i,j,k) = amrex::min(mlebndfdlap_pmax(), amrex::max(Real(0.0), p));
     }
 }
 
@@ -162,7 +170,9 @@ void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& ceb
         } else {
             p = Real(0.5) + Real(0.25)*(la - lb);
         }
-        cebp(ic,jc,kc) = p;
+        // Only an uncut edge may be 1.
+        bool const uncut = !a_covered && !b_covered && la == Real(2.0);
+        cebp(ic,jc,kc) = uncut ? p : amrex::min(p, mlebndfdlap_pmax());
     }
 }
 
@@ -274,7 +284,8 @@ void mlebndfdlap_coarsen_edge_sigma (int ic, int jc, int kc, Array4<Real> const&
  * boundary face.  Periodic directions are skipped.
  *
  * \param flip_dir when the ghost cell is outside the domain in this direction,
- *                 an EB position p is mirrored to mlebndfdlap_hm(p); -1 disables this.
+ *                 an EB position p is mirrored to mlebndfdlap_hm(p), or to
+ *                 mlebndfdlap_pmax() if p is 0; -1 disables this.
  */
 inline
 void mlebndfdlap_fill_domain_ghost (Box const& gbx, Array4<Real> const& a,
@@ -314,7 +325,7 @@ void mlebndfdlap_fill_domain_ghost (Box const& gbx, Array4<Real> const& a,
         }
         if (outside) {
             Real const v = a(idx[0],idx[1],idx[2]);
-            a(i,j,k) = flip ? mlebndfdlap_hm(v) : v;
+            a(i,j,k) = !flip ? v : ((v == Real(0.0)) ? mlebndfdlap_pmax() : mlebndfdlap_hm(v));
         }
     });
 }
