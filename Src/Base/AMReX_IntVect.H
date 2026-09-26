@@ -793,6 +793,28 @@ public:
         return retval;
     }
     /**
+    * \brief This static member function returns an IntVectND for the index
+    * type of faces normal to direction d: nodal in d and cell-centered
+    * in the other directions.  It is provided as a convenience to our
+    * users when defining face-centered Boxes and MultiFabs.
+    */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr IntVectND<dim> TheFaceVector (int d) noexcept {
+        return TheDimensionVector(d);
+    }
+    /**
+    * \brief This static member function returns an IntVectND for the index
+    * type of edges parallel to direction d: cell-centered in d and nodal
+    * in the other directions.  It is provided as a convenience to our
+    * users when defining edge-centered Boxes and MultiFabs.
+    */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr IntVectND<dim> TheEdgeVector (int d) noexcept {
+        IntVectND<dim> retval(1);
+        retval[d] = 0;
+        return retval;
+    }
+    /**
     * \brief This static member function returns a reference to a constant IntVectND
     * object, all of whose dim arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.

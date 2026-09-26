@@ -169,7 +169,8 @@ max_coarsening_levels` parameter specifies the number of coarsening levels AMReX
 should try to have. This is usually set to a big number, say 20 if multigrid
 solvers are used. This essentially tells the build to coarsen as much as it can.
 If there are no multigrid solvers, the parameter should be set to the same as
-:cpp:`required_coarsening_level`. It should be noted that coarsening could
+:cpp:`required_coarsening_level`. The nodal solver :cpp:`MLEBNodeFDLaplacian`
+does not use coarsened EB levels, so it does not need this parameter to be large. It should be noted that coarsening could
 create multi-valued cells even if the fine level does not have any multi-valued
 cells. This occurs when the embedded boundary cuts a cell in such a way that
 there is fluid on multiple sides of the boundary within that cell. Because
