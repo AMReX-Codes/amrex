@@ -275,7 +275,7 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 
-    build_eb_data(); // This may reduce the number of MG levels.
+    build_eb_data();
 
     m_sigma_mf.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
@@ -410,83 +410,6 @@ MLEBNodeFDLaplacian::build_eb_data ()
             }
         }
 
-        // Stop coarsening at the last MG level that still has enough open
-        // nodes for a meaningful bottom solve and still has covered nodes.
-        if (amrlev == 0 && nmglevs > 1) {
-            constexpr int min_open_nodes = 18;
-            // Levels with more cells than this are assumed to have enough
-            // open nodes and are not examined.
-            constexpr Long max_npts_to_check = 65536;
-            // Nodes shared by boxes are counted more than once.  This is
-            // only an estimate.  Only the ntest coarsest levels are examined.
-            // nopen and covered share one buffer for a single MPI reduction.
-            Vector<int> buf(2*nmglevs, 0);
-            int* nopen = buf.data();
-            int* covered = buf.data() + nmglevs;
-            int ntest = 0;
-            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-                auto const& levset = m_levset[0][mglev];
-                if (levset.boxArray().numPts() > max_npts_to_check) { break; }
-                auto const& ma = levset.const_arrays();
-                nopen[mglev] = ParReduce(TypeList<ReduceOpSum>{}, TypeList<int>{},
-                                         levset, IntVect(0),
-                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                    -> GpuTuple<int>
-                {
-                    return { (ma[box_no](i,j,k) < Real(0.0)) ? 1 : 0 };
-                });
-                ++ntest;
-            }
-
-            // A level without covered nodes has lost the EB Dirichlet
-            // condition, which can make it singular.  The level set is
-            // injected, so a node covered on a level is covered on all finer
-            // levels.  Hence the local search can stop at the first level
-            // with covered nodes.
-            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-                auto const& levset = m_levset[0][mglev];
-                auto const& ma = levset.const_arrays();
-                covered[mglev] = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<int>{},
-                                           levset, IntVect(0),
-                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                    -> GpuTuple<int>
-                {
-                    return { (ma[box_no](i,j,k) >= Real(0.0)) ? 1 : 0 };
-                });
-                if (covered[mglev]) {
-                    for (int lev = 1; lev < mglev; ++lev) { covered[lev] = 1; }
-                    break;
-                }
-            }
-
-            ParallelAllReduce::Sum(buf.data(), int(buf.size()),
-                                   ParallelContext::CommunicatorSub());
-
-            int last_good = 0;
-            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-                if (mglev < nmglevs-ntest || nopen[mglev] >= min_open_nodes) {
-                    last_good = mglev;
-                    break;
-                }
-            }
-            int last_covered = 0;
-            for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-                if (covered[mglev]) {
-                    last_covered = mglev;
-                    break;
-                }
-            }
-
-            int const new_nmglevs = std::min(last_good, last_covered) + 1;
-            if (new_nmglevs < nmglevs) {
-                resizeMultiGrid(new_nmglevs);
-                nmglevs = m_num_mg_levels[0];
-                m_levset[0].resize(nmglevs);
-                m_eb_pos[0].resize(nmglevs);
-                m_has_eb[0].resize(nmglevs);
-            }
-        }
-
         // Whether each box, including its ghost nodes, has any EB data.  On
         // CPU, a box is not split into tiles, so one thread owns its flag.
         TileSize const notiling{IntVect(std::numeric_limits<int>::max())};
@@ -521,6 +444,93 @@ MLEBNodeFDLaplacian::build_eb_data ()
                 m_has_eb[amrlev][mglev][mfi] = hflag[mfi.LocalIndex()];
             }
         }
+    }
+}
+
+void
+MLEBNodeFDLaplacian::limit_coarsening ()
+{
+    BL_PROFILE("MLEBNodeFDLaplacian::limit_coarsening()");
+
+    int nmglevs = m_num_mg_levels[0];
+    if (m_levset.empty() || m_levset[0].empty() || nmglevs <= 1) { return; }
+
+    // Stop coarsening at the last MG level that still has enough unknowns
+    // for a meaningful bottom solve and still has covered nodes.
+    constexpr int min_open_nodes = 18;
+    // Levels with more cells than this are assumed to have enough unknowns
+    // and are not examined.
+    constexpr Long max_npts_to_check = 65536;
+
+    // nopen and covered share one buffer for a single MPI reduction.
+    Vector<int> buf(2*nmglevs, 0);
+    int* nopen = buf.data();
+    int* covered = buf.data() + nmglevs;
+
+    // Unknowns: nodes that are neither Dirichlet nor covered, each counted
+    // once by its owner.  Only the ntest coarsest levels are examined.
+    int ntest = 0;
+    for (int mglev = nmglevs-1; mglev > 0; --mglev) {
+        if (m_grids[0][mglev].numPts() > max_npts_to_check) { break; }
+        auto const& dmask = *m_dirichlet_mask[0][mglev];
+        auto omask = makeOwnerMask(m_grids[0][mglev], m_dmap[0][mglev], m_geom[0][mglev]);
+        auto const& dma = dmask.const_arrays();
+        auto const& oma = omask->const_arrays();
+        nopen[mglev] = ParReduce(TypeList<ReduceOpSum>{}, TypeList<int>{},
+                                 dmask, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            -> GpuTuple<int>
+        {
+            return { (dma[box_no](i,j,k) == 0 && oma[box_no](i,j,k)) ? 1 : 0 };
+        });
+        ++ntest;
+    }
+
+    // A level without covered nodes has lost the EB Dirichlet condition,
+    // which can make it singular.  The level set is injected, so a node
+    // covered on a level is covered on all finer levels.  Hence the local
+    // search can stop at the first level with covered nodes.
+    for (int mglev = nmglevs-1; mglev > 0; --mglev) {
+        auto const& levset = m_levset[0][mglev];
+        auto const& ma = levset.const_arrays();
+        covered[mglev] = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<int>{},
+                                   levset, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            -> GpuTuple<int>
+        {
+            return { (ma[box_no](i,j,k) >= Real(0.0)) ? 1 : 0 };
+        });
+        if (covered[mglev]) {
+            for (int lev = 1; lev < mglev; ++lev) { covered[lev] = 1; }
+            break;
+        }
+    }
+
+    ParallelAllReduce::Sum(buf.data(), int(buf.size()), ParallelContext::CommunicatorSub());
+
+    int last_good = 0;
+    for (int mglev = nmglevs-1; mglev > 0; --mglev) {
+        if (mglev < nmglevs-ntest || nopen[mglev] >= min_open_nodes) {
+            last_good = mglev;
+            break;
+        }
+    }
+    int last_covered = 0;
+    for (int mglev = nmglevs-1; mglev > 0; --mglev) {
+        if (covered[mglev]) {
+            last_covered = mglev;
+            break;
+        }
+    }
+
+    int const new_nmglevs = std::min(last_good, last_covered) + 1;
+    if (new_nmglevs < nmglevs) {
+        resizeMultiGrid(new_nmglevs);
+        nmglevs = m_num_mg_levels[0];
+        m_levset[0].resize(nmglevs);
+        m_eb_pos[0].resize(nmglevs);
+        m_has_eb[0].resize(nmglevs);
+        m_sigma_edge[0].resize(nmglevs);
     }
 }
 
@@ -712,6 +722,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
             });
         }
     }
+
+    limit_coarsening();
 #endif
 
     {

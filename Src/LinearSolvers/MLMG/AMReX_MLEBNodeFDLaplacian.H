@@ -237,9 +237,7 @@ private:
     //! Nodal level set on every MG level.  A node is covered if it's >= 0.
     Vector<Vector<MultiFab>> m_levset;
     //! Position of the EB on every edge on every MG level, measured from
-    //! the low node in units of dx.  1 means the edge is not cut and 0
-    //! that it is covered.  The open length from the high node is 1 minus
-    //! this value.
+    //! the low node in units of dx.  See mlebndfdlap_eb_pos_from_cent.
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_eb_pos;
     //! Whether a box (grown by one) has any covered node or cut edge
     Vector<Vector<LayoutData<int>>> m_has_eb;
@@ -249,6 +247,8 @@ public:
     // These are public only because they launch GPU kernels.
 #ifdef AMREX_USE_EB
     void build_eb_data ();
+    //! Drop coarse MG levels with too few unknowns or no covered nodes.
+    void limit_coarsening ();
 #endif
     void update_sigma ();
 };
