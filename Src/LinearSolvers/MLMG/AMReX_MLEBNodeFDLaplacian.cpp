@@ -410,13 +410,15 @@ MLEBNodeFDLaplacian::build_eb_data ()
             }
         }
 
-        // Whether each box, including its ghost nodes, has any EB data.  All
-        // the reductions are launched before the first value() call syncs.
+        // Whether each box, including its ghost nodes, is mixed: it has open
+        // nodes and also covered nodes or cut edges.  An all-covered box is
+        // not mixed.  All the reductions are launched before the first
+        // value() call syncs.
         for (int mglev = 0; mglev < nmglevs; ++mglev) {
             auto const& levset = m_levset[amrlev][mglev];
             auto const& ebp = m_eb_pos[amrlev][mglev];
-            using ROps = ReduceOps<ReduceOpLogicalOr>;
-            using RData = ReduceData<int>;
+            using ROps = ReduceOps<ReduceOpLogicalOr, ReduceOpLogicalOr>;
+            using RData = ReduceData<int, int>; // open, covered or cut
             using ReduceTuple = RData::Type;
             int const nboxes = levset.local_size();
             Vector<std::unique_ptr<ROps>> rops(nboxes);
@@ -429,20 +431,22 @@ MLEBNodeFDLaplacian::build_eb_data ()
                 rops[li]->eval(mfi.fabbox(), *rdata[li],
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> ReduceTuple
                 {
-                    return { lsa(i,j,k) >= Real(0.0) };
+                    bool const covered = lsa(i,j,k) >= Real(0.0);
+                    return { !covered, covered };
                 });
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     auto const& ea = ebp[idim].const_array(mfi);
                     rops[li]->eval(ebp[idim][mfi].box(), *rdata[li],
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> ReduceTuple
                     {
-                        return { ea(i,j,k) < Real(1.0) };
+                        return { false, ea(i,j,k) < Real(1.0) };
                     });
                 }
             }
             for (MFIter mfi(levset, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
                 int const li = mfi.LocalIndex();
-                m_has_eb[amrlev][mglev][mfi] = amrex::get<0>(rdata[li]->value(*rops[li]));
+                auto const r = rdata[li]->value(*rops[li]);
+                m_has_eb[amrlev][mglev][mfi] = amrex::get<0>(r) && amrex::get<1>(r);
             }
         }
     }

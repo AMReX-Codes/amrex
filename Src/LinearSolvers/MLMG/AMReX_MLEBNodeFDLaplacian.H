@@ -239,7 +239,8 @@ private:
     //! Position of the EB on every edge on every MG level, measured from
     //! the low node in units of dx.  See mlebndfdlap_eb_pos_from_cent.
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_eb_pos;
-    //! Whether a box (grown by one) has any covered node or cut edge
+    //! Whether a box (grown by one) has open nodes and also covered nodes or
+    //! cut edges.  An all-covered box is false.
     Vector<Vector<LayoutData<int>>> m_has_eb;
 #endif
 
