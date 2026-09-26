@@ -210,9 +210,9 @@ struct MMInterpRow
  * null vector is the same on every level.
  *
  * Interpolation rows are truncated to at most `p_max_elmts` entries (4 by
- * default, as in hypre) and entries below `trunc_factor` times the row
- * maximum are dropped; kept weights are rescaled to preserve the row
- * sums [3].
+ * default, the value with the best times in [3]) and entries below
+ * `trunc_factor` times the row maximum are dropped; kept weights are
+ * rescaled to preserve the row sums [3].
  *
  * Parameters are set per object with the setters below.
  *
@@ -1422,7 +1422,8 @@ SpMatrix<T> AMG<T>::build_interp (SpMatrix<T>& A, SpMatrix<TS> const& S,
 {
     BL_PROFILE("AMG::build_interp");
 
-    // Reference: hypre's hypre_BoomerAMGBuildDirectInterp.
+    // Classical direct interpolation [1], in the form of hypre's
+    // hypre_BoomerAMGBuildDirectInterp.
 
     auto const& a = A.const_parcsr();
     Long const nrows = a.csr0.nrows;
