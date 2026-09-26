@@ -248,7 +248,7 @@ public:
     // These are public only because they launch GPU kernels.
 #ifdef AMREX_USE_EB
     void build_eb_data ();
-    //! Drop coarse MG levels with too few unknowns or no covered nodes.
+    //! Drop coarse MG levels with too few unknowns or no EB.
     void limit_coarsening ();
 #endif
     void update_sigma ();

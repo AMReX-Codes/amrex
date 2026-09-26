@@ -465,16 +465,16 @@ MLEBNodeFDLaplacian::limit_coarsening ()
     if (m_levset.empty() || m_levset[0].empty() || nmglevs <= 1) { return; }
 
     // Stop coarsening at the last MG level that still has enough unknowns
-    // for a meaningful bottom solve and still has covered nodes.
+    // for a meaningful bottom solve and still has an EB.
     constexpr int min_open_nodes = 18;
     // Levels with more cells than this are assumed to have enough unknowns
     // and are not examined.
     constexpr Long max_npts_to_check = 65536;
 
-    // nopen and covered share one buffer for a single MPI reduction.
+    // nopen and has_eb share one buffer for a single MPI reduction.
     Vector<int> buf(2*nmglevs, 0);
     int* nopen = buf.data();
-    int* covered = buf.data() + nmglevs;
+    int* has_eb = buf.data() + nmglevs;
 
     // Unknowns: nodes that are neither Dirichlet nor covered, each counted
     // once by its owner.  Only the ntest coarsest levels are examined.
@@ -495,22 +495,17 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         ++ntest;
     }
 
-    // A level without covered nodes has lost the EB Dirichlet condition,
-    // which can make it singular.  The level set is injected, so a node
-    // covered on a level is covered on all finer levels.  Hence the local
-    // search can stop at the first level with covered nodes.
+    // A level without covered nodes or cut edges has lost the EB Dirichlet
+    // condition, which can make it singular.  Coarse EB data come from
+    // injection, so an EB on a level implies an EB on all finer levels.
+    // Hence the local search can stop at the first level with an EB.
     for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-        auto const& levset = m_levset[0][mglev];
-        auto const& ma = levset.const_arrays();
-        covered[mglev] = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<int>{},
-                                   levset, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            -> GpuTuple<int>
-        {
-            return { (ma[box_no](i,j,k) >= Real(0.0)) ? 1 : 0 };
-        });
-        if (covered[mglev]) {
-            for (int lev = 1; lev < mglev; ++lev) { covered[lev] = 1; }
+        auto const& ld = m_has_eb[0][mglev];
+        for (int li = 0; li < ld.local_size(); ++li) {
+            if (ld.data()[li]) { has_eb[mglev] = 1; break; }
+        }
+        if (has_eb[mglev]) {
+            for (int lev = 1; lev < mglev; ++lev) { has_eb[lev] = 1; }
             break;
         }
     }
@@ -524,15 +519,15 @@ MLEBNodeFDLaplacian::limit_coarsening ()
             break;
         }
     }
-    int last_covered = 0;
+    int last_eb = 0;
     for (int mglev = nmglevs-1; mglev > 0; --mglev) {
-        if (covered[mglev]) {
-            last_covered = mglev;
+        if (has_eb[mglev]) {
+            last_eb = mglev;
             break;
         }
     }
 
-    int const new_nmglevs = std::min(last_good, last_covered) + 1;
+    int const new_nmglevs = std::min(last_good, last_eb) + 1;
     if (new_nmglevs < nmglevs) {
         resizeMultiGrid(new_nmglevs);
         if (verbose > 1) {

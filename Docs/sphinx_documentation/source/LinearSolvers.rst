@@ -614,6 +614,15 @@ as living at face centroids, modify the setBCoeffs command to be
 
     ml_ebabeclap->setBCoeffs(lev, beta, MLMG::Location::FaceCentroid);
 
+The nodal finite-difference operator :cpp:`MLEBNodeFDLaplacian` takes an
+:cpp:`EBFArrayBoxFactory` only on the finest AMR level.  It builds the EB
+information it needs on the multigrid levels from that factory by itself, so
+multigrid can coarsen as far as the grids allow, regardless of the
+``max_coarsening_level`` given to :cpp:`EB2::Build`.  The operator drops
+coarse multigrid levels on its own when they have too few unknowns or no
+longer see the embedded boundary.  Setting the MLMG verbosity to 2 or higher
+prints the resulting number of levels.
+
 External Solvers
 ================
 
