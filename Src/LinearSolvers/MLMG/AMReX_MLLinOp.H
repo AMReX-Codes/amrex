@@ -307,7 +307,7 @@ public:
      *
      * \param s String inserted at the beginning of each log line.
      */
-    void setPrintIdentation (std::string s) { print_ident = std::move(s); }
+    void setPrintIndentation (std::string s) { print_ident = std::move(s); }
 
     /**
      * \brief Set order of interpolation at coarse/fine boundary.
