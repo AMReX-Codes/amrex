@@ -535,6 +535,10 @@ MLEBNodeFDLaplacian::limit_coarsening ()
     int const new_nmglevs = std::min(last_good, last_covered) + 1;
     if (new_nmglevs < nmglevs) {
         resizeMultiGrid(new_nmglevs);
+        if (verbose > 1) {
+            amrex::Print() << "MLEBNodeFDLaplacian::limit_coarsening(): # of MG levels reduced from "
+                           << nmglevs << " to " << m_num_mg_levels[0] << "\n";
+        }
         nmglevs = m_num_mg_levels[0];
         m_levset[0].resize(nmglevs);
         m_eb_pos[0].resize(nmglevs);
