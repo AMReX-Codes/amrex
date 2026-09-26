@@ -249,8 +249,8 @@ void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
     EB2::SphereIF anchor(Real(2.5)*dx,
                          {AMREX_D_DECL(Real(0.25), Real(0.25), Real(0.25))}, false);
     EB2::SphereIF hidden(Real(0.5)*dx,
-                         {AMREX_D_DECL(Real(n_cell/2+1)*dx, Real(n_cell/2+2)*dx,
-                                       Real(n_cell/2)*dx)}, false);
+                         {AMREX_D_DECL(Real(n_cell/2+1)*dx, Real(n_cell/2+2)*dx, // NOLINT(bugprone-integer-division)
+                                       Real(n_cell/2)*dx)}, false); // NOLINT(bugprone-integer-division)
     EB2::Build(EB2::makeShop(EB2::makeUnion(anchor, hidden)), geom, 0, 0);
     auto factory = makeEBFabFactory(geom, grids, dmap, {2,2,2}, EBSupport::full);
     auto const& ebfactory = *static_cast<EBFArrayBoxFactory const*>(factory.get());
