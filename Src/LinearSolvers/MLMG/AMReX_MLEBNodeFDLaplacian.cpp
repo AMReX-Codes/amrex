@@ -487,15 +487,38 @@ MLEBNodeFDLaplacian::build_eb_data ()
             }
         }
 
+        // Whether each box, including its ghost nodes, has any EB data.  On
+        // CPU, a box is not split into tiles, so one thread owns its flag.
+        TileSize const notiling{IntVect(std::numeric_limits<int>::max())};
         for (int mglev = 0; mglev < nmglevs; ++mglev) {
             auto const& levset = m_levset[amrlev][mglev];
             auto const& ebp = m_eb_pos[amrlev][mglev];
-            for (MFIter mfi(levset); mfi.isValid(); ++mfi) {
-                bool has_eb = levset[mfi].max<RunOn::Device>(mfi.fabbox()) >= Real(0.0);
-                for (int idim = 0; idim < AMREX_SPACEDIM && !has_eb; ++idim) {
-                    has_eb = ebp[idim][mfi].min<RunOn::Device>(ebp[idim][mfi].box()) < Real(1.0);
+            int const nboxes = levset.local_size();
+            Gpu::DeviceVector<int> dflag(nboxes, 0);
+            int* pflag = dflag.data();
+            auto const& lsa = levset.const_arrays();
+            ParallelFor(levset, levset.nGrowVect(), notiling,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                if (lsa[box_no](i,j,k) >= Real(0.0)) {
+                    Gpu::Atomic::LogicalOr(pflag+box_no, 1);
                 }
-                m_has_eb[amrlev][mglev][mfi] = has_eb;
+            });
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                auto const& ea = ebp[idim].const_arrays();
+                ParallelFor(ebp[idim], ebp[idim].nGrowVect(), notiling,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    if (ea[box_no](i,j,k) < Real(1.0)) {
+                        Gpu::Atomic::LogicalOr(pflag+box_no, 1);
+                    }
+                });
+            }
+            Vector<int> hflag(nboxes);
+            Gpu::copyAsync(Gpu::deviceToHost, dflag.begin(), dflag.end(), hflag.begin());
+            Gpu::streamSynchronize();
+            for (MFIter mfi(levset, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+                m_has_eb[amrlev][mglev][mfi] = hflag[mfi.LocalIndex()];
             }
         }
     }
