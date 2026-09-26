@@ -179,11 +179,9 @@ void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& ceb
 /**
  * \brief Whether an EB feature is lost inside a coarse cell.
  *
- * True when a fine edge with an EB (position below 1) lies on no edge line
- * of the coarse cell while all the cell's nodes are open and all its edges
- * are uncut.  Such an EB, from a covered fine node or from an edge blocked
- * by an earlier coarsening, is invisible to the coarse operator, and
- * multigrid diverges near it.
+ * True when a fine edge with an EB lies on no edge line of the coarse cell
+ * while the cell's nodes are all open and its edges all uncut.  Multigrid
+ * diverges near such a feature.
  *
  * \param ratio coarsening ratio, 1 in directions that are not coarsened
  */

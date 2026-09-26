@@ -532,11 +532,9 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         ++ntest;
     }
 
-    // A level without covered nodes or cut edges has lost the EB Dirichlet
-    // condition, and the coarse correction then diverges near the EB even
-    // with Dirichlet domain BCs.  Coarse EB data come from injection, so
-    // an EB on a level implies an EB on all finer levels.  Hence only the
-    // coarsest level with an EB is needed.
+    // Coarsest level that still has an EB.  Without one the coarse
+    // correction diverges near the EB.  EB presence is monotone under
+    // injection, so the search can stop at the first hit.
     for (int mglev = nmglevs-1; mglev > 0; --mglev) {
         auto const& ld = m_has_eb[0][mglev];
         for (int li = 0; li < ld.local_size(); ++li) {
@@ -545,8 +543,7 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         if (has_eb[mglev]) { break; }
     }
 
-    // A covered fine node hidden inside a coarse cell without any EB makes
-    // the coarse correction diverge near it.  See mlebndfdlap_eb_lost.
+    // Levels that hide an EB feature inside a cell.  See mlebndfdlap_eb_lost.
     for (int mglev = 1; mglev < nmglevs; ++mglev) {
         lost[mglev] = m_eb_lost[0][mglev];
     }
@@ -1082,7 +1079,9 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 #ifdef AMREX_USE_EB
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
     const auto phieb = m_s_phi_eb;
-    bool const has_eb_level = !m_levset[amrlev].empty();
+    // The plain kernels have no Dirichlet mask, so all-covered boxes need
+    // the EB kernels too.
+    bool const has_eb = !m_levset[amrlev].empty();
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -1090,9 +1089,6 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
 #endif
     for (MFIter mfi(*grad[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-#ifdef AMREX_USE_EB
-        bool const has_eb = has_eb_level && m_has_eb[amrlev][mglev][mfi];
-#endif
         AMREX_D_TERM(const Box& xbox = mfi.tilebox(IntVect::TheEdgeVector(0));,
                      const Box& ybox = mfi.tilebox(IntVect::TheEdgeVector(1));,
                      const Box& zbox = mfi.tilebox(IntVect::TheEdgeVector(2));)

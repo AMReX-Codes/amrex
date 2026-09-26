@@ -239,8 +239,9 @@ void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
                           int n_cell, Real reltol, int verbose)
 {
-    if (n_cell % 8 != 0) {
-        amrex::Print() << "skipped: n_cell must be a multiple of 8\n";
+    // Smaller grids stop at 2 levels for lack of open nodes instead.
+    if (n_cell % 8 != 0 || n_cell < 32) {
+        amrex::Print() << "skipped: n_cell must be a multiple of 8 and at least 32\n";
         return;
     }
 
