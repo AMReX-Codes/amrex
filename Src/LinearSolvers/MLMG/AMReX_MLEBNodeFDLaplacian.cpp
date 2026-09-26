@@ -410,38 +410,39 @@ MLEBNodeFDLaplacian::build_eb_data ()
             }
         }
 
-        // Whether each box, including its ghost nodes, has any EB data.  On
-        // CPU, a box is not split into tiles, so one thread owns its flag.
-        TileSize const notiling{IntVect(std::numeric_limits<int>::max())};
+        // Whether each box, including its ghost nodes, has any EB data.  All
+        // the reductions are launched before the first value() call syncs.
         for (int mglev = 0; mglev < nmglevs; ++mglev) {
             auto const& levset = m_levset[amrlev][mglev];
             auto const& ebp = m_eb_pos[amrlev][mglev];
+            using ROps = ReduceOps<ReduceOpLogicalOr>;
+            using RData = ReduceData<int>;
+            using ReduceTuple = RData::Type;
             int const nboxes = levset.local_size();
-            Gpu::DeviceVector<int> dflag(nboxes, 0);
-            int* pflag = dflag.data();
-            auto const& lsa = levset.const_arrays();
-            ParallelFor(levset, levset.nGrowVect(), notiling,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                if (lsa[box_no](i,j,k) >= Real(0.0)) {
-                    Gpu::Atomic::LogicalOr(pflag+box_no, 1);
-                }
-            });
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& ea = ebp[idim].const_arrays();
-                ParallelFor(ebp[idim], ebp[idim].nGrowVect(), notiling,
-                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                {
-                    if (ea[box_no](i,j,k) < Real(1.0)) {
-                        Gpu::Atomic::LogicalOr(pflag+box_no, 1);
-                    }
-                });
-            }
-            Vector<int> hflag(nboxes);
-            Gpu::copyAsync(Gpu::deviceToHost, dflag.begin(), dflag.end(), hflag.begin());
-            Gpu::streamSynchronize();
+            Vector<std::unique_ptr<ROps>> rops(nboxes);
+            Vector<std::unique_ptr<RData>> rdata(nboxes);
             for (MFIter mfi(levset, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
-                m_has_eb[amrlev][mglev][mfi] = hflag[mfi.LocalIndex()];
+                int const li = mfi.LocalIndex();
+                rops[li] = std::make_unique<ROps>();
+                rdata[li] = std::make_unique<RData>(*rops[li]);
+                auto const& lsa = levset.const_array(mfi);
+                rops[li]->eval(mfi.fabbox(), *rdata[li],
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> ReduceTuple
+                {
+                    return { lsa(i,j,k) >= Real(0.0) };
+                });
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    auto const& ea = ebp[idim].const_array(mfi);
+                    rops[li]->eval(ebp[idim][mfi].box(), *rdata[li],
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> ReduceTuple
+                    {
+                        return { ea(i,j,k) < Real(1.0) };
+                    });
+                }
+            }
+            for (MFIter mfi(levset, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+                int const li = mfi.LocalIndex();
+                m_has_eb[amrlev][mglev][mfi] = amrex::get<0>(rdata[li]->value(*rops[li]));
             }
         }
     }
