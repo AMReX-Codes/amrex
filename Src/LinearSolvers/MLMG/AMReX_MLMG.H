@@ -1462,6 +1462,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
 
+    linop.setPrintIdentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
@@ -1640,6 +1641,7 @@ template <typename MF>
 void
 MLMGT<MF>::prepareLinOp ()
 {
+    linop.setPrintIdentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;

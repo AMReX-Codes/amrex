@@ -303,6 +303,13 @@ public:
     void setVerbose (int v) noexcept { verbose = v; }
 
     /**
+     * \brief Prefix printed messages (e.g., to indent per level).
+     *
+     * \param s String inserted at the beginning of each log line.
+     */
+    void setPrintIdentation (std::string s) { print_ident = std::move(s); }
+
+    /**
      * \brief Set order of interpolation at coarse/fine boundary.
      *
      * \param o Polynomial order (2, 3, or 4).
@@ -882,6 +889,7 @@ protected:
     LPInfo info;
 
     int verbose = 0;
+    std::string print_ident;
 
     int maxorder = 3;
 
