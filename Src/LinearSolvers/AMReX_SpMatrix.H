@@ -309,8 +309,6 @@ public:
     SpMatrix<U,M> SpGEMM (SpMatrix<U,M> const& A, SpMatrix<U,M> const& B,
                           AlgPartition const& col_partition);
 
-    template <typename U> friend class AMG;
-
     //! Private helper (exposed for CUDA) that allocates fixed-connectivity matrices with \p nnz_per_row entries.
     void define_doit (int nnz_per_row);
 
@@ -543,6 +541,14 @@ public: // NOLINT  Private functions, but public for cuda
 };
 
 namespace detail {
+
+//! True if local row `i` has a remote part in `csr1`.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool has_remote_row (ParCsr<T> const& a, Long i)
+{
+    return a.csr1.nnz > 0 && a.row_map[i] >= 0;
+}
 
 // Communication may be skipped only when all rows and all columns live on
 // one common rank.  Two partitions with a single active rank each may still
@@ -1168,7 +1174,7 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
                   idx < a.csr0.row_offset[i+1]; ++idx) {
             s += a.csr0.mat[idx];
         }
-        if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+        if (detail::has_remote_row(a, i)) {
             auto ii = a.row_map[i];
             for (auto idx = a.csr1.row_offset[ii];
                       idx < a.csr1.row_offset[ii+1]; ++idx) {

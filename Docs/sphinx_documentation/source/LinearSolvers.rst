@@ -1170,8 +1170,10 @@ The following can be tuned:
   the caller's right-hand side is not modified, and the solution is returned
   with zero mean.
 - :cpp:`setStrongThreshold`: threshold of the strength of connection (0.25).
-  A row whose sum exceeds 0.9 times its diagonal has no strong connection
-  and is left to the smoother.
+  A connection is strong when it is at least this fraction of the strongest
+  one in its row, within roundoff, so the corners of the 9-point Laplacian
+  are strong at the default. A row whose sum exceeds 0.9 times its diagonal
+  has no strong connection and is left to the smoother.
 - :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
   truncated to at most four entries by default (0 disables the limit), and
   entries below the given fraction of the row maximum are dropped (0 by

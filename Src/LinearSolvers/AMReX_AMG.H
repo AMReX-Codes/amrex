@@ -19,6 +19,7 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -65,14 +66,6 @@ inline std::size_t arena_bytes_in_use ()
         return carena->heap_space_actually_used();
     }
     return 0;
-}
-
-//! True if local row `i` has a remote part in `csr1`.
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool has_remote_row (ParCsr<T const> const& a, Long i)
-{
-    return a.csr1.nnz > 0 && a.row_map[i] >= 0;
 }
 
 //! Walks a row of A together with the matching row of S (both sorted
@@ -227,28 +220,14 @@ struct MMInterpRow
  * SpMatrix), and it must stay alive while the solver is in use. With
  * R = P^T, the coarsening assumes a symmetric or nearly symmetric matrix.
  *
- * References:
- * [1] J. W. Ruge and K. Stüben, Algebraic multigrid, in Multigrid
- *     Methods, S. F. McCormick, ed., SIAM, 1987, pp. 73-130.
- *     doi:10.1137/1.9781611971057.ch4
- * [2] H. De Sterck, U. M. Yang and J. J. Heys, Reducing complexity in
- *     parallel algebraic multigrid preconditioners, SIAM J. Matrix Anal.
- *     Appl. 27 (2006), pp. 1019-1039. doi:10.1137/040615729
- * [3] H. De Sterck, R. D. Falgout, J. W. Nolting and U. M. Yang,
- *     Distance-two interpolation for parallel algebraic multigrid, Numer.
- *     Linear Algebra Appl. 15 (2008), pp. 115-139. doi:10.1002/nla.559
- * [4] R. Li, B. Sjögreen and U. M. Yang, A new class of AMG interpolation
- *     methods based on matrix-matrix multiplications, SIAM J. Sci. Comput.
- *     43 (2021), pp. S540-S564. doi:10.1137/20M134931X
- * [5] U. M. Yang, On long-range interpolation operators for aggressive
- *     coarsening, Numer. Linear Algebra Appl. 17 (2010), pp. 453-472.
- *     doi:10.1002/nla.689
- * [6] A. H. Baker, R. D. Falgout, T. V. Kolev and U. M. Yang, Multigrid
- *     smoothers for ultraparallel computing, SIAM J. Sci. Comput. 33
- *     (2011), pp. 2864-2887. doi:10.1137/100798806
- * [7] M. Adams, M. Brezina, J. Hu and R. Tuminaro, Parallel multigrid
- *     smoothing: polynomial versus Gauss-Seidel, J. Comput. Phys. 188
- *     (2003), pp. 593-610. doi:10.1016/S0021-9991(03)00194-3
+ * References (full citations in the Linear Solvers chapter of the docs):
+ * [1] Ruge & Stüben, Algebraic multigrid, SIAM 1987. doi:10.1137/1.9781611971057.ch4
+ * [2] De Sterck, Yang & Heys, SIAM J. Matrix Anal. Appl. 27 (2006). doi:10.1137/040615729
+ * [3] De Sterck, Falgout, Nolting & Yang, Numer. Linear Algebra Appl. 15 (2008). doi:10.1002/nla.559
+ * [4] Li, Sjögreen & Yang, SIAM J. Sci. Comput. 43 (2021). doi:10.1137/20M134931X
+ * [5] Yang, Numer. Linear Algebra Appl. 17 (2010). doi:10.1002/nla.689
+ * [6] Baker, Falgout, Kolev & Yang, SIAM J. Sci. Comput. 33 (2011). doi:10.1137/100798806
+ * [7] Adams, Brezina, Hu & Tuminaro, J. Comput. Phys. 188 (2003). doi:10.1016/S0021-9991(03)00194-3
  */
 template <typename T>
 class AMG
@@ -291,6 +270,8 @@ public:
     void solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs);
 
     void setVerbose (int v) { m_verbose = v; }
+    //! Prefix of the lines the solver prints, e.g. to nest them in MLMG output.
+    void setPrintIndentation (std::string s) { m_print_ident = std::move(s); }
     void setMaxIter (int n) { m_maxiter = n; }
     //! If positive, run exactly this many V-cycles regardless of tolerance.
     void setFixedIter (int n) { m_fixediter = n; }
@@ -310,9 +291,10 @@ public:
     //! Number of smoother sweeps on the coarsest level with the Jacobi
     //! bottom solver; negative restores the default.
     void setBottomSmooth (int nu) { m_nu_bottom = nu; }
-    //! Strength threshold (0.25). A row whose sum exceeds 0.9 times its
-    //! diagonal has no strong connection. Takes effect at the next setup,
-    //! i.e., the next solve after define.
+    //! Strength threshold (0.25): connections at least this fraction of
+    //! the strongest one in the row (within roundoff) are strong. A row
+    //! whose sum exceeds 0.9 times its diagonal has no strong connection.
+    //! Takes effect at the next setup, i.e., the next solve after define.
     void setStrongThreshold (T theta) { m_strong_threshold = theta; m_prepared = false; }
     //! Maximum number of levels. Two means a two-level method. Takes
     //! effect at the next setup, i.e., the next solve after define.
@@ -327,8 +309,10 @@ public:
     //! Singular matrix with the constant vector in its null space (e.g.
     //! Poisson with periodic or Neumann boundaries). The mean is removed
     //! from the right-hand side and the coarsest residuals, and the
-    //! solution is returned with zero mean.
-    void setSingular (bool b) { m_singular = b; }
+    //! solution is returned with zero mean. Next setup.
+    void setSingular (bool b) {
+        if (m_singular != b) { m_singular = b; m_prepared = false; }
+    }
     //! Takes effect at the next setup.
     void setInterpType (InterpType it) { m_interp_type = it; m_prepared = false; }
     //! Maximum number of entries per row of P (0: no limit). Next setup.
@@ -358,6 +342,7 @@ public:
 
     [[nodiscard]] int getNumIters () const { return m_niters; }
     [[nodiscard]] T getResidualNorm () const { return m_rnorm; }
+    //! Number of levels; 0 before setup.
     [[nodiscard]] int numLevels () const { return int(m_a.size()); }
     //! Peak bytes in use in The_Arena during setup (0 if not available).
     [[nodiscard]] std::size_t getSetupPeakBytes () const { return m_setup_peak_bytes; }
@@ -458,6 +443,7 @@ private:
     std::unique_ptr<GMRES_MV<T>> m_krylov_gmres;
     std::unique_ptr<PCG_MV<T>> m_krylov_pcg;
 
+    void clear_levels ();
     void vcycle ();
     void solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res_target);
     void smooth (int lev, AlgVector<T>& xvec, AlgVector<T> const& bvec, int nu,
@@ -542,12 +528,14 @@ public: // NOLINT
                                AlgPartition const& cpart) const;
 
     //! Extended (plus_i = false) or extended+i interpolation in
-    //! matrix-matrix form. ST is the transpose of S.
+    //! matrix-matrix form. ST is the transpose of S. With `row_state`,
+    //! only its C-points get a row of P; the other rows are empty.
     static SpMatrix<T> build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                         SpMatrix<TS> const& ST,
                                         Gpu::DeviceVector<int> const& state,
                                         Gpu::DeviceVector<Long> const& cidx,
-                                        AlgPartition const& cpart, bool plus_i);
+                                        AlgPartition const& cpart, bool plus_i,
+                                        int const* row_state = nullptr);
 };
 
 template <typename T>
@@ -561,10 +549,28 @@ void AMG<T>::define (SpMatrix<T>& a_mat)
 {
     m_mat = &a_mat;
     m_prepared = false;
+    clear_levels();
     m_bproj.reset();
     m_krylov_bicgstab.reset();
     m_krylov_gmres.reset();
     m_krylov_pcg.reset();
+}
+
+template <typename T>
+void AMG<T>::clear_levels ()
+{
+    m_a.clear();
+    m_crsemat.clear();
+    m_P.clear();
+    m_R.clear();
+    m_res.clear();
+    m_cor.clear();
+    m_rescor.clear();
+    m_smoother.clear();
+    m_cheby.clear();
+    m_l1gs.clear();
+    m_gmres.reset();
+    m_bicgstab.reset();
 }
 
 template <typename T>
@@ -893,27 +899,13 @@ void AMG<T>::setup ()
 {
     BL_PROFILE("AMG::setup");
 
-    m_a.clear();
-    m_crsemat.clear();
-    m_P.clear();
-    m_R.clear();
-    m_res.clear();
-    m_cor.clear();
-    m_rescor.clear();
-    m_smoother.clear();
-    m_cheby.clear();
-    m_l1gs.clear();
-    m_gmres.reset();
-    m_bicgstab.reset();
-
+    clear_levels();
     m_a.push_back(m_mat);
     m_mat->setColumnPartition(m_mat->partition()); // square: local column indexing
     m_setup_peak_bytes = 0;
     note_memory(0, "start");
 
-    // Reference: Reducing Complexity in Parallel Algebraic Multigrid
-    // Preconditioners, De Sterck, Yang & Heys, SIAM J. Matrix Anal. Appl.,
-    // 27(4), 2006. https://doi.org/10.1137/040615729
+    // The coarsening follows De Sterck, Yang & Heys [2].
 
     for (int lev = 0; lev+1 < m_max_levels; ++lev)
     {
@@ -980,8 +972,10 @@ void AMG<T>::setup ()
                                                      : interpolation(A, S, ST, state, cidx, cpart);
                 if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
                 note_memory(lev, "P1");
+                // P2 needs only the rows of the first-pass C-points.
                 auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2,
-                                          m_interp_type != InterpType::MMExt);
+                                          m_interp_type != InterpType::MMExt,
+                                          state.data());
                 if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
                 auto P2 = select_coarse_rows(Pf, state, cidx, cpart);
                 note_memory(lev, "P2");
@@ -1118,7 +1112,7 @@ void AMG<T>::normalize_rows (SpMatrix<T>& P)
         for (Long idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
             a.csr0.mat[idx] *= f;
         }
-        if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+        if (detail::has_remote_row(a, i)) {
             Long const ii = a.row_map[i];
             for (Long idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
                 a.csr1.mat[idx] *= f;
@@ -1155,9 +1149,13 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto const rsA = A.rowSum();
     auto const* AMREX_RESTRICT prs = rsA.data();
 
-    // Strength test for one entry of row i. As hypre's max_row_sum (0.9),
-    // rows dominated by their diagonal have no strong connection.
-    auto row_amin = [=] AMREX_GPU_DEVICE (Long i) -> T {
+    // Threshold of row i: theta times the strongest connection, relaxed
+    // by a few ulps so that entries nominally on the threshold (the
+    // corners of the 9-point Laplacian with theta 0.25) are strong in
+    // every row [1]. As hypre's max_row_sum (0.9), rows dominated by
+    // their diagonal have no strong connection.
+    T const tol = T(64) * std::numeric_limits<T>::epsilon();
+    auto row_thresh = [=] AMREX_GPU_DEVICE (Long i) -> T {
         if (std::abs(prs[i]) > T(0.9)*std::abs(A_ii[i])) {
             return std::numeric_limits<T>::lowest();
         }
@@ -1176,7 +1174,8 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
                 amin = std::min(amin, sgn*c1.mat[idx]);
             }
         }
-        return amin * threshold;
+        if (amin >= T(0)) { return std::numeric_limits<T>::lowest(); }
+        return amin * threshold * (T(1) - tol);
     };
 
     using local_csr_type = typename SpMatrix<TS>::local_csr_type;
@@ -1187,18 +1186,18 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
         (nrows+1,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
-             T const amin = row_amin(i);
+             T const thr = row_thresh(i);
              T const sgn = std::copysign(T(1), A_ii[i]);
              Long n = 0;
              auto const& c0 = a.csr0;
              for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
-                 if (c0.col_index[idx] != i && sgn*c0.mat[idx] < amin) { ++n; }
+                 if (c0.col_index[idx] != i && sgn*c0.mat[idx] <= thr) { ++n; }
              }
              if (detail::has_remote_row(a, i)) {
                  auto const& c1 = a.csr1;
                  Long const ii = a.row_map[i];
                  for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
-                     if (sgn*c1.mat[idx] < amin) { ++n; }
+                     if (sgn*c1.mat[idx] <= thr) { ++n; }
                  }
              }
              return n;
@@ -1213,12 +1212,12 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto* AMREX_RESTRICT pc = csr.col_index.data();
     ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        T const amin = row_amin(i);
+        T const thr = row_thresh(i);
         T const sgn = std::copysign(T(1), A_ii[i]);
         Long p = psrow[i];
         auto const& c0 = a.csr0;
         for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
-            if (c0.col_index[idx] != i && sgn*c0.mat[idx] < amin) {
+            if (c0.col_index[idx] != i && sgn*c0.mat[idx] <= thr) {
                 ps[p] = TS(c0.mat[idx]/scale);
                 pc[p] = c0.col_index[idx];
                 ++p;
@@ -1228,7 +1227,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
             auto const& c1 = a.csr1;
             Long const ii = a.row_map[i];
             for (Long idx = c1.row_offset[ii]; idx < c1.row_offset[ii+1]; ++idx) {
-                if (sgn*c1.mat[idx] < amin) {
+                if (sgn*c1.mat[idx] <= thr) {
                     ps[p] = TS(c1.mat[idx]/scale);
                     pc[p] = nlocal + c1.col_index[idx];
                     ++p;
@@ -1740,65 +1739,59 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::second_pass_strength (SpMatrix<TS>& S,
     SFC.define_split(fpart, cpart, std::move(csr_fc), nlocal_c, gcidx_r.data(), 0);
 
     auto S2 = amrex::SpGEMM(SCF, SFC, cpart);
-    auto& csr = S2.m_csr_local; // AMG is a friend of SpMatrix
-    Long const nnz_before = csr.nnz;
 
-    // Drop the diagonal (local block only).
+    // Drop the diagonal: a C-point is not its own distance-two neighbor.
+    auto const& s2 = S2.const_parcsr();
+    typename SpMatrix<TS>::local_csr_type out;
+    out.row_offset.resize(nc+1);
+    auto* AMREX_RESTRICT orow = out.row_offset.data();
+    Long const nnz = Scan::PrefixSum<Long>
+        (nc+1,
+         [=] AMREX_GPU_DEVICE (Long r) -> Long {
+             if (r >= nc) { return 0; }
+             Long n = 0;
+             auto const& c0 = s2.csr0;
+             for (Long idx = c0.row_offset[r]; idx < c0.row_offset[r+1]; ++idx) {
+                 n += (c0.col_index[idx] != int(r));
+             }
+             if (detail::has_remote_row(s2, r)) {
+                 Long const rr = s2.row_map[r];
+                 n += s2.csr1.row_offset[rr+1] - s2.csr1.row_offset[rr];
+             }
+             return n;
+         },
+         [=] AMREX_GPU_DEVICE (Long r, Long const& x) { orow[r] = x; },
+         Scan::Type::exclusive, Scan::retSum);
+    out.mat.resize(nnz);
+    out.col_index.resize(nnz);
+    out.nnz = nnz;
+    auto* AMREX_RESTRICT ocol = out.col_index.data();
+    auto* AMREX_RESTRICT omat = out.mat.data();
+    ParallelForOMP(nc, [=] AMREX_GPU_DEVICE (Long r) noexcept
     {
-        auto* AMREX_RESTRICT pcol = csr.col_index.data();
-        auto* AMREX_RESTRICT prow = csr.row_offset.data();
-        auto* AMREX_RESTRICT pmat = csr.mat.data();
-        ParallelForOMP(nc, [=] AMREX_GPU_DEVICE (Long r) noexcept
-        {
-            Long q = prow[r];
-            for (Long idx = prow[r]; idx < prow[r+1]; ++idx) {
-                if (pcol[idx] != int(r)) {
-                    pcol[q] = pcol[idx];
-                    pmat[q] = pmat[idx];
-                    ++q;
-                }
+        Long q = orow[r];
+        auto const& c0 = s2.csr0;
+        for (Long idx = c0.row_offset[r]; idx < c0.row_offset[r+1]; ++idx) {
+            if (c0.col_index[idx] != int(r)) {
+                ocol[q] = c0.col_index[idx];
+                omat[q] = c0.mat[idx];
+                ++q;
             }
-            for (; q < prow[r+1]; ++q) { pcol[q] = -1; }
-        });
-        Gpu::streamSynchronize();
-    }
-    // Remove the -1 holes.
-    {
-        auto const* AMREX_RESTRICT pcol = csr.col_index.data();
-        auto const* AMREX_RESTRICT pmat = csr.mat.data();
-        auto const* AMREX_RESTRICT prow = csr.row_offset.data();
-        Long const nnz0 = csr.nnz;
-        typename SpMatrix<TS>::local_csr_type out;
-        out.row_offset.resize(nc+1);
-        auto* AMREX_RESTRICT orow = out.row_offset.data();
-        Long const nnz = Scan::PrefixSum<Long>
-            (nc+1,
-             [=] AMREX_GPU_DEVICE (Long r) -> Long {
-                 if (r >= nc) { return 0; }
-                 Long n = 0;
-                 for (Long idx = prow[r]; idx < prow[r+1]; ++idx) { n += (pcol[idx] >= 0); }
-                 return n;
-             },
-             [=] AMREX_GPU_DEVICE (Long r, Long const& x) { orow[r] = x; },
-             Scan::Type::exclusive, Scan::retSum);
-        amrex::ignore_unused(nnz0);
-        out.mat.resize(nnz);
-        out.col_index.resize(nnz);
-        out.nnz = nnz;
-        auto* AMREX_RESTRICT ocol = out.col_index.data();
-        auto* AMREX_RESTRICT omat = out.mat.data();
-        ParallelForOMP(nc, [=] AMREX_GPU_DEVICE (Long r) noexcept
-        {
-            Long q = orow[r];
-            for (Long idx = prow[r]; idx < prow[r+1]; ++idx) {
-                if (pcol[idx] >= 0) { ocol[q] = pcol[idx]; omat[q] = pmat[idx]; ++q; }
+        }
+        if (detail::has_remote_row(s2, r)) {
+            auto const& c1 = s2.csr1;
+            Long const rr = s2.row_map[r];
+            for (Long idx = c1.row_offset[rr]; idx < c1.row_offset[rr+1]; ++idx) {
+                ocol[q] = nlocal_c + c1.col_index[idx];
+                omat[q] = c1.mat[idx];
+                ++q;
             }
-        });
-        Gpu::streamSynchronize();
-        csr = std::move(out);
-        S2.m_nnz -= nnz_before - csr.nnz;
-    }
-    return S2;
+        }
+    });
+    Gpu::streamSynchronize();
+    SpMatrix<TS> S2d;
+    S2d.define_split(cpart, cpart, std::move(out), nlocal_c, s2.col_map, 0);
+    return S2d;
 }
 
 template <typename T>
@@ -1912,7 +1905,8 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                      SpMatrix<TS> const& ST,
                                      Gpu::DeviceVector<int> const& state,
                                      Gpu::DeviceVector<Long> const& cidx,
-                                     AlgPartition const& cpart, bool plus_i)
+                                     AlgPartition const& cpart, bool plus_i,
+                                     int const* row_state)
 {
     BL_PROFILE("AMG::build_interp_mm");
 
@@ -1987,10 +1981,17 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
         return st_j == F && (db_j + (plus_i ? aji : T(0))) != T(0);
     };
 
+    // Rows of P: all, or the C-points of `row_state` (the others stay
+    // empty in M and so in P, but B needs every row).
+    auto const* AMREX_RESTRICT prow_state = row_state;
+    auto has_row = [=] AMREX_GPU_DEVICE (Long i) -> bool {
+        return prow_state == nullptr || prow_state[i] == C;
+    };
+
     Long const mnnz = Scan::PrefixSum<Long>
         (nrows+1,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
-             if (i >= nrows) { return 0; }
+             if (i >= nrows || !has_row(i)) { return 0; }
              Long n = 1;
              if (ps[i] == F) {
                  w.walk(i, [&] (int, int, T, T aji, int st_j, T db_j) {
@@ -2031,11 +2032,26 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
     {
         Long mp = pmrow[i];
         Long bp = pbrow[i];
+        bool const in_p = has_row(i);
         if (ps[i] != F) {
-            pmcol[mp] = int(i);
-            pmmat[mp] = T(1);
+            if (in_p) {
+                pmcol[mp] = int(i);
+                pmmat[mp] = T(1);
+            }
             pbcol[bp] = int(pc[i]);
             pbmat[bp] = T(1);
+            return;
+        }
+        T const db_i = pdb[i];
+        T const bscale = plus_i ? T(1) : ((db_i != T(0)) ? T(1)/db_i : T(0));
+        if (!in_p) {
+            w.walk(i, [&] (int, int jc, T aij, T, int st_j, T) {
+                if (st_j == C) {
+                    pbcol[bp] = jc;
+                    pbmat[bp] = bscale*aij;
+                    ++bp;
+                }
+            });
             return;
         }
 
@@ -2055,12 +2071,10 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
         });
         T const denom = alpha + theta;
         T const scale = (denom != T(0)) ? T(-1)/denom : T(0);
-        T const db_i = pdb[i];
 
         pmcol[mp] = int(i);
         pmmat[mp] = plus_i ? scale : scale*db_i;
         ++mp;
-        T const bscale = plus_i ? T(1) : ((db_i != T(0)) ? T(1)/db_i : T(0));
         w.walk(i, [&] (int jf, int jc, T aij, T aji, int st_j, T db_j) {
             if (st_j == C) {
                 pbcol[bp] = jc;
