@@ -291,8 +291,8 @@ public:
     //! Number of smoother sweeps on the coarsest level with the Jacobi
     //! bottom solver; negative restores the default.
     void setBottomSmooth (int nu) { m_nu_bottom = nu; }
-    //! Strength threshold (0.25): connections at least this fraction of
-    //! the strongest one in the row (within roundoff) are strong. A row
+    //! Strength threshold, typically 0.1 to 0.5 (0.25): connections at
+    //! least this fraction of the strongest one in the row are strong. A row
     //! whose sum exceeds 0.9 times its diagonal has no strong connection.
     //! Takes effect at the next setup, i.e., the next solve after define.
     void setStrongThreshold (T theta) { m_strong_threshold = theta; m_prepared = false; }

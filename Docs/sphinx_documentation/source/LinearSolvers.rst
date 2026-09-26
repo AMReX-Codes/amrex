@@ -1169,9 +1169,13 @@ The following can be tuned:
   boundaries. As in MLMG, the mean of the right-hand side is removed, but
   the caller's right-hand side is not modified, and the solution is returned
   with zero mean.
-- :cpp:`setStrongThreshold`: threshold of the strength of connection (0.25).
-  A connection is strong when it is at least this fraction of the strongest
-  one in its row.
+- :cpp:`setStrongThreshold`: threshold of the strength of connection,
+  typically between 0.1 and 0.5 (0.25 by default). It trades performance
+  for robustness: a smaller value gives a cheaper hierarchy, with less
+  memory and less work per cycle, but is less robust for anisotropic or
+  strongly varying coefficients, where the solver may need many more
+  cycles. A larger value might be more robust, at the price of a more
+  expensive hierarchy.
 - :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
   truncated to at most four entries by default (0 disables the limit), and
   entries below the given fraction of the row maximum are dropped (0 by
