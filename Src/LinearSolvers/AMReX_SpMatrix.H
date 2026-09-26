@@ -345,6 +345,9 @@ public:
      */
     template <typename U>
     Gpu::DeviceVector<U> gatherRemote (U const* x);
+    //! As above, into \p r (reused across calls).
+    template <typename U>
+    void gatherRemote (U const* x, Gpu::DeviceVector<U>& r);
 
     //! Initiate communication required to build the transpose with column partition \p col_partition.
     void startComm_tr (AlgPartition const& col_partition);
@@ -1330,13 +1333,22 @@ template <typename T, template<typename> class Allocator>
 template <typename U>
 Gpu::DeviceVector<U> SpMatrix<T,Allocator>::gatherRemote (U const* x)
 {
-    BL_PROFILE("SpMatrix::gatherRemote");
     Gpu::DeviceVector<U> r;
+    gatherRemote(x, r);
+    return r;
+}
+
+template <typename T, template<typename> class Allocator>
+template <typename U>
+void SpMatrix<T,Allocator>::gatherRemote (U const* x, Gpu::DeviceVector<U>& r)
+{
+    BL_PROFILE("SpMatrix::gatherRemote");
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(this, x);
+    r.clear();
 #else
     AMREX_ALWAYS_ASSERT(m_split);
-    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { return r; }
+    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { r.clear(); return; }
 
     this->prepare_comm_mv(m_col_partition);
 
@@ -1402,7 +1414,6 @@ Gpu::DeviceVector<U> SpMatrix<T,Allocator>::gatherRemote (U const* x)
     The_Comms_Arena()->free(send_buffer);
     The_Comms_Arena()->free(recv_buffer);
 #endif
-    return r;
 }
 
 template <typename T, template<typename> class Allocator>

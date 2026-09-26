@@ -59,13 +59,13 @@ bool csr_row_has_state (CsrView<T const,I> const& csr, Long row,
     return false;
 }
 
-//! Bytes in use in The_Arena, or 0 if it does not report usage.
-inline std::size_t arena_bytes_in_use ()
+//! Bytes in use and reserved in The_Arena, or zeros if it does not report usage.
+inline std::pair<std::size_t,std::size_t> arena_bytes ()
 {
     if (auto* carena = dynamic_cast<CArena*>(The_Arena())) {
-        return carena->heap_space_actually_used();
+        return {carena->heap_space_actually_used(), carena->heap_space_used()};
     }
-    return 0;
+    return {0, 0};
 }
 
 //! Walks a row of A together with the matching row of S (both sorted
@@ -315,8 +315,14 @@ public:
     }
     //! Takes effect at the next setup.
     void setInterpType (InterpType it) { m_interp_type = it; m_prepared = false; }
-    //! Maximum number of entries per row of P (0: no limit). Next setup.
-    void setPMaxElmts (int n) { m_p_max_elmts = n; m_prepared = false; }
+    //! Maximum number of entries per row of P (0: no limit; at most
+    //! max_p_elmts). Next setup.
+    void setPMaxElmts (int n) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= max_p_elmts, "AMG::setPMaxElmts: at most 32");
+        m_p_max_elmts = n;
+        m_prepared = false;
+    }
+    static constexpr int max_p_elmts = 32;
     //! Drop interpolation weights below this fraction of the row maximum. Next setup.
     void setTruncFactor (T f) { m_trunc_factor = f; m_prepared = false; }
     //! Krylov solver with the V-cycle as preconditioner (see KrylovSolver). Default None.
@@ -407,11 +413,9 @@ private:
     //! Records the arena usage and, at verbose >= 2, prints it with a label.
     void note_memory (int lev, char const* stage)
     {
-        auto const bytes = detail::arena_bytes_in_use();
+        auto const [bytes, reserved] = detail::arena_bytes();
         m_setup_peak_bytes = std::max(m_setup_peak_bytes, bytes);
         if (m_verbose >= 2 && bytes > 0) {
-            std::size_t reserved = 0;
-            if (auto* carena = dynamic_cast<CArena*>(The_Arena())) { reserved = carena->heap_space_used(); }
             amrex::Print() << m_print_ident << "AMG: level " << lev << ": after " << stage
                            << ": arena in use " << double(bytes)/double(1<<20)
                            << " MB, reserved " << double(reserved)/double(1<<20) << " MB"
@@ -463,9 +467,9 @@ public: // NOLINT
 
     void setup ();
 
-    //! Strong part of A: S_ij = a_ij / strength_scale if i strongly depends
-    //! on j, else absent.
-    SpMatrix<TS> create_soc (SpMatrix<T> const& A) const;
+    //! Strong part of A: S_ij = a_ij / scale if i strongly depends on j,
+    //! else absent. `scale` is strength_scale(A).
+    SpMatrix<TS> create_soc (SpMatrix<T> const& A, T scale) const;
 
     //! Largest |a_ii|, the unit of the strength matrix entries.
     static T strength_scale (SpMatrix<T> const& A);
@@ -525,17 +529,18 @@ public: // NOLINT
     SpMatrix<T> interpolation (SpMatrix<T>& A, SpMatrix<TS>& S, SpMatrix<TS> const& ST,
                                Gpu::DeviceVector<int> const& state,
                                Gpu::DeviceVector<Long> const& cidx,
-                               AlgPartition const& cpart) const;
+                               AlgPartition const& cpart, T scale) const;
 
     //! Extended (plus_i = false) or extended+i interpolation in
-    //! matrix-matrix form. ST is the transpose of S. With `row_state`,
-    //! only its C-points get a row of P; the other rows are empty.
+    //! matrix-matrix form. ST is the transpose of S, `scale` its unit.
+    //! With `row_state`, only its C-points get a row of P; the other rows
+    //! are empty.
     static SpMatrix<T> build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                         SpMatrix<TS> const& ST,
                                         Gpu::DeviceVector<int> const& state,
                                         Gpu::DeviceVector<Long> const& cidx,
-                                        AlgPartition const& cpart, bool plus_i,
-                                        int const* row_state = nullptr);
+                                        AlgPartition const& cpart, T scale,
+                                        bool plus_i, int const* row_state = nullptr);
 };
 
 template <typename T>
@@ -919,7 +924,8 @@ void AMG<T>::setup ()
         bool aggressive = false;
         Long ncoarse = 0;
         {
-        auto S = create_soc(A);
+        T const sscale = strength_scale(A);
+        auto S = create_soc(A, sscale);
         S.setColumnPartition(S.partition());
         note_memory(lev, "S");
         auto ST = amrex::transpose(S, S.partition());
@@ -969,11 +975,11 @@ void AMG<T>::setup ()
 
                 bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
                 auto P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
-                                                     : interpolation(A, S, ST, state, cidx, cpart);
+                                                     : interpolation(A, S, ST, state, cidx, cpart, sscale);
                 if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
                 note_memory(lev, "P1");
                 // P2 needs only the rows of the first-pass C-points.
-                auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2,
+                auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
                                           m_interp_type != InterpType::MMExt,
                                           state.data());
                 if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
@@ -985,7 +991,7 @@ void AMG<T>::setup ()
             }
         }
         if (!aggressive) {
-            P = interpolation(A, S, ST, state, cidx, cpart);
+            P = interpolation(A, S, ST, state, cidx, cpart, sscale);
         }
         note_memory(lev, "interpolation");
         }
@@ -1134,7 +1140,7 @@ T AMG<T>::strength_scale (SpMatrix<T> const& A)
 }
 
 template <typename T>
-SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
+SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A, T scale) const
 {
     BL_PROFILE("AMG::create_soc");
 
@@ -1145,7 +1151,6 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT A_ii = Ad.data();
     auto const threshold = m_strong_threshold;
-    T const scale = strength_scale(A);
     auto const rsA = A.rowSum();
     auto const* AMREX_RESTRICT prs = rsA.data();
 
@@ -1177,6 +1182,9 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
         if (amin >= T(0)) { return std::numeric_limits<T>::lowest(); }
         return amin * threshold * (T(1) - tol);
     };
+    Gpu::DeviceVector<T> rthr(nrows);
+    auto* AMREX_RESTRICT pthr = rthr.data();
+    ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { pthr[i] = row_thresh(i); });
 
     using local_csr_type = typename SpMatrix<TS>::local_csr_type;
     local_csr_type csr;
@@ -1186,7 +1194,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
         (nrows+1,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
-             T const thr = row_thresh(i);
+             T const thr = pthr[i];
              T const sgn = std::copysign(T(1), A_ii[i]);
              Long n = 0;
              auto const& c0 = a.csr0;
@@ -1212,7 +1220,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A) const
     auto* AMREX_RESTRICT pc = csr.col_index.data();
     ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        T const thr = row_thresh(i);
+        T const thr = pthr[i];
         T const sgn = std::copysign(T(1), A_ii[i]);
         Long p = psrow[i];
         auto const& c0 = a.csr0;
@@ -1306,8 +1314,8 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
     Gpu::DeviceVector<int> sS, sST, s2S;
 
     while (true) {
-        sS  = S.gatherRemote(ps);
-        sST = ST.gatherRemote(ps);
+        S.gatherRemote(ps, sS);
+        ST.gatherRemote(ps, sST);
         auto const* AMREX_RESTRICT psS  = sS.data();
         auto const* AMREX_RESTRICT psST = sST.data();
 
@@ -1334,7 +1342,7 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
             ps2[i] = st_i;
         });
 
-        s2S = S.gatherRemote(ps2);
+        S.gatherRemote(ps2, s2S);
         auto const* AMREX_RESTRICT ps2S = s2S.data();
 
         // Undecided points that strongly depend on a C-point become F.
@@ -1359,7 +1367,7 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
     }
 
     if (m_verbose >= 2) {
-        sS = S.gatherRemote(ps);
+        S.gatherRemote(ps, sS);
         auto const* AMREX_RESTRICT psS = sS.data();
         Long nc = Reduce::Sum<Long>(nrows, [=] AMREX_GPU_DEVICE (Long i) -> Long {
             return (ps[i] == C) ? 1 : 0;
@@ -1661,12 +1669,12 @@ template <typename T>
 SpMatrix<T> AMG<T>::interpolation (SpMatrix<T>& A, SpMatrix<TS>& S, SpMatrix<TS> const& ST,
                                    Gpu::DeviceVector<int> const& state,
                                    Gpu::DeviceVector<Long> const& cidx,
-                                   AlgPartition const& cpart) const
+                                   AlgPartition const& cpart, T scale) const
 {
     if (m_interp_type == InterpType::Direct) {
         return build_interp(A, S, state, cidx, cpart);
     } else {
-        return build_interp_mm(A, S, ST, state, cidx, cpart,
+        return build_interp_mm(A, S, ST, state, cidx, cpart, scale,
                                m_interp_type == InterpType::MMExtI);
     }
 }
@@ -1819,9 +1827,8 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
 {
     BL_PROFILE("AMG::truncate_interp");
 
-    constexpr int KMAX = 32; // rows of P are short
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_elmts <= KMAX,
-                                     "AMG: p_max_elmts must be at most 32");
+    constexpr int KMAX = max_p_elmts; // rows of P are short
+    AMREX_ALWAYS_ASSERT(max_elmts <= KMAX);
 
     P.setColumnPartition(cpart);
     auto const& p = P.const_parcsr();
@@ -1838,13 +1845,8 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
              T sp, sn;
-             if (max_elmts > 0) {
-                 int cols[KMAX];
-                 T vals[KMAX];
-                 return tr.select(i, cols, vals, sp, sn);
-             } else {
-                 return tr.count(i, tr.threshold(i, sp, sn));
-             }
+             int const n = tr.count(i, tr.threshold(i, sp, sn));
+             return (max_elmts > 0) ? std::min(n, max_elmts) : n;
          },
          [=] AMREX_GPU_DEVICE (Long i, Long const& x) { prow[i] = x; },
          Scan::Type::exclusive, Scan::retSum);
@@ -1906,8 +1908,8 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                      SpMatrix<TS> const& ST,
                                      Gpu::DeviceVector<int> const& state,
                                      Gpu::DeviceVector<Long> const& cidx,
-                                     AlgPartition const& cpart, bool plus_i,
-                                     int const* row_state)
+                                     AlgPartition const& cpart, T sscale,
+                                     bool plus_i, int const* row_state)
 {
     BL_PROFILE("AMG::build_interp_mm");
 
@@ -1931,7 +1933,6 @@ SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
 
     // alpha_i = a_ii + weak off-diagonal row sum = rowsum(A) - rowsum(S),
     // in the units of S. The weights do not depend on the scaling.
-    T const sscale = strength_scale(A);
     auto const rsA = A.rowSum();
     auto const rsS = S.rowSum();
     auto const* AMREX_RESTRICT prsA = rsA.data();
