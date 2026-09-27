@@ -94,18 +94,39 @@ struct Coef
     }
 };
 
+// The operator a*phi - div(beta grad phi) of a run, shared by the AMG and
+// the MLMG solves.
+struct Problem
+{
+    int type; // 0 constant, 1 jump, 2 checker, 3 aniso
+    bool dirichlet;
+    Box domain;
+    Real dx;
+    Coef coef;
+};
+
+Problem make_problem (Params const& p)
+{
+    int const ptype = (p.problem == "constant") ? 0 : (p.problem == "jump") ? 1
+                    : (p.problem == "checker") ? 2 : (p.problem == "aniso") ? 3 : -1;
+    if (ptype < 0) { amrex::Abort("Unknown problem: " + p.problem); }
+    Box const domain(IntVect(0), IntVect(p.n_cell-1));
+    Real const dx = Real(2)*Math::pi<Real>()/Real(domain.length(0));
+    return {ptype, p.bc == "dirichlet", domain, dx,
+            Coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain}};
+}
+
 // Geometric multigrid (MLMG) on the same problem, for comparison. MLMG may
 // fail on some of these problems; that is reported, not fatal.
 void run_mlmg (Params const& p)
 {
-    int const n_cell = p.n_cell;
-    int const ptype = (p.problem == "constant") ? 0 : (p.problem == "jump") ? 1
-                    : (p.problem == "checker") ? 2 : 3;
-    Box domain(IntVect(0), IntVect(n_cell-1));
-    Coef const coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain};
+    Problem const pr = make_problem(p);
+    Box const& domain = pr.domain;
+    Coef const& coef = pr.coef;
+    bool const dirichlet = pr.dirichlet;
+    Real const dx = pr.dx;
     Real const L = Real(2)*Math::pi<Real>();
     RealBox rb(AMREX_D_DECL(Real(0),Real(0),Real(0)), AMREX_D_DECL(L,L,L));
-    bool const dirichlet = (p.bc == "dirichlet");
     int const per = dirichlet ? 0 : 1;
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(per,per,per)};
     Geometry geom(domain, rb, CoordSys::cartesian, is_periodic);
@@ -113,7 +134,6 @@ void run_mlmg (Params const& p)
     ba.maxSize(p.max_grid_size);
     DistributionMapping dm(ba);
     Real const a = p.alpha;
-    Real const dx = geom.CellSize(0);
 
     MultiFab phi(ba, dm, 1, 1), rhs(ba, dm, 1, 0), exact(ba, dm, 1, 1), res(ba, dm, 1, 0);
     auto const& exa = exact.arrays();
@@ -207,20 +227,20 @@ Result run (Params const& p)
     int const n_cell = p.n_cell;
     std::string const& bottom = p.bottom;
     std::string const& interp = p.interp;
-    Box domain(IntVect(0),IntVect(n_cell-1));
+    Problem const pr = make_problem(p);
+    Box const& domain = pr.domain;
+    Coef const& coef = pr.coef;
+    int const ptype = pr.type;
+    bool const dirichlet = pr.dirichlet;
+    Real const dx = pr.dx;
     Long n = domain.numPts();
     AlgVector<Real> xvec(n);
     AlgVector<Real> bvec(xvec.partition());
     AlgVector<Real> exact(xvec.partition());
 
     Real a = p.alpha;
-    Real dx = Real(2)*amrex::Math::pi<Real>()/Real(domain.length(0));
 
     BoxIndexer box_indexer(domain);
-    int const ptype = (p.problem == "constant") ? 0 : (p.problem == "jump") ? 1
-                    : (p.problem == "checker") ? 2 : (p.problem == "aniso") ? 3 : -1;
-    if (ptype < 0) { amrex::Abort("Unknown problem: " + p.problem); }
-    Coef const coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain};
 
     {
         auto* rhs = bvec.data();
@@ -267,7 +287,6 @@ Result run (Params const& p)
 
     // Cross stencil with harmonic face coefficients. A Dirichlet boundary
     // face adds 2 b / dx^2 to the diagonal (as in MLMG) and has no neighbor.
-    bool const dirichlet = (p.bc == "dirichlet");
     auto set_stencil = [=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
     {
         IntVect cell = box_indexer.intVect(row);
@@ -422,10 +441,9 @@ Result run (Params const& p)
 
     amrex::Axpy(xvec, Real(-1), exact);
     if (singular) { // the solution is defined up to a constant
-        AlgVector<Real> ones(xvec.partition());
-        ones.setVal(Real(1));
-        auto mean = amrex::Dot(xvec, ones) / Real(xvec.partition().numGlobalRows());
-        amrex::Axpy(xvec, -mean, ones);
+        Real const mean = xvec.sum() / Real(xvec.partition().numGlobalRows());
+        amrex::ForEach(xvec, [=] AMREX_GPU_DEVICE (Real& x) { x -= mean; });
+        Gpu::streamSynchronize();
     }
     auto error = xvec.norminf();
     return {.error = error, .err_bound = err_bound, .rel_res = rel_res,

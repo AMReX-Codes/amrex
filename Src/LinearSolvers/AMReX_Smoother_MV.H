@@ -174,7 +174,10 @@ public:
     void setDegree (int d) { m_degree = d; }
     //! Ratio between the largest eigenvalue and the lower end of the smoothing
     //! interval (20 by default).
-    void setEigRatio (T r) { m_ratio = r; }
+    void setEigRatio (T r) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r > T(1), "ChebyshevSmoother: the ratio must exceed 1");
+        m_ratio = r;
+    }
     //! Number of polynomial applications per call (1 by default).
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
     //! Set the largest eigenvalue of the scaled operator instead of the bound.
@@ -337,7 +340,7 @@ public:
         Long const nrows = xvec.numLocalRows();
         T const* AMREX_RESTRICT dl1 = l1_diagonal().data();
         int const nblocks = m_nblocks;
-        bool const has_remote = ParallelContext::NProcsSub() > 1;
+        bool const has_remote = this->has_remote();
         T const* AMREX_RESTRICT b = bvec.data();
         T* AMREX_RESTRICT x = xvec.data();
 
@@ -410,8 +413,21 @@ private:
     SpMatrix<T> const* m_A;
     int m_niters = 2;
     int m_nblocks = -1;
+    int m_has_remote = -1; // any rank couples to another rank; -1: not yet known
     std::shared_ptr<AlgVector<T>> m_dl1; // a_ii + l1 term for the current row blocks
     std::shared_ptr<Array<AlgVector<T>,2>> m_work; // previous iterate, remote part
+
+    //! Whether the matrix has off-process couplings on any rank. The
+    //! first call is collective; the matrix must be split.
+    bool has_remote ()
+    {
+        if (m_has_remote < 0) {
+            int r = (m_A->const_parcsr().csr1.nnz > 0) ? 1 : 0;
+            ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+            m_has_remote = r;
+        }
+        return m_has_remote == 1;
+    }
 
     //! Row range of a block. The blocks, not the threads, define the sweep.
     static std::pair<Long,Long> row_block (Long nrows, int iblock, int nblocks)

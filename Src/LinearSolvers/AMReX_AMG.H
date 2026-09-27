@@ -189,38 +189,27 @@ struct MMInterpRow
 /**
  * \brief Algebraic multigrid solver for SpMatrix / AlgVector systems.
  *
- * Setup uses the classical strength of connection [1], PMIS coarsening
- * [2], distance-two interpolation [3] in the matrix-matrix form of [4]
- * (or classical direct interpolation [1]), R = P^T and A_c = R A P,
- * repeated until the coarsest level has at most `max_coarse_size` rows.
- * On the first `aggressive_num_levels` levels, aggressive coarsening [5]
- * applies PMIS a second time on the distance-two graph of the C-points,
- * with a two-stage interpolation P = P1 P2 built with the same matrix-matrix
- * formulas. The solve runs V-cycles with Chebyshev [7] (default),
- * l1-Jacobi [6], weighted Jacobi or, on CPUs, l1 hybrid Gauss-Seidel [6]
- * smoothing. The coarsest level is solved with smoother sweeps (default),
- * BiCGStab or GMRES. With `setKrylovSolver`, the V-cycle is used as a
- * preconditioner for BiCGStab, GMRES or conjugate gradients (PCG)
- * instead of being iterated on its own, which roughly halved the number
- * of V-cycles in the tests in Tests/Algebra/AMG.
+ * The setup selects coarse points with PMIS [2] on the classical strength
+ * of connection [1], builds the interpolation P (extended+i [3] in the
+ * matrix-matrix form of [4] by default, or direct [1]) with at most
+ * `p_max_elmts` entries per row [3], and forms A_c = P^T A P until the
+ * coarsest level has at most `max_coarse_size` rows. The first
+ * `aggressive_num_levels` levels use aggressive coarsening [5]. The solve
+ * runs V-cycles with Chebyshev [7], l1-Jacobi [6], weighted Jacobi or, on
+ * CPUs, l1 hybrid Gauss-Seidel [6] smoothing, on their own or as the
+ * preconditioner of a Krylov solver (`setKrylovSolver`).
  *
  * Singular matrices with the constant null vector (`setSingular`) are
  * handled by removing the mean of the right-hand side and of the
- * coarsest-level residuals; interpolation preserves constants, so the
- * null vector is the same on every level.
- *
- * Interpolation rows are truncated to at most `p_max_elmts` entries (4 by
- * default, the value with the best times in [3]) and entries below
- * `trunc_factor` times the row maximum are dropped; kept weights are
- * rescaled to preserve the row sums [3].
- *
- * Parameters are set per object with the setters below.
+ * coarsest-level residuals.
  *
  * The matrix must be square with rows sorted by column index (see
- * SpMatrix), and it must stay alive while the solver is in use. With
- * R = P^T, the coarsening assumes a symmetric or nearly symmetric matrix.
+ * SpMatrix::sortCSR), and it must stay alive while the solver is in use.
+ * With R = P^T, the coarsening assumes a symmetric or nearly symmetric
+ * matrix. Parameters are set per object with the setters below; the
+ * Linear Solvers chapter of the documentation describes their effect.
  *
- * References (full citations in the Linear Solvers chapter of the docs):
+ * References (full citations in the documentation):
  * [1] Ruge & Stüben, Algebraic multigrid, SIAM 1987. doi:10.1137/1.9781611971057.ch4
  * [2] De Sterck, Yang & Heys, SIAM J. Matrix Anal. Appl. 27 (2006). doi:10.1137/040615729
  * [3] De Sterck, Falgout, Nolting & Yang, Numer. Linear Algebra Appl. 15 (2008). doi:10.1002/nla.559
@@ -246,18 +235,13 @@ public:
     //! Direct: classical direct interpolation. MMExt and MMExtI:
     //! extended and extended+i interpolation in matrix-matrix form.
     enum class InterpType { Direct, MMExt, MMExtI };
-    //! Jacobi: weighted Jacobi, weight 2/3. L1Jacobi: l1-Jacobi [6], weight
-    //! 4/3 by default: the l1 scaling bounds the eigenvalues of the scaled
-    //! operator by one, so 4/3 is the optimal damping for the upper half of
-    //! the spectrum and the sweep converges for any SPD matrix.
-    //! Chebyshev (default): polynomial of degree `cheby_degree` (2) on the
-    //! l1-scaled operator, damping [1 / cheby_ratio, 1] with ratio 6 (one
-    //! bounds its eigenvalues); one sweep costs `cheby_degree` matrix-vector
-    //! products.
-    //! One sweep per pre- and post-smoothing step by default, versus two
-    //! for the Jacobi smoothers, so the cost per cycle is the same.
-    //! L1GaussSeidel: l1 hybrid Gauss-Seidel, forward before and backward
-    //! after the coarse correction; CPU builds only.
+    //! Jacobi: weighted Jacobi (weight 2/3). L1Jacobi: l1-Jacobi [6]
+    //! (weight 4/3). Chebyshev (default): polynomial of degree
+    //! `cheby_degree` on the l1-scaled operator, damping
+    //! [1 / cheby_ratio, 1]; one sweep costs `cheby_degree` matrix-vector
+    //! products, and one sweep is the default versus two for the Jacobi
+    //! smoothers. L1GaussSeidel: l1 hybrid Gauss-Seidel [6], forward before
+    //! and backward after the coarse correction; CPU builds only.
     enum class Smoother { Jacobi, L1Jacobi, Chebyshev, L1GaussSeidel };
 
     AMG () = default;
@@ -283,7 +267,11 @@ public:
     //! Chebyshev polynomial degree. Next setup.
     void setChebyshevDegree (int d) { m_cheby_degree = d; m_prepared = false; }
     //! Chebyshev eigenvalue ratio lambda_max / lambda_min. Next setup.
-    void setChebyshevRatio (T r) { m_cheby_ratio = r; m_prepared = false; }
+    void setChebyshevRatio (T r) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r > T(1), "AMG::setChebyshevRatio: the ratio must exceed 1");
+        m_cheby_ratio = r;
+        m_prepared = false;
+    }
     //! Number of pre-smoothing sweeps; negative restores the smoother's default.
     void setPreSmooth (int nu) { m_nu1 = nu; }
     //! Number of post-smoothing sweeps; negative restores the smoother's default.
@@ -467,6 +455,12 @@ public: // NOLINT
 
     void setup ();
 
+    //! Selects the C-points of level `lev` and builds its interpolation P
+    //! (rows partitioned by `cpart`). Returns false when coarsening stops.
+    //! The strength matrices are freed on return, before the triple product.
+    bool coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
+                        bool& aggressive, Long& ncoarse);
+
     //! Strong part of A: S_ij = a_ij / scale if i strongly depends on j,
     //! else absent. `scale` is strength_scale(A).
     SpMatrix<TS> create_soc (SpMatrix<T> const& A, T scale) const;
@@ -489,12 +483,9 @@ public: // NOLINT
     void project_out (AlgVector<T>& x)
     {
         if (!m_singular) { return; }
-        Long const n = x.numLocalRows();
+        T const mean = x.sum() / T(x.partition().numGlobalRows());
         auto* AMREX_RESTRICT px = x.data();
-        T sum = Reduce::Sum<T>(n, [=] AMREX_GPU_DEVICE (Long i) -> T { return px[i]; });
-        ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
-        T const mean = sum / T(x.partition().numGlobalRows());
-        ParallelForOMP(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { px[i] -= mean; });
+        ParallelForOMP(x.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) noexcept { px[i] -= mean; });
         Gpu::streamSynchronize();
     }
 
@@ -867,10 +858,10 @@ void AMG<T>::bottom_solve ()
     auto krylov_bottom = [&] (auto& krylov) {
         krylov.setVerbose(m_bottom_verbose);
         krylov.getSolver().setMaxIters(m_bottom_maxiter);
-        T const rnorm0 = m_res[lev].norm2();
         m_cor[lev].setVal(0);
         krylov.solve(m_cor[lev], m_res[lev], m_bottom_reltol, T(0));
-        if (!(krylov.getSolver().getResidualNorm() < rnorm0)) {
+        auto const& solver = krylov.getSolver();
+        if (!(solver.getResidualNorm() < solver.getInitialResidualNorm())) {
             if (m_verbose >= 2) {
                 amrex::Print() << m_print_ident << "AMG: bottom solve failed, smoothing instead\n";
             }
@@ -917,84 +908,11 @@ void AMG<T>::setup ()
         auto& A = *m_a[lev];
         if (A.numGlobalRows() <= m_max_coarse_size) { break; }
 
-        // The strength matrices are released before the triple product to
-        // keep the peak memory down.
         SpMatrix<T> P;
         AlgPartition cpart;
         bool aggressive = false;
         Long ncoarse = 0;
-        {
-        T const sscale = strength_scale(A);
-        auto S = create_soc(A, sscale);
-        S.setColumnPartition(S.partition());
-        note_memory(lev, "S");
-        auto ST = amrex::transpose(S, S.partition());
-        ST.setColumnPartition(ST.partition());
-
-        note_memory(lev, "strength");
-        Gpu::DeviceVector<int> state;
-        pmis(S, ST, state);
-        note_memory(lev, "PMIS");
-
-        Gpu::DeviceVector<Long> cidx;
-        cpart = coarse_numbering(state, cidx);
-        ncoarse = cpart.numGlobalRows();
-        if (ncoarse == 0 || ncoarse == A.numGlobalRows()) { break; }
-
-        if (lev < m_aggressive_num_levels) {
-            // Second PMIS pass on the C-points connected at distance two.
-            auto S2 = second_pass_strength(S, state, cidx, cpart);
-            S2.setColumnPartition(cpart);
-            auto S2T = amrex::transpose(S2, cpart);
-            S2T.setColumnPartition(cpart);
-            note_memory(lev, "second-pass strength");
-            Gpu::DeviceVector<int> state2;
-            pmis(S2, S2T, state2, true); // isolated C-points stay coarse
-            Gpu::DeviceVector<Long> cidx2;
-            auto cpart2 = coarse_numbering(state2, cidx2);
-            Long const nc2 = cpart2.numGlobalRows();
-            if (nc2 > 0 && nc2 < ncoarse) {
-                // C/F split of the fine points with respect to C2.
-                Long const nrows = A.numLocalRows();
-                Gpu::DeviceVector<int> statef(nrows);
-                Gpu::DeviceVector<Long> cidxf(nrows);
-                auto const* p1 = state.data();
-                auto const* c1 = cidx.data();
-                auto const* p2 = state2.data();
-                auto const* c2 = cidx2.data();
-                auto* pf = statef.data();
-                auto* cf = cidxf.data();
-                ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                {
-                    bool const c = (p1[i] == PointType::coarse) &&
-                                   (p2[c1[i]] == PointType::coarse);
-                    pf[i] = c ? PointType::coarse : PointType::fine;
-                    cf[i] = (p1[i] == PointType::coarse) ? c2[c1[i]] : Long(0);
-                });
-                Gpu::streamSynchronize();
-
-                bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
-                auto P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
-                                                     : interpolation(A, S, ST, state, cidx, cpart, sscale);
-                if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
-                note_memory(lev, "P1");
-                // P2 needs only the rows of the first-pass C-points.
-                auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
-                                          m_interp_type != InterpType::MMExt,
-                                          state.data());
-                if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
-                auto P2 = select_coarse_rows(Pf, state, cidx, cpart);
-                note_memory(lev, "P2");
-                P = amrex::SpGEMM(P1, P2, cpart2);
-                cpart = cpart2;
-                aggressive = true;
-            }
-        }
-        if (!aggressive) {
-            P = interpolation(A, S, ST, state, cidx, cpart, sscale);
-        }
-        note_memory(lev, "interpolation");
-        }
+        if (!coarsen_level(lev, A, P, cpart, aggressive, ncoarse)) { break; }
         // The strength matrices were large; hand their chunks back so the
         // triple product can get contiguous memory.
         The_Arena()->freeUnused();
@@ -1103,6 +1021,83 @@ void AMG<T>::setup ()
     }
 
     m_prepared = true;
+}
+
+template <typename T>
+bool AMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
+                            bool& aggressive, Long& ncoarse)
+{
+    T const sscale = strength_scale(A);
+    auto S = create_soc(A, sscale);
+    S.setColumnPartition(S.partition());
+    note_memory(lev, "S");
+    auto ST = amrex::transpose(S, S.partition());
+    ST.setColumnPartition(ST.partition());
+
+    note_memory(lev, "strength");
+    Gpu::DeviceVector<int> state;
+    pmis(S, ST, state);
+    note_memory(lev, "PMIS");
+
+    Gpu::DeviceVector<Long> cidx;
+    cpart = coarse_numbering(state, cidx);
+    ncoarse = cpart.numGlobalRows();
+    if (ncoarse == 0 || ncoarse == A.numGlobalRows()) { return false; }
+
+    if (lev < m_aggressive_num_levels) {
+        // Second PMIS pass on the C-points connected at distance two.
+        auto S2 = second_pass_strength(S, state, cidx, cpart);
+        S2.setColumnPartition(cpart);
+        auto S2T = amrex::transpose(S2, cpart);
+        S2T.setColumnPartition(cpart);
+        note_memory(lev, "second-pass strength");
+        Gpu::DeviceVector<int> state2;
+        pmis(S2, S2T, state2, true); // isolated C-points stay coarse
+        Gpu::DeviceVector<Long> cidx2;
+        auto cpart2 = coarse_numbering(state2, cidx2);
+        Long const nc2 = cpart2.numGlobalRows();
+        if (nc2 > 0 && nc2 < ncoarse) {
+            // C/F split of the fine points with respect to C2.
+            Long const nrows = A.numLocalRows();
+            Gpu::DeviceVector<int> statef(nrows);
+            Gpu::DeviceVector<Long> cidxf(nrows);
+            auto const* p1 = state.data();
+            auto const* c1 = cidx.data();
+            auto const* p2 = state2.data();
+            auto const* c2 = cidx2.data();
+            auto* pf = statef.data();
+            auto* cf = cidxf.data();
+            ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
+            {
+                bool const c = (p1[i] == PointType::coarse) &&
+                               (p2[c1[i]] == PointType::coarse);
+                pf[i] = c ? PointType::coarse : PointType::fine;
+                cf[i] = (p1[i] == PointType::coarse) ? c2[c1[i]] : Long(0);
+            });
+            Gpu::streamSynchronize();
+
+            bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
+            auto P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
+                                                 : interpolation(A, S, ST, state, cidx, cpart, sscale);
+            if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
+            note_memory(lev, "P1");
+            // P2 needs only the rows of the first-pass C-points.
+            auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
+                                      m_interp_type != InterpType::MMExt,
+                                      state.data());
+            if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
+            auto P2 = select_coarse_rows(Pf, state, cidx, cpart);
+            note_memory(lev, "P2");
+            P = amrex::SpGEMM(P1, P2, cpart2);
+            cpart = cpart2;
+            aggressive = true;
+        }
+    }
+    if (!aggressive) {
+        P = interpolation(A, S, ST, state, cidx, cpart, sscale);
+    }
+    note_memory(lev, "interpolation");
+    return true;
 }
 
 template <typename T>
@@ -1569,12 +1564,12 @@ struct TruncRow
         return n;
     }
 
-    //! For max_elmts > 0: returns the number of kept entries and fills
-    //! cols/vals by decreasing magnitude.
+    //! For max_elmts > 0: returns the number of entries of row i at or
+    //! above the threshold, at most max_elmts, and fills cols/vals with
+    //! them by decreasing magnitude.
     AMREX_GPU_HOST_DEVICE
-    int select (Long i, int* cols, T* vals, T& sum_pos, T& sum_neg) const
+    int select (Long i, T thresh, int* cols, T* vals) const
     {
-        T const thresh = threshold(i, sum_pos, sum_neg);
         int const kmax = std::min(max_elmts, KMAX);
         int n = 0;
         walk(i, [&] (int col, T v) {
@@ -1836,6 +1831,16 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
     int const nlocal = int(cpart.numLocalRows());
     detail::TruncRow<T,KMAX> const tr{p, max_elmts, trunc_factor, nlocal};
 
+    // Drop threshold and signed sums of each row, computed once.
+    Gpu::DeviceVector<T> rthr(nrows), rpos(nrows), rneg(nrows);
+    auto* AMREX_RESTRICT pthr = rthr.data();
+    auto* AMREX_RESTRICT ppos = rpos.data();
+    auto* AMREX_RESTRICT pneg = rneg.data();
+    ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
+    {
+        pthr[i] = tr.threshold(i, ppos[i], pneg[i]);
+    });
+
     using local_csr_type = typename SpMatrix<T>::local_csr_type;
     local_csr_type csr;
     csr.row_offset.resize(nrows+1);
@@ -1844,8 +1849,7 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
         (nrows+1,
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
-             T sp, sn;
-             int const n = tr.count(i, tr.threshold(i, sp, sn));
+             int const n = tr.count(i, pthr[i]);
              return (max_elmts > 0) ? std::min(n, max_elmts) : n;
          },
          [=] AMREX_GPU_DEVICE (Long i, Long const& x) { prow[i] = x; },
@@ -1858,12 +1862,14 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
     auto* AMREX_RESTRICT pcol = csr.col_index.data();
     ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        T sum_pos, sum_neg;
+        T const thresh = pthr[i];
+        T const sum_pos = ppos[i];
+        T const sum_neg = pneg[i];
         Long q = prow[i];
         if (max_elmts > 0) {
             int cols[KMAX];
             T vals[KMAX];
-            int const n = tr.select(i, cols, vals, sum_pos, sum_neg);
+            int const n = tr.select(i, thresh, cols, vals);
             T kept_pos = T(0), kept_neg = T(0);
             for (int k = 0; k < n; ++k) {
                 if (vals[k] > T(0)) { kept_pos += vals[k]; } else { kept_neg += vals[k]; }
@@ -1876,7 +1882,6 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
                 ++q;
             }
         } else { // threshold only, no limit on the count
-            T const thresh = tr.threshold(i, sum_pos, sum_neg);
             T kept_pos = T(0), kept_neg = T(0);
             tr.walk(i, [&] (int, T v) {
                 if (std::abs(v) >= thresh) {

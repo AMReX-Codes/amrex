@@ -147,6 +147,9 @@ public:
     //! Final residual 2-norm from the last solve().
     [[nodiscard]] RT getResidualNorm () const { return m_res; }
 
+    //! Initial residual 2-norm from the last solve().
+    [[nodiscard]] RT getInitialResidualNorm () const { return m_rnorm0; }
+
 private:
     void clear ();
     void allocate_scratch ();
@@ -166,6 +169,7 @@ private:
     int m_restrtlen = 30;
     bool m_nonzero_guess = false;
     RT m_res = std::numeric_limits<RT>::max();
+    RT m_rnorm0 = std::numeric_limits<RT>::max();
     RT m_rtol = RT(0);
     RT m_atol = RT(0);
     Vector<RT> m_hh_1d;
@@ -284,6 +288,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
     }
 
     if (m_status == -1 && m_its >= a_its) { m_status = 1; }
+    m_rnorm0 = rnorm0;
 
     m_v_tmp_rhs.reset();
     m_v_tmp_lhs.reset();
