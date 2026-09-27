@@ -278,12 +278,24 @@ public: // NOLINT  Private, but public for CUDA
     void bound ()
     {
         if (m_l1) { m_lambda_max = T(1); return; }
-        JacobiSmoother<T> l1(m_A, true);
-        auto const* AMREX_RESTRICT pl1 = l1.scaling().data(); // sign(d_i) sum_j |a_ij|
+        // The matrix might not have been split yet (e.g., no SpMV so far).
+        const_cast<SpMatrix<T>*>(m_A)->setColumnPartition(m_A->partition());
+        auto const& a = m_A->const_parcsr();
         auto const* AMREX_RESTRICT pd = m_A->diagonalVector().data();
         T lmax = Reduce::Max<T>(m_A->numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) -> T
         {
-            return (pd[i] != T(0)) ? pl1[i] / pd[i] : T(0);
+            if (pd[i] == T(0)) { return T(0); }
+            T s = T(0); // sum_j |a_ij|
+            for (auto idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
+                s += std::abs(a.csr0.mat[idx]);
+            }
+            if (detail::has_remote_row(a, i)) {
+                auto ii = a.row_map[i];
+                for (auto idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
+                    s += std::abs(a.csr1.mat[idx]);
+                }
+            }
+            return s / std::abs(pd[i]);
         });
         ParallelAllReduce::Max(lmax, ParallelContext::CommunicatorSub());
         m_lambda_max = (lmax > T(0)) ? lmax : T(1);

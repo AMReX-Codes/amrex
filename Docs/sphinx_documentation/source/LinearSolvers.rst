@@ -1178,8 +1178,8 @@ The following can be tuned:
   expensive hierarchy.
 - :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
   truncated to at most four entries by default (0 disables the limit, 32 is
-  the largest allowed), and entries below the given fraction of the row
-  maximum are dropped (0 by default).
+  the largest allowed, a negative value restores the default), and entries
+  below the given fraction of the row maximum are dropped (0 by default).
 - :cpp:`setMaxCoarseSize` and :cpp:`setMaxLevels`: coarsening stops when a
   level has at most this many rows (9) or this many levels (25) have been
   built.
