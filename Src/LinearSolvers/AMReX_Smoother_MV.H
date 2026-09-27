@@ -156,8 +156,7 @@ public: // NOLINT  Private, but public for CUDA
  * [Adams, Brezina, Hu, Tuminaro, J. Comput. Phys. 188 (2003), 593-610].
  * Each application costs `degree` matrix-vector products. `lambda_max` is
  * the Gershgorin bound `max_i sum_j |a_ij| / |d_i|` of the scaled operator,
- * which is one with l1 scaling. An upper bound, unlike an estimate, leaves
- * no mode above the damped interval to be amplified.
+ * which is one with l1 scaling.
  */
 template <typename T>
 class ChebyshevSmoother

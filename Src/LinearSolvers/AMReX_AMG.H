@@ -698,11 +698,8 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
     int const verbose = std::max(0, m_verbose-1);
     T krylov_rnorm = T(0);
 
-    // Relative tolerance 0: convergence is decided by the absolute target
-    // reltol*|b|, the same criterion as the V-cycle iteration. The Krylov
-    // residual is a recurrence, which can converge before the true one when
-    // the V-cycle is not a fixed linear operator (Krylov bottom solver). In
-    // that case, restart from the current solution.
+    // Converge on the absolute target reltol*|b|, as the V-cycle iteration.
+    // Restart if the recurrence residual converged before the true one.
     auto run = [&] (auto& s) {
         s.setVerbose(verbose);
         s.setInitialGuessNonzero(true);
@@ -1318,10 +1315,8 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
     auto* AMREX_RESTRICT ps = state.data();
     auto* AMREX_RESTRICT ps2 = state2.data();
 
-    // A point nobody depends on gets a weight below one: it never blocks
-    // a neighbor, becomes F once a dependency is C, and becomes C only if
-    // all its dependencies are F, so that it does not end up as an F-point
-    // without a C neighbor to interpolate from.
+    // A point nobody depends on gets a weight below one, so it becomes C
+    // only if all its dependencies are F.
     ParallelForRNG(nrows, [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng) noexcept
     {
         if (pm[i] < 0) {
