@@ -1,3 +1,5 @@
+CEXE_headers += AMReX_AMG.H
+
 CEXE_headers += AMReX_BiCGStab.H AMReX_BiCGStab_MV.H AMReX_KrylovMV.H AMReX_PCG.H AMReX_PCG_MV.H
 
 CEXE_headers += AMReX_GMRES.H AMReX_GMRES_MLMG.H

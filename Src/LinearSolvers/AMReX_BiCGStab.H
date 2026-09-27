@@ -72,6 +72,9 @@ public:
     //! Gets the 2-norm of the residual.
     [[nodiscard]] RT getResidualNorm () const { return m_res; }
 
+    //! Gets the 2-norm of the initial residual of the last solve().
+    [[nodiscard]] RT getInitialResidualNorm () const { return m_rnorm0; }
+
 private:
 
     int m_verbose = 0;
@@ -80,6 +83,7 @@ private:
     int m_its = 0;
     int m_status = -1;
     RT m_res = std::numeric_limits<RT>::max();
+    RT m_rnorm0 = std::numeric_limits<RT>::max();
     RT m_rtol = RT(0);
     RT m_atol = RT(0);
 
@@ -122,6 +126,7 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
     RT rnorm = m_linop->norm2(r);
     RT const rnorm0 = rnorm;
     m_res = rnorm;
+    m_rnorm0 = rnorm;
 
     if (m_verbose > 0) {
         amrex::Print() << "BiCGStab: Initial residual (error0) = " << rnorm0 << '\n';

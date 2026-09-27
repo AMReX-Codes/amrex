@@ -309,8 +309,6 @@ public:
     SpMatrix<U,M> SpGEMM (SpMatrix<U,M> const& A, SpMatrix<U,M> const& B,
                           AlgPartition const& col_partition);
 
-    template <typename U> friend class AMG;
-
     //! Private helper (exposed for CUDA) that allocates fixed-connectivity matrices with \p nnz_per_row entries.
     void define_doit (int nnz_per_row);
 
@@ -347,6 +345,9 @@ public:
      */
     template <typename U>
     Gpu::DeviceVector<U> gatherRemote (U const* x);
+    //! As above, into \p r (reused across calls).
+    template <typename U>
+    void gatherRemote (U const* x, Gpu::DeviceVector<U>& r);
 
     //! Initiate communication required to build the transpose with column partition \p col_partition.
     void startComm_tr (AlgPartition const& col_partition);
@@ -543,6 +544,14 @@ public: // NOLINT  Private functions, but public for cuda
 };
 
 namespace detail {
+
+//! True if local row `i` has a remote part in `csr1`.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool has_remote_row (ParCsr<T> const& a, Long i)
+{
+    return a.csr1.nnz > 0 && a.row_map[i] >= 0;
+}
 
 // Communication may be skipped only when all rows and all columns live on
 // one common rank.  Two partitions with a single active rank each may still
@@ -1168,7 +1177,7 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
                   idx < a.csr0.row_offset[i+1]; ++idx) {
             s += a.csr0.mat[idx];
         }
-        if (a.csr1.nnz > 0 && a.row_map[i] >= 0) {
+        if (detail::has_remote_row(a, i)) {
             auto ii = a.row_map[i];
             for (auto idx = a.csr1.row_offset[ii];
                       idx < a.csr1.row_offset[ii+1]; ++idx) {
@@ -1324,13 +1333,22 @@ template <typename T, template<typename> class Allocator>
 template <typename U>
 Gpu::DeviceVector<U> SpMatrix<T,Allocator>::gatherRemote (U const* x)
 {
-    BL_PROFILE("SpMatrix::gatherRemote");
     Gpu::DeviceVector<U> r;
+    gatherRemote(x, r);
+    return r;
+}
+
+template <typename T, template<typename> class Allocator>
+template <typename U>
+void SpMatrix<T,Allocator>::gatherRemote (U const* x, Gpu::DeviceVector<U>& r)
+{
+    BL_PROFILE("SpMatrix::gatherRemote");
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(this, x);
+    r.clear();
 #else
     AMREX_ALWAYS_ASSERT(m_split);
-    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { return r; }
+    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { r.clear(); return; }
 
     this->prepare_comm_mv(m_col_partition);
 
@@ -1396,7 +1414,6 @@ Gpu::DeviceVector<U> SpMatrix<T,Allocator>::gatherRemote (U const* x)
     The_Comms_Arena()->free(send_buffer);
     The_Comms_Arena()->free(recv_buffer);
 #endif
-    return r;
 }
 
 template <typename T, template<typename> class Allocator>
