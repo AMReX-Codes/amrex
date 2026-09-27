@@ -112,8 +112,9 @@ Problem make_problem (Params const& p)
     if (ptype < 0) { amrex::Abort("Unknown problem: " + p.problem); }
     Box const domain(IntVect(0), IntVect(p.n_cell-1));
     Real const dx = Real(2)*Math::pi<Real>()/Real(domain.length(0));
-    return {ptype, p.bc == "dirichlet", domain, dx,
-            Coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps, .domain = domain}};
+    return {.type = ptype, .dirichlet = p.bc == "dirichlet", .domain = domain, .dx = dx,
+            .coef = Coef{.type = ptype, .jump = p.jump, .block = p.block, .eps = p.eps,
+                         .domain = domain}};
 }
 
 // Geometric multigrid (MLMG) on the same problem, for comparison. MLMG may
