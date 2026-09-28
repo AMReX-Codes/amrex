@@ -191,18 +191,32 @@ public:
     void compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                         MultiFab& sol) const;
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_HYPRE)
     void fillIJMatrix (MFIter const& mfi,
                        Array4<HypreNodeLap::AtomicInt const> const& gid,
                        Array4<int const> const& lid,
                        HypreNodeLap::Int* ncols,
                        HypreNodeLap::Int* cols,
                        Real* mat) const override;
+#endif
 
-    void fillRHS (MFIter const& mfi,
+    void fillAlgMatrix (int mglev, MFIter const& mfi,
+                        Array4<Long const> const& gid,
+                        Array4<int const> const& lid,
+                        Long* ncols, Long* cols, Real* mat) const override;
+
+    void fillRHS (int mglev, MFIter const& mfi,
                   Array4<int const> const& lid,
                   Real* rhs,
                   Array4<Real const> const& bfab) const override;
+
+    // Public for nvcc.
+    template <typename AlgInt, typename AlgGid>
+    void fillMatrix_doit (int mglev, MFIter const& mfi,
+                          Array4<AlgGid const> const& gid,
+                          Array4<int const> const& lid,
+                          AlgInt* ncols, AlgInt* cols, Real* mat) const;
 #endif
 
     //! Post-process the solution hierarchy.

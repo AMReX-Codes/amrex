@@ -1,4 +1,4 @@
-# Inputs for the AMG test. Command-line arguments override them, e.g.
+# Inputs for the AlgMG test. Command-line arguments override them, e.g.
 #   ./main3d.gnu.ex inputs problem=checker interp=direct verbose=1
 # With `variations = 1`, each problem runs every bottom solver and
 # variations of the interpolation, coarsening, truncation, smoother and
@@ -22,13 +22,14 @@ max_iter = 200
 # reltol = 1.e-10 # 1.e-5 in single precision
 # seed = 1        # seed of the random coarse point selection
 # repeat = 1      # run each case this many times
-mlmg = 1          # also solve with geometric multigrid (MLMG); 0 to skip
+mlmg = 1          # also solve with MLMG; 0 to skip
+mlmg_types = geometric hybrid   # MLMG multigrid types: geometric, algebraic, hybrid
 
-# AMG options. Commented-out ones show the solver's defaults.
-interp   = ext+i     # direct, ext, ext+i
-smoother = chebyshev # jacobi, l1jacobi, chebyshev, l1gs (CPU only)
+# AlgMG options. Commented-out ones show the solver's defaults.
+interp   = mm_ext_i  # direct, mm_ext, mm_ext_i
+smoother = chebyshev # jacobi, l1_jacobi, chebyshev, l1_gauss_seidel (CPU only)
 krylov   = none      # none, bicgstab, gmres, pcg
-bottom   = jacobi    # jacobi, bicgstab, gmres; used as is with variations = 0
+bottom   = direct    # direct, jacobi, bicgstab, gmres; used as is with variations = 0
 # theta = 0.25            # strength threshold
 # aggressive_levels = 0   # levels with aggressive coarsening
 # p_max_elmts = 4         # max entries per row of P (0: no limit)

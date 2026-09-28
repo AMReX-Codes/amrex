@@ -86,10 +86,13 @@ MyTest::solve ()
     mlmg.setBottomTolerance(bottom_reltol);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
     if (use_hypre) {
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
     } else if (use_petsc) {
         mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+    } else if (use_algmg_bottom) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
     }
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
@@ -179,6 +182,8 @@ MyTest::readParameters ()
     pp.query("max_bottom_iter", max_bottom_iter);
     pp.query("bottom_reltol", bottom_reltol);
     pp.query("reltol", reltol);
+    pp.query_enum_case_insensitive("multigrid_type", multigrid_type);
+    pp.query("use_algmg_bottom", use_algmg_bottom);
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE

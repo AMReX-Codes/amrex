@@ -18,6 +18,13 @@ MyTest::MyTest ()
     initData();
 }
 
+void
+MyTest::setMultigridType (std::string const& name)
+{
+    multigrid_type = amrex::getEnumCaseInsensitive<MultigridType>(name);
+    amrex::Print() << "\nMultigrid type: " << name << "\n";
+}
+
 //
 // Solve L(phi) = rhs
 //
@@ -67,6 +74,7 @@ MyTest::solve ()
     MLMG mlmg(*mlabec);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
 
 #ifdef AMREX_USE_HYPRE
     if (use_hypre) {
@@ -164,6 +172,7 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 
     pp.query("do_overset", do_overset);
+    pp.queryarr("multigrid_types", multigrid_types);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_level >= 0 && max_level <= 2,
                                      "max_level must be 0, 1 or 2");

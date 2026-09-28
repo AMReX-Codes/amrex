@@ -127,6 +127,15 @@ public:
     //! Zero RHS entries in \p rhs that are covered by overset masks on level \p amrlev.
     void applyOverset (int amrlev, MF& rhs) const override;
 
+    //! EB Dirichlet `b` coefficient for the matrix assembly (nullptr without EB).
+    [[nodiscard]] virtual MF const* getEBBCoeffs (int /*amrlev*/, int /*mglev*/) const { return nullptr; }
+
+    [[nodiscard]] std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const override;
+
+    //! Unit `b` coefficients with the metric factors (RZ, spherical) for the
+    //! matrix assembly of operators without `b` coefficients.
+    [[nodiscard]] Array<MF,AMREX_SPACEDIM> makeDefaultBCoeffs (int mglev) const;
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     //! Instantiate a Hypre backend using the current coefficient data and interface \p hypre_interface.
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
@@ -738,6 +747,67 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
     }
 }
 
+template <typename MF>
+Array<MF,AMREX_SPACEDIM>
+MLCellABecLapT<MF>::makeDefaultBCoeffs (int mglev) const
+{
+    const int amrlev = 0;
+    Array<MF,AMREX_SPACEDIM> beta;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        beta[idim].define(amrex::convert(this->m_grids[amrlev][mglev],
+                                         IntVect::TheDimensionVector(idim)),
+                          this->m_dmap[amrlev][mglev], 1, 0,
+                          MFInfo().SetArena(The_Async_Arena()),
+                          *(this->m_factory[amrlev][mglev]));
+        beta[idim].setVal(RT(1.0));
+        this->applyMetricTerm(amrlev, mglev, beta[idim]);
+    }
+    return beta;
+}
+
+template <typename MF>
+std::unique_ptr<MLAlgMG>
+MLCellABecLapT<MF>::makeAlgMG (int mglev) const
+{
+    if constexpr (!std::is_same<MF,MultiFab>()) {
+        amrex::ignore_unused(mglev);
+        amrex::Abort("MLCellABecLap: AlgMG only supports MultiFab");
+        return nullptr;
+    } else {
+        const int amrlev = 0;
+        const BoxArray& ba = this->m_grids[amrlev][mglev];
+        const DistributionMapping& dm = this->m_dmap[amrlev][mglev];
+        const Geometry& geom = this->m_geom[amrlev][mglev];
+        const auto& factory = *(this->m_factory[amrlev][mglev]);
+
+        auto const& bcondloc = *(this->m_bcondloc[amrlev][mglev]);
+        LayoutData<GpuArray<int,2*AMREX_SPACEDIM>> bctype(ba, dm);
+        LayoutData<GpuArray<Real,2*AMREX_SPACEDIM>> bcl(ba, dm);
+        for (MFIter mfi(bctype); mfi.isValid(); ++mfi) {
+            for (OrientationIter oit; oit; oit++) {
+                int const cdir = oit();
+                bctype[mfi][cdir] = bcondloc.bndryConds(mfi, 0)[cdir];
+                bcl[mfi][cdir] = bcondloc.bndryLocs(mfi, 0)[cdir];
+            }
+        }
+
+        // The kernels support at most a third order Dirichlet stencil.
+        int const mo = std::min(3, this->getMaxOrder());
+
+        auto ac = getACoeffs(amrlev, mglev);
+        auto bc = getBCoeffs(amrlev, mglev);
+        Array<MF,AMREX_SPACEDIM> beta;
+        if (bc[0] == nullptr) {
+            beta = makeDefaultBCoeffs(mglev);
+            bc = amrex::GetArrOfConstPtrs(beta);
+        }
+        return std::make_unique<MLAlgMG>(mglev, ba, dm, geom, factory,
+                                         getOversetMask(amrlev, mglev),
+                                         getAScalar(), getBScalar(), ac, bc,
+                                         getEBBCoeffs(amrlev, mglev), bctype, bcl, mo);
+    }
+}
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
 std::unique_ptr<Hypre>
@@ -779,13 +849,7 @@ MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
         }
         else
         {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                              dm, 1, 0, MFInfo().SetArena(The_Async_Arena()), factory);
-                beta[idim].setVal(1.0);
-            }
+            auto beta = makeDefaultBCoeffs(mglev);
             hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
         }
         hypre_solver->setIsMatrixSingular(this->isBottomSingular());
@@ -834,13 +898,7 @@ MLCellABecLapT<MF>::makePETSc () const
         }
         else
         {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, 1, 0, MFInfo().SetArena(The_Async_Arena()), factory);
-                beta[idim].setVal(1.0);
-            }
+            auto beta = makeDefaultBCoeffs(mglev);
             petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
         }
         return petsc_solver;

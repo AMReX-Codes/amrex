@@ -65,9 +65,11 @@ public:
     /**
      * \brief Gets the solver status.
      *
-     * 0 converged, 1 max iterations reached, 2 p.Ap <= 0 (A not positive
-     * definite), 3 r.z <= 0 (preconditioner not positive definite). A NaN
-     * or infinity counts as the matching breakdown.
+     * 0 converged, 1 max iterations reached, 2 p.Ap is zero or has changed
+     * sign (A not definite), 3 r.z is zero or has changed sign
+     * (preconditioner not definite). The sign is taken from the first r.z,
+     * so negative definite systems are solved as well. A NaN or infinity
+     * counts as the matching breakdown.
      */
     [[nodiscard]] int getStatus () const { return m_status; }
 
@@ -137,13 +139,16 @@ void PCG<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int 
     m_linop->precond(z, r);
     m_linop->assign(p, z);
     RT rz = m_linop->dotProduct(r, z);
-    if (rz <= RT(0) || !amrex::isfinite(rz)) { m_status = 3; }
+    // A and the preconditioner may both be negative definite: every r.z and
+    // p.Ap must then keep the sign of the first r.z.
+    RT const sgn = (rz < RT(0)) ? RT(-1) : RT(1);
+    if (rz == RT(0) || !amrex::isfinite(rz)) { m_status = 3; }
 
     for (int iter = 1; iter <= a_its && m_status == -1; ++iter)
     {
         m_linop->apply(q, p);
         RT const pq = m_linop->dotProduct(p, q);
-        if (pq <= RT(0) || !amrex::isfinite(pq)) { m_status = 2; break; }
+        if (sgn*pq <= RT(0) || !amrex::isfinite(pq)) { m_status = 2; break; }
         RT const alpha = rz/pq;
 
         m_linop->increment(a_sol, p, alpha);
@@ -164,7 +169,7 @@ void PCG<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int 
 
         m_linop->precond(z, r);
         RT const rz_new = m_linop->dotProduct(r, z);
-        if (rz_new <= RT(0) || !amrex::isfinite(rz_new)) { m_status = 3; break; }
+        if (sgn*rz_new <= RT(0) || !amrex::isfinite(rz_new)) { m_status = 3; break; }
         RT const beta = rz_new/rz;
         rz = rz_new;
 

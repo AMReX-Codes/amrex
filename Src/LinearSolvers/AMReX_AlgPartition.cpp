@@ -62,7 +62,7 @@ AlgPartition::Ref::Ref (Vector<Long>&& rows)
 
 void AlgPartition::Ref::define (Long global_size)
 {
-    auto nprocs = Long(ParallelDescriptor::NProcs());
+    auto nprocs = Long(ParallelContext::NProcsSub());
     Long sz = global_size / nprocs;
     Long extra = global_size - sz*nprocs;
     m_row.resize(nprocs+1);
@@ -92,7 +92,7 @@ void AlgPartition::Ref::define (Vector<Long>&& rows)
 
 void AlgPartition::Ref::update_n_active_procs ()
 {
-    AMREX_ASSERT(m_row.size() == ParallelDescriptor::NProcs()+1);
+    AMREX_ASSERT(m_row.size() == ParallelContext::NProcsSub()+1);
     m_n_active_procs = 0;
     m_single_active_proc = -1;
     for (int i = 0, N = int(m_row.size())-1; i < N; ++i) {

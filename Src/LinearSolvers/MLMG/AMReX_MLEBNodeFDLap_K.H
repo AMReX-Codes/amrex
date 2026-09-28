@@ -206,7 +206,7 @@ void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const
 #endif
 
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 
 namespace ebnodefdlap_detail {
 
@@ -276,11 +276,11 @@ Real face_sigma (int i, int j, int k, int idim, int side, bool has_eb,
  * \param reflect_lo  whether the low-side domain BC mirrors ghost nodes
  * \param reflect_hi  whether the high-side domain BC mirrors ghost nodes
  */
-template <typename AtomicInt>
+template <typename AlgGid>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 ebnodefdlap_detail::Row
 mlebndfdlap_ijmat_row (int i, int j, int k,
-                       Array4<AtomicInt const> const& gid,
+                       Array4<AlgGid const> const& gid,
                        bool has_eb, bool has_sig,
                        GpuArray<Real,AMREX_SPACEDIM> const& bcoef,
                        Array4<Real const> const& sig,
@@ -291,7 +291,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_lo,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_hi) noexcept
 {
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
 
     Real diag = Real(0.0);
     Real scale = Real(1.0);

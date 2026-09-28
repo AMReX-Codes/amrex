@@ -14,3 +14,5 @@ bottom_verbose = 0
 max_iter       = 200
 max_fmg_iter   = 0
 reltol         = 1.e-10
+
+multigrid_types = algebraic hybrid geometric

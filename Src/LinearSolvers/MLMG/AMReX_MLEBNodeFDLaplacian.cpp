@@ -811,7 +811,9 @@ MLEBNodeFDLaplacian::compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPAC
     }
 }
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
+
+#if defined(AMREX_USE_HYPRE)
 void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
@@ -820,12 +822,31 @@ MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                                    HypreNodeLap::Int* cols,
                                    Real* mat) const
 {
+    fillMatrix_doit(m_num_mg_levels[0]-1, mfi, gid, lid, ncols, cols, mat);
+}
+#endif
+
+void
+MLEBNodeFDLaplacian::fillAlgMatrix (int mglev, MFIter const& mfi,
+                                    Array4<Long const> const& gid,
+                                    Array4<int const> const& lid,
+                                    Long* ncols, Long* cols, Real* mat) const
+{
+    fillMatrix_doit(mglev, mfi, gid, lid, ncols, cols, mat);
+}
+
+template <typename AlgInt, typename AlgGid>
+void
+MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
+                                      Array4<AlgGid const> const& gid,
+                                      Array4<int const> const& lid,
+                                      AlgInt* ncols, AlgInt* cols, Real* mat) const
+{
     const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
 
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_rz,
-        "MLEBNodeFDLaplacian::fillIJMatrix: RZ is not supported yet");
+        "MLEBNodeFDLaplacian::fillMatrix_doit: RZ is not supported yet");
 #endif
 
     const Geometry& geom = m_geom[amrlev][mglev];
@@ -912,7 +933,7 @@ MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                       sig, vfrc, levset, ec, ndlo, ndhi, reflect_lo, reflect_hi);
                  ncols[row_lid] = row.n;
                  for (int n = 0; n < row.n; ++n) {
-                     cols[ps+n] = static_cast<HypreNodeLap::Int>
+                     cols[ps+n] = static_cast<AlgInt>
                          (gid(row.node[n].x, row.node[n].y, row.node[n].z));
                      mat[ps+n] = row.val[n];
                  }
@@ -932,7 +953,7 @@ MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                                                         ndlo, ndhi, reflect_lo, reflect_hi);
                 ncols[lid(i,j,k)] = row.n;
                 for (int n = 0; n < row.n; ++n) {
-                    cols[nelems] = static_cast<HypreNodeLap::Int>
+                    cols[nelems] = static_cast<AlgInt>
                         (gid(row.node[n].x, row.node[n].y, row.node[n].z));
                     mat[nelems] = row.val[n];
                     ++nelems;
@@ -943,7 +964,7 @@ MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
 }
 
 void
-MLEBNodeFDLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+MLEBNodeFDLaplacian::fillRHS (int /*mglev*/, MFIter const& mfi, Array4<int const> const& lid,
                               Real* rhs, Array4<Real const> const& bfab) const
 {
     // Unlike MLNodeLaplacian, this is a finite-difference operator, so nodes on

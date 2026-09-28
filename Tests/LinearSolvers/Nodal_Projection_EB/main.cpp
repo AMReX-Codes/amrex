@@ -43,6 +43,7 @@ int main (int argc, char* argv[])
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
+        Vector<std::string> multigrid_types{"geometric"};
 
         Real obstacle_radius = Real(0.10);
 
@@ -54,6 +55,7 @@ int main (int argc, char* argv[])
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
+            pp.queryarr("multigrid_types", multigrid_types);
         }
 
 #ifndef AMREX_USE_HYPRE
@@ -266,9 +268,14 @@ int main (int argc, char* argv[])
         amrex::Print() << "******************************************************************** \n" << '\n';
 
         //
-        // Solve div( sigma * grad(phi) ) = RHS
+        // Solve div( sigma * grad(phi) ) = RHS, once per multigrid type
         //
-        nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
+        for (auto const& mgt : multigrid_types) {
+            amrex::Print() << "\nMultigrid type: " << mgt << "\n";
+            nodal_solver.setMultigridType(amrex::getEnumCaseInsensitive<MultigridType>(mgt));
+            phi.setVal(0.0);
+            nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
+        }
 
         amrex::Print() << " \n********************************************************************" << '\n';
         amrex::Print() << " Done solving the equation " << '\n';

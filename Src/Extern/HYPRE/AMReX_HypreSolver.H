@@ -601,6 +601,7 @@ HypreSolver<MSS>::fill_matrix (Filler const& filler)
         }
     }
     HYPRE_IJMatrixAssemble(m_A);
+    m_hypre_ij->setNeedSetup();
 }
 
 template <int MSS>

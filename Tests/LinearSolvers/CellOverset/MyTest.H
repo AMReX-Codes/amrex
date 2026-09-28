@@ -14,6 +14,11 @@ public:
     void initData ();
     void checkOversetCells () const; // public for CUDA device lambdas
 
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    void setMultigridType (std::string const& name);
+
 private:
 
     void readParameters ();
@@ -45,6 +50,9 @@ private:
 
     int do_overset = 1;
     amrex::Vector<amrex::iMultiFab> oversetmask;
+
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
 
 #ifdef AMREX_USE_HYPRE
     int use_hypre = 0;

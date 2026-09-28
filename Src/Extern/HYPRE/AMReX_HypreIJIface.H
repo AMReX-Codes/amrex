@@ -61,6 +61,9 @@ public:
      */
     void solve(HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter);
 
+    //! Call after changing the matrix so the next solve redoes the setup
+    void setNeedSetup () noexcept { m_need_setup = true; }
+
     //! IJ matrix instance
     [[nodiscard]] HYPRE_IJMatrix A() { return m_mat; }
 
@@ -163,8 +166,9 @@ private:
     //! Flag indicating whether the solver/preconditioner has been setup
     bool m_need_setup{true};
 
-    //! Flag indicating whether user has requested recomputation of preconditioner
-    bool m_recompute_preconditioner{true};
+    //! Redo the solver/preconditioner setup on every solve, even when the
+    //! matrix has not changed
+    bool m_recompute_preconditioner{false};
 
     //! Should singular matrix be adjusted to fix solution on a node/cell?
     bool m_adjust_singular_matrix{false};

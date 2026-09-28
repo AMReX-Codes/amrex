@@ -285,6 +285,10 @@ public:
     //! Apply Robin BC terms to the stored coefficients when requested.
     void applyRobinBCTermsCoeffs ();
 
+    [[nodiscard]] MultiFab const* getEBBCoeffs (int amrlev, int mglev) const override {
+        return m_eb_b_coeffs[amrlev][mglev].get();
+    }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     //! Instantiate a Hypre backend using interface selector \p hypre_interface.
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;

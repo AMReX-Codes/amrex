@@ -20,3 +20,5 @@ consolidation = 0
 semicoarsening = 1
 max_semicoarsening_level = 4
 semicoarsening_direction = 1
+
+multigrid_types = algebraic hybrid geometric

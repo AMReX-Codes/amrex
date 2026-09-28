@@ -8,6 +8,7 @@
 
 #include "HYPRE.h"
 #include "_hypre_utilities.h"
+#include "HYPRE_parcsr_ls.h"
 
 #include <memory>
 
@@ -20,6 +21,38 @@
 
 namespace amrex
 {
+
+/**
+ * \brief BoomerAMG defaults.
+ *
+ * GPU builds of HYPRE get HYPRE's recommended GPU options (PMIS coarsening,
+ * extended+i interpolation, l1-Jacobi relaxation in natural order, kept
+ * transposes); CPU builds keep the classical settings.
+ */
+namespace HypreDefaults {
+#ifdef HYPRE_USING_GPU
+    inline constexpr bool gpu = true;
+#else
+    inline constexpr bool gpu = false;
+#endif
+    //! Falgout coarsening with modified classical interpolation
+    inline constexpr bool old_default = !gpu;
+    inline constexpr int coarsen_type = gpu ? 8 : 6;
+    inline constexpr int interp_type = gpu ? 6 : 0;
+    inline constexpr int pmax_elmts = 4;
+    inline constexpr int keep_transpose = gpu ? 1 : 0;
+    inline constexpr int relax_type = gpu ? 18 : 6;
+    inline constexpr int relax_order = gpu ? 0 : 1;
+
+    //! Coarsening, interpolation and transpose options for GPU builds.
+    inline void setGpuOptions (HYPRE_Solver solver)
+    {
+        HYPRE_BoomerAMGSetCoarsenType(solver, coarsen_type);
+        HYPRE_BoomerAMGSetInterpType(solver, interp_type);
+        HYPRE_BoomerAMGSetPMaxElmts(solver, pmax_elmts);
+        HYPRE_BoomerAMGSetKeepTranspose(solver, keep_transpose);
+    }
+}
 
 /**
  * \brief Lightweight base class shared by HYPRE-backed linear solvers,
@@ -142,9 +175,9 @@ protected:
     Geometry geom;
 
     int verbose = 0;
-    bool old_default = true; // Falgout coarsening with modified classical interpolation
-    int relax_type = 6;  // G-S/Jacobi hybrid relaxation
-    int relax_order = 1; // uses C/F relaxation
+    bool old_default = HypreDefaults::old_default;
+    int relax_type = HypreDefaults::relax_type;
+    int relax_order = HypreDefaults::relax_order;
     int num_sweeps = 2;  // Sweeeps on each level
     Real strong_threshold = Real(0.25); // HYPRE default is 0.25
 

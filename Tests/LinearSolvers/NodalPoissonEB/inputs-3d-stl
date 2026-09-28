@@ -18,3 +18,5 @@ max_iter       = 200
 max_fmg_iter   = 0
 reltol         = 1.e-10
 do_plots       = 0
+
+multigrid_types = algebraic hybrid geometric

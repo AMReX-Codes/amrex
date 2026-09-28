@@ -105,11 +105,11 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     }
 }
 
-template <typename Int>
+template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& ncols,
+void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<AlgInt> const& ncols,
                   int i, int j, int k,
-                  Array4<Int const> const& cell_id,
+                  Array4<AlgInt const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
@@ -201,10 +201,10 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& nc
     }
 }
 
-template <typename Int>
+template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_cols (GpuArray<Int,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
-                 Array4<Int const> const& cell_id)
+void habec_cols (GpuArray<AlgInt,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
+                 Array4<AlgInt const> const& cell_id)
 {
     sten[0] = cell_id(i  ,j  ,k  );
     sten[1] = cell_id(i-1,j  ,k  );
@@ -217,10 +217,10 @@ void habec_cols (GpuArray<Int,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
 
 #ifdef AMREX_USE_EB
 
-template <typename Int>
+template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_cols_eb (GpuArray<Int,27>& sten, int i, int j, int k,
-                    Array4<Int const> const& cell_id)
+void habec_cols_eb (GpuArray<AlgInt,27>& sten, int i, int j, int k,
+                    Array4<AlgInt const> const& cell_id)
 {
     sten[0 ] = cell_id(i-1,j-1,k-1);
     sten[1 ] = cell_id(i  ,j-1,k-1);
@@ -251,11 +251,11 @@ void habec_cols_eb (GpuArray<Int,27>& sten, int i, int j, int k,
     sten[26] = cell_id(i+1,j+1,k+1);
 }
 
-template <typename Int>
+template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
+void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<AlgInt> const& ncols,
                      int i, int j, int k,
-                     Array4<Int const> const& cell_id,
+                     Array4<AlgInt const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                      GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
@@ -393,7 +393,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2, bflo;
             detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho);
 
-            Real tmp = (Real(1.0)-fracy)*(1.0-fracz)*area*b[0](i,j,k);
+            Real tmp = (Real(1.0)-fracy)*(Real(1.0)-fracz)*area*b[0](i,j,k);
             // cell(i-1,j,k) is not covered because area > 0
             if (cell_id(i-1,j,k) >= 0) {
                 mat_tmp( 0,0,0) += tmp*f;
