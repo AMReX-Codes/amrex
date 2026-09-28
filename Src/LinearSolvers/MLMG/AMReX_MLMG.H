@@ -699,8 +699,9 @@ public:
     requires (std::same_as<TMF,MultiFab>)
     void configureAlgMG (MLAlgMG& s, bool singular);
 
-    //! Hybrid mode: is it time to give up on the geometric phase?
-    [[nodiscard]] bool hybridShouldSwitch (int iter, RT fine_norminf, RT max_norm,
+    //! Hybrid mode: is it time to give up on the geometric phase? `norms`
+    //! holds the residual norms of the geometric iterations so far.
+    [[nodiscard]] bool hybridShouldSwitch (Vector<RT> const& norms, RT max_norm,
                                            RT best_norm, std::string& reason) const;
 
     [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
@@ -919,10 +920,13 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         }
     }
 #endif
-    // The assembled matrix supports boundary stencils up to third order.
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
+    }
+    // The level-0 algebraic solve needs the operator and the assembled matrix
+    // to match; the matrix supports boundary stencils up to third order.
+    if (multigrid_type != MultigridType::geometric) {
         linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
     }
 
@@ -1004,11 +1008,12 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         bool converged = false;
 
         // Hybrid: keep the best iterate so far, starting with the initial guess.
-        // The switch tests use the finest-level residual.
+        // The switch tests use the residual MLMG reports: the finest level
+        // until it converges, then the composite one.
         Vector<MF> best_sol;
+        Vector<RT> hybrid_norms;
         RT best_norm = resnorm0;
         if (hybrid) {
-            if (namrlevs > 1) { best_norm = ResNormInf(finest_amr_lev); }
             best_sol.resize(namrlevs);
             for (int alev = 0; alev < namrlevs; ++alev) {
                 const IntVect ng = nGrowVect(sol[alev]);
@@ -1064,9 +1069,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
-                if (hybrid && !m_algmg_active && !fine_converged) {
+                if (hybrid && !m_algmg_active) {
+                    hybrid_norms.push_back(composite_norminf);
                     std::string reason;
-                    bool do_switch = hybridShouldSwitch(iter, fine_norminf, max_norm,
+                    bool do_switch = hybridShouldSwitch(hybrid_norms, max_norm,
                                                         best_norm, reason);
                     if (!do_switch && iter+1 == niters) {
                         do_switch = true;
@@ -1077,7 +1083,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                             amrex::Print() << print_ident << "MLMG: " << reason << " after "
                                            << iter+1 << " iterations, switching to AlgMG on AMR level 0\n";
                         }
-                        if (!amrex::isfinite(fine_norminf) || fine_norminf > best_norm) {
+                        if (!amrex::isfinite(composite_norminf) || composite_norminf > best_norm) {
                             for (int alev = 0; alev < namrlevs; ++alev) {
                                 LocalCopy(sol[alev], best_sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
                             }
@@ -1092,8 +1098,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                         niters = iter + 1 + max_iters;
                         continue;
                     }
-                    if (fine_norminf < best_norm) {
-                        best_norm = fine_norminf;
+                    if (composite_norminf < best_norm) {
+                        best_norm = composite_norminf;
                         for (int alev = 0; alev < namrlevs; ++alev) {
                             LocalCopy(best_sol[alev], sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
                         }
@@ -2156,7 +2162,7 @@ MLMGT<MF>::actualBottomSolve ()
     auto bottom_start_time = amrex::second();
 
     ParallelContext::push(linop.BottomCommunicator());
-    struct PopGuard { ~PopGuard () { ParallelContext::pop(); } } pop_guard;
+    struct PopGuard { ~PopGuard () { ParallelContext::pop(); } } pop_guard; // NOLINT(cppcoreguidelines-special-member-functions)
 
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
@@ -2545,7 +2551,8 @@ requires (std::same_as<TMF,MultiFab>)
 void
 MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular)
 {
-    auto& a = s.solver();
+    // Dependent type: AlgMG stays a forward declaration in this header.
+    AlgMG<RT>& a = s.solver();
     a.setVerbose(bottom_verbose);
     a.setPrintIndentation(print_ident + "    ");
     a.setThrowException(throw_exception);
@@ -2627,22 +2634,23 @@ MLMGT<MF>::algmgLevel0Solve ()
 
 template <typename MF>
 bool
-MLMGT<MF>::hybridShouldSwitch (int iter, RT fine_norminf, RT max_norm,
+MLMGT<MF>::hybridShouldSwitch (Vector<RT> const& norms, RT max_norm,
                                RT best_norm, std::string& reason) const
 {
-    if (!amrex::isfinite(fine_norminf)) {
+    RT const rnorm = norms.back();
+    if (!amrex::isfinite(rnorm)) {
         reason = "non-finite residual";
         return true;
     }
-    if (fine_norminf > RT(1.e20)*max_norm ||
-        fine_norminf > hybrid_divergence_factor*best_norm) {
+    if (rnorm > RT(1.e20)*max_norm ||
+        rnorm > hybrid_divergence_factor*best_norm) {
         reason = "diverging";
         return true;
     }
     const int w = hybrid_stall_window;
-    if (w > 0 && iter >= w) {
-        const RT r_old = m_iter_fine_resnorm0[iter-w];
-        if (fine_norminf > std::pow(hybrid_stall_rate, RT(w)) * r_old) {
+    if (w > 0 && int(norms.size()) > w) {
+        const RT r_old = norms[norms.size()-1-w];
+        if (rnorm > std::pow(hybrid_stall_rate, RT(w)) * r_old) {
             reason = "stalling";
             return true;
         }

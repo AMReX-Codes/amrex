@@ -304,15 +304,15 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             if (fracy > Real(0.0)) {
                 tmp = fracy*area*b[0](i,jj,k);
                 // A cut face along the normal limits the boundary stencil to second order.
-                bool const cutc = (apx(i,jj,0) < Real(1.0) || apx(i+1,jj,0) < Real(1.0));
+                bool const cutc1 = (apx(i,jj,0) < Real(1.0) || apx(i+1,jj,0) < Real(1.0));
                 if (cell_id(i-1,jj,k) >= 0 && cell_id(i,jj,k) >= 0) {
                     mat_tmp(-1,joff) -= tmp*f;
                     mat_tmp( 0,joff) += tmp*f;
                 } else if (cell_id(i+1,jj,k) < 0 || apx(i+1,jj,k) == Real(0.0)) {
                     mat_tmp( 0,joff) += tmp*(f+bflo);
                 } else {
-                    mat_tmp( 0,joff) += tmp*(f+(cutc ? bflo : bf1));
-                    mat_tmp( 1,joff) += tmp*(cutc ? Real(0.0) : bf2);
+                    mat_tmp( 0,joff) += tmp*(f+(cutc1 ? bflo : bf1));
+                    mat_tmp( 1,joff) += tmp*(cutc1 ? Real(0.0) : bf2);
                 }
             }
         }
@@ -358,15 +358,15 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             if (fracy > Real(0.0)) {
                 tmp = fracy*area*b[0](i+1,jj,k);
                 // A cut face along the normal limits the boundary stencil to second order.
-                bool const cutc = (apx(i,jj,0) < Real(1.0) || apx(i+1,jj,0) < Real(1.0));
+                bool const cutc1 = (apx(i,jj,0) < Real(1.0) || apx(i+1,jj,0) < Real(1.0));
                 if (cell_id(i,jj,k) >= 0 && cell_id(i+1,jj,k) >= 0) {
                     mat_tmp(0,joff) += tmp*f;
                     mat_tmp(1,joff) -= tmp*f;
                 } else if (cell_id(i-1,jj,k) < 0 || apx(i,jj,k) == Real(0.0)) {
                     mat_tmp(0,joff) += tmp*(f+bflo);
                 } else{
-                    mat_tmp( 0,joff) += tmp*(f+(cutc ? bflo : bf1));
-                    mat_tmp(-1,joff) += tmp*(cutc ? Real(0.0) : bf2);
+                    mat_tmp( 0,joff) += tmp*(f+(cutc1 ? bflo : bf1));
+                    mat_tmp(-1,joff) += tmp*(cutc1 ? Real(0.0) : bf2);
                 }
             }
         }
@@ -412,15 +412,15 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             if (fracx > Real(0.0)) {
                 tmp = fracx*area*b[1](ii,j,k);
                 // A cut face along the normal limits the boundary stencil to second order.
-                bool const cutc = (apy(ii,j,0) < Real(1.0) || apy(ii,j+1,0) < Real(1.0));
+                bool const cutc1 = (apy(ii,j,0) < Real(1.0) || apy(ii,j+1,0) < Real(1.0));
                 if (cell_id(ii,j-1,k) >= 0 && cell_id(ii,j,k) >= 0) {
                     mat_tmp(ioff,-1) -= tmp*f;
                     mat_tmp(ioff, 0) += tmp*f;
                 } else if (cell_id(ii,j+1,k) < 0 || apy(ii,j+1,k) == Real(0.0)) {
                     mat_tmp(ioff,0) += tmp*(f+bflo);
                 } else {
-                    mat_tmp(ioff,0) += tmp*(f+(cutc ? bflo : bf1));
-                    mat_tmp(ioff,1) += tmp*(cutc ? Real(0.0) : bf2);
+                    mat_tmp(ioff,0) += tmp*(f+(cutc1 ? bflo : bf1));
+                    mat_tmp(ioff,1) += tmp*(cutc1 ? Real(0.0) : bf2);
                 }
             }
         }
@@ -466,15 +466,15 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             if (fracx > Real(0.0)) {
                 tmp = fracx*area*b[1](ii,j+1,k);
                 // A cut face along the normal limits the boundary stencil to second order.
-                bool const cutc = (apy(ii,j,0) < Real(1.0) || apy(ii,j+1,0) < Real(1.0));
+                bool const cutc1 = (apy(ii,j,0) < Real(1.0) || apy(ii,j+1,0) < Real(1.0));
                 if (cell_id(ii,j,k) >= 0 && cell_id(ii,j+1,k) >= 0) {
                     mat_tmp(ioff,0) += tmp*f;
                     mat_tmp(ioff,1) -= tmp*f;
                 } else if (cell_id(ii,j-1,k) < 0 || apy(ii,j,k) == Real(0.0)) {
                     mat_tmp(ioff,0) += tmp*(f+bflo);
                 } else {
-                    mat_tmp(ioff, 0) += tmp*(f+(cutc ? bflo : bf1));
-                    mat_tmp(ioff,-1) += tmp*(cutc ? Real(0.0) : bf2);
+                    mat_tmp(ioff, 0) += tmp*(f+(cutc1 ? bflo : bf1));
+                    mat_tmp(ioff,-1) += tmp*(cutc1 ? Real(0.0) : bf2);
                 }
             }
         }

@@ -166,9 +166,6 @@ MyTest::solvePoisson ()
 
             MLMG mlmg(mlpoisson);
             configureMLMG(mlmg);
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -302,9 +299,6 @@ MyTest::solveABecLaplacian ()
 
             MLMG mlmg(mlabec);
             configureMLMG(mlmg);
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -434,9 +428,6 @@ MyTest::solveABecLaplacianInhomNeumann ()
 
             MLMG mlmg(mlabec);
             configureMLMG(mlmg);
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -493,9 +484,6 @@ MyTest::solveNodeABecLaplacian ()
 
             MLMG mlmg(mlndabec);
             configureMLMG(mlmg);
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
 
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }

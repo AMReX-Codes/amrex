@@ -315,6 +315,7 @@ public :
                        Real* mat) const override;
 #endif
 
+    [[nodiscard]] bool supportsAlgMG () const override { return true; }
     void fillAlgMatrix (int mglev, MFIter const& mfi,
                         Array4<Long const> const& gid,
                         Array4<int const> const& lid,

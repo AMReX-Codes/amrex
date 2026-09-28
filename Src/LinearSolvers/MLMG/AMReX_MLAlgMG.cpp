@@ -20,6 +20,32 @@
 namespace amrex {
 
 namespace {
+    // A periodic direction two cells wide at this level gives a row two
+    // entries with the same column. Sum them and invalidate the second.
+    void mergeDuplicateColumns (Gpu::DeviceVector<Real>& mat, Gpu::DeviceVector<Long>& cols,
+                                Gpu::DeviceVector<Long> const& row_offset, Long nrows)
+    {
+        Real* AMREX_RESTRICT pm = mat.data();
+        Long* AMREX_RESTRICT pc = cols.data();
+        Long const* AMREX_RESTRICT ro = row_offset.data();
+        ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long r) noexcept
+        {
+            for (Long a = ro[r]; a < ro[r+1]; ++a) {
+                if (pc[a] < 0) { continue; }
+                for (Long b = a+1; b < ro[r+1]; ++b) {
+                    if (pc[b] == pc[a]) {
+                        pm[a] += pm[b];
+                        pm[b] = Real(0.0);
+                        pc[b] = -1;
+                    }
+                }
+            }
+        });
+        Gpu::streamSynchronize();
+    }
+}
+
+namespace {
 
 // Rank-contiguous row numbering from per-rank counts.
 AlgPartition make_partition (Long nrows_proc)
@@ -281,8 +307,10 @@ MLAlgMG::Impl::assembleNodal (MLNodeLinOp const& linop)
     AMREX_HOST_DEVICE_FOR_1D(1, i, { amrex::ignore_unused(i); *last = total; });
     Gpu::streamSynchronize();
 
+    mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+
     m_A.define(m_part, mat.data(), cols.data(), nnz, row_offset.data(),
-               CsrSorted{false}, CsrValid{true});
+               CsrSorted{false}, CsrValid{false});
 }
 
 MLAlgMG::MLAlgMG (int mglev, BoxArray const& grids, DistributionMapping const& dmap,
@@ -559,6 +587,8 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
     ParallelFor(1, [=] AMREX_GPU_DEVICE (Long) noexcept { *last = nentries; });
     Gpu::streamSynchronize();
 
+    mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+
     m_A.define(m_part, mat.data(), cols.data(), nentries, row_offset.data(),
                CsrSorted{false}, CsrValid{false});
 }
@@ -631,6 +661,7 @@ MLAlgMG::Impl::getSolution (MultiFab& soln)
         // Shared nodes that this rank does not own get the owner's value.
         soln.ParallelAdd(m_tmp, 0, 0, 1, m_geom.periodicity());
     } else {
+        soln.setBndry(Real(0.0));
         for (MFIter mfi(m_gid, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
             auto const& s = soln.array(mfi);

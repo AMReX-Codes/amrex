@@ -340,11 +340,8 @@ public:
     //! This is the preconditioner used by the Krylov solver; usable
     //! stand-alone after the first solve or setup.
     void precond (AlgVector<T>& x, AlgVector<T> const& b);
-    //! Coarsest-level solver (see BottomSolver). Default direct: the
-    //! coarsest matrix is gathered and factored on every process, which
-    //! resolves the near-null modes of nearly singular problems that
-    //! smoother sweeps leave behind. Falls back to smoother sweeps when the
-    //! coarsest level has more than 1024 rows.
+    //! Coarsest-level solver (see BottomSolver). Default direct, which uses
+    //! smoother sweeps instead beyond setMaxDirectSize rows.
     void setBottomSolver (BottomSolver bs) {
         m_bottom_solver = bs;
         m_gmres.reset();
@@ -353,7 +350,11 @@ public:
     }
     void setBottomTol (T t) { m_bottom_reltol = t; }
     //! Largest coarsest level solved directly (1024); smoother sweeps beyond.
-    void setMaxDirectSize (Long n) { m_max_direct_size = n; m_bottom_n = -1; }
+    void setMaxDirectSize (Long n) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= 32768, "AlgMG::setMaxDirectSize: at most 32768");
+        m_max_direct_size = n;
+        m_bottom_n = -1;
+    }
     void setBottomMaxIter (int n) { m_bottom_maxiter = n; }
     void setBottomVerbose (int v) { m_bottom_verbose = v; }
     void setThrowException (bool b) { m_throw_exception = b; }
