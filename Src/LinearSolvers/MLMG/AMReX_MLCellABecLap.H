@@ -131,6 +131,7 @@ public:
     [[nodiscard]] virtual MF const* getEBBCoeffs (int /*amrlev*/, int /*mglev*/) const { return nullptr; }
 
     [[nodiscard]] std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const override;
+    [[nodiscard]] bool supportsAlgMG () const override { return std::is_same_v<MF,MultiFab>; }
 
     //! Unit `b` coefficients with the metric factors (RZ, spherical) for the
     //! matrix assembly of operators without `b` coefficients.

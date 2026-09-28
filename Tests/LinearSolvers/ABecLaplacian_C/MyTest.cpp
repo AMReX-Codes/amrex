@@ -71,6 +71,20 @@ MyTest::solve ()
 }
 
 void
+MyTest::configureMLMG (MLMG& mlmg) const
+{
+    mlmg.setMaxIter(max_iter);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
+    if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
+    if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
+    }
+}
+
+void
 MyTest::solvePoisson ()
 {
     LPInfo info;
@@ -111,15 +125,7 @@ MyTest::solvePoisson ()
         }
 
         MLMG mlmg(mlpoisson);
-        mlmg.setMaxIter(max_iter);
-        mlmg.setMaxFmgIter(max_fmg_iter);
-        mlmg.setVerbose(verbose);
-        mlmg.setBottomVerbose(bottom_verbose);
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
+        configureMLMG(mlmg);
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -159,20 +165,7 @@ MyTest::solvePoisson ()
             mlpoisson.setLevelBC(0, &solution[ilev]);
 
             MLMG mlmg(mlpoisson);
-            mlmg.setMaxIter(max_iter);
-            mlmg.setMaxFmgIter(max_fmg_iter);
-            mlmg.setVerbose(verbose);
-            mlmg.setBottomVerbose(bottom_verbose);
-            mlmg.setMultigridType(multigrid_type);
-            if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-            if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
+            configureMLMG(mlmg);
         if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
             mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
         }
@@ -254,15 +247,7 @@ MyTest::solveABecLaplacian ()
         }
 
         MLMG mlmg(mlabec);
-        mlmg.setMaxIter(max_iter);
-        mlmg.setMaxFmgIter(max_fmg_iter);
-        mlmg.setVerbose(verbose);
-        mlmg.setBottomVerbose(bottom_verbose);
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
+        configureMLMG(mlmg);
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -316,20 +301,7 @@ MyTest::solveABecLaplacian ()
             mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
             MLMG mlmg(mlabec);
-            mlmg.setMaxIter(max_iter);
-            mlmg.setMaxFmgIter(max_fmg_iter);
-            mlmg.setVerbose(verbose);
-            mlmg.setBottomVerbose(bottom_verbose);
-            mlmg.setMultigridType(multigrid_type);
-            if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-            if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
+            configureMLMG(mlmg);
         if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
             mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
         }
@@ -405,15 +377,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
         }
 
         MLMG mlmg(mlabec);
-        mlmg.setMaxIter(max_iter);
-        mlmg.setMaxFmgIter(max_fmg_iter);
-        mlmg.setVerbose(verbose);
-        mlmg.setBottomVerbose(bottom_verbose);
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
+        configureMLMG(mlmg);
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -469,20 +433,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
             mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
             MLMG mlmg(mlabec);
-            mlmg.setMaxIter(max_iter);
-            mlmg.setMaxFmgIter(max_fmg_iter);
-            mlmg.setVerbose(verbose);
-            mlmg.setBottomVerbose(bottom_verbose);
-            mlmg.setMultigridType(multigrid_type);
-            if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-            if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
+            configureMLMG(mlmg);
         if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
             mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
         }
@@ -541,20 +492,7 @@ MyTest::solveNodeABecLaplacian ()
             mlndabec.setBCoeffs(0, bcoef[ilev]);
 
             MLMG mlmg(mlndabec);
-            mlmg.setMaxIter(max_iter);
-            mlmg.setMaxFmgIter(max_fmg_iter);
-            mlmg.setVerbose(verbose);
-            mlmg.setBottomVerbose(bottom_verbose);
-            mlmg.setMultigridType(multigrid_type);
-            if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-            if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
-        }
-        mlmg.setMultigridType(multigrid_type);
-        if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
+            configureMLMG(mlmg);
         if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
             mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
         }

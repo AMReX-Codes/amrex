@@ -37,6 +37,7 @@ private:
     void solveABecLaplacianInhomNeumann ();
     void solveNodeABecLaplacian ();
     void solveABecLaplacianGMRES ();
+    void configureMLMG (amrex::MLMG& mlmg) const;
 
 #ifdef AMREX_USE_HYPRE
     void solveMLHypre ();

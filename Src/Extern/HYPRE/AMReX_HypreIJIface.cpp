@@ -251,7 +251,7 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
 
     pp.queryAdd("hypre_solver", m_solver_name);
     pp.queryAdd("hypre_preconditioner", m_preconditioner_name);
-    pp.queryAdd("recompute_preconditioner", m_recompute_preconditioner);
+    pp.query("recompute_preconditioner", m_recompute_preconditioner);
     pp.queryAdd("write_matrix_files", m_write_files);
     pp.queryAdd("overwrite_existing_matrix_files", m_overwrite_files);
     pp.queryAdd("adjust_singular_matrix", m_adjust_singular_matrix);

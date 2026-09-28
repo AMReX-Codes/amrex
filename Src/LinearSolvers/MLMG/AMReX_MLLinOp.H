@@ -757,6 +757,9 @@ public:
         return {nullptr};
     }
 
+    //! True if makeAlgMG is implemented for this operator.
+    [[nodiscard]] virtual bool supportsAlgMG () const { return false; }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     /**
      * \brief Build a Hypre backend using the requested interface.

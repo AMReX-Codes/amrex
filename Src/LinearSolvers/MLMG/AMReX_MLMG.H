@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 #include <AMReX_Enum.H>
 
-#include <AMReX_AlgMG.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
@@ -922,6 +921,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 #endif
     // The assembled matrix supports boundary stencils up to third order.
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
+            "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
         linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
     }
 
@@ -2155,6 +2156,7 @@ MLMGT<MF>::actualBottomSolve ()
     auto bottom_start_time = amrex::second();
 
     ParallelContext::push(linop.BottomCommunicator());
+    struct PopGuard { ~PopGuard () { ParallelContext::pop(); } } pop_guard;
 
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
@@ -2255,8 +2257,6 @@ MLMGT<MF>::actualBottomSolve ()
             postCG(ret);
         }
     }
-
-    ParallelContext::pop();
 
     if (! timer.empty()) {
         timer[bottom_time] += amrex::second() - bottom_start_time;

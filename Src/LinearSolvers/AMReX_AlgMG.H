@@ -352,6 +352,8 @@ public:
         m_bottom_n = -1;
     }
     void setBottomTol (T t) { m_bottom_reltol = t; }
+    //! Largest coarsest level solved directly (1024); smoother sweeps beyond.
+    void setMaxDirectSize (Long n) { m_max_direct_size = n; m_bottom_n = -1; }
     void setBottomMaxIter (int n) { m_bottom_maxiter = n; }
     void setBottomVerbose (int v) { m_bottom_verbose = v; }
     void setThrowException (bool b) { m_throw_exception = b; }
@@ -411,7 +413,7 @@ private:
     BottomSolver m_bottom_solver = BottomSolver::direct;
     // Dense LU on every process. Beyond this size smoother sweeps are
     // used, which keeps the cycle linear for the PCG and GMRES accelerators.
-    static constexpr Long max_direct_size = 1024;
+    Long m_max_direct_size = 1024;
     Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
     Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
     Vector<int> m_bottom_piv;
@@ -1074,8 +1076,8 @@ void AlgMG<T>::build_direct_bottom ()
     m_bottom_n = 0;
     m_bottom_lu.clear();
     m_bottom_piv.clear();
-    if (n < 1 || n > max_direct_size) {
-        if (m_verbose >= 1 && n > max_direct_size) {
+    if (n < 1 || n > m_max_direct_size) {
+        if (m_verbose >= 1 && n > m_max_direct_size) {
             amrex::Print() << m_print_ident << "AlgMG: coarsest level has " << n
                            << " rows, using smoother sweeps instead of the direct bottom solver\n";
         }
@@ -1132,7 +1134,11 @@ void AlgMG<T>::build_direct_bottom ()
         for (auto& v : dense) { v += w; }
     }
 
-    // LU with partial pivoting, in place (Doolittle).
+    // LU with partial pivoting, in place (Doolittle). A pivot at roundoff
+    // level relative to the matrix means a singular matrix.
+    double amat = 0.0;
+    for (auto v : dense) { amat = std::max(amat, std::abs(v)); }
+    double const pivot_tol = double(n) * std::numeric_limits<double>::epsilon() * amat;
     Vector<int> piv(n);
     std::iota(piv.begin(), piv.end(), 0);
     for (Long i = 0; i < n; ++i) {
@@ -1142,7 +1148,7 @@ void AlgMG<T>::build_direct_bottom ()
             double const a = std::abs(dense[k*n+i]);
             if (a > amax) { amax = a; imax = k; }
         }
-        if (amax < std::numeric_limits<double>::min()) {
+        if (amax <= pivot_tol) {
             if (m_verbose >= 1) {
                 amrex::Print() << m_print_ident << "AlgMG: coarsest matrix is singular, "
                                << "using smoother sweeps instead of the direct bottom solver\n";

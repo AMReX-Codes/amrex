@@ -25,6 +25,9 @@ namespace amrex::detail {
         } else if (bct == AMREX_LO_NEUMANN) {
             bf1 = -fac;
             bf2 = Real(0.0);
+        } else if (bct == AMREX_LO_REFLECT_ODD) {
+            bf1 = fac; // ghost = -interior
+            bf2 = Real(0.0);
         } else {
             bf1 = bf2 = Real(0.0);
             AMREX_ASSERT_WITH_MESSAGE(false,"hpmat: unsupported boundary type");
@@ -49,6 +52,10 @@ namespace amrex::detail {
         } else if (bct == AMREX_LO_NEUMANN) {
             bflo = -fac;
             bf1 = -fac;
+            bf2 = Real(0.0);
+        } else if (bct == AMREX_LO_REFLECT_ODD) {
+            bflo = fac; // ghost = -interior
+            bf1 = fac;
             bf2 = Real(0.0);
         } else {
             bf1 = bf2 = bflo = Real(0.0);

@@ -226,6 +226,7 @@ public:
 
 #if (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const override;
+    [[nodiscard]] bool supportsAlgMG () const override { return true; }
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
