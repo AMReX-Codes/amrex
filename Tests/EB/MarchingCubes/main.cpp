@@ -357,8 +357,7 @@ void validate_cell_topology_rejection ()
 
             GpuArray<int, MC::num_cell_data_components> cell_data{};
             Gpu::dtoh_memcpy(cell_data.data(), result.m_cell_data.dataPtr(), sizeof(cell_data));
-            int rejected_flag = 0;
-            Gpu::dtoh_memcpy(&rejected_flag, rejected.dataPtr(), sizeof(int));
+            int const rejected_flag = rejected.sum<RunOn::Device>(0);
             AMREX_ALWAYS_ASSERT(fab_counter(counters, MC::counter_invalid_triangles) == 0);
 
             bool fluid[8];
