@@ -20,12 +20,7 @@ using namespace amrex;
 
 namespace {
 
-/**
- * Host-only sphere implicit function.  It is deliberately not GPU-callable so
- * that the generic marching-cubes adapters exercise their RunOn::Cpu path
- * (pinned staging of fillFab/getIntercept), the same way a user-defined
- * host functor would.
- */
+// Host-only sphere, so that the marching-cubes adapters take the RunOn::Cpu path.
 struct HostSphereIF
 {
     Real m_radius;
@@ -43,12 +38,7 @@ struct HostSphereIF
     }
 };
 
-/**
- * Union of two overlapping spheres (fluid outside) with the implicit function
- * multiplied by an arbitrary scale.  The marching-cubes reconstruction,
- * including its ambiguous-face decisions and the nodal repair, must not depend
- * on the units of the implicit function.
- */
+// Union of two overlapping spheres (fluid outside), scaled by m_scale.
 struct ScaledTwoSphereIF : amrex::GPUable
 {
     Real m_scale;
@@ -59,7 +49,6 @@ struct ScaledTwoSphereIF : amrex::GPUable
         constexpr Real offset = 0.35_rt;
         Real const d1 = std::sqrt((x-offset)*(x-offset) + y*y + z*z);
         Real const d2 = std::sqrt((x+offset)*(x+offset) + y*y + z*z);
-        // Positive inside the body (EB2 convention), fluid outside.
         return m_scale*amrex::max(radius-d1, radius-d2);
     }
 
@@ -69,11 +58,8 @@ struct ScaledTwoSphereIF : amrex::GPUable
     }
 };
 
-/**
- * Coarsely resolved high-frequency gyroid (fluid outside).  Its saddles produce
- * MC33 case-4/10 cells, so the interior (tunnel) test and the nodal repair of
- * tunnel cells are exercised; both must be independent of the scale.
- */
+// Under-resolved gyroid (fluid outside) whose saddles produce MC33 case-4/10
+// (tunnel) cells.
 struct ScaledGyroidIF : amrex::GPUable
 {
     Real m_scale;
@@ -91,10 +77,8 @@ struct ScaledGyroidIF : amrex::GPUable
     }
 };
 
-//! Implicit-function factories for check_scale_invariance().  These are named
-//! types rather than function-local lambdas because nvcc rejects an extended
-//! __device__ lambda inside a function template instantiated with a type local
-//! to a function.
+// Named types rather than lambdas: nvcc rejects an extended __device__ lambda
+// in a function template instantiated with a function-local type.
 struct MakeTwoSphereShop
 {
     auto operator() (Real scale) const { return EB2::makeShop(ScaledTwoSphereIF{{}, scale}); }
@@ -105,9 +89,8 @@ struct MakeGyroidShop
     auto operator() (Real scale) const { return EB2::makeShop(ScaledGyroidIF{{}, scale}); }
 };
 
-//! Build \p make_shop(scale) with the implicit function scaled by 1e-6, 1 and
-//! 1e6 (and once with a different EB2 box size) and require the same fluid
-//! volume and repaired-node count.
+// The fluid volume and repaired-node count must not depend on the scale of
+// the implicit function or on eb2.max_grid_size.
 template <class MakeShop>
 void check_scale_invariance (std::string const& name, int ncell, MakeShop const& make_shop)
 {
@@ -118,8 +101,6 @@ void check_scale_invariance (std::string const& name, int ncell, MakeShop const&
     ba.maxSize(16);
     DistributionMapping const dm(ba);
 
-    // {scale of the implicit function, EB2 box size used for the build}: the
-    // reconstruction must not depend on either.
     struct Variant { Real scale; int eb_max_grid_size; };
     Variant const variants[] = {{.scale = 1.e-6_rt, .eb_max_grid_size = 16},
                                 {.scale = 1.0_rt, .eb_max_grid_size = 16},
@@ -150,9 +131,7 @@ void check_scale_invariance (std::string const& name, int ncell, MakeShop const&
         amrex::Print() << name << ": scale " << scale << ", eb2.max_grid_size "
                        << eb_max_grid_size << ": fluid volume " << volume
                        << ", zero level-set nodes " << global_zero_nodes << "\n";
-        // The variants share every sign decision, so only the root finding
-        // (scale) and the summation order (decomposition) may differ at
-        // roundoff level.
+        // Only root finding and summation order may differ, at roundoff level.
         if (reference_volume < 0.0_rt) {
             reference_volume = volume;
             reference_zero_nodes = global_zero_nodes;
@@ -174,8 +153,7 @@ void check_scale_invariance (std::string const& name, int ncell, MakeShop const&
 void validate_scale_invariance ()
 {
     check_scale_invariance("two spheres", 48, MakeTwoSphereShop{});
-    // Tunnel-rich, badly under-resolved geometry: needs the nodal repair and
-    // takes a long cascade of repair passes.
+    // The gyroid needs many nodal repair passes.
     ParmParse ppeb2("eb2");
     int cover_multiple_cuts = 0;
     int maxiter = 32;
@@ -188,7 +166,6 @@ void validate_scale_invariance ()
     ppeb2.add("maxiter", maxiter);
 }
 
-//! A zeroed marching-cubes counter block for one FAB.
 Gpu::Buffer<int> make_fab_counters ()
 {
     Gpu::Buffer<int> counters(MC::num_fab_counters);
@@ -197,7 +174,6 @@ Gpu::Buffer<int> make_fab_counters ()
     return counters;
 }
 
-//! Level-wide sum of one counter after copying the block to the host.
 int fab_counter (Gpu::Buffer<int>& counters, MC::FabCounter which)
 {
     counters.copyToHost();
@@ -324,16 +300,9 @@ void validate_mc33_vertex_indices ()
     }
 }
 
-/**
- * A single-valued cell may hold exactly one face-connected fluid region.  For
- * every corner-sign mask and several magnitude patterns (chosen so that the
- * MC33 face and interior tests take both branches, including the 4.1.2 /
- * 10.1.2 tunnel tilings), run the extraction and the cell rejection rule and
- * check that a cell is rejected exactly when its fluid corners form more than
- * one group under cube-edge adjacency plus MC33-resolved connected ambiguous
- * faces.  In particular every tunnel (one connected surface patch joining two
- * corner groups through the interior) must be rejected.
- */
+// A cell must be rejected exactly when its fluid corners form more than one
+// group, joined along cube edges and across MC33-connected ambiguous faces.
+// In particular every tunnel tiling (4.1.2, 10.1.2) must be rejected.
 void validate_cell_topology_rejection ()
 {
     Box const cell_box(IntVect(0), IntVect(0));
@@ -348,13 +317,12 @@ void validate_cell_topology_rejection ()
 
     unsigned int seed = 12345U;
     auto next_magnitude = [&seed] () {
-        seed = seed * 1664525U + 1013904223U;              // LCG, deterministic
+        seed = seed * 1664525U + 1013904223U;
         return 0.05_rt + 3.0_rt * static_cast<Real>(seed >> 8) / 16777216.0_rt;
     };
 
-    // Every mask a few times, plus many draws of the MC33 case-4 masks (two
-    // body-diagonal fluid corners), whose interior test selects the 4.1.2
-    // tunnel for roughly one draw in a hundred.
+    // Every mask, plus many draws of the MC33 case-4 masks, whose interior
+    // test selects the 4.1.2 tunnel for roughly one draw in a hundred.
     constexpr int case4_masks[8] = {65, 130, 20, 40, 190, 125, 235, 215};
     auto configurations = [&] (int trial, int slot) {
         return trial < 24 ? slot + 1 : case4_masks[slot % 8];
@@ -380,7 +348,7 @@ void validate_cell_topology_rejection ()
             auto counters = make_fab_counters();
             MC::marching_cubes(geom, sdf, result, counters.data());
             FArrayBox vfrac(cell_box, 1);
-            vfrac.setVal<RunOn::Device>(0.5_rt);      // no small-cell or sentinel rejection
+            vfrac.setVal<RunOn::Device>(0.5_rt);
             IArrayBox rejected(cell_box, 1);
             rejected.setVal<RunOn::Device>(0);
             MC::mark_cells_for_cleanup(cell_box, result, sdf, vfrac, 0.0_rt, rejected,
@@ -393,8 +361,6 @@ void validate_cell_topology_rejection ()
             Gpu::dtoh_memcpy(&rejected_flag, rejected.dataPtr(), sizeof(int));
             AMREX_ALWAYS_ASSERT(fab_counter(counters, MC::counter_invalid_triangles) == 0);
 
-            // Reference: fluid corner groups joined along edges and across
-            // ambiguous faces whose stored MC33 decision is "connected".
             bool fluid[8];
             for (int n = 0; n < 8; ++n) { fluid[n] = values[n] > 0.0_rt; }
             int parent[8];
@@ -537,7 +503,6 @@ void validate_exact_ambiguous_face_fraction ()
         std::abs(area - 0.23_rt) < 64.0_rt * std::numeric_limits<Real>::epsilon(),
         "Ambiguous MC face fraction did not use exact STL edge crossings");
 
-    // Reuse centroids without reinterpreting them as normalized crossings.
     // The other MC33 resolution has one connected fluid aperture.
     ParallelFor(cell_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         cell_data(i, j, k, MC::face_fluid_connected_mask) = 1 << 4;
@@ -662,8 +627,7 @@ void validate_narrow_band_levelset ()
                 Real const lo = band(i, j, k);
                 Real const hi = band(i + di, j + dj, k + dk);
                 Real const refined = crossing(i, j, k);
-                // Edges without an exact STL crossing keep the sentinel; a
-                // sign-changing edge inside the band must always have one.
+                // A sign-changing edge inside the band must have an exact crossing.
                 if ((lo > 0.0_rt) != (hi > 0.0_rt)) {
                     if (refined == MC::invalid_edge_intersection) {
                         Gpu::Atomic::AddNoRet(error + 4, static_cast<Long>(1));
@@ -809,13 +773,9 @@ void main_main ()
         pp.query("build_coarse_level_by_coarsening", build_coarse_level_by_coarsening);
         pp.query("custom_stl_test", custom_stl_test);
         pp.query("narrow_band_test", narrow_band_test);
-        // Build through the C++ API with an explicit GeometryShop instead of
-        // the ParmParse-driven EB2::Build: "sphere" (GPU-callable SphereIF) or
-        // "host_sphere" (host-only functor).
+        // "sphere" or "host_sphere": build from a GeometryShop.
         pp.query("api_build", api_build);
-        // With api_build, also build every coarse level directly from the
-        // GeometryShop (EB2::Build overload taking a Vector<Geometry>) instead
-        // of coarsening the fine level.
+        // Build every coarse level from the GeometryShop instead of coarsening.
         pp.query("api_all_levels", api_all_levels);
         std::vector<Real> prob_lo{xmin, ymin, zmin};
         std::vector<Real> prob_hi{xmax, ymax, zmax};
@@ -840,7 +800,6 @@ void main_main ()
             eb_method == "legacy" || eb_method == "marching_cubes",
             "eb2.geometry_method must be legacy or marching_cubes");
 
-        // Analytic solid volume for the geometry types the test knows.
         if (!api_build.empty() || geom_type == "sphere") {
             Real radius = 0.5_rt;
             ppeb2.queryAdd("sphere_radius", radius);
@@ -951,7 +910,6 @@ void main_main ()
     }
     std::string mc_stl_file;
     if (ParmParse("eb2").query("mc_stl_file", mc_stl_file) && eb_method == "marching_cubes") {
-        // The file holds the converged triangulation of the finest level.
         Long facets = 0;
         if (ParallelDescriptor::IOProcessor()) {
             std::ifstream ifs(mc_stl_file);
@@ -1099,11 +1057,8 @@ void main_main ()
     ParallelAllReduce::Sum(global_levelset_errors.data(),
                            static_cast<int>(global_levelset_errors.size()),
                            ParallelContext::CommunicatorSub());
-    // The legacy generator repairs the level set independently in every FAB
-    // and the exported level set takes an arbitrary owner on shared nodes.
-    // Without deterministic floating point (-ffast-math) two FABs can round
-    // the same borderline cell differently, so cross-FAB agreement of the
-    // exported signs is only guaranteed for the marching-cubes generator.
+    // With -ffast-math the legacy generator can round a borderline cell
+    // differently in two FABs sharing a node, so skip its sign checks.
 #ifdef __FAST_MATH__
     bool const check_levelset_signs = (eb_method == "marching_cubes");
 #else
@@ -1223,11 +1178,8 @@ void main_main ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         global_topology_counts[5] == 0,
         "EB boundary normals disagree with repaired face-aperture closure");
-    // A single-valued cell with unit volume and a nonzero boundary area owns
-    // an EB patch coincident with one of its faces or nodes.  This state only
-    // arises when the surface passes exactly through grid nodes, either
-    // because the geometry does (allow_full_volume_cut_cells = 1) or because
-    // the nodal repair moved nodes onto the surface.
+    // Full-volume cut cells only arise when the surface passes exactly through
+    // grid nodes, either by construction or after nodal repair.
     if (!allow_full_volume_cut_cells && repaired_nodes == 0) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             global_topology_counts[4] == 0,

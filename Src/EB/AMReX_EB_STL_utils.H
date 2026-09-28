@@ -80,7 +80,7 @@ public:
         m_bvh_optimization = flag;
     }
 
-    //! Select the strict STL contract required by the marching-cubes builder.
+    //! Enable marching cubes, which requires a closed, consistently oriented STL.
     void setUseMarchingCubes (bool flag) noexcept { m_use_marching_cubes = flag; }
     [[nodiscard]] bool usesMarchingCubes () const noexcept {
         return m_use_marching_cubes;
@@ -129,19 +129,15 @@ public:
     /**
      * \brief Fill the nodal scalar field used by the marching-cubes builder.
      *
-     * Exact STL distances are evaluated only in the two-node band needed by
-     * cut-cell interpolation and vertex-normal stencils.  Away from that
-     * band, the field retains unit-magnitude inside/outside values.
+     * Exact distances are computed only near the surface; elsewhere the
+     * field holds +1 outside and -1 inside the STL.
      */
     void fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
                                     Geometry const& geom) const;
 
     /**
-     * \brief Cache exact normalized Cartesian-edge crossings for MC geometry.
-     *
-     * The cache is evaluated against the original triangles rather than the
-     * sampled signed-distance field. It remains valid through the monotone
-     * nodal cleanup used by marching cubes.
+     * \brief Fill \p edges with the normalized positions where cell edges
+     * cross the STL surface, computed from the triangles themselves.
      */
     void fillMarchingCubesEdgeIntersections (
         FArrayBox const& levelset, Geometry const& geom,

@@ -57,8 +57,7 @@ bool ExtendDomainFace ()
 
 GeometryMethod GetGeometryMethod ()
 {
-    // Queried at build time rather than in Initialize so that parameters set
-    // programmatically after amrex::Initialize are honored.
+    // Not cached in Initialize so that parameters set after it are honored.
     ParmParse pp("eb2");
     std::string method_name("legacy");
     pp.queryAdd("geometry_method", method_name);

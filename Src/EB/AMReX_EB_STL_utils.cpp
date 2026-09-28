@@ -84,14 +84,12 @@ namespace {
             scale > 0.0_rt,
             "Marching-cubes STL has a zero-size bounding box");
         Real const epsilon = std::numeric_limits<Real>::epsilon();
-        // Squaring the coordinate resolution gives the smallest meaningful
-        // cross-product scale.  A larger multiplier rejects valid, very small
-        // facets after otherwise representable single-precision conversion.
+        // Squared coordinate resolution is the smallest meaningful
+        // cross-product scale; a larger multiplier rejects valid tiny facets.
         Real const area_tolerance = epsilon*epsilon*scale*scale;
 
-        // Vertices are welded only when their coordinates are bit-identical
-        // after scaling and centering; a file whose shared vertices differ in
-        // the last digit is reported as open below, with the coordinates.
+        // Vertices are welded only when bit-identical after scaling and
+        // centering, so near-duplicate vertices are reported as open edges.
         std::unordered_map<STLVertexKey,int,STLVertexKeyHash> vertex_ids;
         std::unordered_map<std::pair<int,int>,std::pair<int,int>,STLEdgeKeyHash> edges;
         vertex_ids.reserve(triangles.size()*3);
@@ -866,10 +864,9 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
     }
     int max_dir = (centmax-centmin).maxDir(false);
     {
-        // Sort by precomputed centroid keys.  Recomputing Triangle::cent()
-        // inside the comparator is not a strict weak ordering under
-        // fast-math (the sum can be re-associated differently at different
-        // call sites), which lets std::sort run out of bounds.
+        // Sort by precomputed centroids: recomputing Triangle::cent() in the
+        // comparator is not a strict weak ordering under fast-math, which can
+        // make std::sort run out of bounds.
         Vector<std::pair<Real,int>> keys(ntri);
         for (int i = 0; i < ntri; ++i) {
             keys[i] = std::make_pair(begin[i].cent(max_dir), i);
@@ -1558,9 +1555,8 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
         nghost.allGE(IntVect(1)) && mf.nGrowVect().allGE(nghost),
         "Marching-cubes STL sampling requires at least one nodal ghost cell");
 
-    // The sign is sufficient in regular/covered regions.  Canonicalize it
-    // before constructing the band so every FAB makes the same decision at a
-    // shared node.
+    // The sign suffices away from the surface. Sync it before building the
+    // band so every FAB makes the same decision at a shared node.
     this->fill(mf, nghost, geom, 1.0_rt, -1.0_rt);
     mf.OverrideSync(geom.periodicity());
     mf.FillBoundary(geom.periodicity());
@@ -1568,10 +1564,7 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
     FabArray<BaseFab<char>> exact_band(
         mf.boxArray(), mf.DistributionMap(), 1, nghost);
 
-    // A radius-one sign search includes every corner of a mixed cell.  A byte
-    // mask preserves the level-wide kernel batching while using one quarter of
-    // the old integer-mask storage.
-
+    // A radius-one sign search includes every corner of a mixed cell.
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         Box const bx = mf[mfi].box();
         int const ilo = bx.smallEnd(0);
@@ -1582,7 +1575,7 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
         int const khi = bx.bigEnd(2);
         auto const phi = mf.const_array(mfi);
         auto const band = exact_band.array(mfi);
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             bool const fluid = phi(i, j, k) > 0.0_rt;
             bool mixed = false;
             for (int kk = amrex::max(k - 1, klo); kk <= amrex::min(k + 1, khi) && !mixed; ++kk) {
@@ -1616,7 +1609,7 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
         Box const bx = mf[mfi].box();
         auto const phi = mf.array(mfi);
         auto const band = exact_band.const_array(mfi);
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             if (band(i, j, k) == 0) {
                 return;
             }

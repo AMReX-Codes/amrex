@@ -44,12 +44,11 @@ template <typename G> class GShopLevel;
 template <typename G> class IndexSpaceImp;
 
 /**
- * \brief Fine-level EB geometry generator.
+ * \brief EB geometry generator.
  *
- * `legacy` is the original EB2 cut-cell construction.  `marching_cubes` builds
- * single-valued cut cells from a marching-cubes (MC33) surface and is available
- * for every geometry source (implicit functions, parser expressions, and STL)
- * in 3D on Cartesian grids with cubic cells.
+ * `legacy` is the default EB2 cut-cell construction.  `marching_cubes` builds
+ * single-valued cut cells from a marching-cubes (MC33) surface; it works with
+ * every geometry source but requires 3D Cartesian grids with cubic cells.
  */
 enum class GeometryMethod : int {
     legacy = 0,
@@ -59,7 +58,7 @@ enum class GeometryMethod : int {
 //! Generator selected at runtime by `eb2.geometry_method` (default `legacy`).
 GeometryMethod GetGeometryMethod ();
 
-//! Runtime parameters shared by the small-cell/multi-cut repair loops.
+//! Runtime parameters for the small-cell and multi-cut repair.
 struct RepairParameters
 {
     Real small_volfrac;
@@ -344,11 +343,7 @@ public:
 
 #if (AMREX_SPACEDIM == 3)
     /**
-     * \brief Define data for the finest level with the marching-cubes generator (3-D only).
-     *
-     * Works with any geometry source: STLtools supplies its own MC sampling,
-     * while GeometryShop implicit functions go through the generic adapters in
-     * AMReX_EB2_Level_MC.H.
+     * \brief Define a fine level with the marching-cubes generator (3-D only).
      */
     void define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                                      int max_grid_size, int ngrow,
@@ -356,12 +351,11 @@ public:
                                      bool finest_level);
 #endif
     /**
-     * \brief Define data for a level directly from the geometry source using the
-     *        generator selected by EB2::GetGeometryMethod().
+     * \brief Define a fine level using the generator selected by
+     *        EB2::GetGeometryMethod().
      *
-     * \p finest_level is false when a coarse level is rebuilt from the
-     * geometry source rather than by coarsening; it only controls diagnostics
-     * such as `eb2.mc_stl_file`, which is written for the finest level only.
+     * \p finest_level controls whether diagnostics such as `eb2.mc_stl_file`
+     * are written.
      */
     void define_fine_with_method (G const& gshop, const Geometry& geom,
                                   int max_grid_size, int ngrow, bool extend_domain_face,
@@ -828,8 +822,6 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
 
     assert_marching_cubes_supported(geom);
 
-    // Keep only the cut-box discovery from the legacy path. Every EB field is
-    // allocated and populated from the MC working level set by the driver.
     prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
     if (m_allregular) {
         return;
@@ -849,11 +841,9 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
     int const maxiter = repair.maxiter;
     bool const cover_multiple_cuts = repair.cover_multiple_cuts;
 
-    // The geometry source has filled m_sdf in the MC convention (> 0 fluid).
     Box const domain = geom.Domain();
     GpuArray<int, 3> const is_periodic{geom.isPeriodic(0), geom.isPeriodic(1), geom.isPeriodic(2)};
-    // Every MC entry point accumulates its counts into the FAB's device
-    // counter block; the blocks are copied to the host once per pass.
+    // Per-FAB device counters, copied to the host once per pass.
     Gpu::Buffer<int> counters(static_cast<std::size_t>(m_sdf.local_size()) * MC::num_fab_counters);
     Array<int,MC::num_fab_counters> totals{};
     auto reset_counters = [&] () {
@@ -876,7 +866,6 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                                ParallelContext::CommunicatorSub());
     };
 
-    // Every EB field is allocated here and populated from the MC working SDF.
     int const ng = GFab::ng;
     m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
     m_volfrac.define(m_grids, m_dmap, 1, ng, mf_info);
@@ -892,18 +881,14 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
         IntVect edge_type{1};
         edge_type[idim] = 0;
         m_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng, mf_info);
-        // Holds the exact crossings until the first pass converts them in place.
+        // Holds the exact crossings until the first pass converts them.
         m_edgecent[idim].setVal(MC::invalid_edge_intersection, 0, 1, m_edgecent[idim].nGrowVect());
     }
-    // prefill_volume_fractions rewrites grow(vbx,1) every pass; this only
-    // provides the regular default beyond it.
+    // Default beyond grow(vbx,1), which is rewritten every pass.
     m_volfrac.setVal(1.0_rt, 0, 1, m_volfrac.nGrowVect());
 
-    // Like the moments, the rejection marks are computed on grow(vbx,1), so
-    // the ghost ring of these arrays holds exactly the marks the neighboring
-    // FAB computes for its valid cells and faces, and the nodal repair needs
-    // no communication.  Degenerate faces in the outer ring are marked and
-    // repaired like any other.
+    // Marks are computed on grow(vbx,1), so the ghost ring holds the same
+    // marks the neighboring FAB computes and the repair needs no communication.
     iMultiFab rejected_cells(m_grids, m_dmap, 1, IntVect(1), mf_info);
     Array<iMultiFab, AMREX_SPACEDIM> rejected_faces;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -966,8 +951,6 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                 rejected_faces[0][mfi], rejected_faces[1][mfi], rejected_faces[2][mfi],
                 fab_counters, {m_edgecent[0].const_array(mfi), m_edgecent[1].const_array(mfi),
                                m_edgecent[2].const_array(mfi)});
-            // Moments and rejection marks include the ghost ring so that they
-            // are available locally for the repair and the final topology.
             MC::build_cell_fractions(
                 gbx, geom, mc_fab, m_sdf[mfi], m_areafrac[0][mfi],
                 m_areafrac[1][mfi], m_areafrac[2][mfi], m_volfrac[mfi], m_centroid[mfi],
@@ -980,7 +963,6 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                                        rejected_cells[mfi], fab_counters);
         }
 
-        // One device-to-host copy and one reduction per pass.
         reduce_counters();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(totals[MC::counter_invalid_triangles] == 0,
                                          "Marching Cubes: invalid triangle");
@@ -998,8 +980,6 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                                              std::to_string(face_decision_errors) +
                                              " Cartesian faces whose two cells resolved the "
                                              "MC33 ambiguity differently");
-        // Degenerate face polygons were marked for nodal repair alongside the
-        // multi-aperture faces.
         face_rejections += degenerate_faces;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             cell_geometry_errors == 0 || topology_rejections + face_rejections > 0,
@@ -1023,9 +1003,8 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
-            // Ghost nodes are repaired too, like the nodes of the legacy
-            // generator's grown level set: ghost nodes beyond every grid have
-            // no owner and must be fixed here for the repair to converge.
+            // Ghost nodes beyond every grid have no owner, so they must be
+            // repaired here for the repair to converge.
             MC::zero_nodes_for_cleanup(
                 m_sdf[mfi].box(), rejected_cells[mfi], rejected_faces[0][mfi],
                 rejected_faces[1][mfi], rejected_faces[2][mfi], m_sdf[mfi],
@@ -1038,11 +1017,8 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
                                          "Marching-cubes EB repair found rejected "
                                          "geometry but changed no fluid nodes");
 
-        // Shared valid nodes were repaired from identical marks on every FAB
-        // and already agree.  Owned ghost nodes also depend on cells outside
-        // grow(vbx,1), so refresh them from their owners, as the legacy
-        // generator does after each pass.  The domain-face extension follows
-        // so that it reads up-to-date reference nodes on every FAB.
+        // Owned ghost nodes also depend on cells outside grow(vbx,1), so
+        // refresh them before the domain-face extension reads them.
         m_sdf.FillBoundary(geom.periodicity());
         if (extend_domain_face) {
 #ifdef AMREX_USE_OMP
@@ -1101,9 +1077,7 @@ GShopLevel<G>::define_fine_marching_cubes (G const& gshop, const Geometry& geom,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(geometry_errors == 0,
                                      "Final repaired marching-cubes topology is inconsistent");
 
-    // The converged triangulation and the public EB data now describe the same
-    // repaired domain.  Only the finest level is written; coarse levels that
-    // are rebuilt from the geometry source would otherwise overwrite it.
+    // Coarse levels rebuilt from the geometry source would overwrite the file.
     std::string stl_output;
     ParmParse("eb2").query("mc_stl_file", stl_output);
     if (finest_level && !stl_output.empty()) {
@@ -1197,8 +1171,6 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // Always create transient refined CC level to avoid grid mismatch
     // with application-defined BoxArrays (ERF EB-FC development)
     Geometry refined_geom = amrex::refine(m_geom, 2);
-    // The transient level is not the finest level of the IndexSpace: its
-    // diagnostics (e.g. eb2.mc_stl_file) must not replace the real ones.
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
         max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0, false); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?

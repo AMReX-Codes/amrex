@@ -16,37 +16,22 @@
  *
  * GPU-enabled marching-cubes routines used to extract EB surfaces.
  *
- * Geometry-source contract
- * ------------------------
- * The marching-cubes EB builder is independent of how the geometry is
- * described (STL triangulation, analytic implicit function, parser
- * expression, ...).  A geometry source feeds it through exactly two inputs:
+ * A geometry source provides two inputs to the marching-cubes EB builder:
  *
- * 1. A nodal scalar field (the "MC level set").  It uses the marching-cubes
- *    sign convention: values greater than zero are fluid, values less than
- *    zero are covered, and an exact zero marks a node lying on the boundary
- *    (it takes the covered sign for the two-state MC33 lookup, and edge
- *    crossings are placed exactly at that node).  Only the sign and local
- *    continuity are required; magnitudes are used for the linear crossing
- *    fallback and the MC33 asymptotic decider.  Note that this is the
- *    opposite of the EB2 implicit-function convention (negative in fluid),
- *    which is why the builder negates the field on ingest and again when it
- *    exports the public level set.
+ * 1. A nodal level set that is positive in fluid and negative in the covered
+ *    region.  An exact zero lies on the boundary and counts as covered.  This
+ *    is the opposite of the EB2 implicit-function convention.
  *
- * 2. Optional exact crossings on Cartesian edges, stored in
- *    caller-owned edge arrays as the normalized position in [0,1] measured
- *    from the low node.  Edges without an exact crossing keep
- *    invalid_edge_intersection and fall back to linear interpolation of the
- *    nodal field. The builder converts these arrays in place to EB edge
- *    centroids before triangulation and updates them after nodal repair.
+ * 2. Optional exact crossings on Cartesian edges, stored as the position in
+ *    [0,1] from the low node.  Edges without one hold
+ *    invalid_edge_intersection and use linear interpolation of the level set.
  *
- * See AMReX_EB2_Level_MC.H for the adapters that produce these inputs from
- * EB2::GeometryShop implicit functions and from STLtools.
+ * See AMReX_EB2_Level_MC.H for the adapters that produce these inputs.
  */
 
 namespace amrex::MC {
 
-//! Sentinel used when an original-STL edge crossing is unavailable.
+//! Sentinel for an edge without an exact crossing.
 inline constexpr Real invalid_edge_intersection = -1.0_rt;
 
 enum RejectionReason : int {
@@ -54,11 +39,7 @@ enum RejectionReason : int {
     small_volume = 2
 };
 
-/**
- * Components stored in MCFab::m_cell_data.  Besides compact triangle and
- * interior-vertex ranges, these retain the MC33 face decisions consumed by
- * downstream face construction.
- */
+//! Components stored in MCFab::m_cell_data.
 enum CellDataComponent : int {
     triangle_count = 0,
     triangle_offset,
@@ -70,14 +51,12 @@ enum CellDataComponent : int {
 };
 
 /**
- * \brief Slots of the per-FAB counter block that the entry points below
+ * \brief Slots of the per-FAB counter block that the functions below
  *        accumulate into.
  *
- * The caller allocates num_fab_counters ints per FAB in device-accessible
- * memory (Gpu::Buffer or Gpu::DeviceVector), zeroes them once per repair
- * pass, passes each FAB's block to the entry points, and copies all blocks to
- * the host once per pass.  The entry points themselves never synchronize with
- * the host to report their counts.
+ * The caller provides num_fab_counters ints per FAB in device-accessible
+ * memory and copies them to the host when needed; the functions do not
+ * synchronize with the host.
  */
 enum FabCounter : int {
     counter_invalid_triangles = 0,   //!< marching_cubes: triangle without a crossing vertex
@@ -127,40 +106,27 @@ struct Triangle
 //! Minimal container holding marching-cubes output for one FAB.
 struct MCFab
 {
-    //! Per-cell triangle/interior ranges and resolved MC33 face decisions.
     BaseFab<int> m_cell_data;
     Triangle m_triangles;
     Vertex m_vertices;
 };
 
 /**
- * \brief Run marching cubes on signed-distance field \p sdf_fab.
+ * \brief Run marching cubes on the nodal level set \p sdf_fab.
  *
- * \p counters is the FAB's counter block (see FabCounter); a nonzero
- * counter_invalid_triangles afterwards indicates a lookup-table invariant
- * violation and the caller must abort.
- * \p edgecent contains EB fluid-segment centroids, not raw intersection
- * fractions. Empty views use linear interpolation of \p sdf_fab.
+ * \p counters is the FAB's counter block (see FabCounter).  \p edgecent holds
+ * EB edge centroids; empty views use linear interpolation of \p sdf_fab.
  */
 void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab, int* counters,
                      Array<Array4<Real const>,AMREX_SPACEDIM> const& edgecent = {});
 
 /**
- * \brief Build Cartesian-face aperture fractions and centroids from the MC
- *        signed-distance field.
+ * \brief Build face apertures and face centroids for all faces of the
+ *        cell-centered box \p bx.
  *
- * \p bx is cell-centered; all faces surrounding it are updated.  Faces whose
- * fluid polygon is degenerate (for example a four-crossing face whose
- * crossings all sit on repaired zero nodes) receive zero aperture and are
- * marked with 1 in \p rejected_x / \p rejected_y / \p rejected_z where those
- * arrays contain the face, so the nodal repair pass covers them.
- * \p edgecent must match the centroids used for triangulation; empty views
- * select linear interpolation of the nodal field.
- *
- * Adds the number of faces whose two cells resolved the MC33 ambiguity
- * differently (an invariant violation) to counter_face_decision_errors and
- * the number of degenerate faces marked for repair to counter_degenerate_faces
- * of \p counters.
+ * Faces with a degenerate fluid polygon get zero aperture and are marked in
+ * \p rejected_x, \p rejected_y and \p rejected_z for nodal repair.
+ * \p edgecent must match the centroids passed to marching_cubes.
  */
 void build_face_fractions (
     Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf,
@@ -170,29 +136,20 @@ void build_face_fractions (
     int* counters, Array<Array4<Real const>,AMREX_SPACEDIM> const& edgecent = {});
 
 /**
- * \brief Build EB edge-centroid data from the MC signed-distance field.
+ * \brief Convert the edge arrays \p edges to EB edge centroids.
  *
- * Regular and covered edges receive the standard EB2 sentinels 1 and -1.
- * Cut-edge values are the centroid of the fluid part of the unit edge.
- * On the first pass, the arrays contain normalized exact crossings (or the
- * invalid sentinel). Later passes retain centroids on unchanged cut edges
- * and update edges incident to repaired zero nodes in place.
+ * Regular and covered edges get 1 and -1.  On the first pass \p edges holds
+ * exact crossings (or invalid_edge_intersection); later passes update only
+ * the edges touching repaired nodes.
  */
 void build_edge_centroids (
     FArrayBox const& sdf, Array<Array4<Real>,AMREX_SPACEDIM> const& edges, bool first_pass);
 
 /**
- * \brief Replace single-valued cut-cell geometry with moments computed from
- *        the marching-cubes triangles.
+ * \brief Compute volume fraction, centroid and boundary moments of cut cells
+ *        from the face apertures and the marching-cubes triangles.
  *
- * Coordinate-face apertures previously built from the MC signed-distance
- * field and the cell-owned embedded-boundary triangles form the closed
- * boundary used to compute volume and first moments.  Requires cubic cells
- * (dx == dy == dz); the EB2 driver checks this once per level.
- *
- * Single-valued cells whose triangulation produced invalid geometry are
- * counted in counter_closure_errors, counter_volume_errors,
- * counter_centroid_errors and counter_area_vector_errors of \p counters.
+ * Requires cubic cells.
  */
 void build_cell_fractions (
     Box const& bx, Geometry const& geom, MCFab const& mc_fab,
@@ -202,12 +159,8 @@ void build_cell_fractions (
     FArrayBox& bcent, FArrayBox& bnorm, int* counters);
 
 /**
- * \brief Classify cells and build all EBCellFlag connectivity from MC SDF and
- *        face apertures.
- *
- * Cell types are derived from the converged volume and face apertures,
- * including coincident nodal surfaces. MC ownership is checked against the
- * repaired SDF before coordinate connectivity is populated.
+ * \brief Set cell types and connectivity in \p cellflag from the final
+ *        volume and face fractions.
  *
  * \return Number of inconsistent cell classifications.
  */
@@ -217,12 +170,10 @@ int build_cell_topology (
     FArrayBox const& apx, FArrayBox const& apy, FArrayBox const& apz);
 
 /**
- * \brief Mark Cartesian faces with more than one resolved fluid aperture.
+ * \brief Mark faces with more than one fluid aperture.
  *
- * Marks are OR-ed into the arrays, so faces already rejected by
- * build_face_fractions are kept.  The number of newly rejected faces across
- * all three coordinate directions is added to counter_face_rejections of
- * \p counters.
+ * Marks are OR-ed into the arrays, so faces already marked by
+ * build_face_fractions stay marked.
  */
 void mark_faces_for_cleanup (
     Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf,
@@ -230,24 +181,12 @@ void mark_faces_for_cleanup (
     IArrayBox& rejected_z, int* counters);
 
 /**
- * \brief Mark cells that the single-VoF MC builder must remove.
+ * \brief Mark cells that cannot be represented as single-valued cut cells.
  *
- * A cell is rejected if its MC boundary is invalid, if its fluid corners form
- * more than one group, or if its volume fraction is below \p small_volfrac.
- * Corner groups are joined along cube edges and across ambiguous faces whose
- * MC33 decision is "fluid connected" (the same decision the surface and the
- * face apertures use), but never through the cell interior: MC33 tunnel
- * tilings (4.1.2, 10.1.2, ...) and the split tilings 7.3/10.2/12.2/13.x are
- * always rejected, so an exported single-valued cell holds exactly one
- * face-connected fluid region.  Face-aperture rejection is handled separately
- * by mark_faces_for_cleanup and is consistent with this rule (a face whose
- * decision is "not connected" is a rejected face and also splits the corner
- * groups of both cells).
- *
- * Topology and small-cell rejections are added to counter_topology_rejections
- * and counter_small_cell_rejections of \p counters.  \p rejected records the
- * reason of each rejected cell as one of the RejectionReason values (topology
- * takes precedence) and 0 otherwise.
+ * A cell is rejected if its surface is invalid, if its fluid corners do not
+ * form a single face-connected region, or if its volume fraction is below
+ * \p small_volfrac.  \p rejected is set to a RejectionReason for rejected
+ * cells and 0 otherwise.
  */
 void mark_cells_for_cleanup (
     Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf,
@@ -255,15 +194,11 @@ void mark_cells_for_cleanup (
     int* counters);
 
 /**
- * \brief Apply the legacy EB repair transform to the MC working level set.
+ * \brief Set fluid nodes of \p node_box that touch a rejected cell or face
+ *        to zero.
  *
- * Positive (fluid) nodes of \p node_box incident to a rejected face or cell
- * are moved to exact zero. The operation is monotone and leaves all other
- * samples intact.  The marks must cover the cells and faces enclosed by
- * \p node_box; rejected cells and faces beyond the arrays are ignored, so a
- * caller can repair its ghost nodes from the marks it holds.  The number of
- * nodes changed from positive to zero is added to counter_changed_nodes of
- * \p counters.
+ * Marks outside the rejection arrays are ignored, so ghost nodes can be
+ * repaired from the marks held locally.
  */
 void zero_nodes_for_cleanup (
     Box const& node_box, IArrayBox const& rejected_cells,
@@ -271,31 +206,21 @@ void zero_nodes_for_cleanup (
     IArrayBox const& rejected_z, FArrayBox& sdf, int* counters);
 
 /**
- * \brief Extrude the nodal level set straight outward from physical domain faces.
+ * \brief Extend the nodal level set outward from non-periodic domain faces.
  *
- * An exterior node is assigned the value of the corresponding physical-face
- * node only when it is outside in exactly one non-periodic direction. This
- * preserves the feature's transverse footprint and does not extend diagonally
- * from domain edges or corners.  Exterior nodes that the nodal repair has
- * moved to exact zero are left at zero, so the repair stays monotone.  The
- * number of exterior nodal values changed is added to counter_extended_nodes
- * of \p counters.
+ * Only nodes outside the domain in exactly one direction are set; nodes
+ * already zeroed by the repair are left at zero.
  */
 void extend_domain_face_levelset (
     Box const& node_box, Box const& domain, GpuArray<int,3> const& is_periodic,
     FArrayBox& sdf, int* counters);
 
-/**
- * \brief Extrude exact transverse-edge crossings with the domain-face level set.
- *
- * Crossings on edges transverse to the extension normal are copied straight
- * outward from the physical face. Edges parallel to the normal are unchanged.
- */
+//! Extend exact crossings on edges transverse to non-periodic domain faces.
 void extend_domain_face_edge_intersections (
     Box const& node_box, Box const& domain, GpuArray<int,3> const& is_periodic,
     Array<Array4<Real>,AMREX_SPACEDIM> const& edges);
 
-//! Write the converged MC triangles owned by the valid boxes of \p mc_fabs to an STL file.
+//! Write the triangles in the valid boxes of \p mc_fabs to an STL file.
 void write_stl (std::string const& filename, LayoutData<MCFab> const& mc_fabs);
 
 }

@@ -17,19 +17,10 @@
 /**
  * \file AMReX_EB2_Level_MC.H
  *
- * Adapters that produce the two geometry-source inputs of the marching-cubes
- * EB builder (see AMReX_MarchingCubes.H, "Geometry-source contract"):
- *
- * - the nodal MC level set (positive in fluid), and
- * - the exact Cartesian-edge crossings in caller-owned arrays.
- *
- * A geometry source that provides its own MC sampling (STLtools) is used as is.
- * Every other source, i.e. any EB2::GeometryShop implicit function, is served
- * by the generic adapters below, which reuse the source's `fillFab` and
- * `getIntercept` (Brent root finding on cut edges).
- *
- * These are implementation details of GShopLevel; they are not part of the
- * public EB2 interface.
+ * Adapters that produce the marching-cubes level set and edge crossings from
+ * a geometry source.  Sources with their own marching-cubes sampling (STLtools)
+ * are used directly; GeometryShop implicit functions use fillFab and
+ * getIntercept.
  */
 
 namespace amrex::EB2::detail {
@@ -58,13 +49,10 @@ RunOn marching_cubes_run_on (G const& gshop) noexcept
 /**
  * \brief Fill the nodal marching-cubes level set from geometry source \p gshop.
  *
- * On return every node of \p sdf (including ghost nodes) holds a value that is
- * positive in fluid and negative in the covered region.  Every node is a
- * deterministic function of the geometry alone, so shared and ghost nodes
- * agree across FABs without communication.  Implicit functions are sampled
- * without clamping to the domain because the builder applies its own
- * domain-face extension; as in the legacy generator, ghost nodes across a
- * periodic boundary sample the function at their unwrapped coordinates.
+ * All nodes of \p sdf, including ghost nodes, are set to a value that is
+ * positive in fluid and negative in the covered region.  Each node depends
+ * only on its position, so shared and ghost nodes agree across FABs without
+ * communication.
  */
 template <class G>
 void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const& geom)
@@ -75,14 +63,9 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
         BL_PROFILE("EB2::fill_marching_cubes_levelset");
         RunOn const run_on = marching_cubes_run_on(gshop);
 
-        // Roundoff can leave a node that lies on the surface at a tiny nonzero
-        // value instead of exactly zero, which would create a sliver cut cell
-        // that the builder cannot represent.  Snap such nodes to the exact-zero
-        // ON state.  The threshold is relative to the local magnitude of the
-        // implicit function, i.e. it bounds the crossing position on the
-        // incident edges as a fraction of the cell size, so it is independent
-        // of the function's units; it matches the sliver tolerance below which
-        // the marching-cubes moments reject a cut.
+        // Snap nodes within roundoff of the surface to exactly zero to avoid
+        // sliver cut cells.  The threshold is relative to the neighboring
+        // values, so it is independent of the implicit function's units.
 #ifdef AMREX_USE_FLOAT
         constexpr Real snap_factor = 1.e-4_rt;
 #else
@@ -90,8 +73,7 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
 #endif
         for (MFIter mfi(sdf); mfi.isValid(); ++mfi) {
             Box const nbx = sdf[mfi].box();
-            // Sample one more ring of nodes so that the snap stencil is
-            // complete on every node of the FAB, ghost nodes included.
+            // One extra ring for the snap stencil.
             FArrayBox raw(amrex::grow(nbx,1), 1,
                           run_on == RunOn::Gpu ? The_Async_Arena() : The_Arena());
             Elixir raw_eli;
@@ -108,8 +90,7 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
                 scale = amrex::max(scale, std::abs(f(i-1,j,k)), std::abs(f(i+1,j,k)));
                 scale = amrex::max(scale, std::abs(f(i,j-1,k)), std::abs(f(i,j+1,k)));
                 scale = amrex::max(scale, std::abs(f(i,j,k-1)), std::abs(f(i,j,k+1)));
-                // EB2 implicit functions are positive inside the body; marching
-                // cubes extracts the positive material, i.e. the fluid.
+                // EB2 implicit functions are negative in fluid.
                 a(i,j,k) = (std::abs(v) <= snap_factor*scale) ? 0.0_rt : -v;
             });
         }
@@ -119,15 +100,15 @@ void fill_marching_cubes_levelset (G const& gshop, MultiFab& sdf, Geometry const
 /**
  * \brief Cache exact edge crossings for one FAB from geometry source \p gshop.
  *
- * \p sdf is the FAB's nodal marching-cubes level set (positive in fluid).  For
- * every edge whose end points differ in sign, the crossing position from the
- * low node, normalized by the cell size, is stored in
- * \p edges; other edges keep MC::invalid_edge_intersection. The caller must
- * initialize all entries of \p edges to MC::invalid_edge_intersection.
+ * For every edge of \p sdf_fab whose end points differ in sign, the crossing
+ * position from the low node, normalized by the cell size, is stored in
+ * \p edges.  The caller must initialize \p edges to
+ * MC::invalid_edge_intersection.
  */
 template <class G>
 void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sdf_fab,
-                                             Geometry const& geom, Array<Array4<Real>,AMREX_SPACEDIM> const& edges)
+                                             Geometry const& geom,
+                                             Array<Array4<Real>,AMREX_SPACEDIM> const& edges)
 {
     if constexpr (HasMarchingCubesSampling<G>) {
         gshop.fillMarchingCubesEdgeIntersections(sdf_fab, geom, edges);
@@ -154,8 +135,7 @@ void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sd
             type_fabs[idim].resize(ebx, 1, arena);
             inter_fabs[idim].resize(ebx, 1, arena);
             if (run_on == RunOn::Cpu) {
-                // Only root finding runs on the CPU. In a GPU launch region,
-                // the ParallelFor kernels still use these buffers asynchronously.
+                // The kernels below may still run on the device.
                 type_elixirs[idim] = type_fabs[idim].elixir();
                 inter_elixirs[idim] = inter_fabs[idim].elixir();
             }
@@ -165,13 +145,8 @@ void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sd
             {
                 Real const lo = sdf(i,j,k);
                 Real const hi = sdf(i+shift[0],j+shift[1],k+shift[2]);
-                // An exact-zero (ON) end point already is the crossing; the
-                // builder places it at that node without an exact intercept.
-                // Root finding on such an edge is not needed and could fail
-                // when the zero came from snapping a roundoff-level value.
-                // Away from snapped nodes the field is the negated implicit
-                // function, so a strict sign change brackets the root for
-                // getIntercept.
+                // A zero end point is already the crossing, and root finding
+                // could fail if it came from snapping.
                 bool const strict_sign_change = (lo > 0.0_rt && hi < 0.0_rt)
                                              || (lo < 0.0_rt && hi > 0.0_rt);
                 type(i,j,k) = strict_sign_change ? Type::irregular : Type::regular;
@@ -185,9 +160,8 @@ void fill_marching_cubes_edge_intersections (G const& gshop, FArrayBox const& sd
             Gpu::streamSynchronize();
         }
 
-        // Physical crossing coordinates on irregular edges; no_intercept elsewhere.
-        // GeometryShop ignores the level-set argument (it is only a hint for
-        // STL ray casting), so the MC-convention values are passed unchanged.
+        // GeometryShop does not use the level-set argument, so its sign
+        // convention does not matter here.
         gshop.getIntercept(inter_arrs, type_arrs, sdf, geom, run_on, sdf_fab.box());
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

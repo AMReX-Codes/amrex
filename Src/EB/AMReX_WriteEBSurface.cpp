@@ -10,8 +10,6 @@
 namespace amrex {
 
 namespace {
-//! Collect the planar EB reconstruction of every cut cell of \p mf_ba, an
-//! EB-factory-backed MultiFab.
 EBToPVD make_eb_surface (const MultiFab& mf_ba, const Geometry& geom,
                          const EBFArrayBoxFactory* ebf)
 {
