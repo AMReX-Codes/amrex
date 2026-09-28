@@ -276,16 +276,15 @@ public:
     //! Converged when the residual 2-norm is below max(reltol*bnorm, abstol).
     void setAbsTol (T t) { m_abstol = t; }
     //! Takes effect at the next solve; the hierarchy is kept.
-    void setSmoother (Smoother sm) { m_smoother_type = sm; m_smoothers_stale = true; }
+    void setSmoother (Smoother sm) { if (m_smoother_type != sm) { m_smoother_type = sm; m_smoothers_stale = true; } }
     //! Relaxation weight of the smoother; negative restores the default. Next solve.
-    void setRelaxWeight (T w) { m_relax_weight = w; m_smoothers_stale = true; }
+    void setRelaxWeight (T w) { if (m_relax_weight != w) { m_relax_weight = w; m_smoothers_stale = true; } }
     //! Chebyshev polynomial degree. Next solve.
-    void setChebyshevDegree (int d) { m_cheby_degree = d; m_smoothers_stale = true; }
+    void setChebyshevDegree (int d) { if (m_cheby_degree != d) { m_cheby_degree = d; m_smoothers_stale = true; } }
     //! Chebyshev eigenvalue ratio lambda_max / lambda_min. Next solve.
     void setChebyshevRatio (T r) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r > T(1), "AlgMG::setChebyshevRatio: the ratio must exceed 1");
-        m_cheby_ratio = r;
-        m_smoothers_stale = true;
+        if (m_cheby_ratio != r) { m_cheby_ratio = r; m_smoothers_stale = true; }
     }
     //! Number of pre-smoothing sweeps; negative restores the smoother's default.
     void setPreSmooth (int nu) { m_nu1 = nu; }
@@ -298,17 +297,17 @@ public:
     //! least this fraction of the strongest one in the row are strong. A row
     //! whose sum exceeds 0.9 times its diagonal has no strong connection.
     //! Takes effect at the next setup, i.e., the next solve after define.
-    void setStrongThreshold (T theta) { m_strong_threshold = theta; m_prepared = false; }
+    void setStrongThreshold (T theta) { if (m_strong_threshold != theta) { m_strong_threshold = theta; m_prepared = false; } }
     //! Maximum number of levels. Two means a two-level method. Takes
     //! effect at the next setup, i.e., the next solve after define.
-    void setMaxLevels (int n) { m_max_levels = n; m_prepared = false; }
+    void setMaxLevels (int n) { if (m_max_levels != n) { m_max_levels = n; m_prepared = false; } }
     //! Stop coarsening when a level has at most this many rows. Next setup.
-    void setMaxCoarseSize (Long n) { m_max_coarse_size = n; m_prepared = false; }
+    void setMaxCoarseSize (Long n) { if (m_max_coarse_size != n) { m_max_coarse_size = n; m_prepared = false; } }
     //! Number of levels with aggressive coarsening, starting at the finest. Next setup.
-    void setAggressiveNumLevels (int n) { m_aggressive_num_levels = n; m_prepared = false; }
+    void setAggressiveNumLevels (int n) { if (m_aggressive_num_levels != n) { m_aggressive_num_levels = n; m_prepared = false; } }
     //! Use classical direct interpolation for the first stage of the
     //! two-stage aggressive interpolation (cheaper setup, more cycles).
-    void setAggressiveDirectInterp (bool b) { m_aggressive_direct_interp = b; m_prepared = false; }
+    void setAggressiveDirectInterp (bool b) { if (m_aggressive_direct_interp != b) { m_aggressive_direct_interp = b; m_prepared = false; } }
     //! Singular matrix with the constant vector in its null space (e.g.
     //! Poisson with periodic or Neumann boundaries). The mean is removed
     //! from the right-hand side and the coarsest residuals, and the
@@ -317,18 +316,18 @@ public:
         if (m_singular != b) { m_singular = b; m_prepared = false; }
     }
     //! Takes effect at the next setup.
-    void setInterpType (InterpType it) { m_interp_type = it; m_prepared = false; }
+    void setInterpType (InterpType it) { if (m_interp_type != it) { m_interp_type = it; m_prepared = false; } }
     //! Maximum number of entries per row of P (0: no limit; at most
     //! max_p_elmts; negative restores the default). Next setup.
     void setPMaxElmts (int n) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= max_p_elmts, "AlgMG::setPMaxElmts: at most 32");
-        m_p_max_elmts = (n < 0) ? default_p_max_elmts : n;
-        m_prepared = false;
+        int const p = (n < 0) ? default_p_max_elmts : n;
+        if (m_p_max_elmts != p) { m_p_max_elmts = p; m_prepared = false; }
     }
     static constexpr int max_p_elmts = 32;
     static constexpr int default_p_max_elmts = 4;
     //! Drop interpolation weights below this fraction of the row maximum. Next setup.
-    void setTruncFactor (T f) { m_trunc_factor = f; m_prepared = false; }
+    void setTruncFactor (T f) { if (m_trunc_factor != f) { m_trunc_factor = f; m_prepared = false; } }
     //! Krylov solver with the V-cycle as preconditioner (see KrylovSolver). Default None.
     void setKrylovSolver (KrylovSolver a) {
         if (m_krylov == a) { return; }
@@ -354,8 +353,7 @@ public:
     //! Largest coarsest level solved directly (1024); smoother sweeps beyond.
     void setMaxDirectSize (Long n) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= 32768, "AlgMG::setMaxDirectSize: at most 32768");
-        m_max_direct_size = n;
-        m_bottom_n = -1;
+        if (m_max_direct_size != n) { m_max_direct_size = n; m_bottom_n = -1; }
     }
     void setBottomMaxIter (int n) { m_bottom_maxiter = n; }
     void setBottomVerbose (int v) { m_bottom_verbose = v; }

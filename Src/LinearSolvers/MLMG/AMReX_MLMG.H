@@ -701,7 +701,8 @@ public:
 
     template <class TMF=MF>
     requires (std::same_as<TMF,MultiFab>)
-    void configureAlgMG (MLAlgMG& s, bool singular);
+    //! MLMG's own settings every solve; the user's options only when `with_options`.
+    void configureAlgMG (MLAlgMG& s, bool singular, bool with_options);
 
     //! Hybrid mode: is it time to give up on the geometric phase? `norms`
     //! holds the residual norms of the geometric iterations so far.
@@ -2564,7 +2565,7 @@ template <typename MF>
 template <class TMF>
 requires (std::same_as<TMF,MultiFab>)
 void
-MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular)
+MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular, bool with_options)
 {
     // Dependent type: AlgMG stays a forward declaration in this header.
     AlgMG<RT>& a = s.solver();
@@ -2572,8 +2573,12 @@ MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular)
     a.setPrintIndentation(print_ident + "    ");
     a.setThrowException(throw_exception);
     a.setSingular(singular);
-    a.setKrylovSolver(AlgMG<RT>::KrylovSolver::bicgstab);
-    if (m_algmg_options) { m_algmg_options(a); }
+    // The user's callback runs once per assembled matrix: it may change
+    // settings that force a new setup.
+    if (with_options) {
+        a.setKrylovSolver(AlgMG<RT>::KrylovSolver::bicgstab);
+        if (m_algmg_options) { m_algmg_options(a); }
+    }
 }
 
 template <typename MF>
@@ -2587,10 +2592,9 @@ MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "MLMG: AlgMG needs ncomp == 1");
 
-    if (m_algmg_bottom == nullptr) {
-        m_algmg_bottom = linop.makeAlgMG(mglev);
-    }
-    configureAlgMG(*m_algmg_bottom, linop.isBottomSingular());
+    bool const fresh = (m_algmg_bottom == nullptr);
+    if (fresh) { m_algmg_bottom = linop.makeAlgMG(mglev); }
+    configureAlgMG(*m_algmg_bottom, linop.isBottomSingular(), fresh);
     if (precond_mode) {
         m_algmg_bottom->applyVcycle(x, b);
     } else {
@@ -2619,10 +2623,9 @@ MLMGT<MF>::algmgLevel0Solve ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "MLMG: AlgMG needs ncomp == 1");
 
-    if (m_algmg_level0 == nullptr) {
-        m_algmg_level0 = linop.makeAlgMG(0);
-    }
-    configureAlgMG(*m_algmg_level0, linop.isSingular(0));
+    bool const fresh = (m_algmg_level0 == nullptr);
+    if (fresh) { m_algmg_level0 = linop.makeAlgMG(0); }
+    configureAlgMG(*m_algmg_level0, linop.isSingular(0), fresh);
     // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
     if (precond_mode) {
         m_algmg_level0->applyVcycle(cor[0][0], res[0][0]);
