@@ -57,9 +57,11 @@ using std::round;
 // pattern, hidden from the optimizer so that it cannot fold the test away.
 
 /// \cond DOXYGEN_IGNORE
+// Clang: no macro tells if -fno-honor-nans or -fno-honor-infinities is on.
 // _WIN32: std::isnan is host only for nvcc with MSVC.
 #if (defined(__FINITE_MATH_ONLY__) && (__FINITE_MATH_ONLY__ == 1)) \
-    || defined(__FAST_MATH__) || defined(_M_FP_FAST) || defined(_WIN32)
+    || defined(__FAST_MATH__) || defined(_M_FP_FAST) || defined(_WIN32) \
+    || defined(__clang__)
 #  define AMREX_MATH_ISNAN_BITS 1
 #endif
 
