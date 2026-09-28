@@ -1,6 +1,7 @@
 #ifndef AMREX_MLABECLAP_2D_K_H_
 #define AMREX_MLABECLAP_2D_K_H_
 #include <AMReX_Config.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 
@@ -317,33 +318,34 @@ void abec_gsrb_with_line_solve (
                 Box const& vbox, int redblack, int nc)
 {
 
+    // Each tridiagonal line must span the whole valid box, because the
+    // boundary masks below are tested at the valid box faces.
+    AMREX_ASSERT(box == vbox);
+
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    // idir is the direction in which we will do the tridiagonal solve --
-    // it should be the direction in which the mesh spacing is much larger
-    // than in the other directions
-    // int idir = 1;
+    // The tridiagonal solve is done in the y-direction -- it should be the
+    // direction in which the mesh spacing is much larger than in x.
 
     // This should be moved outside the kernel!
     if (dhy <= dhx) { amrex::Abort("dhy is supposed to be much larger than dhx"); }
 
     int ilen = hi.y - lo.y + 1;
 
-    // This should be moved outside the kernel!
-    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
+    Vector<T> ls_scratch(6*static_cast<std::size_t>(ilen));
+    T* a_ls = ls_scratch.data();
+    T* b_ls = a_ls + ilen;
+    T* c_ls = b_ls + ilen;
+    T* r_ls = c_ls + ilen;
+    T* u_ls = r_ls + ilen;
+    T* gam  = u_ls + ilen;
 
-    Array1D<T,0,31> a_ls;
-    Array1D<T,0,31> b_ls;
-    Array1D<T,0,31> c_ls;
-    Array1D<T,0,31> r_ls;
-    Array1D<T,0,31> u_ls;
-    Array1D<T,0,31> gam;
-
+    // No SIMD pragma on the transverse loop: the scratch arrays above are
+    // reused by every line.
     for (int n = 0; n < nc; ++n) {
-        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
                 for (int j = lo.y; j <= hi.y; ++j) {
@@ -371,44 +373,44 @@ void abec_gsrb_with_line_solve (
                     if (i == vlo.x && m0(vlo.x-1,j,0) > 0) {
                         rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
                     }
-                    if (i == vhi.x && m3(vhi.x+1,j,0) > 0) {
+                    if (i == vhi.x && m2(vhi.x+1,j,0) > 0) {
                         rho -= dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n);
                     }
 
-                    a_ls(j-lo.y) = -dhy*bY(i,j,0,n);
-                    b_ls(j-lo.y) =  g_m_d;
-                    c_ls(j-lo.y) = -dhy*bY(i,j+1,0,n);
-                    u_ls(j-lo.y) = T(0.);
-                    r_ls(j-lo.y) = rhs(i,j,0,n) + rho;
+                    a_ls[j-lo.y] = -dhy*bY(i,j,0,n);
+                    b_ls[j-lo.y] =  g_m_d;
+                    c_ls[j-lo.y] = -dhy*bY(i,j+1,0,n);
+                    u_ls[j-lo.y] = T(0.);
+                    r_ls[j-lo.y] = rhs(i,j,0,n) + rho;
 
                     if (j == lo.y) {
-                        a_ls(j-lo.y) = T(0.);
-                        if (!(m1(i,vlo.y-1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
+                        a_ls[j-lo.y] = T(0.);
+                        if (!(m1(i,vlo.y-1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
                     }
                     if (j == hi.y) {
-                        c_ls(j-lo.y) = T(0.);
-                        if (!(m3(i,vhi.y+1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
+                        c_ls[j-lo.y] = T(0.);
+                        if (!(m3(i,vhi.y+1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
                     }
                 }
 //                      This is the tridiagonal solve
                 {
-                    T bet = b_ls(0);
-                    u_ls(0) = r_ls(0) / bet;
+                    T bet = b_ls[0];
+                    u_ls[0] = r_ls[0] / bet;
 
                     for (int jj = 1; jj <= ilen-1; jj++) {
-                        gam(jj) = c_ls(jj-1) / bet;
-                        bet = b_ls(jj) - a_ls(jj)*gam(jj);
+                        gam[jj] = c_ls[jj-1] / bet;
+                        bet = b_ls[jj] - a_ls[jj]*gam[jj];
                         if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
-                        u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
+                        u_ls[jj] = (r_ls[jj]-a_ls[jj]*u_ls[jj-1]) / bet;
                     }
 
                     for (int jj = ilen-2; jj >= 0; jj--) {
-                                u_ls(jj) = u_ls(jj) - gam(jj+1)*u_ls(jj+1);
+                                u_ls[jj] = u_ls[jj] - gam[jj+1]*u_ls[jj+1];
                     }
                 }
 
                 for (int j = lo.y; j <= hi.y; ++j) {
-                            phi(i,j,0,n) = u_ls(j-lo.y);
+                            phi(i,j,0,n) = u_ls[j-lo.y];
                 }
             }
         }

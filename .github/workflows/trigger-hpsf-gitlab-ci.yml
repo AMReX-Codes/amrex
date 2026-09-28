@@ -8,6 +8,9 @@ env:
   GITLAB_PROJECT_PATH: "amrex/amrex"
   GITLAB_PROJECT_ID: "70"
 
+permissions:
+  contents: read
+
 jobs:
   run-hpsf-gitlab-ci:
     if: |
@@ -15,6 +18,9 @@ jobs:
       contains(fromJson('["atmyers","asalmgren","ax3l","WeiqunZhang"]'), github.actor) &&
       contains(github.event.comment.body, '/run-hpsf-gitlab-ci')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Determine PR merge ref

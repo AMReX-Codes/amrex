@@ -317,7 +317,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             Box vbx(rhsma[box_no]);
             mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
                              AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_2D_ONLY_ARGS(dh,h)
+                             AMREX_2D_ONLY_ARGS(dh) h,
                              AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
                              AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
                              AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
@@ -425,7 +425,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                 {
                     mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
                                      AMREX_D_DECL(dhx, dhy, dhz),
-                                     AMREX_2D_ONLY_ARGS(dh,h)
+                                     AMREX_2D_ONLY_ARGS(dh) h,
                                      AMREX_D_DECL(bxfab,byfab,bzfab),
                                      AMREX_D_DECL(m0,m2,m4),
                                      AMREX_D_DECL(m1,m3,m5),

@@ -2,41 +2,40 @@ import vtk
 from vtk import *
 import sys
 
-f = open(sys.argv[1],'r')
-outfile = sys.argv[2]
+with open(sys.argv[1],'r') as f:
+    outfile = sys.argv[2]
 
-l = f.readline()
-l.strip()
-tokens = l.split(' ')
+    l = f.readline()
+    l.strip()
+    tokens = l.split(' ')
 
-Nnodes = int(tokens[0])
-Nelts = int(tokens[1])
+    Nnodes = int(tokens[0])
+    Nelts = int(tokens[1])
 
-Points = vtk.vtkPoints()
+    Points = vtk.vtkPoints()
 
-print("Reading %d nodes..." % Nnodes)
-for i in range(Nnodes):
-    line = f.readline()
-    line.strip()
-    d = line.split(' ')
-    id = Points.InsertNextPoint(float(d[0]),float(d[1]),float(d[2]))
+    print("Reading %d nodes..." % Nnodes)
+    for _ in range(Nnodes):
+        line = f.readline()
+        line.strip()
+        d = line.split(' ')
+        Points.InsertNextPoint(float(d[0]),float(d[1]),float(d[2]))
 
-print("Done")
+    print("Done")
 
-Triangles = vtk.vtkCellArray()
-Triangle = vtk.vtkTriangle()
+    Triangles = vtk.vtkCellArray()
+    Triangle = vtk.vtkTriangle()
 
-print("Reading %d elements..." % Nelts)
-for i in range(Nelts):
-    line = f.readline()
-    d = line.split()
-    Triangle.GetPointIds().SetId(0,int(d[0])-1)
-    Triangle.GetPointIds().SetId(1,int(d[1])-1)
-    Triangle.GetPointIds().SetId(2,int(d[2])-1)
-    Triangles.InsertNextCell(Triangle)
+    print("Reading %d elements..." % Nelts)
+    for _ in range(Nelts):
+        line = f.readline()
+        d = line.split()
+        Triangle.GetPointIds().SetId(0,int(d[0])-1)
+        Triangle.GetPointIds().SetId(1,int(d[1])-1)
+        Triangle.GetPointIds().SetId(2,int(d[2])-1)
+        Triangles.InsertNextCell(Triangle)
 
-print("Done")
-f.close()
+    print("Done")
 
 
 polydata = vtk.vtkPolyData()

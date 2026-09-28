@@ -74,7 +74,8 @@ struct Base // NOLINT(bugprone-crtp-constructor-accessibility)
                         const auto val = w[0*stencil_width+ii] *
                                          w[1*stencil_width+jj] *
                                          w[2*stencil_width+kk] * pval;
-                        Gpu::Atomic::AddNoRet(&arr(index[0]+ii, index[1]+jj, index[2]+kk, ic+dst_comp), val);
+                        Gpu::Atomic::AddNoRet(&arr(index[0]+ii, index[1]+jj, index[2]+kk, ic+dst_comp),
+                                              static_cast<V>(val));
                     }
                 }
             }
@@ -111,7 +112,7 @@ struct Base // NOLINT(bugprone-crtp-constructor-accessibility)
      *                return arr(i, j, k, comp);  // no weighting
      *            },
      *            [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
-     *                                  int comp, amrex::Real val)
+     *                                  int comp, auto val)
      *            {
      *                part.rdata(comp) += val;
      *            });
@@ -193,8 +194,10 @@ struct Nearest : public Base<Nearest, int>
              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
     {
         w = &weights[0];
+        // Compute in the wider of Real and ParticleReal; round when storing.
+        using WT = amrex::ParticleMeshReal;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + 0.5;
+            WT l = (p.pos(i) - plo[i]) * dxi[i] + WT(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l));
             w[i] = 1;
         }
@@ -218,7 +221,7 @@ struct Nearest : public Base<Nearest, int>
  *                    });
  *   \endcode
  */
-struct Linear : public Base<Linear, amrex::Real>
+struct Linear : public Base<Linear, amrex::ParticleMeshReal>
 {
     static constexpr int stencil_width = 2;
 
@@ -226,7 +229,7 @@ struct Linear : public Base<Linear, amrex::Real>
     static constexpr int ny = (AMREX_SPACEDIM >= 2) ? stencil_width - 1 : 0;
     static constexpr int nz = (AMREX_SPACEDIM >= 3) ? stencil_width - 1 : 0;
 
-    amrex::Real weights[3*stencil_width];
+    amrex::ParticleMeshReal weights[3*stencil_width];
 
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -235,17 +238,19 @@ struct Linear : public Base<Linear, amrex::Real>
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
     {
         w = &weights[0];
+        // Compute in the wider of Real and ParticleReal; round when storing.
+        using WT = amrex::ParticleMeshReal;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            amrex::Real l = (p.pos(i) - plo[i]) * dxi[i] + 0.5;
+            WT l = (p.pos(i) - plo[i]) * dxi[i] + WT(0.5);
             index[i] = static_cast<int>(amrex::Math::floor(l)) - 1;
-            amrex::Real lint = l - (index[i] + 1);
-            w[stencil_width*i + 0] = 1.-lint;
+            WT lint = l - static_cast<WT>(index[i] + 1);
+            w[stencil_width*i + 0] = WT(1.) - lint;
             w[stencil_width*i + 1] = lint;
         }
         for (int i = AMREX_SPACEDIM; i < 3; ++i) {
             index[i] = 0;
-            w[stencil_width*i + 0] = 1.;
-            w[stencil_width*i + 1] = 0.;
+            w[stencil_width*i + 0] = WT(1.);
+            w[stencil_width*i + 1] = WT(0.);
         }
     }
 };

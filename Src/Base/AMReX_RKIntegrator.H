@@ -269,7 +269,7 @@ public:
             // Save last completed step size for time_interpolate
             BaseT::previous_time_step = dt;
 
-            if (step_number == BaseT::max_steps - 1) {
+            if (!stop && step_number == BaseT::max_steps - 1) {
                 Error("Did not reach output time in max steps.");
             }
         }
@@ -286,7 +286,9 @@ public:
         */
 
         // currently we only do this for 4th order RK
-        AMREX_ASSERT(number_nodes == 4);
+        if (number_nodes != 4) {
+            amrex::Error("RKIntegrator::time_interpolate is only supported for 4th order RK.");
+        }
 
         // fill data using MC Equation 39 at time + timestep_fraction * dt
         amrex::Real c = 0;

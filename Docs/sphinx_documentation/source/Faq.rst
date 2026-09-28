@@ -130,7 +130,12 @@ Are they thread safe with MPI and OpenMP?
 
 **A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
 each thread will have its own dedicated Random Number Generator that
-is totally independent of the others.
+is totally independent of the others. See :ref:`sec:basics:random` for the
+available generators, how to set the seed, and how to draw random numbers
+inside a GPU kernel. Note in particular that :cpp:`amrex::Random()` returns a
+value in ``[0,1)`` and can therefore return zero; use
+:cpp:`amrex::RandomPositive()`, which returns a value in ``(0,1]``, whenever
+the result is passed to something singular at zero such as ``std::log``.
 
 |
 

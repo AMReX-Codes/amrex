@@ -590,6 +590,10 @@ public:
     /**
      * \brief Fill ghost cells using cached FillPatcher (level>0) or FillPatch (level 0).
      *
+     * All components in [scomp,scomp+ncomp) must have the same interpolater.
+     * Because the FillPatcher is cached per state, that interpolater must also
+     * be the one used by earlier calls for the same state_index.
+     *
      * \param mf          Destination MultiFab.
      * \param dcomp       Destination component offset.
      * \param ncomp       Number of components to fill.
@@ -648,7 +652,9 @@ public:
      *
      * To use RK, the StateData must have all the ghost cells needed.  See
      * namespace RungeKutta for expected function signatures of the callable
-     * parameters.
+     * parameters.  All components of the StateData must have the same
+     * interpolater.  Note that RK3 and RK4 do not support post-step regrid,
+     * because the coarse level RK data are lost when a level is rebuilt.
      *
      * \param order      order of RK
      * \param state_type index of StateData
@@ -970,6 +976,10 @@ void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
     if (level == parent->finestLevel()) { return; }
 
     const StateDescriptor& desc = AmrLevel::desc_lst[state_type];
+
+    // The FillPatcher holds a single interpolater.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(desc.identicalInterps(0,desc.nComp()),
+        "AmrLevel::RK: all components must have the same interpolater");
 
     auto& fillpatcher = parent->getLevel(level+1).m_fillpatcher[state_type];
     fillpatcher = std::make_unique<FillPatcher<MultiFab>>

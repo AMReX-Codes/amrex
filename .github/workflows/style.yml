@@ -10,25 +10,28 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-style
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   tabs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Tabs
         run: .github/workflows/style/check_tabs.sh
 
   trailing_whitespaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh
 
   doxygen:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Doxygen
         run: |
           sudo apt-get install -y --no-install-recommends doxygen
@@ -37,8 +40,8 @@ jobs:
   zenodo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate Zenodo Metadata
-        uses: vsoch/zenodo-validator@main
+        uses: vsoch/zenodo-validator@00643f085e550b329ab56bc79da510ba18b2d547 # main
         with:
           path: '.zenodo.json'

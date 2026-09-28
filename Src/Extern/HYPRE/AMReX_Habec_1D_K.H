@@ -12,8 +12,7 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
                 GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
                 GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
                 GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int bho,
-                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk,
-                Array4<Real> const& diaginv)
+                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk)
 {
     sten[1] = -(sb / (dx[0]*dx[0])) * b[0](i,j,k);
     sten[2] = -(sb / (dx[0]*dx[0])) * b[0](i+1,j,k);
@@ -45,18 +44,12 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
             sten[2] = Real(0.0);
         }
     }
-
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
-    }
 }
 
 template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& ncols,
-                  Array4<Real> const& diaginv, int i, int j, int k,
+                  int i, int j, int k,
                   Array4<Int const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -97,12 +90,6 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& nc
         for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
             sten[m] = Real(0.0);
         }
-    }
-
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
     }
 
     ncols(i,j,k) = 0;

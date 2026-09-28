@@ -188,6 +188,9 @@ public:
     void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                    MultiFab& sol, Location /*loc*/) const override;
 
+    void compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                        MultiFab& sol) const;
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void fillIJMatrix (MFIter const& mfi,
                        Array4<HypreNodeLap::AtomicInt const> const& gid,
@@ -204,6 +207,15 @@ public:
 
     //! Post-process the solution hierarchy.
     void postSolve (Vector<MultiFab*> const& sol) const override;
+
+    [[nodiscard]] BottomSolver getDefaultBottomSolver () const override {
+        return BottomSolver::custom;
+    }
+
+    [[nodiscard]] bool supportCustomBottomSolver () const override { return true; }
+
+    void customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
+                            Real eps_rel, Real eps_abs, int maxiter) override;
 
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
@@ -224,6 +236,9 @@ template <typename F>
 requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
 void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 {
+    // Select m_phi_eb again, in case a previous prepareForSolve defaulted
+    // to homogeneous Dirichlet or a scalar value was set earlier.
+    m_s_phi_eb = std::numeric_limits<Real>::lowest();
     m_phi_eb.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -251,9 +266,9 @@ void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
                     AMREX_HOST_DEVICE_FOR_3D(ndbx, i, j, k,
                     {
                         if (lstarr(i,j,k) >= Real(0.0)) {
-                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+i*cellsize[0],
-                                                        problo[1]+j*cellsize[1],
-                                                        problo[2]+k*cellsize[2]));
+                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*cellsize[0],
+                                                        problo[1]+Real(j)*cellsize[1],
+                                                        problo[2]+Real(k)*cellsize[2]));
                         }
                     });
                 }

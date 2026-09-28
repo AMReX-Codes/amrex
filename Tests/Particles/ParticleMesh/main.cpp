@@ -106,7 +106,7 @@ void testParticleMesh (TestParams& parms)
                       return arr(i, j, k, comp);  // no weighting
                   },
                   [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
-                                        int comp, amrex::Real val)
+                                        int comp, auto val)
                   {
                       part.rdata(comp) += ParticleReal(val);
                   });

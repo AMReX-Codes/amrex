@@ -539,14 +539,16 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         }
     }
 
-    MultiFab empty;
+    MultiFab zero;
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         MultiFab const* levelbc;
         if (ilev < a_levelbcdata.size() && a_levelbcdata[ilev]) {
             levelbc = a_levelbcdata[ilev];
         } else {
-            levelbc = &empty;
+            zero.define(m_grids[ilev], m_dmap[ilev], ncomp, 1);
+            zero.setVal(Real(0.0));
+            levelbc = &zero;
         }
 
         IntVect br_ref_ratio;

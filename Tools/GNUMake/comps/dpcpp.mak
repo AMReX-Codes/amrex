@@ -35,8 +35,12 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3 #                       and makes linking much slower
+  # -gline-tables-only and -fdebug-info-for-profiling are supported for host
+  # compilation only. Without -Xarch_host, icpx issues a -Woption-ignored
+  # warning for the SPIR-V device compilation pass, which -Werror turns into an
+  # error.
+  CXXFLAGS += -Xarch_host -gline-tables-only -Xarch_host -fdebug-info-for-profiling -O3 # -g makes linking much slower
+  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 

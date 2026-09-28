@@ -427,6 +427,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
         case lexState::LIST:
             eat_comment(str);
             ch = *str;
+            if ( ch == 0 )
+            {
+                amrex::Error("ParmParse::getToken: EOF while parsing");
+            }
             if ( ch == '(' )
             {
                 ostr += ch; str++; pcnt++;
@@ -447,6 +451,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
         case lexState::INITIALIZER:
             eat_garbage(str);
             ch = *str;
+            if ( ch == 0 )
+            {
+                amrex::Error("ParmParse::getToken: EOF while parsing");
+            }
             if ( ch == '{' )
             {
                 ostr += ch; str++; cbcnt++;
@@ -469,6 +477,10 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             if (!array_in_string) {
                 eat_garbage(str);
                 ch = *str;
+                if ( ch == 0 )
+                {
+                    amrex::Error("ParmParse::getToken: EOF while parsing");
+                }
             } else {
                 ch = *str;
             }
@@ -624,7 +636,7 @@ read_file (const char* fname, ParmParse::Table& tab)
 
         // optional prefix to search files in
         char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
-        if (amrex_inputs_file_prefix_c != nullptr) {
+        if (amrex_inputs_file_prefix_c != nullptr && amrex_inputs_file_prefix_c[0] != 0) {
             // we expect a directory path as the prefix: append a trailing "/" if missing
             auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
             if (amrex_inputs_file_prefix.back() != '/') {
@@ -681,6 +693,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 has_true.push_back(r);
                 continue;
             } else if (std::regex_match(line, sm, elif_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #elif without matching #if in " + filename);
+                }
                 if (has_true.back() == false) {
                     // If none of the previous if/elif is true
                     bool r = isTrue(sm);
@@ -692,6 +707,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 }
                 continue;
             } else if (std::regex_match(line, sm, else_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #else without matching #if in " + filename);
+                }
                 if (has_true.back() == false) {
                     // If none of the previous if/elif is true,
                     valid_region.back() = true;
@@ -700,6 +718,9 @@ read_file (const char* fname, ParmParse::Table& tab)
                 }
                 continue;
             } else if (std::regex_match(line, sm, endif_regex)) {
+                if (valid_region.empty()) {
+                    amrex::Abort("ParmParse: #endif without matching #if in " + filename);
+                }
                 valid_region.pop_back();
                 has_true.pop_back();
                 continue;
@@ -912,36 +933,36 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
     }
 }
 
+std::size_t find_next_array_sep (std::string const& str, std::size_t start);
+
+// Splits the array body on commas outside quotes and parentheses, so that
+// elements like (1,2,3) stay whole.
 template <typename T>
 void read_array_1d (std::vector<T>& ref, std::string const& str)
 {
     ref.clear();
-    std::istringstream is(str);
     auto throw_parse_error = [&str]() {
         throw std::runtime_error("ParmParse: failed to parse array element in " + str);
     };
-    T v{};
-    is.ignore(100000, '[');
-    if (!(is >> v)) {
+    auto pos = str.find('[');
+    auto const last = str.rfind(']');
+    if (pos == std::string::npos || last == std::string::npos || last < pos) {
         throw_parse_error();
     }
-    ref.push_back(v);
-    while (true) {
-        is >> std::ws;
-        auto nc = is.peek();
-        if (nc == ',') {
-            is.ignore(1, ',');
-            is >> std::ws;
-            nc = is.peek();
-            if (nc == ']') { return; }
-            if (!(is >> v)) {
-                throw_parse_error();
-            }
-            ref.push_back(v);
-            continue;
-        } else {
-            break;
+    ++pos;
+    while (pos < last) {
+        auto comma = find_next_array_sep(str, pos);
+        if (comma == std::string::npos || comma > last) { comma = last; }
+        auto const elem = str.substr(pos, comma-pos);
+        T v{};
+        if (elem.empty() || !is(elem, v)) {
+            throw_parse_error();
         }
+        ref.push_back(v);
+        pos = comma + 1;
+    }
+    if (ref.empty()) {
+        throw_parse_error();
     }
 }
 
@@ -969,31 +990,54 @@ std::size_t find_next_unquoted (std::string const& str, std::size_t start, char 
     return std::string::npos;
 }
 
+// Finds the next ',' outside quotes and parentheses.
+std::size_t find_next_array_sep (std::string const& str, std::size_t start)
+{
+    bool in_string = false;
+    int depth = 0;
+    for (std::size_t i = start; i < str.size(); ++i) {
+        char c = str[i];
+        if (c == '"' && !is_escaped_quote(str, i)) {
+            in_string = !in_string;
+        } else if (!in_string) {
+            if (c == '(') {
+                ++depth;
+            } else if (c == ')') {
+                --depth;
+            } else if (c == ',' && depth == 0) {
+                return i;
+            }
+        }
+    }
+    return std::string::npos;
+}
+
 void read_array_1d (std::vector<std::string>& ref, std::string const& str)
 {
     ref.clear();
-    std::string::size_type pos = str.find('[');
-    if (pos == std::string::npos) { return; }
-    while (true) {
-        pos = str.find('"', pos+1);
-        if (pos != std::string::npos) {
-            auto open_pos = pos;
-            while (true) {
-                pos = str.find('"', pos+1);
-                if (pos != std::string::npos) {
-                    if (!is_escaped_quote(str, pos)) {
-                        ref.push_back(str.substr(open_pos+1, pos-(open_pos+1)));
-                        break;
-                    }
-                } else {
-                    amrex::ErrorStream() << "ParmParse: unmatched quotes in string array\n";
-                    amrex::Abort();
-                    return;
-                }
+    auto pos = str.find('[');
+    auto const last = str.rfind(']');
+    if (pos == std::string::npos || last == std::string::npos || last < pos) { return; }
+    ++pos;
+    while (pos < last) {
+        auto comma = find_next_array_sep(str, pos);
+        if (comma == std::string::npos || comma > last) { comma = last; }
+        auto elem = str.substr(pos, comma-pos);
+        if (elem.empty()) {
+            throw std::runtime_error("ParmParse: failed to parse array element in " + str);
+        } else if (elem.front() == '"') {
+            if (elem.size() >= 2 && elem.back() == '"' &&
+                !is_escaped_quote(elem, elem.size()-1)) {
+                ref.push_back(elem.substr(1, elem.size()-2));
+            } else {
+                amrex::ErrorStream() << "ParmParse: unmatched quotes in string array\n";
+                amrex::Abort();
             }
         } else {
-            break;
+            // Unquoted elements are kept verbatim, like ParmParse's native format.
+            ref.push_back(std::move(elem));
         }
+        pos = comma + 1;
     }
 }
 
@@ -1587,9 +1631,14 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
         recursive_symbols.insert(name);
     }
 
-    auto parser = pp_make_parser<T>(val, {}, table, parser_prefix, use_querywithparser);
-    auto exe = parser.template compileHost<0>();
-    ref = static_cast<T>(exe());
+    try {
+        auto parser = pp_make_parser<T>(val, {}, table, parser_prefix, use_querywithparser);
+        auto exe = parser.template compileHost<0>();
+        ref = static_cast<T>(exe());
+    } catch (...) {
+        recursive_symbols.erase(name);
+        throw;
+    }
 
     recursive_symbols.erase(name);
     return true;
@@ -1769,6 +1818,9 @@ ParmParse::Finalize ()
 
     g_parser_recursive_symbols.clear();
     g_parser_recursive_symbols.resize(1);
+
+    ParmParse::ParserPrefix.clear();
+    g_toml_table_key.clear();
 
     pp_detail::verbose = -1;
     initialized = false;

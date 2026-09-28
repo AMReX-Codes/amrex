@@ -36,7 +36,9 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
 
     is >> m_spacedim >> m_time >> m_finest_level;
     m_nlevels = m_finest_level+1;
-    AMREX_ASSERT(m_finest_level >= 0 && m_finest_level < 1000 && m_spacedim >= 1 && m_spacedim <= AMREX_SPACEDIM);
+    AMREX_ASSERT(m_finest_level >= 0 && m_finest_level < 1000);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_spacedim >= 1 && m_spacedim <= AMREX_SPACEDIM,
+                                     "PlotFileData: plotfile dimension exceeds AMREX_SPACEDIM");
 
     for (int i = 0; i < m_spacedim; ++i) {
         is >> m_prob_lo[i];

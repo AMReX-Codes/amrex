@@ -69,7 +69,7 @@ struct Handler
     // lane index in warp
     std::size_t laneIdx () const { return item->get_sub_group().get_local_id()[0]; }
     // warp size
-    std::size_t warpDim () const { return item->get_sub_group().get_group_range()[0]; }
+    std::size_t warpDim () const { return item->get_sub_group().get_local_range()[0]; }
 
     void* sharedMemory () const { return local; }
 

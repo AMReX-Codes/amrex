@@ -33,6 +33,10 @@ MLNodeLaplacian::buildStencil ()
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_geom[0][0].IsRZ(),
                                      "MLNodeLaplacian::buildStencil: cylindrical not supported for RAP");
+    for (auto const& r : mg_coarsen_ratio_vec) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r == IntVect(mg_coarsen_ratio),
+            "MLNodeLaplacian::buildStencil: semicoarsening not supported for RAP");
+    }
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {

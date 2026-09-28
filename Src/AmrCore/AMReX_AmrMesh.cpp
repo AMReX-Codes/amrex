@@ -43,6 +43,9 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
 AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
+    }
     int nlev = max_level + 1;
     AmrInfo def_amr_info;
     ref_ratio.resize      (nlev, amr_info.ref_ratio.empty()
@@ -376,6 +379,12 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
+    pp.queryAdd("refine_whole_domain_dir", refine_whole_domain_dir);
+    pp.query("no_box_split_dir", no_box_split_dir);
+    if (no_box_split_dir >= AMREX_SPACEDIM) {
+        amrex::Error("AmrMesh: no_box_split_dir is out of range");
+    }
+
     pp.queryAdd("check_input", check_input);
     pp.queryAdd("max_grid_iterations", max_grid_iterations);
 
@@ -466,9 +475,26 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
     }
 }
 
+bool
+AmrMesh::useLegacyGridding () const noexcept
+{
+    return no_box_split_dir < 0;
+}
+
+bool
+AmrMesh::hasOddRefRatio (int lev) const noexcept
+{
+    return std::ranges::any_of(ref_ratio[lev], [] (int rr) { return rr > 1 && rr%2 != 0; });
+}
+
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
+    if (!useLegacyGridding()) {
+        ChopGridsExtended(lev, ba, target_size);
+        return;
+    }
+
     if (refine_grid_layout_dims == 0) { return; }
 
     IntVect chunk = max_grid_size[lev];
@@ -523,11 +549,14 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrMesh::MakeBaseGrids () const
 {
+    if (no_box_split_dir >= 0) { return MakeBaseGridsNoBoxSplit(); }
+
     IntVect fac(2);
     const Box& dom = geom[0].Domain();
     const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (dom.length(idim) != dom2.length(idim)) {
+        if (dom.length(idim) != dom2.length(idim) ||
+            max_grid_size[0][idim] < 2) {
             fac[idim] = 1;
         }
     }
@@ -550,6 +579,11 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
 {
+    if (!useLegacyGridding()) {
+        MakeNewGridsExtended(lbase, time, new_finest, new_grids);
+        return;
+    }
+
     BL_PROFILE("AmrMesh::MakeNewGrids()");
 
     BL_ASSERT(lbase < max_level);
@@ -820,7 +854,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Construct initial cluster.
                     //
-                    ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()));
+                    ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()),
+                                      pc_domain[levc], refine_whole_domain_dir);
                     if (use_new_chop) {
                         clist.new_chop(grid_eff);
                     } else {
@@ -1185,6 +1220,11 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Box& domain,
 void
 AmrMesh::checkInput ()
 {
+    if (!useLegacyGridding()) {
+        checkInputExtended();
+        return;
+    }
+
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
     }
@@ -1288,6 +1328,32 @@ AmrMesh::checkInput ()
         }
     }
 
+    //
+    // Check the direction in which the fine levels cover the entire domain.
+    //
+    if (refine_whole_domain_dir >= 0)
+    {
+        const int idim = refine_whole_domain_dir;
+        if (idim >= AMREX_SPACEDIM) {
+            amrex::Error("Amr::checkInput: refine_whole_domain_dir is out of range");
+        }
+#ifdef AMREX_USE_BITTREE
+        if (use_bittree) {
+            amrex::Error("Amr::checkInput: refine_whole_domain_dir does not work with bittree");
+        }
+#endif
+        for (int i = 0; i < max_level; ++i) {
+            // The tags are coarsened by this factor before they are clustered.
+            int bf = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            if (Geom(i).Domain().length(idim) % bf != 0) {
+                amrex::Print() << "On level " << i << " the domain size in direction " << idim
+                               << " is " << Geom(i).Domain().length(idim)
+                               << ", which is not divisible by " << bf << '\n';
+                amrex::Error("Domain size not divisible by blocking_factor/ref_ratio in refine_whole_domain_dir");
+            }
+        }
+    }
+
     if( ! (Geom(0).ProbDomain().volume() > 0.0) ) {
         amrex::Error("Amr::checkInput: bad physical problem size");
     }
@@ -1324,6 +1390,10 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
+    os << "  refine_whole_domain_dir = " << amr_mesh.refine_whole_domain_dir << "\n";
+    if (amr_mesh.no_box_split_dir >= 0) {
+        os << "  no_box_split_dir = " << amr_mesh.no_box_split_dir << "\n";
+    }
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";

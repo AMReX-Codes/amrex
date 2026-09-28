@@ -33,7 +33,7 @@ private:
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
     int use_hypre = 0;
-    amrex::Real reltol = 1.e-11;
+    amrex::Real reltol = amrex::Real(1.e-11);
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
@@ -42,7 +42,7 @@ private:
     amrex::Vector<amrex::MultiFab> solution;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> exact_solution;
-    amrex::Array<amrex::Real,AMREX_SPACEDIM> beta = {{AMREX_D_DECL(0.9,0.0,0.0)}};
+    amrex::Array<amrex::Real,AMREX_SPACEDIM> beta = {{AMREX_D_DECL(amrex::Real(0.9),0.0,0.0)}};
 };
 
 #endif

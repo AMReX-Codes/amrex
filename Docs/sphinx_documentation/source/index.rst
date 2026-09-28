@@ -68,7 +68,6 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    External_Frameworks_Chapter
    Regression_Testing_Chapter
    Faq
-   Governance
 
 .. toctree::
    :maxdepth: 1

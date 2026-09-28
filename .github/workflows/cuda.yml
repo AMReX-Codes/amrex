@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-cuda
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
@@ -21,14 +24,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvcc.sh 12.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -60,7 +63,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DAMReX_CUDA_ARCH="8.0"                      \
+            -DCMAKE_CUDA_ARCHITECTURES=80                \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
@@ -78,14 +81,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvcc.sh 12.6
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -115,7 +118,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DAMReX_CUDA_ARCH="7.0"                      \
+            -DCMAKE_CUDA_ARCHITECTURES=70                \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
@@ -138,9 +141,8 @@ jobs:
       CUDACXX: clang++-19
       CUDAHOSTCXX: clang++-19
       CUDAARCHS: "80"
-      AMReX_CUDA_ARCH: "8.0"
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -148,7 +150,7 @@ jobs:
         .github/workflows/dependencies/dependencies_nvcc_2404.sh 12.5
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -189,14 +191,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvhpc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -238,7 +240,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
             -DCMAKE_CUDA_HOST_COMPILER=$(which nvc++)    \
             -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
-            -DAMReX_CUDA_ARCH=8.0                        \
+            -DCMAKE_CUDA_ARCHITECTURES=80                \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
@@ -256,14 +258,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvcc_2404.sh 13.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}

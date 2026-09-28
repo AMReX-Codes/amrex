@@ -85,6 +85,15 @@ ChkptFileLevel::define_fine_chkpt_file (ChkptFile const& chkpt_file,
 void
 ChkptFileLevel::finalize_cell_flags ()
 {
+    // Same threshold as build_faces, so that the reloaded face types match
+    // those of the level the checkpoint was written from.
+#if (AMREX_SPACEDIM == 2)
+    constexpr Real almostone = 1.0_rt;
+#elif defined(AMREX_USE_FLOAT)
+    constexpr Real almostone = 1.0_rt - 1.e-5_rt;
+#else
+    constexpr Real almostone = 1.0 - 1.e-13;
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -117,7 +126,7 @@ ChkptFileLevel::finalize_cell_flags ()
             {
                 if (apx(i,j,k) == 0.0_rt) {
                     fx(i,j,k) = Type::covered;
-                } else if (apx(i,j,k) == 1.0_rt) {
+                } else if (apx(i,j,k) >= almostone) {
                     fx(i,j,k) = Type::regular;
                 }
             });
@@ -127,7 +136,7 @@ ChkptFileLevel::finalize_cell_flags ()
             {
                 if (apy(i,j,k) == 0.0_rt) {
                     fy(i,j,k) = Type::covered;
-                } else if (apy(i,j,k) == 1.0_rt) {
+                } else if (apy(i,j,k) >= almostone) {
                     fy(i,j,k) = Type::regular;
                 }
             });
@@ -138,7 +147,7 @@ ChkptFileLevel::finalize_cell_flags ()
             {
                 if (apz(i,j,k) == 0.0_rt) {
                     fz(i,j,k) = Type::covered;
-                } else if (apz(i,j,k) == 1.0_rt) {
+                } else if (apz(i,j,k) >= almostone) {
                     fz(i,j,k) = Type::regular;
                 }
             });

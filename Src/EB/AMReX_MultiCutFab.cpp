@@ -149,7 +149,26 @@ MultiCutFab::setVal (Real val)
 void
 MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period)
 {
-    m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng, period);
+    // FabArray<CutFab>::ParallelCopy would read and write unallocated CutFabs,
+    // so the transfer is done with dense MultiFabs.
+    MultiFab dstmf = ToMultiFab(0._rt, 0._rt);
+    dstmf.ParallelCopy(src.ToMultiFab(0._rt, 0._rt), scomp, dcomp, ncomp, sng, dng, period);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
+    {
+        if (ok(mfi)) {
+            Array4<Real> const& d = m_data.array(mfi);
+            Array4<Real const> const& s = dstmf.const_array(mfi);
+            Box const& b = mfi.fabbox();
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b, m_data.nComp(), i, j, k, n,
+            {
+                d(i,j,k,n) = s(i,j,k,n);
+            });
+        }
+    }
 }
 
 MultiFab

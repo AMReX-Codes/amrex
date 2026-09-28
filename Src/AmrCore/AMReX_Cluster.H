@@ -160,6 +160,26 @@ public:
     ClusterList (IntVect* pts, Long len);
 
     /**
+    * \brief Construct a list containing a single Cluster, clustering in a
+    * reduced number of dimensions.
+    *
+    * The tagged points are projected onto the low end of \p domain in
+    * direction \p whole_domain_dir, so that the clustering is performed in
+    * one fewer dimension.  The boxes returned by boxList and boxArray span
+    * the entire domain in that direction.  In other words, tagging a single
+    * cell behaves as if the whole line of cells through it in that direction
+    * were tagged.  Pass -1 for \p whole_domain_dir to disable this.
+    *
+    * Note that the array \p pts is modified.
+    *
+    * \param pts              Pointer to tagged IntVects (owned by caller).
+    * \param len              Number of tagged entries in \p pts.
+    * \param domain           Problem domain in the index space of \p pts.
+    * \param whole_domain_dir Direction spanning the entire domain, or -1.
+    */
+    ClusterList (IntVect* pts, Long len, const Box& domain, int whole_domain_dir);
+
+    /**
     * \brief The destructor.
     */
     ~ClusterList ();
@@ -177,7 +197,7 @@ public:
     /**
     * \brief Add cluster to end of list.
     *
-    * \param c Cluster pointer transferred into the list (caller retains ownership).
+    * \param c Cluster pointer whose ownership is transferred into the list.
     */
     void append (Cluster* c) { lst.push_back(c); }
 
@@ -231,8 +251,13 @@ public:
 
 private:
 
+    //! Extend a cluster box to the entire domain in m_whole_domain_dir.
+    [[nodiscard]] Box expandBox (const Box& b) const;
+
     //! The data.
     std::list<Cluster*> lst;
+    Box m_domain;
+    int m_whole_domain_dir = -1;
 };
 
 }

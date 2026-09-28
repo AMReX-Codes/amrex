@@ -539,7 +539,9 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     // Pick data type of dataset
     hid_t data_type;
     if (whichRDBytes == 4) {
-        data_type = H5T_NATIVE_FLOAT;
+        // IEEE32 is big-endian, so say so rather than mislabeling the bytes.
+        data_type = (*whichRD == FPC::Ieee32NormalRealDescriptor())
+            ? H5T_IEEE_F32BE : H5T_NATIVE_FLOAT;
     }
     else {
         data_type = H5T_NATIVE_DOUBLE;
@@ -691,7 +693,8 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
 
-        Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
+        // A byte buffer, because a converted item is whichRDBytes, not sizeof(Real).
+        Vector<char> a_buffer(procBufferSize[myProc]*whichRDBytes);
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
         if (mf[level]->nGrowVect() != 0) {
@@ -728,7 +731,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
                 memcpy(static_cast<void *> (a_buffer.dataPtr()+writeDataSize),
                        fabdata, writeDataItems * whichRDBytes);
             }
-            writeDataSize += writeDataItems;
+            writeDataSize += writeDataItems * whichRDBytes;
         }
 
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
@@ -1013,7 +1016,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     // Pick data type
     hid_t data_type;
     if (whichRDBytes == 4) {
-        data_type = H5T_NATIVE_FLOAT;
+        // IEEE32 is big-endian, so say so rather than mislabeling the bytes.
+        data_type = (*whichRD == FPC::Ieee32NormalRealDescriptor())
+            ? H5T_IEEE_F32BE : H5T_NATIVE_FLOAT;
     }
     else {
         data_type = H5T_NATIVE_DOUBLE;
@@ -1161,8 +1166,8 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
 
-        Vector<Real> a_buffer(procBufferSize[myProc]*ncomp, -1.0);
-        Vector<Real> a_buffer_ind(procBufferSize[myProc], -1.0);
+        Vector<char> a_buffer(procBufferSize[myProc]*ncomp*whichRDBytes);
+        Vector<char> a_buffer_ind(procBufferSize[myProc]*whichRDBytes);
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
         if (mf[level]->nGrowVect() != 0) {
@@ -1222,10 +1227,10 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
                 // Extract individual variable data
                 memcpy(static_cast<void *> (a_buffer_ind.dataPtr() + writeDataSize),
-                       static_cast<void *> (a_buffer.dataPtr() + jj*writeDataItems),
+                       static_cast<void *> (a_buffer.dataPtr() + jj*writeDataItems*whichRDBytes),
                        writeDataItems * whichRDBytes);
 
-                writeDataSize += writeDataItems;
+                writeDataSize += writeDataItems * whichRDBytes;
             }
 
             hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);

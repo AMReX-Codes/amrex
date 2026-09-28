@@ -2,6 +2,7 @@
 #define AMREX_SUNDIALS_INTEGRATOR_H
 
 #include <functional>
+#include <utility>
 
 #include <AMReX_Config.H>
 #include <AMReX_REAL.H>
@@ -152,6 +153,28 @@ private:
 
     // Max steps between returns
     amrex::Long max_num_steps = 0;
+
+    //! Free the SUNDIALS objects created by initialize(). Safe to call twice.
+    void free_memory ()
+    {
+        if (use_mri) {
+            MRIStepInnerStepper_Free(&fast_stepper);
+            ARKStepFree(&arkode_fast_mem);
+            MRIStepFree(&arkode_mem);
+        } else if (use_ark) {
+            ARKStepFree(&arkode_mem);
+        }
+        SUNLinSolFree(LS);
+        LS = nullptr;
+        SUNLinSolFree(fast_LS);
+        fast_LS = nullptr;
+        SUNNonlinSolFree(NLS);
+        NLS = nullptr;
+        SUNNonlinSolFree(fast_NLS);
+        fast_NLS = nullptr;
+        use_ark = false;
+        use_mri = false;
+    }
 
     void initialize_parameters ()
     {
@@ -595,6 +618,13 @@ public:
      */
     void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
+        free_memory(); // no-op on the first call
+        {
+            // Destroy the current context. Move assignment below does not free
+            // it in SUNDIALS older than 7.6.
+            ::sundials::Context old_sunctx = std::move(sunctx);
+        }
+
         initialize_parameters();
         MPI_Comm mpi_comm = ParallelContext::CommunicatorSub();
 #if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
@@ -749,17 +779,7 @@ public:
         }
 
         // Clean up allocated memory
-        if (use_mri) {
-            MRIStepInnerStepper_Free(&fast_stepper);
-            ARKStepFree(&arkode_fast_mem);
-            MRIStepFree(&arkode_mem);
-        } else if (use_ark) {
-            ARKStepFree(&arkode_mem);
-        }
-        SUNLinSolFree(LS);
-        SUNLinSolFree(fast_LS);
-        SUNNonlinSolFree(NLS);
-        SUNNonlinSolFree(fast_NLS);
+        free_memory();
     }
 
     /**

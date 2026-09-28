@@ -1216,48 +1216,48 @@ FixUpPhysCorners (FArrayBox&      fab,
 
         Box lo_slab = fab.box();
         Box hi_slab = fab.box();
-        lo_slab.shift(dir, ProbDomain.length(dir));
-        hi_slab.shift(dir,-ProbDomain.length(dir));
+        lo_slab.shift(dir, TheGeom.period(dir));
+        hi_slab.shift(dir,-TheGeom.period(dir));
         lo_slab &= GrownDomain;
         hi_slab &= GrownDomain;
 
         if (lo_slab.ok())
         {
-            lo_slab.shift(dir,-ProbDomain.length(dir));
+            lo_slab.shift(dir,-TheGeom.period(dir));
 
             BL_ASSERT(fab.box().contains(lo_slab));
             BL_ASSERT(HasPhysBndry(lo_slab,ProbDomain,TheGeom));
 
             tmp.resize(lo_slab,ncomp);
             tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
-            tmp.shift(dir,ProbDomain.length(dir));
+            tmp.shift(dir,TheGeom.period(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
                                            time,
                                            0,
                                            scomp,
                                            ncomp);
-            tmp.shift(dir,-ProbDomain.length(dir));
+            tmp.shift(dir,-TheGeom.period(dir));
             fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
 
         if (hi_slab.ok())
         {
-            hi_slab.shift(dir,ProbDomain.length(dir));
+            hi_slab.shift(dir,TheGeom.period(dir));
 
             BL_ASSERT(fab.box().contains(hi_slab));
             BL_ASSERT(HasPhysBndry(hi_slab,ProbDomain,TheGeom));
 
             tmp.resize(hi_slab,ncomp);
             tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
-            tmp.shift(dir,-ProbDomain.length(dir));
+            tmp.shift(dir,-TheGeom.period(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
                                            time,
                                            0,
                                            scomp,
                                            ncomp);
-            tmp.shift(dir,ProbDomain.length(dir));
+            tmp.shift(dir,TheGeom.period(dir));
             fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
     }
@@ -1761,7 +1761,8 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         const BoxArray& srcBA = state[index].boxArray();
 
-        int ngrow_src = ngrow;
+        // growntilebox() below grows by the full mf.nGrowVect().
+        int ngrow_src = mf.nGrowVect().max();
         {
             Box bx0 = srcBA[0];
             Box bx1 = rec->boxMap()(bx0);
@@ -2166,6 +2167,10 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
 
         const StateDescriptor& desc = AmrLevel::desc_lst[state_index];
 
+        // The cached FillPatcher holds a single interpolater.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(desc.identicalInterps(scomp,ncomp),
+            "FillPatcherFill: all components must have the same interpolater");
+
         if (level > 1 &&!amrex::ProperlyNested(fine_level.crse_ratio,
                                                parent->blockingFactor(fine_level.level),
                                                nghost, mf.ixType(),
@@ -2186,6 +2191,11 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
                 (parent->boxArray(level), parent->DistributionMap(level), geom_fine,
                  parent->boxArray(level-1), parent->DistributionMap(level-1), geom_crse,
                  IntVect(nghost), desc.nComp(), desc.interp(scomp));
+        } else {
+            // The cache is keyed by state index, so a previous call may have
+            // built it with another component's interpolater.
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(fillpatcher->interp() == desc.interp(scomp),
+                "FillPatcherFill: all components must have the same interpolater");
         }
 
         fillpatcher->fill(mf, IntVect(nghost), time,
@@ -2280,6 +2290,8 @@ AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
         StateDataPhysBCFunct physbcf_crse(crse_level.state[state_index], 0,
                                           crse_level.geom);
         auto& fillpatcher = m_fillpatcher[state_index];
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(fillpatcher != nullptr,
+            "FillRKPatch: coarse level RK data missing.  Was this level regridded mid-step?");
         fillpatcher->fillRK(stage, iteration, ncycle, S, time, physbcf_crse,
                             physbcf, AmrLevel::desc_lst[state_index].getBCs());
     }

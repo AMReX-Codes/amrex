@@ -69,7 +69,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
-    int tid = h.item->get_local_id(0);
     sycl::sub_group const& sg = h.item->get_sub_group();
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
@@ -82,9 +81,16 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     h.item->barrier(sycl::access::fence_space::local_space);
     if (lane == 0) { shared[wid] = x; }
     h.item->barrier(sycl::access::fence_space::local_space);
-    bool b = (tid == 0) || (tid < numwarps);
-    x =  b ? shared[lane] : x0;
-    if (wid == 0) { x = warp_reduce(x, sg); }
+    x = x0;
+    if (wid == 0) {
+        // numwarps can be greater than warpSize. So warp 0 folds the
+        // partials in rounds of warpSize-1, carrying the result in lane 0.
+        for (int i0 = 0; i0 < numwarps; i0 += warpSize-1) {
+            int i = i0 + lane - 1;
+            T y = (lane == 0) ? x : ((i < numwarps) ? shared[i] : x0);
+            x = warp_reduce(y, sg);
+        }
+    }
     return x;
 }
 

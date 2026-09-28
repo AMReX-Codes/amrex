@@ -13,8 +13,10 @@
 #include <AMReX_Vector.H>
 
 #include <array>
+#include <cmath>
 #include <concepts>
 #include <iosfwd>
+#include <limits>
 #include <optional>
 #include <set>
 #include <string>
@@ -1556,13 +1558,14 @@ public:
             if (std::is_integral_v<value_type>) {
                 dref = std::round(dref);
             }
-            auto vref = static_cast<value_type>(dref);
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                if (static_cast<double>(vref) != dref) {
+                // Range check before the cast, which would otherwise be UB.
+                if (!(dref >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                      dref <  std::ldexp(1.0, std::numeric_limits<value_type>::digits))) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
                 }
             }
-            ref = vref;
+            ref = static_cast<value_type>(dref);
         }
         return exist;
     }
@@ -1587,13 +1590,13 @@ public:
                 if (std::is_integral_v<value_type>) {
                     dref[i] = std::round(dref[i]);
                 }
-                auto vref = static_cast<value_type>(dref[i]);
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                    if (static_cast<double>(vref) != dref[i]) {
+                    if (!(dref[i] >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                          dref[i] <  std::ldexp(1.0, std::numeric_limits<value_type>::digits))) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
                 }
-                ptr[i] = vref;
+                ptr[i] = static_cast<value_type>(dref[i]);
             }
         }
         return exist;

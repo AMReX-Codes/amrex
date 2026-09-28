@@ -121,7 +121,8 @@ HypreABecLap2::getSolution (MultiFab& a_soln)
     MultiFab* soln = &a_soln;
     MultiFab tmp;
     if (a_soln.nGrowVect() != 0) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         soln = &tmp;
     }
 
@@ -148,6 +149,13 @@ void
 HypreABecLap2::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap2::prepareSolver()");
+
+    // Free handles from a previous call.
+    if (solver) { HYPRE_BoomerAMGDestroy(solver); solver = nullptr; }
+    if (A) { HYPRE_SStructMatrixDestroy(A); A = nullptr; }
+    if (graph) { HYPRE_SStructGraphDestroy(graph); graph = nullptr; }
+    if (stencil) { HYPRE_SStructStencilDestroy(stencil); stencil = nullptr; }
+    if (hgrid) { HYPRE_SStructGridDestroy(hgrid); hgrid = nullptr; }
 
     HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
 
@@ -228,7 +236,6 @@ HypreABecLap2::prepareSolver ()
             AMREX_D_DECL(bcoefs[0].const_array(mfi),
                          bcoefs[1].const_array(mfi),
                          bcoefs[2].const_array(mfi))};
-        Array4<Real> const& diaginvfab = diaginv.array(mfi);
         GpuArray<int,AMREX_SPACEDIM*2> bctype;
         GpuArray<Real,AMREX_SPACEDIM*2> bcl;
         GpuArray<Array4<int const>, AMREX_SPACEDIM*2> msk;
@@ -251,7 +258,7 @@ HypreABecLap2::prepareSolver ()
                                    int i, int j, int k)
         {
             habec_mat(sten, i, j, k, boxlo, boxhi, sa, afab, sb, dx, bfabs,
-                      bctype, bcl, bho, msk, diaginvfab);
+                      bctype, bcl, bho, msk);
         });
 
         Real* mat = (Real*) rfab.dataPtr();
@@ -270,13 +277,13 @@ HypreABecLap2::prepareSolver ()
     // create solver
     HYPRE_BoomerAMGCreate(&solver);
 
-    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
-//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-//    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+    if (old_default) {
+        HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+    }
+    HYPRE_BoomerAMGSetRelaxType(solver, relax_type);
+    HYPRE_BoomerAMGSetRelaxOrder(solver, relax_order);
+    HYPRE_BoomerAMGSetNumSweeps(solver, num_sweeps);
+    HYPRE_BoomerAMGSetStrongThreshold(solver, strong_threshold);
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
@@ -293,41 +300,18 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
-    MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-        auto const& rhs_diag_ma = rhs_diag.arrays();
-        auto const& rhs_ma = rhs.const_arrays();
-        auto const& diaginv_ma = diaginv.const_arrays();
-        ParallelFor(rhs_diag,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
-        });
-        // Sync required: rhs_diag is passed to HYPRE host API in loadVectors
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
-            Array4<Real const> const& rhs_a = rhs.const_array(mfi);
-            Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
-            });
-        }
+    MultiFab rhs_tmp;
+    if (rhs.nGrowVect() == 0) {
+        rhs_tmp = MultiFab(rhs, amrex::make_alias, 0, 1);
+    } else {
+        rhs_tmp.define(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+        MultiFab::Copy(rhs_tmp, rhs, 0, 0, 1, 0);
     }
+    // Must sync before HYPRE host API uses rhs_tmp.
+    if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
 
     const HYPRE_Int part = 0;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    for (MFIter mfi(soln, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
         auto reglo = Hypre::loV(reg);
@@ -335,7 +319,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         HYPRE_SStructVectorSetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, soln[mfi].dataPtr());
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
-                                        0, rhs_diag[mfi].dataPtr());
+                                        0, rhs_tmp[mfi].dataPtr());
     }
     Gpu::hypreSynchronize();
 }

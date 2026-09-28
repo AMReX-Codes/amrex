@@ -2,9 +2,12 @@ name: CleanUpCache
 
 on:
   workflow_run:
-    workflows: [bittree, LinuxClang, cuda, LinuxGCC, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
+    workflows: [bittree, LinuxClang, cuda, LinuxFlang, LinuxGCC, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
     types:
       - completed
+
+permissions:
+  contents: read
 
 jobs:
   CleanUpCcacheCache:
@@ -16,7 +19,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Clean up ccache
         run: |
           REPO=${{ github.repository }}

@@ -24,6 +24,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLCellABecLap_${D}D_K.H
        MLMG/AMReX_MLCGSolver.H
        MLMG/AMReX_PCGSolver.H
+       MLMG/AMReX_SingleBoxCGSolver.H
        MLMG/AMReX_MLABecLaplacian.H
        MLMG/AMReX_MLABecLap_K.H
        MLMG/AMReX_MLABecLap_${D}D_K.H
@@ -33,9 +34,15 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson.H
        MLMG/AMReX_MLPoisson_K.H
        MLMG/AMReX_MLPoisson_${D}D_K.H
+       AMReX_AMG.H
+       AMReX_BiCGStab.H
+       AMReX_BiCGStab_MV.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
        AMReX_GMRES_MV.H
+       AMReX_KrylovMV.H
+       AMReX_PCG.H
+       AMReX_PCG_MV.H
        AMReX_Smoother_MV.H
        AMReX_Algebra.H
        AMReX_AlgPartition.H
@@ -43,6 +50,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_AlgVector.H
        AMReX_AlgVecUtil.H
        AMReX_CSR.H
+       AMReX_SpGEMM.H
        AMReX_SpMatrix.H
        AMReX_SpMatUtil.H
        AMReX_SpMV.H

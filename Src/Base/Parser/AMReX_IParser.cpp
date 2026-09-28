@@ -50,16 +50,24 @@ IParser::Data::~Data ()
 {
     m_expression.clear();
     if (m_iparser) { amrex_iparser_delete(m_iparser); }
+    clear_host_executor();
+#ifdef AMREX_USE_GPU
+    if (m_device_executor) { The_Arena()->free(m_device_executor); }
+#endif
+}
+
+void
+IParser::Data::clear_host_executor ()
+{
     if (m_host_executor) {
         if (m_use_arena) {
             The_Pinned_Arena()->free(m_host_executor);
         } else {
             std::free(m_host_executor);
         }
+        m_host_executor = nullptr;
+        m_use_arena = true;
     }
-#ifdef AMREX_USE_GPU
-    if (m_device_executor) { The_Arena()->free(m_device_executor); }
-#endif
 }
 /// \endcond
 
@@ -87,6 +95,11 @@ IParser::registerVariables (Vector<std::string> const& vars)
     }
 
     if (m_data && m_data->m_iparser) {
+        // The syntax tree may be shared with copies of this object, so forget
+        // every previous registration, not just this object's.  A variable
+        // dropped here then fails at compile time instead of reading past the
+        // argument array.
+        iparser_clearvar(m_data->m_iparser);
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             iparser_regvar(m_data->m_iparser, vars[i].c_str(), i);

@@ -1,0 +1,13 @@
+# Direct pip dependencies of the pyamrex job in .github/workflows/apps.yml.
+#
+# pyamrex.txt is the hash-pinned lock file compiled from this file:
+#   uv pip compile --python-version 3.12 --generate-hashes --no-annotate \
+#       --no-header pyamrex.in -o pyamrex.txt
+# Keep --python-version in sync with the python3 of the GitHub runner image.
+pip
+setuptools[core]
+wheel
+cmake
+pandas
+pytest
+mpi4py

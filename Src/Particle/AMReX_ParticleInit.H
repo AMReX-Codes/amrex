@@ -1496,9 +1496,9 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data
-            AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0]);,
-                         p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1]);,
-                         p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2]););
+            AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (x_off + Real(cell[0]-beg[0]))*dx[0]);,
+                         p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (y_off + Real(cell[1]-beg[1]))*dx[1]);,
+                         p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (z_off + Real(cell[2]-beg[2]))*dx[2]););
 
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 AMREX_ASSERT(p.pos(d) < grid_box.hi(d));

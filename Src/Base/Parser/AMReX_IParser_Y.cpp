@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdarg>
+#include <set>
 #include <vector>
 
 void
@@ -23,6 +24,7 @@ namespace {
     struct IParserWorkspace {
         struct iparser_node* root = nullptr;
         std::vector<void*> ptrs;
+        std::set<struct iparser_node*> parens; // parenthesized comparisons
     };
 
     thread_local IParserWorkspace iparser_workspace;
@@ -170,8 +172,8 @@ bool iparser_is_comparison (struct iparser_node* node)
 struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
                                           struct iparser_node* nr)
 {
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::iparser_is_comparison(nl)) {
+    /* If left side is an unparenthesized comparison, this extends the chain */
+    if (amrex::iparser_is_comparison(nl) && !iparser_workspace.parens.contains(nl)) {
        return amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, nl,
                                    amrex::iparser_newf2(cmp,
                                                         amrex::iparser_get_rightmost_operand(nl),
@@ -179,6 +181,15 @@ struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_
     } else {
         return amrex::iparser_newf2(cmp, nl, nr); // Initial comparison
     }
+}
+
+struct iparser_node* iparser_newparen (struct iparser_node* n)
+{
+    /* A parenthesized comparison must not become part of a chain. */
+    if (amrex::iparser_is_comparison(n)) {
+        iparser_workspace.parens.insert(n);
+    }
+    return n;
 }
 
 /*******************************************************************/
@@ -219,6 +230,7 @@ amrex_iparser_delete_ptrs ()
         std::free(p);
     }
     iparser_workspace.ptrs.clear();
+    iparser_workspace.parens.clear();
     iparser_workspace.root = nullptr;
 }
 
@@ -802,8 +814,16 @@ iparser_ast_optimize (struct iparser_node* node)
     case IPARSER_DIV_PP:
         iparser_ast_optimize(node->l);
         iparser_ast_optimize(node->r);
-        if (node->l->type == IPARSER_NUMBER &&
-            node->r->type == IPARSER_NUMBER)
+        if (node->r->type == IPARSER_NUMBER &&
+            ((struct iparser_number*)(node->r))->value == 0)
+        {
+            // Division by zero is left for the executor, whose if() is lazy.
+            // The node must be generic, because its operands are no longer
+            // what IPARSER_DIV_PP and friends claim they are.
+            node->type = IPARSER_DIV;
+        }
+        else if (node->l->type == IPARSER_NUMBER &&
+                 node->r->type == IPARSER_NUMBER)
         {
             auto v= ((struct iparser_number*)(node->l))->value
                 /   ((struct iparser_number*)(node->r))->value;
@@ -937,7 +957,9 @@ iparser_ast_optimize (struct iparser_node* node)
             ((struct iparser_f2*)node)->ftype = IPARSER_AND;
         }
         if (node->l->type == IPARSER_NUMBER &&
-            node->r->type == IPARSER_NUMBER)
+            node->r->type == IPARSER_NUMBER &&
+            !(((struct iparser_f2*)node)->ftype == IPARSER_FLRDIV &&
+              ((struct iparser_number*)(node->r))->value == 0))
         {
             auto v= iparser_call_f2
                 (((struct iparser_f2*)node)->ftype,
@@ -995,9 +1017,14 @@ iparser_ast_optimize (struct iparser_node* node)
         iparser_ast_optimize(node->r);
         if (node->r->type == IPARSER_NUMBER)
         {
-            auto v= node->lvp.v / ((struct iparser_number*)(node->r))->value;
-            ((struct iparser_number*)node)->type = IPARSER_NUMBER;
-            ((struct iparser_number*)node)->value = v;
+            if (((struct iparser_number*)(node->r))->value != 0) {
+                auto v= node->lvp.v / ((struct iparser_number*)(node->r))->value;
+                ((struct iparser_number*)node)->type = IPARSER_NUMBER;
+                ((struct iparser_number*)node)->value = v;
+            } else {
+                // The _VP specialization leaves l and r untouched.
+                node->type = IPARSER_DIV;
+            }
         }
         break;
     case IPARSER_DIV_PV:
@@ -1274,7 +1301,9 @@ iparser_ast_regvar (struct iparser_node* node, char const* name, int i)
     case IPARSER_NUMBER:
         break;
     case IPARSER_SYMBOL:
-        if (std::strcmp(name, ((struct iparser_symbol*)node)->name) == 0) {
+        // A null name matches every symbol.
+        if (name == nullptr ||
+            std::strcmp(name, ((struct iparser_symbol*)node)->name) == 0) {
             ((struct iparser_symbol*)node)->ip = i;
         }
         break;
@@ -1444,6 +1473,12 @@ void
 iparser_regvar (struct amrex_iparser* iparser, char const* name, int i)
 {
     iparser_ast_regvar(iparser->ast, name, i);
+}
+
+void
+iparser_clearvar (struct amrex_iparser* iparser)
+{
+    iparser_ast_regvar(iparser->ast, nullptr, -1);
 }
 
 void

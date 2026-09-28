@@ -2,6 +2,8 @@
 
 #include <AMReX.H>
 
+#include <cmath>
+
 using namespace amrex;
 
 int main (int argc, char* argv[])
@@ -39,8 +41,8 @@ int main (int argc, char* argv[])
                 auto phixp = Math::powi<5>(std::sin(x+dx));
                 rhs[lrow] = a*phi0 + (Real(2)*phi0-phixm-phixp) / (dx*dx);
 #elif (AMREX_SPACEDIM == 2)
-                auto x = (cell[0]+Real(0.5))*dx;
-                auto y = (cell[1]+Real(0.5))*dx;
+                auto x = (Real(cell[0])+Real(0.5))*dx;
+                auto y = (Real(cell[1])+Real(0.5))*dx;
                 auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y));
                 auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y));
                 auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y));
@@ -48,9 +50,9 @@ int main (int argc, char* argv[])
                 auto phiyp = Math::powi<5>(std::sin(x)*std::sin(y+dx));
                 rhs[lrow] = a*phi0 + (Real(4)*phi0-phixm-phixp-phiym-phiyp) / (dx*dx);
 #else
-                auto x = (cell[0]+Real(0.5))*dx;
-                auto y = (cell[1]+Real(0.5))*dx;
-                auto z = (cell[2]+Real(0.5))*dx;
+                auto x = (Real(cell[0])+Real(0.5))*dx;
+                auto y = (Real(cell[1])+Real(0.5))*dx;
+                auto z = (Real(cell[2])+Real(0.5))*dx;
                 auto phi0 = Math::powi<5>(std::sin(x)*std::sin(y)*std::sin(z));
                 auto phixm = Math::powi<5>(std::sin(x-dx)*std::sin(y)*std::sin(z));
                 auto phixp = Math::powi<5>(std::sin(x+dx)*std::sin(y)*std::sin(z));
@@ -118,6 +120,27 @@ int main (int argc, char* argv[])
 #else
         AMREX_ALWAYS_ASSERT(error*10 < eps);
 #endif
+
+        // Again with a nonzero initial guess
+        xvec.copyAsync(exact);
+        xvec.scaleAsync(Real(0.5));
+        gmres.getGMRES().setInitialGuessNonzero(true);
+        gmres.solve(xvec, bvec, eps, Real(0.0));
+        amrex::Axpy(xvec, Real(-1.0), exact);
+        error = xvec.norminf();
+        amrex::Print() << " Max norm error with nonzero initial guess: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+        AMREX_ALWAYS_ASSERT(error < eps);
+#else
+        AMREX_ALWAYS_ASSERT(error*10 < eps);
+#endif
+
+        // Starting from the solution must take no iterations.
+        xvec.copyAsync(exact);
+        gmres.getGMRES().setInitialGuessNonzero(true);
+        gmres.solve(xvec, bvec, Real(0.0), std::sqrt(eps)*bvec.norm2());
+        AMREX_ALWAYS_ASSERT(gmres.getGMRES().getStatus() == 0 &&
+                            gmres.getGMRES().getNumIters() == 0);
     }
     amrex::Finalize();
 }

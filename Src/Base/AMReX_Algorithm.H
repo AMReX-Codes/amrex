@@ -141,7 +141,7 @@ namespace amrex
         // Reference: https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
         // The machine epsilon has to be scaled to the magnitude of the values used
         // and multiplied by the desired precision in ULPs (units in the last place)
-        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
+        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * T(ulp)
         // unless the result is subnormal
         || std::abs(x-y) < std::numeric_limits<T>::min();
     }
@@ -177,7 +177,7 @@ namespace amrex
         if (flo == T(0)) { return lo; }
         if (fhi == T(0)) { return hi; }
 
-        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
+        AMREX_ASSERT_WITH_MESSAGE((flo < T(0)) != (fhi < T(0)),
             "Error - calling bisect but lo and hi don't bracket a root.");
 
         T mi = (lo + hi) / T(2);
@@ -189,7 +189,7 @@ namespace amrex
             mi = (lo + hi) / T(2);
             fmi = f(mi);
             if (fmi == T(0)) { break; }
-            fmi*flo < T(0) ? hi = mi : lo = mi;
+            ((fmi < T(0)) != (flo < T(0))) ? hi = mi : lo = mi;
             flo = f(lo);
             fhi = f(hi);
             ++n;
