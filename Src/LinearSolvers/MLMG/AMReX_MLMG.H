@@ -354,7 +354,11 @@ public:
      * verbosity and tolerances, singularity, BiCGStab acceleration), so it
      * can override any of them.
      */
-    void setAlgMGOptions (std::function<void(AlgMG<RT>&)> f) { m_algmg_options = std::move(f); }
+    void setAlgMGOptions (std::function<void(AlgMG<RT>&)> f) {
+        m_algmg_options = std::move(f);
+        m_algmg_bottom.reset();
+        m_algmg_level0.reset();
+    }
 
     /**
      * \brief Hybrid mode: switch to AlgMG when the residual has not dropped
@@ -924,9 +928,9 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
     }
-    // The level-0 algebraic solve needs the operator and the assembled matrix
-    // to match; the matrix supports boundary stencils up to third order.
-    if (multigrid_type != MultigridType::geometric) {
+    // The assembled matrix supports boundary stencils up to third order and
+    // must match the operator, as for hypre and PETSc.
+    if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
     }
 
@@ -1012,6 +1016,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         // until it converges, then the composite one.
         Vector<MF> best_sol;
         Vector<RT> hybrid_norms;
+        bool hybrid_composite = false; // the reported residual became the composite one
         RT best_norm = resnorm0;
         if (hybrid) {
             best_sol.resize(namrlevs);
@@ -1070,6 +1075,16 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 break;
             } else {
                 if (hybrid && !m_algmg_active) {
+                    if (fine_converged && !hybrid_composite) {
+                        // The reported residual now includes the coarse levels:
+                        // restart the comparisons from this iterate.
+                        hybrid_composite = true;
+                        hybrid_norms.clear();
+                        best_norm = composite_norminf;
+                        for (int alev = 0; alev < namrlevs; ++alev) {
+                            LocalCopy(best_sol[alev], sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
+                        }
+                    }
                     hybrid_norms.push_back(composite_norminf);
                     std::string reason;
                     bool do_switch = hybridShouldSwitch(hybrid_norms, max_norm,
@@ -2574,8 +2589,8 @@ MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
 
     if (m_algmg_bottom == nullptr) {
         m_algmg_bottom = linop.makeAlgMG(mglev);
-        configureAlgMG(*m_algmg_bottom, linop.isBottomSingular());
     }
+    configureAlgMG(*m_algmg_bottom, linop.isBottomSingular());
     if (precond_mode) {
         m_algmg_bottom->applyVcycle(x, b);
     } else {
@@ -2606,8 +2621,8 @@ MLMGT<MF>::algmgLevel0Solve ()
 
     if (m_algmg_level0 == nullptr) {
         m_algmg_level0 = linop.makeAlgMG(0);
-        configureAlgMG(*m_algmg_level0, linop.isSingular(0));
     }
+    configureAlgMG(*m_algmg_level0, linop.isSingular(0));
     // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
     if (precond_mode) {
         m_algmg_level0->applyVcycle(cor[0][0], res[0][0]);

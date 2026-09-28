@@ -291,6 +291,11 @@ public:
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     //! Instantiate a Hypre backend using interface selector \p hypre_interface.
+    //! The assembled matrix uses cell centers and face centers only.
+    [[nodiscard]] bool supportsAlgMG () const override {
+        return m_phi_loc == Location::CellCenter && m_beta_loc == Location::FaceCenter;
+    }
+
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 

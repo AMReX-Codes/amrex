@@ -568,7 +568,8 @@ the extrapolated value is then used in the regular stencil.  For example,
 to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
 The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
 types assemble the operator into a matrix that supports orders up to 3, so MLMG
-lowers a higher order to 3 when they are used.
+lowers a higher order to 3 when they are used, and the operator keeps that order
+afterwards.
 
 
 Curvilinear Coordinates
@@ -782,8 +783,7 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 With a GPU build of HYPRE, the defaults above switch to HYPRE's recommended GPU options
 (PMIS coarsening, extended+i interpolation with :cpp:`hypre.bamg_pmax_elmts` 4, l1-Jacobi
-relaxation in natural order, and :cpp:`hypre.bamg_keep_transpose` 1), because the classical
-CPU settings run their relaxation and coarsening on the host.  For symmetric problems,
+relaxation in natural order, and :cpp:`hypre.bamg_keep_transpose` 1).  For symmetric problems,
 Chebyshev relaxation (:cpp:`hypre.bamg_relax_type` 16) often needs half as many iterations.
 
 When BoomerAMG is the solver, :cpp:`hypre.bamg_max_levels` defaults to HYPRE's own default.
@@ -1235,9 +1235,8 @@ The following can be tuned:
   before and after the coarse correction (1 for Chebyshev, 2 for the other
   smoothers).
 - :cpp:`setBottomSolver`: a direct solve of the coarsest level (``direct``,
-  the default; the small coarsest matrix is factored on every process, up to
-  1024 rows, beyond which smoother sweeps are used), smoother sweeps
-  (``jacobi``), or BiCGStab (``bicgstab``) or GMRES
+  the default, for up to :cpp:`setMaxDirectSize` rows, 1024 by default),
+  smoother sweeps (``jacobi``), or BiCGStab (``bicgstab``) or GMRES
   (``gmres``) preconditioned by l1-Jacobi (weighted Jacobi when the smoother
   is ``jacobi``).
 - :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom

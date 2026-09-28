@@ -331,6 +331,7 @@ public:
     void setTruncFactor (T f) { m_trunc_factor = f; m_prepared = false; }
     //! Krylov solver with the V-cycle as preconditioner (see KrylovSolver). Default None.
     void setKrylovSolver (KrylovSolver a) {
+        if (m_krylov == a) { return; }
         m_krylov = a;
         m_krylov_bicgstab.reset();
         m_krylov_gmres.reset();
@@ -343,6 +344,7 @@ public:
     //! Coarsest-level solver (see BottomSolver). Default direct, which uses
     //! smoother sweeps instead beyond setMaxDirectSize rows.
     void setBottomSolver (BottomSolver bs) {
+        if (m_bottom_solver == bs) { return; }
         m_bottom_solver = bs;
         m_gmres.reset();
         m_bicgstab.reset();
