@@ -721,6 +721,23 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 - :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
 
+- :cpp:`hypre.bamg_use_old_default`: Default true.  Only used when BoomerAMG is the solver.
+  See `HYPRE_BoomerAMGSetOldDefault`
+
+When BoomerAMG is the solver, :cpp:`hypre.bamg_max_levels` defaults to HYPRE's own default.
+The defaults of :cpp:`hypre.bamg_coarsen_type`, :cpp:`hypre.bamg_interp_type` and
+:cpp:`hypre.bamg_pmax_elmts` come from `HYPRE_BoomerAMGSetOldDefault` if
+:cpp:`hypre.bamg_use_old_default` is true, and from HYPRE's own defaults otherwise.
+
+Other BoomerAMG parameters: :cpp:`hypre.bamg_pmax_elmts`, :cpp:`hypre.bamg_trunc_factor`,
+:cpp:`hypre.bamg_agg_num_levels`, :cpp:`hypre.bamg_agg_interp_type`,
+:cpp:`hypre.bamg_agg_pmax_elmts`, :cpp:`hypre.bamg_agg_trunc_factor`, :cpp:`hypre.bamg_num_paths`,
+:cpp:`hypre.bamg_keep_transpose`, :cpp:`hypre.bamg_rap2`, :cpp:`hypre.bamg_mod_rap2`,
+:cpp:`hypre.bamg_min_coarse_size`, :cpp:`hypre.bamg_max_coarse_size`, :cpp:`hypre.bamg_variant`,
+:cpp:`hypre.bamg_set_restriction`, :cpp:`hypre.bamg_cheby_order`, :cpp:`hypre.bamg_cheby_fraction`,
+:cpp:`hypre.bamg_cheby_eig_est`, :cpp:`hypre.bamg_cheby_variant` and :cpp:`hypre.bamg_cheby_scale`.
+See the corresponding `HYPRE_BoomerAMGSet...` function.
+
 The user is referred to the
 `HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ HYPRE Reference Manual for full details on the usage of the parameters described briefly above.
 

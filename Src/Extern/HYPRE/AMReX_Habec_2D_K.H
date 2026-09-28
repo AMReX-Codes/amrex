@@ -19,8 +19,7 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
                 GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
                 GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
                 GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int bho,
-                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk,
-                Array4<Real> const& diaginv)
+                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk)
 {
     sten[1] = -(sb / (dx[0]*dx[0])) * b[0](i,j,k);
     sten[2] = -(sb / (dx[0]*dx[0])) * b[0](i+1,j,k);
@@ -78,18 +77,12 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
             sten[4] = Real(0.0);
         }
     }
-
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
-    }
 }
 
 template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& ncols,
-                  Array4<Real> const& diaginv, int i, int j, int k,
+                  int i, int j, int k,
                   Array4<Int const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -154,12 +147,6 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& nc
         }
     }
 
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
-    }
-
     ncols(i,j,k) = 0;
     for (int m = 0; m < 2*AMREX_SPACEDIM+1; ++m) {
         ncols(i,j,k) += (sten[m] != Real(0.0));
@@ -199,7 +186,7 @@ void habec_cols_eb (GpuArray<Int,9>& sten, int i, int j, int /*k*/,
 template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
-                     Array4<Real> const& diaginv, int i, int j, int k,
+                     int i, int j, int k,
                      Array4<Int const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -515,13 +502,9 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             mat_tmp(ioff,joff) -= feb(3)*faceb;
         }
 
-        for (int jj=-1; jj<=1; jj++) {
-        for (int ii=-1; ii<=1; ii++) {
-            mat_tmp(ii,jj) *= Real(1.0)/vfrc(i,j,k);
-        }}
-
+        // The row is weighted by the volume fraction, as is the rhs.
         if (sa != Real(0.0)) {
-            mat_tmp(0,0) += sa*a(i,j,k);
+            mat_tmp(0,0) += sa*a(i,j,k)*vfrc(i,j,k);
         }
     }
     else
@@ -532,13 +515,6 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
         }}
         mat_tmp(0,0) = Real(1.0);
     }
-
-    diaginv(i,j,k) = Real(1.0) / mat_tmp(0,0);
-    for (int jj=-1; jj<=1; jj++) {
-    for (int ii=-1; ii<=1; ii++) {
-        mat_tmp(ii,jj) *= diaginv(i,j,k);
-    }}
-    mat_tmp(0,0) = Real(1.0);
 
     ncols(i,j,k) = 0;
     for (int m = 0; m < 9; ++m) {

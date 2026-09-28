@@ -77,6 +77,8 @@ public:
     [[nodiscard]] HypreRealType getFinalResidualNorm() const { return m_final_res_norm; }
 
     [[nodiscard]] bool adjustSingularMatrix() const { return m_adjust_singular_matrix; }
+    //! Lowest global row id owned by this rank
+    [[nodiscard]] HypreIntType ilower() const { return m_ilower; }
 
 private:
     void init_preconditioner(const std::string& prefix, const std::string& name);
