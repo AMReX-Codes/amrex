@@ -273,6 +273,8 @@ public:
     //! If positive, run exactly this many V-cycles regardless of tolerance.
     void setFixedIter (int n) { m_fixediter = n; }
     void setRelTol (T t) { m_reltol = t; }
+    //! Converged when the residual 2-norm is below max(reltol*bnorm, abstol).
+    void setAbsTol (T t) { m_abstol = t; }
     //! Takes effect at the next solve; the hierarchy is kept.
     void setSmoother (Smoother sm) { m_smoother_type = sm; m_smoothers_stale = true; }
     //! Relaxation weight of the smoother; negative restores the default. Next solve.
@@ -407,9 +409,8 @@ private:
     int m_p_max_elmts = default_p_max_elmts;
     T m_trunc_factor = T(0);
     BottomSolver m_bottom_solver = BottomSolver::direct;
-    // Dense LU on every process: 8 MB, 70 ms to factor and 0.4 ms per solve
-    // at this size (one core). Beyond it smoother sweeps are used, which
-    // keeps the cycle linear for the PCG and GMRES accelerators.
+    // Dense LU on every process. Beyond this size smoother sweeps are
+    // used, which keeps the cycle linear for the PCG and GMRES accelerators.
     static constexpr Long max_direct_size = 1024;
     Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
     Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
@@ -419,6 +420,7 @@ private:
     int m_bottom_verbose = 0;
 
     T m_reltol = std::is_same_v<T,float> ? T(1.e-4) : T(1.e-8);
+    T m_abstol = T(0);
     T m_init_rnorm = std::numeric_limits<T>::max();
     T m_rnorm = std::numeric_limits<T>::max();
     T m_bnorm = std::numeric_limits<T>::max();
@@ -645,7 +647,7 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
                        << m_print_ident << "AlgMG: Initial residual 2-norm = " << m_rnorm << "\n";
     }
 
-    T res_target = m_bnorm * m_reltol;
+    T res_target = std::max(m_bnorm * m_reltol, m_abstol);
     if (m_fixediter <= 0 && m_rnorm <= res_target) {
         if (m_verbose >= 1) {
             amrex::Print() << m_print_ident << "AlgMG: No iterations needed\n";
@@ -1124,7 +1126,9 @@ void AlgMG<T>::build_direct_bottom ()
     // makes the matrix regular; the coarsest residual and correction have
     // their mean removed, so the added term never acts on them.
     if (m_singular) {
-        double const w = 1.0/double(n);
+        double dsum = 0.0;
+        for (Long i = 0; i < n; ++i) { dsum += std::abs(dense[i*n+i]); }
+        double const w = (dsum/double(n))/double(n);
         for (auto& v : dense) { v += w; }
     }
 

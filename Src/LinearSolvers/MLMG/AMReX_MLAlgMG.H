@@ -58,10 +58,10 @@ public:
     /**
      * \brief Solve A x = b with zero initial guess.
      *
-     * \p soln is overwritten. Convergence is relative to the 2-norm of the
-     * right-hand side.
+     * \p soln is overwritten. Converged when the residual 2-norm is below
+     * max(reltol times the rhs 2-norm, abstol).
      */
-    void solve (MultiFab& soln, MultiFab const& rhs, Real reltol, int maxiter);
+    void solve (MultiFab& soln, MultiFab const& rhs, Real reltol, Real abstol, int maxiter);
 
     //! One AlgMG V-cycle with zero initial guess: the preconditioner form.
     void applyVcycle (MultiFab& soln, MultiFab const& rhs);

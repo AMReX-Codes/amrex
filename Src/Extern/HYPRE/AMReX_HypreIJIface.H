@@ -64,6 +64,10 @@ public:
     //! Call after changing the matrix so the next solve redoes the setup
     void setNeedSetup () noexcept { m_need_setup = true; }
 
+    //! Redo the setup on every solve (default true). Callers that call
+    //! setNeedSetup when the matrix changes can turn it off.
+    void setRecomputePreconditioner (bool b) noexcept { m_recompute_preconditioner = b; }
+
     //! IJ matrix instance
     [[nodiscard]] HYPRE_IJMatrix A() { return m_mat; }
 
@@ -168,7 +172,7 @@ private:
 
     //! Redo the solver/preconditioner setup on every solve, even when the
     //! matrix has not changed
-    bool m_recompute_preconditioner{false};
+    bool m_recompute_preconditioner{true};
 
     //! Should singular matrix be adjusted to fix solution on a node/cell?
     bool m_adjust_singular_matrix{false};

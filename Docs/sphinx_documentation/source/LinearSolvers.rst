@@ -747,7 +747,7 @@ The following parameters can be set in the inputs file to control the choice of 
 
 - :cpp:`hypre.hypre_preconditioner`: Default is none;  otherwise the type must be specified.
 
-- :cpp:`hypre.recompute_preconditioner`: Default false.  Option to redo the solver and preconditioner setup on every solve.  By default the setup runs once per assembled matrix.
+- :cpp:`hypre.recompute_preconditioner`: Option to redo the solver and preconditioner setup on every solve.  AMReX's own hypre solvers default to false, because they redo the setup whenever the matrix changes; :cpp:`HypreIJIface` used directly defaults to true.
 
 - :cpp:`hypre.write_matrix_files`: Default false.   Option to write the matrix to text files.
 

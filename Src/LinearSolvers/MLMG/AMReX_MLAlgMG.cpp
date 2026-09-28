@@ -118,11 +118,12 @@ MLAlgMG::applyVcycle (MultiFab& soln, MultiFab const& rhs)
 }
 
 void
-MLAlgMG::solve (MultiFab& soln, MultiFab const& rhs, Real reltol, int maxiter)
+MLAlgMG::solve (MultiFab& soln, MultiFab const& rhs, Real reltol, Real abstol, int maxiter)
 {
     BL_PROFILE("MLAlgMG::solve()");
 
     m_impl->m_solver.setRelTol(reltol);
+    m_impl->m_solver.setAbsTol(abstol);
     m_impl->m_solver.setMaxIter(maxiter);
 
     m_impl->loadRHS(rhs);
@@ -459,7 +460,6 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
     Gpu::DeviceVector<Real> mat(nentries);
     Gpu::DeviceVector<Long> cols(nentries);
     Gpu::DeviceVector<Long> row_offset(m_nrows_proc+1);
-    BaseFab<Long> ncols_fab;
 
     const auto dx = m_geom.CellSizeArray();
     const int bho = (maxorder > 2) ? 1 : 0;
@@ -474,7 +474,9 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
         const Long eb0 = entry_begin[mfi];
         ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long r) noexcept { ro[r] = eb0 + r*ss; });
 
-        ncols_fab.resize(bx);
+        // The kernels count the columns per row; the counts are not needed
+        // with padded stencils.
+        BaseFab<Long> ncols_fab(bx, 1, The_Async_Arena());
         Array4<Long> const& ncols_a = ncols_fab.array();
         Array4<Long const> const& cid_a = m_gid.const_array(mfi);
         Array4<Real const> const& afab = acoef.const_array(mfi);
@@ -551,7 +553,6 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
             });
         }
 #endif
-        Gpu::streamSynchronize(); // ncols_fab is reused
     }
 
     Long* last = row_offset.data() + m_nrows_proc;

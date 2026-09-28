@@ -784,9 +784,9 @@ private:
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
 
     std::string hypre_options_namespace = "hypre";
-    bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
-    int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
-    int hypre_relax_order = 1; // uses C/F relaxation
+    bool hypre_old_default = HypreDefaults::old_default;
+    int hypre_relax_type = HypreDefaults::relax_type;
+    int hypre_relax_order = HypreDefaults::relax_order;
     int hypre_num_sweeps = 2;  // Sweeps on each level
     Real hypre_strong_threshold = 0.25; // HYPRE default is 0.25
 #endif
@@ -1003,9 +1003,11 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         bool converged = false;
 
         // Hybrid: keep the best iterate so far, starting with the initial guess.
+        // The switch tests use the finest-level residual.
         Vector<MF> best_sol;
         RT best_norm = resnorm0;
         if (hybrid) {
+            if (namrlevs > 1) { best_norm = ResNormInf(finest_amr_lev); }
             best_sol.resize(namrlevs);
             for (int alev = 0; alev < namrlevs; ++alev) {
                 const IntVect ng = nGrowVect(sol[alev]);
@@ -1061,7 +1063,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
-                if (hybrid && !m_algmg_active) {
+                if (hybrid && !m_algmg_active && !fine_converged) {
                     std::string reason;
                     bool do_switch = hybridShouldSwitch(iter, fine_norminf, max_norm,
                                                         best_norm, reason);
@@ -2570,7 +2572,12 @@ MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
     if (precond_mode) {
         m_algmg_bottom->applyVcycle(x, b);
     } else {
-        m_algmg_bottom->solve(x, b, bottom_reltol, bottom_maxiter);
+        try {
+            m_algmg_bottom->solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)),
+                                  bottom_maxiter);
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
     }
 
     if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable()) {
@@ -2598,7 +2605,12 @@ MLMGT<MF>::algmgLevel0Solve ()
     if (precond_mode) {
         m_algmg_level0->applyVcycle(cor[0][0], res[0][0]);
     } else {
-        m_algmg_level0->solve(cor[0][0], res[0][0], bottom_reltol, bottom_maxiter);
+        try {
+            m_algmg_level0->solve(cor[0][0], res[0][0], bottom_reltol,
+                                  std::max(bottom_abstol, RT(0)), bottom_maxiter);
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
     }
 
     // Known overset cells must not receive a correction.

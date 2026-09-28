@@ -289,6 +289,7 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     HYPRE_Int ilower = proc_begin;
     HYPRE_Int iupper = proc_end-1;
     m_hypre_ij = std::make_unique<HypreIJIface>(m_comm, ilower, iupper, m_verbose);
+    m_hypre_ij->setRecomputePreconditioner(false); // fill_matrix calls setNeedSetup
     m_hypre_ij->parse_inputs(m_options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
