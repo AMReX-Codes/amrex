@@ -1231,8 +1231,9 @@ The following can be tuned:
   before and after the coarse correction (1 for Chebyshev, 2 for the other
   smoothers).
 - :cpp:`setBottomSolver`: a direct solve of the coarsest level (``direct``,
-  the default; the small coarsest matrix is factored on every process),
-  smoother sweeps (``jacobi``), or BiCGStab (``bicgstab``) or GMRES
+  the default; the small coarsest matrix is factored on every process, up to
+  1024 rows, beyond which smoother sweeps are used), smoother sweeps
+  (``jacobi``), or BiCGStab (``bicgstab``) or GMRES
   (``gmres``) preconditioned by l1-Jacobi (weighted Jacobi when the smoother
   is ``jacobi``).
 - :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom

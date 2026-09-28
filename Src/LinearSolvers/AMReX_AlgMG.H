@@ -341,7 +341,7 @@ public:
     //! Coarsest-level solver (see BottomSolver). Default direct: the
     //! coarsest matrix is gathered and factored on every process, which
     //! resolves the near-null modes of nearly singular problems that
-    //! smoother sweeps leave behind. Falls back to BiCGStab when the
+    //! smoother sweeps leave behind. Falls back to smoother sweeps when the
     //! coarsest level has more than 1024 rows.
     void setBottomSolver (BottomSolver bs) {
         m_bottom_solver = bs;
@@ -408,7 +408,8 @@ private:
     T m_trunc_factor = T(0);
     BottomSolver m_bottom_solver = BottomSolver::direct;
     // Dense LU on every process: 8 MB, 70 ms to factor and 0.4 ms per solve
-    // at this size (one core). Beyond it BiCGStab is used.
+    // at this size (one core). Beyond it smoother sweeps are used, which
+    // keeps the cycle linear for the PCG and GMRES accelerators.
     static constexpr Long max_direct_size = 1024;
     Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
     Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
@@ -915,7 +916,7 @@ void AlgMG<T>::bottom_solve ()
     auto bottom_solver = m_bottom_solver;
     if (bottom_solver == BottomSolver::direct) {
         if (m_bottom_n < 0) { build_direct_bottom(); }
-        if (m_bottom_n == 0) { bottom_solver = BottomSolver::bicgstab; }
+        if (m_bottom_n == 0) { bottom_solver = BottomSolver::jacobi; }
     }
     switch (bottom_solver) {
     case BottomSolver::direct:
@@ -1074,7 +1075,7 @@ void AlgMG<T>::build_direct_bottom ()
     if (n < 1 || n > max_direct_size) {
         if (m_verbose >= 1 && n > max_direct_size) {
             amrex::Print() << m_print_ident << "AlgMG: coarsest level has " << n
-                           << " rows, using BiCGStab instead of the direct bottom solver\n";
+                           << " rows, using smoother sweeps instead of the direct bottom solver\n";
         }
         return;
     }
@@ -1140,7 +1141,7 @@ void AlgMG<T>::build_direct_bottom ()
         if (amax < std::numeric_limits<double>::min()) {
             if (m_verbose >= 1) {
                 amrex::Print() << m_print_ident << "AlgMG: coarsest matrix is singular, "
-                               << "using BiCGStab instead of the direct bottom solver\n";
+                               << "using smoother sweeps instead of the direct bottom solver\n";
             }
             return;
         }
