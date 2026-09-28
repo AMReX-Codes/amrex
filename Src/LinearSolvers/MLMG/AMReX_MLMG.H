@@ -880,7 +880,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     m_init_resnorm0 = resnorm0;
     m_rhsnorm0 = rhsnorm0;
 
-    if (!is_nsolve && !(amrex::isfinite(resnorm0) && amrex::isfinite(rhsnorm0))) {
+    if (!is_nsolve && !amrex::isfinite(std::max(resnorm0, rhsnorm0))) {
         if ( throw_exception ) {
             throw error("MLMG: rhs or initial residual is not finite.");
         } else {

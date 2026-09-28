@@ -288,6 +288,11 @@ int main (int argc, char* argv[])
         //
         MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
 
+        // MLMG checks the solve, but not the velocity computed from it.
+        if (vel.contains_nan(0, vel.nComp(), 0)) {
+            amrex::Abort("nodal projection: projected velocity contains NaN");
+        }
+
         amrex::Print() << " ... now done with full projection operation" << '\n';
         amrex::Print() << "******************************************************************** \n" << '\n';
 
