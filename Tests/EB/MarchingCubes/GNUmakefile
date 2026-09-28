@@ -4,7 +4,7 @@ USE_ASSERTION = TRUE
 
 USE_EB = TRUE
 
-USE_MPI  = FALSE
+USE_MPI  = TRUE
 USE_OMP  = FALSE
 
 COMP = gnu
@@ -26,4 +26,3 @@ Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-

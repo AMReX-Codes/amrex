@@ -1,0 +1,11 @@
+
+nx = 64
+ny = 64
+nz = 64
+
+max_grid_size = 32
+narrow_band_test = 1
+
+eb2.geometry_method = marching_cubes
+eb2.stl_file = cube.stl
+# eb2.eb_surface_stl_file = cube_mc.stl
