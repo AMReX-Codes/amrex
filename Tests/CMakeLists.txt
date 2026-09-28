@@ -115,6 +115,9 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Amr/Advection_AmrCore")
 
+   # Checks NaN handling in the fast-math CI jobs
+   add_subdirectory("Base/NaN")
+
    if (AMReX_OMP)
       add_subdirectory("OpenMP/atomicAdd")
    endif ()

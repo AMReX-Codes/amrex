@@ -318,8 +318,7 @@ MyTest::apply ()
 
        mlmg.apply(amrex::GetVecOfPtrs(rhs_comp), amrex::GetVecOfPtrs(phi_comp));
 
-       // A failed apply often returns NaNs, and a max-norm check would not
-       // catch them because the max reduction silently drops NaNs.
+       // Unlike MLMG::solve, apply does not stop on a NaN.
        for (int ilev = 0; ilev < int(rhs_comp.size()); ++ilev) {
            if (rhs_comp[ilev].contains_nan(0, rhs_comp[ilev].nComp(), 0)) {
                amrex::Abort("MyTest::apply: result contains NaN on level "

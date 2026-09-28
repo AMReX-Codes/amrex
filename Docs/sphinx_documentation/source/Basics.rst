@@ -2148,6 +2148,13 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
 
+The infinity norm, :cpp:`mf.norminf(comp, ncomp, nghost)`, counts a NaN as
+infinity, so a NaN in the data always shows up in the norm.  To test single
+values, use :cpp:`amrex::isnan`, :cpp:`amrex::isinf` and
+:cpp:`amrex::isfinite`.  Unlike the ``std::`` versions, they work in builds
+with fast-math optimizations (e.g., ``AMReX_FASTMATH=ON``), where the compiler
+may assume that NaNs and infinities never occur.
+
 We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
 ``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted again
 it is a runtime error if the two :cpp:`MultiFab`\ s  passed to functions like

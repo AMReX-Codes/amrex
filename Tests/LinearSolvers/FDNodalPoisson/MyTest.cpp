@@ -185,7 +185,7 @@ MyTest::computeNorms (std::string const& label) const
 #endif
 
     if (!error.is_finite() ||
-        !std::isfinite(max_error) || !std::isfinite(l1_error) ||
+        !amrex::isfinite(max_error) || !amrex::isfinite(l1_error) ||
         max_error > error_tolerance) {
         amrex::Abort("FDNodalPoisson " + label + " error check failed");
     }
