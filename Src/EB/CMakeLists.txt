@@ -113,6 +113,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_mc_jgt_table.H
        AMReX_MarchingCubes.H
        AMReX_MarchingCubes.cpp
+       AMReX_EB2_Level_MC.H
+       AMReX_EB2_Level_MC.cpp
        )
     endif ()
 

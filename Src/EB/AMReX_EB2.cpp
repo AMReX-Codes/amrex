@@ -55,6 +55,22 @@ bool ExtendDomainFace ()
     return extend_domain_face;
 }
 
+GeometryMethod GetGeometryMethod ()
+{
+    // Queried at build time rather than in Initialize so that parameters set
+    // programmatically after amrex::Initialize are honored.
+    ParmParse pp("eb2");
+    std::string method_name("legacy");
+    pp.queryAdd("geometry_method", method_name);
+    if (method_name == "legacy") {
+        return GeometryMethod::legacy;
+    } else if (method_name == "marching_cubes") {
+        return GeometryMethod::marching_cubes;
+    }
+    amrex::Abort("eb2.geometry_method must be legacy or marching_cubes, not " + method_name);
+    return GeometryMethod::legacy;
+}
+
 int NumCoarsenOpt ()
 {
     return num_coarsen_opt;
