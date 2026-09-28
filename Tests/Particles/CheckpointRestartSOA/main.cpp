@@ -134,7 +134,9 @@ void test ()
 
             amrex::Print() << "Writing particle file [" << fname << "] ..." << '\n';
 
+            myPC.CheckpointPre();
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
+            myPC.CheckpointPost();
 
             amrex::Print() << " done \n";
         }
