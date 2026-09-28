@@ -5,6 +5,7 @@
 #include <AMReX_AlgPartition.H>
 #include <AMReX_AlgVector.H>
 #include <AMReX_CSR.H>
+#include <AMReX_BLProfiler.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Scan.H>
 
@@ -18,9 +19,10 @@
 #endif
 
 #include <fstream>
+#include <numeric>
 #include <string>
 #include <type_traits>
-#include <unordered_map>
+#include <utility>
 
 namespace amrex {
 
@@ -30,11 +32,13 @@ namespace amrex {
  * Sparse matrix container built on top of CSR partitions (GPU-aware).
  */
 
-//! GPU-ready non-owning CSR data container
+//! GPU-ready non-owning CSR data container. The blocks use 32-bit row
+//! offsets and column indices: local indices in csr0, indices into
+//! `col_map` in csr1.
 template <typename T>
 struct ParCsr {
-    CsrView<T> csr0; // diagonal part
-    CsrView<T> csr1; // off-diagonal part
+    CsrView<T,int> csr0; // diagonal part
+    CsrView<T,int> csr1; // off-diagonal part
     Long row_begin = 0; // global row index begin
     Long col_begin = 0; // global col index begin
     Long const* AMREX_RESTRICT row_map = nullptr; // mapping from csr0's row to csr1
@@ -63,7 +67,8 @@ public:
     using value_type = T;
     template <class U> using allocator_type = Allocator<U>;
     template <class U> using container_type = PODVector<U,Allocator<U> >;
-    using csr_type = CSR<T,container_type>;
+    using csr_type = CSR<T,container_type>;            // global Long columns (unsplit)
+    using local_csr_type = CSR<T,container_type,int>;  // split blocks, 32-bit indices
     using AllocT = Allocator<T>;
 
     SpMatrix () = default;
@@ -93,7 +98,7 @@ public:
      *
      * The input CSR represents the portion of the matrix local to this
      * process. It must be both sorted and valid. Moreover, it should not
-     * have duplicagted entries.
+     * have duplicated entries.
      *
      * \param partition Parallel partition information.
      * \param csr CSR represents of the matrix local to this process.
@@ -164,7 +169,7 @@ public:
      * \brief Define a default-constructed matrix from a given CSR.
      *
      * The input CSR represents the portion of the matrix local to this
-     * process. It must be valid. Moreover, it should not have duplicagted
+     * process. It must be valid. Moreover, it should not have duplicated
      * entries.
      *
      * \param partition Parallel partition information.
@@ -192,9 +197,9 @@ public:
     //! Number of nonzeros stored locally.
     [[nodiscard]] Long numLocalNonZeros () const { return m_nnz; }
 
-    //! Inclusive global index begin.
+    //! Inclusive global index begin on this process.
     [[nodiscard]] Long globalRowBegin () const { return m_row_begin; }
-    //! Exclusive global index end.
+    //! Exclusive global index end on this process.
     [[nodiscard]] Long globalRowEnd () const { return m_row_end; }
 
     //! Don't use this beyond initial setup.
@@ -242,7 +247,8 @@ public:
      * \endcode
 
      * and is responsible for setting the global column indices and values
-     * for the row specified by the global row index.
+     * for the row specified by the global row index. The two pointers point
+     * to the beginning of the specified row.
      *
      * This function is intended to be used after
      * \ref define(AlgPartition,int), when the storage has been allocated. It
@@ -263,10 +269,15 @@ public:
     void sortCSR ();
 
     /**
-     * \brief Return (and cache) the diagonal entries of a square matrix.
+     * \brief Set the column partition and split the matrix into local and
+     * remote blocks with 32-bit column indices.
      *
-     * The diagonal is formed lazily and reused on subsequent calls.
+     * Done on first use by SpMV, SpGEMM and transpose. A matrix keeps its
+     * column partition afterwards, and its values can no longer be changed.
      */
+    void setColumnPartition (AlgPartition const& col_partition);
+
+    //! Return diagonal elements in a square matrix.
     [[nodiscard]] AlgVector<T,AllocT> const& diagonalVector () const;
 
     /**
@@ -292,9 +303,11 @@ public:
     void SpMV(AlgVector<U,N>& y, SpMatrix<U,M> const& A, AlgVector<U,N> const& x);
 
     template <typename U, template<typename> class M> friend
-    SpMatrix<U,M> transpose (SpMatrix<U,M> const& A, AlgPartition col_partition);
+    SpMatrix<U,M> transpose (SpMatrix<U,M> const& A, AlgPartition const& col_partition);
 
-    template <typename U> friend class AMG;
+    template <typename U, template<typename> class M> friend
+    SpMatrix<U,M> SpGEMM (SpMatrix<U,M> const& A, SpMatrix<U,M> const& B,
+                          AlgPartition const& col_partition);
 
     //! Private helper (exposed for CUDA) that allocates fixed-connectivity matrices with \p nnz_per_row entries.
     void define_doit (int nnz_per_row);
@@ -321,10 +334,39 @@ public:
     //! Finish halo exchanges and accumulate contributions into \p y.
     void finishComm_mv (AlgVector<T,AllocT>& y);
 
+    /**
+     * \brief Gather values at the columns of the off-diagonal block.
+     *
+     * \p x holds local values in the column partition of this matrix
+     * (index = global column - column begin). The result is indexed like
+     * the column indices of the off-diagonal block, see `parcsr().csr1`.
+     * Collective. Without MPI, or when no communication is needed, the
+     * result is empty. The column partition must have been set.
+     */
+    template <typename U>
+    Gpu::DeviceVector<U> gatherRemote (U const* x);
+    //! As above, into \p r (reused across calls).
+    template <typename U>
+    void gatherRemote (U const* x, Gpu::DeviceVector<U>& r);
+
     //! Initiate communication required to build the transpose with column partition \p col_partition.
     void startComm_tr (AlgPartition const& col_partition);
     //! Complete transpose communication, writing the assembled matrix into \p AT.
     void finishComm_tr (SpMatrix<T,Allocator>& AT);
+
+public: // NOLINT  Private, but public for CUDA
+    //! Split into local and remote blocks with 32-bit column indices.
+    void split_csr (AlgPartition const& col_partition);
+
+    /**
+     * \brief Define directly in split form from a CSR with compact
+     * 32-bit columns: `c < nlocal` is the local column `c`, otherwise
+     * `remote_cols[c-nlocal]` is the global column. Rows must be sorted
+     * within the local and the remote part.
+     */
+    void define_split (AlgPartition partition, AlgPartition const& col_partition,
+                       local_csr_type&& compact, Long nlocal,
+                       Long const* remote_cols, Long nremote);
 
 private:
 
@@ -337,14 +379,20 @@ private:
     Long m_col_begin = 0; //! for diagonal part of mat-vec & mat-mat operations
     Long m_col_end = 0;   //! for diagonal part of mat-vec & mat-mat operations
     Long m_nnz = 0; //! total nnz including both diagonal and off-diagonal
-    csr_type m_csr;
+    csr_type m_csr;             // unsplit form, empty once split
+    local_csr_type m_csr_local; // diagonal block after the split
 
     mutable AlgVector<T,AllocT> m_diagonal;
 
     bool m_split = false; // Has the matrix been split into diagonal and off-diagonal parts?
 
 #ifdef AMREX_USE_MPI
-    csr_type m_csr_remote;
+    local_csr_type m_csr_remote;
+
+    // The `row_offset` in m_csr_remote does not contain empty rows. The
+    // full list of row offsets is available in m_remote_row_offset, which
+    // is built on demand by expand_remote_row_offset.
+    mutable container_type<int> m_remote_row_offset;
 
     // It should be noted that m_csr and m_csr_remote may have different
     // number of rows, because some rows may be purely local and they do not
@@ -357,7 +405,7 @@ private:
 
     // This is local row index mapping from m_csr to m_csr_remote. -1 means
     // the row does not exist in m_csr_remote.
-    container_type<Long> m_ri_ltor; // size: m_csr.nrows()
+    container_type<Long> m_ri_ltor; // size: numLocalRows()
 
     // For column index, we also need to be careful with local vs. global,
     // and there two types of locals: local in m_csr and local in
@@ -374,7 +422,16 @@ private:
     // The size of outer vector is # of procs. The indices are global.
     Vector<Vector<Long>> m_remote_cols_vv;
 
-    int m_num_neighbors = -1; // No. of other processes involved in communication
+    // No. of other processes involved in communication.
+    //
+    // For matrix-vector multiplication, this is the number of processes
+    // that require this process' data in the vector. This variable is
+    // stored in the matrix and it's set by calling its member function
+    // set_num_neighbors(). However, the data here are the vector's data.
+    //
+    // For matrix transpose, this is the number of processes that will send
+    // us their transposed data.
+    int m_num_neighbors = -1;
 
 public: // NOLINT  Private functions, but public for cuda
 
@@ -420,31 +477,133 @@ public: // NOLINT  Private functions, but public for cuda
 
     } m_comm_tr;
 
-    void split_csr (AlgPartition const& col_partition);
-    template <typename C>
-    void update_remote_col_index (C& csrr, bool in_device_memory);
+    //! Builds the remote column list from global column indices and
+    //! writes the corresponding 32-bit local indices.
+    template <typename VL, typename VI>
+    void update_remote_col_index (VL const& gcols, VI& lcols, bool in_device_memory);
+    //! Trims the empty rows of the remote block and builds the row maps.
+    //! `m_csr_remote.row_offset` must hold the full offsets on entry.
+    void trim_remote_rows ();
     void prepare_comm_mv (AlgPartition const& col_partition);
     void pack_buffer_mv (AlgVector<T,AllocT> const& v);
     void unpack_buffer_mv (AlgVector<T,AllocT>& v);
+    void comm_tr_recv_wait();
+    void comm_tr_clear();
     void unpack_buffer_tr (CommTR const& ctr, AlgPartition const& col_partition);
+    void expand_remote_row_offset () const;
+    //! Off-diagonal part with the full (untrimmed) row offsets.
+    CsrView<T const,int> remote_full_const_view () const;
+
+    //! Rows of another matrix fetched for SpGEMM. Column indices are global.
+    struct RemoteRowsMM {
+        container_type<Long> row_offset; // size nrows+1
+        Long* col_index = nullptr;       // pinned memory
+        T* mat = nullptr;                // comms arena
+        Long nrows = 0;
+        Long nnz = 0;
+
+        RemoteRowsMM () = default;
+        ~RemoteRowsMM () { clear(); }
+        RemoteRowsMM (RemoteRowsMM const&) = delete;
+        RemoteRowsMM& operator= (RemoteRowsMM const&) = delete;
+        RemoteRowsMM (RemoteRowsMM&& rhs) noexcept
+            : row_offset(std::move(rhs.row_offset)),
+              col_index(std::exchange(rhs.col_index, nullptr)),
+              mat(std::exchange(rhs.mat, nullptr)),
+              nrows(rhs.nrows), nnz(rhs.nnz) {}
+        RemoteRowsMM& operator= (RemoteRowsMM&& rhs) noexcept {
+            if (this != &rhs) {
+                clear();
+                row_offset = std::move(rhs.row_offset);
+                col_index = std::exchange(rhs.col_index, nullptr);
+                mat = std::exchange(rhs.mat, nullptr);
+                nrows = rhs.nrows;
+                nnz = rhs.nnz;
+            }
+            return *this;
+        }
+        void clear () {
+            if (col_index || mat) {
+                Gpu::streamSynchronize();
+                if (col_index) { The_Pinned_Arena()->free(col_index); }
+                if (mat) { The_Comms_Arena()->free(mat); }
+                col_index = nullptr;
+                mat = nullptr;
+            }
+            row_offset.clear();
+            nrows = 0;
+            nnz = 0;
+        }
+    };
+
+    //! Fetch the rows of \p B listed in m_remote_cols_v. This matrix must
+    //! already be split with B's row partition. Collective.
+    RemoteRowsMM fetch_remote_rows_mm (SpMatrix<T,Allocator> const& B);
 
 #endif
 };
 
 namespace detail {
+
+//! True if local row `i` has a remote part in `csr1`.
 template <typename T>
-void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool has_remote_row (ParCsr<T> const& a, Long i)
+{
+    return a.csr1.nnz > 0 && a.row_map[i] >= 0;
+}
+
+// Communication may be skipped only when all rows and all columns live on
+// one common rank.  Two partitions with a single active rank each may still
+// name different ranks.
+inline bool spmat_comm_is_local (AlgPartition const& row_partition,
+                                 AlgPartition const& col_partition)
+{
+    int const rp = row_partition.singleActiveProc();
+    int const cp = col_partition.singleActiveProc();
+    return row_partition.numActiveProcs() <= 1
+        && col_partition.numActiveProcs() <= 1
+        && (rp < 0 || cp < 0 || rp == cp);
+}
+
+// Diagonal of a square matrix: entry with column index == row index + offset.
+template <typename T, typename I>
+void extract_diagonal (T* p, CsrView<T const,I> const& csr, Long offset)
+{
+    auto const* AMREX_RESTRICT mat = csr.mat;
+    auto const* AMREX_RESTRICT col = csr.col_index;
+    auto const* AMREX_RESTRICT row = csr.row_offset;
+    ParallelForOMP(csr.nrows, [=] AMREX_GPU_DEVICE (Long i)
+    {
+        T d = 0;
+        for (Long j = row[i]; j < row[i+1]; ++j) {
+            if (i == Long(col[j]) - offset) {
+                d = mat[j];
+                break;
+            }
+        }
+        p[i] = d;
+    });
+}
+
+template <typename T, typename IO, typename II>
+void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
 {
     Long nrows = csr.nrows;
     Long ncols = csrt.nrows;
     Long nnz = csr.nnz;
 
     if (nrows <= 0 || ncols <= 0 || nnz <= 0) {
-        if (ncols > 0) {
-            auto* p = csrt.row_offset;
-            ParallelForOMP(ncols+1, [=] AMREX_GPU_DEVICE (Long i) { p[i] = 0; });
-        }
+        auto* p = csrt.row_offset;
+        ParallelForOMP(ncols+1, [=] AMREX_GPU_DEVICE (Long i) { p[i] = 0; });
         return;
+    }
+
+    // The row indices become the column indices of the transpose, and its
+    // row offsets go up to nnz.
+    if constexpr (!std::is_same_v<IO,Long>) {
+        AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<IO>::max()) &&
+                            nnz < Long(std::numeric_limits<IO>::max()));
     }
 
 #ifdef AMREX_USE_GPU
@@ -472,20 +631,31 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                         ncols < Long(std::numeric_limits<int>::max()) &&
                         nnz   < Long(std::numeric_limits<int>::max()));
 
-    auto* csr_col_index = (int*)The_Arena()->alloc(csr.nnz*sizeof(int));
-    auto* csr_row_offset = (int*)The_Arena()->alloc((csr.nrows+1)*sizeof(int));
-    auto* csrt_col_index = (int*)The_Arena()->alloc(csrt.nnz*sizeof(int));
-    auto* csrt_row_offset = (int*)The_Arena()->alloc((csrt.nrows+1)*sizeof(int));
-
-    ParallelFor(std::max(csr.nnz, csr.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-    {
-        if (i < csr.nnz) {
-            csr_col_index[i] = int(csr.col_index[i]);
-        }
-        if (i < csr.nrows+1) {
-            csr_row_offset[i] = int(csr.row_offset[i]);
-        }
-    });
+    // cuSPARSE wants 32-bit indices; convert only if needed.
+    constexpr bool in32 = std::is_same_v<II,int>;
+    constexpr bool out32 = std::is_same_v<IO,int>;
+    CsrIndex<int,Gpu::AsyncVector> ci, cit;
+    int const* csr_col_index;
+    int const* csr_row_offset;
+    int* csrt_col_index;
+    int* csrt_row_offset;
+    if constexpr (in32) {
+        csr_col_index = csr.col_index;
+        csr_row_offset = csr.row_offset;
+    } else {
+        ci.copyFrom(csr);
+        csr_col_index = ci.col_index.data();
+        csr_row_offset = ci.row_offset.data();
+    }
+    if constexpr (out32) {
+        csrt_col_index = csrt.col_index;
+        csrt_row_offset = csrt.row_offset;
+    } else {
+        cit.col_index.resize(csrt.nnz);
+        cit.row_offset.resize(csrt.nrows+1);
+        csrt_col_index = cit.col_index.data();
+        csrt_row_offset = cit.row_offset.data();
+    }
 
     std::size_t buffer_size;
     AMREX_CUSPARSE_SAFE_CALL(
@@ -497,7 +667,7 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                                       CUSPARSE_CSR2CSC_ALG1,
                                       &buffer_size));
 
-    auto* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    auto* pbuffer = (void*)The_Async_Arena()->alloc(buffer_size);
 
     AMREX_CUSPARSE_SAFE_CALL(
         cusparseCsr2cscEx2(handle, int(nrows), int(ncols), int(nnz),
@@ -508,23 +678,14 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                            CUSPARSE_CSR2CSC_ALG1,
                            pbuffer));
 
-    ParallelFor(std::max(csrt.nnz, csrt.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-    {
-        if (i < csrt.nnz) {
-            csrt.col_index[i] = csrt_col_index[i];
-        }
-        if (i < csrt.nrows+1) {
-            csrt.row_offset[i] = csrt_row_offset[i];
-        }
-    });
+    if constexpr (!out32) {
+        cit.copyTo(csrt);
+    }
 
-    Gpu::streamSynchronize();
+    // No sync needed: the descriptors are host objects, cusparseDestroy defers
+    // the release of GPU resources, and the buffer is freed in stream order.
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
-    The_Arena()->free(pbuffer);
-    The_Arena()->free(csr_row_offset);
-    The_Arena()->free(csr_col_index);
-    The_Arena()->free(csrt_row_offset);
-    The_Arena()->free(csrt_col_index);
+    The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_HIP)
 
@@ -532,33 +693,28 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
 
-    AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<rocsparse_int>::max()) &&
-                        ncols < Long(std::numeric_limits<rocsparse_int>::max()) &&
-                        nnz   < Long(std::numeric_limits<rocsparse_int>::max()));
+    constexpr bool same_int = (sizeof(rocsparse_int) == sizeof(II)) &&
+                              (sizeof(rocsparse_int) == sizeof(IO));
 
-    rocsparse_int* csr_col_index;
-    rocsparse_int* csr_row_offset;
+    rocsparse_int const* csr_col_index;
+    rocsparse_int const* csr_row_offset;
     rocsparse_int* csrt_col_index;
     rocsparse_int* csrt_row_offset;
-    if (std::is_same_v<rocsparse_int,Long>) {
-        csr_col_index = (rocsparse_int*)csr.col_index;
-        csr_row_offset = (rocsparse_int*)csr.row_offset;
-        csrt_col_index = (rocsparse_int*)csrt.col_index;
-        csrt_row_offset = (rocsparse_int*)csrt.row_offset;
+    CsrIndex<rocsparse_int,Gpu::AsyncVector> ci, cit;
+    if constexpr (same_int) {
+        csr_col_index = reinterpret_cast<rocsparse_int const*>(csr.col_index);
+        csr_row_offset = reinterpret_cast<rocsparse_int const*>(csr.row_offset);
+        csrt_col_index = reinterpret_cast<rocsparse_int*>(csrt.col_index);
+        csrt_row_offset = reinterpret_cast<rocsparse_int*>(csrt.row_offset);
     } else {
-        csr_col_index = (rocsparse_int*)The_Arena()->alloc(csr.nnz*sizeof(rocsparse_int));
-        csr_row_offset = (rocsparse_int*)The_Arena()->alloc((csr.nrows+1)*sizeof(rocsparse_int));
-        csrt_col_index = (rocsparse_int*)The_Arena()->alloc(csrt.nnz*sizeof(rocsparse_int));
-        csrt_row_offset = (rocsparse_int*)The_Arena()->alloc((csrt.nrows+1)*sizeof(rocsparse_int));
-        ParallelFor(std::max(csr.nnz, csr.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-        {
-            if (i < csr.nnz) {
-                csr_col_index[i] = rocsparse_int(csr.col_index[i]);
-            }
-            if (i < csr.nrows+1) {
-                csr_row_offset[i] = rocsparse_int(csr.row_offset[i]);
-            }
-        });
+        AMREX_ALWAYS_ASSERT(ncols < Long(std::numeric_limits<rocsparse_int>::max()));
+        ci.copyFrom(csr);
+        cit.col_index.resize(csrt.nnz);
+        cit.row_offset.resize(csrt.nrows+1);
+        csr_col_index = ci.col_index.data();
+        csr_row_offset = ci.row_offset.data();
+        csrt_col_index = cit.col_index.data();
+        csrt_row_offset = cit.row_offset.data();
     }
 
     std::size_t buffer_size;
@@ -569,7 +725,7 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                                       rocsparse_action_numeric,
                                       &buffer_size));
 
-    auto* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    auto* pbuffer = (void*)The_Async_Arena()->alloc(buffer_size);
 
     if constexpr (std::is_same_v<T,float>) {
         AMREX_ROCSPARSE_SAFE_CALL(
@@ -611,27 +767,13 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
         amrex::Abort("SpMatrix transpose: unsupported data type");
     }
 
-    if (! std::is_same_v<rocsparse_int,Long>) {
-        ParallelFor(std::max(csrt.nnz, csrt.nrows+1), [=] AMREX_GPU_DEVICE (Long i)
-        {
-            if (i < csrt.nnz) {
-                csrt.col_index[i] = csrt_col_index[i];
-            }
-            if (i < csrt.nrows+1) {
-                csrt.row_offset[i] = csrt_row_offset[i];
-            }
-        });
+    if constexpr (!same_int) {
+        cit.copyTo(csrt);
     }
 
     Gpu::streamSynchronize();
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
-    The_Arena()->free(pbuffer);
-    if (! std::is_same_v<rocsparse_int,Long>) {
-        The_Arena()->free(csr_row_offset);
-        The_Arena()->free(csr_col_index);
-        The_Arena()->free(csrt_row_offset);
-        The_Arena()->free(csrt_col_index);
-    }
+    The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -640,21 +782,48 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
     mkl::sparse::init_matrix_handle(&handle_in);
     mkl::sparse::init_matrix_handle(&handle_out);
 
+    // oneMKL needs one index type per handle: Long copies unless already Long.
+    Gpu::DeviceVector<Long> lrow_in, lcol_in, lrow_out, lcol_out;
+    Long const* prow_in;
+    Long const* pcol_in;
+    Long* prow_out;
+    Long* pcol_out;
+    if constexpr (std::is_same_v<II,Long>) {
+        prow_in = csr.row_offset;
+        pcol_in = csr.col_index;
+    } else {
+        lrow_in.resize(nrows+1);
+        lcol_in.resize(nnz);
+        auto* pr = lrow_in.data(); auto const* sr = csr.row_offset;
+        auto* pc = lcol_in.data(); auto const* sc = csr.col_index;
+        ParallelFor(std::max(nrows+1,nnz), [=] AMREX_GPU_DEVICE (Long i) {
+            if (i < nrows+1) { pr[i] = Long(sr[i]); }
+            if (i < nnz) { pc[i] = Long(sc[i]); }
+        });
+        prow_in = lrow_in.data();
+        pcol_in = lcol_in.data();
+    }
+    if constexpr (std::is_same_v<IO,Long>) {
+        prow_out = csrt.row_offset;
+        pcol_out = csrt.col_index;
+    } else {
+        lrow_out.resize(ncols+1);
+        lcol_out.resize(nnz);
+        prow_out = lrow_out.data();
+        pcol_out = lcol_out.data();
+    }
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    amrex::ignore_unused(nnz);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_in, nrows, ncols,
-                              mkl::index_base::zero, (Long*)csr.row_offset,
-                              (Long*)csr.col_index, (T*)csr.mat);
+                              mkl::index_base::zero, (Long*)prow_in, (Long*)pcol_in,
+                              (T*)csr.mat);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_out, ncols, nrows,
-                              mkl::index_base::zero, (Long*)csrt.row_offset,
-                              (Long*)csrt.col_index, (T*)csrt.mat);
+                              mkl::index_base::zero, prow_out, pcol_out, (T*)csrt.mat);
 #else
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_in, nrows, ncols, nnz,
-                              mkl::index_base::zero, (Long*)csr.row_offset,
-                              (Long*)csr.col_index, (T*)csr.mat);
+                              mkl::index_base::zero, (Long*)prow_in, (Long*)pcol_in,
+                              (T*)csr.mat);
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle_out, ncols, nrows, nnz,
-                              mkl::index_base::zero, (Long*)csrt.row_offset,
-                              (Long*)csrt.col_index, (T*)csrt.mat);
+                              mkl::index_base::zero, prow_out, pcol_out, (T*)csrt.mat);
 #endif
 
     mkl::sparse::omatcopy(Gpu::Device::streamQueue(), mkl::transpose::trans,
@@ -663,6 +832,15 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
     mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle_in);
     auto ev = mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle_out);
     ev.wait();
+    if constexpr (!std::is_same_v<IO,Long>) {
+        auto* po = csrt.col_index; auto const* so = lcol_out.data();
+        auto* pr = csrt.row_offset; auto const* sr = lrow_out.data();
+        ParallelFor(std::max(nnz,ncols+1), [=] AMREX_GPU_DEVICE (Long i) {
+            if (i < nnz) { po[i] = IO(so[i]); }
+            if (i < ncols+1) { pr[i] = IO(sr[i]); }
+        });
+        Gpu::streamSynchronize();
+    }
 
 #endif
 
@@ -701,7 +879,7 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
             auto col = csr.col_index[idx];
             Long dest = current_pos[col]++;
             csrt.mat[dest] = csr.mat[idx];
-            csrt.col_index[dest] = i;
+            csrt.col_index[dest] = IO(i);
         }
     }
 
@@ -733,6 +911,7 @@ void SpMatrix<T,Allocator>::define (AlgPartition partition, int nnz_per_row)
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_diagonal = AlgVector<T,AllocT>{};
     define_doit(nnz_per_row);
 }
 
@@ -740,11 +919,14 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::define (AlgPartition partition, csr_type csr,
                                     CsrSorted is_sorted)
 {
+    AMREX_ALWAYS_ASSERT(m_split == false);
+
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
     m_nnz = csr.nnz;
     m_csr = std::move(csr);
+    m_diagonal = AlgVector<T,AllocT>{};
     if (! is_sorted) { m_csr.sort(); }
 }
 
@@ -752,10 +934,9 @@ template <typename T, template<typename> class Allocator>
 void
 SpMatrix<T,Allocator>::define_doit (int nnz_per_row)
 {
-    if (nnz_per_row <= 0) { return; };
-
     AMREX_ALWAYS_ASSERT(m_split == false);
 
+    nnz_per_row = std::max(nnz_per_row, 0);
     Long nlocalrows = this->numLocalRows();
     m_nnz = nlocalrows*nnz_per_row;
     m_csr.mat.resize(m_nnz);
@@ -782,6 +963,7 @@ SpMatrix<T,Allocator>::define (AlgPartition partition, T const* mat,
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_diagonal = AlgVector<T,AllocT>{};
 
     bool synced = false;
 
@@ -820,7 +1002,15 @@ template <typename T, template<typename> class Allocator>
 void
 SpMatrix<T,Allocator>::sortCSR ()
 {
+    AMREX_ALWAYS_ASSERT(m_split == false);
     m_csr.sort();
+}
+
+template <typename T, template<typename> class Allocator>
+void
+SpMatrix<T,Allocator>::setColumnPartition (AlgPartition const& col_partition)
+{
+    split_csr(col_partition);
 }
 
 template <typename T, template<typename> class Allocator>
@@ -846,7 +1036,7 @@ SpMatrix<T,Allocator>::define_and_filter_doit (T const* mat, Long const* col_ind
     auto* pcol = m_csr.col_index.data();
     auto* prow = m_csr.row_offset.data();
     auto actual_nnz = m_nnz;
-    ParallelFor(std::max(nentries,nlocalrows), [=] AMREX_GPU_DEVICE (Long i)
+    ParallelFor(std::max(nentries,nlocalrows+1), [=] AMREX_GPU_DEVICE (Long i)
     {
         if (i < nentries) {
             if (col_index[i] >= 0 && mat[i] != 0) {
@@ -854,11 +1044,9 @@ SpMatrix<T,Allocator>::define_and_filter_doit (T const* mat, Long const* col_ind
                 pcol[ps[i]] = col_index[i];
             }
         }
-        if (i < nlocalrows) {
-            prow[i] = ps[row_offset[i]];
-            if (i == nlocalrows - 1) {
-                prow[nlocalrows] = actual_nnz;
-            }
+        if (i <= nlocalrows) {
+            prow[i] = (i < nlocalrows && row_offset[i] < nentries)
+                ? Long(ps[row_offset[i]]) : actual_nnz;
         }
     });
     Gpu::streamSynchronize();
@@ -868,61 +1056,55 @@ template <typename T, template<typename> class Allocator>
 void
 SpMatrix<T,Allocator>::printToFile (std::string const& file) const
 {
+    std::ofstream ofs(file+"."+std::to_string(ParallelDescriptor::MyProc()));
+    ofs << m_row_begin << " " << m_row_end << " " << m_nnz << "\n";
+    Long const nrows = numLocalRows();
+
+    if (!m_split) {
 #ifdef AMREX_USE_GPU
-    CSR<T,Gpu::PinnedVector> csr;
-    amrex::duplicateCSR(Gpu::deviceToHost, csr, m_csr);
-
-#  ifdef AMREX_USE_MPI
-    CSR<T,Gpu::PinnedVector> csr_r;
-    if (m_split) {
-        amrex::duplicateCSR(Gpu::deviceToHost, csr_r, m_csr_remote);
-    }
-
-    Gpu::PinnedVector<Long> ri_ltor(m_ri_ltor.size());
-    if (m_split) {
-        Gpu::copyAsync(Gpu::deviceToHost,
-                       m_ri_ltor.begin(),
-                       m_ri_ltor.end(),
-                       ri_ltor.begin());
-    }
-    auto const& remote_cols = m_remote_cols_v;
-#  endif
-
-    Gpu::streamSynchronize();
-
+        CSR<T,Gpu::PinnedVector> csr;
+        amrex::duplicateCSR(Gpu::deviceToHost, csr, m_csr);
+        Gpu::streamSynchronize();
 #else
+        auto const& csr = m_csr;
+#endif
+        for (Long i = 0; i < nrows; ++i) {
+            for (Long j = csr.row_offset[i]; j < csr.row_offset[i+1]; ++j) {
+                ofs << i+m_row_begin << " " << csr.col_index[j] << " " << csr.mat[j] << "\n";
+            }
+        }
+        return;
+    }
 
-    auto const& csr = m_csr;
+#ifdef AMREX_USE_GPU
+    CSR<T,Gpu::PinnedVector,int> csr;
+    amrex::duplicateCSR(Gpu::deviceToHost, csr, m_csr_local);
+#  ifdef AMREX_USE_MPI
+    CSR<T,Gpu::PinnedVector,int> csr_r;
+    amrex::duplicateCSR(Gpu::deviceToHost, csr_r, m_csr_remote);
+    Gpu::PinnedVector<Long> ri_ltor(m_ri_ltor.size());
+    Gpu::copyAsync(Gpu::deviceToHost, m_ri_ltor.begin(), m_ri_ltor.end(), ri_ltor.begin());
+#  endif
+    Gpu::streamSynchronize();
+#else
+    auto const& csr = m_csr_local;
 #  ifdef AMREX_USE_MPI
     auto const& csr_r = m_csr_remote;
     auto const& ri_ltor = m_ri_ltor;
-    auto const& remote_cols = m_remote_cols_v;
 #  endif
-
 #endif
 
-    Long nnz = m_csr.nnz;
-#ifdef AMREX_USE_MPI
-    nnz += m_csr_remote.nnz;
-#endif
-
-    std::ofstream ofs(file+"."+std::to_string(ParallelDescriptor::MyProc()));
-    ofs << m_row_begin << " " << m_row_end << " " << nnz << "\n";
-    for (Long i = 0, nrows = numLocalRows(); i < nrows; ++i) {
-        Long nnz_row    = csr.row_offset[i+1]  - csr.row_offset[i];
-        T    const* mat = csr.mat.data()       + csr.row_offset[i];
-        Long const* col = csr.col_index.data() + csr.row_offset[i];
-        for (Long j = 0; j < nnz_row; ++j) {
-            ofs << i+m_row_begin << " " << col[j]+m_col_begin << " " << mat[j] << "\n";
+    for (Long i = 0; i < nrows; ++i) {
+        for (Long j = csr.row_offset[i]; j < csr.row_offset[i+1]; ++j) {
+            ofs << i+m_row_begin << " " << Long(csr.col_index[j])+m_col_begin
+                << " " << csr.mat[j] << "\n";
         }
 #ifdef AMREX_USE_MPI
         if (i < Long(ri_ltor.size()) && ri_ltor[i] >= 0) {
             Long ii = ri_ltor[i];
-            nnz_row = csr_r.row_offset[ii+1]  - csr_r.row_offset[ii];
-            mat     = csr_r.mat.data()        + csr_r.row_offset[ii];
-            col     = csr_r.col_index.data()  + csr_r.row_offset[ii];
-            for (Long j = 0; j < nnz_row; ++j) {
-                ofs << i+m_row_begin << " " << remote_cols[col[j]] << " " << mat[j] << "\n";
+            for (Long j = csr_r.row_offset[ii]; j < csr_r.row_offset[ii+1]; ++j) {
+                ofs << i+m_row_begin << " " << m_remote_cols_v[csr_r.col_index[j]]
+                    << " " << csr_r.mat[j] << "\n";
             }
         }
 #endif
@@ -936,6 +1118,7 @@ void SpMatrix<T,Allocator>::setVal (F const& f, CsrSorted is_sorted)
     // xxxxx TODO: We can try to optimize this later by using shared memory.
 
     AMREX_ALWAYS_ASSERT(m_split == false);
+    m_diagonal = AlgVector<T,AllocT>{};
 
     Long nlocalrows = this->numLocalRows();
     Long rowbegin = this->globalRowBegin();
@@ -954,24 +1137,17 @@ template <typename T, template<typename> class Allocator>
 AlgVector<T,Allocator<T>> const& SpMatrix<T,Allocator>::diagonalVector () const
 {
     if (m_diagonal.empty()) {
+        // Square matrix: global columns before the split, local block after.
+        if (m_split) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_col_partition == this->partition(),
+                                             "SpMatrix::diagonalVector: column partition differs from row partition");
+        }
         m_diagonal.define(this->partition());
-        auto* AMREX_RESTRICT p = m_diagonal.data();
-        auto const* AMREX_RESTRICT mat = m_csr.mat.data();
-        auto const* AMREX_RESTRICT col = m_csr.col_index.data();
-        auto const* AMREX_RESTRICT row = m_csr.row_offset.data();
-        auto offset = m_split ? Long(0) : m_row_begin; // assuming square matrix
-        Long nrows = this->numLocalRows();
-        ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i)
-        {
-            T d = 0;
-            for (Long j = row[i]; j < row[i+1]; ++j) {
-                if (i == col[j] - offset) {
-                    d = mat[j];
-                    break;
-                }
-            }
-            p[i] = d;
-        });
+        if (m_split) {
+            detail::extract_diagonal(m_diagonal.data(), m_csr_local.const_view(), Long(0));
+        } else {
+            detail::extract_diagonal(m_diagonal.data(), m_csr.const_view(), m_row_begin);
+        }
     }
     return m_diagonal;
 }
@@ -981,6 +1157,18 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
 {
     AlgVector<T,Allocator<T>> r(this->partition());
     auto* p = r.data();
+    if (!m_split) {
+        auto const c = m_csr.const_view();
+        ParallelForOMP(r.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i)
+        {
+            T s = 0;
+            for (auto idx = c.row_offset[i]; idx < c.row_offset[i+1]; ++idx) {
+                s += c.mat[idx];
+            }
+            p[i] = s;
+        });
+        return r;
+    }
     auto const& a = this->const_parcsr();
     ParallelForOMP(r.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i)
     {
@@ -989,9 +1177,10 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
                   idx < a.csr0.row_offset[i+1]; ++idx) {
             s += a.csr0.mat[idx];
         }
-        if (a.csr1.nnz > 0) {
-            for (auto idx = a.csr1.row_offset[i];
-                      idx < a.csr1.row_offset[i+1]; ++idx) {
+        if (detail::has_remote_row(a, i)) {
+            auto ii = a.row_map[i];
+            for (auto idx = a.csr1.row_offset[ii];
+                      idx < a.csr1.row_offset[ii+1]; ++idx) {
                 s += a.csr1.mat[idx];
             }
         }
@@ -1003,11 +1192,12 @@ AlgVector<T,Allocator<T>> SpMatrix<T,Allocator>::rowSum () const
 template <typename T, template<typename> class Allocator>
 ParCsr<T> SpMatrix<T,Allocator>::parcsr ()
 {
-    return ParCsr<T>{m_csr.view(),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_split, "SpMatrix::parcsr: column partition not set");
+    return ParCsr<T>{m_csr_local.view(),
 #ifdef AMREX_USE_MPI
                      m_csr_remote.view(),
 #else
-                     CsrView<T>{},
+                     CsrView<T,int>{},
 #endif
                      m_row_begin,
                      m_col_begin,
@@ -1028,11 +1218,12 @@ template <typename T, template<typename> class Allocator>
 ParCsr<T const> SpMatrix<T,Allocator>::const_parcsr () const
 {
     using U = T const;
-    return ParCsr<U>{m_csr.const_view(),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_split, "SpMatrix::parcsr: column partition not set");
+    return ParCsr<U>{m_csr_local.const_view(),
 #ifdef AMREX_USE_MPI
                      m_csr_remote.const_view(),
 #else
-                     CsrView<U>{},
+                     CsrView<U,int>{},
 #endif
                      m_row_begin,
                      m_col_begin,
@@ -1058,10 +1249,11 @@ ParCsr<T const> SpMatrix<T,Allocator>::parcsr () const
 template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
 {
+    BL_PROFILE("SpMatrix::startComm_mv");
 #ifndef AMREX_USE_MPI
-    amrex::ignore_unused(x);
+    amrex::ignore_unused(this, x);
 #else
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), x.partition())) { return; }
 
     this->prepare_comm_mv(x.partition());
 
@@ -1107,12 +1299,11 @@ void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
 template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::finishComm_mv (AlgVector<T,AllocT>& y)
 {
-    if (this->numLocalRows() == 0) { return; }
-
+    BL_PROFILE("SpMatrix::finishComm_mv");
 #ifndef AMREX_USE_MPI
     amrex::ignore_unused(y);
 #else
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { return; }
 
     if ( ! m_comm_mv.recv_reqs.empty()) {
         Vector<MPI_Status> mpi_statuses(m_comm_mv.recv_reqs.size());
@@ -1139,10 +1330,98 @@ void SpMatrix<T,Allocator>::finishComm_mv (AlgVector<T,AllocT>& y)
 }
 
 template <typename T, template<typename> class Allocator>
+template <typename U>
+Gpu::DeviceVector<U> SpMatrix<T,Allocator>::gatherRemote (U const* x)
+{
+    Gpu::DeviceVector<U> r;
+    gatherRemote(x, r);
+    return r;
+}
+
+template <typename T, template<typename> class Allocator>
+template <typename U>
+void SpMatrix<T,Allocator>::gatherRemote (U const* x, Gpu::DeviceVector<U>& r)
+{
+    BL_PROFILE("SpMatrix::gatherRemote");
+#ifndef AMREX_USE_MPI
+    amrex::ignore_unused(this, x);
+    r.clear();
+#else
+    AMREX_ALWAYS_ASSERT(m_split);
+    if (detail::spmat_comm_is_local(this->partition(), m_col_partition)) { r.clear(); return; }
+
+    this->prepare_comm_mv(m_col_partition);
+
+    auto const mpi_tag = ParallelDescriptor::SeqNum();
+    auto const mpi_type = ParallelDescriptor::Mpi_typemap<U>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
+
+    auto const nrecvs = int(m_comm_mv.recv_from.size());
+    U* recv_buffer = nullptr;
+    Vector<MPI_Request> recv_reqs(nrecvs, MPI_REQUEST_NULL);
+    if (nrecvs > 0) {
+        recv_buffer = (U*)The_Comms_Arena()->alloc(sizeof(U)*m_comm_mv.total_counts_recv);
+        auto* p_recv = recv_buffer;
+        for (int irecv = 0; irecv < nrecvs; ++irecv) {
+            BL_MPI_REQUIRE(MPI_Irecv(p_recv, m_comm_mv.recv_counts[irecv], mpi_type,
+                                     m_comm_mv.recv_from[irecv], mpi_tag, mpi_comm,
+                                     &recv_reqs[irecv]));
+            p_recv += m_comm_mv.recv_counts[irecv];
+        }
+    }
+
+    auto const nsends = int(m_comm_mv.send_to.size());
+    U* send_buffer = nullptr;
+    Vector<MPI_Request> send_reqs(nsends, MPI_REQUEST_NULL);
+    if (nsends > 0) {
+        send_buffer = (U*)The_Comms_Arena()->alloc(sizeof(U)*m_comm_mv.total_counts_send);
+        auto* AMREX_RESTRICT pdst = send_buffer;
+        auto const* AMREX_RESTRICT pidx = m_comm_mv.send_indices.data();
+        auto const col_begin = m_col_begin;
+        ParallelForOMP(m_comm_mv.total_counts_send, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            pdst[i] = x[pidx[i]-col_begin];
+        });
+        Gpu::streamSynchronize();
+
+        auto* p_send = send_buffer;
+        for (int isend = 0; isend < nsends; ++isend) {
+            auto count = m_comm_mv.send_counts[isend];
+            BL_MPI_REQUIRE(MPI_Isend(p_send, count, mpi_type, m_comm_mv.send_to[isend],
+                                     mpi_tag, mpi_comm, &send_reqs[isend]));
+            p_send += count;
+        }
+    }
+
+    r.resize(m_comm_mv.total_counts_recv);
+    if (nrecvs > 0) {
+        Vector<MPI_Status> mpi_statuses(nrecvs);
+        BL_MPI_REQUIRE(MPI_Waitall(nrecvs, recv_reqs.data(), mpi_statuses.data()));
+        // The buffer may be pinned host memory, so copy with a kernel.
+        auto* AMREX_RESTRICT pr = r.data();
+        auto const* AMREX_RESTRICT pb = recv_buffer;
+        ParallelForOMP(m_comm_mv.total_counts_recv, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            pr[i] = pb[i];
+        });
+    }
+    if (nsends > 0) {
+        Vector<MPI_Status> mpi_statuses(nsends);
+        BL_MPI_REQUIRE(MPI_Waitall(nsends, send_reqs.data(), mpi_statuses.data()));
+    }
+
+    Gpu::streamSynchronize();
+    The_Comms_Arena()->free(send_buffer);
+    The_Comms_Arena()->free(recv_buffer);
+#endif
+}
+
+template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
 {
+    BL_PROFILE("SpMatrix::startComm_tr");
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), col_partition)) { return; }
 
     this->split_csr(col_partition);
 
@@ -1156,11 +1435,11 @@ void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
     if (m_csr_remote.nnz > 0) {
         m_comm_tr.csrt.nnz = m_csr_remote.nnz;
         m_comm_tr.csrt.nrows = m_remote_cols_v.size();
-        m_comm_tr.csrt.mat = (T*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.mat = (T*)The_Pinned_Arena()->alloc
             (sizeof(T)*m_comm_tr.csrt.nnz);
-        m_comm_tr.csrt.col_index = (Long*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.col_index = (Long*)The_Pinned_Arena()->alloc
             (sizeof(Long)*m_comm_tr.csrt.nnz);
-        m_comm_tr.csrt.row_offset = (Long*)The_Comms_Arena()->alloc
+        m_comm_tr.csrt.row_offset = (Long*)The_Pinned_Arena()->alloc
             (sizeof(Long)*(m_comm_tr.csrt.nrows+1));
 #ifdef AMREX_USE_GPU
         csr_type csr_comm;
@@ -1351,37 +1630,15 @@ void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
 template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::finishComm_tr (SpMatrix<T,Allocator>& AT)
 {
+    BL_PROFILE("SpMatrix::finishComm_tr");
 #ifdef AMREX_USE_MPI
-    if (this->partition().numActiveProcs() <= 1) { return; }
+    if (detail::spmat_comm_is_local(this->partition(), AT.partition())) { return; }
 
-    if (! m_comm_tr.recv_reqs.empty()) {
-        Vector<MPI_Status> mpi_statuses(m_comm_tr.recv_reqs.size());
-        BL_MPI_REQUIRE(MPI_Waitall(int(m_comm_tr.recv_reqs.size()),
-                                   m_comm_tr.recv_reqs.data(),
-                                   mpi_statuses.data()));
-    }
+    this->comm_tr_recv_wait();
 
     AT.unpack_buffer_tr(m_comm_tr, this->m_partition);
 
-    if (! m_comm_tr.send_reqs.empty()) {
-        Vector<MPI_Status> mpi_statuses(m_comm_tr.send_reqs.size());
-        BL_MPI_REQUIRE(MPI_Waitall(int(m_comm_tr.send_reqs.size()),
-                                   m_comm_tr.send_reqs.data(),
-                                   mpi_statuses.data()));
-    }
-
-    if (m_comm_tr.csrt.nnz > 0) {
-        The_Comms_Arena()->free(m_comm_tr.csrt.mat);
-        The_Comms_Arena()->free(m_comm_tr.csrt.col_index);
-        The_Comms_Arena()->free(m_comm_tr.csrt.row_offset);
-    }
-    if (m_comm_tr.recv_buffer_mat) {
-        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_mat);
-        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_col_index);
-        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_row_offset);
-        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_idx_map);
-    }
-    m_comm_tr = CommTR{};
+    this->comm_tr_clear();
 #else
     amrex::ignore_unused(AT);
 #endif
@@ -1390,8 +1647,145 @@ void SpMatrix<T,Allocator>::finishComm_tr (SpMatrix<T,Allocator>& AT)
 #ifdef AMREX_USE_MPI
 
 template <typename T, template<typename> class Allocator>
+void SpMatrix<T,Allocator>::comm_tr_recv_wait ()
+{
+    if (! m_comm_tr.recv_reqs.empty()) {
+        Vector<MPI_Status> mpi_statuses(m_comm_tr.recv_reqs.size());
+        BL_MPI_REQUIRE(MPI_Waitall(int(m_comm_tr.recv_reqs.size()),
+                                   m_comm_tr.recv_reqs.data(),
+                                   mpi_statuses.data()));
+    }
+}
+
+template <typename T, template<typename> class Allocator>
+void SpMatrix<T,Allocator>::comm_tr_clear ()
+{
+    if (! m_comm_tr.send_reqs.empty()) {
+        Vector<MPI_Status> mpi_statuses(m_comm_tr.send_reqs.size());
+        BL_MPI_REQUIRE(MPI_Waitall(int(m_comm_tr.send_reqs.size()),
+                                   m_comm_tr.send_reqs.data(),
+                                   mpi_statuses.data()));
+    }
+
+    if (m_comm_tr.csrt.nnz > 0) {
+        The_Pinned_Arena()->free(m_comm_tr.csrt.mat);
+        The_Pinned_Arena()->free(m_comm_tr.csrt.col_index);
+        The_Pinned_Arena()->free(m_comm_tr.csrt.row_offset);
+    }
+    if (m_comm_tr.recv_buffer_mat) {
+        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_mat);
+        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_col_index);
+        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_row_offset);
+        The_Pinned_Arena()->free(m_comm_tr.recv_buffer_idx_map);
+    }
+    m_comm_tr = CommTR{};
+}
+
+#endif
+
+template <typename T, template<typename> class Allocator>
+void SpMatrix<T,Allocator>::define_split (AlgPartition partition,
+                                          AlgPartition const& col_partition,
+                                          local_csr_type&& compact, Long nlocal,
+                                          Long const* remote_cols, Long nremote)
+{
+    BL_PROFILE("SpMatrix::define_split");
+    AMREX_ALWAYS_ASSERT(m_split == false && m_col_partition.empty());
+    amrex::ignore_unused(nremote);
+
+    m_partition = std::move(partition);
+    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
+    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    AMREX_ASSERT(compact.nrows() == this->numLocalRows());
+    AMREX_ASSERT(nremote >= 0 && (nremote == 0 || remote_cols != nullptr));
+    m_diagonal = AlgVector<T,AllocT>{};
+    m_col_partition = col_partition;
+    m_col_begin = col_partition[ParallelDescriptor::MyProc()];
+    m_col_end   = col_partition[ParallelDescriptor::MyProc()+1];
+    AMREX_ALWAYS_ASSERT(m_col_end - m_col_begin == nlocal);
+    m_nnz = compact.nnz;
+    m_csr = csr_type{};
+
+    Long const nlocalrows = this->numLocalRows();
+    Long const nnz = compact.nnz;
+
+    // Entries with a compact column below nlocal are local; within a row
+    // they come first.
+    Gpu::DeviceVector<Long> pfsum(nnz);
+    auto* p_pfsum = pfsum.data();
+    auto const* pcol = compact.col_index.data();
+    AMREX_ALWAYS_ASSERT(nlocal < Long(std::numeric_limits<int>::max()));
+    int const nl = int(nlocal);
+    Long const local_nnz = Scan::PrefixSum<Long>(nnz,
+        [=] AMREX_GPU_DEVICE (Long i) -> Long { return pcol[i] < nl; },
+        [=] AMREX_GPU_DEVICE (Long i, Long const& x) { p_pfsum[i] = x; },
+        Scan::Type::exclusive, Scan::retSum);
+    Long const remote_nnz = nnz - local_nnz;
+
+#ifndef AMREX_USE_MPI
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(remote_nnz == 0,
+        "SpMatrix::define_split: remote columns without MPI");
+#endif
+
+    if (remote_nnz == 0) {
+        m_csr_local = std::move(compact);
+    } else {
+        m_csr_local.resize(nlocalrows, local_nnz);
+        container_type<Long> remote_gcols(remote_nnz);
+        container_type<T> remote_mat(remote_nnz);
+        container_type<int> remote_row_offset(nlocalrows+1);
+        auto const* pmat = compact.mat.data();
+        auto* pmat_l = m_csr_local.mat.data();
+        auto* pcol_l = m_csr_local.col_index.data();
+        auto* pmat_r = remote_mat.data();
+        auto* pcol_r = remote_gcols.data();
+        ParallelForOMP(nnz, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            auto ps = p_pfsum[i];
+            if (pcol[i] < nl) {
+                pmat_l[ps] = pmat[i];
+                pcol_l[ps] = pcol[i];
+            } else {
+                pmat_r[i-ps] = pmat[i];
+                pcol_r[i-ps] = remote_cols[pcol[i] - nl];
+            }
+        });
+        auto const noffset = nlocalrows+1;
+        auto const* pro = compact.row_offset.data();
+        auto* pro_l = m_csr_local.row_offset.data();
+        auto* pro_r = remote_row_offset.data();
+        ParallelForOMP(noffset, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            Long ro_l = (i < noffset-1)
+                ? ((pro[i] < nnz) ? p_pfsum[pro[i]] : local_nnz) : local_nnz;
+            pro_l[i] = int(ro_l);
+            pro_r[i] = int(pro[i] - ro_l);
+        });
+        Gpu::streamSynchronize();
+        compact = local_csr_type{};
+#ifdef AMREX_USE_MPI
+        m_csr_remote.mat = std::move(remote_mat);
+        m_csr_remote.col_index.resize(remote_nnz);
+        m_csr_remote.row_offset = std::move(remote_row_offset);
+        m_csr_remote.nnz = remote_nnz;
+        trim_remote_rows();
+        update_remote_col_index(remote_gcols, m_csr_remote.col_index, true);
+#endif
+    }
+#ifdef AMREX_USE_MPI
+    if (remote_nnz == 0) {
+        // Keep the remote bookkeeping consistent with an empty block.
+        update_remote_col_index(container_type<Long>{}, m_csr_remote.col_index, true);
+    }
+#endif
+
+    m_split = true;
+}
+
+template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
 {
+    BL_PROFILE("SpMatrix::split_csr");
     if (m_split) {
         AMREX_ALWAYS_ASSERT
             (m_col_begin == col_partition[ParallelDescriptor::MyProc()] &&
@@ -1404,20 +1798,24 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
     m_col_partition = col_partition;
     m_col_begin = col_partition[ParallelDescriptor::MyProc()];
     m_col_end   = col_partition[ParallelDescriptor::MyProc()+1];
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (m_col_end - m_col_begin < Long(std::numeric_limits<int>::max()),
+         "SpMatrix: the local column block is too large for 32-bit indices");
 
     // This function needs to be safe when nnz is zero.
 
-    // We need to split the matrix into two parts, a diagonal part for pure
-    // local operations and another part for remote operations in
-    // matrix-vector or matrix-matrix multiplication.
+    // Split into a diagonal block with 32-bit local column indices and,
+    // with MPI, an off-diagonal block with 32-bit indices into the sorted
+    // list of remote columns.
 
+    Long const nlocalrows = this->numLocalRows();
     Long local_nnz;
     Gpu::DeviceVector<Long> pfsum(m_nnz);
     auto* p_pfsum = pfsum.data();
     auto col_begin = m_col_begin;
     auto col_end = m_col_end;
+    auto const* pcol = m_csr.col_index.data();
     if (m_csr.nnz < Long(std::numeric_limits<int>::max())) {
-        auto const* pcol = m_csr.col_index.data();
         local_nnz = Scan::PrefixSum<int>(int(m_nnz),
                                          [=] AMREX_GPU_DEVICE (int i) -> int {
                                              return (pcol[i] >= col_begin &&
@@ -1426,7 +1824,6 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
                                              p_pfsum[i] = x; },
                                          Scan::Type::exclusive, Scan::retSum);
     } else {
-        auto const* pcol = m_csr.col_index.data();
         local_nnz = Scan::PrefixSum<Long>(m_nnz,
                                           [=] AMREX_GPU_DEVICE (Long i) -> Long {
                                               return (pcol[i] >= col_begin &&
@@ -1435,142 +1832,133 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
                                               p_pfsum[i] = x; },
                                           Scan::Type::exclusive, Scan::retSum);
     }
+    Long const remote_nnz = m_nnz - local_nnz;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (local_nnz < Long(std::numeric_limits<int>::max()) &&
+         remote_nnz < Long(std::numeric_limits<int>::max()),
+         "SpMatrix: too many local nonzeros for 32-bit row offsets");
 
-    m_csr.nnz = local_nnz;
-    Long remote_nnz = m_nnz - local_nnz;
-    m_csr_remote.nnz = remote_nnz;
-
-    if (local_nnz != m_nnz) {
-        m_csr_remote.mat.resize(remote_nnz);
-        m_csr_remote.col_index.resize(remote_nnz);
-        container_type<T> new_mat(local_nnz);
-        container_type<Long> new_col(local_nnz);
+    m_csr_local.resize(nlocalrows, local_nnz);
+    container_type<Long> remote_gcols;
+    container_type<T> remote_mat;
+    container_type<int> remote_row_offset;
+#ifdef AMREX_USE_MPI
+    remote_gcols.resize(remote_nnz);
+    remote_mat.resize(remote_nnz);
+    remote_row_offset.resize(nlocalrows+1);
+#else
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(remote_nnz == 0,
+        "SpMatrix: column index outside the column partition");
+#endif
+    {
         auto const* pmat = m_csr.mat.data();
-        auto const* pcol = m_csr.col_index.data();
-        auto* pmat_l = new_mat.data();
-        auto* pcol_l = new_col.data();
-        auto* pmat_r = m_csr_remote.mat.data();
-        auto* pcol_r = m_csr_remote.col_index.data();
+        auto* pmat_l = m_csr_local.mat.data();
+        auto* pcol_l = m_csr_local.col_index.data();
+        auto* pmat_r = remote_mat.data();
+        auto* pcol_r = remote_gcols.data();
         ParallelForOMP(m_nnz, [=] AMREX_GPU_DEVICE (Long i)
         {
             auto ps = p_pfsum[i];
-            auto local = (pcol[i] >= col_begin &&
-                          pcol[i] <  col_end);
+            auto local = (pcol[i] >= col_begin && pcol[i] < col_end);
             if (local) {
                 pmat_l[ps] = pmat[i];
-                pcol_l[ps] = pcol[i] - col_begin; // shift the column index to local
-            } else {
+                pcol_l[ps] = int(pcol[i] - col_begin);
+            } else if (pmat_r) {
                 pmat_r[i-ps] = pmat[i];
                 pcol_r[i-ps] = pcol[i];
             }
         });
-        auto noffset = Long(m_csr.row_offset.size());
-        auto* pro = m_csr.row_offset.data();
-        m_csr_remote.row_offset.resize(noffset);
-        auto* pro_r = m_csr_remote.row_offset.data();
+        auto const noffset = Long(m_csr.row_offset.size());
+        auto const* pro = m_csr.row_offset.data();
+        auto* pro_l = m_csr_local.row_offset.data();
+        auto* pro_r = remote_row_offset.data();
+        auto total_nnz = m_nnz;
         ParallelForOMP(noffset, [=] AMREX_GPU_DEVICE (Long i)
         {
+            Long ro_l;
             if (i < noffset-1) {
-                auto ro_l = p_pfsum[pro[i]];
-                pro_r[i] = pro[i] - ro_l;
-                pro[i] = ro_l;
+                ro_l = (pro[i] < total_nnz) ? p_pfsum[pro[i]] : local_nnz;
             } else {
-                pro[i] = local_nnz;
-                pro_r[i] = remote_nnz;
+                ro_l = local_nnz;
             }
+            pro_l[i] = int(ro_l);
+            if (pro_r) { pro_r[i] = int(pro[i] - ro_l); }
         });
         Gpu::streamSynchronize();
-        m_csr.mat.swap(new_mat);
-        m_csr.col_index.swap(new_col);
-
-        // In the remote part, it's expected that some rows don't have
-        // nonzeros. So we trim them off.
-        {
-            Long old_size = m_csr_remote.row_offset.size();
-            m_ri_ltor.resize(old_size-1);
-            m_ri_rtol.resize(old_size-1);
-            auto* p_ltor = m_ri_ltor.data();
-            auto* p_rtol = m_ri_rtol.data();
-            container_type<Long> trimmed_row_offset(old_size);
-            auto const* p_ro = m_csr_remote.row_offset.data();
-            auto* p_tro = trimmed_row_offset.data();
-            Long new_size;
-            if (old_size < Long(std::numeric_limits<int>::max())) {
-                // This is basically std::unique.
-                new_size = Scan::PrefixSum<int>(int(old_size),
-                                                [=] AMREX_GPU_DEVICE (int i) -> int {
-                                                    if (i+1 < old_size) {
-                                                        return (p_ro[i+1] > p_ro[i]);
-                                                    } else {
-                                                        return 1;
-                                                    }
-                                                },
-                                                [=] AMREX_GPU_DEVICE (int i, int const& x) {
-                                                    if (i == 0) {
-                                                        p_tro[0] = 0;
-                                                    } else if (p_ro[i] > p_ro[i-1]) {
-                                                        p_tro[x] = p_ro[i];
-                                                    }
-                                                    if (i+1 < old_size) {
-                                                        if (p_ro[i+1] > p_ro[i]) {
-                                                            p_rtol[x] = i;
-                                                            p_ltor[i] = x;
-                                                        } else {
-                                                            p_ltor[i] = -1;
-                                                        }
-                                                    }
-                                                },
-                                                Scan::Type::exclusive, Scan::retSum);
-            } else {
-                // This is basically std::unique.
-                new_size = Scan::PrefixSum<Long>(old_size,
-                                                [=] AMREX_GPU_DEVICE (Long i) -> Long {
-                                                    if (i+1 < old_size) {
-                                                        return (p_ro[i+1] > p_ro[i]);
-                                                    } else {
-                                                        return 1;
-                                                    }
-                                                },
-                                                [=] AMREX_GPU_DEVICE (Long i, Long const& x) {
-                                                    if (i == 0) {
-                                                        p_tro[0] = 0;
-                                                    } else if (p_ro[i] > p_ro[i-1]) {
-                                                        p_tro[x] = p_ro[i];
-                                                    }
-                                                    if (i+1 < old_size) {
-                                                        if (p_ro[i+1] > p_ro[i]) {
-                                                            p_rtol[x] = i;
-                                                            p_ltor[i] = x;
-                                                        } else {
-                                                            p_ltor[i] = -1;
-                                                        }
-                                                    }
-                                                },
-                                                Scan::Type::exclusive, Scan::retSum);
-            }
-
-            m_ri_rtol.resize(new_size-1);
-            trimmed_row_offset.resize(new_size);
-#ifdef AMREX_USE_GPU
-            m_ri_rtol.shrink_to_fit();
-            trimmed_row_offset.shrink_to_fit();
-#endif
-            m_csr_remote.row_offset.swap(trimmed_row_offset);
-        }
-
-    } else if (col_begin > 0) {
-        auto* pcol = m_csr.col_index.data();
-        ParallelForOMP(m_nnz, [=] AMREX_GPU_DEVICE (Long i) { pcol[i] -= col_begin; });
     }
+    m_csr = csr_type{}; // the unsplit form is no longer needed
 
-    update_remote_col_index(m_csr_remote, true);
+#ifdef AMREX_USE_MPI
+    // Without remote entries the remote block stays empty (no offsets).
+    if (remote_nnz > 0) {
+        m_csr_remote.mat = std::move(remote_mat);
+        m_csr_remote.col_index.resize(remote_nnz);
+        m_csr_remote.row_offset = std::move(remote_row_offset);
+        m_csr_remote.nnz = remote_nnz;
+        trim_remote_rows();
+    }
+    update_remote_col_index(remote_gcols, m_csr_remote.col_index, true);
+#endif
 
     m_split = true;
 }
 
+#ifdef AMREX_USE_MPI
+
 template <typename T, template<typename> class Allocator>
-template <typename C>
-void SpMatrix<T,Allocator>::update_remote_col_index (C& csrr, bool in_device_memory)
+void SpMatrix<T,Allocator>::trim_remote_rows ()
+{
+    BL_PROFILE("SpMatrix::trim_remote_rows");
+    // In the remote part, it's expected that some rows don't have
+    // nonzeros. So we trim them off, and also save a full copy of the
+    // row offsets.
+    Long old_size = m_csr_remote.row_offset.size();
+    m_ri_ltor.resize(old_size-1);
+    m_ri_rtol.resize(old_size-1);
+    auto* p_ltor = m_ri_ltor.data();
+    auto* p_rtol = m_ri_rtol.data();
+    container_type<int> trimmed_row_offset(old_size);
+    auto const* p_ro = m_csr_remote.row_offset.data();
+    auto* p_tro = trimmed_row_offset.data();
+    // This is basically std::unique.
+    Long new_size = Scan::PrefixSum<Long>(old_size,
+                                    [=] AMREX_GPU_DEVICE (Long i) -> Long {
+                                        if (i+1 < old_size) {
+                                            return (p_ro[i+1] > p_ro[i]);
+                                        } else {
+                                            return 1;
+                                        }
+                                    },
+                                    [=] AMREX_GPU_DEVICE (Long i, Long const& x) {
+                                        if (i == 0) {
+                                            p_tro[0] = 0;
+                                        } else if (p_ro[i] > p_ro[i-1]) {
+                                            p_tro[x] = p_ro[i];
+                                        }
+                                        if (i+1 < old_size) {
+                                            if (p_ro[i+1] > p_ro[i]) {
+                                                p_rtol[x] = i;
+                                                p_ltor[i] = x;
+                                            } else {
+                                                p_ltor[i] = -1;
+                                            }
+                                        }
+                                    },
+                                    Scan::Type::exclusive, Scan::retSum);
+    m_ri_rtol.resize(new_size-1);
+    trimmed_row_offset.resize(new_size);
+#ifdef AMREX_USE_GPU
+    m_ri_rtol.shrink_to_fit();
+    trimmed_row_offset.shrink_to_fit();
+#endif
+    m_remote_row_offset = std::move(trimmed_row_offset);
+    std::swap(m_csr_remote.row_offset, m_remote_row_offset);
+}
+
+template <typename T, template<typename> class Allocator>
+template <typename VL, typename VI>
+void SpMatrix<T,Allocator>::update_remote_col_index (VL const& gcols, VI& lcols,
+                                                     bool in_device_memory)
 {
     int const nprocs = ParallelContext::NProcsSub();
 
@@ -1583,26 +1971,29 @@ void SpMatrix<T,Allocator>::update_remote_col_index (C& csrr, bool in_device_mem
     m_remote_cols_dv.clear();
 #endif
 
-    if (csrr.nnz == 0) { return; }
+    Long const n = Long(gcols.size());
+    lcols.resize(n);
+    if (n == 0) { return; }
 
     amrex::ignore_unused(in_device_memory);
 
+    Vector<Long> h_gcols;
 #ifdef AMREX_USE_GPU
     if (in_device_memory) {
-        m_remote_cols_v.resize(csrr.nnz);
-        Gpu::copyAsync(Gpu::deviceToHost,
-                       csrr.col_index.begin(),
-                       csrr.col_index.end(),
-                       m_remote_cols_v.begin());
+        h_gcols.resize(n);
+        Gpu::copyAsync(Gpu::deviceToHost, gcols.begin(), gcols.end(), h_gcols.begin());
         Gpu::streamSynchronize();
     } else
 #endif
     {
-        m_remote_cols_v.assign(csrr.col_index.begin(),
-                               csrr.col_index.end());
+        h_gcols.assign(gcols.begin(), gcols.end());
     }
 
+    m_remote_cols_v = h_gcols;
     amrex::RemoveDuplicates(m_remote_cols_v);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (Long(m_remote_cols_v.size()) < Long(std::numeric_limits<int>::max()),
+         "SpMatrix: too many remote columns for 32-bit indices");
 
 #ifdef AMREX_USE_GPU
     m_remote_cols_dv.resize(m_remote_cols_v.size());
@@ -1628,33 +2019,23 @@ void SpMatrix<T,Allocator>::update_remote_col_index (C& csrr, bool in_device_mem
     }
 
     // Now we convert the remote indices from global to local.
-    std::map<Long,Long> gtol;
+    std::map<Long,int> gtol;
     for (Long i = 0, N = Long(m_remote_cols_v.size()); i < N; ++i) {
-        gtol[m_remote_cols_v[i]] = i;
+        gtol[m_remote_cols_v[i]] = int(i);
+    }
+    Gpu::PinnedVector<int> h_lcols(n);
+    for (Long i = 0; i < n; ++i) {
+        h_lcols[i] = gtol[h_gcols[i]];
     }
 
 #ifdef AMREX_USE_GPU
     if (in_device_memory) {
-        Gpu::PinnedVector<Long> host_col_index(csrr.nnz);
-        Gpu::copyAsync(Gpu::deviceToHost,
-                       csrr.col_index.begin(),
-                       csrr.col_index.end(),
-                       host_col_index.begin());
-        Gpu::streamSynchronize();
-        for (auto& c : host_col_index) {
-            c = gtol[c];
-        }
-        Gpu::copyAsync(Gpu::hostToDevice,
-                       host_col_index.begin(),
-                       host_col_index.end(),
-                       csrr.col_index.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, h_lcols.begin(), h_lcols.end(), lcols.begin());
         Gpu::streamSynchronize();
     } else
 #endif
     {
-        for (auto& c : csrr.col_index) {
-            c = gtol[c];
-        }
+        std::copy(h_lcols.begin(), h_lcols.end(), lcols.begin());
     }
 }
 
@@ -1681,6 +2062,7 @@ void SpMatrix<T,Allocator>::set_num_neighbors ()
 template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::prepare_comm_mv (AlgPartition const& col_partition)
 {
+    BL_PROFILE("SpMatrix::prepare_comm_mv");
     if (m_comm_mv.prepared) { return; }
 
     // This function needs to be safe when nnz is zero.
@@ -1801,11 +2183,13 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
     m_col_begin = m_col_partition[ParallelDescriptor::MyProc()  ];
     m_col_end   = m_col_partition[ParallelDescriptor::MyProc()+1];
 
-    m_ri_ltor.resize(m_csr.nrows(), -1);
+    m_ri_ltor.resize(numLocalRows(), -1);
     m_remote_cols_vv.resize(ParallelDescriptor::NProcs());
 
     auto nnz = ctr.total_counts_recv[0];
     if (nnz == 0) { return; }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnz < Long(std::numeric_limits<int>::max()),
+                                     "SpMatrix: too many received nonzeros for 32-bit row offsets");
 
     m_nnz += nnz;
     auto nb = int(ctr.recv_from.size()); // # of blocked CSRs to be merged
@@ -1817,19 +2201,29 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
     RemoveDuplicates(ri_map);
     Long nrows = ri_map.size(); // # of unique rows.
 
+    // Assembled on the host with global columns, then converted to 32-bit
+    // remote indices.
 #ifdef AMREX_USE_GPU
-    CSR<T,Gpu::PinnedVector> csrr;
+    CSR<T,Gpu::PinnedVector,int> csrr;
 #else
     auto& csrr = m_csr_remote;
 #endif
+    Vector<Long> gcols(nnz);
     csrr.mat.resize(nnz);
     csrr.col_index.resize(nnz);
     csrr.row_offset.resize(nrows+1);
     csrr.nnz = nnz;
 
+    // Merge blocks in sender-rank order so that rows stay sorted. Each
+    // block covers a contiguous global column range.
+    Vector<int> order(nb);
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(), [&] (int a, int b) {
+        return ctr.recv_from[a] < ctr.recv_from[b]; });
+
     // Count nnz per compressed row
     Vector<int> row_nnz(nrows, 0);
-    for (int i = 0; i < nb; ++i) {
+    for (int i : order) {
         auto nrow_i = ctr.recv_counts[i][1];
         Long const* row_offset = ctr.recv_buffer_row_offset
             +                    ctr.recv_buffer_offset[i][2];
@@ -1847,13 +2241,12 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
         }
     }
 
-    csrr.row_offset[0] = 0;
-    std::partial_sum(row_nnz.begin(), row_nnz.end(), csrr.row_offset.begin()+1);
-    AMREX_ASSERT(csrr.nnz == csrr.row_offset.back());
+    std::exclusive_scan(row_nnz.begin(), row_nnz.end(), csrr.row_offset.begin(), 0);
+    csrr.row_offset.back() = int(csrr.nnz);
 
     auto rowpos = csrr.row_offset; // make a copy to keep track of offset
 
-    for (int i = 0; i < nb; ++i) {
+    for (int i : order) {
         auto nrow_i = ctr.recv_counts[i][1];
         T    const* mat        = ctr.recv_buffer_mat
             +                    ctr.recv_buffer_offset[i][0];
@@ -1873,12 +2266,9 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
             auto os_src = row_offset[lr] - row_offset[0];
             auto nvals = row_offset[lr+1] - row_offset[lr];
             auto os_dst = rowpos[p];
-            std::memcpy(csrr.      mat.data()+os_dst,       mat+os_src,
-                        sizeof(T)   *nvals);
-            std::memcpy(csrr.col_index.data()+os_dst, col_index+os_src,
-                        sizeof(Long)*nvals);
-
-            rowpos[p] += nvals;
+            std::memcpy(csrr.mat.data()+os_dst, mat+os_src, sizeof(T)*nvals);
+            std::memcpy(gcols.data()+os_dst, col_index+os_src, sizeof(Long)*nvals);
+            rowpos[p] += int(nvals);
         }
     }
 
@@ -1894,13 +2284,255 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
         });
     }
 
-    // The column index in csrr is still global.
-    update_remote_col_index(csrr, false);
+    update_remote_col_index(gcols, csrr.col_index, false);
 
 #ifdef AMREX_USE_GPU
     amrex::duplicateCSR(Gpu::hostToDevice, m_csr_remote, csrr);
     Gpu::streamSynchronize();
 #endif
+}
+
+template <typename T, template<typename> class Allocator>
+auto SpMatrix<T,Allocator>::fetch_remote_rows_mm (SpMatrix<T,Allocator> const& B)
+    -> RemoteRowsMM
+{
+    // this = A, split by B's row partition. m_comm_mv tells which rows of B
+    // other ranks need from us and which we need from them.
+    this->prepare_comm_mv(B.partition());
+
+    auto const& cm = m_comm_mv;
+    auto const nrecvs = int(cm.recv_from.size());
+    auto const nsends = int(cm.send_to.size());
+    auto const mpi_long = ParallelDescriptor::Mpi_typemap<Long>::type();
+    auto const mpi_t = ParallelDescriptor::Mpi_typemap<T>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
+
+    RemoteRowsMM ext;
+    ext.nrows = cm.total_counts_recv; // == m_remote_cols_v.size()
+    ext.row_offset.resize(ext.nrows+1);
+
+    auto const b0 = B.m_csr_local.const_view();
+    auto const b1 = B.remote_full_const_view();
+    Long const b_row_begin = B.m_row_begin;
+    Long const nsend_rows = cm.total_counts_send;
+    auto const* AMREX_RESTRICT send_idx = cm.send_indices.data();
+
+    // Round 1: number of nonzeros in each requested row.
+    Gpu::PinnedVector<Long> h_send(nsend_rows+1);
+    {
+        Gpu::DeviceVector<Long> d_cnt(nsend_rows);
+        auto* pcnt = d_cnt.data();
+        ParallelForOMP(nsend_rows, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            Long const lr = send_idx[i] - b_row_begin;
+            pcnt[i] = (b0.row_offset[lr+1] - b0.row_offset[lr])
+                +     (b1.row_offset[lr+1] - b1.row_offset[lr]);
+        });
+        Gpu::copyAsync(Gpu::deviceToHost, d_cnt.begin(), d_cnt.end(), h_send.begin());
+        Gpu::streamSynchronize();
+    }
+
+    Gpu::PinnedVector<Long> h_recv(ext.nrows+1);
+    {
+        auto const tag = ParallelDescriptor::SeqNum();
+        Vector<MPI_Request> reqs;
+        reqs.reserve(nrecvs+nsends);
+        Long os = 0;
+        for (int i = 0; i < nrecvs; ++i) {
+            reqs.push_back(MPI_REQUEST_NULL);
+            BL_MPI_REQUIRE(MPI_Irecv(h_recv.data()+os, cm.recv_counts[i], mpi_long,
+                                     cm.recv_from[i], tag, mpi_comm, &reqs.back()));
+            os += cm.recv_counts[i];
+        }
+        os = 0;
+        for (int i = 0; i < nsends; ++i) {
+            reqs.push_back(MPI_REQUEST_NULL);
+            BL_MPI_REQUIRE(MPI_Isend(h_send.data()+os, cm.send_counts[i], mpi_long,
+                                     cm.send_to[i], tag, mpi_comm, &reqs.back()));
+            os += cm.send_counts[i];
+        }
+        if (! reqs.empty()) {
+            Vector<MPI_Status> stats(reqs.size());
+            BL_MPI_REQUIRE(MPI_Waitall(int(reqs.size()), reqs.data(), stats.data()));
+        }
+    }
+
+    // Counts to offsets, in place; per-rank totals.
+    auto to_offsets = [] (Gpu::PinnedVector<Long>& v, Long n) {
+        Long s = 0;
+        for (Long i = 0; i < n; ++i) {
+            Long const c = v[i];
+            v[i] = s;
+            s += c;
+        }
+        v[n] = s;
+    };
+    to_offsets(h_recv, ext.nrows);
+    to_offsets(h_send, nsend_rows);
+    ext.nnz = h_recv[ext.nrows];
+    Long const send_nnz = h_send[nsend_rows];
+
+    Vector<Long> recv_nnz(nrecvs), send_nnz_v(nsends);
+    for (int i = 0, r = 0; i < nrecvs; ++i) {
+        recv_nnz[i] = h_recv[r+cm.recv_counts[i]] - h_recv[r];
+        r += cm.recv_counts[i];
+        if (recv_nnz[i] >= Long(std::numeric_limits<int>::max())) {
+            amrex::Abort("SpMatrix::fetch_remote_rows_mm: message exceeds MPI int count range.");
+        }
+    }
+    for (int i = 0, r = 0; i < nsends; ++i) {
+        send_nnz_v[i] = h_send[r+cm.send_counts[i]] - h_send[r];
+        r += cm.send_counts[i];
+        if (send_nnz_v[i] >= Long(std::numeric_limits<int>::max())) {
+            amrex::Abort("SpMatrix::fetch_remote_rows_mm: message exceeds MPI int count range.");
+        }
+    }
+
+    Gpu::copyAsync(Gpu::hostToDevice, h_recv.begin(), h_recv.end(), ext.row_offset.begin());
+    Gpu::DeviceVector<Long> d_send_off(nsend_rows+1);
+    Gpu::copyAsync(Gpu::hostToDevice, h_send.begin(), h_send.end(), d_send_off.begin());
+
+    // Round 2: column indices and values.
+    auto const tag_c = ParallelDescriptor::SeqNum();
+    auto const tag_m = ParallelDescriptor::SeqNum();
+
+    Vector<MPI_Request> rreqs, sreqs;
+    if (ext.nnz > 0) {
+        ext.col_index = (Long*)The_Pinned_Arena()->alloc(sizeof(Long)*ext.nnz);
+        ext.mat = (T*)The_Comms_Arena()->alloc(sizeof(T)*ext.nnz);
+        rreqs.reserve(2*nrecvs);
+        Long os = 0;
+        for (int i = 0; i < nrecvs; ++i) {
+            if (recv_nnz[i] > 0) {
+                auto n = int(recv_nnz[i]);
+                rreqs.push_back(MPI_REQUEST_NULL);
+                BL_MPI_REQUIRE(MPI_Irecv(ext.col_index+os, n, mpi_long, cm.recv_from[i],
+                                         tag_c, mpi_comm, &rreqs.back()));
+                rreqs.push_back(MPI_REQUEST_NULL);
+                BL_MPI_REQUIRE(MPI_Irecv(ext.mat+os, n, mpi_t, cm.recv_from[i],
+                                         tag_m, mpi_comm, &rreqs.back()));
+                os += recv_nnz[i];
+            }
+        }
+    }
+
+    Long* send_col = nullptr;
+    T* send_mat = nullptr;
+    if (send_nnz > 0) {
+        send_col = (Long*)The_Comms_Arena()->alloc(sizeof(Long)*send_nnz);
+        send_mat = (T*)The_Comms_Arena()->alloc(sizeof(T)*send_nnz);
+        auto const* poff = d_send_off.data();
+        Long const b_col_begin = B.m_col_begin;
+#ifdef AMREX_USE_GPU
+        auto const* b_rcols = B.m_remote_cols_dv.data();
+#else
+        auto const* b_rcols = B.m_remote_cols_v.data();
+#endif
+        // Merge the diagonal and off-diagonal parts so that each packed
+        // row is sorted by global column index.
+        ParallelForOMP(nsend_rows, [=] AMREX_GPU_DEVICE (Long i)
+        {
+            constexpr Long gmax = std::numeric_limits<Long>::max();
+            Long const lr = send_idx[i] - b_row_begin;
+            Long p = poff[i];
+            Long q0 = b0.row_offset[lr];
+            Long q1 = b1.row_offset[lr];
+            Long const e0 = b0.row_offset[lr+1];
+            Long const e1 = b1.row_offset[lr+1];
+            while (q0 < e0 || q1 < e1) {
+                Long const g0 = (q0 < e0) ? b0.col_index[q0] + b_col_begin : gmax;
+                Long const g1 = (q1 < e1) ? b_rcols[b1.col_index[q1]] : gmax;
+                if (g0 < g1) {
+                    send_col[p] = g0;
+                    send_mat[p] = b0.mat[q0];
+                    ++q0;
+                } else {
+                    send_col[p] = g1;
+                    send_mat[p] = b1.mat[q1];
+                    ++q1;
+                }
+                ++p;
+            }
+        });
+        Gpu::streamSynchronize();
+
+        sreqs.reserve(2*nsends);
+        Long os = 0;
+        for (int i = 0; i < nsends; ++i) {
+            if (send_nnz_v[i] > 0) {
+                auto n = int(send_nnz_v[i]);
+                sreqs.push_back(MPI_REQUEST_NULL);
+                BL_MPI_REQUIRE(MPI_Isend(send_col+os, n, mpi_long, cm.send_to[i],
+                                         tag_c, mpi_comm, &sreqs.back()));
+                sreqs.push_back(MPI_REQUEST_NULL);
+                BL_MPI_REQUIRE(MPI_Isend(send_mat+os, n, mpi_t, cm.send_to[i],
+                                         tag_m, mpi_comm, &sreqs.back()));
+                os += send_nnz_v[i];
+            }
+        }
+    }
+
+    if (! rreqs.empty()) {
+        Vector<MPI_Status> stats(rreqs.size());
+        BL_MPI_REQUIRE(MPI_Waitall(int(rreqs.size()), rreqs.data(), stats.data()));
+    }
+    if (! sreqs.empty()) {
+        Vector<MPI_Status> stats(sreqs.size());
+        BL_MPI_REQUIRE(MPI_Waitall(int(sreqs.size()), sreqs.data(), stats.data()));
+    }
+    Gpu::streamSynchronize();
+    if (send_col) { The_Comms_Arena()->free(send_col); }
+    if (send_mat) { The_Comms_Arena()->free(send_mat); }
+
+    return ext;
+}
+
+template <typename T, template<typename> class Allocator>
+void SpMatrix<T,Allocator>::expand_remote_row_offset () const
+{
+    if (! m_remote_row_offset.empty()) { return; }
+
+    AMREX_ASSERT(m_split);
+
+    auto nrows = numLocalRows();
+    m_remote_row_offset.resize(nrows+1);
+    auto* pro_full = m_remote_row_offset.data();
+    auto const* pro_comp = m_csr_remote.row_offset.data();
+    auto const* ri_ltor = m_ri_ltor.data();
+    auto nnz_r = m_csr_remote.nnz;
+    if (nnz_r == 0 || m_ri_ltor.empty()) {
+        // split_csr only builds m_ri_ltor when remote entries exist.
+        ParallelForOMP(nrows+1, [=] AMREX_GPU_DEVICE (Long i) { pro_full[i] = 0; });
+        Gpu::streamSynchronize();
+    } else {
+        Scan::PrefixSum<int>(nrows,
+                             [=] AMREX_GPU_DEVICE (Long i) -> int {
+                                 Long rrow = ri_ltor[i];
+                                 if (rrow == -1) {
+                                     return int(0);
+                                 } else {
+                                     return int(pro_comp[rrow+1]-pro_comp[rrow]);
+                                 }},
+                             [=] AMREX_GPU_DEVICE (Long i, int x) {
+                                 if (i == 0) {
+                                     pro_full[0] = 0;
+                                 }
+                                 pro_full[i+1] = x;
+                             },
+                             Scan::Type::inclusive, Scan::noRetSum);
+    }
+}
+
+template <typename T, template<typename> class Allocator>
+CsrView<T const,int> SpMatrix<T,Allocator>::remote_full_const_view () const
+{
+    if (m_remote_row_offset.empty()) {
+        expand_remote_row_offset();
+    }
+    auto csr_view = m_csr_remote.const_view();
+    csr_view.row_offset = m_remote_row_offset.data();
+    csr_view.nrows = numLocalRows();
+    return csr_view;
 }
 
 #endif

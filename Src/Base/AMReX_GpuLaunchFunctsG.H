@@ -159,7 +159,7 @@ void single_task (gpuStream_t stream, L const& f)
     try {
         q.submit([&] (sycl::handler& h) {
             if constexpr (detail::is_big_kernel<L>()) {
-                h.single_task(*pf);
+                h.single_task([=] () { (*pf)(); });
             } else {
                 h.single_task(f);
             }
@@ -345,7 +345,8 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f)
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
@@ -410,7 +411,8 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
@@ -479,7 +481,8 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
                 sycl::local_accessor<unsigned long long>
-                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                    shared_data(sycl::range<1>(std::max(Gpu::Device::warp_size,
+                                                        MT/Gpu::Device::warp_size)), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
@@ -941,10 +944,9 @@ void launch (T const& n, L const& f)
         const T nleft = n - start_idx;
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            // This will not overflow, even though nblocks*MT might.
-            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
-            if (tid < nleft) {
-                f(tid+start_idx);
+            auto tid = std::uint64_t(MT)*blockIdx.x+threadIdx.x;
+            if (tid < std::uint64_t(nleft)) {
+                f(T(tid)+start_idx);
             }
         });
     }
@@ -989,11 +991,10 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
         const T nleft = n - start_idx;
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            // This will not overflow, even though nblocks*MT might.
-            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
-            if (tid < nleft) {
-                detail::call_f_scalar_handler(f, tid+start_idx,
-                    Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
+            auto tid = std::uint64_t(MT)*blockIdx.x+threadIdx.x;
+            if (tid < std::uint64_t(nleft)) {
+                detail::call_f_scalar_handler(f, T(tid)+start_idx,
+                    Gpu::Handler(amrex::min((std::uint64_t(nleft)-tid+(std::uint64_t)threadIdx.x),
                     (std::uint64_t)MT)));
             }
         });
@@ -1903,6 +1904,28 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 #else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
         LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+#endif
+    }
+}
+
+template <typename L1, typename L2, typename L3, int dim>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
+          MaybeHostDeviceRunnable<L3>::value)
+void
+HostDeviceParallelFor (Gpu::KernelInfo const& info,
+                       BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
+                       L1&& f1, L2&& f2, L3&& f3)
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,box3,
+                    std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    } else {
+#ifdef AMREX_USE_SYCL
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+        LoopConcurrentOnCpu(box3,std::forward<L3>(f3));
 #endif
     }
 }

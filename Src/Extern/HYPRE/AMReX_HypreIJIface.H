@@ -77,6 +77,8 @@ public:
     [[nodiscard]] HypreRealType getFinalResidualNorm() const { return m_final_res_norm; }
 
     [[nodiscard]] bool adjustSingularMatrix() const { return m_adjust_singular_matrix; }
+    //! Lowest global row id owned by this rank
+    [[nodiscard]] HypreIntType ilower() const { return m_ilower; }
 
 private:
     void init_preconditioner(const std::string& prefix, const std::string& name);
@@ -147,6 +149,8 @@ private:
     std::string m_solver_name{"BoomerAMG"};
     std::string m_preconditioner_name{"none"};
     std::string m_file_prefix{"IJ"};
+    //! HYPRE keeps a pointer to this, so it must outlive m_precond.
+    std::string m_euclid_file;
 
     //! Verbosity of the HYPRE solvers
     int m_verbose{0};

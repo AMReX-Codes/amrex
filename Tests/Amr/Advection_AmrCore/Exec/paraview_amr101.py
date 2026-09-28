@@ -6,6 +6,7 @@
 #### import the simple module from the paraview
 from paraview.simple import *
 
+import sys
 import subprocess
 import glob
 import argparse
@@ -313,15 +314,15 @@ def convert_avi_to_gif(output_movie_base, output_movie):
 if __name__ == "__main__":
     if not (args.spacedim == 2 or args.spacedim == 3):
         print("Please specify --spacedim D (with D=2 or D=3)")
-        exit()
+        sys.exit()
 
     if args.frame_rate <= 0:
         print("Please specify --frame_rate F (with F > 0)")
-        exit()
+        sys.exit()
 
     if args.resolution <= 0:
         print("Please specify --resolution R (with R > 0)")
-        exit()
+        sys.exit()
 
     # get all the plotfiles
     PlotFiles = sorted(glob.glob("plt" + "[0-9]"*5))

@@ -3,9 +3,9 @@
 # building and running the code
 # in Tests/Amr/Advection_AmrCore/
 #
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.25)
 
-project(amrex-test-install)
+project(amrex-test-install LANGUAGES CXX)
 
 if(DEFINED CMAKE_Fortran_COMPILER)
     enable_language(Fortran)

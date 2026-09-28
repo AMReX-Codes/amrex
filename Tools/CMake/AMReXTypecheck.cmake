@@ -48,8 +48,7 @@ function( add_typecheck_target _target)
    # Check if we have all we need to define the typecheck target
    # 
    if (  NOT (CMAKE_Fortran_COMPILER_ID MATCHES GNU) OR
-         NOT (CMAKE_C_COMPILER_ID MATCHES GNU)       OR
-         NOT (CMAKE_Fortran_COMPILER_ID MATCHES GNU) )
+         NOT (CMAKE_C_COMPILER_ID MATCHES GNU) )
       message(WARNING "Typecheck disabled because compiler ID is not GNU")
       return ()
    endif ()

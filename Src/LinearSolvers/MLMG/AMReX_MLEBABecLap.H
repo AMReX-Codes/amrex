@@ -201,7 +201,7 @@ public:
 
     //! Apply physical BCs to \p in on (\p amrlev,\p mglev) using the supplied BC metadata.
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
-                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const override;
     //! Apply the discrete operator to \p in on (\p amrlev,\p mglev) and store the result in \p out.
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;
@@ -331,7 +331,8 @@ protected:
     //! Average coefficients from fine AMR level \p flev to coarse AMR level \p flev-1.
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
-    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+    // Robin BC modifies alpha, which has only one component.
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return getNComp() == 1; }
 
     mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 

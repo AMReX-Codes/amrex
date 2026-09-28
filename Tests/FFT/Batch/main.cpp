@@ -62,9 +62,9 @@ int main (int argc, char* argv[])
         ParallelFor(mf, IntVect(0), batch_size,
                     [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
         {
-            AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
-                         Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
-                         Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
+            AMREX_D_TERM(Real x = (Real(i)+0.5_rt) * dx[0] - 0.5_rt;,
+                         Real y = (Real(j)+0.5_rt) * dx[1] - 0.5_rt;,
+                         Real z = (Real(k)+0.5_rt) * dx[2] - 0.5_rt);
             ma[b](i,j,k,n) = std::exp(-10._rt*
                 (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z))) + Real(n);
         });
@@ -136,6 +136,32 @@ int main (int argc, char* argv[])
             auto eps = 3.e-6F;
 #else
             auto eps = 1.e-15;
+#endif
+            AMREX_ALWAYS_ASSERT(error < eps);
+        }
+
+        // Batched forwardThenBackward. The callable takes a CellData so that
+        // it sees all components of the batch at a spectral point at once.
+        {
+            FFT::Info info{};
+            info.setBatchSize(batch_size);
+            FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
+            r2c.forwardThenBackward(mf, mf2,
+                [=] AMREX_GPU_DEVICE (int, int, int, CellData<GpuComplex<Real>> sp)
+                {
+                    for (int n = 0; n < sp.nComp(); ++n) {
+                        sp[n] *= scaling;
+                    }
+                });
+
+            MultiFab::Subtract(mf2, mf, 0, 0, batch_size, 0);
+
+            auto error = mf2.norminf(0, batch_size, IntVect(0));
+            amrex::Print() << "  Expected to be close to zero: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+            auto eps = 3.e-6F;
+#else
+            auto eps = 1.e-13;
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
         }

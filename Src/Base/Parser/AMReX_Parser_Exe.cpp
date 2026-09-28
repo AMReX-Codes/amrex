@@ -505,7 +505,9 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
             ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
             parser_get_number(((struct parser_f2*)node)->r)
-            == std::floor(parser_get_number(((struct parser_f2*)node)->r)))
+            == std::floor(parser_get_number(((struct parser_f2*)node)->r)) &&
+            std::abs(parser_get_number(((struct parser_f2*)node)->r))
+            <= double(std::numeric_limits<int>::max()))
         {
             parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
                                     max_stack_size, stack_size, local_variables, ufs);

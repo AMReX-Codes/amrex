@@ -528,7 +528,9 @@ namespace amrex
      * Return a HostVector that contains the sum of the given MultiFab data in the plane
      * with the given normal direction.  The size of the vector is
      * domain.length(direction) x ncomp.  The vector is actually a 2D array, where the
-     * element for component icomp at spatial index k is at [icomp+ncomp*k].
+     * element for component icomp at spatial index k is at [icomp+ncomp*k], with k
+     * measured relative to domain.smallEnd(direction).  Data outside the domain are
+     * ignored.
      *
      * \param mf MultiFab data for summing
      * \param icomp starting component
@@ -702,7 +704,7 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     else
     {
         FabArray<FAB> ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                           ncomp, ngcrse);
+                           ncomp, ngcrse, MFInfo().SetArena(The_Async_Arena()));
         average_down_nodal(fine, ctmp, ratio, ngcrse);
         crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
     }
@@ -788,7 +790,8 @@ void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
     }
     else
     {
-        FabArray<FAB> crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(),DefaultFabFactory<FAB>());
+        FabArray<FAB> crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0,
+                                  MFInfo().SetArena(The_Async_Arena()), DefaultFabFactory<FAB>());
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
@@ -1144,7 +1147,7 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     else
     {
         FabArray<FAB> ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                      ncomp, ngcrse, MFInfo(), DefaultFabFactory<FAB>());
+                      ncomp, ngcrse, MFInfo().SetArena(The_Async_Arena()), DefaultFabFactory<FAB>());
         average_down_faces(fine, ctmp, ratio, ngcrse);
         crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
     }
@@ -1165,7 +1168,7 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
                          const IntVect& ratio, const Geometry& crse_geom)
 {
     FabArray<FAB> ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                  crse.nComp(), 0);
+                  crse.nComp(), 0, MFInfo().SetArena(The_Async_Arena()));
     average_down_faces(fine, ctmp, ratio, 0);
     crse.ParallelCopy(ctmp,0,0,crse.nComp(),0,0,crse_geom.periodicity());
 }

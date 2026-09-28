@@ -1,3 +1,75 @@
+# 26.09
+
+ ## Highlights:
+
+  * Fix `Random()` returning 1.0f & add `RandomPositive` (#5643)
+    `amrex::Random()` is documented as `[0,1)` but previously it could
+    return exactly `1.0` on CUDA/HIP.
+
+  * EB state redistribution: Fix Itracker abort with vfrac fallback (#5630)
+    This PR adds a volume-fraction-based fallback pathway in the `itracker`
+    construction for EB state redistribution when the original normal-based
+    neighbor selection fails.
+
+  * Initialize/Finalize: Pop Hooks Before Calling Them (#5648)
+    `amrex::Initialize` and `amrex::Finalize` drained their hook stacks with
+    `top()()` followed by `pop()`. A hook that registers another one with
+    `ExecOnInitialize`/`ExecOnFinalize` therefore left the *calling* hook on
+    top of the stack: it ran a second time, and the following `pop()`
+    silently discarded the newly registered hook without ever running it.
+    Move the hook off the stack before calling it, so that a hook which
+    registers another one runs exactly once and the newly registered hook
+    runs as well.
+
+  * Modernize CMake CUDA to 3.25+ (native arch, device LTO) (#4773)
+
+  * STL optimization
+    Optimize STL ray-box intersection (#5609)
+    Optimize STL BVH distance traversal (#5608)
+
+  * Generalize local mask (#5575)
+    The "local" argument to Redistribute really lumps together two distinct
+    things: 1) whether to do point-to-point MPI communication for the
+    particle count exchange, and 2) whether to use a mask for the grid/tile
+    lookup. This separates these into distinct options.  It also adds a
+    heuristic to fall back to the full BoxArray search in cases where the
+    mask would be too expensive too use.
+
+ ## Other major changes:
+
+  * FFT: expose OpenBCSolver's spectral Green's function (#5627)
+
+  * FFT::R2C: add post-forward support for batch size > 1 (#5642)
+
+  * Fix compGrad on grid-aligned EBs in MLEBNodeFDLaplacian (#5623)
+
+  * Return TheMinVector from indexFromValue when the value is not found (#5626)
+
+  * Add face-centered EB factories (#5548)
+
+  * Bugfix in State Redistribution (#5613)
+
+  * Fix duplicate public attribute bug in Fortran interface (#5604)
+
+  * Add tools for performing Kahan summation, along with a stochastic heat
+    equation test that uses them. (#5587)
+
+  * SYCL: use platform default context (#5597)
+
+  * Fix MLEBABecLap EB setter updates (#5595)
+
+  * Fix tensor operators always reporting needsUpdate (#5590)
+
+  * FabArray: Enable prefetch on non-CUDA GPU backends (#5592)
+
+  * MLTensorOp/MLEBTensorOp: fix scalar bulk viscosity setters (#5589)
+
+  * fcompare: fix wrong variable name in "NaN present in B" report (#5588)
+
+  * TinyProfiler: stdout/stderr keywords for tiny_profiler.output_file (#5585)
+
+  * CMake: Remove hipcc deprecation warning (#5201)
+
 # 26.08
 
  ## Highlights:

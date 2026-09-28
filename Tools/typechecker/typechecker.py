@@ -187,47 +187,46 @@ def getFortranArg(funcname, fortranfile):
     module_tok = "symtree: '" + funcname + "'"
     proc_tok = "procedure name = " + funcname + "\n"
     this_func = []
-    f = open(fortranfile, 'r')
-    # let's collect the text of this function into a list of strings
-    in_module_block = False
-    ws_module_block = 0
-    in_proced_block = False
-    ws_proced_block = 0
-    numblocks = 0
-    for line in f.readlines():
-        if line.isspace(): continue
-        num_white_spaces = len(line) - len(line.lstrip())
-        if module_tok in line and not in_proced_block:
-            this_func.append(line)
-            in_module_block = True
-            ws_module_block = num_white_spaces
-            in_proced_block = False
-            ws_proced_block = 0
-            numblocks = numblocks + 1
-        elif proc_tok in line and not in_module_block:
-            this_func.append(line)
-            in_proced_block = True
-            ws_proced_block = num_white_spaces
-            in_module_block = False
-            ws_module_block = 0
-            numblocks = numblocks + 1
-        elif in_module_block:
-            if ws_module_block < num_white_spaces:
+    with open(fortranfile, 'r') as f:
+        # let's collect the text of this function into a list of strings
+        in_module_block = False
+        ws_module_block = 0
+        in_proced_block = False
+        ws_proced_block = 0
+        numblocks = 0
+        for line in f.readlines():
+            if line.isspace(): continue
+            num_white_spaces = len(line) - len(line.lstrip())
+            if module_tok in line and not in_proced_block:
                 this_func.append(line)
-            else:
-                in_module_block = False
-                ws_module_block = 0
-                if numblocks == 2:
-                    break
-        elif in_proced_block:
-            if line.strip() != "code:" and ws_proced_block < num_white_spaces:
-                this_func.append(line)
-            else:
+                in_module_block = True
+                ws_module_block = num_white_spaces
                 in_proced_block = False
                 ws_proced_block = 0
-                if numblocks == 2:
-                    break
-    f.close()
+                numblocks = numblocks + 1
+            elif proc_tok in line and not in_module_block:
+                this_func.append(line)
+                in_proced_block = True
+                ws_proced_block = num_white_spaces
+                in_module_block = False
+                ws_module_block = 0
+                numblocks = numblocks + 1
+            elif in_module_block:
+                if ws_module_block < num_white_spaces:
+                    this_func.append(line)
+                else:
+                    in_module_block = False
+                    ws_module_block = 0
+                    if numblocks == 2:
+                        break
+            elif in_proced_block:
+                if line.strip() != "code:" and ws_proced_block < num_white_spaces:
+                    this_func.append(line)
+                else:
+                    in_proced_block = False
+                    ws_proced_block = 0
+                    if numblocks == 2:
+                        break
     if not this_func:
         print(fortranfile, "doesn't contain", function)
 

@@ -816,10 +816,6 @@ struct ParticleTile
     )
     {
         GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
-        m_runtime_r_ptrs.resize(a_num_runtime_real);
-        m_runtime_i_ptrs.resize(a_num_runtime_int);
-        m_runtime_r_cptrs.resize(a_num_runtime_real);
-        m_runtime_i_cptrs.resize(a_num_runtime_int);
 
         if constexpr (has_polymorphic_allocator) {
             if (m_defined) {
@@ -853,7 +849,17 @@ struct ParticleTile
             for (int j = 0; j < NumIntComps(); ++j) {
                 GetStructOfArrays().GetIntData(j).setArena(a_arena);
             }
+
+            m_runtime_r_ptrs.setArena(a_arena);
+            m_runtime_i_ptrs.setArena(a_arena);
+            m_runtime_r_cptrs.setArena(a_arena);
+            m_runtime_i_cptrs.setArena(a_arena);
         }
+
+        m_runtime_r_ptrs.resize(a_num_runtime_real);
+        m_runtime_i_ptrs.resize(a_num_runtime_int);
+        m_runtime_r_cptrs.resize(a_num_runtime_real);
+        m_runtime_i_cptrs.resize(a_num_runtime_int);
 
         m_defined = true;
         invalidateRuntimePtrCaches();

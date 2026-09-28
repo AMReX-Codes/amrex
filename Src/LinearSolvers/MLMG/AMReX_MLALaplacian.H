@@ -209,6 +209,7 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
             m_a_coeffs[amrlev][0].setVal(RT(0.0));
         }
     }
+    m_needs_update = true;
 }
 
 template <typename MF>
@@ -297,8 +298,36 @@ MLALaplacianT<MF>::updateSingularFlag ()
                     // are similar.
                     RT asum = m_a_coeffs[alev].back().sum(0,IntVect(0));
                     RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
-                    m_is_singular[alev] = (asum <= amax * RT(1.e-12));
+                    m_is_singular[alev] = (std::abs(asum) <= amax * RT(1.e-12));
                 }
+            }
+        }
+    }
+
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == BCType::Neumann)
+    {
+        bool lev0_a_is_zero = false;
+        if (m_a_scalar == RT(0.0)) {
+            lev0_a_is_zero = true;
+        } else {
+            RT asum = m_a_coeffs[0].back().sum(0,IntVect(0));
+            RT amax = m_a_coeffs[0].back().norminf(0,1,IntVect(0));
+            lev0_a_is_zero = std::abs(asum) <= amax * RT(1.e-12);
+        }
+
+        if (lev0_a_is_zero) {
+            auto bbox = this->m_grids[0][0].minimalBox();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (this->m_lobc[0][idim] == BCType::Dirichlet) {
+                    bbox.growLo(idim,1);
+                }
+                if (this->m_hibc[0][idim] == BCType::Dirichlet) {
+                    bbox.growHi(idim,1);
+                }
+            }
+            if (this->m_geom[0][0].Domain().contains(bbox)) {
+                m_is_singular[0] = true;
             }
         }
     }

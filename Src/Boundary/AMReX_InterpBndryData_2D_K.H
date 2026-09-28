@@ -61,7 +61,7 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         NN = 1;
     }
 
-    T xInt = -T(0.5) + (j-jc*r.y+T(0.5))/r.y;
+    T xInt = -T(0.5) + (T(j-jc*r.y)+T(0.5))/T(r.y);
     poly_interp_coeff(xInt, x, NN, c);
     T b = T(0.0);
     for (int m = 0; m < NN; ++m) {
@@ -113,7 +113,7 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         NN = 1;
     }
 
-    T xInt = -T(0.5) + (i-ic*r.x+T(0.5))/r.x;
+    T xInt = -T(0.5) + (T(i-ic*r.x)+T(0.5))/T(r.x);
     poly_interp_coeff(xInt, x, NN, c);
     T b = T(0.0);
     for (int m = 0; m < NN; ++m) {

@@ -271,6 +271,9 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         for (const auto& kv : pmap)
         {
             auto& flags = particle_io_flags[lev][kv.first];
+            if constexpr (PC::has_polymorphic_allocator) {
+                flags.setArena(pc.arena());
+            }
             particle_detail::fillFlags(flags, kv.second, f);
         }
     }

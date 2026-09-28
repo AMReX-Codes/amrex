@@ -479,8 +479,10 @@ void BLProfiler::Finalize(bool bFlushing, bool memCheck) {
 #endif
 
 #ifdef BL_COMM_PROFILING
-  // filter out profiler communications.
-  CommStats::cftExclude.insert(AllCFTypes);
+  // filter out profiler communications.  WriteCommStats does it temporarily when flushing.
+  if( ! bFlushing) {
+    CommStats::cftExclude.insert(AllCFTypes);
+  }
 
   WriteCommStats(bFlushing, memCheck);
 #endif
@@ -585,7 +587,7 @@ void WriteStats(std::ostream &ios,
   const int colWidth(10);
   const Real calcRunTime(BLProfiler::GetRunTime());
 
-  std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
+  std::multimap<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
 
   Real totalTimers(0.0), percent(0.0);
   int maxlen(0);
@@ -659,15 +661,14 @@ void WriteStats(std::ostream &ios,
     mTimersTotalsSorted.insert(std::make_pair(dsec, sfir));
   }
 
-  for(std::map<Real, std::string>::const_iterator it = mTimersTotalsSorted.begin();
-      it != mTimersTotalsSorted.end(); ++it)
+  for(auto const& kv : mTimersTotalsSorted)
   {
     if(pTimeTotal > 0.0) {
-      percent = 100.0 * (it->first / pTimeTotal);
+      percent = 100.0 * (kv.first / pTimeTotal);
     } else {
       percent = 100.0;
     }
-    std::string fname(it->second);
+    std::string const& fname(kv.second);
     std::map<std::string, BLProfiler::ProfStats>::const_iterator mpsit = mpStats.find(fname);
     if(mpsit != mpStats.end()) {
       const BLProfiler::ProfStats &pstats = mpsit->second;

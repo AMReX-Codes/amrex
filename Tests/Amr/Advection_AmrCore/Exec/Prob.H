@@ -14,10 +14,10 @@ initdata(int i, int j, int k, amrex::Array4<amrex::Real> const& phi,
 {
     using namespace amrex;
 
-    Real y = prob_lo[1] + (0.5+j) * dx[1];
-    Real x = prob_lo[0] + (0.5+i) * dx[0];
-    Real r2 = (std::pow(x-0.5, 2) + std::pow((y-0.75),2)) / 0.01;
-    phi(i,j,k) = 1.0 + std::exp(-r2);
+    Real y = prob_lo[1] + (amrex::Real(0.5)+amrex::Real(j)) * dx[1];
+    Real x = prob_lo[0] + (amrex::Real(0.5)+amrex::Real(i)) * dx[0];
+    Real r2 = (amrex::Real(std::pow(x-amrex::Real(0.5), 2)) + amrex::Real(std::pow((y-amrex::Real(0.75)),2))) / amrex::Real(0.01);
+    phi(i,j,k) = amrex::Real(1.0) + std::exp(-r2);
 }
 
 #endif

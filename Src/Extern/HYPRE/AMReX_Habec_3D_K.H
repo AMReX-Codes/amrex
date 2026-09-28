@@ -19,8 +19,7 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
                 GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
                 GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
                 GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int bho,
-                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk,
-                Array4<Real> const& diaginv)
+                GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk)
 {
     sten[1] = -(sb / (dx[0]*dx[0])) * b[0](i,j,k);
     sten[2] = -(sb / (dx[0]*dx[0])) * b[0](i+1,j,k);
@@ -104,18 +103,12 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
             sten[6] = Real(0.0);
         }
     }
-
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
-    }
 }
 
 template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& ncols,
-                  Array4<Real> const& diaginv, int i, int j, int k,
+                  int i, int j, int k,
                   Array4<Int const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -202,12 +195,6 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& nc
         }
     }
 
-    diaginv(i,j,k) = Real(1.0) / sten[0];
-    sten[0] = Real(1.0);
-    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
-        sten[m] *= diaginv(i,j,k);
-    }
-
     ncols(i,j,k) = 0;
     for (int m = 0; m < 2*AMREX_SPACEDIM+1; ++m) {
         ncols(i,j,k) += (sten[m] != Real(0.0));
@@ -267,7 +254,7 @@ void habec_cols_eb (GpuArray<Int,27>& sten, int i, int j, int k,
 template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
-                     Array4<Real> const& diaginv, int i, int j, int k,
+                     int i, int j, int k,
                      Array4<Int const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -914,24 +901,30 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            Real anorm = std::sqrt((apx(i,j,k) - apx(i+1,j,k))*(apx(i,j,k) - apx(i+1,j,k))
-                                 + (apy(i,j,k) - apy(i,j+1,k))*(apy(i,j,k) - apy(i,j+1,k))
-                                 + (apz(i,j,k) - apz(i,j,k+1))*(apz(i,j,k) - apz(i,j,k+1)));
+            // Match mlebabeclap_adotx: EB area vector divided by dx^2
+            Real dapx = (apx(i,j,k) - apx(i+1,j,k)) * (dx[1]/dx[0])*(dx[2]/dx[0]);
+            Real dapy = (apy(i,j,k) - apy(i,j+1,k)) * (dx[2]/dx[0]);
+            Real dapz = (apz(i,j,k) - apz(i,j,k+1)) * (dx[1]/dx[0]);
+            Real anorm = std::sqrt(dapx*dapx + dapy*dapy + dapz*dapz);
 
             Real anorminv = Real(1.0)/anorm;
-            Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
-            Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
-            Real anrmz = (apz(i,j,k) - apz(i,j,k+1))*anorminv;
+            Real anrmx = dapx*anorminv;
+            Real anrmy = dapy*anorminv;
+            Real anrmz = dapz*anorminv;
             Real sx   = std::copysign(Real(1.0),anrmx);
             Real sy   = std::copysign(Real(1.0),anrmy);
             Real sz   = std::copysign(Real(1.0),anrmz);
             Real bctx = bcen(i,j,k,0);
             Real bcty = bcen(i,j,k,1);
             Real bctz = bcen(i,j,k,2);
-            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(std::abs(anrmx), std::abs(anrmy), std::abs(anrmz));
-            Real gx   = bctx - dg*anrmx;
-            Real gy   = bcty - dg*anrmy;
-            Real gz   = bctz - dg*anrmz;
+            // g is displaced along the physical normal; dg is the physical distance
+            Real mx   = anrmx/dx[0];
+            Real my   = anrmy/dx[1];
+            Real mz   = anrmz/dx[2];
+            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(std::abs(mx), std::abs(my), std::abs(mz));
+            Real gx   = bctx - dg*mx;
+            Real gy   = bcty - dg*my;
+            Real gz   = bctz - dg*mz;
             int ioff = -static_cast<int>(sx);
             int joff = -static_cast<int>(sy);
             int koff = -static_cast<int>(sz);
@@ -950,28 +943,26 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                                                                    + gxz       + gxyz,
                                                                          + gyz + gxyz,
                                                                                - gxyz};
+            Real ebarea = get_eb_area(ba(i,j,k), anrmx, anrmy, anrmz, dx[1]/dx[0], dx[2]/dx[0]);
             Array1D<Real,0,7> feb;
             for (int ii=0; ii<8; ii++) {
-                feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg);
+                feb(ii) = -phig1(ii) * (ebarea * beb(i,j,k) / dg);
             }
-            mat_tmp(0   , 0  , 0  ) -= feb(0)*fac[0];
-            mat_tmp(ioff, 0  , 0  ) -= feb(1)*fac[0];
-            mat_tmp(0   ,joff, 0  ) -= feb(2)*fac[0];
-            mat_tmp(0   , 0  ,koff) -= feb(3)*fac[0];
-            mat_tmp(ioff,joff, 0  ) -= feb(4)*fac[0];
-            mat_tmp(ioff, 0  ,koff) -= feb(5)*fac[0];
-            mat_tmp(0   ,joff,koff) -= feb(6)*fac[0];
-            mat_tmp(ioff,joff,koff) -= feb(7)*fac[0];
+            // sb*dx^2/(dx*dy*dz), since ebarea is over dx^2
+            Real faceb = (fac[0]*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
+            mat_tmp(0   , 0  , 0  ) -= feb(0)*faceb;
+            mat_tmp(ioff, 0  , 0  ) -= feb(1)*faceb;
+            mat_tmp(0   ,joff, 0  ) -= feb(2)*faceb;
+            mat_tmp(0   , 0  ,koff) -= feb(3)*faceb;
+            mat_tmp(ioff,joff, 0  ) -= feb(4)*faceb;
+            mat_tmp(ioff, 0  ,koff) -= feb(5)*faceb;
+            mat_tmp(0   ,joff,koff) -= feb(6)*faceb;
+            mat_tmp(ioff,joff,koff) -= feb(7)*faceb;
         }
 
-        for (int kk=-1; kk<=1; kk++) {
-        for (int jj=-1; jj<=1; jj++) {
-        for (int ii=-1; ii<=1; ii++) {
-            mat_tmp(ii,jj,kk) *= Real(1.0)/vfrc(i,j,k);
-        }}}
-
+        // The row is weighted by the volume fraction, as is the rhs.
         if (sa != Real(0.0)) {
-            mat_tmp(0,0,0) += sa*a(i,j,k);
+            mat_tmp(0,0,0) += sa*a(i,j,k)*vfrc(i,j,k);
         }
     }
     else
@@ -983,14 +974,6 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
         }}}
         mat_tmp(0,0,0) = Real(1.0);
     }
-
-    diaginv(i,j,k) = Real(1.0)/mat_tmp(0,0,0);
-    for (int kk=-1; kk<=1; kk++) {
-    for (int jj=-1; jj<=1; jj++) {
-    for (int ii=-1; ii<=1; ii++) {
-        mat_tmp(ii,jj,kk) *= diaginv(i,j,k);
-    }}}
-    mat_tmp(0,0,0) = Real(1.0);
 
     ncols(i,j,k) = 0;
     for (int m = 0; m < 27; ++m) {

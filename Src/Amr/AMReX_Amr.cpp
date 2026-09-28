@@ -521,6 +521,9 @@ Amr::InitAmr ()
         is >> in_finest;
         STRIP;
         AMREX_ASSERT(in_finest >= 0  && in_finest < std::numeric_limits<int>::max());
+        if (in_finest > max_level) {
+           amrex::Error("You have fewer levels in your inputs file then in your grids file!");
+        }
         regrid_ba.resize(in_finest);
         for (int lev = 1; lev <= in_finest; lev++)
         {
@@ -536,7 +539,7 @@ Amr::InitAmr ()
                  bx.refine(ref_ratio[lev-1]);
                  for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
                  {
-                     if (bx.length(idim) > max_grid_size[lev][idim])
+                     if (bx.length(idim) > effectiveMaxGridSize(lev)[idim])
                      {
                          std::ostringstream ss;
                          ss << "Grid " << bx << " too large" << '\n';
@@ -1091,6 +1094,11 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 void
 Amr::checkInput ()
 {
+    if (!useLegacyGridding()) {
+        checkInputExtended();
+        return;
+    }
+
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
     }
@@ -1152,6 +1160,88 @@ Amr::checkInput ()
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                amrex::Error("max_grid_size not divisible by blocking_factor");
+            }
+        }
+    }
+
+    if( ! Geom(0).ProbDomain().ok()) {
+        amrex::Error("Amr::checkInput: bad physical problem size");
+    }
+
+    if(verbose > 0) {
+        amrex::Print() << "Successfully read inputs file ... " << '\n';
+    }
+}
+
+void
+Amr::checkInputExtended ()
+{
+    if (max_level < 0) {
+        amrex::Error("checkInput: max_level not set");
+    }
+    // SetBlockingFactor may have changed these since the AmrMesh constructor.
+    auto is_pow2 = [] (int k) { return k > 0 && (k & (k-1)) == 0; };
+    for (int i = 0; i <= max_level; ++i) {
+        bool const odd_rr = (i > 0) && hasOddRefRatio(i-1);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const bf = blocking_factor[i][idim];
+            bool ok = is_pow2(bf);
+            if (odd_rr) {
+                int const rr = ref_ratio[i-1][idim];
+                ok = (ok || bf%rr == 0) && is_pow2(std::max(1, bf/rr));
+            }
+            if (!ok) {
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+            }
+        }
+    }
+    //
+    // Check level dependent values.
+    //
+    for (int i = 0; i < max_level; i++)
+    {
+        if (MaxRefRatio(i) < 2) {
+            amrex::Error("Amr::checkInput: bad ref_ratios");
+        }
+    }
+    const Box& domain = Geom(0).Domain();
+    if (!domain.ok()) {
+        amrex::Error("level 0 domain bad or not set");
+    }
+    //
+    // Check that domain size is a multiple of blocking_factor[0], except
+    // in no_box_split_dir where the blocking factor and max_grid_size are ignored.
+    //
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        int len = domain.length(i);
+        if (i != no_box_split_dir && len%blocking_factor[0][i] != 0) {
+            amrex::Error("domain size not divisible by blocking_factor");
+        }
+    }
+    //
+    // Check that max_grid_size is even, except in no_box_split_dir and in
+    // directions with an odd refinement ratio.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const rr = (i == 0) ? 1 : ref_ratio[i-1][idim];
+            bool const need_even = !(rr > 1 && rr%2 != 0);
+            if (idim != no_box_split_dir && need_even && max_grid_size[i][idim]%2 != 0) {
+                amrex::Error("max_grid_size is not even");
+            }
+        }
+    }
+
+    //
+    // Check that max_grid_size is a multiple of blocking_factor at every level.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (idim != no_box_split_dir && max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                 amrex::Error("max_grid_size not divisible by blocking_factor");
             }
         }
@@ -1720,6 +1810,7 @@ Amr::restart (const std::string& filename)
     // we know not to unnecessarily overwrite the old file.
     last_checkpoint = level_steps[0];
     last_plotfile = level_steps[0];
+    last_smallplotfile = level_steps[0];
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -1744,6 +1835,10 @@ Amr::restart (const std::string& filename)
 
         amrex::Print() << "Restart time = " << dRestartTime << " seconds." << '\n';
     }
+
+    // ---- faHeaderMap is local to this function
+    StateData::SetFAHeaderMapPtr(nullptr);
+
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
 
@@ -2323,8 +2418,9 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
-        last_checkpoint = level_steps[0];
-        last_plotfile   = level_steps[0];
+        last_checkpoint    = level_steps[0];
+        last_plotfile      = level_steps[0];
+        last_smallplotfile = level_steps[0];
     }
 
     if (to_checkpoint && write_plotfile_with_checkpoint) {
@@ -2470,10 +2566,10 @@ Amr::writePlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / plot_log_per));
         }
 
         if (num_per_old != num_per_new)
@@ -2543,10 +2639,10 @@ Amr::writeSmallPlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / small_plot_log_per);
+            num_per_old = static_cast<int>(std::floor(std::log10(cumtime-dt_level[0]) / small_plot_log_per));
         }
         if (cumtime > 0.) {
-            num_per_new = static_cast<int>(std::log10(cumtime) / small_plot_log_per);
+            num_per_new = static_cast<int>(std::floor(std::log10(cumtime) / small_plot_log_per));
         }
 
         if (num_per_old != num_per_new)
@@ -2566,8 +2662,6 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
-    amrex::ignore_unused(pmap);
-
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
@@ -2585,6 +2679,7 @@ Amr::defBaseLevel (Real              strt_time,
     }
 
     BoxArray lev0;
+    DistributionMapping dm0;
 
     if (lev0_grids != nullptr && !lev0_grids->empty())
     {
@@ -2603,14 +2698,28 @@ Amr::defBaseLevel (Real              strt_time,
         if (refine_grid_layout) {
             ChopGrids(0,lev0,ParallelDescriptor::NProcs());
         }
+
+        // Honor the caller-supplied processor map, unless ChopGrids has
+        // changed the number of boxes.
+        if (pmap != nullptr && !pmap->empty()) {
+            if (std::ssize(*pmap) == lev0.size()) {
+                dm0.define(*pmap);
+            } else {
+                amrex::Warning("defBaseLevel: pmap does not match lev0 grids; ignoring pmap");
+            }
+        }
     }
     else
     {
         lev0 = MakeBaseGrids();
     }
 
+    if (dm0.empty()) {
+        dm0.define(lev0);
+    }
+
     this->SetBoxArray(0, lev0);
-    this->SetDistributionMap(0, DistributionMapping(lev0));
+    this->SetDistributionMap(0, dm0);
 
     //
     // Now build level 0 grids.
@@ -2885,7 +2994,7 @@ Amr::regrid_level_0_on_restart()
     //
     // Now split up into list of grids within max_grid_size[0] limit.
     //
-    lev0.maxSize(max_grid_size[0]/2);
+    lev0.maxSize(effectiveMaxGridSize(0)/2);
     //
     // Now refine these boxes back to level 0.
     //
@@ -3040,7 +3149,7 @@ Amr::grid_places (int              lbase,
             if (lev > lbase) {
                 new_grids[lev].define(bl);
             }
-            new_grids[lev].maxSize(max_grid_size[lev]);
+            new_grids[lev].maxSize(effectiveMaxGridSize(lev));
         }
     }
     else if ( !regrid_grids_file.empty() )     // Use grids in regrid_grids_file

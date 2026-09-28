@@ -19,10 +19,10 @@ void get_face_velocity_psi(int i, int j,
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize();
 
-    Real y = dx[1]*(0.5+j) + prob_lo[1];
-    Real x = dx[0]*(0.5+i) + prob_lo[0];
-    psi(i,j,0) = std::pow(std::sin(PI*x), 2) * std::pow(std::sin(PI*y), 2)
-                * std::cos(PI*time/2.0) * 1.0/PI;
+    Real y = dx[1]*(amrex::Real(0.5)+amrex::Real(j)) + prob_lo[1];
+    Real x = dx[0]*(amrex::Real(0.5)+amrex::Real(i)) + prob_lo[0];
+    psi(i,j,0) = amrex::Real(std::pow(std::sin(PI*x), 2)) * amrex::Real(std::pow(std::sin(PI*y), 2))
+                * std::cos(PI*time/amrex::Real(2.0)) * amrex::Real(1.0)/PI;
 }
 
 AMREX_GPU_DEVICE
@@ -32,7 +32,7 @@ void get_face_velocity_x(int i, int j, int k,
                          amrex::Array4<amrex::Real> const& psi,
                          amrex::Real dy)
 {
-    vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dy);
+    vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (amrex::Real(0.25)/dy);
 }
 
 AMREX_GPU_DEVICE
@@ -42,7 +42,7 @@ void get_face_velocity_y(int i, int j, int k,
                          amrex::Array4<amrex::Real> const& psi,
                          amrex::Real dx)
 {
-    vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx);
+    vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (amrex::Real(0.25)/dx);
 }
 
 AMREX_GPU_DEVICE

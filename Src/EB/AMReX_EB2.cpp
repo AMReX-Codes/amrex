@@ -321,4 +321,13 @@ BuildMultiValuedMultiCut (const Geometry& geom, int required_coarsening_level,
                a_num_coarsen_opt, true);
 }
 
+void
+BuildFC ()
+{
+    BL_PROFILE("EB2::BuildFC()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!IndexSpace::empty(),
+        "EB2::BuildFC: must call EB2::Build first to create cell-centered EB geometry");
+    IndexSpace::top().buildAllFCData();
+}
+
 }

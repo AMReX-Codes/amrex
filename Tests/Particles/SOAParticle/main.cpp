@@ -54,7 +54,7 @@ void addParticles ()
         for (int d = 0; d < AMREX_SPACEDIM; d++) {
             ptile1.pos(i, d) = 12.0;
         }
-        ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = 1.2;  // w
+        ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = ParticleReal(1.2);  // w
 
         ptile1.push_back_int(0, ParticleType::NextID());
         ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());
@@ -143,8 +143,8 @@ void addParticles ()
         [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
         {
             amrex::ParticleReal const x = ptd.rdata(0)[i];
-            amrex::ParticleReal const y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : 0.0;
-            amrex::ParticleReal const z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : 0.0;
+            amrex::ParticleReal const y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : amrex::ParticleReal(0.0);
+            amrex::ParticleReal const z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : amrex::ParticleReal(0.0);
 
             amrex::ParticleReal const w = ptd.rdata(AMREX_SPACEDIM)[i];
 

@@ -90,7 +90,6 @@ def Class(class_name, template_types):
         if not isinstance(attr, MemberFunction):
           continue
 
-        name = attr.name
         return_type = CreateTypeResolver(attr.return_type)
         arguments = [CreateTypeResolver(arg) for arg in
                      attr.arguments]

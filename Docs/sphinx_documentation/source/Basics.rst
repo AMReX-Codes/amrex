@@ -227,6 +227,11 @@ reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
        std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
    }
 
+An enumerator may be given an explicit value, which must be either the name of
+a preceding enumerator or a decimal, octal or hexadecimal integer literal.
+Binary literals and expressions such as :cpp:`1 << 2` are not supported and
+result in a runtime error.
+
 Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
 class template.
 
@@ -898,7 +903,9 @@ Supported Operators and Functions
 **Special functions:** ``erf``, ``jn(n,x)`` (Bessel function of the first
 kind of order ``n``), ``yn(n,x)`` (Bessel function of the second kind of
 order ``n``), ``comp_ellint_1(k)`` and ``comp_ellint_2(k)`` (complete
-elliptic integrals of the first and second kind).
+elliptic integrals of the first and second kind).  In SYCL builds without the
+Intel math extension, ``jn`` and ``yn`` are host-only, so :cpp:`compile` aborts
+for expressions using them; use :cpp:`compileHost` instead.
 
 **Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
 ``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
@@ -909,6 +916,8 @@ elliptic integrals of the first and second kind).
 **Comparison operators:** ``<``, ``>``, ``==``, ``!=``, ``<=``, ``>=``.
 Comparisons return ``1.0`` for true and ``0.0`` for false. They can be
 chained (e.g., ``a < x < b`` is equivalent to ``a < x and x < b``).
+Parentheses stop chaining, so ``(a < x) < b`` compares the result of
+``a < x`` with ``b``.
 
 **Logical operators:** ``and``, ``or``. A value is considered true if it is
 nonzero. The precedence of operators follows the convention of the C and C++
@@ -992,6 +1001,10 @@ The registration functions are :cpp:`registerUserFn1`, :cpp:`registerUserFn2`,
 :cpp:`registerUserFn3`, and :cpp:`registerUserFn4` for functions with one, two,
 three, and four arguments, respectively. In CPU-only builds, either function
 pointer argument may be ``nullptr`` and the non-null one will be used.
+
+Note that user-defined functions are not supported in device code in SYCL
+builds.  :cpp:`compile` aborts for such an expression; use
+:cpp:`compileHost` and evaluate it on the host instead.
 
 Querying the Parser
 -------------------
@@ -3411,6 +3424,124 @@ The downside of this is we have to use :fortran:`pointer` instead of
 :fortran:`contiguous` for performance reason.  Also, we often
 pass the Fortran pointer to a procedure with explicit array argument
 to get rid of the pointerness completely.
+
+.. _sec:basics:random:
+
+Random Numbers
+==============
+
+AMReX provides a set of pseudo-random number generators.  Most come in two
+overloads: one that takes no arguments, for use on the host, and one that takes
+a :cpp:`RandomEngine` and can be called from inside a GPU kernel.  The engine is
+supplied by :cpp:`ParallelForRNG`, the random-number variant of
+:cpp:`ParallelFor`:
+
+.. highlight:: c++
+
+::
+
+    amrex::ParallelForRNG(N,
+    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+    {
+        p[i] = amrex::Random(engine);
+    });
+
+The generators are thread safe.  With OpenMP, each thread draws from its own
+independent generator.  The seed can be set with
+:cpp:`amrex::ResetRandomSeed(cpu_seed, gpu_seed)`.
+
+The uniform generators and their intervals
+------------------------------------------
+
+There are two uniform generators on the unit interval, and which one you want
+depends on what you do with the result:
+
+.. table::
+   :align: center
+
+   +----------------------------------+------------+-----------------------------------------+
+   | Function                         | Interval   | Use for                                 |
+   +==================================+============+=========================================+
+   | :cpp:`amrex::Random()`           | ``[0,1)``  | positions within a cell, rejection      |
+   |                                  |            | tests, general uniform sampling         |
+   +----------------------------------+------------+-----------------------------------------+
+   | :cpp:`amrex::RandomPositive()`   | ``(0,1]``  | anything singular at zero:              |
+   |                                  |            | ``log(u)``, ``1/u``, ``pow(u,-a)``      |
+   +----------------------------------+------------+-----------------------------------------+
+
+Both endpoints matter in practice, and each generator excludes the one that is
+dangerous for its intended use.
+
+:cpp:`amrex::Random` excludes the upper endpoint and *includes* zero.
+
+Note that the guarantee is on the value :cpp:`amrex::Random` returns, not on
+whatever is computed from it.  Arithmetic downstream can still round onto a
+boundary: :cpp:`problo + amrex::Random()*dx` may evaluate to exactly the upper
+face of the cell, since the rounded sum can land there even though the draw is
+strictly below one.  Code that needs a value strictly inside a range must
+therefore guard the result of the computation, not rely on the draw alone.
+
+:cpp:`amrex::RandomPositive` excludes the lower endpoint, so that the result can
+be passed straight to a function that is singular at zero:
+
+.. highlight:: c++
+
+::
+
+    // exponential distribution with mean tau
+    amrex::Real const t = -tau * std::log(amrex::RandomPositive(engine));
+
+    // power law with exponent -a
+    amrex::Real const x = std::pow(amrex::RandomPositive(engine), -a);
+
+There is no accuracy or performance penalty for picking the interval that fits
+the use case: whichever one you ask for is obtained from the underlying
+generator by relocating at most a single endpoint, never by arithmetic.  Both
+guarantees therefore hold in single and double precision, and under every
+floating-point mode AMReX may be built with, including ``-ffast-math`` /
+``--use_fast_math`` and flush-to-zero.
+
+.. warning::
+
+   Do **not** write :cpp:`1 - amrex::Random()` to obtain a non-zero value; draw
+   from :cpp:`amrex::RandomPositive` instead.  The two are not equivalent: the
+   subtraction costs an arithmetic operation and discards resolution, since it
+   is exact only above ``0.5`` and collapses smaller values onto a coarse
+   grid.
+
+Other distributions
+-------------------
+
+.. table::
+   :align: center
+
+   +--------------------------------------------------+------------------------------------------+
+   | Function                                         | Distribution                             |
+   +==================================================+==========================================+
+   | :cpp:`amrex::RandomNormal(mean, stddev)`         | normal                                   |
+   +--------------------------------------------------+------------------------------------------+
+   | :cpp:`amrex::RandomPoisson(lambda)`              | Poisson                                  |
+   +--------------------------------------------------+------------------------------------------+
+   | :cpp:`amrex::RandomGamma(alpha, beta)`           | Gamma                                    |
+   +--------------------------------------------------+------------------------------------------+
+   | :cpp:`amrex::Random_int(n)`                      | uniform integer on ``[0,n-1]``           |
+   +--------------------------------------------------+------------------------------------------+
+   | :cpp:`amrex::Random_long(n)`                     | uniform long on ``[0,n-1]``, host only   |
+   +--------------------------------------------------+------------------------------------------+
+
+To fill an array rather than draw one value at a time, use
+:cpp:`amrex::FillRandom(p, N)` for the uniform distribution and
+:cpp:`amrex::FillRandomNormal(p, N, mean, stddev)` for the normal distribution.
+
+.. note::
+
+   :cpp:`amrex::FillRandom` does not give the same interval on every backend
+   the way :cpp:`amrex::Random` and :cpp:`amrex::RandomPositive` do.  It is
+   ``[0,1)`` on the CPU, but the GPU paths hand back whatever the vendor bulk
+   generator produces -- nominally ``[0,1)`` with SYCL and ``(0,1]`` with CUDA
+   and HIP -- so code that depends on either endpoint should guard the values
+   it reads back, or draw with :cpp:`amrex::Random` /
+   :cpp:`amrex::RandomPositive` instead.
 
 Abort, Assertion and Backtrace
 ==============================

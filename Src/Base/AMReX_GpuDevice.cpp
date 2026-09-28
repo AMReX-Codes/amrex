@@ -941,7 +941,12 @@ void
 Device::freeAsync (Arena* arena, void* mem) noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (!external_stream_stack.empty()) {
+    if (gpu_stream_index.empty()) {
+        // The device has not been initialized or has already been
+        // finalized (e.g., objects destroyed after amrex::Finalize()).
+        // There are no streams to defer the free to.
+        arena->free(mem);
+    } else if (!external_stream_stack.empty()) {
         AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
         external_stream_stack.back().manager->free_async(arena, mem);
     } else {

@@ -62,6 +62,17 @@ int main(int argc, char* argv[])
         pp.get("b2", box2);
         AMREX_ALWAYS_ASSERT(box == box2);
 
+        // [] arrays whose elements contain commas
+        std::vector<IntVect> iva;
+        pp.getarr("iva", iva);
+        AMREX_ALWAYS_ASSERT(iva.size() == 2 &&
+                            iva[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
+                            iva[1] == IntVect(AMREX_D_DECL(4,5,6)));
+        std::vector<Box> ba;
+        pp.getarr("ba", ba);
+        AMREX_ALWAYS_ASSERT(ba.size() == 2 && ba[0] == box &&
+                            ba[1] == Box(IntVect(0), IntVect(3)));
+
         double f0 = -1;
         pp.query("f", f0);
         AMREX_ALWAYS_ASSERT(f0 == 7);

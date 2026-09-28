@@ -67,6 +67,29 @@ public:
      */
     [[nodiscard]] IntVect const& PaddedLength () const { return m_padded_length; }
 
+    /**
+     * \brief Access the spectral Green's function held by this solver.
+     *
+     * This lets a caller keep its own set of Green's functions and move them into and
+     * out of the solver, for instance with std::swap, instead of recomputing them with
+     * setGreensFunction(). Since solve() only reads the spectral Green's function, one
+     * moved in this way needs no further preparation.
+     *
+     * \note In 2D, this is an alias of the Green's function R2C's spectral data.
+     *       Callers may write through it, but must not swap or otherwise re-seat it,
+     *       because a later setGreensFunction() writes into the aliased array.
+     *
+     * \return The spectral Green's function.
+     */
+    [[nodiscard]] cMF& greensFunctionFFT () noexcept { return m_G_fft; }
+
+    /**
+     * \brief Access the spectral Green's function held by this solver.
+     *
+     * \return The spectral Green's function.
+     */
+    [[nodiscard]] cMF const& greensFunctionFFT () const noexcept { return m_G_fft; }
+
 private:
     static IntVect make_padded_length (Box const& domain, Info const& info);
     static Box make_grown_domain (Box const& domain, IntVect const& padded_len,
@@ -159,9 +182,15 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 
     auto* infab = m_info.twod_mode ? detail::get_fab(m_r2c_green->m_rx)
         :                             detail::get_fab(m_r2c.m_rx);
-    auto const& lo = m_domain.smallEnd();
+    auto lo = m_domain.smallEnd();
+#if (AMREX_SPACEDIM == 3)
+    // m_r2c_green's domain starts at z = 0.
+    if (m_info.twod_mode) { lo[2] = 0; }
+#endif
     auto const& lo3 = lo.dim3();
-    auto const len3d = m_padded_length.dim3();
+    // Hidden dimensions must have length 1, not 0, so that the mirror plane
+    // checks below cannot fire on them.
+    auto const len3d = m_padded_length.dim3(1);
     GpuArray<int,3> len{len3d.x, len3d.y, len3d.z};
     if (infab) {
         auto const& a = infab->array();
@@ -241,7 +270,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
     inmf.setVal(T(0));
     inmf.ParallelCopy(rho, 0, 0, 1);
 
-    m_r2c.m_openbc_half = !m_info.twod_mode;
+    m_r2c.m_openbc_half = (AMREX_SPACEDIM == 3) && !m_info.twod_mode;
     m_r2c.forward(inmf);
     m_r2c.m_openbc_half = false;
 
@@ -279,7 +308,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
         }
     }
 
-    m_r2c.m_openbc_half = !m_info.twod_mode;
+    m_r2c.m_openbc_half = (AMREX_SPACEDIM == 3) && !m_info.twod_mode;
     m_r2c.backward_doit(phi, phi.nGrowVect());
     m_r2c.m_openbc_half = false;
 }

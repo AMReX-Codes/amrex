@@ -1,0 +1,6 @@
+FILE = inputs
+
+nstep = 5000         # number of production steps after thermalization
+ntherm = 500          # number of initial steps skipped by diagnostics
+nout = 5000          # diagnostic output interval after thermalization
+ensemble = 1         # number of ensemble realizations

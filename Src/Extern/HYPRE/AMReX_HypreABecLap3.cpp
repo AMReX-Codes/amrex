@@ -64,7 +64,8 @@ HypreABecLap3::getSolution (MultiFab& a_soln)
     MultiFab* l_soln = &a_soln;
     MultiFab tmp;
     if (use_tmp_mf) {
-        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0,
+                   MFInfo().SetArena(The_Async_Arena()));
         l_soln = &tmp;
     }
 
@@ -96,13 +97,11 @@ HypreABecLap3::prepareSolver ()
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
 
-#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(HYPRE_Int) < sizeof(Long)) {
         Long ncells_grids = ba.numPts();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<Long>(std::numeric_limits<HYPRE_Int>::max()),
                                          "You might need to configure Hypre with --enable-bigint");
     }
-#endif
 
     static_assert(std::is_signed_v<HYPRE_Int>, "HYPRE_Int is assumed to be signed");
 
@@ -356,7 +355,6 @@ HypreABecLap3::prepareSolver ()
                 AMREX_D_DECL(bcoefs[0].const_array(mfi),
                              bcoefs[1].const_array(mfi),
                              bcoefs[2].const_array(mfi))};
-            Array4<Real> const& diaginvfab = diaginv.array(mfi);
             GpuArray<int,AMREX_SPACEDIM*2> bctype;
             GpuArray<Real,AMREX_SPACEDIM*2> bcl;
             for (OrientationIter oit; oit; oit++)
@@ -381,7 +379,7 @@ HypreABecLap3::prepareSolver ()
                 [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
                                            int i, int j, int k)
                 {
-                    habec_ijmat(sten, ncols_a, diaginvfab, i, j, k, cid_a,
+                    habec_ijmat(sten, ncols_a, i, j, k, cid_a,
                                 sa, afab, sb, dx, bfabs, bctype, bcl, bho, osmsk);
                 });
 
@@ -419,7 +417,7 @@ HypreABecLap3::prepareSolver ()
                 [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
                                            int i, int j, int k)
                 {
-                    habec_ijmat_eb(sten, ncols_a, diaginvfab, i, j, k, cid_a,
+                    habec_ijmat_eb(sten, ncols_a, i, j, k, cid_a,
                                    sa, afab, sb, dx, bfabs, bctype, bcl, bho,
                                    flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
                                    AMREX_D_DECL(fcx,fcy,fcz),barea_a,bcent_a,beb);
@@ -443,13 +441,11 @@ HypreABecLap3::prepareSolver ()
             HYPRE_Int* ncols = ncols_fab.dataPtr();
 
             // Remove invalid elements
-#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
             if (sizeof(HYPRE_Int) < sizeof(Long)) {
                 Long ntot = static_cast<Long>(nrows)*max_stencil_size;
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ntot <  static_cast<Long>(std::numeric_limits<HYPRE_Int>::max()),
                                                  "Integer overflow: please configure Hypre with --enable-bigint");
             }
-#endif
             HYPRE_Int nelems = nrows * max_stencil_size;
             HYPRE_Int const* cols_in = cols_aos_fab.dataPtr();
             Real const* mat_in = mat_aos_fab.dataPtr();
@@ -523,36 +519,37 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
-    MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+    MultiFab rhs_tmp;
 
 #ifdef AMREX_USE_EB
     if (ebfactory)
     {
+        rhs_tmp.define(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            auto const& rhs_diag_ma = rhs_diag.arrays();
+        if (Gpu::inLaunchRegion() && rhs_tmp.isFusingCandidate()) {
+            auto const& rhs_tmp_ma = rhs_tmp.arrays();
             auto const& rhs_ma = rhs.const_arrays();
-            auto const& diaginv_ma = diaginv.const_arrays();
             auto const& flag_ma = flags->const_arrays();
+            auto const& vfrac_ma = ebfactory->getVolFrac().const_arrays();
             if (m_overset_mask) {
                 auto const& osm_ma = m_overset_mask->const_arrays();
-                ParallelFor(rhs_diag,
+                ParallelFor(rhs_tmp,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    rhs_diag_ma[box_no](i,j,k) =
+                    rhs_tmp_ma[box_no](i,j,k) =
                         (osm_ma[box_no](i,j,k) == 0 || flag_ma[box_no](i,j,k).isCovered()) ?
-                        Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
+                        Real(0.0) : rhs_ma[box_no](i,j,k) * vfrac_ma[box_no](i,j,k);
                 });
             } else {
-                ParallelFor(rhs_diag,
+                ParallelFor(rhs_tmp,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    rhs_diag_ma[box_no](i,j,k) =
+                    rhs_tmp_ma[box_no](i,j,k) =
                         (flag_ma[box_no](i,j,k).isCovered()) ?
-                        Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
+                        Real(0.0) : rhs_ma[box_no](i,j,k) * vfrac_ma[box_no](i,j,k);
                 });
             }
-            // Must sync before host API uses device-written rhs_diag (see loop below).
+            // Must sync before host API uses device-written rhs_tmp (see loop below).
             Gpu::streamSynchronize();
         } else
 #endif
@@ -560,125 +557,117 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            for (MFIter mfi(rhs_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& reg = mfi.validbox();
                 const Box& tbx = mfi.tilebox();
-                Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+                Array4<Real> const& rhs_tmp_a = rhs_tmp.array(mfi);
                 Array4<Real const> const& rhs_a = rhs.const_array(mfi);
-                Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
                 auto osm = (m_overset_mask) ? m_overset_mask->const_array(mfi)
                     : Array4<int const>();
                 auto fabtyp = (*flags)[mfi].getType(reg);
                 if (fabtyp == FabType::singlevalued) {
                     auto const& flag = flags->const_array(mfi);
+                    auto const& vfrac_a = ebfactory->getVolFrac().const_array(mfi);
                     if (osm) {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
                         {
-                            rhs_diag_a(i,j,k) = (osm(i,j,k) == 0 || flag(i,j,k).isCovered()) ?
-                                Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                            rhs_tmp_a(i,j,k) = (osm(i,j,k) == 0 || flag(i,j,k).isCovered()) ?
+                                Real(0.0) : rhs_a(i,j,k) * vfrac_a(i,j,k);
                         });
                     } else {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
                         {
-                            rhs_diag_a(i,j,k) = (flag(i,j,k).isCovered()) ?
-                                Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                            rhs_tmp_a(i,j,k) = (flag(i,j,k).isCovered()) ?
+                                Real(0.0) : rhs_a(i,j,k) * vfrac_a(i,j,k);
                         });
                     }
                 } else if (fabtyp == FabType::regular) {
                     if (osm) {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
                         {
-                            rhs_diag_a(i,j,k) = (osm(i,j,k) == 0) ?
-                                Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                            rhs_tmp_a(i,j,k) = (osm(i,j,k) == 0) ?
+                                Real(0.0) : rhs_a(i,j,k);
                         });
                     } else {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
                         {
-                            rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                            rhs_tmp_a(i,j,k) = rhs_a(i,j,k);
                         });
                     }
                 }
             }
+            if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
         }
     } else
 #endif
     {
+        if (!m_overset_mask && rhs.nGrowVect() == 0) {
+            rhs_tmp = MultiFab(rhs, amrex::make_alias, 0, 1);
+        } else if (!m_overset_mask) {
+            rhs_tmp.define(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+            MultiFab::Copy(rhs_tmp, rhs, 0, 0, 1, 0);
+        } else {
+            rhs_tmp.define(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            auto const& rhs_diag_ma = rhs_diag.arrays();
-            auto const& rhs_ma = rhs.const_arrays();
-            auto const& diaginv_ma = diaginv.const_arrays();
-            if (m_overset_mask) {
+            if (Gpu::inLaunchRegion() && rhs_tmp.isFusingCandidate()) {
+                auto const& rhs_tmp_ma = rhs_tmp.arrays();
+                auto const& rhs_ma = rhs.const_arrays();
                 auto const& osm_ma = m_overset_mask->const_arrays();
-                ParallelFor(rhs_diag,
+                ParallelFor(rhs_tmp,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    rhs_diag_ma[box_no](i,j,k) = (osm_ma[box_no](i,j,k) == 0) ?
-                        Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
+                    rhs_tmp_ma[box_no](i,j,k) = (osm_ma[box_no](i,j,k) == 0) ?
+                        Real(0.0) : rhs_ma[box_no](i,j,k);
                 });
-            } else {
-                ParallelFor(rhs_diag,
-                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                {
-                    rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
-                });
-            }
-            // Sync required: rhs_diag is passed to HYPRE host API below
-            Gpu::streamSynchronize();
-        } else
+                // Sync required: rhs_tmp is passed to HYPRE host API below
+                Gpu::streamSynchronize();
+            } else
 #endif
-        {
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& tbx = mfi.tilebox();
-                Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
-                Array4<Real const> const& rhs_a = rhs.const_array(mfi);
-                Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
-                auto osm = (m_overset_mask) ? m_overset_mask->const_array(mfi)
-                    : Array4<int const>();
-                if (osm) {
+                for (MFIter mfi(rhs_tmp,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& tbx = mfi.tilebox();
+                    Array4<Real> const& rhs_tmp_a = rhs_tmp.array(mfi);
+                    Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+                    Array4<int const> const& osm = m_overset_mask->const_array(mfi);
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
                     {
-                        rhs_diag_a(i,j,k) = (osm(i,j,k) == 0) ?
-                            Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
-                    });
-                } else {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
-                    {
-                        rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                        rhs_tmp_a(i,j,k) = (osm(i,j,k) == 0) ? Real(0.0) : rhs_a(i,j,k);
                     });
                 }
             }
         }
+        if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
     }
 
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    // For singular matrices, set the rhs of global row 0 to zero.  That row is the
+    // first cell of the first non-empty box on the rank that owns it.
+    bool zero_row0 = hypre_ij->adjustSingularMatrix() && is_matrix_singular
+        && hypre_ij->ilower() == 0;
+    for (MFIter mfi(soln, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
     {
         const HYPRE_Int nrows = ncells_grid[mfi];
         if (nrows > 0)
         {
+            HYPRE_Int* rows = cell_id_vec[mfi].dataPtr();
+            Real* bp = rhs_tmp[mfi].dataPtr();
             // soln has been set to zero.
-            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr());
-
-            if (hypre_ij->adjustSingularMatrix() && is_matrix_singular) {
-                HYPRE_Int const* rows = cell_id_vec[mfi].dataPtr();
-                Real* bp = rhs_diag[mfi].dataPtr();
-                AMREX_HOST_DEVICE_FOR_1D(1, m,
-                {
-                    amrex::ignore_unused(m);
-                    if (rows[0] == 0) {
-                        bp[0] = Real(0.0);
-                    }
-                });
-                // Must sync before host API uses device-written bp (rhs_diag).
-                Gpu::streamSynchronize();
+            HYPRE_IJVectorSetValues(x, nrows, rows, soln[mfi].dataPtr());
+            if (zero_row0) {
+                zero_row0 = false;
+                Gpu::DeviceVector<Real> zero(1, Real(0.0));
+                HYPRE_IJVectorSetValues(b, 1, rows, zero.data());
+                if (nrows > 1) {
+                    HYPRE_IJVectorSetValues(b, nrows-1, rows+1, bp+1);
+                }
+                Gpu::hypreSynchronize();
+            } else {
+                HYPRE_IJVectorSetValues(b, nrows, rows, bp);
             }
-
-            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr());
         }
     }
     Gpu::hypreSynchronize();

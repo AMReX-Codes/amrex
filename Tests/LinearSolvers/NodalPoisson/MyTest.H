@@ -42,7 +42,7 @@ private:
     int bottom_verbose = 0;
     int max_iter = 100;
     int max_fmg_iter = 0;
-    amrex::Real reltol = 1.e-11;
+    amrex::Real reltol = amrex::Real(1.e-11);
     int gpu_regtest = 0;
 
 

@@ -65,6 +65,12 @@ MyTest::solve ()
 
     // In region with overset mask = 0, phi has valid solution and rhs is zero.
     Real mlmg_err = mlmg.solve({&solution}, {&rhs}, 1.e-11, 0.0);
+
+    // A failed solve often returns NaNs.  Check for them explicitly, because
+    // the max-norm checks used by these tests silently drop NaNs.
+    if (solution.contains_nan(0, solution.nComp(), 0)) {
+        amrex::Abort("MyTest::solve: solution contains NaN");
+    }
 }
 
 void

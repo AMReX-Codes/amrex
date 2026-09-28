@@ -30,9 +30,9 @@ void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
                      int iy_part = (i_part % (ny * nz)) % ny;,
                      int iz_part = (i_part % (ny * nz)) / ny;)
 
-        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
-                     r[1] = (0.5+iy_part)/ny;,
-                     r[2] = (0.5+iz_part)/nz;)
+        AMREX_D_TERM(r[0] = (Real(0.5)+Real(ix_part))/Real(nx);,
+                     r[1] = (Real(0.5)+Real(iy_part))/Real(ny);,
+                     r[2] = (Real(0.5)+Real(iz_part))/Real(nz);)
 }
 
 class TestParticleContainer
@@ -158,8 +158,8 @@ void testReduce ()
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size[n]);
+        real_box.setLo(n, Real(0.0));
+        real_box.setHi(n, Real(params.size[n]));
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
@@ -188,19 +188,19 @@ void testReduce ()
     using PType   = typename TestParticleContainer::ParticleType;
     using PTDType = typename TestParticleContainer::ParticleTileType::ConstParticleTileDataType;
 
-    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(sm == pc.TotalNumberOfParticles());
 
-    auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return -p.rdata(NSR+1); });
+    auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return -p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(sm2 == -pc.TotalNumberOfParticles());
 
-    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real { return ptd.m_aos[i].rdata(1);});
+    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal { return ptd.m_aos[i].rdata(1);});
     AMREX_ALWAYS_ASSERT(mn == 1);
 
-    auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return p.rdata(NSR+1); });
+    auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(mn2 == 1);
 
-    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> Real { return p.rdata(1); });
+    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> ParticleReal { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mx == 1);
 
     auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int { return p.idata(NSI); });
@@ -228,11 +228,11 @@ void testReduce ()
 
     {
         amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-        auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
-         pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+        auto r = amrex::ParticleReduce<ReduceData<amrex::ParticleReal, amrex::ParticleReal,int>> (
+         pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::ParticleReal,amrex::ParticleReal,int>
            {
-               const amrex::Real a = p.rdata(1);
-               const amrex::Real b = p.rdata(2);
+               const amrex::ParticleReal a = p.rdata(1);
+               const amrex::ParticleReal b = p.rdata(2);
                const int c = p.idata(1);
                return {a, b, c};
            }, reduce_ops);

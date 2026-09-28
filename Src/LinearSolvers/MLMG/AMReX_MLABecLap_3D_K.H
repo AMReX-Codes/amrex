@@ -1,6 +1,7 @@
 #ifndef AMREX_MLABECLAP_3D_K_H_
 #define AMREX_MLABECLAP_3D_K_H_
 #include <AMReX_Config.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 
@@ -429,21 +430,19 @@ void abec_jacobi_os (int i, int j, int k, int n,
 
 template <typename T>
 AMREX_FORCE_INLINE
-void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,0,31>& c_ls,
-                        Array1D<T,0,31>& r_ls, Array1D<T,0,31>& u_ls, Array1D<T,0,31>& gam,
-                        int ilen )
+void tridiagonal_solve (T* a_ls, T* b_ls, T* c_ls, T* r_ls, T* u_ls, T* gam, int ilen)
 {
-    T bet = b_ls(0);
-    u_ls(0) = r_ls(0) / bet;
+    T bet = b_ls[0];
+    u_ls[0] = r_ls[0] / bet;
 
     for (int i = 1; i <= ilen - 1; i++) {
-        gam(i) = c_ls(i-1) / bet;
-        bet = b_ls(i) - a_ls(i)*gam(i);
+        gam[i] = c_ls[i-1] / bet;
+        bet = b_ls[i] - a_ls[i]*gam[i];
         if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
-        u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
+        u_ls[i] = (r_ls[i]-a_ls[i]*u_ls[i-1]) / bet;
     }
     for (int i = ilen-2; i >= 0; i--) {
-        u_ls(i) = u_ls(i) - gam(i+1)*u_ls(i+1);
+        u_ls[i] = u_ls[i] - gam[i+1]*u_ls[i+1];
     }
 }
 
@@ -465,6 +464,10 @@ void abec_gsrb_with_line_solve (
                 Array4<T const> const& f5,
                 Box const& vbox, int redblack, int nc)
 {
+    // Each tridiagonal line must span the whole valid box, because the
+    // boundary masks below are tested at the valid box faces.
+    AMREX_ASSERT(box == vbox);
+
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
@@ -485,20 +488,19 @@ void abec_gsrb_with_line_solve (
         ilen = hi.x - lo.x + 1;
     }
 
-    // This assertion should be moved outside the kernel for performance!
-    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
+    Vector<T> ls_scratch(6*static_cast<std::size_t>(ilen));
+    T* a_ls = ls_scratch.data();
+    T* b_ls = a_ls + ilen;
+    T* c_ls = b_ls + ilen;
+    T* r_ls = c_ls + ilen;
+    T* u_ls = r_ls + ilen;
+    T* gam  = u_ls + ilen;
 
-    Array1D<T,0,31> a_ls;
-    Array1D<T,0,31> b_ls;
-    Array1D<T,0,31> c_ls;
-    Array1D<T,0,31> r_ls;
-    Array1D<T,0,31> u_ls;
-    Array1D<T,0,31> gam;
-
+    // No SIMD pragma on the transverse loops: the scratch arrays above are
+    // reused by every line.
     if (idir == 2) {
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     if ((i+j+redblack)%2 == 0) {
 
@@ -546,22 +548,22 @@ void abec_gsrb_with_line_solve (
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
                             }
 
-                            a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
-                            b_ls(k-lo.z) =  g_m_d;
-                            c_ls(k-lo.z) = -dhz*bZ(i,j,k+1,n);
-                            u_ls(k-lo.z) = T(0.);
-                            r_ls(k-lo.z) = rhs(i,j,k,n) + rho;
-                            // r_ls(k-lo.z) = g_m_d*phi(i,j,k,n) -gamma*phi(i,j,k,n) + rhs(i,j,k,n) + rho;
+                            a_ls[k-lo.z] = -dhz*bZ(i,j,k,n);
+                            b_ls[k-lo.z] =  g_m_d;
+                            c_ls[k-lo.z] = -dhz*bZ(i,j,k+1,n);
+                            u_ls[k-lo.z] = T(0.);
+                            r_ls[k-lo.z] = rhs(i,j,k,n) + rho;
+                            // r_ls[k-lo.z] = g_m_d*phi(i,j,k,n) -gamma*phi(i,j,k,n) + rhs(i,j,k,n) + rho;
 
                             if (k == lo.z)
                             {
-                                a_ls(k-lo.z) = T(0.);
-                                if (!(m2(i,j,vlo.z-1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n); }
+                                a_ls[k-lo.z] = T(0.);
+                                if (!(m2(i,j,vlo.z-1) > 0)) { r_ls[k-lo.z] += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n); }
                             }
                             if (k == hi.z)
                             {
-                                c_ls(k-lo.z) = T(0.);
-                                if (!(m5(i,j,vhi.z+1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n); }
+                                c_ls[k-lo.z] = T(0.);
+                                if (!(m5(i,j,vhi.z+1) > 0)) { r_ls[k-lo.z] += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n); }
                             }
                         }
 
@@ -569,7 +571,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int k = lo.z; k <= hi.z; ++k)
                         {
-                            phi(i,j,k,n) = u_ls(k-lo.z);
+                            phi(i,j,k,n) = u_ls[k-lo.z];
                         }
                     }
                 }
@@ -578,7 +580,6 @@ void abec_gsrb_with_line_solve (
     } else if (idir == 1) {
         for (int n = 0; n < nc; ++n) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                AMREX_PRAGMA_SIMD
                 for (int k = lo.z; k <= hi.z; ++k) {
                     if ((i+k+redblack)%2 == 0) {
 
@@ -626,21 +627,21 @@ void abec_gsrb_with_line_solve (
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
                             }
 
-                            a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
-                            b_ls(j-lo.y) =  g_m_d;
-                            c_ls(j-lo.y) = -dhy*bY(i,j+1,k,n);
-                            u_ls(j-lo.y) = T(0.);
-                            r_ls(j-lo.y) = rhs(i,j,k,n) + rho;
+                            a_ls[j-lo.y] = -dhy*bY(i,j,k,n);
+                            b_ls[j-lo.y] =  g_m_d;
+                            c_ls[j-lo.y] = -dhy*bY(i,j+1,k,n);
+                            u_ls[j-lo.y] = T(0.);
+                            r_ls[j-lo.y] = rhs(i,j,k,n) + rho;
 
                             if (j == lo.y)
                             {
-                                a_ls(j-lo.y) = T(0.);
-                                if (!(m1(i,vlo.y-1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n); }
+                                a_ls[j-lo.y] = T(0.);
+                                if (!(m1(i,vlo.y-1,k) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j,k,n)*phi(i,j-1,k,n); }
                             }
                             if (j == hi.y)
                             {
-                                c_ls(j-lo.y) = T(0.);
-                                if (!(m4(i,vhi.y+1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n); }
+                                c_ls[j-lo.y] = T(0.);
+                                if (!(m4(i,vhi.y+1,k) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n); }
                             }
                         }
 
@@ -648,7 +649,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int j = lo.y; j <= hi.y; ++j)
                         {
-                            phi(i,j,k,n) = u_ls(j-lo.y);
+                            phi(i,j,k,n) = u_ls[j-lo.y];
                         }
                     }
                 }
@@ -657,7 +658,6 @@ void abec_gsrb_with_line_solve (
     } else if (idir == 0) {
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
                 for (int k = lo.z; k <= hi.z; ++k) {
                     if ((j+k+redblack)%2 == 0) {
 
@@ -705,21 +705,21 @@ void abec_gsrb_with_line_solve (
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
                             }
 
-                            a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
-                            b_ls(i-lo.x) =  g_m_d;
-                            c_ls(i-lo.x) = -dhx*bX(i+1,j,k,n);
-                            u_ls(i-lo.x) = T(0.);
-                            r_ls(i-lo.x) = rhs(i,j,k,n) + rho;
+                            a_ls[i-lo.x] = -dhx*bX(i,j,k,n);
+                            b_ls[i-lo.x] =  g_m_d;
+                            c_ls[i-lo.x] = -dhx*bX(i+1,j,k,n);
+                            u_ls[i-lo.x] = T(0.);
+                            r_ls[i-lo.x] = rhs(i,j,k,n) + rho;
 
                             if (i == lo.x)
                             {
-                                a_ls(i-lo.x) = T(0.);
-                                if (!(m0(vlo.x-1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n); }
+                                a_ls[i-lo.x] = T(0.);
+                                if (!(m0(vlo.x-1,j,k) > 0)) { r_ls[i-lo.x] += dhx*bX(i,j,k,n)*phi(i-1,j,k,n); }
                             }
                             if (i == hi.x)
                             {
-                                c_ls(i-lo.x) = T(0.);
-                                if (!(m3(vhi.x+1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n); }
+                                c_ls[i-lo.x] = T(0.);
+                                if (!(m3(vhi.x+1,j,k) > 0)) { r_ls[i-lo.x] += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n); }
                             }
                         }
 
@@ -727,7 +727,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int i = lo.x; i <= hi.x; ++i)
                         {
-                            phi(i,j,k,n) = u_ls(i-lo.x);
+                            phi(i,j,k,n) = u_ls[i-lo.x];
                         }
                     }
                 }

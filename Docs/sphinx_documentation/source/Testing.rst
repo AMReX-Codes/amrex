@@ -4,10 +4,12 @@
 Continuous Compilation Testing
 ==============================
 
-As a first line of testing, on every commit to the repository, we verify that we can compile
-AMReX as a library for a common set of configuration options. This operation is performed
-through Travis-CI. This layer of testing is deliberately limited, so that it can be run
-quickly on every commit. For more extensive testing, we rely on the nightly regression results.
+As a first line of testing, on every pull request and every commit to the repository, we
+verify that AMReX compiles and that its test suite passes for a common set of configuration
+options. This runs through GitHub Actions, covering GCC, Clang, Intel, CUDA, HIP, SYCL,
+macOS and Windows, and through HPSF GitLab CI on NVIDIA, AMD and Intel GPU hardware. This
+layer of testing is deliberately limited, so that it can be run quickly on every commit.
+For more extensive testing, we rely on the nightly regression results.
 
 
 Nightly Regression Testing
@@ -27,8 +29,8 @@ The test suite is mostly used internally by AMReX developers. However,
 if you are making a pull request to AMReX, it can be useful to run the test suite
 on your local machine to reduce the likelihood that your changes break some existing functionality.
 To run the test suite locally, you must first obtain a copy of the test runner source, available
-on GitHub here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
-version 2.7 or greater. Additional information on the test suite software can be found at
+on GitHub here: https://github.com/AMReX-Codes/regression_testing. The test runner requires
+Python 3.6 or later. Additional information on the test suite software can be found at
 https://amrex-codes.github.io/regression_testing/.
 
 After obtaining the code, you will need a configuration file that defines which tests to run, which

@@ -12,8 +12,8 @@
 // (harmonic-average) mknewu kernel when setMapped(true) was used.  Prior
 // to this, both functions only used sigma component 0 (sigma_x) for all
 // velocity/flux components, producing the wrong correction for
-// non-identity mesh mappings.  EB is not covered by this feature (see
-// comments in AMReX_MLNodeLaplacian_misc.cpp).
+// non-identity mesh mappings.  EB and RAP coarsening are not covered by
+// this feature (see comments in AMReX_MLNodeLaplacian_misc.cpp).
 #define AMREX_MLNODELAP_HAS_MKNEWU_HA 1
 
 namespace amrex {

@@ -346,7 +346,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
         std::vector< std::pair<int,Box> > isects;
 
-        std::vector<IntVect> pshifts = m_period.shiftIntVect(ng_dst);
+        // Reach of the intersections below: src grow + dst grow + |offset|,
+        // plus one in each nodal direction, because a nodal box is one
+        // longer than the periodic length.
+        IntVect const reach = ng_src + ng_dst + ba_dst.ixType().toIntVect()
+            + amrex::max(m_offset, -m_offset);
+        std::vector<IntVect> pshifts = m_period.shiftIntVect(reach);
         for (auto& pit : pshifts) { pit += m_offset; }
 
         auto& send_tags = *m_SndTags;
@@ -1196,7 +1201,10 @@ FabArrayBase::FB::define_sb (const FabArrayBase& fa)
     const IntVect& ngsrc = m_sb_snghost;
 
     std::vector<std::pair<int,Box>> isects;
-    const std::vector<IntVect>& pshifts = m_period.shiftIntVect(amrex::max(ngdst,ngsrc));
+    // Reach of the intersections below: src grow + dst grow, plus one in each
+    // nodal direction, because a nodal box is one longer than the periodic length.
+    const std::vector<IntVect>& pshifts
+        = m_period.shiftIntVect(ngdst + ngsrc + ba.ixType().toIntVect());
 
     // In almost all cases of SumBoundary, the operation is not thread
     // safe. So we will assume it's always thread unsafe, which is the

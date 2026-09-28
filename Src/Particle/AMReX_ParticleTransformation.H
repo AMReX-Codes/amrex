@@ -385,7 +385,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  *
  */
-template <typename DstTile, typename SrcTile, std::integral Index, typename N>
+template <typename DstTile, typename SrcTile, std::integral Index>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     return filterParticles(dst, src, mask, Index{0}, Index{0}, src.numParticles());
@@ -412,6 +412,8 @@ template <typename DstTile, typename SrcTile, std::integral Index, typename N>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
+    if (n == 0) { return Index{0}; }
+
     Gpu::DeviceVector<Index> offsets(n);
     Gpu::exclusive_scan(mask, mask+n, offsets.begin());
 
@@ -505,7 +507,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
  * \param src the source tile
  * \param src_start starting index of source
  * \param dst_start starting index of destination
- * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy. mask[0]
+ * corresponds to src_start.
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
@@ -513,7 +516,9 @@ template <typename DstTile, typename SrcTile, std::integral Index, typename F>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F const& f,
                                    Index src_start, Index dst_start) noexcept
 {
-    auto np = src.numParticles();
+    auto np = src.numParticles() - src_start;
+    if (np == 0) { return Index{0}; }
+
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
@@ -605,6 +610,8 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
                                    const SrcTile& src, Index* mask, F const& f) noexcept
 {
     auto np = src.numParticles();
+    if (np == 0) { return Index{0}; }
+
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
@@ -691,7 +698,9 @@ requires (!std::is_pointer_v<std::decay_t<Pred>>)
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {
-    auto np = src.numParticles();
+    auto np = src.numParticles() - src_start;
+    if (np == 0) { return Index{0}; }
+
     Gpu::DeviceVector<Index> mask(np);
 
     auto* p_mask = mask.dataPtr();

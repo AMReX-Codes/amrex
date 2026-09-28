@@ -1,0 +1,20 @@
+n_cell = 32
+max_grid_size = 16
+max_coarsening_level = 100
+
+# Triangulated spherical EB loaded from an STL unit sphere.  The scale is
+# grid-aligned for n_cell = 32 so that some STL vertices lie exactly on nodes.
+eb2.geom_type = stl
+eb2.stl_file = sphere.stl
+eb2.stl_scale = 0.25
+eb2.stl_center = 0.5 0.5 0.5
+eb2.stl_reverse_normal = 0
+eb2.stl_use_bvh = 1
+
+# MLMG solver settings
+verbose        = 2
+bottom_verbose = 0
+max_iter       = 200
+max_fmg_iter   = 0
+reltol         = 1.e-10
+do_plots       = 0

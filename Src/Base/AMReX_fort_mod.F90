@@ -11,13 +11,11 @@ module amrex_fort_module
 
 #ifdef AMREX_USE_FLOAT
   integer, parameter :: amrex_real = c_float
-  ! We could/should use Fortran 2008 c_sizeof here.
-  integer (kind=c_size_t), parameter :: amrex_real_size = 4_c_size_t
 #else
   integer, parameter :: amrex_real = c_double
-  ! We could/should use Fortran 2008 c_sizeof here.
-  integer (kind=c_size_t), parameter :: amrex_real_size = 8_c_size_t
 #endif
+  integer (kind=c_size_t), parameter :: amrex_real_size = &
+       int(storage_size(1._amrex_real)/8, c_size_t)
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
   integer, parameter :: amrex_particle_real = c_float

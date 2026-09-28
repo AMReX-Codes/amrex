@@ -7,9 +7,9 @@ SDCstruct::SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in)
   Nnodes=Nnodes_in;
   Npieces=Npieces_in;
 
-  qnodes= new Real[Nnodes];
-  Qall= new Real[4*(Nnodes-1)*Nnodes];
-  Nflags= new int[Nnodes];
+  qnodes.resize(Nnodes);
+  Qall.resize(4*(Nnodes-1)*Nnodes);
+  Nflags.resize(Nnodes);
 
   Qgauss.resize(Nnodes-1, Vector<Real>(Nnodes));
   Qexp.resize(Nnodes-1, Vector<Real>(Nnodes));
@@ -17,7 +17,7 @@ SDCstruct::SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in)
   QLU.resize(Nnodes-1, Vector<Real>(Nnodes));
 
   //  Make the quadrature tables
-  SDC_quadrature(&qtype, &Nnodes, &Nnodes,qnodes,Nflags, &Qall[0]);
+  SDC_quadrature(&qtype, &Nnodes, &Nnodes,qnodes.data(),Nflags.data(),Qall.data());
 
   //  Load the quadrature nodes into their spots
   for ( int j = 0; j < Nnodes-1; ++j)
@@ -99,7 +99,7 @@ void SDCstruct::SDC_rhs_k_plus_one(MultiFab& sol_new, Real dt,int sdc_m)
   Real qij;
 
   //  Copy first the initial value
-  MultiFab::Copy(sol_new,sol[0], 0, 0, 1, 0);
+  MultiFab::Copy(sol_new,sol[0], 0, 0, sol_new.nComp(), 0);
   for ( MFIter mfi(sol_new); mfi.isValid(); ++mfi )
     {
       sol_new[mfi].saxpy(1.0,res[sdc_m][mfi]);

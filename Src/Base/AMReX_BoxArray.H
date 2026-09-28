@@ -330,8 +330,11 @@ struct BATbndryReg
                 m_loshft[d] = 1;
                 m_hishft[d] = 1;
             }
-            m_doilo = IntVect(0);
-            m_doihi = nodal;
+            m_doilo = IntVect(a_extent_rad);
+            m_doihi = IntVect(a_extent_rad);
+            m_doihi += nodal;
+            m_doilo[d] = 0;
+            m_doihi[d] = nodal[d];
         } else {
             // BndryRegister
             if (m_face.isLow()) {
@@ -344,11 +347,13 @@ struct BATbndryReg
             m_doilo = IntVect(a_extent_rad);
             m_doihi = IntVect(a_extent_rad);
             m_doihi += nodal;
-            if (m_face.isLow()) {  // domain of influence in index space
+            // domain of influence in index space, the inverse of the shifts
+            int const in_doi = (a_in_rad > 1) ? a_in_rad-1 : 0;
+            if (m_face.isLow()) {
                 m_doilo[d] = a_out_rad;
-                m_doihi[d] = 0;
+                m_doihi[d] = in_doi;
             } else {
-                m_doilo[d] = 0;
+                m_doilo[d] = in_doi;
                 m_doihi[d] = a_out_rad;
             }
         }
@@ -822,6 +827,17 @@ public:
      * \param max_size Direction-wise maximum sizes.
      */
     BoxArray& minmaxSize (const IntVect& min_size, const IntVect& max_size);
+
+    /**
+     * \brief Replace the Boxes with a different partition of the same cells.
+     *
+     * Unlike define(), the cached simplified BoxList is kept, because the
+     * union of the Boxes does not change.  \p bl must cover exactly the
+     * same cells as the current Boxes.
+     *
+     * \param bl New Boxes.
+     */
+    void repartition (BoxList&& bl);
 
     /**
      * \brief Refine each Box in the BoxArray by \p refinement_ratio.

@@ -46,7 +46,7 @@ def doit(defines, undefines, comp, allow_diff_comp):
         elif comp == "nvhpc":
             comp_macro = "__NVCOMPILER"
             comp_id    = "NVHPC"
-        elif comp == "llvm":
+        elif comp == "llvm" or comp == "llvm-flang":
             comp_macro = "__llvm__"
             comp_id    = "Clang/LLVM"
         elif comp == "nec":
@@ -94,8 +94,8 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--comp",
                         help="compiler",
-                        choices=["gnu","intel","intel-llvm","intel-classic","cray","pgi","nvhpc","llvm","nag","nec","ibm",
-                                 "armclang","hip","sycl"])
+                        choices=["gnu","intel","intel-llvm","intel-classic","cray","pgi","nvhpc","llvm","llvm-flang",
+                                 "nag","nec","ibm","armclang","hip","sycl"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])
