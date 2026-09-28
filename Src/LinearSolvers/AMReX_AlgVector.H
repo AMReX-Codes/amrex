@@ -156,7 +156,7 @@ public:
     [[nodiscard]] T sum (bool local = false) const;
 
     /**
-     * \brief Return the infinity norm.
+     * \brief Return the infinity norm.  A NaN counts as infinity.
      *
      * By default, this returns the global norm over all MPI ranks. If
      * `local` is true, it returns the norm over the locally stored entries
@@ -353,9 +353,10 @@ T AlgVector<T,Allocator>::norminf (bool local) const
 {
     Long n = m_data.size();
     T const* p = m_data.data();
+    Math::detail::AbsNanToInf<T> const absinf{};
     T r = Reduce::Max<T>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
                          {
-                             return amrex::Math::abs(p[i]);
+                             return absinf(p[i]);
                          });
     if (!local) {
         ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());

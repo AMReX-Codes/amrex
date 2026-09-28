@@ -2393,6 +2393,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
             const MultiFab& vfrac = factory->getVolFrac();
+            // |r*vfrac| with NaN as +inf; covered cells do not count.
+            Math::detail::AbsNanToInf<Real> const absinf{};
             if (amrlev == finest_level) {
 #ifdef AMREX_USE_GPU
                 if (Gpu::inLaunchRegion()) {
@@ -2403,8 +2405,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
                                          -> GpuTuple<Real>
                                      {
-                                         return std::abs(ma[box_no](i,j,k,n)
-                                                                 *vfrac_ma[box_no](i,j,k));
+                                         Real const vf = vfrac_ma[box_no](i,j,k);
+                                         return (vf > Real(0)) ? absinf(ma[box_no](i,j,k,n))*vf : Real(0);
                                      });
                 } else
 #endif
@@ -2418,7 +2420,9 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
+                            if (v(i,j,k) > Real(0)) {
+                                norm = std::max(norm, absinf(fab(i,j,k,n))*v(i,j,k));
+                            }
                         });
                     }
                 }
@@ -2434,8 +2438,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                          -> GpuTuple<Real>
                                      {
                                          if (mask_ma[box_no](i,j,k)) {
-                                             return std::abs(ma[box_no](i,j,k,n)
-                                                                     *vfrac_ma[box_no](i,j,k));
+                                             Real const vf = vfrac_ma[box_no](i,j,k);
+                                             return (vf > Real(0)) ? absinf(ma[box_no](i,j,k,n))*vf : Real(0);
                                          } else {
                                              return Real(0.0);
                                          }
@@ -2453,8 +2457,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            if (mask(i,j,k)) {
-                                norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
+                            if (mask(i,j,k) && v(i,j,k) > Real(0)) {
+                                norm = std::max(norm, absinf(fab(i,j,k,n))*v(i,j,k));
                             }
                         });
                     }

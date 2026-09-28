@@ -880,6 +880,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     m_init_resnorm0 = resnorm0;
     m_rhsnorm0 = rhsnorm0;
 
+    if (!is_nsolve && !(amrex::isfinite(resnorm0) && amrex::isfinite(rhsnorm0))) {
+        if ( throw_exception ) {
+            throw error("MLMG: rhs or initial residual is not finite.");
+        } else {
+            amrex::Abort("MLMG: rhs or initial residual is not finite");
+        }
+    }
+
     RT max_norm = resnorm0;
     std::string norm_name = "resid0";
     switch (norm_type) {
@@ -960,7 +968,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
-                if (composite_norminf > RT(1.e20)*max_norm)
+                if (composite_norminf > RT(1.e20)*max_norm || !amrex::isfinite(composite_norminf))
                 {
                     if (verbose > 0) {
                         amrex::Print() << print_ident << "MLMG: Failing to converge after " << iter+1 << " iterations."

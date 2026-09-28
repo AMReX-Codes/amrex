@@ -84,15 +84,6 @@ MyTest::solve ()
     // In region with overset mask = 0, phi has valid solution and rhs is zero.
     mlmg.solve(GetVecOfPtrs(phi), GetVecOfConstPtrs(rhs), tol_rel, Real(0.0));
 
-    // A failed solve often returns NaNs.  Check for them explicitly, because
-    // the max-norm checks used by these tests silently drop NaNs.
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        if (phi[ilev].contains_nan(0, phi[ilev].nComp(), 0)) {
-            amrex::Abort("MyTest::solve: solution contains NaN on level "
-                         + std::to_string(ilev));
-        }
-    }
-
     if (do_overset) { checkOversetCells(); }
 }
 

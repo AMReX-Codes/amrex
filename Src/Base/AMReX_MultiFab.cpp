@@ -575,11 +575,7 @@ MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) con
         r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
         {
-#if defined(_WIN32)
-            return Gpu::isnan(ma[box_no](i,j,k,n+scomp)) || Gpu::isinf(ma[box_no](i,j,k,n+scomp));
-#else
-            return !amrex::Math::isfinite(ma[box_no](i,j,k,n+scomp));
-#endif
+            return !amrex::isfinite(ma[box_no](i,j,k,n+scomp));
         });
     } else
 #endif
@@ -593,7 +589,7 @@ MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) con
             Array4<Real const> const& fab = this->const_array(mfi);
             AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
             {
-                r = r || !amrex::Math::isfinite(fab(i,j,k,n+scomp));
+                r = r || !amrex::isfinite(fab(i,j,k,n+scomp));
             });
         }
     }

@@ -651,7 +651,7 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
                                << m_rnorm << ", " << m_rnorm/m_bnorm << "\n";
             }
             break;
-        } else if (m_rnorm > T(1.e20) * m_init_rnorm || std::isnan(m_rnorm)) {
+        } else if (m_rnorm > T(1.e20) * m_init_rnorm || amrex::isnan(m_rnorm)) {
             if (m_verbose > 0) {
                 amrex::Print() << m_print_ident << "AMG: Failing to converge after " << iter+1 << " iterations."
                                << " rnorm, rnorm/bnorm = "
@@ -711,7 +711,7 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
             krylov_rnorm = s.getResidualNorm();
             m_rnorm = compute_rnorm(*m_mat, a_sol, a_rhs, m_res[0]);
             if (m_fixediter > 0 || m_rnorm <= res_target || krylov_rnorm > res_target ||
-                m_niters >= niters || s.getNumIters() == 0 || std::isnan(m_rnorm)) {
+                m_niters >= niters || s.getNumIters() == 0 || amrex::isnan(m_rnorm)) {
                 break;
             }
             if (m_verbose >= 2) {
@@ -745,7 +745,7 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
         run(m_krylov_pcg->getSolver());
     }
 
-    if (std::isnan(m_rnorm) || m_rnorm > T(1.e20) * m_init_rnorm) { blew_up(); }
+    if (amrex::isnan(m_rnorm) || m_rnorm > T(1.e20) * m_init_rnorm) { blew_up(); }
 
     if (m_verbose >= 1) {
         amrex::Print() << m_print_ident << "AMG(" << name << "): Final Iter. " << m_niters

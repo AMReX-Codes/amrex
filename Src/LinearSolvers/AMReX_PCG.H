@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Math.H>
 #include <AMReX_Print.H>
 
 #include <cmath>
@@ -136,13 +137,13 @@ void PCG<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int 
     m_linop->precond(z, r);
     m_linop->assign(p, z);
     RT rz = m_linop->dotProduct(r, z);
-    if (rz <= RT(0) || !std::isfinite(rz)) { m_status = 3; }
+    if (rz <= RT(0) || !amrex::isfinite(rz)) { m_status = 3; }
 
     for (int iter = 1; iter <= a_its && m_status == -1; ++iter)
     {
         m_linop->apply(q, p);
         RT const pq = m_linop->dotProduct(p, q);
-        if (pq <= RT(0) || !std::isfinite(pq)) { m_status = 2; break; }
+        if (pq <= RT(0) || !amrex::isfinite(pq)) { m_status = 2; break; }
         RT const alpha = rz/pq;
 
         m_linop->increment(a_sol, p, alpha);
@@ -158,12 +159,12 @@ void PCG<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int 
         }
 
         if (converged(rnorm)) { m_status = 0; break; }
-        if (!std::isfinite(rnorm)) { m_status = 3; break; }
+        if (!amrex::isfinite(rnorm)) { m_status = 3; break; }
         if (iter == a_its) { break; }
 
         m_linop->precond(z, r);
         RT const rz_new = m_linop->dotProduct(r, z);
-        if (rz_new <= RT(0) || !std::isfinite(rz_new)) { m_status = 3; break; }
+        if (rz_new <= RT(0) || !amrex::isfinite(rz_new)) { m_status = 3; break; }
         RT const beta = rz_new/rz;
         rz = rz_new;
 

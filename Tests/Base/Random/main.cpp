@@ -121,13 +121,8 @@ void test_engine_intervals ()
 
         Real const g1 = amrex::RandomGamma(Real(2.5), Real(1.0), engine);
         Real const g2 = amrex::RandomGamma(Real(0.4), Real(1.0), engine); // alpha < 1 branch
-        // Finiteness is expressed as a comparison rather than with
-        // amrex::Math::isfinite, which is std::isfinite outside SYCL and is a
-        // host-only function to nvcc when MSVC is the host compiler.  Both a
-        // NaN and an infinity fail `x <= max()`, so this is the same test.
-        constexpr Real real_max = std::numeric_limits<Real>::max();
-        if (!(g1 > Real(0) && g1 <= real_max) ||
-            !(g2 > Real(0) && g2 <= real_max)) {
+        if (!(g1 > Real(0) && amrex::isfinite(g1)) ||
+            !(g2 > Real(0) && amrex::isfinite(g2))) {
             Gpu::Atomic::AddNoRet(p_bad_gamma, Long(1));
         }
     });

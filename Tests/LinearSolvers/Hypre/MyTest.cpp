@@ -272,8 +272,7 @@ MyTest::solve ()
                            reltol, 0.0, max_iter);
     }
 
-    // A failed solve often returns NaNs.  Check for them explicitly, because
-    // the max-norm checks used by these tests silently drop NaNs.
+    // Unlike MLMG, the hypre solve does not stop on a NaN.
     if (phi.contains_nan(0, phi.nComp(), 0)) {
         amrex::Abort("MyTest::solve: solution contains NaN");
     }

@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_Math.H>
 #include <AMReX_Parser_Y.H>
 #include <amrex_parser.tab.h>
 
@@ -239,7 +240,7 @@ bool parser_is_integer (struct parser_node* node)
 {
     if (node && node->type == PARSER_NUMBER) {
         auto v = parser_get_number(node);
-        return std::isfinite(v) && v == std::floor(v);
+        return amrex::isfinite(v) && v == std::floor(v);
     } else {
         return false;
     }

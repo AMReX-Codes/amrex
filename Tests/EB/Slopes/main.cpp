@@ -188,7 +188,7 @@ test_dir (int dir, Real garbage)
         const int kern = t % 2;
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             const Real got = h_slopes[std::size_t(t)*AMREX_SPACEDIM+d];
-            if (!std::isfinite(got) || std::abs(got-expected[d]) > tol*(Real(1.)+std::abs(expected[d]))) {
+            if (!amrex::isfinite(got) || std::abs(got-expected[d]) > tol*(Real(1.)+std::abs(expected[d]))) {
                 ++nfail;
                 amrex::Print() << "FAIL: dir = " << dir
                                << ", index = " << h_pos[ip]

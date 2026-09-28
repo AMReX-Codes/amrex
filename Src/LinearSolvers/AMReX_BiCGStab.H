@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Math.H>
 #include <AMReX_Print.H>
 
 #include <cmath>
@@ -146,7 +147,7 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
     for (int iter = 1; iter <= a_its; ++iter)
     {
         RT const rho = m_linop->dotProduct(rh, r);
-        if (rho == RT(0) || !std::isfinite(rho)) { m_status = 2; break; }
+        if (rho == RT(0) || !amrex::isfinite(rho)) { m_status = 2; break; }
 
         if (iter == 1) {
             m_linop->assign(p, r);
@@ -161,7 +162,7 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
         m_linop->apply(v, ph);
 
         RT const rhv = m_linop->dotProduct(rh, v);
-        if (rhv == RT(0) || !std::isfinite(rhv)) { m_status = 3; break; }
+        if (rhv == RT(0) || !amrex::isfinite(rhv)) { m_status = 3; break; }
         alpha = rho/rhv;
 
         m_linop->increment(a_sol, ph, alpha);
@@ -182,9 +183,9 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
         m_linop->apply(t, sh);
 
         RT const tt = m_linop->dotProduct(t, t);
-        if (tt == RT(0) || !std::isfinite(tt)) { m_status = 4; break; }
+        if (tt == RT(0) || !amrex::isfinite(tt)) { m_status = 4; break; }
         omega = m_linop->dotProduct(t, r) / tt;
-        if (omega == RT(0) || !std::isfinite(omega)) { m_status = 5; break; }
+        if (omega == RT(0) || !amrex::isfinite(omega)) { m_status = 5; break; }
 
         m_linop->increment(a_sol, sh, omega);
         m_linop->increment(r, t, -omega);
