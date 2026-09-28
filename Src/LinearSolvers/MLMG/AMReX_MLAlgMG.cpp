@@ -22,6 +22,14 @@ namespace amrex {
 namespace {
     // A periodic direction two cells wide at this level gives a row two
     // entries with the same column. Sum them and invalidate the second.
+    bool hasDuplicateColumns (Geometry const& geom)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (geom.isPeriodic(idim) && geom.Domain().length(idim) <= 2) { return true; }
+        }
+        return false;
+    }
+
     void mergeDuplicateColumns (Gpu::DeviceVector<Real>& mat, Gpu::DeviceVector<Long>& cols,
                                 Gpu::DeviceVector<Long> const& row_offset, Long nrows)
     {
@@ -307,10 +315,13 @@ MLAlgMG::Impl::assembleNodal (MLNodeLinOp const& linop)
     AMREX_HOST_DEVICE_FOR_1D(1, i, { amrex::ignore_unused(i); *last = total; });
     Gpu::streamSynchronize();
 
-    mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+    bool const merged = hasDuplicateColumns(m_geom);
+    if (merged) {
+        mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+    }
 
     m_A.define(m_part, mat.data(), cols.data(), nnz, row_offset.data(),
-               CsrSorted{false}, CsrValid{false});
+               CsrSorted{false}, CsrValid{!merged});
 }
 
 MLAlgMG::MLAlgMG (int mglev, BoxArray const& grids, DistributionMapping const& dmap,
@@ -587,7 +598,9 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
     ParallelFor(1, [=] AMREX_GPU_DEVICE (Long) noexcept { *last = nentries; });
     Gpu::streamSynchronize();
 
-    mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+    if (hasDuplicateColumns(m_geom)) {
+        mergeDuplicateColumns(mat, cols, row_offset, m_nrows_proc);
+    }
 
     m_A.define(m_part, mat.data(), cols.data(), nentries, row_offset.data(),
                CsrSorted{false}, CsrValid{false});
