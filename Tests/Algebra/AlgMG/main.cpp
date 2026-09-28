@@ -43,6 +43,7 @@ struct Params {
     int block = 4;
     Real eps = Real(1.e-3);
     int mlmg = 1;           // also solve with MLMG for comparison
+    int mlmg_repeat = 1;    // solve this many times with the same MLMG object
     Vector<std::string> mlmg_types{"geometric"}; // MLMG multigrid types to run
     int max_grid_size = 64; // for MLMG
     std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
@@ -190,6 +191,10 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
     mlmg.setVerbose(p.verbose.value_or(0));
     mlmg.setMaxIter(p.max_iter);
     mlmg.setThrowException(true);
+    // The callback runs when MLMG builds its AlgMG solver; keep a handle to
+    // check that repeated solves reuse the setup.
+    AlgMG<Real>* algmg_ptr = nullptr;
+    mlmg.setAlgMGOptions([&] (AlgMG<Real>& amg) { algmg_ptr = &amg; });
     mlmg.apply({&rhs}, {&exact}); // rhs = A*phi with the same operator
 
     bool geometric_failed = false;
@@ -199,14 +204,24 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
 
         std::string failure;
         Gpu::streamSynchronize();
-        auto const t0 = amrex::second();
-        try {
-            mlmg.solve({&phi}, {&rhs}, p.reltol, Real(0));
-        } catch (std::exception const& e) {
-            failure = e.what();
+        auto t0 = amrex::second();
+        // Repeated solves reuse the cached algebraic setup.
+        for (int rep = 0; rep < p.mlmg_repeat && failure.empty(); ++rep) {
+            phi.setVal(0);
+            Gpu::streamSynchronize();
+            t0 = amrex::second();
+            try {
+                mlmg.solve({&phi}, {&rhs}, p.reltol, Real(0));
+            } catch (std::exception const& e) {
+                failure = e.what();
+            }
         }
         Gpu::streamSynchronize();
         auto const t1 = amrex::second();
+        if (failure.empty() && p.mlmg_repeat > 1 && algmg_ptr && algmg_ptr->getNumSetups() != 1) {
+            failure = "AlgMG setup ran " + std::to_string(algmg_ptr->getNumSetups())
+                + " times in " + std::to_string(p.mlmg_repeat) + " solves";
+        }
 
         mlmg.compResidual({&res}, {&phi}, {&rhs});
         Real const rel_res = res.norminf(0, 0) / rhs.norminf(0, 0);
@@ -239,6 +254,8 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
             } else if (geometric_failed && !mlmg.usedAlgMG()) {
                 failures.push_back(p.problem + ": MLMG hybrid did not switch to AlgMG");
             }
+        } else if (mgt == "algebraic" && !failure.empty()) {
+            failures.push_back(p.problem + ": MLMG algebraic " + failure);
         }
     }
 }
@@ -630,6 +647,7 @@ int main (int argc, char* argv[])
         pp.query("block", p.block);
         pp.query("eps", p.eps);
         pp.query("mlmg", p.mlmg);
+        pp.query("mlmg_repeat", p.mlmg_repeat);
         pp.queryarr("mlmg_types", p.mlmg_types);
         pp.query("max_grid_size", p.max_grid_size);
         // Seed of the random PMIS weights; each rank adds its rank.

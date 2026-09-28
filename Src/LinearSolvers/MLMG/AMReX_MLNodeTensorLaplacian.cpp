@@ -224,6 +224,7 @@ MLNodeTensorLaplacian::prepareForSolve ()
     MLNodeLinOp::prepareForSolve();
 
     buildMasks();
+    m_needs_update = false;
 }
 
 void

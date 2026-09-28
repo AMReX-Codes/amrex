@@ -355,6 +355,8 @@ public:
     void setThrowException (bool b) { m_throw_exception = b; }
 
     [[nodiscard]] int getNumIters () const { return m_niters; }
+    //! Number of setups run so far (for checks that the setup is reused).
+    [[nodiscard]] int getNumSetups () const { return m_num_setups; }
     [[nodiscard]] T getResidualNorm () const { return m_rnorm; }
     //! Number of levels; 0 before setup.
     [[nodiscard]] int numLevels () const { return int(m_a.size()); }
@@ -370,6 +372,7 @@ private:
     enum PointType : int { undecided = 0, fine = 1, coarse = 2 };
 
     bool m_prepared = false;
+    int m_num_setups = 0;
     bool m_smoothers_stale = false;
     bool m_throw_exception = false;
     int m_verbose = 0;
@@ -949,6 +952,7 @@ void AlgMG<T>::setup ()
 {
     BL_PROFILE("AlgMG::setup");
 
+    ++m_num_setups;
     clear_levels();
     m_a.push_back(m_mat);
     m_mat->setColumnPartition(m_mat->partition()); // square: local column indexing

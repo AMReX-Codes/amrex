@@ -350,9 +350,12 @@ public:
     /**
      * \brief Adjust the AlgMG solvers MLMG builds (level 0 and bottom).
      *
-     * The callback runs after MLMG has applied its own settings (bottom
-     * verbosity and tolerances, singularity, BiCGStab acceleration), so it
-     * can override any of them.
+     * The callback runs once, when a solver is built for an assembled
+     * matrix, so it can set the multigrid parameters (Krylov acceleration,
+     * smoother, interpolation, strength, coarsening) without repeating the
+     * setup. MLMG applies its own bottom tolerances, iteration limit,
+     * verbosity, exception and singularity settings on every solve; those
+     * cannot be changed here.
      */
     void setAlgMGOptions (std::function<void(AlgMG<RT>&)> f) {
         m_algmg_options = std::move(f);
@@ -933,6 +936,9 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
+        // The algebraic correction has zero ghost cells.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cf_strategy != CFStrategy::ghostnodes || linop.getNGrow() == 0,
+            "MLMG: AlgMG does not support the ghostnodes strategy with ghost cells");
         // The assembled matrix supports boundary stencils up to third order
         // and must match the operator, as for hypre and PETSc.
         linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
@@ -2576,10 +2582,12 @@ MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular, bool with_options)
     a.setVerbose(bottom_verbose);
     a.setPrintIndentation(print_ident + "    ");
     a.setThrowException(throw_exception);
-    a.setSingular(singular);
-    // The user's callback runs once per assembled matrix: it may change
-    // settings that force a new setup.
+    // Settings that select the setup (singular flag, Krylov type, the user's
+    // options) are applied once per assembled matrix. Reapplying them on
+    // every solve could toggle a value against the callback and redo the
+    // expensive AlgMG setup each time.
     if (with_options) {
+        a.setSingular(singular);
         a.setKrylovSolver(AlgMG<RT>::KrylovSolver::bicgstab);
         if (m_algmg_options) { m_algmg_options(a); }
     }
@@ -2641,7 +2649,8 @@ MLMGT<MF>::algmgLevel0Solve ()
     configureAlgMG(*m_algmg_level0, linop.isSingular(0), fresh);
     algmgSolve(*m_algmg_level0, cor[0][0], res[0][0]);
 
-    // Known overset cells must not receive a correction.
+    // Known overset cells must not receive a correction; the matrix rows
+    // there are identities with a zero rhs, so this is a safety pass.
     linop.applyOverset(0, cor[0][0]);
 
     if (linop.isSingular(0) && linop.getEnforceSingularSolvable()) {

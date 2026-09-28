@@ -35,8 +35,8 @@ public:
      * \brief Cell-centered operator alpha*a - beta*div(b grad): rows are all
      * cells except those of fully covered boxes.
      *
-     * The a coefficient may be nullptr (zero) and the b coefficients nullptrs
-     * (one). \p eb_bcoef is the EB Dirichlet b coefficient or nullptr.
+     * The a coefficient may be nullptr (zero); the b coefficients are
+     * required. \p eb_bcoef is the EB Dirichlet b coefficient or nullptr.
      * \p bctype and \p bcl give the domain BC type and location per box and
      * face, and \p maxorder the order of the Dirichlet boundary stencil
      * (2 or 3).

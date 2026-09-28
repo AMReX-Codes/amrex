@@ -434,18 +434,10 @@ MLAlgMG::Impl::defineCell (BoxArray const& grids, DistributionMapping const& dma
         alpha.setVal(Real(0.0));
         acoef = &alpha;
     }
-    Array<MultiFab,AMREX_SPACEDIM> beta;
-    Array<MultiFab const*,AMREX_SPACEDIM> bc = bcoef;
-    if (bc[0] == nullptr) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)),
-                              dmap, 1, 0, MFInfo().SetArena(The_Async_Arena()), factory);
-            beta[idim].setVal(Real(1.0));
-            bc[idim] = &beta[idim];
-        }
-    }
+    // The operator supplies the b coefficients (with metric terms if any).
+    AMREX_ALWAYS_ASSERT(bcoef[0] != nullptr);
 
-    assembleCell(factory, overset_mask, ascalar, bscalar, *acoef, bc, eb_bcoef,
+    assembleCell(factory, overset_mask, ascalar, bscalar, *acoef, bcoef, eb_bcoef,
                  bctype, bcl, maxorder);
 
     m_x.define(m_part);

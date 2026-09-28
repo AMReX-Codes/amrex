@@ -533,9 +533,11 @@ component :cpp:`MultiFab` problems.  When MLMG serves as a preconditioner
 V-cycle on the coarsest AMR level, so the preconditioner stays a fixed
 linear operation; the hybrid type needs a convergence test and is not
 available there or with :cpp:`setFixedIter`.  :cpp:`MLMG::setAlgMGOptions` takes a
-callback that receives the :cpp:`AlgMG` solver so that its settings, such
-as the Krylov acceleration (BiCGStab by default when driven by MLMG), can be
-changed; code that calls :cpp:`AlgMG` members in the callback includes
+callback that receives the :cpp:`AlgMG` solver so that its multigrid
+parameters, such as the Krylov acceleration (BiCGStab by default when driven
+by MLMG), can be changed; the tolerances, iteration limit and verbosity come
+from the bottom-solver settings.  The callback runs once per assembled matrix.
+Code that calls :cpp:`AlgMG` members in the callback includes
 ``AMReX_AlgMG.H``.  The type can also be read from an inputs file:
 
 .. highlight:: c++

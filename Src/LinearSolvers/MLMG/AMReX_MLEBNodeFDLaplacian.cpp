@@ -41,6 +41,7 @@ MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
 void
 MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept
 {
+    m_needs_update = true;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         m_sigma[i] = a_sigma[i];
     }
