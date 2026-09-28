@@ -565,6 +565,9 @@ of the boundary value from the cell face to the center of the ghost cell, where
 the extrapolated value is then used in the regular stencil.  For example,
 :cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
 to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
+types assemble the operator into a matrix that supports orders up to 3, so MLMG
+lowers a higher order to 3 when they are used.
 
 
 Curvilinear Coordinates

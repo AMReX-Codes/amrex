@@ -920,6 +920,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         }
     }
 #endif
+    // The assembled matrix supports boundary stencils up to third order.
+    if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
+        linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
+    }
 
     bool is_nsolve = linop.m_parent;
 
