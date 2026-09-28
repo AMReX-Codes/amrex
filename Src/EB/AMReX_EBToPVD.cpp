@@ -245,7 +245,7 @@ void EBToPVD::WriteSTL (std::string const& filename) const
    for (auto const& polygon : m_connectivity) {
       int const npoints = polygon[0];
       AMREX_ALWAYS_ASSERT(npoints <= 6);
-      if (npoints < 3) { continue; } // no polygon to triangulate
+      if (npoints < 3) { continue; }
       auto const& v1 = m_points[polygon[1]];
       for (int n = 2; n < npoints; ++n) {
          auto const& v2 = m_points[polygon[n]];

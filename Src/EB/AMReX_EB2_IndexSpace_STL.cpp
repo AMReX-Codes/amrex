@@ -13,8 +13,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
     STLtools stl_tools;
-    // The marching-cubes generator requires a watertight, consistently oriented
-    // STL; the flag enables that validation when the file is read.
+    // Marching cubes requires a watertight, consistently oriented STL.
     stl_tools.setUseMarchingCubes(GetGeometryMethod() == GeometryMethod::marching_cubes);
     stl_tools.setBVHOptimization(bvh_optimization);
     stl_tools.read_stl_file(stl_file, stl_scale, stl_center, stl_reverse_normal);

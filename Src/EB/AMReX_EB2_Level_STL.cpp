@@ -17,8 +17,8 @@ STLLevel::STLLevel (IndexSpace const* is, STLtools const& stl_tools, const Geome
     } else if (amrex::Verbose() && support_mvmc) {
         amrex::Warning("STLlevel: support_mvmc = true is not supported yet");
     }
-    define_fine_with_method(stl_tools,geom,max_grid_size,ngrow,extend_domain_face,num_crse_opt,
-                            finest_level);
+    define_fine_with_method(stl_tools, geom, max_grid_size, ngrow, extend_domain_face,
+                            num_crse_opt, finest_level);
 }
 
 STLLevel::STLLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,

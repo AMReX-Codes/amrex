@@ -133,8 +133,6 @@ function (setup_test _dim _srcs  _inputs)
 endfunction ()
 
 # Register another inputs-file variant for an executable created by setup_test.
-# Keep launcher behavior in one place so variants cannot silently become
-# serial-only in MPI or use a different OpenMP thread count than the base test.
 function (add_test_variant _test_name _target _inputs_filename)
    set(_cmd $<TARGET_FILE:${_target}> ${_inputs_filename} ${ARGN})
 
