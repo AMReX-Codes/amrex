@@ -17,6 +17,7 @@ void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
     for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
+    m_needs_update = true;
 }
 
 void
@@ -36,6 +37,7 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
     m_sigma[4] =          - a_beta[1]*a_beta[2];
     m_sigma[5] = Real(1.) - a_beta[2]*a_beta[2];
 #endif
+    m_needs_update = true;
 }
 
 GpuArray<Real,MLNodeTensorLaplacian::nelems>

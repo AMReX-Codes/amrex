@@ -704,6 +704,11 @@ public:
     //! MLMG's own settings every solve; the user's options only when `with_options`.
     void configureAlgMG (MLAlgMG& s, bool singular, bool with_options);
 
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
+    //! Solve with the cached AlgMG solver: one V-cycle as a preconditioner.
+    void algmgSolve (MLAlgMG& s, MF& x, MF const& b);
+
     //! Hybrid mode: is it time to give up on the geometric phase? `norms`
     //! holds the residual norms of the geometric iterations so far.
     [[nodiscard]] bool hybridShouldSwitch (Vector<RT> const& norms, RT max_norm,
@@ -928,10 +933,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
-    }
-    // The assembled matrix supports boundary stencils up to third order and
-    // must match the operator, as for hypre and PETSc.
-    if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
+        // The assembled matrix supports boundary stencils up to third order
+        // and must match the operator, as for hypre and PETSc.
         linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
     }
 
@@ -1020,6 +1023,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         bool hybrid_composite = false; // the reported residual became the composite one
         RT best_norm = resnorm0;
         if (hybrid) {
+            if (namrlevs > 1) { best_norm = ResNormInf(finest_amr_lev); }
             best_sol.resize(namrlevs);
             for (int alev = 0; alev < namrlevs; ++alev) {
                 const IntVect ng = nGrowVect(sol[alev]);
@@ -2585,6 +2589,24 @@ template <typename MF>
 template <class TMF>
 requires (std::same_as<TMF,MultiFab>)
 void
+MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
+{
+    // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
+    if (precond_mode) {
+        s.applyVcycle(x, b);
+    } else {
+        try {
+            s.solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
+    }
+}
+
+template <typename MF>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
+void
 MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
 {
     const int amrlev = 0;
@@ -2595,16 +2617,7 @@ MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
     bool const fresh = (m_algmg_bottom == nullptr);
     if (fresh) { m_algmg_bottom = linop.makeAlgMG(mglev); }
     configureAlgMG(*m_algmg_bottom, linop.isBottomSingular(), fresh);
-    if (precond_mode) {
-        m_algmg_bottom->applyVcycle(x, b);
-    } else {
-        try {
-            m_algmg_bottom->solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)),
-                                  bottom_maxiter);
-        } catch (std::runtime_error const& e) {
-            throw error(e.what());
-        }
-    }
+    algmgSolve(*m_algmg_bottom, x, b);
 
     if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable()) {
         makeSolvable(amrlev, mglev, x);
@@ -2626,17 +2639,7 @@ MLMGT<MF>::algmgLevel0Solve ()
     bool const fresh = (m_algmg_level0 == nullptr);
     if (fresh) { m_algmg_level0 = linop.makeAlgMG(0); }
     configureAlgMG(*m_algmg_level0, linop.isSingular(0), fresh);
-    // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
-    if (precond_mode) {
-        m_algmg_level0->applyVcycle(cor[0][0], res[0][0]);
-    } else {
-        try {
-            m_algmg_level0->solve(cor[0][0], res[0][0], bottom_reltol,
-                                  std::max(bottom_abstol, RT(0)), bottom_maxiter);
-        } catch (std::runtime_error const& e) {
-            throw error(e.what());
-        }
-    }
+    algmgSolve(*m_algmg_level0, cor[0][0], res[0][0]);
 
     // Known overset cells must not receive a correction.
     linop.applyOverset(0, cor[0][0]);

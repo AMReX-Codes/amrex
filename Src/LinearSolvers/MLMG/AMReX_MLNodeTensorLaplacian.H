@@ -145,6 +145,9 @@ public:
 #endif
 
     [[nodiscard]] bool supportsAlgMG () const override { return true; }
+    //! True after setSigma or setBeta, so that cached matrices are rebuilt.
+    [[nodiscard]] bool needsUpdate () const final { return m_needs_update; }
+    void update () final { m_needs_update = false; }
     void fillAlgMatrix (int mglev, MFIter const& mfi,
                         Array4<Long const> const& gid,
                         Array4<int const> const& lid,
@@ -177,6 +180,7 @@ private:
     GpuArray<Real,nelems> scaledSigma (int amrlev, int mglev) const noexcept;
 
     GpuArray<Real,nelems> m_sigma;
+    bool m_needs_update = false;
     mutable int m_redblack = 0;
 };
 

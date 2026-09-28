@@ -341,7 +341,7 @@ public:
     //! stand-alone after the first solve or setup.
     void precond (AlgVector<T>& x, AlgVector<T> const& b);
     //! Coarsest-level solver (see BottomSolver). Default direct, which uses
-    //! smoother sweeps instead beyond setMaxDirectSize rows.
+    //! smoother sweeps instead beyond 1024 rows.
     void setBottomSolver (BottomSolver bs) {
         if (m_bottom_solver == bs) { return; }
         m_bottom_solver = bs;
@@ -350,11 +350,6 @@ public:
         m_bottom_n = -1;
     }
     void setBottomTol (T t) { m_bottom_reltol = t; }
-    //! Largest coarsest level solved directly (1024); smoother sweeps beyond.
-    void setMaxDirectSize (Long n) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= 32768, "AlgMG::setMaxDirectSize: at most 32768");
-        if (m_max_direct_size != n) { m_max_direct_size = n; m_bottom_n = -1; }
-    }
     void setBottomMaxIter (int n) { m_bottom_maxiter = n; }
     void setBottomVerbose (int v) { m_bottom_verbose = v; }
     void setThrowException (bool b) { m_throw_exception = b; }
@@ -412,9 +407,10 @@ private:
     int m_p_max_elmts = default_p_max_elmts;
     T m_trunc_factor = T(0);
     BottomSolver m_bottom_solver = BottomSolver::direct;
-    // Dense LU on every process. Beyond this size smoother sweeps are
-    // used, which keeps the cycle linear for the PCG and GMRES accelerators.
-    Long m_max_direct_size = 1024;
+    // Safety limit for the dense LU on every process; the coarsest level
+    // normally has a few rows (max_coarse_size). Beyond it smoother sweeps
+    // are used, which keeps the cycle linear for PCG and GMRES.
+    static constexpr Long max_direct_size = 1024;
     Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
     Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
     Vector<int> m_bottom_piv;
@@ -1077,8 +1073,8 @@ void AlgMG<T>::build_direct_bottom ()
     m_bottom_n = 0;
     m_bottom_lu.clear();
     m_bottom_piv.clear();
-    if (n < 1 || n > m_max_direct_size) {
-        if (m_verbose >= 1 && n > m_max_direct_size) {
+    if (n < 1 || n > max_direct_size) {
+        if (m_verbose >= 1 && n > max_direct_size) {
             amrex::Print() << m_print_ident << "AlgMG: coarsest level has " << n
                            << " rows, using smoother sweeps instead of the direct bottom solver\n";
         }
