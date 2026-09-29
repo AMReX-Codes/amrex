@@ -684,7 +684,7 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
         for (MFIter mfi(spmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             auto const& spectral = spmf.array(mfi);
-            auto const& box = mfi.validbox();
+            auto const& box = mfi.tilebox();
             amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 T a = facx*(T(i)+offset[0]);
