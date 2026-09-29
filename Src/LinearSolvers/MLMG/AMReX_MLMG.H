@@ -924,12 +924,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 #if (defined(AMREX_USE_HYPRE) || defined(AMREX_USE_PETSC)) && (AMREX_SPACEDIM > 1)
     if constexpr (IsFabArray_v<AMF>) {
         if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
-            int mo = linop.getMaxOrder();
             if (a_sol[0]->hasEBFabFactory()) {
                 linop.setMaxOrder(2);
-            } else {
-                linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
             }
+#ifdef AMREX_USE_HYPRE
+            else if (bottom_solver == BottomSolver::hypre && hypre_interface != Hypre::Interface::ij) {
+                linop.setMaxOrder(std::min(3, linop.getMaxOrder())); // 4 needs the IJ interface
+            }
+#endif
         }
     }
 #endif
@@ -939,9 +941,12 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         // The algebraic correction has zero ghost cells.
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cf_strategy != CFStrategy::ghostnodes || linop.getNGrow() == 0,
             "MLMG: AlgMG does not support the ghostnodes strategy with ghost cells");
-        // The assembled matrix supports boundary stencils up to third order
-        // and must match the operator, as for hypre and PETSc.
-        linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
+        // The matrix must match the operator; its EB stencil is at most third order.
+        if constexpr (IsFabArray_v<AMF>) {
+            if (a_sol[0]->hasEBFabFactory()) {
+                linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
+            }
+        }
     }
 
     bool is_nsolve = linop.m_parent;

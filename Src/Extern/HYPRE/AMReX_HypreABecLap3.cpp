@@ -319,7 +319,6 @@ HypreABecLap3::prepareSolver ()
     x = hypre_ij->x();
 
     const auto dx = geom.CellSizeArray();
-    const int bho = (m_maxorder > 2) ? 1 : 0;
     BaseFab<HYPRE_Int> ncols_fab;
 
     BaseFab<Real> mat_aos_fab, mat_vec_fab;
@@ -340,7 +339,7 @@ HypreABecLap3::prepareSolver ()
 
             int max_stencil_size;
             if  (fabtyp == FabType::regular) {
-                max_stencil_size = 2*AMREX_SPACEDIM+1;
+                max_stencil_size = (m_maxorder > 3) ? 4*AMREX_SPACEDIM+1 : 2*AMREX_SPACEDIM+1;
             } else {
                 max_stencil_size = AMREX_D_TERM(3,*3,*3);
             }
@@ -372,27 +371,16 @@ HypreABecLap3::prepareSolver ()
             {
                 auto osmsk = (m_overset_mask) ? m_overset_mask->const_array(mfi)
                                               : Array4<int const>();
-                constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
-                BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
-                    (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());
-
-                amrex::fill(tmpmatfab,
-                [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
-                                           int i, int j, int k)
-                {
-                    habec_ijmat(sten, ncols_a, i, j, k, cid_a,
-                                sa, afab, sb, dx, bfabs, bctype, bcl, bho, osmsk);
-                });
-
-                BaseFab<GpuArray<HYPRE_Int,stencil_size> > tmpcolfab
-                    (bx, 1, (GpuArray<HYPRE_Int,stencil_size>*)cols_aos_fab.dataPtr());
-
-                amrex::fill(tmpcolfab,
-                [=] AMREX_GPU_HOST_DEVICE (GpuArray<HYPRE_Int,stencil_size>& sten,
-                                           int i, int j, int k)
-                {
-                    habec_cols(sten, i, j, k, cid_a);
-                });
+                constexpr int NR = 2*AMREX_SPACEDIM+1;
+                if (m_maxorder > 3) {
+                    habec_ij_fill<2*NR-1>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                                          ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
+                                          m_maxorder, osmsk, false);
+                } else {
+                    habec_ij_fill<NR>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                                      ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
+                                      m_maxorder, osmsk, false);
+                }
             }
 #ifdef AMREX_USE_EB
             else
@@ -410,6 +398,7 @@ HypreABecLap3::prepareSolver ()
                 Array4<Real const> beb = (m_eb_b_coeffs) ? m_eb_b_coeffs->const_array(mfi)
                                                          : Array4<Real const>();
 
+                const int bho = (m_maxorder > 2) ? 1 : 0;
                 constexpr int stencil_size = AMREX_D_TERM(3,*3,*3);
                 BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
                     (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());

@@ -78,7 +78,7 @@ public:
      * \param abs_tol Absolute tolerance.
      * \param max_iter Maximum allowed iterations.
      * \param bndry   Boundary data.
-     * \param max_bndry_order Maximum order at the boundary.
+     * \param max_bndry_order Maximum order at the boundary (2 to 4; 2 or 3 with EB).
      */
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                 int max_iter, const BndryData& bndry, int max_bndry_order);

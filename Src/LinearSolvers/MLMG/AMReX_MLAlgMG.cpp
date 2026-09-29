@@ -457,7 +457,8 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
 
     amrex::ignore_unused(factory, eb_bcoef);
 
-    constexpr int reg_stencil = 2*AMREX_SPACEDIM+1;
+    constexpr int NR = 2*AMREX_SPACEDIM+1;
+    int const reg_stencil = (maxorder > 3) ? 2*NR-1 : NR;
 
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
     constexpr int eb_stencil = AMREX_D_TERM(3,*3,*3);
@@ -481,6 +482,7 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
         int ss = reg_stencil;
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
         if (m_flags && (*m_flags)[mfi].getType(mfi.validbox()) == FabType::singlevalued) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(maxorder <= 3, "MLAlgMG: EB supports maxorder <= 3");
             ss = eb_stencil;
         }
 #endif
@@ -493,7 +495,6 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
     Gpu::DeviceVector<Long> row_offset(m_nrows_proc+1);
 
     const auto dx = m_geom.CellSizeArray();
-    const int bho = (maxorder > 2) ? 1 : 0;
 
     for (MFIter mfi(m_gid); mfi.isValid(); ++mfi) {
         const Long nrows = m_nrows_grid[mfi];
@@ -526,29 +527,13 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
         if (ss == reg_stencil)
         {
             auto osmsk = overset_mask ? m_osm_grown.const_array(mfi) : Array4<int const>();
-            BaseFab<GpuArray<Real,reg_stencil>> tmpmatfab
-                (bx, 1, (GpuArray<Real,reg_stencil>*)matp);
-            amrex::fill(tmpmatfab,
-            [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,reg_stencil>& sten, int i, int j, int k)
-            {
-                habec_ijmat(sten, ncols_a, i, j, k, cid_a,
-                            sa, afab, sb, dx, bfabs, bct, bcloc, bho, osmsk);
-                if (osmsk && osmsk(i,j,k) != 0) { // drop couplings into known cells
-                    AMREX_D_TERM(if (osmsk(i-1,j,k) == 0) { sten[1] = Real(0.0); }
-                                 if (osmsk(i+1,j,k) == 0) { sten[2] = Real(0.0); },
-                                 if (osmsk(i,j-1,k) == 0) { sten[3] = Real(0.0); }
-                                 if (osmsk(i,j+1,k) == 0) { sten[4] = Real(0.0); },
-                                 if (osmsk(i,j,k-1) == 0) { sten[5] = Real(0.0); }
-                                 if (osmsk(i,j,k+1) == 0) { sten[6] = Real(0.0); })
-                }
-            });
-            BaseFab<GpuArray<Long,reg_stencil>> tmpcolfab
-                (bx, 1, (GpuArray<Long,reg_stencil>*)colp);
-            amrex::fill(tmpcolfab,
-            [=] AMREX_GPU_HOST_DEVICE (GpuArray<Long,reg_stencil>& sten, int i, int j, int k)
-            {
-                habec_cols(sten, i, j, k, cid_a);
-            });
+            if (maxorder > 3) {
+                habec_ij_fill<2*NR-1>(bx, matp, colp, ncols_a, cid_a, sa, afab, sb, dx, bfabs,
+                                      bct, bcloc, maxorder, osmsk, true);
+            } else {
+                habec_ij_fill<NR>(bx, matp, colp, ncols_a, cid_a, sa, afab, sb, dx, bfabs,
+                                  bct, bcloc, maxorder, osmsk, true);
+            }
         }
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
         else
@@ -564,6 +549,7 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
             auto const& barea_a = barea->const_array(mfi);
             auto const& bcent_a = bcent->const_array(mfi);
             Array4<Real const> beb = eb_bcoef ? eb_bcoef->const_array(mfi) : Array4<Real const>();
+            int const bho = (maxorder > 2) ? 1 : 0;
 
             BaseFab<GpuArray<Real,eb_stencil>> tmpmatfab
                 (bx, 1, (GpuArray<Real,eb_stencil>*)matp);
