@@ -193,11 +193,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #endif
         }
         if (!p) {
-            // out_of_memory_abort uses heap allocations,
-            // so we print an error before in case it doesn't work.
-            amrex::ErrorStream() <<
-                "Out of CPU memory: got nullptr from std::aligned_alloc, aborting...\n";
-            out_of_memory_abort("CPU memory", nbytes, "std::aligned_alloc returned nullptr");
+            throw_out_of_memory("CPU memory", nbytes, "std::aligned_alloc returned nullptr");
         }
 
 #ifndef _WIN32
@@ -217,9 +213,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
     {
         AMREX_HIP_OR_CUDA_OR_SYCL(
             auto ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped | hipHostMallocNonCoherent);
-            if (ret != hipSuccess) { p = nullptr; },
+            if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
             auto ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
-            if (ret != cudaSuccess) { p = nullptr; },
+            if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
             p = sycl::aligned_alloc_host(align_size, nbytes, Gpu::Device::syclContext())
         );
 
@@ -227,18 +223,14 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             freeUnused_protected();
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped | hipHostMallocNonCoherent);
-                if (ret != hipSuccess) { p = nullptr; },
+                if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
                 ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
-                if (ret != cudaSuccess) { p = nullptr; },
+                if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
                 p = sycl::aligned_alloc_host(align_size, nbytes, Gpu::Device::syclContext())
             );
         }
 
         if (!p) {
-            // out_of_memory_abort uses heap allocations,
-            // so we print an error before in case it doesn't work.
-            amrex::ErrorStream() <<
-                "Out of CPU pinned memory: got nullptr from host malloc, aborting...\n";
             std::string msg = "";
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 msg = "hipHostMalloc returned " + std::to_string(ret) +
@@ -247,7 +239,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                       ": " + cudaGetErrorString(ret),
                 msg = "sycl::aligned_alloc_host returned nullptr"
             );
-            out_of_memory_abort("CPU pinned memory", nbytes, msg);
+            throw_out_of_memory("CPU pinned memory", nbytes, msg);
         }
     }
     else
@@ -257,7 +249,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             free_mem_avail += freeUnused_protected(); // For CArena, mutex has already acquired
             if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail &&
                 arena_info.device_use_managed_memory) {
-                out_of_memory_abort("GPU memory", nbytes,
+                throw_out_of_memory("GPU memory", nbytes,
                                     "Free memory: " + std::to_string(free_mem_avail));
             }
         }
@@ -269,9 +261,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 auto ret = hipMallocManaged(&p, nbytes);
-                if (ret != hipSuccess) { p = nullptr; },
+                if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
                 auto ret = cudaMallocManaged(&p, nbytes);
-                if (ret != cudaSuccess) { p = nullptr; },
+                if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
                 p = sycl::aligned_alloc_shared(align_size, nbytes, Gpu::Device::syclDevice(),
                                                Gpu::Device::syclContext())
             );
@@ -280,9 +272,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 freeUnused_protected();
                 AMREX_HIP_OR_CUDA_OR_SYCL(
                     ret = hipMallocManaged(&p, nbytes);
-                    if (ret != hipSuccess) { p = nullptr; },
+                    if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
                     ret = cudaMallocManaged(&p, nbytes);
-                    if (ret != cudaSuccess) { p = nullptr; },
+                    if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
                     p = sycl::aligned_alloc_shared(align_size, nbytes, Gpu::Device::syclDevice(),
                                                    Gpu::Device::syclContext())
                 );
@@ -297,7 +289,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                           ": " + cudaGetErrorString(ret),
                     msg = "sycl::aligned_alloc_shared returned nullptr"
                 );
-                out_of_memory_abort("GPU managed memory", nbytes, msg);
+                throw_out_of_memory("GPU managed memory", nbytes, msg);
             }
 
 #ifdef AMREX_USE_HIP
@@ -319,9 +311,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
         {
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 auto ret = hipMalloc(&p, nbytes);
-                if (ret != hipSuccess) { p = nullptr; },
+                if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
                 auto ret = cudaMalloc(&p, nbytes);
-                if (ret != cudaSuccess) { p = nullptr; },
+                if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
                 p = sycl::aligned_alloc_device(align_size, nbytes, Gpu::Device::syclDevice(),
                                                Gpu::Device::syclContext())
             );
@@ -330,9 +322,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 freeUnused_protected();
                 AMREX_HIP_OR_CUDA_OR_SYCL(
                     ret = hipMalloc(&p, nbytes);
-                    if (ret != hipSuccess) { p = nullptr; },
+                    if (ret != hipSuccess) { p = nullptr; (void)hipGetLastError(); },
                     ret = cudaMalloc(&p, nbytes);
-                    if (ret != cudaSuccess) { p = nullptr; },
+                    if (ret != cudaSuccess) { p = nullptr; (void)cudaGetLastError(); },
                     p = sycl::aligned_alloc_device(align_size, nbytes, Gpu::Device::syclDevice(),
                                                    Gpu::Device::syclContext())
                 );
@@ -347,7 +339,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                           ": " + cudaGetErrorString(ret),
                     msg = "sycl::aligned_alloc_device returned nullptr"
                 );
-                out_of_memory_abort("GPU device memory", nbytes, msg);
+                throw_out_of_memory("GPU device memory", nbytes, msg);
             }
         }
     }
@@ -713,7 +705,7 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
 }
 
 void
-Arena::out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
+Arena::throw_out_of_memory (std::string const& memory_type, std::size_t nbytes,
                             std::string const& error_msg)
 {
     std::ostringstream ss;
@@ -735,9 +727,7 @@ Arena::out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
     ss << "\nAMReX Arena usage so far:\n\n";
     PrintUsageToStream(ss, "");
 
-    ss << "\n\nOut of memory, see message above";
-
-    amrex::Abort(ss.str());
+    throw OutOfMemoryError(ss.str());
 }
 
 void

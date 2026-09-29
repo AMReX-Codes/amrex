@@ -8,6 +8,7 @@
  */
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Exception.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_USE_GPU
 #include <AMReX_GpuControl.H>
@@ -373,8 +374,9 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
-    static void out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
-                                     std::string const& error_msg);
+    [[noreturn]] static void throw_out_of_memory (std::string const& memory_type,
+                                                  std::size_t nbytes,
+                                                  std::string const& error_msg);
 
     /// \cond DOXYGEN_IGNORE
     struct ArenaProfiler {
