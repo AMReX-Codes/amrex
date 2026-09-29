@@ -502,8 +502,11 @@ public: // NOLINT
     //! Selects the C-points of level `lev` and builds its interpolation P
     //! (rows partitioned by `cpart`). Returns false when coarsening stops.
     //! The strength matrices are freed on return, before the triple product.
+    //! If `truncated`, P is already truncated and `nnz_untruncated` holds
+    //! its number of weights before.
     bool coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
-                        bool& aggressive, Long& ncoarse);
+                        bool& aggressive, Long& ncoarse, bool& truncated,
+                        Long& nnz_untruncated);
 
     //! Strong part of A: S_ij = a_ij / scale if i strongly depends on j,
     //! else absent. `scale` is strength_scale(A).
@@ -569,13 +572,30 @@ public: // NOLINT
     //! Extended (plus_i = false) or extended+i interpolation in
     //! matrix-matrix form. ST is the transpose of S, `scale` its unit.
     //! With `row_state`, only its C-points get a row of P; the other rows
-    //! are empty.
+    //! are empty. In CPU builds, P is also truncated as in truncate_interp
+    //! if `max_elmts` or `trunc_factor` is positive, and `nnz_untruncated`
+    //! (if not null) gets the number of weights before.
     static SpMatrix<T> build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                         SpMatrix<TS> const& ST,
                                         Gpu::DeviceVector<int> const& state,
                                         Gpu::DeviceVector<Long> const& cidx,
                                         AlgPartition const& cpart, T scale,
-                                        bool plus_i, int const* row_state = nullptr);
+                                        bool plus_i, int const* row_state = nullptr,
+                                        int max_elmts = 0, T trunc_factor = T(0),
+                                        Long* nnz_untruncated = nullptr);
+
+#ifndef AMREX_USE_GPU
+    //! build_interp_mm followed by truncate_interp, row by row on the host,
+    //! for matrices without remote columns. `nnz_untruncated` gets the
+    //! number of weights before truncation.
+    static SpMatrix<T> build_interp_mm_host (SpMatrix<T>& A, SpMatrix<TS>& S,
+                                             SpMatrix<TS> const& ST,
+                                             Gpu::DeviceVector<int> const& state,
+                                             Gpu::DeviceVector<Long> const& cidx,
+                                             AlgPartition const& cpart, T scale, bool plus_i,
+                                             int max_elmts, T trunc_factor,
+                                             Long& nnz_untruncated);
+#endif
 };
 
 template <typename T>
@@ -970,15 +990,19 @@ void AlgMG<T>::setup ()
         AlgPartition cpart;
         bool aggressive = false;
         Long ncoarse = 0;
-        if (!coarsen_level(lev, A, P, cpart, aggressive, ncoarse)) { break; }
+        bool truncated = false;
+        Long nnz0 = 0;
+        if (!coarsen_level(lev, A, P, cpart, aggressive, ncoarse, truncated, nnz0)) { break; }
         // The strength matrices were large; hand their chunks back so the
         // triple product can get contiguous memory.
         The_Arena()->freeUnused();
         note_memory(lev, "strength release");
         if (m_p_max_elmts > 0 || m_trunc_factor > T(0)) {
-            Long nnz0 = P.numLocalNonZeros();
-            P = truncate_interp(P, cpart, m_p_max_elmts, m_trunc_factor);
-            note_memory(lev, "truncation");
+            if (!truncated) {
+                nnz0 = P.numLocalNonZeros();
+                P = truncate_interp(P, cpart, m_p_max_elmts, m_trunc_factor);
+                note_memory(lev, "truncation");
+            }
             if (m_verbose >= 2) {
                 Long nnz[2] = {nnz0, P.numLocalNonZeros()};
                 ParallelAllReduce::Sum(nnz, 2, ParallelContext::CommunicatorSub());
@@ -1014,14 +1038,18 @@ void AlgMG<T>::setup ()
         }
         auto R  = amrex::transpose(P, cpart);
         note_memory(lev, "R");
-        // R (A P): measured smaller and faster than (R A) P, whose
-        // intermediate gathers several fine rows per coarse row.
         SpMatrix<T> Ac;
+#ifndef AMREX_USE_GPU
+        Ac = amrex::RAP(R, A, P, cpart);
+#else
         {
+            // R (A P): measured smaller and faster than (R A) P, whose
+            // intermediate gathers several fine rows per coarse row.
             auto AP = amrex::SpGEMM(A, P, cpart);
             note_memory(lev, "A*P");
             Ac = amrex::SpGEMM(R, AP, cpart);
         }
+#endif
         note_memory(lev, "coarse operator");
 
         m_P.push_back(std::move(P));
@@ -1242,7 +1270,8 @@ void AlgMG<T>::build_smoothers ()
 
 template <typename T>
 bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
-                            bool& aggressive, Long& ncoarse)
+                            bool& aggressive, Long& ncoarse, bool& truncated,
+                            Long& nnz_untruncated)
 {
     T const sscale = strength_scale(A);
     auto S = create_soc(A, sscale);
@@ -1261,6 +1290,10 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
     cpart = coarse_numbering(state, cidx);
     ncoarse = cpart.numGlobalRows();
     if (ncoarse == 0 || ncoarse == A.numGlobalRows()) { return false; }
+#ifndef AMREX_USE_GPU
+    bool const host_interp = m_interp_type != InterpType::direct
+        && detail::spmat_comm_is_local(A.partition(), cpart);
+#endif
 
     if (lev < m_aggressive_num_levels) {
         // Second PMIS pass on the C-points connected at distance two.
@@ -1295,15 +1328,36 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
             Gpu::streamSynchronize();
 
             bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
-            auto P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
-                                                 : interpolation(A, S, ST, state, cidx, cpart, sscale);
-            if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
+            SpMatrix<T> P1;
+#ifndef AMREX_USE_GPU
+            if (!m_aggressive_direct_interp && host_interp) {
+                Long unused;
+                P1 = build_interp_mm_host(A, S, ST, state, cidx, cpart, sscale,
+                                          m_interp_type == InterpType::mm_ext_i,
+                                          m_p_max_elmts, m_trunc_factor, unused);
+            } else if (!m_aggressive_direct_interp && m_interp_type != InterpType::direct) {
+                P1 = build_interp_mm(A, S, ST, state, cidx, cpart, sscale,
+                                     m_interp_type == InterpType::mm_ext_i, nullptr,
+                                     m_p_max_elmts, m_trunc_factor);
+            } else
+#endif
+            {
+                P1 = m_aggressive_direct_interp ? build_interp(A, S, state, cidx, cpart)
+                                                : interpolation(A, S, ST, state, cidx, cpart, sscale);
+                if (trunc) { P1 = truncate_interp(P1, cpart, m_p_max_elmts, m_trunc_factor); }
+            }
             note_memory(lev, "P1");
             // P2 needs only the rows of the first-pass C-points.
+#ifndef AMREX_USE_GPU
+            auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
+                                      m_interp_type != InterpType::mm_ext,
+                                      state.data(), m_p_max_elmts, m_trunc_factor);
+#else
             auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
                                       m_interp_type != InterpType::mm_ext,
                                       state.data());
             if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
+#endif
             auto P2 = select_coarse_rows(Pf, state, cidx, cpart);
             note_memory(lev, "P2");
             P = amrex::SpGEMM(P1, P2, cpart2);
@@ -1312,7 +1366,22 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
         }
     }
     if (!aggressive) {
-        P = interpolation(A, S, ST, state, cidx, cpart, sscale);
+#ifndef AMREX_USE_GPU
+        if (host_interp) {
+            P = build_interp_mm_host(A, S, ST, state, cidx, cpart, sscale,
+                                     m_interp_type == InterpType::mm_ext_i,
+                                     m_p_max_elmts, m_trunc_factor, nnz_untruncated);
+            truncated = true;
+        } else if (m_interp_type != InterpType::direct) {
+            P = build_interp_mm(A, S, ST, state, cidx, cpart, sscale,
+                                m_interp_type == InterpType::mm_ext_i, nullptr,
+                                m_p_max_elmts, m_trunc_factor, &nnz_untruncated);
+            truncated = true;
+        } else
+#endif
+        {
+            P = interpolation(A, S, ST, state, cidx, cpart, sscale);
+        }
     }
     note_memory(lev, "interpolation");
     return true;
@@ -1370,14 +1439,79 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT A_ii = Ad.data();
     auto const threshold = m_strong_threshold;
-    auto const rsA = A.rowSum();
-    auto const* AMREX_RESTRICT prs = rsA.data();
 
     // Threshold of row i: theta times the strongest connection, relaxed
     // by a few ulps so that entries nominally on the threshold are strong
     // in every row [1]. Rows dominated by their diagonal (row sum above
     // 0.9 |a_ii|) have no strong connection.
     T const tol = T(64) * std::numeric_limits<T>::epsilon();
+
+#ifndef AMREX_USE_GPU
+    {
+        // One pass per row on the host.
+        auto const& c0 = a.csr0;
+        auto const& c1 = a.csr1;
+        auto rlen1 = [&] (Long i) -> Long {
+            if (!detail::has_remote_row(a, i)) { return 0; }
+            Long const ii = a.row_map[i];
+            return c1.row_offset[ii+1] - c1.row_offset[ii];
+        };
+        auto csr = detail::csr_from_rows_cpu<TS,SpMatrix<TS>::template container_type,int>
+            (nrows, [&] (Long i) { return c0.row_offset[i+1] - c0.row_offset[i] + rlen1(i); },
+             [&] (int) {
+            return [&, col = Vector<int>(), val = Vector<TS>()]
+                (Long i, int const*& rc, TS const*& rv) mutable -> Long
+            {
+                Long const b = c0.row_offset[i];
+                Long const e = c0.row_offset[i+1];
+                Long const n1 = rlen1(i);
+                Long const b1 = (n1 > 0) ? Long(c1.row_offset[a.row_map[i]]) : 0;
+                T const sgn = std::copysign(T(1), A_ii[i]);
+                T rs = T(0);
+                T amin = std::numeric_limits<T>::max();
+                for (Long idx = b; idx < e; ++idx) {
+                    rs += c0.mat[idx];
+                    if (c0.col_index[idx] != i) { amin = std::min(amin, sgn*c0.mat[idx]); }
+                }
+                for (Long idx = b1; idx < b1+n1; ++idx) {
+                    rs += c1.mat[idx];
+                    amin = std::min(amin, sgn*c1.mat[idx]);
+                }
+                Long n = 0;
+                if (!(std::abs(rs) > T(0.9)*std::abs(A_ii[i])) && amin < T(0)) {
+                    T const thr = amin * threshold * (T(1) - tol);
+                    if (Long(col.size()) < e-b+n1) {
+                        col.resize(e-b+n1);
+                        val.resize(e-b+n1);
+                    }
+                    for (Long idx = b; idx < e; ++idx) {
+                        if (c0.col_index[idx] != i && sgn*c0.mat[idx] <= thr) {
+                            col[n] = c0.col_index[idx];
+                            val[n] = TS(c0.mat[idx]/scale);
+                            ++n;
+                        }
+                    }
+                    for (Long idx = b1; idx < b1+n1; ++idx) {
+                        if (sgn*c1.mat[idx] <= thr) {
+                            col[n] = nlocal + c1.col_index[idx];
+                            val[n] = TS(c1.mat[idx]/scale);
+                            ++n;
+                        }
+                    }
+                }
+                rc = col.data();
+                rv = val.data();
+                return n;
+            };
+        });
+        SpMatrix<TS> S;
+        S.define_split(A.partition(), A.partition(), std::move(csr), nlocal, a.col_map, 0);
+        return S;
+    }
+#else
+
+    auto const rsA = A.rowSum();
+    auto const* AMREX_RESTRICT prs = rsA.data();
     auto row_thresh = [=] AMREX_GPU_DEVICE (Long i) -> T {
         if (std::abs(prs[i]) > T(0.9)*std::abs(A_ii[i])) {
             return std::numeric_limits<T>::lowest();
@@ -1464,6 +1598,7 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
     SpMatrix<TS> S;
     S.define_split(A.partition(), A.partition(), std::move(csr), nlocal, a.col_map, 0);
     return S;
+#endif
 }
 
 template <typename T>
@@ -1805,6 +1940,61 @@ struct TruncRow
     }
 };
 
+#ifndef AMREX_USE_GPU
+//! truncate_interp for one row of P, sorted by column, in place on the
+//! host. Returns the new number of entries, still sorted.
+template <typename T, int KMAX>
+Long truncate_row_host (int* col, T* val, Long n, int max_elmts, T trunc_factor, int nc)
+{
+    // The row as a one-row CSR for TruncRow.
+    int ro[2] = {0, int(n)};
+    ParCsr<T const> prow;
+    prow.csr0 = CsrView<T const,int>{val, col, ro, n, 1};
+    TruncRow<T,KMAX> const tr{prow, max_elmts, trunc_factor, nc};
+    T sum_pos, sum_neg;
+    T const thresh = tr.threshold(0, sum_pos, sum_neg);
+    int tcol[KMAX];
+    T tval[KMAX];
+    Long nk = 0;
+    T kept_pos = T(0), kept_neg = T(0);
+    if (max_elmts > 0) {
+        nk = tr.select(0, thresh, tcol, tval);
+        for (Long k = 0; k < nk; ++k) {
+            if (tval[k] > T(0)) { kept_pos += tval[k]; } else { kept_neg += tval[k]; }
+        }
+    } else {
+        for (Long k = 0; k < n; ++k) {
+            if (std::abs(val[k]) >= thresh) {
+                if (val[k] > T(0)) { kept_pos += val[k]; } else { kept_neg += val[k]; }
+            }
+        }
+    }
+    T const fpos = (kept_pos != T(0)) ? sum_pos/kept_pos : T(1);
+    T const fneg = (kept_neg != T(0)) ? sum_neg/kept_neg : T(1);
+    if (max_elmts > 0) {
+        // Kept by decreasing magnitude; back to column order.
+        for (Long k = 0; k < nk; ++k) {
+            Long m = k;
+            for (; m > 0 && col[m-1] > tcol[k]; --m) {
+                col[m] = col[m-1];
+                val[m] = val[m-1];
+            }
+            col[m] = tcol[k];
+            val[m] = tval[k] * ((tval[k] > T(0)) ? fpos : fneg);
+        }
+    } else {
+        for (Long k = 0; k < n; ++k) {
+            if (std::abs(val[k]) >= thresh) {
+                col[nk] = col[k];
+                val[nk] = val[k] * ((val[k] > T(0)) ? fpos : fneg);
+                ++nk;
+            }
+        }
+    }
+    return nk;
+}
+#endif
+
 }
 
 namespace detail {
@@ -2125,7 +2315,8 @@ SpMatrix<T> AlgMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                      Gpu::DeviceVector<int> const& state,
                                      Gpu::DeviceVector<Long> const& cidx,
                                      AlgPartition const& cpart, T sscale,
-                                     bool plus_i, int const* row_state)
+                                     bool plus_i, int const* row_state,
+                                     int max_elmts, T trunc_factor, Long* nnz_untruncated)
 {
     BL_PROFILE("AlgMG::build_interp_mm");
 
@@ -2304,8 +2495,185 @@ SpMatrix<T> AlgMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
     SpMatrix<T> M, B;
     M.define_split(A.partition(), A.partition(), std::move(mcsr), nlocal_f, s.col_map, 0);
     B.define_split(A.partition(), cpart, std::move(bcsr), nlocal_c, gcidx_r.data(), 0);
+#ifndef AMREX_USE_GPU
+    if (max_elmts > 0 || trunc_factor > T(0)) {
+        // Each row is truncated as the product makes it.
+        constexpr int KMAX = max_p_elmts;
+        AMREX_ALWAYS_ASSERT(max_elmts <= KMAX);
+        Vector<Long> n0(nrows, 0);
+        auto P = amrex::SpGEMM(M, B, cpart, [&] (Long i, int* col, T* val, Long n) {
+            n0[i] = n;
+            return detail::truncate_row_host<T,KMAX>(col, val, n, max_elmts, trunc_factor,
+                                                     nlocal_c);
+        });
+        if (nnz_untruncated) {
+            *nnz_untruncated = std::accumulate(n0.begin(), n0.end(), Long(0));
+        }
+        return P;
+    }
+#else
+    amrex::ignore_unused(max_elmts, trunc_factor, nnz_untruncated);
+#endif
     return amrex::SpGEMM(M, B, cpart);
 }
+
+#ifndef AMREX_USE_GPU
+template <typename T>
+SpMatrix<T> AlgMG<T>::build_interp_mm_host (SpMatrix<T>& A, SpMatrix<TS>& S,
+                                          SpMatrix<TS> const& ST,
+                                          Gpu::DeviceVector<int> const& state,
+                                          Gpu::DeviceVector<Long> const& cidx,
+                                          AlgPartition const& cpart, T sscale, bool plus_i,
+                                          int max_elmts, T trunc_factor,
+                                          Long& nnz_untruncated)
+{
+    BL_PROFILE("AlgMG::build_interp_mm_host");
+
+    // Row i of P = M B (see build_interp_mm) is summed from the rows of B
+    // in the order of the SpGEMM, then truncated as in truncate_interp.
+    constexpr int KMAX = max_p_elmts;
+    AMREX_ALWAYS_ASSERT(max_elmts <= KMAX);
+
+    auto const& s = S.const_parcsr();
+    Long const nrows = s.csr0.nrows;
+    auto const* AMREX_RESTRICT ps = state.data();
+    auto const* AMREX_RESTRICT pc = cidx.data();
+    int const nc = int(cpart.numLocalRows());
+    int const C = PointType::coarse;
+    int const F = PointType::fine;
+
+    auto const rsA = A.rowSum();
+    auto const rsS = S.rowSum();
+    auto const* AMREX_RESTRICT prsA = rsA.data();
+    auto const* AMREX_RESTRICT prsS = rsS.data();
+
+    // D_beta and the rows of B at the F-points: the strong C neighbors.
+    Gpu::DeviceVector<T> dbeta(nrows);
+    auto* AMREX_RESTRICT pdb = dbeta.data();
+    Vector<Long> boff(nrows+1, 0);
+    auto const& sc = s.csr0;
+    ParallelForOMP(nrows, [&] (Long i) noexcept
+    {
+        T d = T(0);
+        Long n = 0;
+        for (Long idx = sc.row_offset[i]; idx < sc.row_offset[i+1]; ++idx) {
+            if (ps[sc.col_index[idx]] == C) {
+                d += T(sc.mat[idx]);
+                ++n;
+            }
+        }
+        pdb[i] = d;
+        boff[i+1] = (ps[i] == F) ? n : 0;
+    });
+    std::partial_sum(boff.begin(), boff.end(), boff.begin());
+    Vector<int> bcol(boff[nrows]);
+    Vector<T> bval(boff[nrows]);
+    ParallelForOMP(nrows, [&] (Long i) noexcept
+    {
+        if (ps[i] != F) { return; }
+        T const bscale = plus_i ? T(1) : ((pdb[i] != T(0)) ? T(1)/pdb[i] : T(0));
+        Long q = boff[i];
+        for (Long idx = sc.row_offset[i]; idx < sc.row_offset[i+1]; ++idx) {
+            int const j = sc.col_index[idx];
+            if (ps[j] == C) {
+                bcol[q] = int(pc[j]);
+                bval[q] = bscale*T(sc.mat[idx]);
+                ++q;
+            }
+        }
+    });
+
+    detail::MMInterpRow<T,TS> const w{s, ST.const_parcsr(), ps, pdb, pc,
+                                   nullptr, nullptr, int(nrows), nc};
+    bool const trunc = (max_elmts > 0 || trunc_factor > T(0));
+    struct Nbr { int j; T aij; T den; };
+
+    Vector<Long> nnz0(OpenMP::get_max_threads(), 0);
+    auto csr = detail::csr_from_rows_cpu<T,SpMatrix<T>::template container_type,int>
+        (nrows, [&] (Long i) { return sc.row_offset[i+1] - sc.row_offset[i] + 1; },
+         [&] (int t) {
+        return [&, t, marker = Vector<int>(nc, -1), col = Vector<int>(1), val = Vector<T>(1),
+                tmp = Vector<std::pair<int,T>>(), nbr = Vector<Nbr>()]
+            (Long i, int const*& rc, T const*& rv) mutable -> Long
+        {
+            rc = col.data();
+            rv = val.data();
+            if (ps[i] != F) {
+                col[0] = int(pc[i]);
+                val[0] = T(1);
+                ++nnz0[t];
+                return 1;
+            }
+
+            // Scale of row i, as in build_interp_mm, and the usable strong
+            // F neighbors (column order) for M.
+            T alpha = prsA[i]/sscale - T(prsS[i]);
+            T theta = T(0);
+            Long maxlen = boff[i+1] - boff[i];
+            nbr.clear();
+            w.walk(i, [&] (int jf, int, T aij, T aji, int st_j, T db_j) {
+                if (st_j == F) {
+                    T const den = db_j + (plus_i ? aji : T(0));
+                    if (den != T(0)) {
+                        if (plus_i) { theta += aij * aji / den; }
+                        maxlen += boff[jf+1] - boff[jf];
+                        nbr.push_back({jf, aij, den});
+                    } else {
+                        alpha += aij;
+                    }
+                }
+            });
+            T const denom = alpha + theta;
+            T const scale = (denom != T(0)) ? T(-1)/denom : T(0);
+            maxlen = std::min(maxlen, Long(nc));
+            if (Long(col.size()) < maxlen) {
+                col.resize(maxlen);
+                val.resize(maxlen);
+                rc = col.data();
+                rv = val.data();
+            }
+
+            // M_ik times row k of B, k in increasing order (M's row sorted).
+            Long n = 0;
+            auto add = [&] (Long k, T m) {
+                for (Long bp = boff[k]; bp < boff[k+1]; ++bp) {
+                    int const j = bcol[bp];
+                    Long const pos = marker[j];
+                    if (pos >= 0 && pos < n && col[pos] == j) {
+                        val[pos] += m * bval[bp];
+                    } else {
+                        marker[j] = int(n);
+                        col[n] = j;
+                        val[n] = m * bval[bp];
+                        ++n;
+                    }
+                }
+            };
+            T const mdiag = plus_i ? scale : scale*pdb[i];
+            bool diag_done = false;
+            for (auto const& nb : nbr) {
+                if (!diag_done && nb.j > i) {
+                    add(i, mdiag);
+                    diag_done = true;
+                }
+                add(nb.j, plus_i ? scale*nb.aij/nb.den : scale*nb.aij);
+            }
+            if (!diag_done) { add(i, mdiag); }
+            detail::sort_row_cpu(col.data(), val.data(), n, tmp);
+            nnz0[t] += n;
+            if (!trunc) { return n; }
+
+            return detail::truncate_row_host<T,KMAX>(col.data(), val.data(), n, max_elmts,
+                                                     trunc_factor, nc);
+        };
+    });
+
+    nnz_untruncated = std::accumulate(nnz0.begin(), nnz0.end(), Long(0));
+    SpMatrix<T> P;
+    P.define_split(A.partition(), cpart, std::move(csr), nc, nullptr, 0);
+    return P;
+}
+#endif
 
 }
 
