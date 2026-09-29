@@ -252,7 +252,16 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
 
 int main (int argc, char* argv[])
 {
-    amrex::Initialize(argc, argv);
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, [] () {
+        // Trap floating-point exceptions unless the command line says
+        // otherwise. The singular cases (no Dirichlet boundary) must not
+        // divide by the zero wavenumber, not even speculatively.
+        ParmParse pp("amrex");
+        int trap = 1;
+        pp.queryAdd("fpe_trap_invalid", trap);
+        trap = 1;
+        pp.queryAdd("fpe_trap_zero", trap);
+    });
     {
         BL_PROFILE("main");
 

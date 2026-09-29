@@ -350,9 +350,11 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
         T k2 = AMREX_D_TERM(dxfac[0]*(std::cos(a)-T(1)),
                            +dxfac[1]*(std::cos(b)-T(1)),
                            +dxfac[2]*(std::cos(c)-T(1)));
-        if (k2 != T(0)) {
-            spectral_data /= k2;
-        }
+        // Select the denominator instead of guarding the division. An
+        // optimizing compiler may speculate a guarded division, and 0/0
+        // for the zero mode then trips amrex.fpe_trap_invalid.
+        T const k2d = (k2 != T(0)) ? k2 : T(1);
+        spectral_data /= k2d;
         spectral_data *= scale;
     };
 
@@ -689,9 +691,10 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
                 T b = facy*(T(j)+offset[1]);
                 T k2 = dxfac * (std::cos(a)-T(1))
                     +  dyfac * (std::cos(b)-T(1));
-                if (k2 != T(0)) {
-                    spectral(i,j,k) /= k2;
-                }
+                // Select the denominator instead of guarding the division
+                // (see Poisson::solve): avoids a speculated 0/0.
+                T const k2d = (k2 != T(0)) ? k2 : T(1);
+                spectral(i,j,k) /= k2d;
                 spectral(i,j,k) *= scale;
             });
         }
