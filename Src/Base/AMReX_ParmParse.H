@@ -64,20 +64,6 @@ namespace ppdetail {
 
     template <class T>
     using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
-
-    /** One past the maximum of integer type T, i.e., 2^digits, exact as double.
-     *
-     * Equivalent to std::ldexp(1.0, std::numeric_limits<T>::digits), which is
-     * not constexpr before C++23 and crashes the LLVM backend of NVHPC
-     * 25.1-26.5 on Zen 4 hosts without AVX-512 ("Cannot select: X86ISD::SCALEFS").
-     */
-    template <class T>
-    constexpr double int_upper_bound () noexcept
-    {
-        double r = 1.0;
-        for (int i = 0; i < std::numeric_limits<T>::digits; ++i) { r *= 2.0; }
-        return r;
-    }
 }
 /// \endcond
 
@@ -1574,7 +1560,8 @@ public:
             }
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
                 // Range check before the cast, which would otherwise be UB.
-                constexpr double upper = ppdetail::int_upper_bound<value_type>();
+                // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);
                 if (!(dref >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
                       dref <  upper)) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
@@ -1606,7 +1593,8 @@ public:
                     dref[i] = std::round(dref[i]);
                 }
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                    constexpr double upper = ppdetail::int_upper_bound<value_type>();
+                    // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                    constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);
                     if (!(dref[i] >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
                           dref[i] <  upper)) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
