@@ -194,7 +194,8 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
     // The callback runs when MLMG builds its AlgMG solver; keep a handle to
     // check that repeated solves reuse the setup.
     AlgMG<Real>* algmg_ptr = nullptr;
-    mlmg.setAlgMGOptions([&] (AlgMG<Real>& amg) { algmg_ptr = &amg; });
+    int nbuilds = 0;
+    mlmg.setAlgMGOptions([&] (AlgMG<Real>& amg) { algmg_ptr = &amg; ++nbuilds; });
     mlmg.apply({&rhs}, {&exact}); // rhs = A*phi with the same operator
 
     bool geometric_failed = false;
@@ -218,9 +219,11 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
         }
         Gpu::streamSynchronize();
         auto const t1 = amrex::second();
-        if (failure.empty() && p.mlmg_repeat > 1 && algmg_ptr && algmg_ptr->getNumSetups() != 1) {
-            failure = "AlgMG setup ran " + std::to_string(algmg_ptr->getNumSetups())
-                + " times in " + std::to_string(p.mlmg_repeat) + " solves";
+        if (failure.empty() && p.mlmg_repeat > 1 && algmg_ptr
+            && (nbuilds != 1 || algmg_ptr->getNumSetups() != 1)) {
+            failure = "AlgMG built " + std::to_string(nbuilds) + " times, set up "
+                + std::to_string(algmg_ptr->getNumSetups()) + " times in "
+                + std::to_string(p.mlmg_repeat) + " solves";
         }
 
         mlmg.compResidual({&res}, {&phi}, {&rhs});
