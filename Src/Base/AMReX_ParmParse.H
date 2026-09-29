@@ -1555,7 +1555,7 @@ public:
         double dref;
         int exist = queryWithParser(name, dref);
         if (exist) {
-            if (std::is_integral_v<value_type>) {
+            if constexpr (std::is_integral_v<value_type>) {
                 dref = std::round(dref);
             }
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
@@ -1589,7 +1589,7 @@ public:
         int exist = queryarrWithParser(name, nvals, dref.data());
         if (exist) {
             for (int i = 0; i < nvals; ++i) {
-                if (std::is_integral_v<value_type>) {
+                if constexpr (std::is_integral_v<value_type>) {
                     dref[i] = std::round(dref[i]);
                 }
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
