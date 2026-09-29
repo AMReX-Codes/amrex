@@ -1561,7 +1561,7 @@ public:
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
                 // Range check before the cast, which would otherwise be UB.
                 // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
-                constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);
+                constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1); // NOLINT(bugprone-integer-division)
                 if (!(dref >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
                       dref <  upper)) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
@@ -1594,7 +1594,7 @@ public:
                 }
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
                     // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
-                    constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);
+                    constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);  // NOLINT(bugprone-integer-division)
                     if (!(dref[i] >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
                           dref[i] <  upper)) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
