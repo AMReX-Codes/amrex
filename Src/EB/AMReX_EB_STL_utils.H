@@ -80,6 +80,12 @@ public:
         m_bvh_optimization = flag;
     }
 
+    //! Enable marching cubes, which requires a closed, consistently oriented STL.
+    void setUseMarchingCubes (bool flag) noexcept { m_use_marching_cubes = flag; }
+    [[nodiscard]] bool usesMarchingCubes () const noexcept {
+        return m_use_marching_cubes;
+    }
+
     /**
      * \brief Read an STL file, apply scaling/translation, and store triangles.
      *
@@ -120,12 +126,30 @@ public:
     //! Fill \p mf with signed-distance values sampled from the STL mesh.
     void fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry const& geom) const;
 
+    /**
+     * \brief Fill the nodal scalar field used by the marching-cubes builder.
+     *
+     * Exact distances are computed only near the surface; elsewhere the
+     * field holds +1 outside and -1 inside the STL.
+     */
+    void fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
+                                    Geometry const& geom) const;
+
+    /**
+     * \brief Fill \p edges with the normalized positions where cell edges
+     * cross the STL surface, computed from the triangles themselves.
+     */
+    void fillMarchingCubesEdgeIntersections (
+        FArrayBox const& levelset, Geometry const& geom,
+        Array<Array4<Real>,AMREX_SPACEDIM> const& edges) const;
+
     //! Upload triangle data to device memory (exposed for CUDA workflows).
     void prepare (Gpu::PinnedVector<Triangle> a_tri_pts);  // public for cuda
 
 private:
 
     bool m_bvh_optimization = true;
+    bool m_use_marching_cubes = false;
 
     Gpu::DeviceVector<Triangle> m_tri_pts_d;
     Gpu::DeviceVector<XDim3> m_tri_normals_d;
