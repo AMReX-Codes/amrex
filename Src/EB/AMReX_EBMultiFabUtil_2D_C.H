@@ -472,8 +472,10 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real phi01_jj = a0_jj *   phi(i,jj,k,n)  + a1_jj *   phi(ii,jj,k,n); // interpolation of phi   in x-direction
           Real y01_jj   = a0_jj * ccent(i,jj,k,1)  + a1_jj * ccent(ii,jj,k,1); // interpolation of y-loc in x-direction
 
-          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj +
-                             (Real(1.) - fcx(i,j,k) + y01_jj) * phi01    ) / (Real(1.) - y01 + y01_jj);
+          Real yjj = Real(jj-j) + y01_jj;                                   // y-loc of row jj relative to face(i,j)
+
+          edg_x(i,j,k,n) = ( (fcx(i,j,k) - y01) * phi01_jj +
+                             (yjj - fcx(i,j,k)) * phi01    ) / (yjj - y01);
       }
   });
 }
@@ -562,8 +564,10 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real phi01_ii = a0_ii *   phi(ii,j,k,n)  + a1_ii *   phi(ii,jj,k,n); // interpolation of phi   in y-direction
           Real x01_ii   = a0_ii * ccent(ii,j,k,0)  + a1_ii * ccent(ii,jj,k,0); // interpolation of x-loc in y-direction
 
-          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii +
-                             (Real(1.) - fcy(i,j,k) + x01_ii) * phi01    ) / (Real(1.) - x01 + x01_ii);
+          Real xii = Real(ii-i) + x01_ii;                                   // x-loc of column ii relative to face(i,j)
+
+          edg_y(i,j,k,n) = ( (fcy(i,j,k) - x01) * phi01_ii +
+                             (xii - fcy(i,j,k)) * phi01    ) / (xii - x01);
         }
     });
 }
