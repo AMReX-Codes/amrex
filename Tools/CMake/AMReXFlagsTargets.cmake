@@ -148,8 +148,9 @@ add_library(AMReX::Flags_NO_MATH_ERRNO ALIAS Flags_NO_MATH_ERRNO)
 
 target_compile_options( Flags_NO_MATH_ERRNO
    INTERFACE
-      $<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
-      $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>,$<CXX_COMPILER_ID:GNU,Clang>,$<NOT:$<CONFIG:Debug>>>:-Xcompiler=-fno-math-errno>
+      $<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
+      $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>,$<CXX_COMPILER_ID:GNU,Clang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-Xcompiler=-fno-math-errno>
+      $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,Clang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
 )
 
 
