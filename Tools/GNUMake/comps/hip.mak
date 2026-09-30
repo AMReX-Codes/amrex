@@ -44,11 +44,11 @@ HIPCC_FLAGS += -pthread
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targeting the gnu library
+# OpenMP with the compiler's default runtime
 ifeq ($(USE_OMP),TRUE)
-  CXXFLAGS += -fopenmp=libgomp
-  CFLAGS   += -fopenmp=libgomp
-  HIPCC_FLAGS += -fopenmp=libgomp
+  CXXFLAGS += -fopenmp
+  CFLAGS   += -fopenmp
+  HIPCC_FLAGS += -fopenmp
 endif
 
 ifneq ($(BL_NO_FORT),TRUE)

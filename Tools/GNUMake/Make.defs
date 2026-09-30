@@ -392,6 +392,9 @@ endif
 
 ifdef USE_GPU_RDC
   USE_GPU_RDC := $(strip $(USE_GPU_RDC))
+else ifeq ($(USE_HIP)$(strip $(USE_OMP)),TRUETRUE)
+  # HIP with OpenMP and RDC fails to find some kernels at run time.
+  USE_GPU_RDC := FALSE
 else
   USE_GPU_RDC := TRUE
 endif

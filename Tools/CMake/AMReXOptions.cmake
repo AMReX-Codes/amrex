@@ -247,6 +247,9 @@ endif ()
 set(_GPU_RDC_default ON)
 if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
     set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
+elseif(AMReX_HIP AND AMReX_OMP)
+    # HIP with OpenMP and RDC fails to find some kernels at run time.
+    set(_GPU_RDC_default OFF)
 endif()
 cmake_dependent_option( AMReX_GPU_RDC "Enable Relocatable Device Code" ${_GPU_RDC_default}
    "AMReX_CUDA OR AMReX_HIP" OFF)
