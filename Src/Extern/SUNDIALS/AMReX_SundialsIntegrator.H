@@ -140,9 +140,15 @@ private:
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
     SUNNonlinearSolver NLS = nullptr;
+    amrex::Real step_applied = 0;  // fixed step last given to SUNDIALS; 0: adaptive
+    amrex::Real rtol_applied = -1; // tolerances last given to SUNDIALS; -1: none
+    amrex::Real atol_applied = -1;
 
     // Fast time scale
     void *arkode_fast_mem            = nullptr;
+    amrex::Real fast_step_applied    = 0; // fast fixed step last given to SUNDIALS; 0: adaptive
+    amrex::Real fast_rtol_applied    = -1; // fast tolerances last given to SUNDIALS; -1: none
+    amrex::Real fast_atol_applied    = -1;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
     SUNNonlinearSolver fast_NLS      = nullptr;
@@ -219,6 +225,9 @@ private:
 
     void SetupRK (amrex::Real time, N_Vector y_data)
     {
+        step_applied = 0;
+        rtol_applied = -1;
+        atol_applied = -1;
         if (amrex::Verbose()) { amrex::Print() << "Using SUNDIALS time integrator\n"; }
         int flag = 0;
 
@@ -265,6 +274,8 @@ private:
             }
             flag = ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
             AMREX_ALWAYS_ASSERT(flag == 0);
+            rtol_applied = BaseT::rel_tol;
+            atol_applied = BaseT::abs_tol;
         }
 
         // Create and attach linear solver for implicit methods
@@ -312,8 +323,59 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
+    //! Pass slow tolerances to SUNDIALS when they are used and have changed.
+    void apply_tolerances ()
+    {
+        if ((BaseT::use_adaptive_time_step || type == "DIRK" || type == "IMEX-RK" ||
+             type == "IM-MRI" || type == "IMEX-MRI") &&
+            (BaseT::rel_tol != rtol_applied || BaseT::abs_tol != atol_applied))
+        {
+            int flag = use_mri ? MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol)
+                               : ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            rtol_applied = BaseT::rel_tol;
+            atol_applied = BaseT::abs_tol;
+        }
+    }
+
+    //! Pass slow step size (0: adaptive) to SUNDIALS when it changes.
+    void apply_step (amrex::Real h)
+    {
+        if (h != step_applied) {
+            int flag = use_mri ? MRIStepSetFixedStep(arkode_mem, h)
+                               : ARKStepSetFixedStep(arkode_mem, h);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            step_applied = h;
+        }
+    }
+
+    //! Pass fast step size (0: adaptive) and tolerances to SUNDIALS when they change.
+    void apply_fast_step ()
+    {
+        if ((BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") &&
+            (BaseT::fast_rel_tol != fast_rtol_applied || BaseT::fast_abs_tol != fast_atol_applied))
+        {
+            int flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            fast_rtol_applied = BaseT::fast_rel_tol;
+            fast_atol_applied = BaseT::fast_abs_tol;
+        }
+        amrex::Real h = BaseT::use_adaptive_fast_time_step ? amrex::Real(0)
+                                                           : amrex::max(BaseT::fast_time_step, amrex::Real(0));
+        if (h != fast_step_applied) {
+            ARKStepSetFixedStep(arkode_fast_mem, h);
+            fast_step_applied = h;
+        }
+    }
+
     void SetupMRI (amrex::Real time, N_Vector y_data)
     {
+        step_applied = 0;
+        rtol_applied = -1;
+        atol_applied = -1;
+        fast_step_applied = 0;
+        fast_rtol_applied = -1;
+        fast_atol_applied = -1;
         if (amrex::Verbose()) { amrex::Print() << "Using SUNDIALS multirate time integrator\n"; }
         int flag = 0;
 
@@ -373,6 +435,8 @@ private:
             }
             flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
             AMREX_ALWAYS_ASSERT(flag == 0);
+            fast_rtol_applied = BaseT::fast_rel_tol;
+            fast_atol_applied = BaseT::fast_abs_tol;
         }
 
         // Set post stage and step function
@@ -430,6 +494,8 @@ private:
             }
             flag = MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
             AMREX_ALWAYS_ASSERT(flag == 0);
+            rtol_applied = BaseT::rel_tol;
+            atol_applied = BaseT::abs_tol;
         }
 
         // Create and attach linear solver
@@ -801,13 +867,18 @@ public:
 
         if (use_ark) {
             ARKStepReset(arkode_mem, time, y_old); // should probably resize
+            apply_tolerances();
             ARKStepSetFixedStep(arkode_mem, dt);
+            step_applied = dt;
             int flag = ARKStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
             MRIStepReset(arkode_mem, time, y_old); // should probably resize -- need to resize inner stepper
+            apply_tolerances();
             MRIStepSetFixedStep(arkode_mem, dt);
+            step_applied = dt;
+            apply_fast_step();
             int flag = MRIStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
@@ -834,19 +905,21 @@ public:
         N_Vector y_out = wrap_data(S_out);
 
         if (use_ark) {
-            if (!BaseT::use_adaptive_time_step) {
-                ARKStepSetFixedStep(arkode_mem, BaseT::time_step);
-            }
+            apply_tolerances();
+            apply_step(BaseT::use_adaptive_time_step ? amrex::Real(0) : BaseT::time_step);
             flag = ARKStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            if (!BaseT::use_adaptive_time_step) {
-                MRIStepSetFixedStep(arkode_mem, BaseT::time_step);
+#if defined(SUNDIALS_VERSION_MAJOR) && \
+    ((SUNDIALS_VERSION_MAJOR < 7) || (SUNDIALS_VERSION_MAJOR == 7 && SUNDIALS_VERSION_MINOR < 2))
+            if (BaseT::use_adaptive_time_step) {
+                amrex::Abort("SundialsIntegrator: adaptive slow time steps with MRI methods need SUNDIALS 7.2 or later");
             }
-            if (!BaseT::use_adaptive_fast_time_step) {
-                ARKStepSetFixedStep(arkode_fast_mem, BaseT::fast_time_step);
-            }
+#endif
+            apply_tolerances();
+            apply_step(BaseT::use_adaptive_time_step ? amrex::Real(0) : BaseT::time_step);
+            apply_fast_step();
             flag = MRIStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {

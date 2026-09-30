@@ -252,7 +252,7 @@ protected:
      * \brief Current integrator fast time scale time step size with multirate
      * methods (Real)
      */
-    amrex::Real fast_time_step;
+    amrex::Real fast_time_step = 0;
 
     /**
      * \brief Number of integrator time steps (Long)

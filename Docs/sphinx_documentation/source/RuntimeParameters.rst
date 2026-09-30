@@ -1460,7 +1460,10 @@ Step Sizes
    :value: [none]
 
    When using a multirate method, this parameter sets the fixed step size to use
-   at the fast time scale.
+   at the fast time scale. If it is not set, the fast step size is chosen
+   adaptively with default tolerances. To control those tolerances with
+   :py:data:`integration.fast_rel_tol` and :py:data:`integration.fast_abs_tol`,
+   set :py:data:`integration.use_adaptive_fast_time_step` to true.
 
 .. py:data:: integration.use_adaptive_time_step
    :type: bool
@@ -1468,7 +1471,8 @@ Step Sizes
 
    This parameter enables adaptive time step sizes with single rate methods
    (e.g., ERK) or adaptive time step sizes at the slow time scale with multirate
-   methods (e.g., EX-MRI).
+   methods (e.g., EX-MRI). Adaptive slow time steps with multirate methods
+   require SUNDIALS 7.2 or later.
 
 .. py:data:: integration.use_adaptive_fast_time_step
    :type: bool
