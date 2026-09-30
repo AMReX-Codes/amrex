@@ -298,6 +298,8 @@ endif()
 # CUDA architectures amrex was built for
 if (@AMReX_CUDA@)
     set(AMREX_CUDA_ARCHS "@AMREX_CUDA_ARCHS@" CACHE INTERNAL "CUDA archs AMReX is built for")
+    # device LTO for targets set up with setup_target_for_cuda_compilation
+    set(AMREX_CUDA_IPO @AMREX_CUDA_IPO@ CACHE INTERNAL "CUDA device LTO is requested and available")
     foreach(D IN LISTS AMReX_SPACEDIM)
         set_target_properties(AMReX::amrex_${D}d
           PROPERTIES
