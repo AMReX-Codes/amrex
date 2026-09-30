@@ -2,6 +2,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
 
@@ -251,6 +252,13 @@ extern "C" {
         msk = owner_mask.release();
         ba = &(msk->boxArray());
         dm = &(msk->DistributionMap());
+    }
+
+    void amrex_fi_new_fine_imultifab (iMultiFab*& msk, const BoxArray*& cba, const DistributionMapping*& cdm, const BoxArray*& fba, int rr, int crse_value, int fine_value)
+    {
+        msk = new iMultiFab(makeFineMask(*cba, *cdm, *fba, IntVect{AMREX_D_DECL(rr,rr,rr)}, crse_value, fine_value));
+        cba = &(msk->boxArray());
+        cdm = &(msk->DistributionMap());
     }
 
     // MFIter routines
