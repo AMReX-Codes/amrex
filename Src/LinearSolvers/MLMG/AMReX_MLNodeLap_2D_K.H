@@ -3411,7 +3411,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int mlndlap_color (int i, int j, int)
 {
-    return (i%2) + (j%2)*2;
+    return (i&1) + (j&1)*2;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

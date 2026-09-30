@@ -138,15 +138,24 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     auto const& solarr_ma = sol.arrays();
     auto const& rhsarr_ma = rhs.const_arrays();
 
+    // Jacobi needs lap of the old sol, so compute it in a separate kernel.
+    MultiFab lap(sol.boxArray(), sol.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
+    auto const& laparr_ma = lap.arrays();
+
     for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
         ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
-            auto lap = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],bcoef_ma[box_no],dmskarr_ma[box_no],
+            laparr_ma[box_no](i,j,k) = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],bcoef_ma[box_no],
+                                                        dmskarr_ma[box_no],
 #if (AMREX_SPACEDIM == 2)
-                                        false,
+                                                        false,
 #endif
-                                        dxinvarr);
-            mlndabeclap_jacobi_aa(i,j,k, solarr_ma[box_no], lap, rhsarr_ma[box_no], alpha, beta,
+                                                        dxinvarr);
+        });
+        ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            mlndabeclap_jacobi_aa(i,j,k, solarr_ma[box_no], laparr_ma[box_no](i,j,k),
+                                  rhsarr_ma[box_no], alpha, beta,
                                   acoef_ma[box_no], bcoef_ma[box_no],
                                   dmskarr_ma[box_no], dxinvarr);
         });
