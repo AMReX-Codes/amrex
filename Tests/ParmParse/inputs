@@ -75,6 +75,13 @@ my_constants.nx = lx/dx
 n_cell = nx nx nx
 ny = nx
 
+# expression starting with a parenthesis
+my_constants.zmin = 4.e-2
+my_constants.zmax = 22.e-2
+my_constants.nz = 80
+my_constants.dz = (zmax-zmin)/nz
+dz2 = 2*dz
+
 do_this = 1
 
 # boolean strings

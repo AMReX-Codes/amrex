@@ -440,7 +440,15 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                 ostr += ch; str++; pcnt--;
                 if ( pcnt == 0 && cbcnt == 0 && sbcnt == 0 )
                 {
-                    return PType::Value;
+                    // Text right after the closing ')' (e.g., "(a-b)/c")
+                    // belongs to the same token.
+                    ch = *str;
+                    if ( ch == 0 || ch == '#' || ch == '\\' ||
+                         std::isspace(static_cast<unsigned char>(ch)) )
+                    {
+                        return PType::Value;
+                    }
+                    state = lexState::STRING;
                 }
             }
             else

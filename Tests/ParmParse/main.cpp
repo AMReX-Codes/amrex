@@ -164,6 +164,16 @@ int main(int argc, char* argv[])
         Array<int,3> n_cell{0,0,0};
         pp.queryarrAsDouble("n_cell", 3, n_cell.data());
         AMREX_ALWAYS_ASSERT(n_cell[0] == 64 && n_cell[1] == 64 && n_cell[2] == 64);
+
+        double dz = 0, dz_p = 0, dz2 = 0, dz2_p = 0;
+        pp.get("my_constants.dz", dz);
+        pp.getWithParser("my_constants.dz", dz_p);
+        pp.get("dz2", dz2);
+        pp.getWithParser("dz2", dz2_p);
+        AMREX_ALWAYS_ASSERT(std::abs(dz  -2.25e-3) < 1.e-15 &&
+                            std::abs(dz_p-2.25e-3) < 1.e-15 &&
+                            std::abs(dz2  -4.5e-3) < 1.e-15 &&
+                            std::abs(dz2_p-4.5e-3) < 1.e-15);
     }
     {
         ParmParse pp;
