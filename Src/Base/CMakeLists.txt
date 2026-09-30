@@ -86,6 +86,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_SArena.cpp
        AMReX_DataAllocator.H
        AMReX_BLProfiler.H
+       AMReX_ThirdPartyProfiling.H
        AMReX_BLBackTrace.H
        AMReX_BLBackTrace.cpp
        AMReX_BLFort.H

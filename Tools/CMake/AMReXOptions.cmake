@@ -471,9 +471,9 @@ if (AMReX_TP_PROFILE)
 endif ()
 
 # Check profile options
-if ( NOT ( CMAKE_C_COMPILER_ID STREQUAL "Intel" ) AND
+if ( NOT ( CMAKE_CXX_COMPILER_ID MATCHES "^Intel(LLVM)?$" ) AND
       ( AMReX_TP_PROFILE STREQUAL "VTUNE") )
-   message( FATAL_ERROR "VTUNE cannot be used with ${CMAKE_C_COMPILER_ID} compiler" )
+   message( FATAL_ERROR "VTUNE cannot be used with ${CMAKE_CXX_COMPILER_ID} compiler" )
 endif ()
 
 if (  ( ( AMReX_TP_PROFILE STREQUAL "CRAYPAT" ) OR
