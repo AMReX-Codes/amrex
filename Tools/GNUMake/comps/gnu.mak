@@ -88,6 +88,10 @@ ifeq ($(DEBUG),TRUE)
 else
   CXXFLAGS += -g1 -O3
   CFLAGS   += -g1 -O3
+  ifneq ($(USE_MATH_ERRNO),TRUE)
+    CXXFLAGS += -fno-math-errno
+    CFLAGS   += -fno-math-errno
+  endif
   ifneq ($(USE_COMPILER_DEFAULT_INLINE),TRUE)
     CXXFLAGS += -finline-limit=$(INLINE_LIMIT)
   endif

@@ -259,6 +259,9 @@ print_option(AMReX_GPU_RDC)
 option(AMReX_FASTMATH  "Enable fast-math optimizations" OFF)
 print_option(AMReX_FASTMATH)
 
+option(AMReX_MATH_ERRNO "Let math functions set errno in non-Debug builds" OFF)
+print_option(AMReX_MATH_ERRNO)
+
 #
 # Parallel backends    ========================================================
 #
