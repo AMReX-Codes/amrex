@@ -184,16 +184,6 @@ extern "C" {
         mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
-    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
-                                         const DistributionMapping*& dm,
-                                         const MultiFab* data, const Geometry* geom)
-    {
-        auto owner_mask = data->OwnerMask(geom->periodicity());
-        msk = owner_mask.release();
-        ba = &(msk->boxArray());
-        dm = &(msk->DistributionMap());
-    }
-
     void amrex_fi_multifab_override_sync (MultiFab* mf, const Geometry* geom)
     {
         mf->OverrideSync(geom->periodicity());
@@ -251,6 +241,16 @@ extern "C" {
     void amrex_fi_imultifab_setval (iMultiFab* imf, int val, int ic, int nc, const int* ng)
     {
         imf->setVal(val, ic, nc, IntVect(ng));
+    }
+
+    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
+                                         const DistributionMapping*& dm,
+                                         const MultiFab* data, const Geometry* geom)
+    {
+        auto owner_mask = data->OwnerMask(geom->periodicity());
+        msk = owner_mask.release();
+        ba = &(msk->boxArray());
+        dm = &(msk->DistributionMap());
     }
 
     // MFIter routines
