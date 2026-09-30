@@ -868,15 +868,21 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     // Always create transient refined CC level to avoid grid mismatch
     // with application-defined BoxArrays (ERF EB-FC development)
+    // An even max_grid_size keeps the refined grids coarsenable by 2.
     Geometry refined_geom = amrex::refine(m_geom, 2);
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
-        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+        max_grid_size + max_grid_size%2, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
     }
     refined_cc_level = transient_level.get();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        refined_cc_level->m_grids.coarsenable(2) &&
+        (refined_cc_level->m_covered_grids.empty() ||
+         refined_cc_level->m_covered_grids.coarsenable(2)),
+        "GShopLevel::buildFCData: refined grids are not coarsenable");
 
     // **********************************************************************
     // STEP2: Check multi-cut error
@@ -1179,11 +1185,13 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         error = b;
     }
 
+    if (error) {
+        amrex::Abort("GShopLevel::buildFCData: failed to coarsen face-centered data");
+    }
+
     m_fc_data[face_dir]->m_built = true;
 
-    if (!error) {
-        buildCellFlagFC(face_dir);
-    }
+    buildCellFlagFC(face_dir);
 }
 
 }
