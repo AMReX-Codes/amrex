@@ -443,8 +443,9 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                     // Text right after the closing ')' (e.g., "(a-b)/c")
                     // belongs to the same token.
                     ch = *str;
-                    if ( ch == 0 || ch == '#' || ch == '\\' ||
-                         std::isspace(static_cast<unsigned char>(ch)) )
+                    if ( ch == 0 || ch == '#' || ch == '(' ||
+                         std::isspace(static_cast<unsigned char>(ch)) ||
+                         (ch == '\\' && (*(str+1) == '\n' || *(str+1) == '\r')) )
                     {
                         return PType::Value;
                     }

@@ -68,6 +68,12 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(iva.size() == 2 &&
                             iva[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
                             iva[1] == IntVect(AMREX_D_DECL(4,5,6)));
+        std::vector<IntVect> ivs;
+        pp.getarr("ivs", ivs);
+        AMREX_ALWAYS_ASSERT(ivs.size() == 3 &&
+                            ivs[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
+                            ivs[1] == IntVect(AMREX_D_DECL(4,5,6)) &&
+                            ivs[2] == IntVect(AMREX_D_DECL(7,8,9)));
         std::vector<Box> ba;
         pp.getarr("ba", ba);
         AMREX_ALWAYS_ASSERT(ba.size() == 2 && ba[0] == box &&
