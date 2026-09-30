@@ -117,7 +117,14 @@ public:
         return m_ebdc->getFaceCent();
     }
 
-    //! Edge centroids.
+    /**
+     * \brief Edge centroids, normalized by the edge length.
+     *
+     * A cut edge stores the centroid of its fluid part, in [-0.5,0.5]; its
+     * fluid length fraction is 1-2|c|.  An uncut edge stores 1 if it is
+     * fluid and -1 if it is covered.  Check for these values before using
+     * the centroid.
+     */
     [[nodiscard]] Array<const MultiCutFab*,AMREX_SPACEDIM> getEdgeCent () const noexcept {
         return m_ebdc->getEdgeCent();
     }
