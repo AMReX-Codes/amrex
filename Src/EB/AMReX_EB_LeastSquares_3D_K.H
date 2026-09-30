@@ -635,6 +635,10 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                     Real y_off = static_cast<Real>(jj-j) - bcent(i,j,k,1);
                     Real z_off = static_cast<Real>(kk-k) - bcent(i,j,k,2);
 
+                    if (!flag(i,j,k).isConnected(ii-i,jj-j,kk-k)) {
+                        continue;
+                    }
+
                     Amatrix(a_ind,0) = Real(1.0);
                     Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
                     Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
@@ -1248,6 +1252,10 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != Real(1.0) || vfrac(ii,jj,kk-2) != Real(1.0)) ) {
                         continue;
                     }
+                }
+
+                if (!flag(i,j,k).isConnected(ii-i,jj-j,kk-k)) {
+                    continue;
                 }
 
                 Amatrix(a_ind,0) = Real(1.0);
