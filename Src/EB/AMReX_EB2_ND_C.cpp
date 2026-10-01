@@ -12,15 +12,18 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                                  GpuArray<Real,AMREX_SPACEDIM> const& problo) noexcept
 {
-    // Classify by level-set sign, not type: 2D face types may have been
-    // promoted to regular by the small-area tolerance in build_faces.
+    // In 2D, classify by level-set sign, not type: face types may have been
+    // promoted to regular or covered by the small-area tolerance in build_faces.
+    // Not in 3D: build_cells may zero levset after the types and intercepts
+    // were built, so a regular edge can look cut but have no intercept.
     AMREX_D_TERM(const Real dxinv = Real(1.0)/dx[0];,
                  const Real dyinv = Real(1.0)/dx[1];,
                  const Real dzinv = Real(1.0)/dx[2];)
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
         Box(excent), xbx, {
             AMREX_LOOP_3D(xbx, i, j, k, {
-                bool const cut = (levset(i,j,k) < Real(0.0)) != (levset(i+1,j,k) < Real(0.0));
+                bool const cut = (AMREX_SPACEDIM == 2) &&
+                    ((levset(i,j,k) < Real(0.0)) != (levset(i+1,j,k) < Real(0.0)));
                 if (fx(i,j,k) == Type::regular && !cut) {
                     excent(i,j,k) = Real(1.0);
                 } else if (fx(i,j,k) == Type::covered && !cut) {
@@ -36,7 +39,8 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
         },
         Box(eycent), ybx, {
             AMREX_LOOP_3D(ybx, i, j, k, {
-                bool const cut = (levset(i,j,k) < Real(0.0)) != (levset(i,j+1,k) < Real(0.0));
+                bool const cut = (AMREX_SPACEDIM == 2) &&
+                    ((levset(i,j,k) < Real(0.0)) != (levset(i,j+1,k) < Real(0.0)));
                 if (fy(i,j,k) == Type::regular && !cut) {
                     eycent(i,j,k) = Real(1.0);
                 } else if (fy(i,j,k) == Type::covered && !cut) {
@@ -52,7 +56,8 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
         },
         Box(ezcent), zbx, {
             AMREX_LOOP_3D(zbx, i, j, k, {
-                bool const cut = (levset(i,j,k) < Real(0.0)) != (levset(i,j,k+1) < Real(0.0));
+                bool const cut = (AMREX_SPACEDIM == 2) &&
+                    ((levset(i,j,k) < Real(0.0)) != (levset(i,j,k+1) < Real(0.0)));
                 if (fz(i,j,k) == Type::regular && !cut) {
                     ezcent(i,j,k) = Real(1.0);
                 } else if (fz(i,j,k) == Type::covered && !cut) {
