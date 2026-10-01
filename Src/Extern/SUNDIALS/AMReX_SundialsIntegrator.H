@@ -360,8 +360,7 @@ private:
             fast_rtol_applied = BaseT::fast_rel_tol;
             fast_atol_applied = BaseT::fast_abs_tol;
         }
-        amrex::Real h = BaseT::use_adaptive_fast_time_step ? amrex::Real(0)
-                                                           : amrex::max(BaseT::fast_time_step, amrex::Real(0));
+        amrex::Real h = BaseT::use_adaptive_fast_time_step ? amrex::Real(0) : BaseT::fast_time_step;
         if (h != fast_step_applied) {
             ARKStepSetFixedStep(arkode_fast_mem, h);
             fast_step_applied = h;
@@ -913,12 +912,15 @@ public:
         else if (use_mri) {
 #if defined(SUNDIALS_VERSION_MAJOR) && \
     ((SUNDIALS_VERSION_MAJOR < 7) || (SUNDIALS_VERSION_MAJOR == 7 && SUNDIALS_VERSION_MINOR < 2))
-            if (BaseT::use_adaptive_time_step) {
+            if (BaseT::use_adaptive_time_step && step_applied == 0) {
                 amrex::Abort("SundialsIntegrator: adaptive slow time steps with MRI methods need SUNDIALS 7.2 or later");
             }
 #endif
             apply_tolerances();
-            apply_step(BaseT::use_adaptive_time_step ? amrex::Real(0) : BaseT::time_step);
+            // Do not switch a fixed slow step back to adaptive; the fixed-step MRI table may lack an embedding.
+            if (!BaseT::use_adaptive_time_step) {
+                apply_step(BaseT::time_step);
+            }
             apply_fast_step();
             flag = MRIStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
