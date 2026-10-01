@@ -419,7 +419,7 @@ void mlndlap_restriction_rap (int /*i*/, int /*j*/, int /*k*/, Array4<Real> cons
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int mlndlap_color (int i, int, int)
 {
-    return i%2;
+    return i&1;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

@@ -161,7 +161,6 @@ private:
     GpuArray<Real,nelems> scaledSigma (int amrlev, int mglev) const noexcept;
 
     GpuArray<Real,nelems> m_sigma;
-    mutable int m_redblack = 0;
 };
 
 }
