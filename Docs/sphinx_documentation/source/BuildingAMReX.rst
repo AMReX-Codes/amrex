@@ -61,6 +61,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | USE_RPATH       | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
+   | USE_MATH_ERRNO  | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
    | WARN_ALL        | TRUE or FALSE                       | TRUE for DEBUG     |
    |                 |                                     | FALSE otherwise    |
    +-----------------+-------------------------------------+--------------------+
@@ -132,6 +134,9 @@ If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
 When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
+
+Unless ``USE_MATH_ERRNO`` is ``TRUE``, non-debug GCC and Clang builds use
+``-fno-math-errno`` for AMReX and the application, making math functions faster.
 
 For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
 also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.
@@ -486,6 +491,9 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)         |  YES, NO              |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_MATH_ERRNO             |  Let math functions set errno in non-Debug      | NO                      |  YES, NO              |
+   |                              |  builds                                         |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
