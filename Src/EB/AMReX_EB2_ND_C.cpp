@@ -12,10 +12,7 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                                  GpuArray<Real,AMREX_SPACEDIM> const& problo) noexcept
 {
-    // In 2D, classify by level-set sign, not type: face types may have been
-    // promoted to regular or covered by the small-area tolerance in build_faces.
-    // Not in 3D: build_cells may zero levset after the types and intercepts
-    // were built, so a regular edge can look cut but have no intercept.
+    // 2D: classify by levset sign; build_faces may have promoted cut faces.
     AMREX_D_TERM(const Real dxinv = Real(1.0)/dx[0];,
                  const Real dyinv = Real(1.0)/dx[1];,
                  const Real dzinv = Real(1.0)/dx[2];)
@@ -56,11 +53,9 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
         },
         Box(ezcent), zbx, {
             AMREX_LOOP_3D(zbx, i, j, k, {
-                bool const cut = (AMREX_SPACEDIM == 2) &&
-                    ((levset(i,j,k) < Real(0.0)) != (levset(i,j,k+1) < Real(0.0)));
-                if (fz(i,j,k) == Type::regular && !cut) {
+                if (fz(i,j,k) == Type::regular) {
                     ezcent(i,j,k) = Real(1.0);
-                } else if (fz(i,j,k) == Type::covered && !cut) {
+                } else if (fz(i,j,k) == Type::covered) {
                     ezcent(i,j,k) = Real(-1.0);
                 } else {
                     Real zcut = Real(0.5)*(ezcent(i,j,k) - (problo[2]+Real(k)*dx[2]))*dzinv;
