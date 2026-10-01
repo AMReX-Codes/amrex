@@ -872,7 +872,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     Geometry refined_geom = amrex::refine(m_geom, 2);
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
-        max_grid_size + max_grid_size%2, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+        std::max(2, max_grid_size - max_grid_size%2), m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
@@ -1185,9 +1185,8 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         error = b;
     }
 
-    if (error) {
-        amrex::Abort("GShopLevel::buildFCData: failed to coarsen face-centered data");
-    }
+    // Leave it unbuilt; a face-centered factory on this level would then fail.
+    if (error) { return; }
 
     m_fc_data[face_dir]->m_built = true;
 
