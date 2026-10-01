@@ -1273,6 +1273,9 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
                             bool& aggressive, Long& ncoarse, bool& truncated,
                             Long& nnz_untruncated)
 {
+#ifdef AMREX_USE_GPU
+    amrex::ignore_unused(truncated, nnz_untruncated); // set by the host paths only
+#endif
     T const sscale = strength_scale(A);
     auto S = create_soc(A, sscale);
     S.setColumnPartition(S.partition());

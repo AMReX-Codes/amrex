@@ -81,20 +81,19 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
     crow[0] = 0;
 
     int const nblocks = int(std::max(Long(1), std::min(Long(OpenMP::get_max_threads()), nrows)));
-    Vector<Long> rbegin(nblocks+1, nrows);
-    Long* AMREX_RESTRICT prb = rbegin.data();
-    AMREX_ASSUME(prb != nullptr); // gcc -Wnull-dereference false positive
-    prb[0] = 0;
+    // Built with push_back: gcc -Wnull-dereference flags writes through data().
+    Vector<Long> rbegin{0};
+    rbegin.reserve(nblocks+1);
     if (nblocks > 1) {
-        Vector<Long> wsum(nrows+1);
-        Long* AMREX_RESTRICT pw = wsum.data();
-        AMREX_ASSUME(pw != nullptr);
-        pw[0] = 0;
-        for (Long i = 0; i < nrows; ++i) { pw[i+1] = pw[i] + work(i); }
+        Vector<Long> wsum{0};
+        wsum.reserve(nrows+1);
+        for (Long i = 0; i < nrows; ++i) { wsum.push_back(wsum.back() + work(i)); }
         for (int t = 1; t < nblocks; ++t) {
-            prb[t] = std::lower_bound(pw, pw+nrows+1, pw[nrows]/nblocks*t) - pw;
+            rbegin.push_back(std::lower_bound(wsum.begin(), wsum.end(), wsum.back()/nblocks*t)
+                             - wsum.begin());
         }
     }
+    rbegin.push_back(nrows);
 
     if (nblocks == 1) {
         // Rows go straight into the result. The capacity is a guess from
@@ -499,16 +498,16 @@ CSR<T,V,I> rap_local_cpu (Long nf, Long nc, Long ncols,
             // Chunks no later row needs are recycled.
             if (c > next_release) {
                 next_release = std::numeric_limits<Long>::max();
-                for (Long l = 0; l < Long(live.size()); ) {
-                    Long const q = live[l];
+                for (Long pos = 0; pos < Long(live.size()); ) {
+                    Long const q = live[pos];
                     if (chunk_last[q] < c) {
                         free_slots.push_back(slot[q]);
                         slot[q] = -1;
-                        live[l] = live.back();
+                        live[pos] = live.back();
                         live.pop_back();
                     } else {
                         next_release = std::min(next_release, chunk_last[q]);
-                        ++l;
+                        ++pos;
                     }
                 }
             }
@@ -987,6 +986,11 @@ void append_ext_rows (CSR<T,V,int>& Bh, Long const* ext_row_offset, Long const* 
 
 namespace amrex {
 
+template <typename T, template <typename> class Allocator, typename F>
+SpMatrix<T,Allocator>
+SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
+        AlgPartition const& col_partition, F const& row_post);
+
 /**
  * \brief Sparse matrix-matrix multiplication, C = A * B.
  *
@@ -1002,11 +1006,6 @@ namespace amrex {
  *
  * \return Product of matrices `A` and `B`
  */
-template <typename T, template <typename> class Allocator, typename F>
-SpMatrix<T,Allocator>
-SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
-        AlgPartition const& col_partition, F const& row_post);
-
 template <typename T, template <typename> class Allocator>
 SpMatrix<T,Allocator>
 SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
@@ -1022,6 +1021,13 @@ SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
  * column (compact column indices that sort like the global ones), may
  * change them in place, and returns the new number of entries, which must
  * stay sorted. CPU builds only; GPU builds accept only detail::NoRowPost.
+ *
+ * \param A First matrix.
+ * \param B Second matrix.
+ * \param col_partition Column partition of the product.
+ * \param row_post Callback applied to each row of the product.
+ *
+ * \return Product of matrices `A` and `B`
  */
 template <typename T, template <typename> class Allocator, typename F>
 SpMatrix<T,Allocator>
@@ -1172,7 +1178,8 @@ SpGEMM (SpMatrix<T,Allocator> const& A, SpMatrix<T,Allocator> const& B,
  * processes need are formed as a matrix, and the local rows are computed
  * in chunks as the rows of R need them. The row partition of `R` must be
  * `col_partition`, and its column partition is set to the row partition of
- * `A`, as in SpGEMM.
+ * `A`, as in SpGEMM. With several processes, the sparsity pattern of `R`
+ * must be contained in that of the transpose of `P` (e.g. R = P^T).
  */
 template <typename T, template <typename> class Allocator>
 SpMatrix<T,Allocator>
