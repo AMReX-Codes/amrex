@@ -5,6 +5,7 @@
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
 #   Flags_FASTMATH            --> Optional flags for fast-math (floating-point)
+#   Flags_NO_MATH_ERRNO       --> -fno-math-errno for non-Debug builds
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #   Flags_INLINE              --> Optional flags for inlining
 #
@@ -137,6 +138,23 @@ target_compile_options( Flags_FASTMATH
       $<${_cxx_xlclang}:-ffast-math>
       $<${_cxx_msvc}:/fp:fast>
 )
+
+
+#
+# Math functions do not set errno (non-Debug builds)
+#
+add_library(Flags_NO_MATH_ERRNO INTERFACE)
+add_library(AMReX::Flags_NO_MATH_ERRNO ALIAS Flags_NO_MATH_ERRNO)
+
+# clang-cl and icx-cl (MSVC frontend) do not take -fno-math-errno
+if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+   target_compile_options( Flags_NO_MATH_ERRNO
+      INTERFACE
+         $<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
+         $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>,$<CXX_COMPILER_ID:GNU,Clang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-Xcompiler=-fno-math-errno>
+         $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,Clang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
+   )
+endif ()
 
 
 #

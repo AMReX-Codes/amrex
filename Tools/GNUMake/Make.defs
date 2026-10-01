@@ -338,6 +338,12 @@ else
   USE_FLATTEN_FOR := FALSE
 endif
 
+ifdef USE_MATH_ERRNO
+  USE_MATH_ERRNO := $(strip $(USE_MATH_ERRNO))
+else
+  USE_MATH_ERRNO := FALSE
+endif
+
 ifdef WARN_ALL
   WARN_ALL := $(strip $(WARN_ALL))
 else

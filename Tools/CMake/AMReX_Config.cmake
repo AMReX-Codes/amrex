@@ -86,7 +86,7 @@ function (configure_amrex AMREX_TARGET)
       if (AMReX_CUDA)
          get_target_property(_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
 
-         eval_genex(_omp_flags CXX ${_comp} INTERFACE BUILD STRING )
+         eval_genex(_omp_flags CXX ${CMAKE_CXX_COMPILER_ID} INTERFACE BUILD STRING )
 
          target_compile_options(${AMREX_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
       endif ()

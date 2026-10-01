@@ -543,20 +543,21 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
         m_dirichlet_mask[0].resize(new_size);
     }
 
+    int const amrlev = 0;
+    int const mglev = new_size-1;
+    if (mglev == 0) {
+        m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
+                                                          m_owner_mask_top->nComp());
+    } else {
+        m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
+                                             m_dmap[0][mglev],
+                                             m_geom[0][mglev]);
+    }
+
     if (m_masks_built)
     {
         const auto lobc = LoBC();
         const auto hibc = HiBC();
-        int amrlev = 0;
-        int mglev = new_size-1;
-        if (mglev == 0) {
-            m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
-                                                              m_owner_mask_top->nComp());
-        } else {
-            m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
-                                                 m_dmap[0][mglev],
-                                                 m_geom[0][mglev]);
-        }
         const Geometry& geom = m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask = MultiFab();
@@ -571,12 +572,54 @@ Real
 MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
 {
     const int ncomp = this->getNComp();
-    const int finest_level = NAMRLevels() - 1;
-    if (amrlev == finest_level) {
-        return mf.norminf(0, ncomp, IntVect(0), local);
-    } else {
-        return mf.norminf(*m_norm_fine_mask[amrlev], 0, ncomp, IntVect(0), local);
+    const bool has_fine = amrlev < NAMRLevels() - 1;
+    // Dirichlet and overset nodes do not count, since the user's rhs there may be NaN.
+    iMultiFab const& dmask = *m_dirichlet_mask[amrlev][0];
+    iMultiFab const& fmask = has_fine ? *m_norm_fine_mask[amrlev] : dmask;
+    Math::detail::AbsNanToInf<Real> const absinf{};
+
+    Real nm = 0.0;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = mf.const_arrays();
+        auto const& dma = dmask.const_arrays();
+        auto const& fma = fmask.const_arrays();
+        nm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, mf, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            Real r = 0.0;
+            if (!dma[box_no](i,j,k) && (!has_fine || fma[box_no](i,j,k))) {
+                for (int n = 0; n < ncomp; ++n) {
+                    r = amrex::max(r, absinf(ma[box_no](i,j,k,n)));
+                }
+            }
+            return r;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm)
+#endif
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            auto const& a = mf.const_array(mfi);
+            auto const& dm = dmask.const_array(mfi);
+            auto const& fm = fmask.const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                if (!dm(i,j,k) && (!has_fine || fm(i,j,k))) {
+                    nm = std::max(nm, absinf(a(i,j,k,n)));
+                }
+            });
+        }
     }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm, ParallelContext::CommunicatorSub());
+    }
+
+    return nm;
 }
 
 void

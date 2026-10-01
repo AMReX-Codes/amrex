@@ -36,6 +36,10 @@ else
   CFLAGS   += -g1 -O3
   FFLAGS   += -g1 -O3
   F90FLAGS += -g1 -O3
+  ifneq ($(USE_MATH_ERRNO),TRUE)
+    CXXFLAGS += -fno-math-errno
+    CFLAGS   += -fno-math-errno
+  endif
 
 endif
 

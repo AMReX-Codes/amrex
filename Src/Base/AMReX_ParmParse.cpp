@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -440,7 +441,17 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                 ostr += ch; str++; pcnt--;
                 if ( pcnt == 0 && cbcnt == 0 && sbcnt == 0 )
                 {
-                    return PType::Value;
+                    // An operator right after the closing ')' (e.g.,
+                    // "(a-b)/c") continues the same token.
+                    ch = *str;
+                    if ( ch != 0 && std::strchr("+-*/^<>!", ch) != nullptr )
+                    {
+                        state = lexState::STRING;
+                    }
+                    else
+                    {
+                        return PType::Value;
+                    }
                 }
             }
             else

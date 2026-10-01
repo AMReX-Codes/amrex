@@ -2,7 +2,7 @@ amrex.fpe_trap_invalid = 1
 eb_is_dirichlet = 0
 eb_is_homog_dirichlet = 1
 
-! needed to prevent exploding laplacian in small cells
+# needed to prevent exploding laplacian in small cells
 eb2.small_volfrac = 1e-10 
 
 eb2.geom_type = channel

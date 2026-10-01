@@ -68,6 +68,12 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(iva.size() == 2 &&
                             iva[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
                             iva[1] == IntVect(AMREX_D_DECL(4,5,6)));
+        std::vector<IntVect> ivs;
+        pp.getarr("ivs", ivs);
+        AMREX_ALWAYS_ASSERT(ivs.size() == 3 &&
+                            ivs[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
+                            ivs[1] == IntVect(AMREX_D_DECL(4,5,6)) &&
+                            ivs[2] == IntVect(AMREX_D_DECL(7,8,9)));
         std::vector<Box> ba;
         pp.getarr("ba", ba);
         AMREX_ALWAYS_ASSERT(ba.size() == 2 && ba[0] == box &&
@@ -164,6 +170,16 @@ int main(int argc, char* argv[])
         Array<int,3> n_cell{0,0,0};
         pp.queryarrAsDouble("n_cell", 3, n_cell.data());
         AMREX_ALWAYS_ASSERT(n_cell[0] == 64 && n_cell[1] == 64 && n_cell[2] == 64);
+
+        double dz = 0, dz_p = 0, dz2 = 0, dz2_p = 0;
+        pp.get("my_constants.dz", dz);
+        pp.getWithParser("my_constants.dz", dz_p);
+        pp.get("dz2", dz2);
+        pp.getWithParser("dz2", dz2_p);
+        AMREX_ALWAYS_ASSERT(std::abs(dz  -2.25e-3) < 1.e-15 &&
+                            std::abs(dz_p-2.25e-3) < 1.e-15 &&
+                            std::abs(dz2  -4.5e-3) < 1.e-15 &&
+                            std::abs(dz2_p-4.5e-3) < 1.e-15);
     }
     {
         ParmParse pp;
