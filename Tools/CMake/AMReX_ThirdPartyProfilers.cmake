@@ -5,8 +5,7 @@
 #
 # Setup the target "amrex" to use a third party profiler
 # Before using this function, target "amrex" must have been constructed.
-# This function returns right away if global variables TP_PROFILE or SITE
-# have not been defined before the call
+# The profiler is selected by the option AMReX_TP_PROFILE.
 #
 # Author: Michele Rosso
 # Date  : June 26, 2018
@@ -22,17 +21,15 @@ function (set_amrex_profilers AMREX_TARGET)
       message (FATAL_ERROR "Target '${AMREX_TARGET}' must be defined before calling function 'set_amrex_profilers'" )
    endif ()
 
-   cmake_host_system_information( RESULT _machine QUERY HOSTNAME )
-
-   if ( TP_PROFILE MATCHES "CRAYPAT" )
+   if ( AMReX_TP_PROFILE STREQUAL "CRAYPAT" )
 
       add_amrex_define( AMREX_CRAYPAT )
 
-   elseif ( TP_PROFILE MATCHES "FORGE" )
+   elseif ( AMReX_TP_PROFILE STREQUAL "FORGE" )
 
       add_amrex_define( AMREX_FORGE )
 
-   elseif ( TP_PROFILE MATCHES "VTUNE" )
+   elseif ( AMReX_TP_PROFILE STREQUAL "VTUNE" )
 
       add_amrex_define( AMREX_VTUNE )
       target_compile_options(${AMREX_TARGET} PUBLIC -debug inline-debug-info -parallel-source-info=2 )

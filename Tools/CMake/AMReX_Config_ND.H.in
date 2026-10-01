@@ -11,6 +11,9 @@
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
 #cmakedefine AMREX_USE_ROCTX
+#cmakedefine AMREX_CRAYPAT
+#cmakedefine AMREX_FORGE
+#cmakedefine AMREX_VTUNE
 #cmakedefine AMREX_MEM_PROFILING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
