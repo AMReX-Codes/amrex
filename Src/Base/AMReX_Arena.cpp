@@ -58,6 +58,17 @@ namespace {
 #endif
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    // Only running out of memory is recoverable; other errors abort.
+    void abort_unless_out_of_memory (gpuError_t ret, char const* call)
+    {
+        if (ret != AMREX_HIP_OR_CUDA(hipErrorOutOfMemory, cudaErrorMemoryAllocation)) {
+            amrex::Abort(std::string("Arena: ") + call + " returned " + std::to_string(ret) + ": "
+                         + AMREX_HIP_OR_CUDA(hipGetErrorString(ret), cudaGetErrorString(ret)));
+        }
+    }
+#endif
 }
 
 const std::size_t Arena::align_size;
@@ -193,6 +204,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #endif
         }
         if (!p) {
+            amrex::ErrorStream() <<
+                "Out of CPU memory: got nullptr from std::aligned_alloc\n";
             throw_out_of_memory("CPU memory", nbytes, "std::aligned_alloc returned nullptr");
         }
 
@@ -231,6 +244,11 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
         }
 
         if (!p) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+            abort_unless_out_of_memory(ret, AMREX_HIP_OR_CUDA("hipHostMalloc", "cudaHostAlloc"));
+#endif
+            amrex::ErrorStream() <<
+                "Out of CPU pinned memory: got nullptr from host malloc\n";
             std::string msg = "";
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 msg = "hipHostMalloc returned " + std::to_string(ret) +
@@ -281,6 +299,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             }
 
             if (!p) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+                abort_unless_out_of_memory(ret, AMREX_HIP_OR_CUDA("hipMallocManaged", "cudaMallocManaged"));
+#endif
                 std::string msg = "";
                 AMREX_HIP_OR_CUDA_OR_SYCL(
                     msg = "hipMallocManaged returned " + std::to_string(ret) +
@@ -331,6 +352,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             }
 
             if (!p) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+                abort_unless_out_of_memory(ret, AMREX_HIP_OR_CUDA("hipMalloc", "cudaMalloc"));
+#endif
                 std::string msg = "";
                 AMREX_HIP_OR_CUDA_OR_SYCL(
                     msg = "hipMalloc returned " + std::to_string(ret) +

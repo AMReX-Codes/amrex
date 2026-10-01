@@ -663,10 +663,10 @@ the parameter discussed above are bytes.  All these arenas also have a
 member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
-If an arena cannot allocate the requested memory, it throws
-:cpp:`amrex::OutOfMemoryError`, which is derived from :cpp:`std::bad_alloc`,
-and its :cpp:`what()` describes the request and the current memory usage.  An
-uncaught exception terminates the run.
+If an arena runs out of memory, it throws :cpp:`amrex::OutOfMemoryError`,
+which is derived from :cpp:`std::bad_alloc`, and its :cpp:`what()` describes
+the request and the current memory usage.  An uncaught exception terminates the
+run.
 
 If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
