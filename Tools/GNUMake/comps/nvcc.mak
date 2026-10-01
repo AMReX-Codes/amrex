@@ -126,8 +126,6 @@ endif
 
 ifeq ($(CUDA_VERBOSE),TRUE)
   NVCC_FLAGS += --ptxas-options=-v
-  # Per-kernel "Used N registers, NNNN bytes spill stores/loads" at compile time.
-  NVCC_FLAGS += --resource-usage
 endif
 
 ifeq ($(USE_CUPTI),TRUE)

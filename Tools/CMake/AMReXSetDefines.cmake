@@ -163,6 +163,10 @@ add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF AMReX_ASCENT )
 add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF AMReX_CUDA )
 add_amrex_define( AMREX_USE_NVML NO_LEGACY IF AMReX_CUDA )
 
+if (AMReX_CUDA AND AMReX_GPU_MIN_BLOCKS)
+   add_amrex_define( AMREX_GPU_MIN_BLOCKS=${AMReX_GPU_MIN_BLOCKS} NO_LEGACY )
+endif ()
+
 #
 # General setup for any GPUs
 #

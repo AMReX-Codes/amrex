@@ -34,10 +34,9 @@
 #define AMREX_GPU_Z_STRIDE 1
 
 #ifdef AMREX_USE_CUDA
-// When the build defines AMREX_GPU_MIN_BLOCKS (from GPU_MIN_BLOCKS=B), it is  propose using the
-// passing through the  launch_global<MT, min_blocks>, which carries
-// __launch_bounds__(MT, min_blocks), so that the
-// ptxas can cap registers at 65536/(MT*B) per thread.
+// If AMREX_GPU_MIN_BLOCKS is defined, use launch_global<MT, AMREX_GPU_MIN_BLOCKS>, i.e.
+// __launch_bounds__(MT, AMREX_GPU_MIN_BLOCKS), so that ptxas caps registers at
+// 65536/(MT*AMREX_GPU_MIN_BLOCKS) per thread (-maxrregcount is ignored with launch bounds).
 #  ifdef AMREX_GPU_MIN_BLOCKS
 #    define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global<MT, AMREX_GPU_MIN_BLOCKS><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)

@@ -209,6 +209,11 @@ set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
 message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
 
+set(AMReX_GPU_MIN_BLOCKS "" CACHE STRING
+   "Minimum number of resident blocks per SM in __launch_bounds__ (empty: not set)" )
+if (AMReX_GPU_MIN_BLOCKS)
+   message( STATUS "   AMReX_GPU_MIN_BLOCKS = ${AMReX_GPU_MIN_BLOCKS}")
+endif ()
 # this warns on a typical user bug when developing on (forgiving) Power9 machines (e.g. Summit)
 option(AMReX_CUDA_WARN_CAPTURE_THIS "Warn if a CUDA lambda captures a class' this" ON)
 # no code should ever ship -Werror, but one can turn this on manually in CI if one likes
