@@ -878,6 +878,22 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
     }
     refined_cc_level = transient_level.get();
+
+    // Leave the data unbuilt; a face-centered factory on this level would then fail.
+    auto skip = [&] (char const* why) {
+        if (amrex::Verbose() > 0) {
+            amrex::Print() << "AMReX EB: no face-centered data for face_dir " << face_dir
+                           << " on domain " << m_geom.Domain() << ": " << why << '\n';
+        }
+        m_fc_data[face_dir].reset();
+    };
+
+    // Coarse levels can have features too thin for their 2x rebuild to see.
+    if (refined_cc_level->isAllRegular()) {
+        skip("refined level has no cut cells");
+        return;
+    }
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         refined_cc_level->m_grids.coarsenable(2) &&
         (refined_cc_level->m_covered_grids.empty() ||
@@ -1185,8 +1201,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         error = b;
     }
 
-    // Leave it unbuilt; a face-centered factory on this level would then fail.
-    if (error) { return; }
+    if (error) {
+        skip("coarsening failed");
+        return;
+    }
 
     m_fc_data[face_dir]->m_built = true;
 
