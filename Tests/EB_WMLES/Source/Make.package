@@ -1,0 +1,25 @@
+
+WEXE_sources += main.cpp
+
+WEXE_headers += WMLES.H
+WEXE_headers += WMLES_derive.H
+WEXE_headers += WMLES_tagging.H
+WEXE_headers += WMLES_K.H
+WEXE_headers += WMLES_sgs_K.H
+WEXE_headers += WMLES_wallmodel_K.H
+
+WEXE_sources += WMLES_advance.cpp
+WEXE_sources += WMLES_advance_box.cpp
+WEXE_sources += WMLES_advance_box_eb.cpp
+WEXE_sources += WMLES_bcfill.cpp
+WEXE_sources += WMLES_derive.cpp
+WEXE_sources += WMLES.cpp
+WEXE_sources += WMLESBld.cpp
+WEXE_sources += WMLES_io.cpp
+WEXE_sources += WMLES_setup.cpp
+
+WEXE_sources += WMLES_init_eb2.cpp
+
+WEXE_headers += WMLES_parm.H
+WEXE_sources += WMLES_parm.cpp
+
