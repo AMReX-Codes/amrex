@@ -20,6 +20,8 @@ iv3 = (100,200,300)
 b = ((1, 2, 3) (7, 8,9) (1,0,   1))
 b2 = "((1, 2, 3)(7,8,9)(1,0,1))"
 iva = [(1,2,3), (4,5,6)]
+ivs = (1,2,3)(4,5,6) \
+      (7,8,9)
 ba = [((1, 2, 3) (7, 8,9) (1,0,   1)), ((0,0,0) (3,3,3) (0,0,0))]
 
 # three numbers. whitespaces inside `""` are okay.
@@ -74,6 +76,13 @@ my_constants.dx = 6.25e-7
 my_constants.nx = lx/dx
 n_cell = nx nx nx
 ny = nx
+
+# expression starting with a parenthesis
+my_constants.zmin = 4.e-2
+my_constants.zmax = 22.e-2
+my_constants.nz = 80
+my_constants.dz = (zmax-zmin)/nz
+dz2 = 2*dz
 
 do_this = 1
 
