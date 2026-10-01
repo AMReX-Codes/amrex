@@ -58,6 +58,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
+    const bool treat_phi_as_on_centroid = (m_phi_loc == Location::CellCentroid) && (mglev == 0);
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
@@ -73,7 +75,14 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                      Array4<Real const> const& byfab = bycoef.const_array(mfi);,
                      Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        // With phi on centroids, a regular cell next to a cut cell needs the EB stencil.
+        auto fabtyp = FabType::regular;
+        if (flags) {
+            auto const& flagfab = (*flags)[mfi];
+            fabtyp = (treat_phi_as_on_centroid)
+                ? flagfab.getType(amrex::grow(bx,1) & flagfab.box())
+                : flagfab.getType(bx);
+        }
 
         if (fabtyp == FabType::covered) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
@@ -117,8 +126,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
-
-            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
             if (treat_phi_as_on_centroid) {
 #ifdef AMREX_USE_HIP
