@@ -1092,7 +1092,7 @@ Level::buildCellFlagFC (int face_dir)
 void
 Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     vfrac.setVal(1.0);
     if (isAllRegular()) { return; }
 
@@ -1131,7 +1131,7 @@ Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
 void
 Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         areafrac[idim]->setVal(1.0);
     }
@@ -1196,7 +1196,7 @@ Level::fillAreaFracFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, int f
 void
 Level::fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     centroid.setVal(0.0);
     if (isAllRegular()) { return; }
     centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, 0, centroid.nGrow(), geom.periodicity());
@@ -1214,7 +1214,7 @@ Level::fillCentroidFC (MultiCutFab& centroid, int face_dir, const Geometry& geom
 void
 Level::fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndryarea.setVal(0.0);
     if (isAllRegular()) { return; }
     bndryarea.ParallelCopy(m_fc_data[face_dir]->m_bndryarea_fc, 0, 0, 1, 0, bndryarea.nGrow(), geom.periodicity());
@@ -1232,7 +1232,7 @@ Level::fillBndryAreaFC (MultiCutFab& bndryarea, int face_dir, const Geometry& ge
 void
 Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndrycent.setVal(-1.0);   // cell-centered convention: -1 where there is no boundary
     if (isAllRegular()) { return; }
     bndrycent.ParallelCopy(m_fc_data[face_dir]->m_bndrycent_fc, 0, 0, AMREX_SPACEDIM, 0, bndrycent.nGrow(), geom.periodicity());
@@ -1250,7 +1250,7 @@ Level::fillBndryCentFC (MultiCutFab& bndrycent, int face_dir, const Geometry& ge
 void
 Level::fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndrynorm.setVal(0.0);
     if (isAllRegular()) { return; }
     bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, 0, bndrynorm.nGrow(), geom.periodicity());
@@ -1268,7 +1268,7 @@ Level::fillBndryNormFC (MultiCutFab& bndrynorm, int face_dir, const Geometry& ge
 void
 Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
 
     if (isAllRegular()) {
         cellflag.setVal(EBCellFlag::TheDefaultCell());
@@ -1320,7 +1320,7 @@ Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const 
 void
 Level::fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         facecent[idim]->setVal(0.0);
     }
@@ -1352,7 +1352,7 @@ Level::fillFaceCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, int f
 void
 Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const
 {
-    AMREX_ASSERT(hasFCData(face_dir));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         edgecent[idim]->setVal(1.0);   // 1.0 marks a fully open edge, as in fillEdgeCent
     }

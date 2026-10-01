@@ -196,7 +196,7 @@ public:
 
     //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
     [[nodiscard]] const FCData& getFCData (int face_dir) const {
-        AMREX_ASSERT(hasFCData(face_dir));
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
         return *m_fc_data[face_dir];
     }
 
