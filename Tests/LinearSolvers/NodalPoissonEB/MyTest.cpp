@@ -49,6 +49,13 @@ MyTest::MyTest ()
 }
 
 void
+MyTest::setMultigridType (std::string const& name)
+{
+    multigrid_type = amrex::getEnumCaseInsensitive<MultigridType>(name);
+    amrex::Print() << "\nMultigrid type: " << name << "\n";
+}
+
+void
 MyTest::solve ()
 {
     BL_PROFILE("NodalPoissonEB::solve()");
@@ -73,6 +80,7 @@ MyTest::solve ()
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
 
     MultiFab::Copy(solution[0], exact_solution[0], 0, 0, 1, 0);
     const Box interior = amrex::grow(amrex::surroundingNodes(geom[0].Domain()), -1);
@@ -117,6 +125,7 @@ MyTest::readParameters ()
 
     pp.query("gpu_regtest", gpu_regtest);
     pp.query("do_plots", do_plots);
+    pp.queryarr("multigrid_types", multigrid_types);
 }
 
 void

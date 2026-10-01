@@ -157,7 +157,7 @@ private:
     void build_solution (V& a_xx, int it);
     void compute_residual (V& a_rr, V const& a_xx, V const& a_bb);
 
-    bool converged (RT r0, RT r) const;
+    [[nodiscard]] bool converged (RT r0, RT r) const;
 
     void gram_schmidt_orthogonalization (int it);
     void update_hessenberg (int it, bool happyend, RT& res);

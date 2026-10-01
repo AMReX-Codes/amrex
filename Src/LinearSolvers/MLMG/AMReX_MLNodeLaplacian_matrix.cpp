@@ -5,8 +5,9 @@
 
 namespace amrex {
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 
+#if defined(AMREX_USE_HYPRE)
 void
 MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
@@ -15,28 +16,46 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
                                HypreNodeLap::Int* cols,
                                Real* mat) const
 {
+    fillMatrix_doit(m_num_mg_levels[0]-1, mfi, gid, lid, ncols, cols, mat);
+}
+#endif
+
+void
+MLNodeLaplacian::fillAlgMatrix (int mglev, MFIter const& mfi,
+                                Array4<Long const> const& gid,
+                                Array4<int const> const& lid,
+                                Long* ncols, Long* cols, Real* mat) const
+{
+    fillMatrix_doit(mglev, mfi, gid, lid, ncols, cols, mat);
+}
+
+template <typename AlgInt, typename AlgGid>
+void
+MLNodeLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
+                                  Array4<AlgGid const> const& gid,
+                                  Array4<int const> const& lid,
+                                  AlgInt* ncols, AlgInt* cols, Real* mat) const
+{
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        fillIJMatrix_gpu(mfi,gid,lid,ncols,cols,mat);
+        fillMatrix_gpu(mglev,mfi,gid,lid,ncols,cols,mat);
     } else
 #endif
     {
-        fillIJMatrix_cpu(mfi,gid,lid,ncols,cols,mat);
+        fillMatrix_cpu(mglev,mfi,gid,lid,ncols,cols,mat);
     }
 }
 
 #ifdef AMREX_USE_GPU
 
+template <typename AlgInt, typename AlgGid>
 void
-MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
-                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
-                                   Array4<int const> const& lid,
-                                   HypreNodeLap::Int* ncols,
-                                   HypreNodeLap::Int* cols,
-                                   Real* mat) const
+MLNodeLaplacian::fillMatrix_gpu (int mglev, MFIter const& mfi,
+                                 Array4<AlgGid const> const& gid,
+                                 Array4<int const> const& lid,
+                                 AlgInt* ncols, AlgInt* cols, Real* mat) const
 {
     const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
@@ -69,7 +88,7 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                  Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
-                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+                         < std::numeric_limits<AlgGid>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -90,7 +109,7 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                  Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
-                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+                         < std::numeric_limits<AlgGid>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -119,7 +138,7 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                  Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
-                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+                         < std::numeric_limits<AlgGid>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -146,7 +165,7 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                  Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
-                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+                         < std::numeric_limits<AlgGid>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -167,16 +186,14 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
 
 #endif
 
+template <typename AlgInt, typename AlgGid>
 void
-MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
-                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
-                                   Array4<int const> const& lid,
-                                   HypreNodeLap::Int* ncols,
-                                   HypreNodeLap::Int* cols,
-                                   Real* mat) const
+MLNodeLaplacian::fillMatrix_cpu (int mglev, MFIter const& mfi,
+                                 Array4<AlgGid const> const& gid,
+                                 Array4<int const> const& lid,
+                                 AlgInt* ncols, AlgInt* cols, Real* mat) const
 {
     const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
@@ -229,11 +246,10 @@ MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
 }
 
 void
-MLNodeLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+MLNodeLaplacian::fillRHS (int mglev, MFIter const& mfi, Array4<int const> const& lid,
                           Real* rhs, Array4<Real const> const& bfab) const
 {
     const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
     const Box& nddom = amrex::surroundingNodes(Geom(amrlev,mglev).Domain());
     const Box& bx = mfi.validbox();
     const auto lobc = LoBC();
@@ -263,9 +279,9 @@ MLNodeLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
     {
         if (lid(i,j,k) >= 0) {
             Real fac = Real(1.0);
-            AMREX_D_TERM(if ((neumann_lo[0] == i) || neumann_hi[0] == i) { fac *= 0.5; },
-                         if ((neumann_lo[1] == j) || neumann_hi[1] == j) { fac *= 0.5; },
-                         if ((neumann_lo[2] == k) || neumann_hi[2] == k) { fac *= 0.5; })
+            AMREX_D_TERM(if ((neumann_lo[0] == i) || neumann_hi[0] == i) { fac *= Real(0.5); },
+                         if ((neumann_lo[1] == j) || neumann_hi[1] == j) { fac *= Real(0.5); },
+                         if ((neumann_lo[2] == k) || neumann_hi[2] == k) { fac *= Real(0.5); })
             rhs[lid(i,j,k)] = fac * bfab(i,j,k);
         }
     });

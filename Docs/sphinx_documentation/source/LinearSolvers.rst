@@ -408,6 +408,10 @@ Available choices of the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
+- :cpp:`MLMG::BottomSolver::algmg`: AMReX's own algebraic multigrid
+  (see :ref:`sec:linearsolver:algmg`), available in every build for the
+  operators that hypre supports.
+
 - :cpp:`MLMG::BottomSolver::custom`: A solver provided by the linear operator
   itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
   the only such operator, and it uses this by default.  Its custom solver is a
@@ -494,6 +498,57 @@ many small boxes slower.  Users are encouraged to time their solves with and
 without :cpp:`setNoGpuSync(true)` and use whichever is faster.
 
 
+Multigrid Type
+--------------
+
+By default, the coarsest AMR level is solved with geometric multigrid
+V-cycles down to the bottom solver.  For problems where geometric
+coarsening converges slowly or not at all, such as strongly varying or
+anisotropic coefficients, :cpp:`MLMG::setMultigridType` selects how that
+level is solved:
+
+- :cpp:`MultigridType::geometric`: the default described above.
+
+- :cpp:`MultigridType::algebraic`: AlgMG (:ref:`sec:linearsolver:algmg`)
+  solves the whole coarsest AMR level in every MLMG iteration, using the
+  bottom solver's tolerance, iteration limit and verbosity.  The
+  geometric levels of that AMR level are then unused, so
+  :cpp:`LPInfo::setMaxCoarseningLevel(0)` avoids building them.
+
+- :cpp:`MultigridType::hybrid`: geometric multigrid first.  If the residual
+  stalls, grows or becomes NaN, MLMG switches to the algebraic solver and
+  restarts from the best iterate it has seen.  The switch is reported at
+  verbosity 1.  :cpp:`MLMG::setHybridStallCriterion(window, rate)` (defaults
+  4 and 0.8) declares a stall when the residual has not dropped by
+  ``rate`` per iteration on average over the last ``window`` iterations,
+  and :cpp:`MLMG::setHybridDivergenceFactor` (default 10) declares
+  divergence when the residual exceeds that multiple of the best residual.
+  After the switch, the algebraic phase gets its own :cpp:`setMaxIter`
+  budget.
+
+Finer AMR levels always use the geometric cycles.  The algebraic types
+support the same operators as the hypre bottom solver, for single
+component :cpp:`MultiFab` problems.  When MLMG serves as a preconditioner
+(for example in :cpp:`GMRESMLMG`), the algebraic type applies one AlgMG
+V-cycle on the coarsest AMR level, so the preconditioner stays a fixed
+linear operation; the hybrid type needs a convergence test and is not
+available there or with :cpp:`setFixedIter`.  :cpp:`MLMG::setAlgMGOptions` takes a
+callback that receives the :cpp:`AlgMG` solver so that its multigrid
+parameters, such as the Krylov acceleration (BiCGStab by default when driven
+by MLMG), can be changed; the tolerances, iteration limit and verbosity come
+from the bottom-solver settings.  The callback runs once per assembled matrix.
+Code that calls :cpp:`AlgMG` members in the callback includes
+``AMReX_AlgMG.H``.  The type can also be read from an inputs file:
+
+.. highlight:: c++
+
+::
+
+    MultigridType mg_type = MultigridType::geometric;
+    ParmParse pp("mlmg");
+    pp.query_enum_case_insensitive("multigrid_type", mg_type); // geometric, algebraic, hybrid
+    mlmg.setMultigridType(mg_type);
+
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
 
@@ -513,6 +568,10 @@ of the boundary value from the cell face to the center of the ghost cell, where
 the extrapolated value is then used in the regular stencil.  For example,
 :cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
 to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
+types assemble the operator into a matrix that supports orders up to 3, so MLMG
+lowers a higher order to 3 when they are used (to 2 for hypre and PETSc with
+embedded boundaries), and the operator keeps that order afterwards.
 
 
 Curvilinear Coordinates
@@ -701,7 +760,7 @@ The following parameters can be set in the inputs file to control the choice of 
 
 - :cpp:`hypre.hypre_preconditioner`: Default is none;  otherwise the type must be specified.
 
-- :cpp:`hypre.recompute_preconditioner`: Default true.  Option to recompute the preconditioner.
+- :cpp:`hypre.recompute_preconditioner`: Option to redo the solver and preconditioner setup on every solve.  AMReX's own hypre solvers default to false, because they redo the setup whenever the matrix changes; :cpp:`HypreIJIface` used directly defaults to true.
 
 - :cpp:`hypre.write_matrix_files`: Default false.   Option to write the matrix to text files.
 
@@ -714,13 +773,13 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 - :cpp:`hypre.bamg_logging`: Default 0. See `HYPRE_BoomerAMGSetLogging`
 
-- :cpp:`hypre.bamg_coarsen_type`: Default 6.  See `HYPRE_BoomerAMGSetCoarsenType`
+- :cpp:`hypre.bamg_coarsen_type`: Default 6 (8 on GPUs).  See `HYPRE_BoomerAMGSetCoarsenType`
 
 - :cpp:`hypre.bamg_cycle_type`: Default 1.  See `HYPRE_BoomerAMGSetCycleType`
 
-- :cpp:`hypre.bamg_relax_type`: Default 6.  See `HYPRE_BoomerAMGSetRelaxType`
+- :cpp:`hypre.bamg_relax_type`: Default 6 (18 on GPUs).  See `HYPRE_BoomerAMGSetRelaxType`
 
-- :cpp:`hypre.bamg_relax_order`: Default 1.  See `HYPRE_BoomerAMGSetRelaxOrder`
+- :cpp:`hypre.bamg_relax_order`: Default 1 (0 on GPUs).  See `HYPRE_BoomerAMGSetRelaxOrder`
 
 - :cpp:`hypre.bamg_num_sweeps`: Default 2.  See `HYPRE_BoomerAMGSetNumSweeps`
 
@@ -728,10 +787,15 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 - :cpp:`hypre.bamg_strong_threshold`: Default 0.25 for 2D, 0.57 for 3D.  See `HYPRE_BoomerAMGSetStrongThreshold`
 
-- :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
+- :cpp:`hypre.bamg_interp_type`:  Default 0 (6 on GPUs).  See `HYPRE_BoomerAMGSetInterpType`
 
-- :cpp:`hypre.bamg_use_old_default`: Default true.  Only used when BoomerAMG is the solver.
+- :cpp:`hypre.bamg_use_old_default`: Default true (false on GPUs).  Only used when BoomerAMG is the solver.
   See `HYPRE_BoomerAMGSetOldDefault`
+
+With a GPU build of HYPRE, the defaults above switch to HYPRE's recommended GPU options
+(PMIS coarsening, extended+i interpolation with :cpp:`hypre.bamg_pmax_elmts` 4, l1-Jacobi
+relaxation in natural order, and :cpp:`hypre.bamg_keep_transpose` 1).  For symmetric problems,
+Chebyshev relaxation (:cpp:`hypre.bamg_relax_type` 16) often needs half as many iterations.
 
 When BoomerAMG is the solver, :cpp:`hypre.bamg_max_levels` defaults to HYPRE's own default.
 The defaults of :cpp:`hypre.bamg_coarsen_type`, :cpp:`hypre.bamg_interp_type` and
@@ -1044,10 +1108,10 @@ PCG
 
 :cpp:`PCG<V,M>` in ``AMReX_PCG.H`` is the preconditioned conjugate gradient
 method with the same operator requirements as :cpp:`GMRES<V,M>`. It needs a
-symmetric positive definite operator and preconditioner, and is then the
-cheapest of the three: one operator and one preconditioner application and
-three global reductions per iteration. :cpp:`getStatus` reports a loss of
-positive definiteness.
+symmetric definite operator and preconditioner of the same sign (positive
+or negative definite), and is then the cheapest of the three: one operator
+and one preconditioner application and three global reductions per
+iteration. :cpp:`getStatus` reports a loss of definiteness.
 
 Sparse Linear Algebra
 =====================
@@ -1109,7 +1173,7 @@ them accepts a preconditioner functor.
 - :cpp:`GMRES_MV<T>` in ``AMReX_GMRES_MV.H``: GMRES.
 - :cpp:`BiCGStab_MV<T>` in ``AMReX_BiCGStab_MV.H``: BiCGStab.
 - :cpp:`PCG_MV<T>` in ``AMReX_PCG_MV.H``: preconditioned conjugate
-  gradient, for symmetric positive definite systems.
+  gradient, for symmetric definite systems.
 
 All three are aliases of :cpp:`KrylovMV<S,T>` in ``AMReX_KrylovMV.H``. Use
 :cpp:`getSolver` to reach the underlying solver, e.g., to call
@@ -1127,28 +1191,30 @@ their scaling on first use, so the first application, and
 - :cpp:`L1GaussSeidelSmoother<T>`: hybrid Gauss-Seidel with l1
   correction. CPU builds only.
 
-The algebraic multigrid solver :cpp:`AMG<T>` in ``AMReX_AMG.H`` is
+The algebraic multigrid solver :cpp:`AlgMG<T>` in ``AMReX_AlgMG.H`` is
 described below.
+
+.. _sec:linearsolver:algmg:
 
 Algebraic Multigrid
 -------------------
 
-:cpp:`AMG<T>` solves :math:`A x = b` for a square :cpp:`SpMatrix<T>` with
+:cpp:`AlgMG<T>` solves :math:`A x = b` for a square :cpp:`SpMatrix<T>` with
 V-cycles. The setup selects coarse points with PMIS coarsening
 [DeSterck2006]_ based on the classical strength of connection [Ruge1987]_,
 builds the interpolation :math:`P`, and forms the coarse operator
 :math:`A_c = P^T A P`. By default, the interpolation is extended+i
 [DeSterck2008]_ [Li2021]_, the smoother is Chebyshev [Adams2003]_, and the
-coarsest level is solved with smoother sweeps.
+coarsest level is solved directly.
 
 .. highlight:: c++
 
 ::
 
-    AMG<Real> amg(A);   // A must outlive amg
+    AlgMG<Real> amg(A);   // A must outlive amg
     amg.setVerbose(1);
     amg.setRelTol(1.e-10);
-    amg.setBottomSolver(AMG<Real>::BottomSolver::BiCGStab);
+    amg.setBottomSolver(AlgMG<Real>::BottomSolver::bicgstab);
     amg.solve(x, b);    // x holds the initial guess
 
 The iteration stops when the residual 2-norm is below :cpp:`setRelTol` times
@@ -1157,13 +1223,17 @@ is also available on its own as :cpp:`precond(x, b)` for use in other
 solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
 set per solver object, so several solvers with different settings can
 coexist. The solver runs on CPUs and GPUs with any number of MPI processes.
+:cpp:`MLMG` can use it on the coarsest AMR level or as its bottom solver
+(see :ref:`sec:linearsolver:pars`). The
+enumerations below are ``AMREX_ENUM`` types, so they can be read from an
+inputs file with :cpp:`ParmParse::query_enum_case_insensitive`.
 The following can be tuned:
 
-- :cpp:`setInterpType`: extended+i (``MMExtI``, the default), extended
-  (``MMExt``) or classical direct (``Direct``) [Ruge1987]_ interpolation.
-- :cpp:`setSmoother`: Chebyshev (``Chebyshev``, the default), l1-Jacobi
-  (``L1Jacobi``) [Baker2011]_, weighted Jacobi (``Jacobi``) or, in CPU
-  builds, l1 hybrid Gauss-Seidel (``L1GaussSeidel``) [Baker2011]_. In the
+- :cpp:`setInterpType`: extended+i (``mm_ext_i``, the default), extended
+  (``mm_ext``) or classical direct (``direct``) [Ruge1987]_ interpolation.
+- :cpp:`setSmoother`: Chebyshev (``chebyshev``, the default), l1-Jacobi
+  (``l1_jacobi``) [Baker2011]_, weighted Jacobi (``jacobi``) or, in CPU
+  builds, l1 hybrid Gauss-Seidel (``l1_gauss_seidel``) [Baker2011]_. In the
   Poisson tests l1 hybrid Gauss-Seidel needs fewer cycles than the other
   smoothers, but each sweep is sequential within a process or OpenMP thread.
 - :cpp:`setChebyshevDegree` and :cpp:`setChebyshevRatio`: the Chebyshev
@@ -1175,21 +1245,23 @@ The following can be tuned:
 - :cpp:`setPreSmooth` and :cpp:`setPostSmooth`: number of smoother sweeps
   before and after the coarse correction (1 for Chebyshev, 2 for the other
   smoothers).
-- :cpp:`setBottomSolver`: smoother sweeps (``Jacobi``, the default), or
-  BiCGStab (``BiCGStab``) or GMRES (``GMRES``) preconditioned by l1-Jacobi
-  (weighted Jacobi when the smoother is ``Jacobi``).
+- :cpp:`setBottomSolver`: a direct solve of the coarsest level (``direct``,
+  the default, for up to 1024 rows), smoother sweeps (``jacobi``), or
+  BiCGStab (``bicgstab``) or GMRES
+  (``gmres``) preconditioned by l1-Jacobi (weighted Jacobi when the smoother
+  is ``jacobi``).
 - :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom
   solver (:math:`10^{-4}`).
 - :cpp:`setKrylovSolver`: use one V-cycle as the preconditioner of an outer
-  BiCGStab (``BiCGStab``), GMRES (``GMRES``) or conjugate gradient (``PCG``)
-  solver instead of iterating it on its own (``None``, the default). In the
-  tests in ``Tests/Algebra/AMG`` this roughly halved the number of V-cycles.
+  BiCGStab (``bicgstab``), GMRES (``gmres``) or conjugate gradient (``pcg``)
+  solver instead of iterating it on its own (``none``, the default). In the
+  tests in ``Tests/Algebra/AlgMG`` this roughly halved the number of V-cycles.
   The coarse operators are Galerkin products with :math:`R = P^T`, so the
   matrix should be symmetric or nearly so (solve row-scaled systems in
-  their unscaled form); PCG also requires positive definiteness. With PCG
-  or GMRES, use smoother sweeps as the bottom
-  solver, and with PCG also the same number of pre- and post-smoothing
-  sweeps.
+  their unscaled form); PCG also requires definiteness (either sign). With PCG
+  or GMRES, use the direct bottom solver or smoother sweeps (not a Krylov
+  bottom solver), and with PCG also the same number of pre- and
+  post-smoothing sweeps.
 - :cpp:`setSingular(true)`: for singular matrices whose null space is the
   constant vector, such as the Poisson operator with periodic or Neumann
   boundaries. As in MLMG, the mean of the right-hand side is removed, but

@@ -2207,25 +2207,24 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
 
 #endif
 
-#if defined(AMREX_USE_HYPRE)
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
-                                 Array4<AtomicInt const> const& gid,
+                                 Array4<AlgGid const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* ncols, HypreInt* cols,
+                                 AlgInt* ncols, AlgInt* cols,
                                  Real* mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
         {
             cols[nelems] = gid(i,j,k);
             mat[nelems] = sten(i,j,k,0);
-            HypreNodeLap::Int nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             ++nelems;
 
             if                (gid(i-1,j-1,k) < gidmax) {
@@ -2281,11 +2280,11 @@ void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2300,8 +2299,8 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2314,7 +2313,7 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2429,11 +2428,11 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
@@ -2446,8 +2445,8 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2460,7 +2459,7 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2583,11 +2582,11 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Real sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2602,8 +2601,8 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2616,7 +2615,7 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2733,19 +2732,19 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
 
 #ifdef AMREX_USE_GPU
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const int k,
                                  const int offset,
-                                 Array4<AtomicInt const> const& gid,
+                                 Array4<AlgGid const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* ncols, HypreInt* cols,
+                                 AlgInt* ncols, AlgInt* cols,
                                  Real* mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
     if (lid(i,j,k) >= 0)
     {
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
 
         if (offset == 1 || offset == 0) {
@@ -2843,13 +2842,13 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2873,7 +2872,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
 
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3028,13 +3027,13 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
@@ -3056,7 +3055,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
 
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3219,13 +3218,13 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Real sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom, bool is_rz) noexcept
@@ -3249,7 +3248,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
         // Note that nddom has been grown at periodic boundaries.
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3406,7 +3405,6 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
 
 #endif
 
-#endif
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int mlndlap_color (int i, int j, int)

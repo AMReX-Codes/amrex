@@ -77,6 +77,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int iupper = proc_end-1;
 
     hypre_ij = std::make_unique<HypreIJIface>(comm, ilower, iupper, verbose);
+    hypre_ij->setRecomputePreconditioner(false); // a new object per matrix
     hypre_ij->parse_inputs(options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
@@ -311,7 +312,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
             const auto& bfab = rhs.array(mfi);
             const auto& lid = local_node_id.array(mfi);
-            linop->fillRHS(mfi, lid, bp, bfab);
+            linop->fillRHS(linop->NMGLevels(0)-1, mfi, lid, bp, bfab);
 
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)

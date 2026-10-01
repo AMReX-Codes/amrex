@@ -6,6 +6,7 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <functional>
 #include <limits>
 #include <optional>
 
@@ -20,6 +21,17 @@ namespace amrex {
 
 // Norm used to evaluate the target convergence criteria
 AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
+
+/**
+ * \brief How MLMG solves the coarsest AMR level.
+ *
+ * geometric: V-cycles on the MG levels (the default). algebraic: AlgMG
+ * solves the finest MG level of AMR level 0 in every iteration. hybrid:
+ * geometric until the iteration stalls or diverges, then algebraic,
+ * restarting from the best iterate so far. Finer AMR levels always use
+ * geometric mini cycles.
+ */
+AMREX_ENUM(MultigridType, geometric, algebraic, hybrid);
 
 /// \ingroup amrex_solver_mlmg
 template <typename MF>
@@ -45,6 +57,7 @@ public:
     using Location = typename MLLinOpT<MF>::Location;
 
     using BottomSolver = amrex::BottomSolver;
+    using MultigridType = amrex::MultigridType;
     enum class CFStrategy : int {none,ghostnodes};
 
     MLMGT (MLLinOpT<MF>& a_lp);
@@ -326,6 +339,41 @@ public:
      */
     void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
     [[nodiscard]] BottomSolver getBottomSolver () const noexcept { return bottom_solver; }
+
+    //! Select how AMR level 0 is solved. See MultigridType.
+    void setMultigridType (MultigridType t) noexcept { multigrid_type = t; }
+    [[nodiscard]] MultigridType getMultigridType () const noexcept { return multigrid_type; }
+    //! Whether the last solve used AlgMG on AMR level 0 (always in the
+    //! algebraic type, after the switch in the hybrid type).
+    [[nodiscard]] bool usedAlgMG () const noexcept { return m_algmg_active; }
+
+    /**
+     * \brief Adjust the AlgMG solvers MLMG builds (level 0 and bottom).
+     *
+     * The callback runs once, when a solver is built for an assembled
+     * matrix, so it can set the multigrid parameters (Krylov acceleration,
+     * smoother, interpolation, strength, coarsening) without repeating the
+     * setup. MLMG applies its own bottom tolerances, iteration limit,
+     * verbosity, exception and singularity settings on every solve; those
+     * cannot be changed here.
+     */
+    void setAlgMGOptions (std::function<void(AlgMG<RT>&)> f) {
+        m_algmg_options = std::move(f);
+        m_algmg_bottom.reset();
+        m_algmg_level0.reset();
+    }
+
+    /**
+     * \brief Hybrid mode: switch to AlgMG when the residual has not dropped
+     * by \p rate per iteration on average over the last \p window
+     * iterations (defaults 0.8 and 4).
+     */
+    void setHybridStallCriterion (int window, RT rate) noexcept {
+        hybrid_stall_window = window; hybrid_stall_rate = rate;
+    }
+    //! Hybrid mode: switch to AlgMG when the residual exceeds \p f times the
+    //! best residual so far (default 10).
+    void setHybridDivergenceFactor (RT f) noexcept { hybrid_divergence_factor = f; }
     /**
      * \brief Select the coarse-fine synchronization strategy.
      *
@@ -643,6 +691,32 @@ public:
      */
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
 
+    //! AlgMG on the bottom MG level (MultiFab, single component only).
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
+    void bottomSolveWithAlgMG (MF& x, const MF& b);
+
+    //! AlgMG on the finest MG level of AMR level 0: res[0][0] -> cor[0][0]
+    //! (one V-cycle in preconditioner mode).
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
+    void algmgLevel0Solve ();
+
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
+    //! MLMG's own settings every solve; the user's options only when `with_options`.
+    void configureAlgMG (MLAlgMG& s, bool singular, bool with_options);
+
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
+    //! Solve with the cached AlgMG solver: one V-cycle as a preconditioner.
+    void algmgSolve (MLAlgMG& s, MF& x, MF const& b);
+
+    //! Hybrid mode: is it time to give up on the geometric phase? `norms`
+    //! holds the residual norms of the geometric iterations so far.
+    [[nodiscard]] bool hybridShouldSwitch (Vector<RT> const& norms, RT max_norm,
+                                           RT best_norm, std::string& reason) const;
+
     [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual
     [[nodiscard]] RT getInitResidual () const noexcept { return m_init_resnorm0; }
@@ -681,6 +755,15 @@ private:
 
     MLMGNormType norm_type = MLMGNormType::greater;
 
+    MultigridType multigrid_type = MultigridType::geometric;
+    bool m_algmg_active = false;         //!< AlgMG solves AMR level 0 in this solve
+    int hybrid_stall_window = 4;
+    RT hybrid_stall_rate = RT(0.8);
+    RT hybrid_divergence_factor = RT(10.0);
+    std::function<void(AlgMG<RT>&)> m_algmg_options;
+    std::unique_ptr<MLAlgMG> m_algmg_bottom;
+    std::unique_ptr<MLAlgMG> m_algmg_level0;
+
     int final_fill_bc = 0;
 
     MLLinOpT<MF>& linop;
@@ -714,9 +797,9 @@ private:
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
 
     std::string hypre_options_namespace = "hypre";
-    bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
-    int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
-    int hypre_relax_order = 1; // uses C/F relaxation
+    bool hypre_old_default = HypreDefaults::old_default;
+    int hypre_relax_type = HypreDefaults::relax_type;
+    int hypre_relax_order = HypreDefaults::relax_order;
     int hypre_num_sweeps = 2;  // Sweeps on each level
     Real hypre_strong_threshold = 0.25; // HYPRE default is 0.25
 #endif
@@ -850,8 +933,25 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         }
     }
 #endif
+    if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
+            "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
+        // The algebraic correction has zero ghost cells.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cf_strategy != CFStrategy::ghostnodes || linop.getNGrow() == 0,
+            "MLMG: AlgMG does not support the ghostnodes strategy with ghost cells");
+        // The assembled matrix supports boundary stencils up to third order
+        // and must match the operator, as for hypre and PETSc.
+        linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
+    }
 
     bool is_nsolve = linop.m_parent;
+
+    m_algmg_active = (multigrid_type == MultigridType::algebraic);
+    const bool hybrid = (multigrid_type == MultigridType::hybrid) && !is_nsolve;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(do_nsolve && multigrid_type != MultigridType::geometric),
+                                     "MLMG: NSolve requires the geometric multigrid type");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(hybrid && do_fixed_number_of_iters != 0),
+        "MLMG: the hybrid multigrid type needs a convergence test; as a preconditioner or with a fixed number of iterations use geometric or algebraic");
 
     auto solve_start_time = amrex::second();
 
@@ -921,7 +1021,24 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         auto iter_start_time = amrex::second();
         bool converged = false;
 
-        const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
+        // Hybrid: keep the best iterate so far, starting with the initial guess.
+        // The switch tests use the residual MLMG reports: the finest level
+        // until it converges, then the composite one.
+        Vector<MF> best_sol;
+        Vector<RT> hybrid_norms;
+        bool hybrid_composite = false; // the reported residual became the composite one
+        RT best_norm = resnorm0;
+        if (hybrid) {
+            if (namrlevs > 1) { best_norm = ResNormInf(finest_amr_lev); }
+            best_sol.resize(namrlevs);
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                const IntVect ng = nGrowVect(sol[alev]);
+                best_sol[alev] = linop.make(alev, 0, ng);
+                LocalCopy(best_sol[alev], sol[alev], 0, 0, ncomp, ng);
+            }
+        }
+
+        int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
             oneIter(iter);
@@ -968,6 +1085,52 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
+                if (hybrid && !m_algmg_active) {
+                    if (fine_converged && !hybrid_composite) {
+                        // The reported residual now includes the coarse levels:
+                        // restart the comparisons from this iterate.
+                        hybrid_composite = true;
+                        hybrid_norms.clear();
+                        best_norm = composite_norminf;
+                        for (int alev = 0; alev < namrlevs; ++alev) {
+                            LocalCopy(best_sol[alev], sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
+                        }
+                    }
+                    hybrid_norms.push_back(composite_norminf);
+                    std::string reason;
+                    bool do_switch = hybridShouldSwitch(hybrid_norms, max_norm,
+                                                        best_norm, reason);
+                    if (!do_switch && iter+1 == niters) {
+                        do_switch = true;
+                        reason = "not converged";
+                    }
+                    if (do_switch) {
+                        if (verbose >= 1) {
+                            amrex::Print() << print_ident << "MLMG: " << reason << " after "
+                                           << iter+1 << " iterations, switching to AlgMG on AMR level 0\n";
+                        }
+                        if (!amrex::isfinite(composite_norminf) || composite_norminf > best_norm) {
+                            for (int alev = 0; alev < namrlevs; ++alev) {
+                                LocalCopy(sol[alev], best_sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
+                            }
+                            computeResidual(finest_amr_lev);
+                            composite_norminf = best_norm;
+                            if (verbose >= 2) {
+                                amrex::Print() << print_ident << "MLMG: restarting from the best iterate, resid/"
+                                               << norm_name << " = " << best_norm/max_norm << "\n";
+                            }
+                        }
+                        m_algmg_active = true;
+                        niters = iter + 1 + max_iters;
+                        continue;
+                    }
+                    if (composite_norminf < best_norm) {
+                        best_norm = composite_norminf;
+                        for (int alev = 0; alev < namrlevs; ++alev) {
+                            LocalCopy(best_sol[alev], sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
+                        }
+                    }
+                }
                 if (composite_norminf > RT(1.e20)*max_norm || !amrex::isfinite(composite_norminf))
                 {
                     if (verbose > 0) {
@@ -988,7 +1151,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
         if (!converged && do_fixed_number_of_iters == 0) {
             if (verbose > 0) {
-                amrex::Print() << print_ident << "MLMG: Failed to converge after " << max_iters << " iterations."
+                amrex::Print() << print_ident << "MLMG: Failed to converge after " << niters << " iterations."
                                << " resid, resid/" << norm_name << " = "
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
@@ -1477,6 +1640,9 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     } else if (linop.needsUpdate()) {
         linop.update();
 
+        m_algmg_bottom.reset();
+        m_algmg_level0.reset();
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
         hypre_solver.reset();
         hypre_bndry.reset();
@@ -1656,6 +1822,9 @@ MLMGT<MF>::prepareLinOp ()
     } else if (linop.needsUpdate()) {
         linop.update();
 
+        m_algmg_bottom.reset();
+        m_algmg_level0.reset();
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
         hypre_solver.reset();
         hypre_bndry.reset();
@@ -1740,7 +1909,13 @@ void MLMGT<MF>::oneIter (int iter)
             makeSolvable(0,0,res[0][0]);
         }
 
-        if (iter < max_fmg_iters) {
+        if (m_algmg_active) {
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                algmgLevel0Solve();
+            } else {
+                amrex::Abort("MLMG: AlgMG is only supported for MultiFab");
+            }
+        } else if (iter < max_fmg_iters) {
             mgFcycle();
         } else {
             mgVcycle(0, 0);
@@ -2015,6 +2190,7 @@ MLMGT<MF>::actualBottomSolve ()
     auto bottom_start_time = amrex::second();
 
     ParallelContext::push(linop.BottomCommunicator());
+    struct PopGuard { ~PopGuard () { ParallelContext::pop(); } } pop_guard; // NOLINT(cppcoreguidelines-special-member-functions)
 
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
@@ -2065,6 +2241,14 @@ MLMGT<MF>::actualBottomSolve ()
                 amrex::Abort("Using PETSc as bottom solver not supported in this case");
             }
         }
+        else if (bottom_solver == BottomSolver::algmg)
+        {
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithAlgMG(x, *bottom_b);
+            } else {
+                amrex::Abort("MLMG: AlgMG is only supported for MultiFab");
+            }
+        }
         else if (bottom_solver == BottomSolver::custom && linop.supportCustomBottomSolver())
         {
             linop.customBottomSolve(this, x, *bottom_b, bottom_reltol, bottom_abstol,
@@ -2107,8 +2291,6 @@ MLMGT<MF>::actualBottomSolve ()
             postCG(ret);
         }
     }
-
-    ParallelContext::pop();
 
     if (! timer.empty()) {
         timer[bottom_time] += amrex::second() - bottom_start_time;
@@ -2389,6 +2571,123 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
         }
     }
     linop.fixSolvabilityByOffset(amrlev, mglev, mf, offset);
+}
+
+template <typename MF>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
+void
+MLMGT<MF>::configureAlgMG (MLAlgMG& s, bool singular, bool with_options)
+{
+    // Dependent type: AlgMG stays a forward declaration in this header.
+    AlgMG<RT>& a = s.solver();
+    a.setVerbose(bottom_verbose);
+    a.setPrintIndentation(print_ident + "    ");
+    a.setThrowException(throw_exception);
+    // Settings that select the setup (singular flag, Krylov type, the user's
+    // options) are applied once per assembled matrix. Reapplying them on
+    // every solve could toggle a value against the callback and redo the
+    // expensive AlgMG setup each time.
+    if (with_options) {
+        a.setSingular(singular);
+        a.setKrylovSolver(AlgMG<RT>::KrylovSolver::bicgstab);
+        if (m_algmg_options) { m_algmg_options(a); }
+    }
+}
+
+template <typename MF>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
+void
+MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
+{
+    // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
+    if (precond_mode) {
+        s.applyVcycle(x, b);
+    } else {
+        try {
+            s.solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
+    }
+}
+
+template <typename MF>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
+void
+MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
+{
+    const int amrlev = 0;
+    const int mglev  = linop.NMGLevels(amrlev) - 1;
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "MLMG: AlgMG needs ncomp == 1");
+
+    bool const fresh = (m_algmg_bottom == nullptr);
+    if (fresh) { m_algmg_bottom = linop.makeAlgMG(mglev); }
+    configureAlgMG(*m_algmg_bottom, linop.isBottomSingular(), fresh);
+    algmgSolve(*m_algmg_bottom, x, b);
+
+    if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable()) {
+        makeSolvable(amrlev, mglev, x);
+    }
+}
+
+template <typename MF>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
+void
+MLMGT<MF>::algmgLevel0Solve ()
+{
+    BL_PROFILE("MLMG::algmgLevel0Solve()");
+
+    auto t0 = amrex::second();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "MLMG: AlgMG needs ncomp == 1");
+
+    bool const fresh = (m_algmg_level0 == nullptr);
+    if (fresh) { m_algmg_level0 = linop.makeAlgMG(0); }
+    configureAlgMG(*m_algmg_level0, linop.isSingular(0), fresh);
+    algmgSolve(*m_algmg_level0, cor[0][0], res[0][0]);
+
+    // Known overset cells must not receive a correction; the matrix rows
+    // there are identities with a zero rhs, so this is a safety pass.
+    linop.applyOverset(0, cor[0][0]);
+
+    if (linop.isSingular(0) && linop.getEnforceSingularSolvable()) {
+        makeSolvable(0, 0, cor[0][0]);
+    }
+
+    if (! timer.empty()) {
+        timer[bottom_time] += amrex::second() - t0;
+    }
+}
+
+template <typename MF>
+bool
+MLMGT<MF>::hybridShouldSwitch (Vector<RT> const& norms, RT max_norm,
+                               RT best_norm, std::string& reason) const
+{
+    RT const rnorm = norms.back();
+    if (!amrex::isfinite(rnorm)) {
+        reason = "non-finite residual";
+        return true;
+    }
+    if (rnorm > RT(1.e20)*max_norm ||
+        rnorm > hybrid_divergence_factor*best_norm) {
+        reason = "diverging";
+        return true;
+    }
+    const int w = hybrid_stall_window;
+    if (w > 0 && int(norms.size()) > w) {
+        const RT r_old = norms[norms.size()-1-w];
+        if (rnorm > std::pow(hybrid_stall_rate, RT(w)) * r_old) {
+            reason = "stalling";
+            return true;
+        }
+    }
+    return false;
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)

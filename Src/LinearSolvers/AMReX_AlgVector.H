@@ -238,16 +238,16 @@ private:
 template <typename T, typename Allocator>
 AlgVector<T,Allocator>::AlgVector (Long global_size)
     : m_partition(global_size),
-      m_begin(m_partition[ParallelDescriptor::MyProc()]),
-      m_end(m_partition[ParallelDescriptor::MyProc()+1]),
+      m_begin(m_partition[ParallelContext::MyProcSub()]),
+      m_end(m_partition[ParallelContext::MyProcSub()+1]),
       m_data(m_end-m_begin)
 {}
 
 template <typename T, typename Allocator>
 AlgVector<T,Allocator>::AlgVector (AlgPartition partition)
     : m_partition(std::move(partition)),
-      m_begin(m_partition[ParallelDescriptor::MyProc()]),
-      m_end(m_partition[ParallelDescriptor::MyProc()+1]),
+      m_begin(m_partition[ParallelContext::MyProcSub()]),
+      m_end(m_partition[ParallelContext::MyProcSub()+1]),
       m_data(m_end-m_begin)
 {}
 
@@ -255,8 +255,8 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::define (Long global_size)
 {
     m_partition.define(global_size);
-    m_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_begin = m_partition[ParallelContext::MyProcSub()];
+    m_end = m_partition[ParallelContext::MyProcSub()+1];
     m_data.resize(m_end-m_begin);
 }
 
@@ -264,8 +264,8 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::define (AlgPartition partition)
 {
     m_partition = std::move(partition);
-    m_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_begin = m_partition[ParallelContext::MyProcSub()];
+    m_end = m_partition[ParallelContext::MyProcSub()+1];
     m_data.resize(m_end-m_begin);
 }
 
@@ -473,7 +473,7 @@ void AlgVector<T,Allocator>::copyTo (FabArray<FAB> & fa) const
 template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::printToFile (std::string const& file) const
 {
-    std::ofstream ofs(file+"."+std::to_string(ParallelDescriptor::MyProc()));
+    std::ofstream ofs(file+"."+std::to_string(ParallelContext::MyProcSub()));
     ofs << m_begin << " " << m_end << "\n";
 #ifdef AMREX_USE_GPU
     Gpu::PinnedVector<T> hv(m_data.size());

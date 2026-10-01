@@ -1,4 +1,4 @@
-#include <AMReX_AMG.H>
+#include <AMReX_AlgMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFab.H>
@@ -27,10 +27,10 @@ struct Params {
     Real reltol = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-10);
     Real alpha = Real(1); // 1.e-6 makes the constant mode nearly null
     int variations = 1; // 1: also run variations of the options; 0: only them
-    std::string bottom = "jacobi"; // jacobi, bicgstab, gmres
-    std::string interp = "ext+i"; // direct, ext, ext+i
-    std::string smoother = "chebyshev"; // jacobi, l1jacobi, chebyshev, l1gs (CPU)
-    std::string krylov = "none"; // none, bicgstab, gmres, pcg
+    std::string bottom = "direct"; // AlgMGBottomSolver names
+    std::string interp = "mm_ext_i"; // AlgMGInterpType names
+    std::string smoother = "chebyshev"; // AlgMGSmoother names (l1_gauss_seidel: CPU)
+    std::string krylov = "none"; // AlgMGKrylovSolver names
     // periodic, or dirichlet: homogeneous Dirichlet on the domain faces
     std::string bc = "periodic";
     // Input `problem` is a list (all four by default); each run has one.
@@ -42,7 +42,9 @@ struct Params {
     Real jump = Real(1.e3);
     int block = 4;
     Real eps = Real(1.e-3);
-    int mlmg = 1;           // also solve with geometric MLMG for comparison
+    int mlmg = 1;           // also solve with MLMG for comparison
+    int mlmg_repeat = 1;    // solve this many times with the same MLMG object
+    Vector<std::string> mlmg_types{"geometric"}; // MLMG multigrid types to run
     int max_grid_size = 64; // for MLMG
     std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
                        aggressive_levels, cheby_degree, aggressive_direct;
@@ -94,7 +96,7 @@ struct Coef
     }
 };
 
-// The operator a*phi - div(beta grad phi) of a run, shared by the AMG and
+// The operator a*phi - div(beta grad phi) of a run, shared by the AlgMG and
 // the MLMG solves.
 struct Problem
 {
@@ -117,9 +119,11 @@ Problem make_problem (Params const& p)
                          .domain = domain}};
 }
 
-// Geometric multigrid (MLMG) on the same problem, for comparison. MLMG may
-// fail on some of these problems; that is reported, not fatal.
-void run_mlmg (Params const& p)
+// MLMG on the same problem, for comparison, once per requested multigrid
+// type. The geometric type may fail on some of these problems; that is
+// reported, not fatal. The hybrid type must converge, and it must have
+// switched to AlgMG whenever the geometric type failed.
+void run_mlmg (Params const& p, Vector<std::string>& failures)
 {
     Problem const pr = make_problem(p);
     Box const& domain = pr.domain;
@@ -187,36 +191,75 @@ void run_mlmg (Params const& p)
     mlmg.setVerbose(p.verbose.value_or(0));
     mlmg.setMaxIter(p.max_iter);
     mlmg.setThrowException(true);
+    // The callback runs when MLMG builds its AlgMG solver; keep a handle to
+    // check that repeated solves reuse the setup.
+    AlgMG<Real>* algmg_ptr = nullptr;
+    int nbuilds = 0;
+    mlmg.setAlgMGOptions([&] (AlgMG<Real>& amg) { algmg_ptr = &amg; ++nbuilds; });
     mlmg.apply({&rhs}, {&exact}); // rhs = A*phi with the same operator
-    phi.setVal(0);
 
-    std::string failure;
-    Gpu::streamSynchronize();
-    auto const t0 = amrex::second();
-    try {
-        mlmg.solve({&phi}, {&rhs}, p.reltol, Real(0));
-    } catch (std::exception const& e) {
-        failure = e.what();
-    }
-    Gpu::streamSynchronize();
-    auto const t1 = amrex::second();
+    bool geometric_failed = false;
+    for (auto const& mgt : p.mlmg_types) {
+        mlmg.setMultigridType(amrex::getEnumCaseInsensitive<MultigridType>(mgt));
+        phi.setVal(0);
 
-    mlmg.compResidual({&res}, {&phi}, {&rhs});
-    Real const rel_res = res.norminf(0, 0) / rhs.norminf(0, 0);
-    MultiFab::Subtract(phi, exact, 0, 0, 1, 0);
-    if (a == Real(0) && !dirichlet) { // solution defined up to a constant
-        phi.plus(-phi.sum(0) / Real(domain.numPts()), 0, 1, 0);
-    }
-    amrex::Print() << "  MLMG for comparison: ";
-    if (failure.empty()) {
-        amrex::Print() << mlmg.getNumIters() << " iterations, "
-                       << std::fixed << std::setprecision(4) << (t1-t0) << std::defaultfloat
-                       << " s, rel_res " << sci(rel_res) << " (max norm), error "
-                       << sci(phi.norminf(0, 0)) << "\n";
-    } else {
-        if (failure.back() == '.') { failure.pop_back(); }
-        amrex::Print() << "did not converge after " << mlmg.getNumIters() << " iterations ("
-                       << failure << "); informational only, not an AMG result\n";
+        std::string failure;
+        Gpu::streamSynchronize();
+        auto t0 = amrex::second();
+        // Repeated solves reuse the cached algebraic setup.
+        for (int rep = 0; rep < p.mlmg_repeat && failure.empty(); ++rep) {
+            phi.setVal(0);
+            Gpu::streamSynchronize();
+            t0 = amrex::second();
+            try {
+                mlmg.solve({&phi}, {&rhs}, p.reltol, Real(0));
+            } catch (std::exception const& e) {
+                failure = e.what();
+            }
+        }
+        Gpu::streamSynchronize();
+        auto const t1 = amrex::second();
+        if (failure.empty() && p.mlmg_repeat > 1 && algmg_ptr
+            && (nbuilds != 1 || algmg_ptr->getNumSetups() != 1)) {
+            failure = "AlgMG built " + std::to_string(nbuilds) + " times, set up "
+                + std::to_string(algmg_ptr->getNumSetups()) + " times in "
+                + std::to_string(p.mlmg_repeat) + " solves";
+        }
+
+        mlmg.compResidual({&res}, {&phi}, {&rhs});
+        Real const rel_res = res.norminf(0, 0) / rhs.norminf(0, 0);
+        MultiFab err(ba, dm, 1, 0);
+        MultiFab::Copy(err, phi, 0, 0, 1, 0);
+        MultiFab::Subtract(err, exact, 0, 0, 1, 0);
+        if (a == Real(0) && !dirichlet) { // solution defined up to a constant
+            err.plus(-err.sum(0) / Real(domain.numPts()), 0, 1, 0);
+        }
+        amrex::Print() << "  MLMG (" << mgt;
+        if (mgt == "hybrid") {
+            amrex::Print() << (mlmg.usedAlgMG() ? ", switched to AlgMG" : ", no switch");
+        }
+        amrex::Print() << ") for comparison: ";
+        if (failure.empty()) {
+            amrex::Print() << mlmg.getNumIters() << " iterations, "
+                           << std::fixed << std::setprecision(4) << (t1-t0) << std::defaultfloat
+                           << " s, rel_res " << sci(rel_res) << " (max norm), error "
+                           << sci(err.norminf(0, 0)) << "\n";
+        } else {
+            if (failure.back() == '.') { failure.pop_back(); }
+            amrex::Print() << "did not converge after " << mlmg.getNumIters() << " iterations ("
+                           << failure << ")" << (mgt == "hybrid" ? "\n" : "; informational only\n");
+        }
+        if (mgt == "geometric") {
+            geometric_failed = !failure.empty();
+        } else if (mgt == "hybrid") {
+            if (!failure.empty()) {
+                failures.push_back(p.problem + ": MLMG hybrid " + failure);
+            } else if (geometric_failed && !mlmg.usedAlgMG()) {
+                failures.push_back(p.problem + ": MLMG hybrid did not switch to AlgMG");
+            }
+        } else if (mgt == "algebraic" && !failure.empty()) {
+            failures.push_back(p.problem + ": MLMG algebraic " + failure);
+        }
     }
 }
 
@@ -343,7 +386,7 @@ Result run (Params const& p)
     }
     if (ptype != 0 || dirichlet) { SpMV(bvec, mat, exact); } // rhs = A*phi
 
-    AMG<Real> amg(mat);
+    AlgMG<Real> amg(mat);
     amg.setMaxIter(p.max_iter);
     amg.setFixedIter(p.fixed_iter);
     amg.setRelTol(p.reltol);
@@ -360,50 +403,14 @@ Result run (Params const& p)
     bool const singular = (p.alpha == Real(0) && !dirichlet);
     if (singular) { amg.setSingular(true); }
     if (p.max_coarse_size) { amg.setMaxCoarseSize(*p.max_coarse_size); }
-    if (interp == "direct") {
-        amg.setInterpType(AMG<Real>::InterpType::Direct);
-    } else if (interp == "ext") {
-        amg.setInterpType(AMG<Real>::InterpType::MMExt);
-    } else if (interp == "ext+i") {
-        amg.setInterpType(AMG<Real>::InterpType::MMExtI);
-    } else {
-        amrex::Abort("Unknown interpolation: " + interp);
-    }
-    if (p.smoother == "jacobi") {
-        amg.setSmoother(AMG<Real>::Smoother::Jacobi);
-    } else if (p.smoother == "l1jacobi") {
-        amg.setSmoother(AMG<Real>::Smoother::L1Jacobi);
-    } else if (p.smoother == "chebyshev") {
-        amg.setSmoother(AMG<Real>::Smoother::Chebyshev);
-    } else if (p.smoother == "l1gs") {
-        amg.setSmoother(AMG<Real>::Smoother::L1GaussSeidel);
-    } else {
-        amrex::Abort("Unknown smoother: " + p.smoother);
-    }
+    amg.setInterpType(amrex::getEnumCaseInsensitive<AlgMGInterpType>(interp));
+    amg.setSmoother(amrex::getEnumCaseInsensitive<AlgMGSmoother>(p.smoother));
     if (p.relax_weight) { amg.setRelaxWeight(*p.relax_weight); }
     if (p.cheby_degree) { amg.setChebyshevDegree(*p.cheby_degree); }
     if (p.cheby_ratio) { amg.setChebyshevRatio(*p.cheby_ratio); }
     if (p.theta) { amg.setStrongThreshold(*p.theta); }
-    if (bottom == "jacobi") {
-        amg.setBottomSolver(AMG<Real>::BottomSolver::Jacobi);
-    } else if (bottom == "bicgstab") {
-        amg.setBottomSolver(AMG<Real>::BottomSolver::BiCGStab);
-    } else if (bottom == "gmres") {
-        amg.setBottomSolver(AMG<Real>::BottomSolver::GMRES);
-    } else {
-        amrex::Abort("Unknown bottom solver: " + bottom);
-    }
-    if (p.krylov == "none") {
-        amg.setKrylovSolver(AMG<Real>::KrylovSolver::None);
-    } else if (p.krylov == "bicgstab") {
-        amg.setKrylovSolver(AMG<Real>::KrylovSolver::BiCGStab);
-    } else if (p.krylov == "gmres") {
-        amg.setKrylovSolver(AMG<Real>::KrylovSolver::GMRES);
-    } else if (p.krylov == "pcg") {
-        amg.setKrylovSolver(AMG<Real>::KrylovSolver::PCG);
-    } else {
-        amrex::Abort("Unknown Krylov solver: " + p.krylov);
-    }
+    amg.setBottomSolver(amrex::getEnumCaseInsensitive<AlgMGBottomSolver>(bottom));
+    amg.setKrylovSolver(amrex::getEnumCaseInsensitive<AlgMGKrylovSolver>(p.krylov));
 
     auto bnorm = bvec.norm2();
     Gpu::streamSynchronize();
@@ -558,8 +565,8 @@ Vector<Params> make_cases (Params const& p)
         cases.push_back(p);
         return cases;
     }
-    for (auto const& b : {"jacobi", "bicgstab", "gmres"}) { add(b); }
-    for (auto const& it : {"direct", "ext", "ext+i"}) {
+    for (auto const& b : {"direct", "jacobi", "bicgstab", "gmres"}) { add(b); }
+    for (auto const& it : {"direct", "mm_ext", "mm_ext_i"}) {
         if (it != p.interp) { add("bicgstab").interp = it; }
     }
     if (!p.aggressive_levels) {
@@ -594,9 +601,9 @@ Vector<Params> make_cases (Params const& p)
         add("jacobi").krylov = "gmres";
         if (symmetric) { add("jacobi").krylov = "pcg"; }
     }
-    Vector<std::string> smoothers = {"jacobi", "l1jacobi", "chebyshev"};
+    Vector<std::string> smoothers = {"jacobi", "l1_jacobi", "chebyshev"};
 #ifndef AMREX_USE_GPU
-    smoothers.push_back("l1gs");
+    smoothers.push_back("l1_gauss_seidel");
 #endif
     for (auto const& sm : smoothers) {
         if (sm != p.smoother) { add("bicgstab").smoother = sm; }
@@ -606,7 +613,7 @@ Vector<Params> make_cases (Params const& p)
         // PCG with symmetric Gauss-Seidel sweeps at the bottom: one level
         // makes the bottom the whole problem.
         auto& c = add("jacobi");
-        c.smoother = "l1gs";
+        c.smoother = "l1_gauss_seidel";
         c.krylov = "pcg";
         c.max_levels = 1;
         c.max_iter = std::max(p.max_iter, 50*p.n_cell); // not scalable
@@ -643,6 +650,8 @@ int main (int argc, char* argv[])
         pp.query("block", p.block);
         pp.query("eps", p.eps);
         pp.query("mlmg", p.mlmg);
+        pp.query("mlmg_repeat", p.mlmg_repeat);
+        pp.queryarr("mlmg_types", p.mlmg_types);
         pp.query("max_grid_size", p.max_grid_size);
         // Seed of the random PMIS weights; each rank adds its rank.
         if (Long seed = 0; pp.query("seed", seed)) {
@@ -731,7 +740,7 @@ int main (int argc, char* argv[])
                 }
             }
             amrex::Print() << rule << "\n";
-            if (p.mlmg) { run_mlmg(p); }
+            if (p.mlmg) { run_mlmg(p, failures); }
         }
         amrex::Print() << "\nSummary: " << ncases << (ncases == 1 ? " case, " : " cases, ")
                        << ncases - failures.size()
@@ -739,7 +748,7 @@ int main (int argc, char* argv[])
         for (auto const& f : failures) { amrex::Print() << "  FAILED " << f << "\n"; }
         amrex::Print() << "\n";
         if (!failures.empty()) {
-            amrex::Abort(std::to_string(failures.size()) + " AMG case(s) failed");
+            amrex::Abort(std::to_string(failures.size()) + " AlgMG case(s) failed");
         }
     }
     amrex::Finalize();

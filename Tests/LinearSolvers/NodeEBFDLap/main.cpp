@@ -3,11 +3,11 @@
 //
 //   * reusing an operator must not lose the EB Dirichlet values supplied by
 //     the callable setEBDirichlet;
-//   * solving del dot (sigma grad phi) = rhs with the hypre bottom solver
-//     must reproduce the native bottom solver.  That solve does not coarsen,
-//     so the bottom solve does all of the work, which is the sharpest test of
-//     the matrix assembled by MLEBNodeFDLaplacian::fillIJMatrix.  This one
-//     needs hypre, so it is skipped when hypre is not available;
+//   * solving del dot (sigma grad phi) = rhs with the AlgMG and hypre bottom
+//     solvers must reproduce the native bottom solver.  That solve does not
+//     coarsen, so the bottom solve does all of the work, which is the sharpest
+//     test of the matrix assembled by MLEBNodeFDLaplacian.  The hypre part is
+//     skipped when hypre is not available;
 //   * multigrid must stop coarsening before a level that can no longer see
 //     part of the EB, even when another part of the EB is still visible.
 //
@@ -94,9 +94,8 @@ void test_eb_dirichlet_reuse (Geometry const& geom, BoxArray const& grids,
         "setEBDirichlet was ignored after a solve without it");
 }
 
-#ifdef AMREX_USE_HYPRE
-// The hypre bottom solver must reproduce the native one.
-void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
+// The AlgMG and hypre bottom solvers must reproduce the native one.
+void test_bottom_solvers (Geometry const& geom, BoxArray const& grids,
                            DistributionMapping const& dmap,
                            EBFArrayBoxFactory const& factory,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
@@ -107,8 +106,9 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
     int use_sigma_mf = 1;
     int plot = 0;
     Real phi_eb = 1.0;
-    Real bottom_reltol = 1.e-9;
-    Real max_rel_diff = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-12);
+    // Single precision cannot reach the double precision tolerances.
+    Real bottom_reltol = std::is_same_v<Real,float> ? Real(1.e-6) : Real(1.e-9);
+    Real max_rel_diff = std::is_same_v<Real,float> ? Real(1.e-3) : Real(1.e-12);
     {
         ParmParse pp;
         pp.query("bottom_verbose", bottom_verbose);
@@ -187,38 +187,46 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
     };
 
     MultiFab sol_native;
-    MultiFab sol_hypre;
 
     amrex::Print() << "\n==== native bottom solver ====\n";
     Real const err_native = do_solve(BottomSolver::bicgstab, sol_native);
-
-    amrex::Print() << "\n==== hypre bottom solver ====\n";
-    Real const err_hypre = do_solve(BottomSolver::hypre, sol_hypre);
-
-    MultiFab diff(nba, dmap, 1, 0);
-    MultiFab::Copy(diff, sol_hypre, 0, 0, 1, 0);
-    MultiFab::Subtract(diff, sol_native, 0, 0, 1, 0);
-    Real const dmax = diff.norminf();
     Real const smax = sol_native.norminf(0, 0);
 
-    amrex::Print() << "\nfinal residual: native = " << err_native
-                   << ", hypre = " << err_hypre << "\n"
-                   << "max |phi|              = " << smax << "\n"
-                   << "max |phi_hypre - phi|  = " << dmax << "\n"
-                   << "relative difference    = " << dmax/smax << '\n';
+    auto compare = [&] (std::string const& name, BottomSolver bottom_solver)
+    {
+        amrex::Print() << "\n==== " << name << " bottom solver ====\n";
+        MultiFab sol;
+        Real const err = do_solve(bottom_solver, sol);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmax <= max_rel_diff*smax,
-        "The hypre bottom solver did not reproduce the native solution");
+        MultiFab diff(nba, dmap, 1, 0);
+        MultiFab::Copy(diff, sol, 0, 0, 1, 0);
+        MultiFab::Subtract(diff, sol_native, 0, 0, 1, 0);
+        Real const dmax = diff.norminf();
 
-    if (plot) {
-        MultiFab plotmf(nba, dmap, 3, 0);
-        MultiFab::Copy(plotmf, sol_native, 0, 0, 1, 0);
-        MultiFab::Copy(plotmf, sol_hypre , 0, 1, 1, 0);
-        MultiFab::Copy(plotmf, diff      , 0, 2, 1, 0);
-        WriteSingleLevelPlotfile("plot", plotmf, {"phi_native","phi_hypre","diff"}, geom, 0.0, 0);
-    }
-}
+        amrex::Print() << "\nfinal residual: native = " << err_native
+                       << ", " << name << " = " << err << "\n"
+                       << "max |phi|              = " << smax << "\n"
+                       << "max |phi_" << name << " - phi|  = " << dmax << "\n"
+                       << "relative difference    = " << dmax/smax << '\n';
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmax <= max_rel_diff*smax,
+            "The " + name + " bottom solver did not reproduce the native solution");
+
+        if (plot) {
+            MultiFab plotmf(nba, dmap, 3, 0);
+            MultiFab::Copy(plotmf, sol_native, 0, 0, 1, 0);
+            MultiFab::Copy(plotmf, sol       , 0, 1, 1, 0);
+            MultiFab::Copy(plotmf, diff      , 0, 2, 1, 0);
+            WriteSingleLevelPlotfile("plot_"+name, plotmf, {"phi_native","phi_"+name,"diff"},
+                                     geom, 0.0, 0);
+        }
+    };
+
+    compare("algmg", BottomSolver::algmg);
+#ifdef AMREX_USE_HYPRE
+    compare("hypre", BottomSolver::hypre);
 #endif
+}
 
 // A sphere covering one node at an odd column and a row of 2 mod 4 turns
 // into a blocked edge on MG level 1 and would be lost on level 2, while a
@@ -324,10 +332,8 @@ int main (int argc, char* argv[])
         test_eb_dirichlet_reuse(geom, grids, dmap, ebfactory,
                                 lobc, hibc, max_coarsening_level, reltol, verbose);
 
-#ifdef AMREX_USE_HYPRE
-        test_native_vs_hypre(geom, grids, dmap, ebfactory,
-                             lobc, hibc, reltol, verbose);
-#endif
+        test_bottom_solvers(geom, grids, dmap, ebfactory,
+                            lobc, hibc, reltol, verbose);
 
         amrex::Print() << "\n==== hidden EB feature ====\n";
         test_hidden_feature(geom, grids, dmap, lobc, hibc, n_cell, reltol, verbose);

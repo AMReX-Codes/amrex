@@ -1,5 +1,6 @@
 
 #include <AMReX_MLNodeLinOp.H>
+#include <AMReX_MLAlgMG.H>
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
@@ -716,6 +717,19 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
         });
     }
 }
+
+#if (AMREX_SPACEDIM > 1)
+std::unique_ptr<MLAlgMG>
+MLNodeLinOp::makeAlgMG (int mglev) const
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mglev == 0 || mglev == m_num_mg_levels[0]-1,
+                                     "MLNodeLinOp::makeAlgMG: top or bottom MG level only");
+    const auto& owner_mask = (mglev == 0) ? *m_owner_mask_top : *m_owner_mask_bottom;
+    return std::make_unique<MLAlgMG>(mglev, m_grids[0][mglev], m_dmap[0][mglev],
+                                     m_geom[0][mglev], owner_mask,
+                                     *m_dirichlet_mask[0][mglev], *this);
+}
+#endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<HypreNodeLap>

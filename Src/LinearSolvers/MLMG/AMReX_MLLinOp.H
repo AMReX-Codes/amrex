@@ -20,6 +20,7 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_FabDataType.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_MLAlgMG.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -38,7 +39,7 @@ namespace amrex {
  */
 
 enum class BottomSolver : int {
-    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc, custom
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc, custom, algmg
 };
 
 /**
@@ -752,6 +753,19 @@ public:
         amrex::Abort("MLLinOp::getEBFluxes: How did we get here?");
     }
 #endif
+
+    /**
+     * \brief Build the algebraic system of MG level \p mglev of AMR level 0
+     * for the AlgMG solver. Operators that hypre supports implement this.
+     */
+    [[nodiscard]] virtual std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const {
+        amrex::ignore_unused(mglev);
+        amrex::Abort("MLLinOp::makeAlgMG: not supported by this operator");
+        return {nullptr};
+    }
+
+    //! True if makeAlgMG is implemented for this operator.
+    [[nodiscard]] virtual bool supportsAlgMG () const { return false; }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     /**

@@ -22,6 +22,10 @@ public:
 
     [[nodiscard]] static int getNumTrials () { return 1; }
     [[nodiscard]] int getDoPlots () const { return do_plots; }
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    void setMultigridType (std::string const& name);
 
 private:
 
@@ -39,6 +43,8 @@ private:
 
     int gpu_regtest = 0;
     bool do_plots = true;
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

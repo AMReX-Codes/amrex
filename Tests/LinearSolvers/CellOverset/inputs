@@ -5,3 +5,5 @@ max_grid_size = 16
 
 verbose = 1
 bottom_verbose = 0
+
+multigrid_types = algebraic hybrid geometric

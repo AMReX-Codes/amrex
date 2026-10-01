@@ -16,6 +16,13 @@ MyTest::MyTest ()
 }
 
 void
+MyTest::setMultigridType (std::string const& name)
+{
+    multigrid_type = amrex::getEnumCaseInsensitive<MultigridType>(name);
+    amrex::Print() << "\nMultigrid type: " << name << "\n";
+}
+
+void
 MyTest::solve ()
 {
     MLNodeTensorLaplacian linop(geom, grids, dmap,
@@ -35,6 +42,7 @@ MyTest::solve ()
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
 #ifdef AMREX_USE_HYPRE
     if (use_hypre) {
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -103,6 +111,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_FLOAT
     reltol = std::max(reltol, 1.e-5F);
 #endif
+
+    pp.queryarr("multigrid_types", multigrid_types);
 
     Vector<Real> vbeta;
     pp.queryarr("beta", vbeta);

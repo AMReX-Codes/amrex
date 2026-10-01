@@ -18,3 +18,7 @@ max_fmg_iter = 100     # # of F-cycles before switching to V.  To do pure V-cycl
 linop_maxorder = 3
 agglomeration = 1    # Do agglomeration on AMR Level 0?
 consolidation = 1    # Do consolidation?
+
+multigrid_types = algebraic hybrid geometric
+hybrid_stall_rate = 0   # forces the hybrid type to switch to AlgMG; for testing only, not for normal use
+use_algmg_bottom = 1   # AlgMG at the bottom of the hybrid type's geometric cycles (testing only)

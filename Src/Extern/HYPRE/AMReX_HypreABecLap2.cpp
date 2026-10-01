@@ -279,6 +279,8 @@ HypreABecLap2::prepareSolver ()
 
     if (old_default) {
         HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+    } else if (HypreDefaults::gpu) {
+        HypreDefaults::setGpuOptions(solver);
     }
     HYPRE_BoomerAMGSetRelaxType(solver, relax_type);
     HYPRE_BoomerAMGSetRelaxOrder(solver, relax_order);

@@ -224,6 +224,10 @@ public:
      */
     void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
 
+#if (AMREX_SPACEDIM > 1)
+    [[nodiscard]] std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const override;
+#endif
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     /**
      * \brief Build a Hypre nodal Laplacian using the current metadata.
@@ -244,15 +248,32 @@ public:
     {
         amrex::Abort("MLNodeLinOp::fillIJMatrix: how did we get here?");
     }
+#endif
 
-    virtual void fillRHS (MFIter const& /*mfi*/,
+    /**
+     * \brief Fill the matrix rows of one box for the algebraic solver.
+     *
+     * Same packed layout as the Hypre version: ncols[lid] entries per row,
+     * diagonal first, neighbors without a row dropped. The MG level is on
+     * AMR level 0. Global row ids are numeric_limits<Long>::max() and local
+     * ids negative where there is no row.
+     */
+    virtual void fillAlgMatrix (int /*mglev*/, MFIter const& /*mfi*/,
+                                Array4<Long const> const& /*gid*/,
+                                Array4<int const> const& /*lid*/,
+                                Long* /*ncols*/, Long* /*cols*/, Real* /*mat*/) const
+    {
+        amrex::Abort("MLNodeLinOp::fillAlgMatrix: not supported by this operator");
+    }
+
+    //! Fill the right-hand side of the rows of one box on MG level \p mglev.
+    virtual void fillRHS (int /*mglev*/, MFIter const& /*mfi*/,
                           Array4<int const> const& /*lid*/,
                           Real* /*rhs*/,
                           Array4<Real const> const& /*bfab*/) const
     {
         amrex::Abort("MLNodeLinOp:fillRHS: how did we get here?");
     }
-#endif
 
 protected:
 

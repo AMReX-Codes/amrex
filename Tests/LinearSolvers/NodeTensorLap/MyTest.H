@@ -17,6 +17,11 @@ public:
 
     void initData ();
 
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    void setMultigridType (std::string const& name);
+
 private:
 
     void readParameters ();
@@ -34,6 +39,8 @@ private:
     int max_coarsening_level = 30;
     int use_hypre = 0;
     amrex::Real reltol = amrex::Real(1.e-11);
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

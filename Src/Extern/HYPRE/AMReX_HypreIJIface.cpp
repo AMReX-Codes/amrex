@@ -1,4 +1,5 @@
 #include <AMReX_HypreIJIface.H>
+#include <AMReX_Hypre.H>
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
@@ -250,7 +251,7 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
 
     pp.queryAdd("hypre_solver", m_solver_name);
     pp.queryAdd("hypre_preconditioner", m_preconditioner_name);
-    pp.queryAdd("recompute_preconditioner", m_recompute_preconditioner);
+    pp.query("recompute_preconditioner", m_recompute_preconditioner);
     pp.queryAdd("write_matrix_files", m_write_files);
     pp.queryAdd("overwrite_existing_matrix_files", m_overwrite_files);
     pp.queryAdd("adjust_singular_matrix", m_adjust_singular_matrix);
@@ -328,16 +329,16 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 
     hpp("bamg_max_iterations", HYPRE_BoomerAMGSetMaxIter, 1);
     hpp("bamg_precond_tolerance", HYPRE_BoomerAMGSetTol, 0.0);
-    hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, 6);
+    hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, HypreDefaults::coarsen_type);
     hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType, 1);
-    hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
+    hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, HypreDefaults::relax_order);
 
     if (hpp.pp.contains("bamg_down_relax_type") && hpp.pp.contains("bamg_up_relax_type") && hpp.pp.contains("bamg_coarse_relax_type")) {
         hpp("bamg_down_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 1);
         hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
         hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
     } else {
-        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, HypreDefaults::relax_type);
     }
 
     if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {
@@ -351,13 +352,18 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
     hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels, 20);
     hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
         (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
-    hpp("bamg_interp_type", HYPRE_BoomerAMGSetInterpType, 0);
+    hpp("bamg_interp_type", HYPRE_BoomerAMGSetInterpType, HypreDefaults::interp_type);
 
     hpp.set<int>("bamg_variant", HYPRE_BoomerAMGSetVariant);
-    hpp.set<int>("bamg_keep_transpose", HYPRE_BoomerAMGSetKeepTranspose);
+    if (HypreDefaults::gpu) {
+        hpp("bamg_keep_transpose", HYPRE_BoomerAMGSetKeepTranspose, HypreDefaults::keep_transpose);
+        hpp("bamg_pmax_elmts", HYPRE_BoomerAMGSetPMaxElmts, HypreDefaults::pmax_elmts);
+    } else {
+        hpp.set<int>("bamg_keep_transpose", HYPRE_BoomerAMGSetKeepTranspose);
+        hpp.set<int>("bamg_pmax_elmts", HYPRE_BoomerAMGSetPMaxElmts);
+    }
     hpp.set<int>("bamg_min_coarse_size", HYPRE_BoomerAMGSetMinCoarseSize);
     hpp.set<int>("bamg_max_coarse_size", HYPRE_BoomerAMGSetMaxCoarseSize);
-    hpp.set<int>("bamg_pmax_elmts", HYPRE_BoomerAMGSetPMaxElmts);
     hpp.set<int>("bamg_agg_num_levels", HYPRE_BoomerAMGSetAggNumLevels);
     hpp.set<int>("bamg_agg_interp_type", HYPRE_BoomerAMGSetAggInterpType);
     hpp.set<int>("bamg_agg_pmax_elmts", HYPRE_BoomerAMGSetAggPMaxElmts);
@@ -452,22 +458,24 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
     HypreOptParse hpp(prefix, m_solver);
 
     // Old default first, so that explicit options below take precedence.
-    bool use_old_default = true;
+    bool use_old_default = HypreDefaults::old_default;
     hpp.pp.queryAdd("bamg_use_old_default", use_old_default);
     if (use_old_default) {
         HYPRE_BoomerAMGSetOldDefault(m_solver);
+    } else if (HypreDefaults::gpu) {
+        HypreDefaults::setGpuOptions(m_solver);
     }
 
     hpp.set<int>("verbose", HYPRE_BoomerAMGSetPrintLevel);
     hpp.set<int>("logging", HYPRE_BoomerAMGSetLogging);
-    hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
+    hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, HypreDefaults::relax_order);
 
     if (hpp.pp.contains("bamg_down_relax_type") && hpp.pp.contains("bamg_up_relax_type") && hpp.pp.contains("bamg_coarse_relax_type")) {
         hpp("bamg_down_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 1);
         hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
         hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
     } else {
-        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, HypreDefaults::relax_type);
     }
 
     if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {

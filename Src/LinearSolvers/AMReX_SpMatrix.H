@@ -890,8 +890,8 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
 template <typename T, template<typename> class Allocator>
 SpMatrix<T,Allocator>::SpMatrix (AlgPartition partition, int nnz_per_row)
     : m_partition(std::move(partition)),
-      m_row_begin(m_partition[ParallelDescriptor::MyProc()]),
-      m_row_end(m_partition[ParallelDescriptor::MyProc()+1])
+      m_row_begin(m_partition[ParallelContext::MyProcSub()]),
+      m_row_end(m_partition[ParallelContext::MyProcSub()+1])
 {
     define_doit(nnz_per_row);
 }
@@ -899,8 +899,8 @@ SpMatrix<T,Allocator>::SpMatrix (AlgPartition partition, int nnz_per_row)
 template <typename T, template<typename> class Allocator>
 SpMatrix<T,Allocator>::SpMatrix (AlgPartition partition, csr_type csr)
     : m_partition(std::move(partition)),
-      m_row_begin(m_partition[ParallelDescriptor::MyProc()]),
-      m_row_end(m_partition[ParallelDescriptor::MyProc()+1]),
+      m_row_begin(m_partition[ParallelContext::MyProcSub()]),
+      m_row_end(m_partition[ParallelContext::MyProcSub()+1]),
       m_nnz(csr.nnz),
       m_csr(std::move(csr))
 {}
@@ -909,8 +909,8 @@ template <typename T, template<typename> class Allocator>
 void SpMatrix<T,Allocator>::define (AlgPartition partition, int nnz_per_row)
 {
     m_partition = std::move(partition);
-    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_row_begin = m_partition[ParallelContext::MyProcSub()];
+    m_row_end = m_partition[ParallelContext::MyProcSub()+1];
     m_diagonal = AlgVector<T,AllocT>{};
     define_doit(nnz_per_row);
 }
@@ -922,8 +922,8 @@ void SpMatrix<T,Allocator>::define (AlgPartition partition, csr_type csr,
     AMREX_ALWAYS_ASSERT(m_split == false);
 
     m_partition = std::move(partition);
-    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_row_begin = m_partition[ParallelContext::MyProcSub()];
+    m_row_end = m_partition[ParallelContext::MyProcSub()+1];
     m_nnz = csr.nnz;
     m_csr = std::move(csr);
     m_diagonal = AlgVector<T,AllocT>{};
@@ -961,8 +961,8 @@ SpMatrix<T,Allocator>::define (AlgPartition partition, T const* mat,
     AMREX_ALWAYS_ASSERT(m_split == false);
 
     m_partition = std::move(partition);
-    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_row_begin = m_partition[ParallelContext::MyProcSub()];
+    m_row_end = m_partition[ParallelContext::MyProcSub()+1];
     m_diagonal = AlgVector<T,AllocT>{};
 
     bool synced = false;
@@ -1056,7 +1056,7 @@ template <typename T, template<typename> class Allocator>
 void
 SpMatrix<T,Allocator>::printToFile (std::string const& file) const
 {
-    std::ofstream ofs(file+"."+std::to_string(ParallelDescriptor::MyProc()));
+    std::ofstream ofs(file+"."+std::to_string(ParallelContext::MyProcSub()));
     ofs << m_row_begin << " " << m_row_end << " " << m_nnz << "\n";
     Long const nrows = numLocalRows();
 
@@ -1694,14 +1694,14 @@ void SpMatrix<T,Allocator>::define_split (AlgPartition partition,
     amrex::ignore_unused(nremote);
 
     m_partition = std::move(partition);
-    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
-    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    m_row_begin = m_partition[ParallelContext::MyProcSub()];
+    m_row_end = m_partition[ParallelContext::MyProcSub()+1];
     AMREX_ASSERT(compact.nrows() == this->numLocalRows());
     AMREX_ASSERT(nremote >= 0 && (nremote == 0 || remote_cols != nullptr));
     m_diagonal = AlgVector<T,AllocT>{};
     m_col_partition = col_partition;
-    m_col_begin = col_partition[ParallelDescriptor::MyProc()];
-    m_col_end   = col_partition[ParallelDescriptor::MyProc()+1];
+    m_col_begin = col_partition[ParallelContext::MyProcSub()];
+    m_col_end   = col_partition[ParallelContext::MyProcSub()+1];
     AMREX_ALWAYS_ASSERT(m_col_end - m_col_begin == nlocal);
     m_nnz = compact.nnz;
     m_csr = csr_type{};
@@ -1788,16 +1788,16 @@ void SpMatrix<T,Allocator>::split_csr (AlgPartition const& col_partition)
     BL_PROFILE("SpMatrix::split_csr");
     if (m_split) {
         AMREX_ALWAYS_ASSERT
-            (m_col_begin == col_partition[ParallelDescriptor::MyProc()] &&
-             m_col_end   == col_partition[ParallelDescriptor::MyProc()+1]);
+            (m_col_begin == col_partition[ParallelContext::MyProcSub()] &&
+             m_col_end   == col_partition[ParallelContext::MyProcSub()+1]);
         return;
     }
 
     AMREX_ALWAYS_ASSERT(m_col_partition.empty());
 
     m_col_partition = col_partition;
-    m_col_begin = col_partition[ParallelDescriptor::MyProc()];
-    m_col_end   = col_partition[ParallelDescriptor::MyProc()+1];
+    m_col_begin = col_partition[ParallelContext::MyProcSub()];
+    m_col_end   = col_partition[ParallelContext::MyProcSub()+1];
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE
         (m_col_end - m_col_begin < Long(std::numeric_limits<int>::max()),
          "SpMatrix: the local column block is too large for 32-bit indices");
@@ -2180,11 +2180,11 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
 {
     m_split = true;
     m_col_partition = col_partition;
-    m_col_begin = m_col_partition[ParallelDescriptor::MyProc()  ];
-    m_col_end   = m_col_partition[ParallelDescriptor::MyProc()+1];
+    m_col_begin = m_col_partition[ParallelContext::MyProcSub()  ];
+    m_col_end   = m_col_partition[ParallelContext::MyProcSub()+1];
 
     m_ri_ltor.resize(numLocalRows(), -1);
-    m_remote_cols_vv.resize(ParallelDescriptor::NProcs());
+    m_remote_cols_vv.resize(ParallelContext::NProcsSub());
 
     auto nnz = ctr.total_counts_recv[0];
     if (nnz == 0) { return; }

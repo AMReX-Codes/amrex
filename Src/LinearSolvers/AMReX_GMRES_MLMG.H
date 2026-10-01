@@ -294,7 +294,8 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
 
     if (mlmg_bottom_solver != BottomSolver::smoother &&
         mlmg_bottom_solver != BottomSolver::hypre &&
-        mlmg_bottom_solver != BottomSolver::petsc)
+        mlmg_bottom_solver != BottomSolver::petsc &&
+        mlmg_bottom_solver != BottomSolver::algmg)
     {
         m_mlmg->setBottomSolver(BottomSolver::smoother);
     }

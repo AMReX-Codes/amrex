@@ -44,6 +44,8 @@ private:
     int max_coarsening_level = 30;
     bool use_hypre = false;
     bool use_petsc = false;
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
+    bool use_algmg_bottom = false;
 
     bool use_gmres = false;
 

@@ -59,8 +59,8 @@ SpMatrix<T,Allocator> transpose (SpMatrix<T,Allocator> const& A,
     // the transpose of A's local block (columns are A's local row
     // indices), and its remote block comes from the other ranks.
     SpMatrix<T,Allocator> AT;
-    AT.m_row_begin = col_partition[ParallelDescriptor::MyProc()];
-    AT.m_row_end   = col_partition[ParallelDescriptor::MyProc()+1];
+    AT.m_row_begin = col_partition[ParallelContext::MyProcSub()];
+    AT.m_row_end   = col_partition[ParallelContext::MyProcSub()+1];
     AT.m_partition = col_partition;
     AT.m_nnz       = A.m_csr_local.nnz;
     AT.m_csr_local = transpose<int>(A.m_csr_local, AT.numLocalRows());
@@ -70,7 +70,7 @@ SpMatrix<T,Allocator> transpose (SpMatrix<T,Allocator> const& A,
     AT.m_split = true;
 #ifdef AMREX_USE_MPI
     AT.m_ri_ltor.resize(AT.numLocalRows(), -1);
-    AT.m_remote_cols_vv.resize(ParallelDescriptor::NProcs());
+    AT.m_remote_cols_vv.resize(ParallelContext::NProcsSub());
 #endif
 
     Am.finishComm_tr(AT);

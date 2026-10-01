@@ -15,6 +15,13 @@ public:
 
     void solve ();
     void writePlotfile () const;
+    void initData ();
+
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    //! Returns false if this problem does not support the type.
+    bool setMultigridType (std::string const& name);
 
 // make these public for cuda
     void initProbPoisson ();
@@ -25,12 +32,12 @@ public:
 private:
 
     void readParameters ();
-    void initData ();
     void solvePoisson ();
     void solveABecLaplacian ();
     void solveABecLaplacianInhomNeumann ();
     void solveNodeABecLaplacian ();
     void solveABecLaplacianGMRES ();
+    void configureMLMG (amrex::MLMG& mlmg) const;
 
 #ifdef AMREX_USE_HYPRE
     void solveMLHypre ();
@@ -66,6 +73,14 @@ private:
     bool use_gauss_seidel = true; // true: red-black, false: jacobi
     bool use_hypre = false;
     bool use_petsc = false;
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
+    //! Testing aid: AlgMG as the bottom solver of the geometric cycles of
+    //! the hybrid type only, so that the geometric type stays the benchmark.
+    bool use_algmg_bottom = false;
+    //! Testing aid, not for normal use: a non-negative value overrides the
+    //! hybrid stall rate; 0 forces the switch to AlgMG.
+    amrex::Real hybrid_stall_rate = -1.0;
 
     // GMRES
     bool use_gmres = false;

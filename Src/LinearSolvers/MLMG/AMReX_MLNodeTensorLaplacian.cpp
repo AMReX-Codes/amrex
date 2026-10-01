@@ -17,6 +17,7 @@ void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
     for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
+    m_needs_update = true;
 }
 
 void
@@ -36,6 +37,7 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
     m_sigma[4] =          - a_beta[1]*a_beta[2];
     m_sigma[5] = Real(1.) - a_beta[2]*a_beta[2];
 #endif
+    m_needs_update = true;
 }
 
 GpuArray<Real,MLNodeTensorLaplacian::nelems>
@@ -222,6 +224,7 @@ MLNodeTensorLaplacian::prepareForSolve ()
     MLNodeLinOp::prepareForSolve();
 
     buildMasks();
+    m_needs_update = false;
 }
 
 void
@@ -307,7 +310,9 @@ MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
+
+#if defined(AMREX_USE_HYPRE)
 void
 MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      Array4<HypreNodeLap::AtomicInt const> const& gid,
@@ -316,8 +321,27 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      HypreNodeLap::Int* cols,
                                      Real* mat) const
 {
+    fillMatrix_doit(NMGLevels(0)-1, mfi, gid, lid, ncols, cols, mat);
+}
+#endif
+
+void
+MLNodeTensorLaplacian::fillAlgMatrix (int mglev, MFIter const& mfi,
+                                      Array4<Long const> const& gid,
+                                      Array4<int const> const& lid,
+                                      Long* ncols, Long* cols, Real* mat) const
+{
+    fillMatrix_doit(mglev, mfi, gid, lid, ncols, cols, mat);
+}
+
+template <typename AlgInt, typename AlgGid>
+void
+MLNodeTensorLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
+                                        Array4<AlgGid const> const& gid,
+                                        Array4<int const> const& lid,
+                                        AlgInt* ncols, AlgInt* cols, Real* mat) const
+{
     const int amrlev = 0;
-    const int mglev = NMGLevels(amrlev)-1;
     auto const& s = scaledSigma(amrlev, mglev);
 
     const Box& ndbx = mfi.validbox();
@@ -339,7 +363,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                  Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
-                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+                         < std::numeric_limits<AlgGid>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -356,7 +380,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
 }
 
 void
-MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+MLNodeTensorLaplacian::fillRHS (int /*mglev*/, MFIter const& mfi, Array4<int const> const& lid,
                                 Real* rhs, Array4<Real const> const& bfab) const
 {
     const Box& bx = mfi.validbox();

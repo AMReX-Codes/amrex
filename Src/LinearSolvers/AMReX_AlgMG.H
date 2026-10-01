@@ -1,8 +1,9 @@
-#ifndef AMREX_AMG_H_
-#define AMREX_AMG_H_
+#ifndef AMREX_ALGMG_H_
+#define AMREX_ALGMG_H_
 #include <AMReX_Config.H>
 
 #include <AMReX_Algebra.H>
+#include <AMReX_Enum.H>
 #include <AMReX_BiCGStab_MV.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_CArena.H>
@@ -17,6 +18,7 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
+#include <numeric>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -186,6 +188,30 @@ struct MMInterpRow
 
 }
 
+
+//! Coarsest-level solver of AlgMG: a dense LU factorization (direct, the
+//! default), smoother sweeps, or BiCGStab or GMRES preconditioned by
+//! l1-Jacobi (weighted Jacobi when the smoother is jacobi).
+AMREX_ENUM(AlgMGBottomSolver, jacobi, bicgstab, gmres, direct);
+
+//! none: iterate V-cycles. Otherwise use one V-cycle as the preconditioner
+//! of the Krylov solver. pcg needs a symmetric definite matrix (either sign) and
+//! a symmetric cycle (same pre- and post-smoother, smoother sweeps at the
+//! bottom).
+AMREX_ENUM(AlgMGKrylovSolver, none, bicgstab, gmres, pcg);
+
+//! direct: classical direct interpolation. mm_ext and mm_ext_i: extended
+//! and extended+i interpolation in matrix-matrix form.
+AMREX_ENUM(AlgMGInterpType, direct, mm_ext, mm_ext_i);
+
+//! jacobi: weighted Jacobi (weight 2/3). l1_jacobi: l1-Jacobi (weight 4/3).
+//! chebyshev (default): polynomial of degree `cheby_degree` on the
+//! l1-scaled operator, damping [1 / cheby_ratio, 1]; one sweep costs
+//! `cheby_degree` matrix-vector products, and one sweep is the default
+//! versus two for the Jacobi smoothers. l1_gauss_seidel: l1 hybrid
+//! Gauss-Seidel, forward before and backward after the coarse correction;
+//! CPU builds only.
+AMREX_ENUM(AlgMGSmoother, jacobi, l1_jacobi, chebyshev, l1_gauss_seidel);
 /**
  * \brief Algebraic multigrid solver for SpMatrix / AlgVector systems.
  *
@@ -219,33 +245,20 @@ struct MMInterpRow
  * [7] Adams, Brezina, Hu & Tuminaro, J. Comput. Phys. 188 (2003). doi:10.1016/S0021-9991(03)00194-3
  */
 template <typename T>
-class AMG
+class AlgMG
 {
 public:
     //! Value type of the strength matrices: float when T is double. Their
     //! entries are the matrix entries divided by `strength_scale`.
     using TS = std::conditional_t<std::is_same_v<T,double>, float, T>;
 
-    enum class BottomSolver { Jacobi, BiCGStab, GMRES };
-    //! None: iterate V-cycles. Otherwise use one V-cycle as the
-    //! preconditioner of the Krylov solver. PCG needs a symmetric positive
-    //! definite matrix and a symmetric cycle (same pre- and post-smoother,
-    //! smoother sweeps at the bottom).
-    enum class KrylovSolver { None, BiCGStab, GMRES, PCG };
-    //! Direct: classical direct interpolation. MMExt and MMExtI:
-    //! extended and extended+i interpolation in matrix-matrix form.
-    enum class InterpType { Direct, MMExt, MMExtI };
-    //! Jacobi: weighted Jacobi (weight 2/3). L1Jacobi: l1-Jacobi [6]
-    //! (weight 4/3). Chebyshev (default): polynomial of degree
-    //! `cheby_degree` on the l1-scaled operator, damping
-    //! [1 / cheby_ratio, 1]; one sweep costs `cheby_degree` matrix-vector
-    //! products, and one sweep is the default versus two for the Jacobi
-    //! smoothers. L1GaussSeidel: l1 hybrid Gauss-Seidel [6], forward before
-    //! and backward after the coarse correction; CPU builds only.
-    enum class Smoother { Jacobi, L1Jacobi, Chebyshev, L1GaussSeidel };
+    using BottomSolver = AlgMGBottomSolver;
+    using KrylovSolver = AlgMGKrylovSolver;
+    using InterpType   = AlgMGInterpType;
+    using Smoother     = AlgMGSmoother;
 
-    AMG () = default;
-    explicit AMG (SpMatrix<T>& a_mat);
+    AlgMG () = default;
+    explicit AlgMG (SpMatrix<T>& a_mat);
 
     //! Define the solver with a square matrix. Must be called before solve.
     void define (SpMatrix<T>& a_mat);
@@ -260,17 +273,18 @@ public:
     //! If positive, run exactly this many V-cycles regardless of tolerance.
     void setFixedIter (int n) { m_fixediter = n; }
     void setRelTol (T t) { m_reltol = t; }
+    //! Converged when the residual 2-norm is below max(reltol*bnorm, abstol).
+    void setAbsTol (T t) { m_abstol = t; }
     //! Takes effect at the next solve; the hierarchy is kept.
-    void setSmoother (Smoother sm) { m_smoother_type = sm; m_smoothers_stale = true; }
+    void setSmoother (Smoother sm) { if (m_smoother_type != sm) { m_smoother_type = sm; m_smoothers_stale = true; } }
     //! Relaxation weight of the smoother; negative restores the default. Next solve.
-    void setRelaxWeight (T w) { m_relax_weight = w; m_smoothers_stale = true; }
+    void setRelaxWeight (T w) { if (m_relax_weight != w) { m_relax_weight = w; m_smoothers_stale = true; } }
     //! Chebyshev polynomial degree. Next solve.
-    void setChebyshevDegree (int d) { m_cheby_degree = d; m_smoothers_stale = true; }
+    void setChebyshevDegree (int d) { if (m_cheby_degree != d) { m_cheby_degree = d; m_smoothers_stale = true; } }
     //! Chebyshev eigenvalue ratio lambda_max / lambda_min. Next solve.
     void setChebyshevRatio (T r) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r > T(1), "AMG::setChebyshevRatio: the ratio must exceed 1");
-        m_cheby_ratio = r;
-        m_smoothers_stale = true;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r > T(1), "AlgMG::setChebyshevRatio: the ratio must exceed 1");
+        if (m_cheby_ratio != r) { m_cheby_ratio = r; m_smoothers_stale = true; }
     }
     //! Number of pre-smoothing sweeps; negative restores the smoother's default.
     void setPreSmooth (int nu) { m_nu1 = nu; }
@@ -283,17 +297,17 @@ public:
     //! least this fraction of the strongest one in the row are strong. A row
     //! whose sum exceeds 0.9 times its diagonal has no strong connection.
     //! Takes effect at the next setup, i.e., the next solve after define.
-    void setStrongThreshold (T theta) { m_strong_threshold = theta; m_prepared = false; }
+    void setStrongThreshold (T theta) { if (m_strong_threshold != theta) { m_strong_threshold = theta; m_prepared = false; } }
     //! Maximum number of levels. Two means a two-level method. Takes
     //! effect at the next setup, i.e., the next solve after define.
-    void setMaxLevels (int n) { m_max_levels = n; m_prepared = false; }
+    void setMaxLevels (int n) { if (m_max_levels != n) { m_max_levels = n; m_prepared = false; } }
     //! Stop coarsening when a level has at most this many rows. Next setup.
-    void setMaxCoarseSize (Long n) { m_max_coarse_size = n; m_prepared = false; }
+    void setMaxCoarseSize (Long n) { if (m_max_coarse_size != n) { m_max_coarse_size = n; m_prepared = false; } }
     //! Number of levels with aggressive coarsening, starting at the finest. Next setup.
-    void setAggressiveNumLevels (int n) { m_aggressive_num_levels = n; m_prepared = false; }
+    void setAggressiveNumLevels (int n) { if (m_aggressive_num_levels != n) { m_aggressive_num_levels = n; m_prepared = false; } }
     //! Use classical direct interpolation for the first stage of the
     //! two-stage aggressive interpolation (cheaper setup, more cycles).
-    void setAggressiveDirectInterp (bool b) { m_aggressive_direct_interp = b; m_prepared = false; }
+    void setAggressiveDirectInterp (bool b) { if (m_aggressive_direct_interp != b) { m_aggressive_direct_interp = b; m_prepared = false; } }
     //! Singular matrix with the constant vector in its null space (e.g.
     //! Poisson with periodic or Neumann boundaries). The mean is removed
     //! from the right-hand side and the coarsest residuals, and the
@@ -302,20 +316,21 @@ public:
         if (m_singular != b) { m_singular = b; m_prepared = false; }
     }
     //! Takes effect at the next setup.
-    void setInterpType (InterpType it) { m_interp_type = it; m_prepared = false; }
+    void setInterpType (InterpType it) { if (m_interp_type != it) { m_interp_type = it; m_prepared = false; } }
     //! Maximum number of entries per row of P (0: no limit; at most
     //! max_p_elmts; negative restores the default). Next setup.
     void setPMaxElmts (int n) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= max_p_elmts, "AMG::setPMaxElmts: at most 32");
-        m_p_max_elmts = (n < 0) ? default_p_max_elmts : n;
-        m_prepared = false;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n <= max_p_elmts, "AlgMG::setPMaxElmts: at most 32");
+        int const p = (n < 0) ? default_p_max_elmts : n;
+        if (m_p_max_elmts != p) { m_p_max_elmts = p; m_prepared = false; }
     }
     static constexpr int max_p_elmts = 32;
     static constexpr int default_p_max_elmts = 4;
     //! Drop interpolation weights below this fraction of the row maximum. Next setup.
-    void setTruncFactor (T f) { m_trunc_factor = f; m_prepared = false; }
+    void setTruncFactor (T f) { if (m_trunc_factor != f) { m_trunc_factor = f; m_prepared = false; } }
     //! Krylov solver with the V-cycle as preconditioner (see KrylovSolver). Default None.
     void setKrylovSolver (KrylovSolver a) {
+        if (m_krylov == a) { return; }
         m_krylov = a;
         m_krylov_bicgstab.reset();
         m_krylov_gmres.reset();
@@ -325,10 +340,14 @@ public:
     //! This is the preconditioner used by the Krylov solver; usable
     //! stand-alone after the first solve or setup.
     void precond (AlgVector<T>& x, AlgVector<T> const& b);
+    //! Coarsest-level solver (see BottomSolver). Default direct, which uses
+    //! smoother sweeps instead beyond 1024 rows.
     void setBottomSolver (BottomSolver bs) {
+        if (m_bottom_solver == bs) { return; }
         m_bottom_solver = bs;
         m_gmres.reset();
         m_bicgstab.reset();
+        m_bottom_n = -1;
     }
     void setBottomTol (T t) { m_bottom_reltol = t; }
     void setBottomMaxIter (int n) { m_bottom_maxiter = n; }
@@ -336,6 +355,8 @@ public:
     void setThrowException (bool b) { m_throw_exception = b; }
 
     [[nodiscard]] int getNumIters () const { return m_niters; }
+    //! Number of setups run so far (for checks that the setup is reused).
+    [[nodiscard]] int getNumSetups () const { return m_num_setups; }
     [[nodiscard]] T getResidualNorm () const { return m_rnorm; }
     //! Number of levels; 0 before setup.
     [[nodiscard]] int numLevels () const { return int(m_a.size()); }
@@ -351,6 +372,7 @@ private:
     enum PointType : int { undecided = 0, fine = 1, coarse = 2 };
 
     bool m_prepared = false;
+    int m_num_setups = 0;
     bool m_smoothers_stale = false;
     bool m_throw_exception = false;
     int m_verbose = 0;
@@ -358,7 +380,7 @@ private:
     int m_fixediter = 0;
     int m_niters = 0;
 
-    Smoother m_smoother_type = Smoother::Chebyshev;
+    Smoother m_smoother_type = Smoother::chebyshev;
     T m_relax_weight = T(-1);
     int m_cheby_degree = 2;
     T m_cheby_ratio = T(6);
@@ -367,13 +389,13 @@ private:
     int m_nu_bottom = -1;
 
     [[nodiscard]] int numPreSmooth () const {
-        return (m_nu1 >= 0) ? m_nu1 : ((m_smoother_type == Smoother::Chebyshev) ? 1 : 2);
+        return (m_nu1 >= 0) ? m_nu1 : ((m_smoother_type == Smoother::chebyshev) ? 1 : 2);
     }
     [[nodiscard]] int numPostSmooth () const {
-        return (m_nu2 >= 0) ? m_nu2 : ((m_smoother_type == Smoother::Chebyshev) ? 1 : 2);
+        return (m_nu2 >= 0) ? m_nu2 : ((m_smoother_type == Smoother::chebyshev) ? 1 : 2);
     }
     [[nodiscard]] int numBottomSmooth () const {
-        return (m_nu_bottom >= 0) ? m_nu_bottom : ((m_smoother_type == Smoother::Chebyshev) ? 4 : 8);
+        return (m_nu_bottom >= 0) ? m_nu_bottom : ((m_smoother_type == Smoother::chebyshev) ? 4 : 8);
     }
 
     int m_max_levels = 25;
@@ -384,15 +406,23 @@ private:
     std::unique_ptr<AlgVector<T>> m_bproj; // rhs with the mean removed
     T m_strong_threshold = T(0.25);
 
-    InterpType m_interp_type = InterpType::MMExtI;
+    InterpType m_interp_type = InterpType::mm_ext_i;
     int m_p_max_elmts = default_p_max_elmts;
     T m_trunc_factor = T(0);
-    BottomSolver m_bottom_solver = BottomSolver::Jacobi;
+    BottomSolver m_bottom_solver = BottomSolver::direct;
+    // Safety limit for the dense LU on every process; the coarsest level
+    // normally has a few rows (max_coarse_size). Beyond it smoother sweeps
+    // are used, which keeps the cycle linear for PCG and GMRES.
+    static constexpr Long max_direct_size = 1024;
+    Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
+    Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
+    Vector<int> m_bottom_piv;
     T m_bottom_reltol = T(1.e-4);
     int m_bottom_maxiter = 200;
     int m_bottom_verbose = 0;
 
     T m_reltol = std::is_same_v<T,float> ? T(1.e-4) : T(1.e-8);
+    T m_abstol = T(0);
     T m_init_rnorm = std::numeric_limits<T>::max();
     T m_rnorm = std::numeric_limits<T>::max();
     T m_bnorm = std::numeric_limits<T>::max();
@@ -406,7 +436,7 @@ private:
         auto const [bytes, reserved] = detail::arena_bytes();
         m_setup_peak_bytes = std::max(m_setup_peak_bytes, bytes);
         if (m_verbose >= 2 && bytes > 0) {
-            amrex::Print() << m_print_ident << "AMG: level " << lev << ": after " << stage
+            amrex::Print() << m_print_ident << "AlgMG: level " << lev << ": after " << stage
                            << ": arena in use " << double(bytes)/double(1<<20)
                            << " MB, reserved " << double(reserved)/double(1<<20) << " MB"
 #ifdef AMREX_USE_GPU
@@ -432,13 +462,16 @@ private:
     std::unique_ptr<GMRES_MV<T>> m_gmres;
     std::unique_ptr<BiCGStab_MV<T>> m_bicgstab;
 
-    KrylovSolver m_krylov = KrylovSolver::None;
+    KrylovSolver m_krylov = KrylovSolver::none;
     std::unique_ptr<BiCGStab_MV<T>> m_krylov_bicgstab;
     std::unique_ptr<GMRES_MV<T>> m_krylov_gmres;
     std::unique_ptr<PCG_MV<T>> m_krylov_pcg;
 
     void clear_levels ();
     void build_smoothers ();
+    //! Gather the coarsest matrix to every process and factor it.
+    void build_direct_bottom ();
+    void direct_bottom_solve ();
     //! Runs the setup if needed, or rebuilds only the smoothers.
     void prepare ()
     {
@@ -474,7 +507,7 @@ public: // NOLINT
 
     //! Strong part of A: S_ij = a_ij / scale if i strongly depends on j,
     //! else absent. `scale` is strength_scale(A).
-    SpMatrix<TS> create_soc (SpMatrix<T> const& A, T scale) const;
+    [[nodiscard]] SpMatrix<TS> create_soc (SpMatrix<T> const& A, T scale) const;
 
     //! Largest |a_ii|, the unit of the strength matrix entries.
     static T strength_scale (SpMatrix<T> const& A);
@@ -546,13 +579,13 @@ public: // NOLINT
 };
 
 template <typename T>
-AMG<T>::AMG (SpMatrix<T>& a_mat)
+AlgMG<T>::AlgMG (SpMatrix<T>& a_mat)
 {
     define(a_mat);
 }
 
 template <typename T>
-void AMG<T>::define (SpMatrix<T>& a_mat)
+void AlgMG<T>::define (SpMatrix<T>& a_mat)
 {
     m_mat = &a_mat;
     m_prepared = false;
@@ -564,7 +597,7 @@ void AMG<T>::define (SpMatrix<T>& a_mat)
 }
 
 template <typename T>
-void AMG<T>::clear_levels ()
+void AlgMG<T>::clear_levels ()
 {
     m_a.clear();
     m_crsemat.clear();
@@ -578,12 +611,15 @@ void AMG<T>::clear_levels ()
     m_l1gs.clear();
     m_gmres.reset();
     m_bicgstab.reset();
+    m_bottom_n = -1;
+    m_bottom_lu.clear();
+    m_bottom_piv.clear();
 }
 
 template <typename T>
-void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
+void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
 {
-    BL_PROFILE("AMG::solve");
+    BL_PROFILE("AlgMG::solve");
 
     prepare();
 
@@ -609,20 +645,20 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     }
 
     if (m_verbose >= 1) {
-        amrex::Print() << m_print_ident << "AMG: Initial rhs      2-norm = " << m_bnorm << "\n"
-                       << m_print_ident << "AMG: Initial residual 2-norm = " << m_rnorm << "\n";
+        amrex::Print() << m_print_ident << "AlgMG: Initial rhs      2-norm = " << m_bnorm << "\n"
+                       << m_print_ident << "AlgMG: Initial residual 2-norm = " << m_rnorm << "\n";
     }
 
-    T res_target = m_bnorm * m_reltol;
+    T res_target = std::max(m_bnorm * m_reltol, m_abstol);
     if (m_fixediter <= 0 && m_rnorm <= res_target) {
         if (m_verbose >= 1) {
-            amrex::Print() << m_print_ident << "AMG: No iterations needed\n";
+            amrex::Print() << m_print_ident << "AlgMG: No iterations needed\n";
         }
         project_out(a_sol);
         return;
     }
 
-    if (m_krylov != KrylovSolver::None) {
+    if (m_krylov != KrylovSolver::none) {
         solve_krylov(a_sol, rhs, res_target);
         project_out(a_sol);
         return;
@@ -638,7 +674,7 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         m_niters = iter+1;
 
         if (m_verbose >= 2) {
-            amrex::Print() << m_print_ident << "AMG: Iteration " << std::setw(3)
+            amrex::Print() << m_print_ident << "AlgMG: Iteration " << std::setw(3)
                            << iter+1 << ": rnorm, rnorm/bnorm = "
                            << m_rnorm << ", " << m_rnorm/m_bnorm << "\n";
         }
@@ -646,14 +682,14 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         bool converged = (m_fixediter <= 0) && (m_rnorm <= res_target);
         if (converged) {
             if (m_verbose >= 1) {
-                amrex::Print() << m_print_ident << "AMG: Final Iter. " << iter+1
+                amrex::Print() << m_print_ident << "AlgMG: Final Iter. " << iter+1
                                << ": rnorm, rnorm/bnorm = "
                                << m_rnorm << ", " << m_rnorm/m_bnorm << "\n";
             }
             break;
         } else if (m_rnorm > T(1.e20) * m_init_rnorm || amrex::isnan(m_rnorm)) {
             if (m_verbose > 0) {
-                amrex::Print() << m_print_ident << "AMG: Failing to converge after " << iter+1 << " iterations."
+                amrex::Print() << m_print_ident << "AlgMG: Failing to converge after " << iter+1 << " iterations."
                                << " rnorm, rnorm/bnorm = "
                                << m_rnorm << ", " << m_rnorm/m_bnorm << "\n";
             }
@@ -662,14 +698,14 @@ void AMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     }
 
     if (m_verbose >= 1 && m_fixediter <= 0 && m_rnorm > res_target) {
-        amrex::Print() << m_print_ident << "AMG: Not converged after " << m_niters
+        amrex::Print() << m_print_ident << "AlgMG: Not converged after " << m_niters
                        << " iterations. rnorm/bnorm = " << m_rnorm/m_bnorm << "\n";
     }
     project_out(a_sol);
 }
 
 template <typename T>
-void AMG<T>::precond (AlgVector<T>& x, AlgVector<T> const& b)
+void AlgMG<T>::precond (AlgVector<T>& x, AlgVector<T> const& b)
 {
     prepare();
     vcycle(x, b);
@@ -677,21 +713,21 @@ void AMG<T>::precond (AlgVector<T>& x, AlgVector<T> const& b)
 }
 
 template <typename T>
-void AMG<T>::blew_up () const
+void AlgMG<T>::blew_up () const
 {
     if (m_throw_exception) {
-        throw std::runtime_error("AMG blew up.");
+        throw std::runtime_error("AlgMG blew up.");
     } else {
-        amrex::Abort("AMG failing so lets stop here");
+        amrex::Abort("AlgMG failing so lets stop here");
     }
 }
 
 template <typename T>
-void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res_target)
+void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res_target)
 {
-    BL_PROFILE("AMG::solve_krylov");
+    BL_PROFILE("AlgMG::solve_krylov");
 
-    // Bound on every solve so that a moved AMG object stays usable.
+    // Bound on every solve so that a moved AlgMG object stays usable.
     auto pc = [this] (AlgVector<T>& x, AlgVector<T> const& b) { this->precond(x, b); };
     int const niters = (m_fixediter > 0) ? m_fixediter : m_maxiter;
     T const atol = (m_fixediter > 0) ? T(0) : res_target;
@@ -715,21 +751,21 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
                 break;
             }
             if (m_verbose >= 2) {
-                amrex::Print() << m_print_ident << "AMG: restarting Krylov solver at iteration "
+                amrex::Print() << m_print_ident << "AlgMG: restarting Krylov solver at iteration "
                                << m_niters << ", rnorm/bnorm = " << m_rnorm/m_bnorm << "\n";
             }
         }
     };
 
     char const* name = "";
-    if (m_krylov == KrylovSolver::BiCGStab) {
+    if (m_krylov == KrylovSolver::bicgstab) {
         name = "BiCGStab";
         if (!m_krylov_bicgstab) {
             m_krylov_bicgstab = std::make_unique<BiCGStab_MV<T>>(m_mat);
         }
         m_krylov_bicgstab->setPrecond(pc);
         run(m_krylov_bicgstab->getSolver());
-    } else if (m_krylov == KrylovSolver::GMRES) {
+    } else if (m_krylov == KrylovSolver::gmres) {
         name = "GMRES";
         if (!m_krylov_gmres) {
             m_krylov_gmres = std::make_unique<GMRES_MV<T>>(m_mat);
@@ -748,21 +784,21 @@ void AMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T res
     if (amrex::isnan(m_rnorm) || m_rnorm > T(1.e20) * m_init_rnorm) { blew_up(); }
 
     if (m_verbose >= 1) {
-        amrex::Print() << m_print_ident << "AMG(" << name << "): Final Iter. " << m_niters
+        amrex::Print() << m_print_ident << "AlgMG(" << name << "): Final Iter. " << m_niters
                        << ": rnorm, rnorm/bnorm = " << m_rnorm << ", " << m_rnorm/m_bnorm;
         if (m_verbose >= 2) {
             amrex::Print() << " (Krylov recurrence " << krylov_rnorm << ")";
         }
         amrex::Print() << "\n";
         if (m_fixediter <= 0 && m_rnorm > res_target) {
-            amrex::Print() << m_print_ident << "AMG(" << name << "): Not converged after "
+            amrex::Print() << m_print_ident << "AlgMG(" << name << "): Not converged after "
                            << m_niters << " iterations.\n";
         }
     }
 }
 
 template <typename T>
-std::pair<T,T> AMG<T>::compute_rbnorms (SpMatrix<T> const& mat,
+std::pair<T,T> AlgMG<T>::compute_rbnorms (SpMatrix<T> const& mat,
                                         AlgVector<T> const& xvec,
                                         AlgVector<T> const& bvec,
                                         AlgVector<T>& rvec)
@@ -784,7 +820,7 @@ std::pair<T,T> AMG<T>::compute_rbnorms (SpMatrix<T> const& mat,
 }
 
 template <typename T>
-T AMG<T>::compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
+T AlgMG<T>::compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
                          AlgVector<T> const& bvec, AlgVector<T>& rvec)
 {
     amrex::computeResidual(rvec, mat, xvec, bvec);
@@ -792,9 +828,9 @@ T AMG<T>::compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
 }
 
 template <typename T>
-void AMG<T>::vcycle (AlgVector<T>& x, AlgVector<T> const& b)
+void AlgMG<T>::vcycle (AlgVector<T>& x, AlgVector<T> const& b)
 {
-    BL_PROFILE("AMG::vcycle");
+    BL_PROFILE("AlgMG::vcycle");
 
     int const nlev = numLevels();
     int const bottom = nlev-1;
@@ -830,14 +866,14 @@ void AMG<T>::vcycle (AlgVector<T>& x, AlgVector<T> const& b)
 }
 
 template <typename T>
-void AMG<T>::smooth (int lev, AlgVector<T>& xvec, AlgVector<T> const& bvec, int nu,
+void AlgMG<T>::smooth (int lev, AlgVector<T>& xvec, AlgVector<T> const& bvec, int nu,
                      bool with_initial_guess, bool backward)
 {
-    if (m_smoother_type == Smoother::L1GaussSeidel) {
+    if (m_smoother_type == Smoother::l1_gauss_seidel) {
         auto& smoother = *m_l1gs[lev];
         smoother.setNumIters(nu);
         smoother(xvec, bvec, with_initial_guess, backward);
-    } else if (m_smoother_type == Smoother::Chebyshev) {
+    } else if (m_smoother_type == Smoother::chebyshev) {
         auto& smoother = *m_cheby[lev];
         smoother.setNumIters(nu);
         smoother(xvec, bvec, with_initial_guess);
@@ -849,14 +885,14 @@ void AMG<T>::smooth (int lev, AlgVector<T>& xvec, AlgVector<T> const& bvec, int 
 }
 
 template <typename T>
-void AMG<T>::bottom_solve ()
+void AlgMG<T>::bottom_solve ()
 {
-    BL_PROFILE("AMG::bottom_solve");
+    BL_PROFILE("AlgMG::bottom_solve");
 
     int const lev = numLevels()-1;
     project_out(m_res[lev]); // keep the coarsest solve consistent
     auto smooth_bottom = [&] () {
-        if (m_smoother_type == Smoother::L1GaussSeidel) {
+        if (m_smoother_type == Smoother::l1_gauss_seidel) {
             // Forward then backward sweeps keep the cycle symmetric.
             int const nu = (numBottomSmooth()+1)/2;
             smooth(lev, m_cor[lev], m_res[lev], nu, false);
@@ -876,26 +912,34 @@ void AMG<T>::bottom_solve ()
         T const rnorm0 = solver.getInitialResidualNorm();
         if (rnorm0 > T(0) && !(solver.getResidualNorm() < rnorm0)) {
             if (m_verbose >= 2) {
-                amrex::Print() << m_print_ident << "AMG: bottom solve failed, smoothing instead\n";
+                amrex::Print() << m_print_ident << "AlgMG: bottom solve failed, smoothing instead\n";
             }
             smooth_bottom();
         }
     };
-    switch (m_bottom_solver) {
-    case BottomSolver::Jacobi:
+    auto bottom_solver = m_bottom_solver;
+    if (bottom_solver == BottomSolver::direct) {
+        if (m_bottom_n < 0) { build_direct_bottom(); }
+        if (m_bottom_n == 0) { bottom_solver = BottomSolver::jacobi; }
+    }
+    switch (bottom_solver) {
+    case BottomSolver::direct:
+        direct_bottom_solve();
+        break;
+    case BottomSolver::jacobi:
         smooth_bottom();
         break;
-    case BottomSolver::GMRES:
+    case BottomSolver::gmres:
         if (!m_gmres) {
             m_gmres = std::make_unique<GMRES_MV<T>>(m_a[lev]);
-            m_gmres->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::Jacobi));
+            m_gmres->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::jacobi));
         }
         krylov_bottom(*m_gmres);
         break;
-    case BottomSolver::BiCGStab:
+    case BottomSolver::bicgstab:
         if (!m_bicgstab) {
             m_bicgstab = std::make_unique<BiCGStab_MV<T>>(m_a[lev]);
-            m_bicgstab->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::Jacobi));
+            m_bicgstab->setPrecond(JacobiSmoother<T>(m_a[lev], m_smoother_type != Smoother::jacobi));
         }
         krylov_bottom(*m_bicgstab);
         break;
@@ -904,10 +948,11 @@ void AMG<T>::bottom_solve ()
 }
 
 template <typename T>
-void AMG<T>::setup ()
+void AlgMG<T>::setup ()
 {
-    BL_PROFILE("AMG::setup");
+    BL_PROFILE("AlgMG::setup");
 
+    ++m_num_setups;
     clear_levels();
     m_a.push_back(m_mat);
     m_mat->setColumnPartition(m_mat->partition()); // square: local column indexing
@@ -937,7 +982,7 @@ void AMG<T>::setup ()
             if (m_verbose >= 2) {
                 Long nnz[2] = {nnz0, P.numLocalNonZeros()};
                 ParallelAllReduce::Sum(nnz, 2, ParallelContext::CommunicatorSub());
-                amrex::Print() << m_print_ident << "AMG: level " << lev
+                amrex::Print() << m_print_ident << "AlgMG: level " << lev
                                << ": P truncated from " << nnz[0] << " to "
                                << nnz[1] << " nonzeros\n";
             }
@@ -946,7 +991,7 @@ void AMG<T>::setup ()
         // strength matrix; singular problems need it exactly.
         if (m_singular) { normalize_rows(P); }
         if (m_verbose >= 2 && aggressive) {
-            amrex::Print() << m_print_ident << "AMG: level " << lev
+            amrex::Print() << m_print_ident << "AlgMG: level " << lev
                            << ": aggressive coarsening, " << ncoarse << " -> "
                            << cpart.numGlobalRows() << " C-points\n";
         }
@@ -964,7 +1009,7 @@ void AMG<T>::setup ()
             ParallelAllReduce::Sum(nzero, ParallelContext::CommunicatorSub());
             ParallelAllReduce::Min(rmin, ParallelContext::CommunicatorSub());
             ParallelAllReduce::Max(rmax, ParallelContext::CommunicatorSub());
-            amrex::Print() << m_print_ident << "AMG: level " << lev << ": P row sums in ["
+            amrex::Print() << m_print_ident << "AlgMG: level " << lev << ": P row sums in ["
                            << rmin << ", " << rmax << "], " << nzero << " empty rows\n";
         }
         auto R  = amrex::transpose(P, cpart);
@@ -1003,16 +1048,16 @@ void AMG<T>::setup ()
             ParallelAllReduce::Sum(nnz, ParallelContext::CommunicatorSub());
             if (lev == 0) { nnz0 = nnz; }
             nnz_total += nnz;
-            amrex::Print() << m_print_ident << "AMG: level " << lev << ": "
+            amrex::Print() << m_print_ident << "AlgMG: level " << lev << ": "
                            << m_a[lev]->numGlobalRows() << " rows, "
                            << nnz << " nonzeros\n";
         }
-        amrex::Print() << m_print_ident << "AMG: operator complexity = "
+        amrex::Print() << m_print_ident << "AlgMG: operator complexity = "
                        << double(nnz_total)/double(std::max(nnz0,Long(1))) << "\n";
         if (m_setup_peak_bytes > 0) {
             auto peak = m_setup_peak_bytes;
             ParallelAllReduce::Max(peak, ParallelContext::CommunicatorSub());
-            amrex::Print() << m_print_ident << "AMG: setup peak arena use = "
+            amrex::Print() << m_print_ident << "AlgMG: setup peak arena use = "
                            << double(peak)/double(1<<20) << " MB ("
                            << double(peak)/double(m_mat->numGlobalRows())
                            << " B per row)\n";
@@ -1023,7 +1068,151 @@ void AMG<T>::setup ()
 }
 
 template <typename T>
-void AMG<T>::build_smoothers ()
+void AlgMG<T>::build_direct_bottom ()
+{
+    BL_PROFILE("AlgMG::build_direct_bottom");
+    int const lev = numLevels()-1;
+    auto const& A = *m_a[lev];
+    Long const n = A.numGlobalRows();
+    m_bottom_n = 0;
+    m_bottom_lu.clear();
+    m_bottom_piv.clear();
+    if (n < 1 || n > max_direct_size) {
+        if (m_verbose >= 1 && n > max_direct_size) {
+            amrex::Print() << m_print_ident << "AlgMG: coarsest level has " << n
+                           << " rows, using smoother sweeps instead of the direct bottom solver\n";
+        }
+        return;
+    }
+
+    // Dense copy of the local rows; summed over the processes below.
+    Vector<double> dense(n*n, 0.0);
+    auto const pc = A.const_parcsr();
+    auto to_host = [] (auto const* dptr, Long cnt) {
+        Vector<std::remove_const_t<std::remove_pointer_t<decltype(dptr)>>> h(cnt);
+        if (cnt > 0) { Gpu::copy(Gpu::deviceToHost, dptr, dptr+cnt, h.begin()); }
+        return h;
+    };
+    {
+        auto const& c = pc.csr0;
+        auto ro = to_host(c.row_offset, (c.nrows > 0) ? c.nrows+1 : 0);
+        auto ci = to_host(c.col_index, c.nnz);
+        auto va = to_host(c.mat, c.nnz);
+        for (Long i = 0; i < c.nrows; ++i) {
+            Long const ig = pc.row_begin + i;
+            for (int idx = ro[i]; idx < ro[i+1]; ++idx) {
+                dense[ig*n + pc.col_begin + ci[idx]] += double(va[idx]);
+            }
+        }
+    }
+    if (pc.csr1.nrows > 0 && pc.csr1.nnz > 0) {
+        auto const& c = pc.csr1;
+        auto ro = to_host(c.row_offset, c.nrows+1);
+        auto ci = to_host(c.col_index, c.nnz);
+        auto va = to_host(c.mat, c.nnz);
+        auto rmap = to_host(pc.row_map, pc.csr0.nrows); // local row -> csr1 row or -1
+        int ncols = 0;
+        for (auto j : ci) { ncols = std::max(ncols, j+1); }
+        auto cmap = to_host(pc.col_map, ncols);
+        for (Long i = 0; i < pc.csr0.nrows; ++i) {
+            Long const r = rmap[i];
+            if (r < 0) { continue; }
+            Long const ig = pc.row_begin + i;
+            for (int idx = ro[r]; idx < ro[r+1]; ++idx) {
+                dense[ig*n + cmap[ci[idx]]] += double(va[idx]);
+            }
+        }
+    }
+    ParallelAllReduce::Sum(dense.data(), int(n*n), ParallelContext::CommunicatorSub());
+
+    // Singular: the constant vector is in the null space. Adding (1/n) 1 1^T
+    // makes the matrix regular; the coarsest residual and correction have
+    // their mean removed, so the added term never acts on them.
+    if (m_singular) {
+        double dsum = 0.0;
+        for (Long i = 0; i < n; ++i) { dsum += std::abs(dense[i*n+i]); }
+        double const w = (dsum/double(n))/double(n);
+        for (auto& v : dense) { v += w; }
+    }
+
+    // LU with partial pivoting, in place (Doolittle). A pivot at roundoff
+    // level relative to the matrix means a singular matrix.
+    double amat = 0.0;
+    for (auto v : dense) { amat = std::max(amat, std::abs(v)); }
+    double const pivot_tol = double(n) * std::numeric_limits<double>::epsilon() * amat;
+    Vector<int> piv(n);
+    std::iota(piv.begin(), piv.end(), 0);
+    for (Long i = 0; i < n; ++i) {
+        Long imax = i;
+        double amax = std::abs(dense[i*n+i]);
+        for (Long k = i+1; k < n; ++k) {
+            double const a = std::abs(dense[k*n+i]);
+            if (a > amax) { amax = a; imax = k; }
+        }
+        if (amax <= pivot_tol) {
+            if (m_verbose >= 1) {
+                amrex::Print() << m_print_ident << "AlgMG: coarsest matrix is singular, "
+                               << "using smoother sweeps instead of the direct bottom solver\n";
+            }
+            return;
+        }
+        if (imax != i) {
+            std::swap(piv[i], piv[imax]);
+            for (Long j = 0; j < n; ++j) { std::swap(dense[i*n+j], dense[imax*n+j]); }
+        }
+        double const dinv = 1.0/dense[i*n+i];
+        for (Long j = i+1; j < n; ++j) {
+            double const f = dense[j*n+i]*dinv;
+            dense[j*n+i] = f;
+            for (Long k = i+1; k < n; ++k) { dense[j*n+k] -= f*dense[i*n+k]; }
+        }
+    }
+    m_bottom_lu = std::move(dense);
+    m_bottom_piv = std::move(piv);
+    m_bottom_n = n;
+}
+
+template <typename T>
+void AlgMG<T>::direct_bottom_solve ()
+{
+    int const lev = numLevels()-1;
+    auto const& r = m_res[lev];
+    auto& x = m_cor[lev];
+    Long const n = m_bottom_n;
+    Long const nl = r.numLocalRows();
+    Long const b0 = r.globalBegin();
+
+    // Gather the residual (sum of the zero-padded local parts).
+    Vector<double> rhs(n, 0.0);
+    Vector<T> loc(nl);
+    if (nl > 0) {
+        Gpu::copy(Gpu::deviceToHost, r.data(), r.data()+nl, loc.begin());
+        for (Long i = 0; i < nl; ++i) { rhs[b0+i] = double(loc[i]); }
+    }
+    ParallelAllReduce::Sum(rhs.data(), int(n), ParallelContext::CommunicatorSub());
+
+    // P A = L U: forward substitution with the unit lower part, then back.
+    Vector<double> y(n);
+    auto const& lu = m_bottom_lu;
+    for (Long i = 0; i < n; ++i) {
+        double v = rhs[m_bottom_piv[i]];
+        for (Long k = 0; k < i; ++k) { v -= lu[i*n+k]*y[k]; }
+        y[i] = v;
+    }
+    for (Long i = n-1; i >= 0; --i) {
+        double v = y[i];
+        for (Long k = i+1; k < n; ++k) { v -= lu[i*n+k]*y[k]; }
+        y[i] = v/lu[i*n+i];
+    }
+
+    if (nl > 0) {
+        for (Long i = 0; i < nl; ++i) { loc[i] = T(y[b0+i]); }
+        Gpu::copy(Gpu::hostToDevice, loc.begin(), loc.end(), x.data());
+    }
+}
+
+template <typename T>
+void AlgMG<T>::build_smoothers ()
 {
     m_smoother.clear();
     m_cheby.clear();
@@ -1032,17 +1221,17 @@ void AMG<T>::build_smoothers ()
     m_bicgstab.reset();
     int const nlev = numLevels();
     for (int lev = 0; lev < nlev; ++lev) {
-        if (m_smoother_type == Smoother::L1GaussSeidel) {
+        if (m_smoother_type == Smoother::l1_gauss_seidel) {
 #ifdef AMREX_USE_GPU
-            amrex::Abort("AMG: L1GaussSeidel smoother is only available in CPU builds");
+            amrex::Abort("AlgMG: L1GaussSeidel smoother is only available in CPU builds");
 #endif
             m_l1gs.push_back(std::make_unique<L1GaussSeidelSmoother<T>>(m_a[lev]));
-        } else if (m_smoother_type == Smoother::Chebyshev) {
+        } else if (m_smoother_type == Smoother::chebyshev) {
             m_cheby.push_back(std::make_unique<ChebyshevSmoother<T>>(m_a[lev], true));
             m_cheby.back()->setDegree(m_cheby_degree);
             m_cheby.back()->setEigRatio(m_cheby_ratio);
         } else {
-            bool const l1 = (m_smoother_type == Smoother::L1Jacobi);
+            bool const l1 = (m_smoother_type == Smoother::l1_jacobi);
             m_smoother.push_back(std::make_unique<JacobiSmoother<T>>(m_a[lev], l1));
             T const w = (m_relax_weight >= T(0)) ? m_relax_weight : (l1 ? T(4./3.) : T(2./3.));
             m_smoother.back()->setWeight(w);
@@ -1052,7 +1241,7 @@ void AMG<T>::build_smoothers ()
 }
 
 template <typename T>
-bool AMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
+bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartition& cpart,
                             bool& aggressive, Long& ncoarse)
 {
     T const sscale = strength_scale(A);
@@ -1112,7 +1301,7 @@ bool AMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartitio
             note_memory(lev, "P1");
             // P2 needs only the rows of the first-pass C-points.
             auto Pf = build_interp_mm(A, S, ST, statef, cidxf, cpart2, sscale,
-                                      m_interp_type != InterpType::MMExt,
+                                      m_interp_type != InterpType::mm_ext,
                                       state.data());
             if (trunc) { Pf = truncate_interp(Pf, cpart2, m_p_max_elmts, m_trunc_factor); }
             auto P2 = select_coarse_rows(Pf, state, cidx, cpart);
@@ -1130,7 +1319,7 @@ bool AMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartitio
 }
 
 template <typename T>
-void AMG<T>::normalize_rows (SpMatrix<T>& P)
+void AlgMG<T>::normalize_rows (SpMatrix<T>& P)
 {
     auto const rs = P.rowSum();
     auto const* AMREX_RESTRICT prs = rs.data();
@@ -1138,7 +1327,7 @@ void AMG<T>::normalize_rows (SpMatrix<T>& P)
         [=] AMREX_GPU_DEVICE (Long i) -> Long { return prs[i] == T(0); });
     ParallelAllReduce::Sum(nzero, ParallelContext::CommunicatorSub());
     if (nzero > 0) {
-        amrex::Abort("AMG: singular mode needs P 1 = 1, but " + std::to_string(nzero)
+        amrex::Abort("AlgMG: singular mode needs P 1 = 1, but " + std::to_string(nzero)
                      + " rows of P are empty");
     }
     auto a = P.parcsr();
@@ -1159,7 +1348,7 @@ void AMG<T>::normalize_rows (SpMatrix<T>& P)
 }
 
 template <typename T>
-T AMG<T>::strength_scale (SpMatrix<T> const& A)
+T AlgMG<T>::strength_scale (SpMatrix<T> const& A)
 {
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT p = Ad.data();
@@ -1170,9 +1359,9 @@ T AMG<T>::strength_scale (SpMatrix<T> const& A)
 }
 
 template <typename T>
-SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A, T scale) const
+SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T scale) const
 {
-    BL_PROFILE("AMG::create_soc");
+    BL_PROFILE("AlgMG::create_soc");
 
     auto const& a = A.const_parcsr();
     Long const nrows = a.csr0.nrows;
@@ -1278,10 +1467,10 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::create_soc (SpMatrix<T> const& A, T scale)
 }
 
 template <typename T>
-void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& state,
+void AlgMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& state,
                    bool isolated_as_coarse) const
 {
-    BL_PROFILE("AMG::pmis");
+    BL_PROFILE("AlgMG::pmis");
 
     Long const nrows = S.numLocalRows();
     int const U = PointType::undecided;
@@ -1415,14 +1604,14 @@ void AMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& st
         });
         Long counts[3] = {nc, ncc, nf0};
         ParallelAllReduce::Sum(counts, 3, ParallelContext::CommunicatorSub());
-        amrex::Print() << m_print_ident << "AMG: PMIS: " << counts[0] << " C-points of "
+        amrex::Print() << m_print_ident << "AlgMG: PMIS: " << counts[0] << " C-points of "
                        << S.numGlobalRows() << ", C-C strong pairs " << counts[1]
                        << ", F-points w/o C neighbor " << counts[2] << "\n";
     }
 }
 
 template <typename T>
-AlgPartition AMG<T>::coarse_numbering (Gpu::DeviceVector<int> const& state,
+AlgPartition AlgMG<T>::coarse_numbering (Gpu::DeviceVector<int> const& state,
                                        Gpu::DeviceVector<Long>& cidx, int which)
 {
     Long const nrows = Long(state.size());
@@ -1441,19 +1630,18 @@ AlgPartition AMG<T>::coarse_numbering (Gpu::DeviceVector<int> const& state,
     // One value per rank: an all-gather, not a reduction of a P-vector.
     ParallelAllGather::AllGather(nc, counts.data(), ParallelContext::CommunicatorSub());
 #endif
-    Vector<Long> rows(nprocs+1);
-    rows[0] = 0;
-    for (int i = 0; i < nprocs; ++i) { rows[i+1] = rows[i] + counts[i]; }
+    Vector<Long> rows(nprocs+1, 0); // exclusive prefix sum of counts
+    std::partial_sum(counts.begin(), counts.end(), rows.begin()+1);
     return AlgPartition(std::move(rows));
 }
 
 template <typename T>
-SpMatrix<T> AMG<T>::build_interp (SpMatrix<T>& A, SpMatrix<TS> const& S,
+SpMatrix<T> AlgMG<T>::build_interp (SpMatrix<T>& A, SpMatrix<TS> const& S,
                                   Gpu::DeviceVector<int> const& state,
                                   Gpu::DeviceVector<Long> const& cidx,
                                   AlgPartition const& cpart)
 {
-    BL_PROFILE("AMG::build_interp");
+    BL_PROFILE("AlgMG::build_interp");
 
     // Classical direct interpolation [1].
 
@@ -1688,26 +1876,26 @@ compact_rows (ParCsr<T const> const& p, Long nc, int const* AMREX_RESTRICT state
 }
 
 template <typename T>
-SpMatrix<T> AMG<T>::interpolation (SpMatrix<T>& A, SpMatrix<TS>& S, SpMatrix<TS> const& ST,
+SpMatrix<T> AlgMG<T>::interpolation (SpMatrix<T>& A, SpMatrix<TS>& S, SpMatrix<TS> const& ST,
                                    Gpu::DeviceVector<int> const& state,
                                    Gpu::DeviceVector<Long> const& cidx,
                                    AlgPartition const& cpart, T scale) const
 {
-    if (m_interp_type == InterpType::Direct) {
+    if (m_interp_type == InterpType::direct) {
         return build_interp(A, S, state, cidx, cpart);
     } else {
         return build_interp_mm(A, S, ST, state, cidx, cpart, scale,
-                               m_interp_type == InterpType::MMExtI);
+                               m_interp_type == InterpType::mm_ext_i);
     }
 }
 
 template <typename T>
-SpMatrix<typename AMG<T>::TS> AMG<T>::second_pass_strength (SpMatrix<TS>& S,
+SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::second_pass_strength (SpMatrix<TS>& S,
                                           Gpu::DeviceVector<int> const& state,
                                           Gpu::DeviceVector<Long> const& cidx,
                                           AlgPartition const& cpart)
 {
-    BL_PROFILE("AMG::second_pass_strength");
+    BL_PROFILE("AlgMG::second_pass_strength");
 
     // Distance-two C-C connections: S_CF S_FC. The few direct C-C
     // connections PMIS leaves are ignored. Both factors are built in
@@ -1824,7 +2012,7 @@ SpMatrix<typename AMG<T>::TS> AMG<T>::second_pass_strength (SpMatrix<TS>& S,
 }
 
 template <typename T>
-SpMatrix<T> AMG<T>::select_coarse_rows (SpMatrix<T> const& P,
+SpMatrix<T> AlgMG<T>::select_coarse_rows (SpMatrix<T> const& P,
                                         Gpu::DeviceVector<int> const& state,
                                         Gpu::DeviceVector<Long> const& cidx,
                                         AlgPartition const& cpart)
@@ -1842,10 +2030,10 @@ SpMatrix<T> AMG<T>::select_coarse_rows (SpMatrix<T> const& P,
 }
 
 template <typename T>
-SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
+SpMatrix<T> AlgMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
                                      int max_elmts, T trunc_factor)
 {
-    BL_PROFILE("AMG::truncate_interp");
+    BL_PROFILE("AlgMG::truncate_interp");
 
     constexpr int KMAX = max_p_elmts; // rows of P are short
     AMREX_ALWAYS_ASSERT(max_elmts <= KMAX);
@@ -1932,14 +2120,14 @@ SpMatrix<T> AMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart,
 }
 
 template <typename T>
-SpMatrix<T> AMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
+SpMatrix<T> AlgMG<T>::build_interp_mm (SpMatrix<T>& A, SpMatrix<TS>& S,
                                      SpMatrix<TS> const& ST,
                                      Gpu::DeviceVector<int> const& state,
                                      Gpu::DeviceVector<Long> const& cidx,
                                      AlgPartition const& cpart, T sscale,
                                      bool plus_i, int const* row_state)
 {
-    BL_PROFILE("AMG::build_interp_mm");
+    BL_PROFILE("AlgMG::build_interp_mm");
 
     // W = -M_F B_F of Li, Sjögreen & Yang (2021), Eqs. (3.4)-(3.12). Both
     // factors keep the natural row numbering with unit C rows, so P is one

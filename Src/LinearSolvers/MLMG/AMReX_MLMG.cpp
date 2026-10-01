@@ -1,3 +1,4 @@
+#include <AMReX_AlgMG.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLALaplacian.H>
