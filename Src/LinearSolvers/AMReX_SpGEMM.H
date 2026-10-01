@@ -485,28 +485,38 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
 
 #ifdef AMREX_USE_GPU
 
-/**
- * Low-memory fallback: `f` multiplies blocks of A's rows by B one at a time,
- * and a block that runs out of memory is split in half.
- */
 template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
-                                 CsrView<T const,I> const& A, CsrView<T const,I> const& B,
-                                 CSR<T,V,I> (*f) (Long, Long, CsrView<T const,I> const&,
-                                                  CsrView<T const,I> const&))
+using SpGEMMLocalFn = CSR<T,V,I> (*) (Long, Long, CsrView<T const,I> const&,
+                                      CsrView<T const,I> const&);
+
+// Copies block Cb into rows [r0,r1) of C, starting at nonzero p.
+template <typename T, template<typename> class V, typename I>
+void spgemm_copy_block (CSR<T,V,I>& C, Long r0, Long r1, CSR<T,V,I> const& Cb, Long p)
 {
-    struct Chunk {
-        Long r0;
-        Long r1;
-        CSR<T,V,I> C;
-    };
-    Vector<Chunk> done;
+    auto* crow = C.row_offset.data() + r0;
+    auto const* src = Cb.row_offset.data();
+    auto const offset = I(p);
+    ParallelFor(r1 - r0 + 1, [=] AMREX_GPU_DEVICE (Long i) {
+        crow[i] = src[i] + offset;
+    });
+    Gpu::copyAsync(Gpu::deviceToDevice, Cb.col_index.begin(), Cb.col_index.end(),
+                   C.col_index.begin() + p);
+    Gpu::copyAsync(Gpu::deviceToDevice, Cb.mat.begin(), Cb.mat.end(),
+                   C.mat.begin() + p);
+}
 
-    // Row ranges to do, processed from the back so that `done` is in row order.
-    Vector<std::pair<Long,Long>> todo;
-    todo.emplace_back(nrows/2, nrows);
-    todo.emplace_back(0, nrows/2);
-
+// Multiplies row blocks A(r0:r1,:) * B by `f`, covering `blocks` in order.
+// A block that runs out of memory is split in half. Each block is copied
+// into C at nonzero p if C is given; p is advanced by its nonzeros.
+// Returns the blocks used.
+template <typename T, template<typename> class V, typename I>
+Vector<std::pair<Long,Long>>
+spgemm_blocks (Vector<std::pair<Long,Long>> const& blocks, Long ncols,
+               CsrView<T const,I> const& A, CsrView<T const,I> const& B,
+               SpGEMMLocalFn<T,V,I> f, CSR<T,V,I>* C, Long& p)
+{
+    Vector<std::pair<Long,Long>> done;
+    Vector<std::pair<Long,Long>> todo(blocks.rbegin(), blocks.rend()); // processed from the back
     while (!todo.empty()) {
         auto const [r0, r1] = todo.back();
         todo.pop_back();
@@ -521,44 +531,49 @@ CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
         Long const annz = Long(a[1]) - Long(a0);
 
         try {
+            CSR<T,V,I> Cb;
             if (annz == 0) {
-                done.push_back(Chunk{r0, r1, spgemm_empty<T,V,I>(n)});
+                Cb = spgemm_empty<T,V,I>(n);
             } else {
                 V<I> row(n+1);
                 auto* prow = row.data();
                 auto const* arow = A.row_offset + r0;
                 ParallelFor(n+1, [=] AMREX_GPU_DEVICE (Long i) { prow[i] = arow[i] - a0; });
                 CsrView<T const,I> Ab{A.mat + a0, A.col_index + a0, row.data(), annz, n};
-                done.push_back(Chunk{r0, r1, f(n, ncols, Ab, B)});
+                Cb = f(n, ncols, Ab, B);
             }
+            if (C) { spgemm_copy_block(*C, r0, r1, Cb, p); }
+            p += Cb.nnz;
         } catch (OutOfMemoryError const&) {
             if (n == 1) { throw; }
             todo.emplace_back(r0 + n/2, r1);
             todo.emplace_back(r0, r0 + n/2);
+            continue;
         }
+        done.emplace_back(r0, r1);
     }
+    return done;
+}
 
+/**
+ * Low-memory fallback: `f` multiplies blocks of A's rows by B one at a time.
+ * The first pass only counts the nonzeros; the second recomputes each block
+ * into the allocated C.
+ */
+template <typename T, template<typename> class V, typename I>
+CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
+                                 CsrView<T const,I> const& A, CsrView<T const,I> const& B,
+                                 SpGEMMLocalFn<T,V,I> f)
+{
     Long total = 0;
-    for (auto const& c : done) { total += c.C.nnz; }
+    auto const blocks = spgemm_blocks<T,V,I>({{0, nrows/2}, {nrows/2, nrows}}, ncols, A, B, f,
+                                             nullptr, total);
     AMREX_ALWAYS_ASSERT(total <= Long(std::numeric_limits<I>::max()));
 
     CSR<T,V,I> C;
     C.resize(nrows, total);
     Long p = 0;
-    for (auto& c : done) {
-        auto* crow = C.row_offset.data() + c.r0;
-        auto const* src = c.C.row_offset.data();
-        auto const offset = I(p);
-        ParallelFor(c.r1 - c.r0 + 1, [=] AMREX_GPU_DEVICE (Long i) {
-            crow[i] = src[i] + offset;
-        });
-        Gpu::copyAsync(Gpu::deviceToDevice, c.C.col_index.begin(), c.C.col_index.end(),
-                       C.col_index.begin() + p);
-        Gpu::copyAsync(Gpu::deviceToDevice, c.C.mat.begin(), c.C.mat.end(),
-                       C.mat.begin() + p);
-        p += c.C.nnz;
-        c.C = CSR<T,V,I>{}; // stream-ordered free
-    }
+    spgemm_blocks<T,V,I>(blocks, ncols, A, B, f, &C, p);
     Gpu::streamSynchronize();
 
     return C;
