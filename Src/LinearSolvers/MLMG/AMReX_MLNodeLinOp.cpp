@@ -542,20 +542,21 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
         m_dirichlet_mask[0].resize(new_size);
     }
 
+    int const amrlev = 0;
+    int const mglev = new_size-1;
+    if (mglev == 0) {
+        m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
+                                                          m_owner_mask_top->nComp());
+    } else {
+        m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
+                                             m_dmap[0][mglev],
+                                             m_geom[0][mglev]);
+    }
+
     if (m_masks_built)
     {
         const auto lobc = LoBC();
         const auto hibc = HiBC();
-        int amrlev = 0;
-        int mglev = new_size-1;
-        if (mglev == 0) {
-            m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
-                                                              m_owner_mask_top->nComp());
-        } else {
-            m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
-                                                 m_dmap[0][mglev],
-                                                 m_geom[0][mglev]);
-        }
         const Geometry& geom = m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask = MultiFab();

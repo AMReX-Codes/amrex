@@ -1470,6 +1470,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
 
+    linop.setPrintIndentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
@@ -1648,6 +1649,7 @@ template <typename MF>
 void
 MLMGT<MF>::prepareLinOp ()
 {
+    linop.setPrintIndentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
@@ -2120,7 +2122,7 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
     MLCGSolverT<MF> cg_solver(linop);
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
-    cg_solver.setPrintIdentation(print_ident);
+    cg_solver.setPrintIndentation(print_ident);
     cg_solver.setMaxIter(bottom_maxiter);
     cg_solver.setInitSolnZeroed(true);
     if (cf_strategy == CFStrategy::ghostnodes) { cg_solver.setNGhost(linop.getNGrow()); }

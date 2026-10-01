@@ -1,5 +1,5 @@
 //
-// Two checks on MLEBNodeFDLaplacian:
+// Three checks on MLEBNodeFDLaplacian:
 //
 //   * reusing an operator must not lose the EB Dirichlet values supplied by
 //     the callable setEBDirichlet;
@@ -7,11 +7,14 @@
 //     must reproduce the native bottom solver.  That solve does not coarsen,
 //     so the bottom solve does all of the work, which is the sharpest test of
 //     the matrix assembled by MLEBNodeFDLaplacian::fillIJMatrix.  This one
-//     needs hypre, so it is skipped when hypre is not available.
+//     needs hypre, so it is skipped when hypre is not available;
+//   * multigrid must stop coarsening before a level that can no longer see
+//     part of the EB, even when another part of the EB is still visible.
 //
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
+#include <AMReX_EB2_IF.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MLEBNodeFDLaplacian.H>
 #include <AMReX_MLMG.H>
@@ -217,6 +220,55 @@ void test_native_vs_hypre (Geometry const& geom, BoxArray const& grids,
 }
 #endif
 
+// A sphere covering one node at an odd column and a row of 2 mod 4 turns
+// into a blocked edge on MG level 1 and would be lost on level 2, while a
+// second sphere keeps level 2 in use.  The coarse correction diverges if
+// level 2 is used, so the operator must stop at 2 levels.  EB2 does not
+// coarsen here; the operator builds its own coarse EB data.
+void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
+                          DistributionMapping const& dmap,
+                          Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                          Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                          int n_cell, Real reltol, int verbose)
+{
+    // Smaller grids stop at 2 levels for lack of open nodes instead.
+    if (n_cell % 8 != 0 || n_cell < 32) {
+        amrex::Print() << "skipped: n_cell must be a multiple of 8 and at least 32\n";
+        return;
+    }
+
+    Real const dx = geom.CellSize(0);
+    EB2::SphereIF anchor(Real(2.5)*dx,
+                         {AMREX_D_DECL(Real(0.25), Real(0.25), Real(0.25))}, false);
+    EB2::SphereIF hidden(Real(0.5)*dx,
+                         {AMREX_D_DECL(Real(n_cell/2+1)*dx, Real(n_cell/2+2)*dx, // NOLINT(bugprone-integer-division)
+                                       Real(n_cell/2)*dx)}, false); // NOLINT(bugprone-integer-division)
+    EB2::Build(EB2::makeShop(EB2::makeUnion(anchor, hidden)), geom, 0, 0);
+    auto factory = makeEBFabFactory(geom, grids, dmap, {2,2,2}, EBSupport::full);
+    auto const& ebfactory = *static_cast<EBFArrayBoxFactory const*>(factory.get());
+
+    LPInfo info;
+    info.setMaxCoarseningLevel(30);
+    MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&ebfactory});
+    linop.setDomainBC(lobc, hibc);
+    linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+    linop.setEBDirichlet(Real(1.0));
+
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+    MultiFab rhs(nba, dmap, 1, 0);
+    rhs.setVal(Real(1.0));
+    MultiFab sol(nba, dmap, 1, 1);
+    sol.setVal(Real(0.0));
+
+    MLMG mlmg(linop);
+    mlmg.setVerbose(verbose);
+    mlmg.solve({&sol}, {&rhs}, reltol, Real(0.0));
+
+    amrex::Print() << "# of MG levels: " << linop.NMGLevels(0) << "\n";
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.NMGLevels(0) == 2,
+        "Coarsening did not stop before the level that hides an EB feature");
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -276,6 +328,9 @@ int main (int argc, char* argv[])
         test_native_vs_hypre(geom, grids, dmap, ebfactory,
                              lobc, hibc, reltol, verbose);
 #endif
+
+        amrex::Print() << "\n==== hidden EB feature ====\n";
+        test_hidden_feature(geom, grids, dmap, lobc, hibc, n_cell, reltol, verbose);
     }
     amrex::Finalize();
 }
