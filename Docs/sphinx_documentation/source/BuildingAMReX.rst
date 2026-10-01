@@ -72,7 +72,8 @@ list of important variables.
    | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
-   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE; FALSE with   |
+   |                 |                                     | HIP and OpenMP     |
    +-----------------+-------------------------------------+--------------------+
    | USE_LIBCXX      | If TRUE, add -stdlib=libc++ to      | none               |
    |                 | clang++'s CXXFLAGS.                 |                    |
@@ -511,7 +512,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES                     | YES, NO               |
+   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES; NO with HIP and    | YES, NO               |
+   |                              |                                                 | OpenMP                  |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
