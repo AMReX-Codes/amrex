@@ -2198,8 +2198,9 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | derivative implementations).                                          |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |                |
-|                            | describing how much free memory there is and what was requested.      |             |                |
+|                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |
+|                            | an error describing how much free memory there is and what was        |             |                |
+|                            | requested.                                                            |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0              |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+

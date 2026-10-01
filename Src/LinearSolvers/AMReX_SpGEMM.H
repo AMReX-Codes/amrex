@@ -126,6 +126,7 @@ inline void spgemm_cusparse_check (cusparseStatus_t status)
 {
     if (status == CUSPARSE_STATUS_ALLOC_FAILED ||
         status == CUSPARSE_STATUS_INSUFFICIENT_RESOURCES) {
+        (void)cudaGetLastError(); // clear a failed internal cudaMalloc
         throw OutOfMemoryError("SpGEMM: cuSPARSE ran out of memory");
     }
     AMREX_CUSPARSE_SAFE_CALL(status);
@@ -251,6 +252,7 @@ CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
 inline void spgemm_rocsparse_check (rocsparse_status status)
 {
     if (status == rocsparse_status_memory_error) {
+        (void)hipGetLastError(); // clear a failed internal hipMalloc
         throw OutOfMemoryError("SpGEMM: rocSPARSE ran out of memory");
     }
     AMREX_ROCSPARSE_SAFE_CALL(status);
