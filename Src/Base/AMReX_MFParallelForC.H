@@ -56,6 +56,30 @@ void ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect c
     }
 }
 
+template <FabArrayType MF, typename F>
+void ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F const& f)
+{
+    const Dim3 s = stride.dim3(1);
+    const Dim3 o = offset.dim3();
+    auto first = [] (int lo, int off, int st) { return lo + ((off-lo)%st + st) % st; };
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,MFItInfo().EnableTiling(FabArrayBase::mfiter_tile_size)); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        int const lidx = mfi.LocalIndex();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (        int k = first(lo.z,o.z,s.z); k <= hi.z; k += s.z) {
+            for (    int j = first(lo.y,o.y,s.y); j <= hi.y; j += s.y) {
+                for (int i = first(lo.x,o.x,s.x); i <= hi.x; i += s.x) {
+                    f(lidx,i,j,k);
+                }
+            }
+        }
+    }
+}
+
 }
 /// \endcond
 

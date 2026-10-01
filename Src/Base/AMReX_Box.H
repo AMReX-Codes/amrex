@@ -2550,6 +2550,20 @@ struct BoxIndexerND
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::uint64_t numPts () const { return npts; }
+    //! Return the length of the indexed box in each direction.
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<dim> length () const
+    {
+        IntVectND<dim> len(0);
+        if (npts == 0) { return len; }
+        std::uint64_t mult = 1;
+        for (int i = 0; i < dim-1; ++i) {
+            len[i] = int(fdm[i].divisor / mult);
+            mult = fdm[i].divisor;
+        }
+        len[dim-1] = int(npts / mult);
+        return len;
+    }
 };
 
 /**
@@ -2603,6 +2617,9 @@ struct BoxIndexerND<1>
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::uint64_t numPts () const { return npts; }
+    //! Return the length of the indexed box.
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<1> length () const { return IntVectND<1>{int(npts)}; }
 };
 
 using BoxIndexer = BoxIndexerND<AMREX_SPACEDIM>;

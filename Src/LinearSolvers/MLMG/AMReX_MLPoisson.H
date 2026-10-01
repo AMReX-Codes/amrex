@@ -496,7 +496,9 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+    // Gauss-Seidel uses a fused launch over the cells of one color.
+    if (Gpu::inLaunchRegion()
+        && (this->m_use_gauss_seidel || sol.isFusingCandidate())
         && ! this->hasHiddenDimension())
     {
         const auto& m0ma = mm0.const_arrays();
@@ -530,7 +532,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
             AMREX_ASSERT(!this->m_has_metric_term);
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                detail::ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);
@@ -574,7 +576,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #if (AMREX_SPACEDIM < 3)
         else if (this->m_has_metric_term) {
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                detail::ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);
@@ -610,7 +612,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
         else {
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                detail::ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);

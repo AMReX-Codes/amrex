@@ -138,6 +138,93 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool d
     ParallelFor_doit<MT>(mf, nghost, 1, ts, dynamic, std::forward<F>(f));
 }
 
+template <int MT, FabArrayType MF, typename F>
+void
+ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F const& f)
+{
+    const auto& index_array = mf.IndexArray();
+    const int nboxes = index_array.size();
+    if (nboxes == 0) { return; }
+
+    // Upper bound on the number of strided points in a local box
+    Long npts_max = 0;
+    for (int K : index_array) {
+        Box const& b = mf.box(K);
+        if (b.ok()) {
+            Long n = 1;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                n *= (b.length(idim) + stride[idim] - 1) / stride[idim];
+            }
+            npts_max = std::max(npts_max, n);
+        }
+    }
+    if (npts_max == 0) { return; }
+
+    // The boxes of the valid region are cached with the FabArray.
+    auto const& parforinfo = mf.getParForInfo(IntVect(0));
+    const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+    const auto nblocks_per_box = int((npts_max + MT - 1) / MT);
+    AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
+    const int nblocks = nblocks_per_box * nboxes;
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    amrex::launch_global<MT>
+        <<<nblocks, MT, 0, Gpu::gpuStream()>>>
+        ([=] AMREX_GPU_DEVICE () noexcept
+         {
+             int ibox = int(blockIdx.x) / nblocks_per_box;
+             auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+
+#elif defined(AMREX_USE_SYCL)
+
+    amrex::launch<MT>(nblocks, Gpu::gpuStream(),
+         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+         {
+             int blockIdxx = item.get_group_linear_id();
+             int threadIdxx = item.get_local_linear_id();
+             int ibox = int(blockIdxx) / nblocks_per_box;
+             auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
+#endif
+             BoxIndexer const& indexer = dp_boxes[ibox];
+             if (indexer.numPts() == 0) { return; }
+             const IntVect lo = indexer.intVect(0);
+             const IntVect len = indexer.length();
+             IntVect first, n;
+             std::uint64_t npts = 1;
+             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                 const int s = stride[idim];
+                 first[idim] = lo[idim] + ((offset[idim]-lo[idim])%s + s) % s;
+                 n[idim] = amrex::max(0, (lo[idim] + len[idim] - first[idim] + s - 1) / s);
+                 npts *= std::uint64_t(n[idim]);
+             }
+             if (icell < npts) {
+                 IntVect iv = first;
+                 for (int idim = 0; idim < AMREX_SPACEDIM-1; ++idim) {
+                     const auto q = icell / std::uint64_t(n[idim]);
+                     iv[idim] += int(icell - q*std::uint64_t(n[idim])) * stride[idim];
+                     icell = q;
+                 }
+                 iv[AMREX_SPACEDIM-1] += int(icell) * stride[AMREX_SPACEDIM-1];
+                 auto const d3 = iv.dim3();
+                 f(ibox, d3.x, d3.y, d3.z);
+             }
+         });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <FabArrayType MF, typename F>
+void
+ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F&& f)
+{
+#ifdef AMREX_USE_CUDA
+    constexpr int MT = 128;
+#else
+    constexpr int MT = AMREX_GPU_MAX_THREADS;
+#endif
+    ParallelForStrided_doit<MT>(mf, stride, offset, std::forward<F>(f));
+}
+
 }
 /// \endcond
 
