@@ -533,13 +533,10 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
       {
           int jj = j - 1;
           int ii;
-
-          // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
-          //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
           if (std::abs(fcy(i,j,k)) > small_ctr) {
               ii = (fcy(i,j,k) < 0.0_rt) ? i - 1 : i + 1;
           } else {
-              // We must add an additional test to avoid the case where fcx is very close to zero,
+              // We must add an additional test to avoid the case where fcy is very close to zero,
               //     but the cells at (i-1) or (i+1) might be covered or very small cells
               Real min_vol_lo = std::min(cvol(i-1,j,k),cvol(i-1,jj,k));
               Real min_vol_hi = std::min(cvol(i+1,j,k),cvol(i+1,jj,k));
@@ -555,8 +552,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real a0    = d1 / (d0 + d1);                                         // coefficient of phi(i,j  ,k,n)
           Real a1    = d0 / (d0 + d1);                                         // coefficient of phi(i,j-1,k,n)
 
-          Real a0_ii = d1_ii / (d0_ii + d1_ii);                                // coefficient of phi(i  ,jj,k,n)
-          Real a1_ii = d0_ii / (d0_ii + d1_ii);                                // coefficient of phi(i-1,jj,k,n)
+          Real a0_ii = d1_ii / (d0_ii + d1_ii);                                // coefficient of phi(ii,j  ,k,n)
+          Real a1_ii = d0_ii / (d0_ii + d1_ii);                                // coefficient of phi(ii,j-1,k,n)
 
           Real phi01    = a0    *   phi( i,j,k,n)  + a1    *   phi( i,jj,k,n); // interpolation of phi   in y-direction
           Real x01      = a0    * ccent( i,j,k,0)  + a1    * ccent( i,jj,k,0); // interpolation of x-loc in y-direction
