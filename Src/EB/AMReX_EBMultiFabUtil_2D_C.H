@@ -453,6 +453,19 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               jj = (min_vol_lo > min_vol_hi) ? j - 1 : j + 1;
           }
 
+          // Avoid a row jj with a covered cell, as the 3D version does
+          if (cvol(i,jj,k) * cvol(ii,jj,k) == Real(0.)) {
+              int jalt = 2*j - jj;
+              if (cvol(i,jalt,k) * cvol(ii,jalt,k) > Real(0.)) {
+                  jj = jalt;
+              } else { // no usable row: interpolate in x only
+                  Real d0 = 0.5_rt + ccent( i,j,k,0);
+                  Real d1 = 0.5_rt - ccent(ii,j,k,0);
+                  edg_x(i,j,k,n) = (d1*phi(i,j,k,n) + d0*phi(ii,j,k,n)) / (d0 + d1);
+                  return;
+              }
+          }
+
           Real d0    = 0.5_rt + ccent( i,j,k,0);                                 // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1    = 0.5_rt - ccent(ii,j,k,0);                                 // distance in x-dir from centroid(i-1,j) to face(i,j)
 
@@ -542,6 +555,19 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               Real min_vol_lo = std::min(cvol(i-1,j,k),cvol(i-1,jj,k));
               Real min_vol_hi = std::min(cvol(i+1,j,k),cvol(i+1,jj,k));
               ii = (min_vol_lo > min_vol_hi) ? i - 1 : i + 1;
+          }
+
+          // Avoid a column ii with a covered cell, as the 3D version does
+          if (cvol(ii,j,k) * cvol(ii,jj,k) == Real(0.)) {
+              int ialt = 2*i - ii;
+              if (cvol(ialt,j,k) * cvol(ialt,jj,k) > Real(0.)) {
+                  ii = ialt;
+              } else { // no usable column: interpolate in y only
+                  Real d0 = 0.5_rt + ccent(i, j,k,1);
+                  Real d1 = 0.5_rt - ccent(i,jj,k,1);
+                  edg_y(i,j,k,n) = (d1*phi(i,j,k,n) + d0*phi(i,jj,k,n)) / (d0 + d1);
+                  return;
+              }
           }
 
           Real d0    = 0.5_rt + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
