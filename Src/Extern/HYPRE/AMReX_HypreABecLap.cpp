@@ -195,7 +195,6 @@ HypreABecLap::prepareSolver ()
     Array<HYPRE_Int,regular_stencil_size> stencil_indices;
     std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
     const auto dx = geom.CellSizeArray();
-    const int bho = (m_maxorder > 2) ? 1 : 0;
     BaseFab<GpuArray<Real,regular_stencil_size> > rfab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -221,6 +220,7 @@ HypreABecLap::prepareSolver ()
 
         Real sa = scalar_a;
         Real sb = scalar_b;
+        int const mo = m_maxorder;
         const auto boxlo = amrex::lbound(reg);
         const auto boxhi = amrex::ubound(reg);
 
@@ -229,7 +229,7 @@ HypreABecLap::prepareSolver ()
                                    int i, int j, int k)
         {
             habec_mat(sten, i, j, k, boxlo, boxhi, sa, afab, sb, dx, bfabs,
-                      bctype, bcl, bho, msk);
+                      bctype, bcl, mo, msk);
         });
 
         Real* mat = (Real*) rfab.dataPtr();

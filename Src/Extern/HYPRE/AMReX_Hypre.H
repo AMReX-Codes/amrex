@@ -114,7 +114,7 @@ public:
      * \param abs_tol          Absolute convergence tolerance.
      * \param max_iter         Maximum iterations allowed.
      * \param bndry            Boundary condition data.
-     * \param max_bndry_order  Maximum order at the boundary.
+     * \param max_bndry_order  Maximum order at the boundary (2 to 4 with the IJ interface, else 2 or 3).
      */
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                         int max_iter, const BndryData& bndry, int max_bndry_order) = 0;

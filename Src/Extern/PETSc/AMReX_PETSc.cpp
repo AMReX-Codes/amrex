@@ -408,7 +408,6 @@ PETScABecLap::prepareSolver ()
 
     // A.SetValues
     const auto dx = geom.CellSizeArray();
-    const int bho = (m_maxorder > 2) ? 1 : 0;
     BaseFab<PetscInt> ncols_fab;
 
     BaseFab<Real> mat_aos_fab, mat_vec_fab;
@@ -427,8 +426,8 @@ PETScABecLap::prepareSolver ()
         {
             ncols_fab.resize(bx);
 
-            const PetscInt max_stencil_size = (fabtyp == FabType::regular) ?
-                regular_stencil_size : eb_stencil_size;
+            const PetscInt max_stencil_size = (fabtyp != FabType::regular) ? eb_stencil_size
+                : (m_maxorder > 3) ? regular_stencil_size+AMREX_SPACEDIM : regular_stencil_size;
 
             mat_aos_fab.resize(bx,max_stencil_size);
             cols_aos_fab.resize(bx,max_stencil_size);
@@ -455,28 +454,16 @@ PETScABecLap::prepareSolver ()
 
             if (fabtyp == FabType::regular)
             {
-                constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
-                BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
-                    (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());
-
-                amrex::fill(tmpmatfab,
-                [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
-                                           int i, int j, int k)
-                {
-                    habec_ijmat(sten, ncols_a, i, j, k, cid_a,
-                                sa, afab, sb, dx, bfabs, bctype, bcl, bho,
-                                Array4<int const>());
-                });
-
-                BaseFab<GpuArray<PetscInt,stencil_size> > tmpcolfab
-                    (bx, 1, (GpuArray<PetscInt,stencil_size>*)cols_aos_fab.dataPtr());
-
-                amrex::fill(tmpcolfab,
-                [=] AMREX_GPU_HOST_DEVICE (GpuArray<PetscInt,stencil_size>& sten,
-                                           int i, int j, int k)
-                {
-                    habec_cols(sten, i, j, k, cid_a);
-                });
+                constexpr int NR = 2*AMREX_SPACEDIM+1;
+                if (m_maxorder > 3) {
+                    habec_ij_fill<NR+AMREX_SPACEDIM>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                                          ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
+                                          m_maxorder, Array4<int const>(), false);
+                } else {
+                    habec_ij_fill<NR>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                                      ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
+                                      m_maxorder, Array4<int const>(), false);
+                }
             }
 #ifdef AMREX_USE_EB
             else
@@ -494,6 +481,8 @@ PETScABecLap::prepareSolver ()
                 Array4<Real const> beb = (m_eb_b_coeffs) ? m_eb_b_coeffs->const_array(mfi)
                                                          : Array4<Real const>();
 
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_maxorder <= 3, "PETScABecLap: EB supports maxorder <= 3");
+                const int bho = (m_maxorder > 2) ? 1 : 0;
                 constexpr int stencil_size = AMREX_D_TERM(3,*3,*3);
                 BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
                     (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());
@@ -502,7 +491,7 @@ PETScABecLap::prepareSolver ()
                 [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
                                            int i, int j, int k)
                 {
-                    habec_ijmat_eb(sten, ncols_a, i, j, k, cid_a,
+                    habec_ijmat_eb(sten, ncols_a, i, j, k, bx, cid_a,
                                    sa, afab, sb, dx, bfabs, bctype, bcl, bho,
                                    flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
                                    AMREX_D_DECL(fcx,fcy,fcz),barea_a,bcent_a,beb);

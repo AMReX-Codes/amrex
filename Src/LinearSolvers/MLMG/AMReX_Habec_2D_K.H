@@ -18,9 +18,10 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
                 Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                 GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
                 GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
-                GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int bho,
+                GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int maxorder,
                 GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& msk)
 {
+    maxorder = amrex::min(maxorder,3); // the structured stencil has room for order 3
     sten[1] = -(sb / (dx[0]*dx[0])) * b[0](i,j,k);
     sten[2] = -(sb / (dx[0]*dx[0])) * b[0](i+1,j,k);
     sten[3] = -(sb / (dx[1]*dx[1])) * b[1](i,j,k);
@@ -34,8 +35,9 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     if (i == boxlo.x) {
         int cdir = Orientation(Direction::x, Orientation::low);
         if (msk[cdir](i-1,j,k) > 0) {
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[0], bctype[cdir], bcl[cdir],
+                            amrex::min(boxhi.x-boxlo.x+2, maxorder));
             sten[0] += bf1 * b[0](i,j,k);
             sten[1] = Real(0.0);
             sten[2] += bf2 * b[0](i,j,k);
@@ -46,8 +48,9 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     if (i == boxhi.x) {
         int cdir = Orientation(Direction::x, Orientation::high);
         if (msk[cdir](i+1,j,k) > 0) {
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[0], bctype[cdir], bcl[cdir],
+                            amrex::min(boxhi.x-boxlo.x+2, maxorder));
             sten[0] += bf1 * b[0](i+1,j,k);
             sten[1] += bf2 * b[0](i+1,j,k);
             sten[2] = Real(0.0);
@@ -58,8 +61,9 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     if (j == boxlo.y) {
         int cdir = Orientation(Direction::y, Orientation::low);
         if (msk[cdir](i,j-1,k) > 0) {
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[1], bctype[cdir], bcl[cdir],
+                            amrex::min(boxhi.y-boxlo.y+2, maxorder));
             sten[0] += bf1 * b[1](i,j,k);
             sten[3] = Real(0.0);
             sten[4] += bf2 * b[1](i,j,k);
@@ -70,8 +74,9 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     if (j == boxhi.y) {
         int cdir = Orientation(Direction::y, Orientation::high);
         if (msk[cdir](i,j+1,k) > 0) {
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[1], bctype[cdir], bcl[cdir],
+                            amrex::min(boxhi.y-boxlo.y+2, maxorder));
             sten[0] += bf1 * b[1](i,j+1,k);
             sten[3] += bf2 * b[1](i,j+1,k);
             sten[4] = Real(0.0);
@@ -79,18 +84,27 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     }
 }
 
-template <typename AlgInt>
+// NS is 2*AMREX_SPACEDIM+1, or 3*AMREX_SPACEDIM+1 for maxorder 4, whose extra
+// entry per direction couples to the cell two away from the boundary.
+template <typename AlgInt, unsigned int NS>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<AlgInt> const& ncols,
-                  int i, int j, int k,
+void habec_ijmat (GpuArray<Real,NS>& sten, Array4<AlgInt> const& ncols,
+                  int i, int j, int k, Box const& vbx,
                   Array4<AlgInt const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
                   GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
-                  GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int bho,
+                  GpuArray<Real,AMREX_SPACEDIM*2> const& bcl, int maxorder,
                   Array4<int const> const& osm)
 {
+    constexpr unsigned int NR = 2*AMREX_SPACEDIM+1;
+    static_assert(NS == NR || NS == NR+AMREX_SPACEDIM);
+    int const mo = (NS > NR) ? maxorder : amrex::min(maxorder,3);
+    for (unsigned int m = NR; m < NS; ++m) {
+        sten[m] = Real(0.0);
+    }
+
     if (!osm || osm(i,j,k) != 0) {
         sten[1] = -(sb / (dx[0]*dx[0])) * b[0](i,j,k);
         sten[2] = -(sb / (dx[0]*dx[0])) * b[0](i+1,j,k);
@@ -104,58 +118,66 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<AlgInt> const&
         // xlo
         if (cell_id(i-1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::low);
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[0], bctype[cdir], bcl[cdir],
+                            amrex::min(vbx.length(0)+1, mo));
             sten[0] += bf1 * b[0](i,j,k);
             sten[1] = Real(0.0);
             sten[2] += bf2 * b[0](i,j,k);
+            if constexpr (NS > NR) { sten[NR+0] += bf3 * b[0](i,j,k); }
         }
 
         // xhi
         if (cell_id(i+1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::high);
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[0], bctype[cdir], bcl[cdir],
+                            amrex::min(vbx.length(0)+1, mo));
             sten[0] += bf1 * b[0](i+1,j,k);
             sten[1] += bf2 * b[0](i+1,j,k);
             sten[2] = Real(0.0);
+            if constexpr (NS > NR) { sten[NR+0] += bf3 * b[0](i+1,j,k); }
         }
 
         // ylo
         if (cell_id(i,j-1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::low);
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[1], bctype[cdir], bcl[cdir],
+                            amrex::min(vbx.length(1)+1, mo));
             sten[0] += bf1 * b[1](i,j,k);
             sten[3] = Real(0.0);
             sten[4] += bf2 * b[1](i,j,k);
+            if constexpr (NS > NR) { sten[NR+1] += bf3 * b[1](i,j,k); }
         }
 
         // yhi
         if (cell_id(i,j+1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::high);
-            Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            Real bf1, bf2, bf3;
+            detail::comp_bf(bf1, bf2, bf3, sb, dx[1], bctype[cdir], bcl[cdir],
+                            amrex::min(vbx.length(1)+1, mo));
             sten[0] += bf1 * b[1](i,j+1,k);
             sten[3] += bf2 * b[1](i,j+1,k);
             sten[4] = Real(0.0);
+            if constexpr (NS > NR) { sten[NR+1] += bf3 * b[1](i,j+1,k); }
         }
     } else {
         sten[0] = Real(1.0);
-        for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
+        for (unsigned int m = 1; m < NS; ++m) {
             sten[m] = Real(0.0);
         }
     }
 
     ncols(i,j,k) = 0;
-    for (int m = 0; m < 2*AMREX_SPACEDIM+1; ++m) {
+    for (unsigned int m = 0; m < NS; ++m) {
         ncols(i,j,k) += (sten[m] != Real(0.0));
     }
 }
 
-template <typename AlgInt>
+template <typename AlgInt, unsigned int NS>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_cols (GpuArray<AlgInt,2*AMREX_SPACEDIM+1>& sten, int i, int j, int /*k*/,
+void habec_cols (GpuArray<AlgInt,NS>& sten, int i, int j, int /*k*/, Box const& vbx,
                  Array4<AlgInt const> const& cell_id)
 {
     sten[0] = cell_id(i  ,j  ,0);
@@ -163,6 +185,15 @@ void habec_cols (GpuArray<AlgInt,2*AMREX_SPACEDIM+1>& sten, int i, int j, int /*
     sten[2] = cell_id(i+1,j  ,0);
     sten[3] = cell_id(i  ,j-1,0);
     sten[4] = cell_id(i  ,j+1,0);
+    constexpr unsigned int NR = 2*AMREX_SPACEDIM+1;
+    if constexpr (NS > NR) { // second neighbor, away from a boundary
+        sten[NR+0] = (cell_id(i-1,j,0) < 0 && i+2 <= vbx.bigEnd(0)) ? cell_id(i+2,j,0)
+                   : (cell_id(i+1,j,0) < 0 && i-2 >= vbx.smallEnd(0)) ? cell_id(i-2,j,0)
+                   : AlgInt(-1);
+        sten[NR+1] = (cell_id(i,j-1,0) < 0 && j+2 <= vbx.bigEnd(1)) ? cell_id(i,j+2,0)
+                   : (cell_id(i,j+1,0) < 0 && j-2 >= vbx.smallEnd(1)) ? cell_id(i,j-2,0)
+                   : AlgInt(-1);
+    }
 }
 
 #ifdef AMREX_USE_EB
@@ -187,6 +218,7 @@ template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
                      int i, int j, int k,
+                     Box const& vbx,
                      Array4<AlgInt const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -203,6 +235,11 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
+    // As in the operator, a box one cell wide gets second order in that direction.
+    int const bho_d[AMREX_SPACEDIM] = {
+        AMREX_D_DECL((vbx.length(0) > 1) ? bho : 0,
+                     (vbx.length(1) > 1) ? bho : 0,
+                     (vbx.length(2) > 1) ? bho : 0)};
     for (int m = 0; m < 9; ++m) {
         sten[m] = Real(0.0);
     }
@@ -223,7 +260,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i-1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::low);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
             mat_tmp(0,0) += bf1*b[0](i,j,k);
             mat_tmp(-1,0) = Real(0.0);
             mat_tmp(1,0) += bf2*b[0](i,j,k);
@@ -232,7 +269,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i+1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::high);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
             mat_tmp(0,0) += bf1*b[0](i+1,j,k);
             mat_tmp(1,0) = Real(0.0);
             mat_tmp(-1,0) += bf2*b[0](i+1,j,k);
@@ -241,7 +278,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i,j-1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::low);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
             mat_tmp(0,0) += bf1*b[1](i,j,k);
             mat_tmp(0,-1) = Real(0.0);
             mat_tmp(0,1) += bf2*b[1](i,j,k);
@@ -250,7 +287,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i,j+1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::high);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
             mat_tmp(0,0) += bf1*b[1](i,j+1,k);
             mat_tmp(0,1) = Real(0.0);
             mat_tmp(0,-1) += bf2*b[1](i,j+1,k);
@@ -286,7 +323,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
 
             Real tmp = (Real(1.0)-fracy)*area*b[0](i,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -340,7 +377,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
 
             Real tmp = (Real(1.0)-fracy)*area*b[0](i+1,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -394,7 +431,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
 
             Real tmp = (Real(1.0)-fracx)*area*b[1](i,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -448,7 +485,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
 
             Real tmp = (Real(1.0)-fracx)*area*b[1](i,j+1,k);
             // A cut face along the normal limits the boundary stencil to second order.
