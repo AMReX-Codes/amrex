@@ -153,9 +153,10 @@ With CUDA, ``GPU_MIN_BLOCKS=B`` (``-DAMReX_GPU_MIN_BLOCKS=B`` in CMake) limits
 the registers per thread in AMReX kernels so that ``B`` blocks of
 ``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor. A larger ``B``
 gives higher occupancy, which can speed up register-heavy kernels, but fewer
-registers per thread, which can cause register spilling. Keep ``B`` times ``GPU_MAX_THREADS`` within the GPU's limit of
-resident threads per multiprocessor, or the setting has no effect. Note that
-``CUDA_MAXREGCOUNT`` has no effect on most AMReX kernels.
+registers per thread, which can cause register spilling. Keep ``B`` times
+``GPU_MAX_THREADS`` within the GPU's limit of resident threads per
+multiprocessor, or the setting has no effect. Note that ``CUDA_MAXREGCOUNT``
+has no effect on most AMReX kernels.
 
 You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
 to test your programming environment.  For example, building with:
