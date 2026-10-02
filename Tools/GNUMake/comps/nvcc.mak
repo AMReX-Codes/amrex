@@ -99,12 +99,6 @@ else
 endif
 
 NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
-# Register cap enforced through launch bounds. Here its proposed to use GPU_MIN_BLOCKS=B so that it makes
-# AMREX_LAUNCH_KERNEL use launch_global<MT,B> i.e. __launch_bounds__(MT,B),
-# forcing ptxas to cap registers at 65536/(GPU_MAX_THREADS*B) per thread.
-ifdef GPU_MIN_BLOCKS
-  NVCC_FLAGS += -DAMREX_GPU_MIN_BLOCKS=$(GPU_MIN_BLOCKS)
-endif
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
 # and another bug related to implicit returns with if constexpr, see: https://stackoverflow.com/questions/64523302/cuda-missing-return-statement-at-end-of-non-void-function-in-constexpr-if-fun

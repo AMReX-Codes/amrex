@@ -149,6 +149,14 @@ For example, ``COMP=pgi`` alone will compile C/C++ codes with NVCC/GCC
 and Fortran codes with PGI, and link with PGI.  Using ``COMP=pgi`` and
 ``NVCC_HOST_COMP=pgi`` will compile C/C++ codes with PGI and NVCC/PGI.
 
+With CUDA, ``GPU_MIN_BLOCKS=B`` (``-DAMReX_GPU_MIN_BLOCKS=B`` in CMake) limits
+the registers per thread in AMReX kernels so that ``B`` blocks of
+``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor. Higher occupancy
+can speed up register-heavy kernels, but too low a limit causes register
+spilling. Keep ``B`` times ``GPU_MAX_THREADS`` within the GPU's limit of
+resident threads per multiprocessor, or the setting has no effect. Note that
+``CUDA_MAXREGCOUNT`` has no effect on most AMReX kernels.
+
 You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
 to test your programming environment.  For example, building with:
 
@@ -265,7 +273,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_GPU_MIN_BLOCKS         |  Min blocks per SM in __launch_bounds__         | None        | User-defined    |
+   | AMReX_GPU_MIN_BLOCKS         |  Min resident blocks per SM (see below)         | None        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_PTX_VERBOSE       |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+

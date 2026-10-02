@@ -85,6 +85,16 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
    set_mininum_compiler_version(CUDA NVIDIA 12.2)
    check_cuda_host_compiler()
 
+   # With AMReX_GPU_MIN_BLOCKS, non-inlined device functions must fit in the
+   # kernels' register cap: 64K registers per SM / (GPU_MAX_THREADS*B), rounded down to 8.
+   set(_maxrregcount ${AMReX_CUDA_MAXREGCOUNT})
+   if (AMReX_GPU_MIN_BLOCKS)
+      math(EXPR _regs "65536 / (${AMReX_GPU_MAX_THREADS} * ${AMReX_GPU_MIN_BLOCKS}) / 8 * 8")
+      if (_regs LESS _maxrregcount)
+         set(_maxrregcount ${_regs})
+      endif ()
+   endif ()
+
    # Required CUDA flags
    set(_genex "$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>")
    foreach(D IN LISTS AMReX_SPACEDIM)
@@ -94,7 +104,7 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
           --expt-relaxed-constexpr --expt-extended-lambda
           "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
           "SHELL:-Xcudafe --diag_suppress=implicit_return_from_non_void_function"
-          -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
+          -maxrregcount=${_maxrregcount}
           "SHELL:-Xcudafe --display_error_number"
           $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
           )

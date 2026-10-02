@@ -851,6 +851,14 @@ else ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_USE_CUDA
 
+    ifdef GPU_MIN_BLOCKS
+      DEFINES += -DAMREX_GPU_MIN_BLOCKS=$(GPU_MIN_BLOCKS)
+      # Non-inlined device functions must fit in the kernels' register cap:
+      # 64K registers per SM / (GPU_MAX_THREADS*B), rounded down to 8.
+      override CUDA_MAXREGCOUNT := $(shell r=$$((65536/($(GPU_MAX_THREADS)*$(GPU_MIN_BLOCKS))/8*8)); \
+                                  if [ $$r -lt $(CUDA_MAXREGCOUNT) ]; then echo $$r; else echo $(CUDA_MAXREGCOUNT); fi)
+    endif
+
     GPUSuffix := .CUDA
 
 else

@@ -210,8 +210,11 @@ set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
 message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
 
 set(AMReX_GPU_MIN_BLOCKS "" CACHE STRING
-   "Minimum number of resident blocks per SM in __launch_bounds__ (empty: not set)" )
+   "Limit registers per thread so that this many blocks fit on an SM (empty: no limit)" )
 if (AMReX_GPU_MIN_BLOCKS)
+   if (NOT AMReX_GPU_MIN_BLOCKS MATCHES "^[1-9][0-9]*$")
+      message(FATAL_ERROR "AMReX_GPU_MIN_BLOCKS must be a positive integer")
+   endif ()
    message( STATUS "   AMReX_GPU_MIN_BLOCKS = ${AMReX_GPU_MIN_BLOCKS}")
 endif ()
 # this warns on a typical user bug when developing on (forgiving) Power9 machines (e.g. Summit)

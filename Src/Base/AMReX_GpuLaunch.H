@@ -34,16 +34,8 @@
 #define AMREX_GPU_Z_STRIDE 1
 
 #ifdef AMREX_USE_CUDA
-// If AMREX_GPU_MIN_BLOCKS is defined, use launch_global<MT, AMREX_GPU_MIN_BLOCKS>, i.e.
-// __launch_bounds__(MT, AMREX_GPU_MIN_BLOCKS), so that ptxas caps registers at
-// 65536/(MT*AMREX_GPU_MIN_BLOCKS) per thread (-maxrregcount is ignored with launch bounds).
-#  ifdef AMREX_GPU_MIN_BLOCKS
-#    define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
-        amrex::launch_global<MT, AMREX_GPU_MIN_BLOCKS><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
-#  else
-#    define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
-#  endif
 #  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
