@@ -1243,10 +1243,12 @@ RAP (SpMatrix<T,Allocator> const& R, SpMatrix<T,Allocator> const& A,
         }
     };
     auto map_p1 = [&] (Vector<Long> const& cols) {
-        p1map.resize(Pm.m_remote_cols_v.size());
-        for (Long j = 0; j < Long(p1map.size()); ++j) {
-            p1map[j] = int(nc + (std::lower_bound(cols.begin(), cols.end(),
-                                                  Pm.m_remote_cols_v[j]) - cols.begin()));
+        // Built with push_back: gcc < 15 -Wnull-dereference false positive in resize.
+        p1map.clear();
+        p1map.reserve(Pm.m_remote_cols_v.size());
+        for (auto const g : Pm.m_remote_cols_v) {
+            p1map.push_back(int(nc + (std::lower_bound(cols.begin(), cols.end(), g)
+                                      - cols.begin())));
         }
         ap.p1map = p1map.data();
     };
