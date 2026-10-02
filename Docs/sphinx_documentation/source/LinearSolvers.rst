@@ -1208,7 +1208,9 @@ V-cycles. The setup selects coarse points with PMIS coarsening
 builds the interpolation :math:`P`, and forms the coarse operator
 :math:`A_c = P^T A P`. By default, the interpolation is extended+i
 [DeSterck2008]_ [Li2021]_, the smoother is Chebyshev [Adams2003]_, and the
-coarsest level is solved directly.
+coarsest level is solved directly. The coarse point selection is
+deterministic: the same matrix on the same ranks always gives the same
+hierarchy.
 
 .. highlight:: c++
 

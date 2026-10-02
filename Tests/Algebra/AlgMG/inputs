@@ -23,7 +23,6 @@ variations = 1  # 0: run only the options given here
 #   interp, coarsening, truncation, singular, krylov, smoother
 max_iter = 200
 # reltol = 1.e-10 # 1.e-5 in single precision
-# seed = 1        # seed of the random coarse point selection
 # repeat = 1      # run each case this many times
 mlmg = 1          # also solve with MLMG; 0 to skip
 mlmg_types = geometric hybrid   # MLMG multigrid types: geometric, algebraic, hybrid
