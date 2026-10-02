@@ -104,7 +104,9 @@ namespace amrex {
  * then needs one ghost cell.
  */
 template <unsigned int NS, typename AlgInt>
-void habec_ij_fill (Box const& bx, Real* mat, AlgInt* cols, Array4<AlgInt> const& ncols,
+void habec_ij_fill (Box const& bx,
+                    Real* mat, // NOLINT(readability-non-const-parameter)
+                    AlgInt* cols, Array4<AlgInt> const& ncols,
                     Array4<AlgInt const> const& cell_id,
                     Real sa, Array4<Real const> const& a,
                     Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -127,13 +129,13 @@ void habec_ij_fill (Box const& bx, Real* mat, AlgInt* cols, Array4<AlgInt> const
                          if (osm(i,j,k-1) == 0) { sten[5] = Real(0.0); }
                          if (osm(i,j,k+1) == 0) { sten[6] = Real(0.0); })
             constexpr unsigned int NR = 2*AMREX_SPACEDIM+1;
-            if constexpr (NS > NR) { // nonzero only inside bx
-                AMREX_D_TERM(if (sten[NR+0] != Real(0.0) && osm(i-2,j,k) == 0) { sten[NR+0] = Real(0.0); }
-                             if (sten[NR+1] != Real(0.0) && osm(i+2,j,k) == 0) { sten[NR+1] = Real(0.0); },
-                             if (sten[NR+2] != Real(0.0) && osm(i,j-2,k) == 0) { sten[NR+2] = Real(0.0); }
-                             if (sten[NR+3] != Real(0.0) && osm(i,j+2,k) == 0) { sten[NR+3] = Real(0.0); },
-                             if (sten[NR+4] != Real(0.0) && osm(i,j,k-2) == 0) { sten[NR+4] = Real(0.0); }
-                             if (sten[NR+5] != Real(0.0) && osm(i,j,k+2) == 0) { sten[NR+5] = Real(0.0); })
+            if constexpr (NS > NR) { // nonzero only inside bx, away from the boundary
+                AMREX_D_TERM(int const sx = (cell_id(i-1,j,k) < 0) ? 2 : -2;
+                             if (sten[NR+0] != Real(0.0) && osm(i+sx,j,k) == 0) { sten[NR+0] = Real(0.0); },
+                             int const sy = (cell_id(i,j-1,k) < 0) ? 2 : -2;
+                             if (sten[NR+1] != Real(0.0) && osm(i,j+sy,k) == 0) { sten[NR+1] = Real(0.0); },
+                             int const sz = (cell_id(i,j,k-1) < 0) ? 2 : -2;
+                             if (sten[NR+2] != Real(0.0) && osm(i,j,k+sz) == 0) { sten[NR+2] = Real(0.0); })
             }
         }
     });

@@ -339,7 +339,7 @@ HypreABecLap3::prepareSolver ()
 
             int max_stencil_size;
             if  (fabtyp == FabType::regular) {
-                max_stencil_size = (m_maxorder > 3) ? 4*AMREX_SPACEDIM+1 : 2*AMREX_SPACEDIM+1;
+                max_stencil_size = (m_maxorder > 3) ? 3*AMREX_SPACEDIM+1 : 2*AMREX_SPACEDIM+1;
             } else {
                 max_stencil_size = AMREX_D_TERM(3,*3,*3);
             }
@@ -373,7 +373,7 @@ HypreABecLap3::prepareSolver ()
                                               : Array4<int const>();
                 constexpr int NR = 2*AMREX_SPACEDIM+1;
                 if (m_maxorder > 3) {
-                    habec_ij_fill<2*NR-1>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                    habec_ij_fill<NR+AMREX_SPACEDIM>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
                                           ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
                                           m_maxorder, osmsk, false);
                 } else {

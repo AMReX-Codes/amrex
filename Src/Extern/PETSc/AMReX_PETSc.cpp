@@ -427,7 +427,7 @@ PETScABecLap::prepareSolver ()
             ncols_fab.resize(bx);
 
             const PetscInt max_stencil_size = (fabtyp != FabType::regular) ? eb_stencil_size
-                : (m_maxorder > 3) ? 2*regular_stencil_size-1 : regular_stencil_size;
+                : (m_maxorder > 3) ? regular_stencil_size+AMREX_SPACEDIM : regular_stencil_size;
 
             mat_aos_fab.resize(bx,max_stencil_size);
             cols_aos_fab.resize(bx,max_stencil_size);
@@ -456,7 +456,7 @@ PETScABecLap::prepareSolver ()
             {
                 constexpr int NR = 2*AMREX_SPACEDIM+1;
                 if (m_maxorder > 3) {
-                    habec_ij_fill<2*NR-1>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
+                    habec_ij_fill<NR+AMREX_SPACEDIM>(bx, mat_aos_fab.dataPtr(), cols_aos_fab.dataPtr(),
                                           ncols_a, cid_a, sa, afab, sb, dx, bfabs, bctype, bcl,
                                           m_maxorder, Array4<int const>(), false);
                 } else {

@@ -458,7 +458,7 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
     amrex::ignore_unused(factory, eb_bcoef);
 
     constexpr int NR = 2*AMREX_SPACEDIM+1;
-    int const reg_stencil = (maxorder > 3) ? 2*NR-1 : NR;
+    int const reg_stencil = (maxorder > 3) ? NR+AMREX_SPACEDIM : NR;
 
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
     constexpr int eb_stencil = AMREX_D_TERM(3,*3,*3);
@@ -528,7 +528,7 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
         {
             auto osmsk = overset_mask ? m_osm_grown.const_array(mfi) : Array4<int const>();
             if (maxorder > 3) {
-                habec_ij_fill<2*NR-1>(bx, matp, colp, ncols_a, cid_a, sa, afab, sb, dx, bfabs,
+                habec_ij_fill<NR+AMREX_SPACEDIM>(bx, matp, colp, ncols_a, cid_a, sa, afab, sb, dx, bfabs,
                                       bct, bcloc, maxorder, osmsk, true);
             } else {
                 habec_ij_fill<NR>(bx, matp, colp, ncols_a, cid_a, sa, afab, sb, dx, bfabs,

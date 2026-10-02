@@ -49,8 +49,8 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     }
 }
 
-// NS is 2*AMREX_SPACEDIM+1, or 4*AMREX_SPACEDIM+1 for maxorder 4, whose extra
-// entries couple to the cells two away (-x, +x, -y, +y, -z, +z).
+// NS is 2*AMREX_SPACEDIM+1, or 3*AMREX_SPACEDIM+1 for maxorder 4, whose extra
+// entry per direction couples to the cell two away from the boundary.
 template <typename AlgInt, unsigned int NS>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat (GpuArray<Real,NS>& sten, Array4<AlgInt> const& ncols,
@@ -64,7 +64,7 @@ void habec_ijmat (GpuArray<Real,NS>& sten, Array4<AlgInt> const& ncols,
                   Array4<int const> const& osm)
 {
     constexpr unsigned int NR = 2*AMREX_SPACEDIM+1;
-    static_assert(NS == NR || NS == 2*NR-1);
+    static_assert(NS == NR || NS == NR+AMREX_SPACEDIM);
     int const mo = (NS > NR) ? maxorder : amrex::min(maxorder,3);
     for (unsigned int m = NR; m < NS; ++m) {
         sten[m] = Real(0.0);
@@ -87,7 +87,7 @@ void habec_ijmat (GpuArray<Real,NS>& sten, Array4<AlgInt> const& ncols,
             sten[0] += bf1 * b[0](i,j,k);
             sten[1] = Real(0.0);
             sten[2] += bf2 * b[0](i,j,k);
-            if constexpr (NS > NR) { sten[NR+1] += bf3 * b[0](i,j,k); }
+            if constexpr (NS > NR) { sten[NR+0] += bf3 * b[0](i,j,k); }
         }
 
         // xhi
@@ -123,9 +123,10 @@ void habec_cols (GpuArray<AlgInt,NS>& sten, int i, int j, int /*k*/, Box const& 
     sten[1] = cell_id(i-1,j  ,0);
     sten[2] = cell_id(i+1,j  ,0);
     constexpr unsigned int NR = 2*AMREX_SPACEDIM+1;
-    if constexpr (NS > NR) {
-        sten[NR+0] = (i-2 >= vbx.smallEnd(0)) ? cell_id(i-2,j,0) : AlgInt(-1);
-        sten[NR+1] = (i+2 <= vbx.bigEnd(0)) ? cell_id(i+2,j,0) : AlgInt(-1);
+    if constexpr (NS > NR) { // second neighbor, away from a boundary
+        sten[NR+0] = (cell_id(i-1,j,0) < 0 && i+2 <= vbx.bigEnd(0)) ? cell_id(i+2,j,0)
+                   : (cell_id(i+1,j,0) < 0 && i-2 >= vbx.smallEnd(0)) ? cell_id(i-2,j,0)
+                   : AlgInt(-1);
     }
 }
 
