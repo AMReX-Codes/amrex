@@ -572,9 +572,9 @@ to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the fi
 The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
 types assemble the operator into a matrix. AlgMG, PETSc and hypre's IJ interface
 support orders up to 4, and hypre's structured and semi-structured interfaces up
-to 3. With embedded boundaries, AlgMG supports orders up to 3, and hypre and PETSc
-only 2. MLMG lowers a higher order to what the solver supports, and the operator
-keeps that order afterwards.
+to 3. With embedded boundaries, all of them support orders up to 3. MLMG lowers a
+higher order to what the solver supports, and the operator keeps that order
+afterwards.
 
 
 Curvilinear Coordinates

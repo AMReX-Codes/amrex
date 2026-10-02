@@ -925,7 +925,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     if constexpr (IsFabArray_v<AMF>) {
         if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
             if (a_sol[0]->hasEBFabFactory()) {
-                linop.setMaxOrder(2);
+                linop.setMaxOrder(std::min(3, linop.getMaxOrder())); // EB stencil: at most 3
             }
 #ifdef AMREX_USE_HYPRE
             else if (bottom_solver == BottomSolver::hypre && hypre_interface != Hypre::Interface::ij) {
