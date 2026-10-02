@@ -481,6 +481,7 @@ PETScABecLap::prepareSolver ()
                 Array4<Real const> beb = (m_eb_b_coeffs) ? m_eb_b_coeffs->const_array(mfi)
                                                          : Array4<Real const>();
 
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_maxorder <= 3, "PETScABecLap: EB supports maxorder <= 3");
                 const int bho = (m_maxorder > 2) ? 1 : 0;
                 constexpr int stencil_size = AMREX_D_TERM(3,*3,*3);
                 BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
@@ -490,7 +491,7 @@ PETScABecLap::prepareSolver ()
                 [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
                                            int i, int j, int k)
                 {
-                    habec_ijmat_eb(sten, ncols_a, i, j, k, cid_a,
+                    habec_ijmat_eb(sten, ncols_a, i, j, k, bx, cid_a,
                                    sa, afab, sb, dx, bfabs, bctype, bcl, bho,
                                    flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
                                    AMREX_D_DECL(fcx,fcy,fcz),barea_a,bcent_a,beb);

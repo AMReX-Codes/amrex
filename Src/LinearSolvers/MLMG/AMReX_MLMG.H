@@ -921,11 +921,20 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         bottom_solver = linop.getDefaultBottomSolver();
     }
 
+    // The assembled EB stencils support at most third order.
+    bool eb_linop = false;
+#ifdef AMREX_USE_EB
+    if constexpr (IsFabArray_v<AMF>) {
+        eb_linop = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(0)) != nullptr;
+    }
+#endif
+    amrex::ignore_unused(eb_linop);
+
 #if (defined(AMREX_USE_HYPRE) || defined(AMREX_USE_PETSC)) && (AMREX_SPACEDIM > 1)
     if constexpr (IsFabArray_v<AMF>) {
         if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
-            if (a_sol[0]->hasEBFabFactory()) {
-                linop.setMaxOrder(std::min(3, linop.getMaxOrder())); // EB stencil: at most 3
+            if (eb_linop) {
+                linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
             }
 #ifdef AMREX_USE_HYPRE
             else if (bottom_solver == BottomSolver::hypre && hypre_interface != Hypre::Interface::ij) {
@@ -941,11 +950,9 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         // The algebraic correction has zero ghost cells.
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cf_strategy != CFStrategy::ghostnodes || linop.getNGrow() == 0,
             "MLMG: AlgMG does not support the ghostnodes strategy with ghost cells");
-        // The matrix must match the operator; its EB stencil is at most third order.
-        if constexpr (IsFabArray_v<AMF>) {
-            if (a_sol[0]->hasEBFabFactory()) {
-                linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
-            }
+        // The matrix must match the operator.
+        if (eb_linop) {
+            linop.setMaxOrder(std::min(3, linop.getMaxOrder()));
         }
     }
 

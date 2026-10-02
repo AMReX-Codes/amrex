@@ -137,6 +137,9 @@ void habec_ij_fill (Box const& bx,
                              int const sz = (cell_id(i,j,k-1) < 0) ? 2 : -2;
                              if (sten[NR+2] != Real(0.0) && osm(i,j,k+sz) == 0) { sten[NR+2] = Real(0.0); })
             }
+            AlgInt n = 0;
+            for (unsigned int m = 0; m < NS; ++m) { n += (sten[m] != Real(0.0)); }
+            ncols(i,j,k) = n;
         }
     });
 

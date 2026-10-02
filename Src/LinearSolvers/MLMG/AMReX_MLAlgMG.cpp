@@ -556,7 +556,7 @@ MLAlgMG::Impl::assembleCell (FabFactory<FArrayBox> const& factory, iMultiFab con
             amrex::fill(tmpmatfab,
             [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,eb_stencil>& sten, int i, int j, int k)
             {
-                habec_ijmat_eb(sten, ncols_a, i, j, k, cid_a,
+                habec_ijmat_eb(sten, ncols_a, i, j, k, bx, cid_a,
                                sa, afab, sb, dx, bfabs, bct, bcloc, bho,
                                flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
                                AMREX_D_DECL(fcx,fcy,fcz), barea_a, bcent_a, beb);

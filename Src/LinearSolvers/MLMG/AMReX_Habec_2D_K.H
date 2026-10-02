@@ -218,6 +218,7 @@ template <typename AlgInt>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
                      int i, int j, int k,
+                     Box const& vbx,
                      Array4<AlgInt const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
@@ -234,6 +235,11 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
+    // As in the operator, a box one cell wide gets second order in that direction.
+    int const bho_d[AMREX_SPACEDIM] = {
+        AMREX_D_DECL((vbx.length(0) > 1) ? bho : 0,
+                     (vbx.length(1) > 1) ? bho : 0,
+                     (vbx.length(2) > 1) ? bho : 0)};
     for (int m = 0; m < 9; ++m) {
         sten[m] = Real(0.0);
     }
@@ -254,7 +260,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i-1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::low);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
             mat_tmp(0,0) += bf1*b[0](i,j,k);
             mat_tmp(-1,0) = Real(0.0);
             mat_tmp(1,0) += bf2*b[0](i,j,k);
@@ -263,7 +269,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i+1,j,k) < 0) {
             int cdir = Orientation(Direction::x, Orientation::high);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
             mat_tmp(0,0) += bf1*b[0](i+1,j,k);
             mat_tmp(1,0) = Real(0.0);
             mat_tmp(-1,0) += bf2*b[0](i+1,j,k);
@@ -272,7 +278,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i,j-1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::low);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
             mat_tmp(0,0) += bf1*b[1](i,j,k);
             mat_tmp(0,-1) = Real(0.0);
             mat_tmp(0,1) += bf2*b[1](i,j,k);
@@ -281,7 +287,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
         if (cell_id(i,j+1,k) < 0) {
             int cdir = Orientation(Direction::y, Orientation::high);
             Real bf1, bf2;
-            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
             mat_tmp(0,0) += bf1*b[1](i,j+1,k);
             mat_tmp(0,1) = Real(0.0);
             mat_tmp(0,-1) += bf2*b[1](i,j+1,k);
@@ -317,7 +323,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
 
             Real tmp = (Real(1.0)-fracy)*area*b[0](i,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -371,7 +377,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[0], bctype[cdir], bcl[cdir], bho_d[0]);
 
             Real tmp = (Real(1.0)-fracy)*area*b[0](i+1,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -425,7 +431,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
 
             Real tmp = (Real(1.0)-fracx)*area*b[1](i,j,k);
             // A cut face along the normal limits the boundary stencil to second order.
@@ -479,7 +485,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             }
 
             Real bf1, bf2, bflo;
-            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho);
+            detail::comp_bflo(bf1, bf2, bflo, sb, dx[1], bctype[cdir], bcl[cdir], bho_d[1]);
 
             Real tmp = (Real(1.0)-fracx)*area*b[1](i,j+1,k);
             // A cut face along the normal limits the boundary stencil to second order.
