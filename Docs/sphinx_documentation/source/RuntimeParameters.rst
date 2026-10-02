@@ -1157,11 +1157,11 @@ Memory
    :type: bool
    :value: false
 
-   This controls if AMReX should simply abort when the reported free device
-   memory is less than the amount an arena is asked to allocate. Note that
-   for managed memory it's possible to allocate more than the amount of free
-   device memory available. However, the code will be very slow. This
-   parameter is only relevant for GPU runs.
+   This controls if AMReX should throw :cpp:`amrex::OutOfMemoryError` when the
+   reported free device memory is less than the amount an arena is asked to
+   allocate. Note that for managed memory it's possible to allocate more
+   than the amount of free device memory available. However, the code will
+   be very slow. This parameter is only relevant for GPU runs.
 
 .. py:data:: amrex.mf.alloc_single_chunk
    :type: bool

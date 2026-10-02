@@ -993,9 +993,6 @@ void AlgMG<T>::setup ()
         bool truncated = false;
         Long nnz0 = 0;
         if (!coarsen_level(lev, A, P, cpart, aggressive, ncoarse, truncated, nnz0)) { break; }
-        // The strength matrices were large; hand their chunks back so the
-        // triple product can get contiguous memory.
-        The_Arena()->freeUnused();
         note_memory(lev, "strength release");
         if (m_p_max_elmts > 0 || m_trunc_factor > T(0)) {
             if (!truncated) {
@@ -1056,7 +1053,6 @@ void AlgMG<T>::setup ()
         m_R.push_back(std::move(R));
         m_crsemat.push_back(std::make_unique<SpMatrix<T>>(std::move(Ac)));
         m_a.push_back(m_crsemat.back().get());
-        The_Arena()->freeUnused();
     }
 
     int const nlev = numLevels();

@@ -4,6 +4,7 @@
 
 #include <AMReX_Algorithm.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Exception.H>
 #include <AMReX_GpuComplex.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_SpMatrix.H>
@@ -572,15 +573,21 @@ CSR<T,V,I> rap_local_cpu (Long nf, Long nc, Long ncols,
 
 #elif defined(AMREX_USE_CUDA)
 
+inline void spgemm_cusparse_check (cusparseStatus_t status)
+{
+    if (status == CUSPARSE_STATUS_ALLOC_FAILED ||
+        status == CUSPARSE_STATUS_INSUFFICIENT_RESOURCES) {
+        (void)cudaGetLastError(); // clear a failed internal cudaMalloc
+        throw OutOfMemoryError("SpGEMM: cuSPARSE ran out of memory");
+    }
+    AMREX_CUSPARSE_SAFE_CALL(status);
+}
+
 template <typename T, template<typename> class V, typename I>
 CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
                                   CsrView<T const,I> const& A, CsrView<T const,I> const& B)
 {
     static_assert(std::is_same_v<I,int>, "spgemm_local_cusparse: 32-bit indices only");
-
-    cusparseHandle_t handle;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(handle, Gpu::gpuStream()));
 
     cudaDataType data_type;
     if constexpr (std::is_same_v<T,float>) {
@@ -595,11 +602,37 @@ CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
         amrex::Abort("SpGEMM: unsupported data type");
     }
 
+    AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
+                        ncols < Long(std::numeric_limits<int>::max()));
+
     CSR<T,V,I> C;
     C.row_offset.resize(nrows+1);
 
-    AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
-                        ncols < Long(std::numeric_limits<int>::max()));
+    // Releases everything, also when an OutOfMemoryError is thrown.
+    struct Resources {
+        cusparseHandle_t handle = nullptr;
+        cusparseSpMatDescr_t mat_A = nullptr, mat_B = nullptr, mat_C = nullptr;
+        cusparseSpGEMMDescr_t descr = nullptr;
+        void* buffer1 = nullptr;
+        void* buffer2 = nullptr;
+        Resources () = default;
+        Resources (Resources const&) = delete;
+        Resources& operator= (Resources const&) = delete;
+        ~Resources () {
+            Gpu::streamSynchronize();
+            if (descr) { cusparseSpGEMM_destroyDescr(descr); }
+            if (mat_A) { cusparseDestroySpMat(mat_A); }
+            if (mat_B) { cusparseDestroySpMat(mat_B); }
+            if (mat_C) { cusparseDestroySpMat(mat_C); }
+            if (handle) { cusparseDestroy(handle); }
+            if (buffer1) { The_Arena()->free(buffer1); }
+            if (buffer2) { The_Arena()->free(buffer2); }
+        }
+    } r;
+
+    AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&r.handle));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(r.handle, Gpu::gpuStream()));
+
     constexpr cusparseIndexType_t index_type = CUSPARSE_INDEX_32I;
     void* rowA = (void*)A.row_offset;
     void* colA = (void*)A.col_index;
@@ -607,50 +640,47 @@ CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
     void* colB = (void*)B.col_index;
     void* rowC = (void*)C.row_offset.data();
 
-    cusparseSpMatDescr_t mat_A, mat_B, mat_C;
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&mat_A, nrows, B.nrows, A.nnz, rowA, colA, (void*)A.mat,
+        (cusparseCreateCsr(&r.mat_A, nrows, B.nrows, A.nnz, rowA, colA, (void*)A.mat,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&mat_B, B.nrows, ncols, B.nnz, rowB, colB, (void*)B.mat,
+        (cusparseCreateCsr(&r.mat_B, B.nrows, ncols, B.nnz, rowB, colB, (void*)B.mat,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseCreateCsr(&mat_C, nrows, ncols, 0, rowC, nullptr, nullptr,
+        (cusparseCreateCsr(&r.mat_C, nrows, ncols, 0, rowC, nullptr, nullptr,
                            index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, data_type));
 
-    cusparseSpGEMMDescr_t spgemm_descr;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSpGEMM_createDescr(&spgemm_descr));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseSpGEMM_createDescr(&r.descr));
 
     T alpha = T(1);
     T beta  = T(0);
     cusparseOperation_t op = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    auto const alg = CUSPARSE_SPGEMM_DEFAULT;
 
-    // TODO: fall back to the chunked algorithm (CUSPARSE_SPGEMM_ALG3) when
-    // the work buffer does not fit in memory.
     std::size_t buffer_size1 = 0;
-    AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
-                                       data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
+    spgemm_cusparse_check
+        (cusparseSpGEMM_workEstimation(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta,
+                                       r.mat_C, data_type, alg, r.descr,
                                        &buffer_size1, nullptr));
-    auto* buffer1 = (void*)The_Arena()->alloc(buffer_size1);
-    AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_workEstimation(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
-                                       data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
-                                       &buffer_size1, buffer1));
+    r.buffer1 = (void*)The_Arena()->alloc(buffer_size1);
+    spgemm_cusparse_check
+        (cusparseSpGEMM_workEstimation(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta,
+                                       r.mat_C, data_type, alg, r.descr,
+                                       &buffer_size1, r.buffer1));
 
     std::size_t buffer_size2 = 0;
-    AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_compute(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
-                                data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
+    spgemm_cusparse_check
+        (cusparseSpGEMM_compute(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta,
+                                r.mat_C, data_type, alg, r.descr,
                                 &buffer_size2, nullptr));
-    auto* buffer2 = (void*)The_Arena()->alloc(buffer_size2);
-    AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_compute(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
-                                data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr,
-                                &buffer_size2, buffer2));
+    r.buffer2 = (void*)The_Arena()->alloc(buffer_size2);
+    spgemm_cusparse_check
+        (cusparseSpGEMM_compute(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta,
+                                r.mat_C, data_type, alg, r.descr,
+                                &buffer_size2, r.buffer2));
 
     std::int64_t c_nrows, c_ncols, c_nnz;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSpMatGetSize(mat_C, &c_nrows, &c_ncols, &c_nnz));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseSpMatGetSize(r.mat_C, &c_nrows, &c_ncols, &c_nnz));
     AMREX_ALWAYS_ASSERT(c_nrows == nrows && c_ncols == ncols);
     AMREX_ALWAYS_ASSERT(c_nnz < std::int64_t(std::numeric_limits<int>::max()));
 
@@ -658,36 +688,32 @@ CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
     C.col_index.resize(c_nnz);
     C.nnz = c_nnz;
     void* colC = (void*)C.col_index.data();
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCsrSetPointers(mat_C, rowC, colC, (void*)C.mat.data()));
+    AMREX_CUSPARSE_SAFE_CALL(cusparseCsrSetPointers(r.mat_C, rowC, colC, (void*)C.mat.data()));
 
     // cuSPARSE guarantees sorted column indices in C.
     AMREX_CUSPARSE_SAFE_CALL
-        (cusparseSpGEMM_copy(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_C,
-                             data_type, CUSPARSE_SPGEMM_DEFAULT, spgemm_descr));
-
-    Gpu::streamSynchronize();
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSpGEMM_destroyDescr(spgemm_descr));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_A));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_B));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_C));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
-    The_Arena()->free(buffer1);
-    The_Arena()->free(buffer2);
+        (cusparseSpGEMM_copy(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta, r.mat_C,
+                             data_type, alg, r.descr));
 
     return C;
 }
 
 #elif defined(AMREX_USE_HIP)
 
+inline void spgemm_rocsparse_check (rocsparse_status status)
+{
+    if (status == rocsparse_status_memory_error) {
+        (void)hipGetLastError(); // clear a failed internal hipMalloc
+        throw OutOfMemoryError("SpGEMM: rocSPARSE ran out of memory");
+    }
+    AMREX_ROCSPARSE_SAFE_CALL(status);
+}
+
 template <typename T, template<typename> class V, typename I>
 CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
                                    CsrView<T const,I> const& A, CsrView<T const,I> const& B)
 {
     static_assert(std::is_same_v<I,int>, "spgemm_local_rocsparse: 32-bit indices only");
-
-    rocsparse_handle handle;
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
 
     AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
                         ncols < Long(std::numeric_limits<int>::max()));
@@ -711,22 +737,43 @@ CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
     CSR<T,V,I> C;
     C.row_offset.resize(nrows+1);
 
-    rocsparse_spmat_descr mat_A, mat_B, mat_C, mat_D;
+    // Releases everything, also when an OutOfMemoryError is thrown.
+    struct Resources {
+        rocsparse_handle handle = nullptr;
+        rocsparse_spmat_descr mat_A = nullptr, mat_B = nullptr, mat_C = nullptr,
+            mat_D = nullptr;
+        void* buffer = nullptr;
+        Resources () = default;
+        Resources (Resources const&) = delete;
+        Resources& operator= (Resources const&) = delete;
+        ~Resources () {
+            Gpu::streamSynchronize();
+            for (auto m : {mat_A, mat_B, mat_C, mat_D}) {
+                if (m) { rocsparse_destroy_spmat_descr(m); }
+            }
+            if (handle) { rocsparse_destroy_handle(handle); }
+            if (buffer) { The_Arena()->free(buffer); }
+        }
+    } r;
+
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&r.handle));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(r.handle, Gpu::gpuStream()));
+
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&mat_A, nrows, B.nrows, A.nnz,
+        (rocsparse_create_csr_descr(&r.mat_A, nrows, B.nrows, A.nnz,
                                     (void*)A.row_offset, (void*)A.col_index, (void*)A.mat,
                                     index_type, index_type, index_base, data_type));
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&mat_B, B.nrows, ncols, B.nnz,
+        (rocsparse_create_csr_descr(&r.mat_B, B.nrows, ncols, B.nnz,
                                     (void*)B.row_offset, (void*)B.col_index, (void*)B.mat,
                                     index_type, index_type, index_base, data_type));
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&mat_C, nrows, ncols, 0,
+        (rocsparse_create_csr_descr(&r.mat_C, nrows, ncols, 0,
                                     (void*)C.row_offset.data(), nullptr, nullptr,
                                     index_type, index_type, index_base, data_type));
     // D is unused because beta is zero, but a valid descriptor is required.
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_create_csr_descr(&mat_D, 0, 0, 0, nullptr, nullptr, nullptr,
+        (rocsparse_create_csr_descr(&r.mat_D, 0, 0, 0, nullptr, nullptr, nullptr,
                                     index_type, index_type, index_base, data_type));
 
     T alpha = T(1);
@@ -735,20 +782,20 @@ CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
     auto const alg = rocsparse_spgemm_alg_default;
 
     std::size_t buffer_size = 0;
-    AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
+    spgemm_rocsparse_check
+        (rocsparse_spgemm(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta, r.mat_D, r.mat_C,
                           data_type, alg, rocsparse_spgemm_stage_buffer_size,
                           &buffer_size, nullptr));
-    auto* buffer = (void*)The_Arena()->alloc(buffer_size);
+    r.buffer = (void*)The_Arena()->alloc(buffer_size);
 
     // This stage fills C's row offsets.
-    AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
+    spgemm_rocsparse_check
+        (rocsparse_spgemm(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta, r.mat_D, r.mat_C,
                           data_type, alg, rocsparse_spgemm_stage_nnz,
-                          &buffer_size, buffer));
+                          &buffer_size, r.buffer));
 
     std::int64_t c_nrows, c_ncols, c_nnz;
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_spmat_get_size(mat_C, &c_nrows, &c_ncols, &c_nnz));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_spmat_get_size(r.mat_C, &c_nrows, &c_ncols, &c_nnz));
     AMREX_ALWAYS_ASSERT(c_nrows == nrows && c_ncols == ncols);
     AMREX_ALWAYS_ASSERT(c_nnz < std::int64_t(std::numeric_limits<int>::max()));
 
@@ -756,21 +803,17 @@ CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
     C.col_index.resize(c_nnz);
     C.nnz = c_nnz;
     AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_csr_set_pointers(mat_C, (void*)C.row_offset.data(),
+        (rocsparse_csr_set_pointers(r.mat_C, (void*)C.row_offset.data(),
                                     (void*)C.col_index.data(), (void*)C.mat.data()));
 
-    AMREX_ROCSPARSE_SAFE_CALL
-        (rocsparse_spgemm(handle, op, op, &alpha, mat_A, mat_B, &beta, mat_D, mat_C,
+    spgemm_rocsparse_check
+        (rocsparse_spgemm(r.handle, op, op, &alpha, r.mat_A, r.mat_B, &beta, r.mat_D, r.mat_C,
                           data_type, alg, rocsparse_spgemm_stage_compute,
-                          &buffer_size, buffer));
+                          &buffer_size, r.buffer));
 
     Gpu::streamSynchronize();
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_A));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_B));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_C));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_D));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
-    The_Arena()->free(buffer);
+    The_Arena()->free(r.buffer);
+    r.buffer = nullptr;
 
     C.sort(); // rocSPARSE does not promise sorted rows for the generic API.
 
@@ -791,30 +834,52 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
     V<I> dummy_col(1);
     V<T> dummy_mat(1);
 
-    mkl::sparse::matrix_handle_t hA{}, hB{}, hC{};
-    mkl::sparse::init_matrix_handle(&hA);
-    mkl::sparse::init_matrix_handle(&hB);
-    mkl::sparse::init_matrix_handle(&hC);
+    // Releases everything, also when an OutOfMemoryError is thrown.
+    struct Resources {
+        sycl::queue& q;
+        mkl::sparse::matrix_handle_t hA{}, hB{}, hC{};
+        mkl::sparse::matmat_descr_t descr = nullptr;
+        std::int64_t* size_buf = nullptr;
+        void* buffer1 = nullptr;
+        void* buffer2 = nullptr;
+        explicit Resources (sycl::queue& a_q) : q(a_q) {}
+        Resources (Resources const&) = delete;
+        Resources& operator= (Resources const&) = delete;
+        ~Resources () {
+            q.wait();
+            if (descr) { mkl::sparse::release_matmat_descr(&descr); }
+            mkl::sparse::release_matrix_handle(q, &hA);
+            mkl::sparse::release_matrix_handle(q, &hB);
+            mkl::sparse::release_matrix_handle(q, &hC).wait();
+            Gpu::streamSynchronize();
+            if (buffer1) { The_Arena()->free(buffer1); }
+            if (buffer2) { The_Arena()->free(buffer2); }
+            if (size_buf) { The_Pinned_Arena()->free(size_buf); }
+        }
+    } r(q);
+
+    mkl::sparse::init_matrix_handle(&r.hA);
+    mkl::sparse::init_matrix_handle(&r.hB);
+    mkl::sparse::init_matrix_handle(&r.hC);
 
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    mkl::sparse::set_csr_data(q, hA, I(nrows), I(B.nrows), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hA, I(nrows), I(B.nrows), mkl::index_base::zero,
                               (I*)A.row_offset, (I*)A.col_index, (T*)A.mat);
-    mkl::sparse::set_csr_data(q, hB, I(B.nrows), I(ncols), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hB, I(B.nrows), I(ncols), mkl::index_base::zero,
                               (I*)B.row_offset, (I*)B.col_index, (T*)B.mat);
-    mkl::sparse::set_csr_data(q, hC, I(nrows), I(ncols), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), mkl::index_base::zero,
                               C.row_offset.data(), dummy_col.data(), dummy_mat.data());
 #else
-    mkl::sparse::set_csr_data(q, hA, I(nrows), I(B.nrows), I(A.nnz), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hA, I(nrows), I(B.nrows), I(A.nnz), mkl::index_base::zero,
                               (I*)A.row_offset, (I*)A.col_index, (T*)A.mat);
-    mkl::sparse::set_csr_data(q, hB, I(B.nrows), I(ncols), I(B.nnz), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hB, I(B.nrows), I(ncols), I(B.nnz), mkl::index_base::zero,
                               (I*)B.row_offset, (I*)B.col_index, (T*)B.mat);
-    mkl::sparse::set_csr_data(q, hC, I(nrows), I(ncols), I(0), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), I(0), mkl::index_base::zero,
                               C.row_offset.data(), dummy_col.data(), dummy_mat.data());
 #endif
 
-    mkl::sparse::matmat_descr_t descr = nullptr;
-    mkl::sparse::init_matmat_descr(&descr);
-    mkl::sparse::set_matmat_data(descr,
+    mkl::sparse::init_matmat_descr(&r.descr);
+    mkl::sparse::set_matmat_data(r.descr,
                                  mkl::sparse::matrix_view_descr::general,
                                  mkl::transpose::nontrans,
                                  mkl::sparse::matrix_view_descr::general,
@@ -822,21 +887,22 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
                                  mkl::sparse::matrix_view_descr::general);
 
     using req = mkl::sparse::matmat_request;
-    auto* size_buf = (std::int64_t*)The_Pinned_Arena()->alloc(sizeof(std::int64_t));
+    r.size_buf = (std::int64_t*)The_Pinned_Arena()->alloc(sizeof(std::int64_t));
+    auto* size_buf = r.size_buf;
 
-    mkl::sparse::matmat(q, hA, hB, hC, req::get_work_estimation_buf_size, descr,
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::get_work_estimation_buf_size, r.descr,
                         size_buf, nullptr, {}).wait();
-    auto* buffer1 = (void*)The_Arena()->alloc(std::size_t(*size_buf));
-    mkl::sparse::matmat(q, hA, hB, hC, req::work_estimation, descr,
-                        size_buf, buffer1, {}).wait();
+    r.buffer1 = (void*)The_Arena()->alloc(std::size_t(*size_buf));
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::work_estimation, r.descr,
+                        size_buf, r.buffer1, {}).wait();
 
-    mkl::sparse::matmat(q, hA, hB, hC, req::get_compute_buf_size, descr,
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::get_compute_buf_size, r.descr,
                         size_buf, nullptr, {}).wait();
-    auto* buffer2 = (void*)The_Arena()->alloc(std::size_t(*size_buf));
-    mkl::sparse::matmat(q, hA, hB, hC, req::compute, descr,
-                        size_buf, buffer2, {}).wait();
+    r.buffer2 = (void*)The_Arena()->alloc(std::size_t(*size_buf));
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::compute, r.descr,
+                        size_buf, r.buffer2, {}).wait();
 
-    mkl::sparse::matmat(q, hA, hB, hC, req::get_nnz, descr,
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::get_nnz, r.descr,
                         size_buf, nullptr, {}).wait();
     Long const c_nnz = *size_buf;
     AMREX_ALWAYS_ASSERT(c_nnz < Long(std::numeric_limits<I>::max()));
@@ -845,27 +911,121 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
     C.col_index.resize(c_nnz);
     C.nnz = c_nnz;
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    mkl::sparse::set_csr_data(q, hC, I(nrows), I(ncols), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), mkl::index_base::zero,
                               C.row_offset.data(), C.col_index.data(), C.mat.data());
 #else
-    mkl::sparse::set_csr_data(q, hC, I(nrows), I(ncols), I(c_nnz), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), I(c_nnz), mkl::index_base::zero,
                               C.row_offset.data(), C.col_index.data(), C.mat.data());
 #endif
 
-    mkl::sparse::matmat(q, hA, hB, hC, req::finalize, descr,
+    mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::finalize, r.descr,
                         size_buf, nullptr, {}).wait();
 
-    mkl::sparse::release_matmat_descr(&descr);
-    mkl::sparse::release_matrix_handle(q, &hA);
-    mkl::sparse::release_matrix_handle(q, &hB);
-    auto ev = mkl::sparse::release_matrix_handle(q, &hC);
-    ev.wait();
     Gpu::streamSynchronize();
-    The_Arena()->free(buffer1);
-    The_Arena()->free(buffer2);
-    The_Pinned_Arena()->free(size_buf);
+    The_Arena()->free(r.buffer1);
+    The_Arena()->free(r.buffer2);
+    r.buffer1 = nullptr;
+    r.buffer2 = nullptr;
 
     C.sort(); // oneMKL does not sort the output.
+
+    return C;
+}
+
+#endif
+
+#ifdef AMREX_USE_GPU
+
+template <typename T, template<typename> class V, typename I>
+using SpGEMMLocalFn = CSR<T,V,I> (*) (Long, Long, CsrView<T const,I> const&,
+                                      CsrView<T const,I> const&);
+
+// Copies block Cb into rows [r0,r1) of C, starting at nonzero p.
+template <typename T, template<typename> class V, typename I>
+void spgemm_copy_block (CSR<T,V,I>& C, Long r0, Long r1, CSR<T,V,I> const& Cb, Long p)
+{
+    auto* crow = C.row_offset.data() + r0;
+    auto const* src = Cb.row_offset.data();
+    auto const offset = I(p);
+    ParallelFor(r1 - r0 + 1, [=] AMREX_GPU_DEVICE (Long i) {
+        crow[i] = src[i] + offset;
+    });
+    Gpu::copyAsync(Gpu::deviceToDevice, Cb.col_index.begin(), Cb.col_index.end(),
+                   C.col_index.begin() + p);
+    Gpu::copyAsync(Gpu::deviceToDevice, Cb.mat.begin(), Cb.mat.end(),
+                   C.mat.begin() + p);
+}
+
+// Multiplies row blocks A(r0:r1,:) * B by `f`, covering `blocks` in order.
+// A block that runs out of memory is split in half. Each block is copied
+// into C at nonzero p if C is given; p is advanced by its nonzeros.
+// Returns the blocks used.
+template <typename T, template<typename> class V, typename I>
+Vector<std::pair<Long,Long>>
+spgemm_blocks (Vector<std::pair<Long,Long>> const& blocks, Long ncols,
+               CsrView<T const,I> const& A, CsrView<T const,I> const& B,
+               SpGEMMLocalFn<T,V,I> f, CSR<T,V,I>* C, Long& p)
+{
+    Vector<std::pair<Long,Long>> done;
+    Vector<std::pair<Long,Long>> todo(blocks.rbegin(), blocks.rend()); // processed from the back
+    while (!todo.empty()) {
+        auto const [r0, r1] = todo.back();
+        todo.pop_back();
+        Long const n = r1 - r0;
+        if (n == 0) { continue; }
+
+        I a[2];
+        Gpu::dtoh_memcpy_async(a  , A.row_offset+r0, sizeof(I));
+        Gpu::dtoh_memcpy_async(a+1, A.row_offset+r1, sizeof(I));
+        Gpu::streamSynchronize();
+        I const a0 = a[0];
+        Long const annz = Long(a[1]) - Long(a0);
+
+        try {
+            CSR<T,V,I> Cb;
+            if (annz == 0) {
+                Cb = spgemm_empty<T,V,I>(n);
+            } else {
+                V<I> row(n+1);
+                auto* prow = row.data();
+                auto const* arow = A.row_offset + r0;
+                ParallelFor(n+1, [=] AMREX_GPU_DEVICE (Long i) { prow[i] = arow[i] - a0; });
+                CsrView<T const,I> Ab{A.mat + a0, A.col_index + a0, row.data(), annz, n};
+                Cb = f(n, ncols, Ab, B);
+            }
+            if (C) { spgemm_copy_block(*C, r0, r1, Cb, p); }
+            p += Cb.nnz;
+        } catch (OutOfMemoryError const&) {
+            if (n == 1) { throw; }
+            todo.emplace_back(r0 + n/2, r1);
+            todo.emplace_back(r0, r0 + n/2);
+            continue;
+        }
+        done.emplace_back(r0, r1);
+    }
+    return done;
+}
+
+/**
+ * Low-memory fallback: `f` multiplies blocks of A's rows by B one at a time.
+ * The first pass only counts the nonzeros; the second recomputes each block
+ * into the allocated C.
+ */
+template <typename T, template<typename> class V, typename I>
+CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
+                                 CsrView<T const,I> const& A, CsrView<T const,I> const& B,
+                                 SpGEMMLocalFn<T,V,I> f)
+{
+    Long total = 0;
+    auto const blocks = spgemm_blocks<T,V,I>({{0, nrows/2}, {nrows/2, nrows}}, ncols, A, B, f,
+                                             nullptr, total);
+    AMREX_ALWAYS_ASSERT(total <= Long(std::numeric_limits<I>::max()));
+
+    CSR<T,V,I> C;
+    C.resize(nrows, total);
+    Long p = 0;
+    spgemm_blocks<T,V,I>(blocks, ncols, A, B, f, &C, p);
+    Gpu::streamSynchronize();
 
     return C;
 }
@@ -876,7 +1036,9 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
  * \brief Local CSR product C = A * B.
  *
  * `A` must have `nrows` rows and column indices in `[0, B.nrows)`; `B` must
- * have column indices in `[0, ncols)`. Rows of the result are sorted.
+ * have column indices in `[0, ncols)`. Rows of the result are sorted. On
+ * GPUs, a slower algorithm that uses less memory is used if the default one
+ * runs out of memory.
  */
 template <typename T, template<typename> class V, typename I, typename F = NoRowPost>
 CSR<T,V,I> spgemm_local (Long nrows, Long ncols,
@@ -895,13 +1057,29 @@ CSR<T,V,I> spgemm_local (Long nrows, Long ncols,
     amrex::ignore_unused(row_post);
 #endif
 #if defined(AMREX_USE_CUDA)
-    return spgemm_local_cusparse<T,V,I>(nrows, ncols, A, B);
+    try {
+        return spgemm_local_cusparse<T,V,I>(nrows, ncols, A, B);
+    } catch (OutOfMemoryError const&) {
+        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
+                                           spgemm_local_cusparse<T,V,I>);
+    }
 #elif defined(AMREX_USE_HIP)
-    return spgemm_local_rocsparse<T,V,I>(nrows, ncols, A, B);
+    try {
+        return spgemm_local_rocsparse<T,V,I>(nrows, ncols, A, B);
+    } catch (OutOfMemoryError const&) {
+        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
+                                           spgemm_local_rocsparse<T,V,I>);
+    }
 #elif defined(AMREX_USE_SYCL)
-    return spgemm_local_onemkl<T,V,I>(nrows, ncols, A, B);
+    try {
+        return spgemm_local_onemkl<T,V,I>(nrows, ncols, A, B);
+    } catch (OutOfMemoryError const&) {
+        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
+                                           spgemm_local_onemkl<T,V,I>);
+    }
 #endif
 }
+
 
 #ifdef AMREX_USE_MPI
 

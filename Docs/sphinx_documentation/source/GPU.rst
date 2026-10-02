@@ -663,6 +663,11 @@ the parameter discussed above are bytes.  All these arenas also have a
 member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
+If an arena runs out of memory, it throws :cpp:`amrex::OutOfMemoryError`,
+which is derived from :cpp:`std::bad_alloc`, and its :cpp:`what()` describes
+the request and the current memory usage.  An uncaught exception terminates the
+run.
+
 If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
 When AMReX is built with SUNDIALS turned on, :cpp:`amrex::sundials::The_SUNMemory_Helper()`
@@ -2193,8 +2198,9 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | derivative implementations).                                          |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |                |
-|                            | describing how much free memory there is and what was requested.      |             |                |
+|                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |
+|                            | an error describing how much free memory there is and what was        |             |                |
+|                            | requested.                                                            |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0              |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
