@@ -150,10 +150,11 @@ and Fortran codes with PGI, and link with PGI.  Using ``COMP=pgi`` and
 ``NVCC_HOST_COMP=pgi`` will compile C/C++ codes with PGI and NVCC/PGI.
 
 With CUDA, ``GPU_MIN_BLOCKS=B`` (``-DAMReX_GPU_MIN_BLOCKS=B`` in CMake) limits
-the registers per thread in AMReX kernels so that ``B`` blocks of
-``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor, up to the GPU's
-limit of resident threads per multiprocessor. A larger ``B`` gives higher
-occupancy but can cause register spilling.
+the registers per thread in GPU code so that ``B`` blocks of
+``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor. A larger ``B``
+gives higher occupancy but can cause register spilling. Keep ``B`` times
+``GPU_MAX_THREADS`` within the GPU's limit of resident threads per
+multiprocessor.
 
 You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
 to test your programming environment.  For example, building with:

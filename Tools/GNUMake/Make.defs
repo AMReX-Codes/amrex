@@ -852,6 +852,7 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_USE_CUDA
 
     ifdef GPU_MIN_BLOCKS
+      GPU_MIN_BLOCKS := $(strip $(GPU_MIN_BLOCKS))
       # 2048 is the most resident threads per SM of any NVIDIA GPU.
       ifneq ($(shell expr "$(GPU_MIN_BLOCKS)" : '[1-9][0-9]\{0,3\}$$' >/dev/null && \
                      [ $$(($(GPU_MIN_BLOCKS)*$(GPU_MAX_THREADS))) -le 2048 ] && echo ok),ok)
