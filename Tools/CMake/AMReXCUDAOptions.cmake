@@ -215,10 +215,17 @@ set(AMReX_GPU_MIN_BLOCKS "" CACHE STRING
 # must fit in the kernels' register cap: 64K registers per SM / (GPU_MAX_THREADS*B),
 # rounded down to 8.
 set(AMREX_CUDA_EFFECTIVE_MAXREGCOUNT ${AMReX_CUDA_MAXREGCOUNT})
-if (AMReX_GPU_MIN_BLOCKS)
-   if (NOT AMReX_GPU_MIN_BLOCKS MATCHES "^[1-9][0-9]*$")
-      message(FATAL_ERROR "AMReX_GPU_MIN_BLOCKS must be a positive integer")
+if (NOT AMReX_GPU_MIN_BLOCKS STREQUAL "")
+   # 2048 is the most resident threads per SM of any NVIDIA GPU.
+   set(_threads 0)
+   if (AMReX_GPU_MIN_BLOCKS MATCHES "^[1-9][0-9]?[0-9]?[0-9]?$")
+      math(EXPR _threads "${AMReX_GPU_MIN_BLOCKS} * ${AMReX_GPU_MAX_THREADS}")
    endif ()
+   if (_threads LESS 1 OR _threads GREATER 2048)
+      message(FATAL_ERROR "AMReX_GPU_MIN_BLOCKS must be a positive integer with "
+                          "AMReX_GPU_MIN_BLOCKS * AMReX_GPU_MAX_THREADS <= 2048")
+   endif ()
+   unset(_threads)
    message( STATUS "   AMReX_GPU_MIN_BLOCKS = ${AMReX_GPU_MIN_BLOCKS}")
    math(EXPR _regs "65536 / (${AMReX_GPU_MAX_THREADS} * ${AMReX_GPU_MIN_BLOCKS}) / 8 * 8")
    if (_regs LESS AMREX_CUDA_EFFECTIVE_MAXREGCOUNT)

@@ -852,6 +852,11 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_USE_CUDA
 
     ifdef GPU_MIN_BLOCKS
+      # 2048 is the most resident threads per SM of any NVIDIA GPU.
+      ifneq ($(shell expr "$(GPU_MIN_BLOCKS)" : '[1-9][0-9]\{0,3\}$$' >/dev/null && \
+                     [ $$(($(GPU_MIN_BLOCKS)*$(GPU_MAX_THREADS))) -le 2048 ] && echo ok),ok)
+        $(error GPU_MIN_BLOCKS must be a positive integer with GPU_MIN_BLOCKS*GPU_MAX_THREADS <= 2048)
+      endif
       DEFINES += -DAMREX_GPU_MIN_BLOCKS=$(GPU_MIN_BLOCKS)
       # Non-inlined device functions must fit in the kernels' register cap:
       # 64K registers per SM / (GPU_MAX_THREADS*B), rounded down to 8.

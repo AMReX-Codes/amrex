@@ -155,7 +155,9 @@ the registers per thread in AMReX kernels so that ``B`` blocks of
 gives higher occupancy, which can speed up register-heavy kernels, but fewer
 registers per thread, which can cause register spilling. Keep ``B`` times
 ``GPU_MAX_THREADS`` within the GPU's limit of resident threads per
-multiprocessor, or the setting has no effect. Note that ``CUDA_MAXREGCOUNT``
+multiprocessor (2048 on A100, H100 and B200, 1536 on RTX 30/40/50-series and
+L40, and 1024 on Turing). Above that limit, kernels get no occupancy benefit
+but some code is still limited in registers. Note that ``CUDA_MAXREGCOUNT``
 has no effect on most AMReX kernels.
 
 You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``

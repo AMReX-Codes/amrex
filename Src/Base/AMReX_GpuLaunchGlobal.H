@@ -19,7 +19,8 @@ namespace amrex {
 #if defined(AMREX_USE_CUDA) && defined(AMREX_GPU_MIN_BLOCKS)
     namespace detail {
         // Min blocks of mt threads for AMREX_GPU_MIN_BLOCKS blocks of
-        // AMREX_GPU_MAX_THREADS threads, so all kernels share one register cap.
+        // AMREX_GPU_MAX_THREADS threads. Rounded down, so no kernel's register cap
+        // is below -maxrregcount, which non-inlined callees are compiled with.
         // At most 16, the lowest per-SM block limit of supported GPUs.
         constexpr int launch_min_blocks (int mt) {
             int n = AMREX_GPU_MIN_BLOCKS * AMREX_GPU_MAX_THREADS / mt;
