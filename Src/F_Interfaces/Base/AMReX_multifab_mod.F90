@@ -19,8 +19,8 @@ module amrex_multifab_module
   public :: amrex_multifab_build, amrex_multifab_swap
   public :: amrex_multifab_write, amrex_multifab_read
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
-  public :: amrex_imultifab_build_owner_mask
   public :: amrex_imultifab_build, amrex_imultifab_destroy
+  public :: amrex_imultifab_build_owner_mask, amrex_imultifab_build_fine_mask
   public :: amrex_mfiter_build, amrex_mfiter_destroy, amrex_mfiter_allow_multiple
 
   type, public   :: amrex_multifab
@@ -171,8 +171,7 @@ module amrex_multifab_module
   end interface amrex_mfiter_destroy
 #endif
 
-  ! interfaces to c++ functions
-
+  ! Interfaces to MultiFab c++ functions
   interface
      subroutine amrex_fi_new_multifab (mf,ba,dm,nc,ng,nodal) bind(c)
        import
@@ -408,13 +407,6 @@ module amrex_multifab_module
        character(kind=c_char), intent(in) :: name(*)
      end subroutine amrex_fi_read_multifab
 
-     subroutine amrex_fi_build_owner_imultifab (msk, ba, dm, data, geom) bind(c)
-       import
-       implicit none
-       type(c_ptr) :: msk, ba, dm
-       type(c_ptr), value :: data, geom
-     end subroutine amrex_fi_build_owner_imultifab
-
      subroutine amrex_fi_multifab_override_sync (mf, geom) bind(c)
        import
        implicit none
@@ -441,6 +433,7 @@ module amrex_multifab_module
      end subroutine amrex_fi_multifab_average_sync
   end interface
 
+  ! Interfaces to iMultiFab c++ functions
   interface
      subroutine amrex_fi_new_imultifab (imf,ba,dm,nc,ng,nodal) bind(c)
        import
@@ -480,8 +473,24 @@ module amrex_multifab_module
        integer(c_int), value :: ic, nc
        integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_imultifab_setval
+
+     subroutine amrex_fi_build_owner_imultifab (msk, ba, dm, data, geom) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: msk, ba, dm
+       type(c_ptr), value :: data, geom
+     end subroutine amrex_fi_build_owner_imultifab
+
+     subroutine amrex_fi_new_fine_imultifab (msk, cba, cdm, fba, rr, crse_value, fine_value) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: msk, cba, cdm, fba
+       integer(c_int), value :: rr, crse_value, fine_value
+     end subroutine amrex_fi_new_fine_imultifab
+
   end interface
 
+  ! Interfaces to MFIter c++ functions
   interface
      function amrex_fi_mfiter_allow_multiple (allow) bind(c)
        import
@@ -1074,17 +1083,6 @@ contains
     mf%dm    = amrex_fi_multifab_distromap(mf%p)
   end subroutine amrex_multifab_read
 
-  subroutine amrex_imultifab_build_owner_mask (msk, data, geom)
-    type(amrex_imultifab), intent(inout) :: msk
-    type(amrex_multifab), intent(in) :: data
-    type(amrex_geometry), intent(in) :: geom
-    call amrex_imultifab_destroy(msk)
-    msk%owner = .true.
-    msk%nc = 1
-    msk%ng = 0
-    call amrex_fi_build_owner_imultifab(msk%p, msk%ba%p, msk%dm%p, data%p, geom%p)
-  end subroutine amrex_imultifab_build_owner_mask
-
   subroutine amrex_multifab_override_sync (this, geom)
     class(amrex_multifab) :: this
     type(amrex_geometry), intent(in) :: geom
@@ -1242,6 +1240,34 @@ contains
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_imultifab_setval(this%p, val, ic, nc, ng)
   end subroutine amrex_imultifab_setval
+
+  subroutine amrex_imultifab_build_owner_mask (msk, data, geom)
+    type(amrex_imultifab), intent(inout) :: msk
+    type(amrex_multifab), intent(in) :: data
+    type(amrex_geometry), intent(in) :: geom
+    call amrex_imultifab_destroy(msk)
+    msk%owner = .true.
+    msk%nc = 1
+    msk%ng = 0
+    call amrex_fi_build_owner_imultifab(msk%p, msk%ba%p, msk%dm%p, data%p, geom%p)
+  end subroutine amrex_imultifab_build_owner_mask
+
+  subroutine amrex_imultifab_build_fine_mask (msk, cba, cdm, fba, rr, crse_value, fine_value)
+    type(amrex_imultifab), intent(inout) :: msk
+    type(amrex_boxarray), intent(in) :: cba
+    type(amrex_distromap), intent(in) :: cdm
+    type(amrex_boxarray), intent(in) :: fba
+    integer, intent(in) :: rr
+    integer, intent(in) :: crse_value
+    integer, intent(in) :: fine_value
+    call amrex_imultifab_destroy(msk)
+    msk%owner = .true.
+    msk%nc = 1
+    msk%ng(1:ndims) = 0
+    msk%ba = cba
+    msk%dm = cdm
+    call amrex_fi_new_fine_imultifab(msk%p, msk%ba%p, msk%dm%p, fba%p, rr, crse_value, fine_value)
+  end subroutine amrex_imultifab_build_fine_mask
 
 !------ MFIter routines ------!
 

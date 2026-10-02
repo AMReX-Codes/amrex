@@ -567,11 +567,14 @@ The order determines the number of interior cells that are used in the extrapola
 of the boundary value from the cell face to the center of the ghost cell, where
 the extrapolated value is then used in the regular stencil.  For example,
 :cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
-to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values;
+:cpp:`maxorder = 4` uses the boundary value and the first three interior values.
 The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
-types assemble the operator into a matrix that supports orders up to 3, so MLMG
-lowers a higher order to 3 when they are used (to 2 for hypre and PETSc with
-embedded boundaries), and the operator keeps that order afterwards.
+types assemble the operator into a matrix. AlgMG, PETSc and hypre's IJ interface
+support orders up to 4, and hypre's structured and semi-structured interfaces up
+to 3. With embedded boundaries, AlgMG, PETSc and hypre's IJ interface support
+orders up to 3. MLMG lowers a higher order to what the solver supports, and the
+operator keeps that order afterwards.
 
 
 Curvilinear Coordinates
