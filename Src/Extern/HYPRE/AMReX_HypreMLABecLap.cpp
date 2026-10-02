@@ -797,7 +797,9 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 Gpu::DeviceVector<int> d_f2c_bno(m_f2c_bno[clev].size());
                 Gpu::DeviceVector<IntVect> d_f2c_cell(m_f2c_cell[clev].size());
                 Gpu::DeviceVector<std::size_t> d_f2c_offset(m_f2c_offset[clev].size());
-                Gpu::DeviceVector<Real> d_f2c_values(m_f2c_values[clev].size());
+                // hypmlabeclap_f2c_set_values accumulates into the values,
+                // so they must start from zero (as the host vector does).
+                Gpu::DeviceVector<Real> d_f2c_values(m_f2c_values[clev].size(), Real(0.0));
                 Gpu::copyAsync(Gpu::hostToDevice,
                                m_f2c_bno[clev].begin(),
                                m_f2c_bno[clev].end(),
