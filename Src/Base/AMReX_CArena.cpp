@@ -93,7 +93,7 @@ CArena::alloc_protected (std::size_t nbytes)
         vp = allocate_system(N);
 
         m_used += N;
-        m_max_used = std::max(m_used, m_max_used);
+        m_max_used = std::max(m_used.load(), m_max_used);
 
         m_alloc.emplace_back(vp,N);
 
@@ -154,7 +154,7 @@ CArena::alloc_protected (std::size_t nbytes)
     }
 
     m_actually_used += nbytes;
-    m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+    m_max_actually_used = std::max(m_actually_used.load(), m_max_actually_used);
 
     BL_ASSERT(vp != nullptr);
 
@@ -205,7 +205,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                 }
 #endif
                 m_actually_used += new_size - busy_it->size();
-                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                m_max_actually_used = std::max(m_actually_used.load(), m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(new_size);
                 return std::make_pair(pt, new_size);
             } else if (total_size >= szmin) {
@@ -219,7 +219,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                 }
 #endif
                 m_actually_used += total_size - busy_it->size();
-                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                m_max_actually_used = std::max(m_actually_used.load(), m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(total_size);
                 return std::make_pair(pt, total_size);
             }
@@ -559,8 +559,8 @@ std::ostream& operator<< (std::ostream& os, const CArena& arena)
 {
     os << "CArea:\n"
        << "    Hunk size: " << arena.m_hunk << "\n"
-       << "    Memory allocated: " << arena.m_used << "\n"
-       << "    Memory actually used: " << arena.m_actually_used << "\n";
+       << "    Memory allocated: " << arena.m_used.load() << "\n"
+       << "    Memory actually used: " << arena.m_actually_used.load() << "\n";
 
     if (arena.m_alloc.empty()) {
         os << "    No memory allocations\n";
