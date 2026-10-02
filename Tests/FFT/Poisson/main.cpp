@@ -329,11 +329,18 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, [] () {
         // Trap floating-point exceptions unless the command line says
         // otherwise. The singular cases (no Dirichlet boundary) must not
-        // divide by the zero wavenumber, not even speculatively.
+        // divide by the zero wavenumber, not even speculatively. Optimized
+        // clang builds are skipped, because by default clang may raise
+        // exceptions the source does not (e.g., in unused SIMD lanes).
+#if defined(__clang__) && !defined(AMREX_DEBUG)
+        constexpr int trap_default = 0;
+#else
+        constexpr int trap_default = 1;
+#endif
         ParmParse pp("amrex");
-        int trap = 1;
+        int trap = trap_default;
         pp.queryAdd("fpe_trap_invalid", trap);
-        trap = 1;
+        trap = trap_default;
         pp.queryAdd("fpe_trap_zero", trap);
     });
     {
