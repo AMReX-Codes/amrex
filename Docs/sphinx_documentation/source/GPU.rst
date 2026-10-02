@@ -274,7 +274,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_GPU_MIN_BLOCKS         |  Min resident blocks per SM (see below)         | None        | User-defined    |
+   | AMReX_GPU_MIN_BLOCKS         |  Min resident blocks per SM (see above)         | None        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_PTX_VERBOSE       |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
