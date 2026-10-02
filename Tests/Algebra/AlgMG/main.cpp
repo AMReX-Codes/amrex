@@ -5,6 +5,7 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <limits>
@@ -43,7 +44,7 @@ struct Params {
     int block = 4;
     Real eps = Real(1.e-3);
     int mlmg = 1;           // also solve with MLMG for comparison
-    int mlmg_repeat = 1;    // solve this many times with the same MLMG object
+    int mlmg_repeat = 1;    // solves with the same MLMG object if it uses AlgMG
     Vector<std::string> mlmg_types{"geometric"}; // MLMG multigrid types to run
     int max_grid_size = 64; // for MLMG
     std::optional<int> verbose, nu1, nu2, nu_bottom, p_max_elmts, max_levels,
@@ -206,8 +207,9 @@ void run_mlmg (Params const& p, Vector<std::string>& failures)
         std::string failure;
         Gpu::streamSynchronize();
         auto t0 = amrex::second();
-        // Repeated solves reuse the cached algebraic setup.
-        for (int rep = 0; rep < p.mlmg_repeat && failure.empty(); ++rep) {
+        // Repeated solves reuse the cached algebraic setup; repeat only if
+        // MLMG built AlgMG.
+        for (int rep = 0; rep < (algmg_ptr ? p.mlmg_repeat : 1) && failure.empty(); ++rep) {
             phi.setVal(0);
             Gpu::streamSynchronize();
             t0 = amrex::second();
@@ -646,6 +648,8 @@ int main (int argc, char* argv[])
         Vector<std::string> problems; // queryarr does not shrink a vector
         pp.queryarr("problem", problems);
         if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso"}; }
+        Vector<std::string> variation_problems; // empty: all problems
+        pp.queryarr("variation_problems", variation_problems);
         pp.query("jump", p.jump);
         pp.query("block", p.block);
         pp.query("eps", p.eps);
@@ -708,7 +712,13 @@ int main (int argc, char* argv[])
             amrex::Print() << "\n" << problem_line(p) << "\n" << rule << "\n" << head
                            << "\n" << rule << "\n";
             int icase = 0;
-            for (auto pb : make_cases(p)) {
+            Params base = p;
+            if (!variation_problems.empty() &&
+                std::find(variation_problems.begin(), variation_problems.end(), problem)
+                == variation_problems.end()) {
+                base.variations = 0;
+            }
+            for (auto pb : make_cases(base)) {
                 // Jacobi bottom: an inexact coarse solve, so only check that
                 // ten cycles reduce the residual.
                 bool const inexact = (pb.bottom == "jacobi" && pb.krylov == "none"
