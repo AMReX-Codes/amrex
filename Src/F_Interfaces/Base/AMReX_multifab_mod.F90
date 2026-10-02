@@ -485,7 +485,7 @@ module amrex_multifab_module
        import
        implicit none
        type(c_ptr) :: msk, cba, cdm, fba
-       integer(c_int) :: rr, crse_value, fine_value
+       integer(c_int), value :: rr, crse_value, fine_value
      end subroutine amrex_fi_new_fine_imultifab
 
   end interface
