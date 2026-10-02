@@ -138,7 +138,12 @@ can be set via :cpp:`ParmParse`.
    This controls the blocking factor on AMR levels, one value for each
    level. If the size of the integer array is less than the total number of
    levels, the last integer will be used for the unspecified levels. The
-   default value is 8. Note that the user can also call
+   default value is 8. The values must be powers of 2, except that with
+   :py:data:`amr.no_box_split_dir` set, on a level with an odd refinement ratio the
+   blocking factor may also be the refinement ratio times a power of 2
+   (e.g., 24 for ref_ratio 3), and the blocking factor divided by the ratio
+   must be a power of 2. See
+   :ref:`sec:grid_creation:odd` for details. Note that the user can also call
    :cpp:`AmrMesh::SetBlockingFactor` to set the blocking
    factors. Additionally, the values set by this parameter can be overridden
    by :py:data:`amr.blocking_factor_x`, :py:data:`amr.blocking_factor_y` and
@@ -256,6 +261,30 @@ can be set via :cpp:`ParmParse`.
 
    This parameter, if found, will override the
    :py:data:`amrex.refine_grid_layout` parameter in the z-direction.
+
+.. py:data:: amr.refine_whole_domain_dir
+   :type: int
+   :value: -1
+
+   If this is 0, 1 or 2, the fine levels will cover the entire domain in that
+   coordinate direction, no matter where the cells are tagged. Tagging a cell
+   then behaves as if the whole line of cells through it in that direction were
+   tagged, and :py:data:`amr.grid_eff` refers to the fraction of tagged cells in
+   the plane perpendicular to that direction. A negative value, the default,
+   disables this.
+
+.. py:data:: amr.no_box_split_dir
+   :type: int
+   :value: -1
+
+   If this is 0, 1 or 2, the grids are never decomposed in that coordinate
+   direction: :py:data:`amr.max_grid_size` and
+   :py:data:`amr.refine_grid_layout` are ignored in it, level 0 is split
+   in the other directions only (when the level 0 blocking factor is 1 in
+   those directions), and on finer levels no two grids share an interior face
+   normal to it. This does not exclude contact through a periodic boundary.
+   See :ref:`sec:grid_creation` for details. A negative value, the
+   default, disables this.
 
 .. py:data:: amr.check_input
    :type: bool
@@ -701,7 +730,10 @@ Embedded Boundary
    extended perpendicularly from the domain face. Otherwise, it's generated
    with the user provided implicit function. Note that this parameter can be
    overridden by the user when calling :cpp:`amrex::EB2::Build` with the
-   optional parameter ``bool extend_domain_face``.
+   optional parameter ``bool extend_domain_face``. Note also that this
+   parameter has no effect for STL geometries, because an STL file is
+   expected to describe a water-tight object that already defines the
+   embedded boundary outside the domain.
 
 .. py:data:: eb2.num_coarsen_opt
    :type: int
@@ -1428,7 +1460,10 @@ Step Sizes
    :value: [none]
 
    When using a multirate method, this parameter sets the fixed step size to use
-   at the fast time scale.
+   at the fast time scale. If it is not set, the fast step size is chosen
+   adaptively with default tolerances. To control those tolerances with
+   :py:data:`integration.fast_rel_tol` and :py:data:`integration.fast_abs_tol`,
+   set :py:data:`integration.use_adaptive_fast_time_step` to true.
 
 .. py:data:: integration.use_adaptive_time_step
    :type: bool
@@ -1436,7 +1471,8 @@ Step Sizes
 
    This parameter enables adaptive time step sizes with single rate methods
    (e.g., ERK) or adaptive time step sizes at the slow time scale with multirate
-   methods (e.g., EX-MRI).
+   methods (e.g., EX-MRI). Adaptive slow time steps with multirate methods
+   require SUNDIALS 7.2 or later.
 
 .. py:data:: integration.use_adaptive_fast_time_step
    :type: bool
@@ -1482,9 +1518,11 @@ documentation
 
 .. py:data:: integration.abs_tol
    :type: amrex::Real
-   :value: 1.e-9
+   :value: [depend on the type of amrex::Real]
 
-   Absolute tolerance for temporal error control.
+   Absolute tolerance for temporal error control. The default value is
+   ``1.e-9`` if :cpp:`amrex::Real` is ``double``, or ``1.e-6`` if
+   :cpp:`amrex::Real` is ``float``.
 
 .. py:data:: integration.fast_rel_tol
    :type: amrex::Real
@@ -1495,10 +1533,11 @@ documentation
 
 .. py:data:: integration.fast_abs_tol
    :type: amrex::Real
-   :value: 1.e-9
+   :value: [depend on the type of amrex::Real]
 
    Absolute tolerance for the temporal error at the fast time scale with
-   multrate methods.
+   multrate methods. The default value is ``1.e-9`` if :cpp:`amrex::Real` is
+   ``double``, or ``1.e-6`` if :cpp:`amrex::Real` is ``float``.
 
 .. _sec:inputs:timeintegration:sundials:algebraicsolvers:
 

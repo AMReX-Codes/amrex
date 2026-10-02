@@ -83,6 +83,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
         target_link_libraries(amrex_${D}d PUBLIC AMReX::Flags_FASTMATH)
     endif ()
 
+    if (NOT AMReX_MATH_ERRNO)
+        target_link_libraries(amrex_${D}d PUBLIC AMReX::Flags_NO_MATH_ERRNO)
+    endif ()
+
     if (AMReX_FPE)
        target_link_libraries(amrex_${D}d
           PUBLIC

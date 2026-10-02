@@ -155,6 +155,7 @@ struct iparser_node* iparser_newassign (struct iparser_symbol* s, struct iparser
 struct iparser_node* iparser_newlist (struct iparser_node* nl, struct iparser_node* nr);
 struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
                                           struct iparser_node* nr);
+struct iparser_node* iparser_newparen (struct iparser_node* n);
 
 /*******************************************************************/
 
@@ -176,6 +177,7 @@ void amrex_iparser_delete_ptrs ();
 struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node);
 
 void iparser_regvar (struct amrex_iparser* iparser, char const* name, int i);
+void iparser_clearvar (struct amrex_iparser* iparser);
 void iparser_setconst (struct amrex_iparser* iparser, char const* name, long long c);
 void iparser_print (struct amrex_iparser* iparser);
 std::set<std::string> iparser_get_symbols (struct amrex_iparser* iparser);

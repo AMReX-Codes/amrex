@@ -105,13 +105,21 @@ public:
     /**
      * \brief Solve the linear system
      *
+     * The initial guess is zero unless setInitialGuessNonzero(true) was
+     * called, in which case it is the value of \p a_sol on entry.
+     *
      * \param a_sol     unknowns, i.e., x in A x = b.
      * \param a_rhs     RHS, i.e., b in A x = b.
-     * \param a_tol_rel relative tolerance.
+     * \param a_tol_rel relative tolerance, relative to the initial residual
+     *                  norm, which is ||b|| for a zero initial guess.
      * \param a_tol_abs absolute tolerance.
      * \param a_its     optional argument specifying the maximum number of iterations.
      */
     void solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int a_its=-1);
+
+    //! Use \p a_sol passed to solve() as the initial guess (default: false,
+    //! i.e., start from zero).
+    void setInitialGuessNonzero (bool flag) { m_nonzero_guess = flag; }
 
     //! Set verbosity level \p v (0 = silent).
     void setVerbose (int v) { m_verbose = v; }
@@ -139,14 +147,17 @@ public:
     //! Final residual 2-norm from the last solve().
     [[nodiscard]] RT getResidualNorm () const { return m_res; }
 
+    //! Initial residual 2-norm from the last solve().
+    [[nodiscard]] RT getInitialResidualNorm () const { return m_rnorm0; }
+
 private:
     void clear ();
     void allocate_scratch ();
-    void cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0);
+    void cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0, int a_maxiter);
     void build_solution (V& a_xx, int it);
     void compute_residual (V& a_rr, V const& a_xx, V const& a_bb);
 
-    bool converged (RT r0, RT r) const;
+    [[nodiscard]] bool converged (RT r0, RT r) const;
 
     void gram_schmidt_orthogonalization (int it);
     void update_hessenberg (int it, bool happyend, RT& res);
@@ -156,7 +167,9 @@ private:
     int m_its = 0;
     int m_status = -1;
     int m_restrtlen = 30;
+    bool m_nonzero_guess = false;
     RT m_res = std::numeric_limits<RT>::max();
+    RT m_rnorm0 = std::numeric_limits<RT>::max();
     RT m_rtol = RT(0);
     RT m_atol = RT(0);
     Vector<RT> m_hh_1d;
@@ -258,19 +271,24 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 
     auto rnorm0 = RT(0);
 
-    m_linop->assign(m_vv[0], a_rhs);
-    m_linop->setToZero(a_sol);
+    if (m_nonzero_guess) {
+        compute_residual(m_vv[0], a_sol, a_rhs);
+    } else {
+        m_linop->assign(m_vv[0], a_rhs);
+        m_linop->setToZero(a_sol);
+    }
 
     m_its = 0;
     m_status = -1;
-    cycle(a_sol, m_status, m_its, rnorm0);
+    cycle(a_sol, m_status, m_its, rnorm0, a_its);
 
     while (m_status == -1 && m_its < a_its) {
         compute_residual(m_vv[0], a_sol, a_rhs);
-        cycle(a_sol, m_status, m_its, rnorm0);
+        cycle(a_sol, m_status, m_its, rnorm0, a_its);
     }
 
     if (m_status == -1 && m_its >= a_its) { m_status = 1; }
+    m_rnorm0 = rnorm0;
 
     m_v_tmp_rhs.reset();
     m_v_tmp_lhs.reset();
@@ -283,7 +301,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 }
 
 template <typename V, typename M>
-void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
+void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0, int a_maxiter)
 {
     BL_PROFILE("GMRES::cycle()");
 
@@ -302,7 +320,7 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
     a_status = converged(a_rnorm0,m_res) ? 0 : -1;
 
     int it = 0;
-    while (it < m_restrtlen && a_itcount < m_maxiter)
+    while (it < m_restrtlen && a_itcount < a_maxiter)
     {
         if (m_verbose > 1) {
             amrex::Print() << "GMRES: iter = " << a_itcount
@@ -343,7 +361,7 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
         if (happyend) { break; }
     }
 
-    if ((m_verbose > 1) && (a_status != 0 || a_itcount >= m_maxiter)) {
+    if ((m_verbose > 1) && (a_status != 0 || a_itcount >= a_maxiter)) {
         amrex::Print() << "GMRES: iter = " << a_itcount
                        << ", residual = " << m_res << ", " << m_res/a_rnorm0
                        << " (rel.)\n";

@@ -1,0 +1,29 @@
+# Reviewers requested automatically when a pull request touches these paths.
+# Paths without an entry get no automatic request; review still happens as
+# described in GOVERNANCE.md and CONTRIBUTING.md.
+#
+# The last matching pattern wins, so keep any broader pattern above the
+# narrower ones it should not override.
+
+# Subsystems
+/Src/Amr/               @WeiqunZhang @asalmgren @atmyers
+/Src/AmrCore/           @WeiqunZhang @asalmgren @atmyers
+/Src/Base/              @WeiqunZhang @asalmgren @atmyers
+/Src/Boundary/          @WeiqunZhang @asalmgren
+/Src/EB/                @WeiqunZhang @asalmgren
+/Src/Extern/            @WeiqunZhang @asalmgren @atmyers
+/Src/F_Interfaces/      @WeiqunZhang
+/Src/FFT/               @WeiqunZhang
+/Src/LinearSolvers/     @WeiqunZhang @asalmgren
+/Src/Particle/          @atmyers
+
+# Build systems. These cover the build infrastructure itself; the
+# CMakeLists.txt and Make.package files inside Src/ subdirectories stay with
+# their subsystem.
+/CMakeLists.txt         @ax3l
+/Tools/CMake/           @ax3l
+/GNUmakefile.in         @WeiqunZhang
+/Tools/GNUMake/         @WeiqunZhang
+
+# CI, issue templates and repository configuration (including this file)
+/.github/               @ax3l @WeiqunZhang @atmyers

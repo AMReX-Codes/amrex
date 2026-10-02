@@ -13,8 +13,10 @@
 #include <AMReX_Vector.H>
 
 #include <array>
+#include <cmath>
 #include <concepts>
 #include <iosfwd>
+#include <limits>
 #include <optional>
 #include <set>
 #include <string>
@@ -1553,16 +1555,19 @@ public:
         double dref;
         int exist = queryWithParser(name, dref);
         if (exist) {
-            if (std::is_integral_v<value_type>) {
+            if constexpr (std::is_integral_v<value_type>) {
                 dref = std::round(dref);
             }
-            auto vref = static_cast<value_type>(dref);
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                if (static_cast<double>(vref) != dref) {
+                // Range check before the cast, which would otherwise be UB.
+                // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1); // NOLINT(bugprone-integer-division)
+                if (!(dref >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                      dref <  upper)) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
                 }
             }
-            ref = vref;
+            ref = static_cast<value_type>(dref);
         }
         return exist;
     }
@@ -1584,16 +1589,18 @@ public:
         int exist = queryarrWithParser(name, nvals, dref.data());
         if (exist) {
             for (int i = 0; i < nvals; ++i) {
-                if (std::is_integral_v<value_type>) {
+                if constexpr (std::is_integral_v<value_type>) {
                     dref[i] = std::round(dref[i]);
                 }
-                auto vref = static_cast<value_type>(dref[i]);
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                    if (static_cast<double>(vref) != dref[i]) {
+                    // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                    constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);  // NOLINT(bugprone-integer-division)
+                    if (!(dref[i] >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                          dref[i] <  upper)) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
                 }
-                ptr[i] = vref;
+                ptr[i] = static_cast<value_type>(dref[i]);
             }
         }
         return exist;

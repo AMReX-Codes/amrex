@@ -220,7 +220,7 @@ public:
      * \param niter  Number of smoothing passes to execute.
      */
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                 bool skip_fillboundary, int niter) const final;
+                 bool skip_fillboundary, int niter) const override;
 
     /**
      * \brief Compute the residual `resid = b - A(x)` using solution boundary data.
@@ -887,9 +887,12 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                                                    br_ref_ratio, this->m_coarse_bc_loc,
                                                    this->m_domain_bloc_lo, this->m_domain_bloc_hi,
                                                    crse_fine_bc_type);
+        m_bc_tags[amrlev][mglev].undefine();
     }
 
-    if (this->hasRobinBC()) {
+    // In precond mode beginPrecondBC calls this with null Robin data; keep
+    // the user's a, b and f rather than dereferencing the null pointers.
+    if (this->hasRobinBC() && !this->m_precond_mode) {
         AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr && robinbc_f != nullptr);
         this->m_robin_bcval[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
                                                      this->m_dmap[amrlev][0],
@@ -1251,6 +1254,9 @@ MLCellLinOpT<MF>::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
 {
     const int ncomp = this->getNComp();
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[cmglev-1];
+    // MG levels inside a fine AMR level are not coarsened in the hidden
+    // direction either.
+    if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
     amrex::average_down(fine, crse, 0, ncomp, ratio);
 }
 
@@ -1262,6 +1268,7 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
 
     Dim3 ratio3 = {.x = 2, .y = 2, .z = 2};
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
     AMREX_D_TERM(ratio3.x = ratio[0];,
                  ratio3.y = ratio[1];,
                  ratio3.z = ratio[2];);
@@ -1310,7 +1317,8 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     const int ncomp = this->getNComp();
 
     const Geometry& crse_geom = this->Geom(amrlev,fmglev+1);
-    const IntVect refratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    IntVect refratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    if (this->hasHiddenDimension()) { refratio[this->hiddenDirection()] = 1; }
     const IntVect ng = crse.nGrowVect();
 
     MF cfine;
@@ -1325,7 +1333,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     {
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
-        cfine.define(cba, fine.DistributionMap(), ncomp, ng);
+        cfine.define(cba, fine.DistributionMap(), ncomp, ng, MFInfo().SetArena(The_Async_Arena()));
         cfine.setVal(RT(0.0));
         cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
         cmf = & cfine;
@@ -1799,13 +1807,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc*rc;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 rhsarr(i,j,k,n) *= re*re;
             });
         }
@@ -1813,13 +1821,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rc = probxlo + (i+RT(0.5))*dx;
+                RT rc = probxlo + (RT(i)+RT(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 rhsarr(i,j,k,n) *= re;
             });
         }
@@ -1855,13 +1863,13 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rcinv = RT(1.0)/(probxlo + (i+RT(0.5))*dx);
+                RT rcinv = RT(1.0)/(probxlo + (RT(i)+RT(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv*rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 RT reinv = (re==RT(0.0)) ? RT(0.0) : RT(1.)/re;
                 rhsarr(i,j,k,n) *= reinv*reinv;
             });
@@ -1870,13 +1878,13 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT rcinv = RT(1.0)/(probxlo + (i+RT(0.5))*dx);
+                RT rcinv = RT(1.0)/(probxlo + (RT(i)+RT(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                RT re = probxlo + i*dx;
+                RT re = probxlo + RT(i)*dx;
                 RT reinv = (re==RT(0.0)) ? RT(0.0) : RT(1.)/re;
                 rhsarr(i,j,k,n) *= reinv;
             });
@@ -2385,6 +2393,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
             const MultiFab& vfrac = factory->getVolFrac();
+            // |r*vfrac| with NaN as +inf; covered cells do not count.
+            Math::detail::AbsNanToInf<Real> const absinf{};
             if (amrlev == finest_level) {
 #ifdef AMREX_USE_GPU
                 if (Gpu::inLaunchRegion()) {
@@ -2395,8 +2405,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
                                          -> GpuTuple<Real>
                                      {
-                                         return std::abs(ma[box_no](i,j,k,n)
-                                                                 *vfrac_ma[box_no](i,j,k));
+                                         Real const vf = vfrac_ma[box_no](i,j,k);
+                                         return (vf > Real(0)) ? absinf(ma[box_no](i,j,k,n))*vf : Real(0);
                                      });
                 } else
 #endif
@@ -2410,7 +2420,9 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
+                            if (v(i,j,k) > Real(0)) {
+                                norm = std::max(norm, absinf(fab(i,j,k,n))*v(i,j,k));
+                            }
                         });
                     }
                 }
@@ -2426,8 +2438,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                          -> GpuTuple<Real>
                                      {
                                          if (mask_ma[box_no](i,j,k)) {
-                                             return std::abs(ma[box_no](i,j,k,n)
-                                                                     *vfrac_ma[box_no](i,j,k));
+                                             Real const vf = vfrac_ma[box_no](i,j,k);
+                                             return (vf > Real(0)) ? absinf(ma[box_no](i,j,k,n))*vf : Real(0);
                                          } else {
                                              return Real(0.0);
                                          }
@@ -2445,8 +2457,8 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            if (mask(i,j,k)) {
-                                norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
+                            if (mask(i,j,k) && v(i,j,k) > Real(0)) {
+                                norm = std::max(norm, absinf(fab(i,j,k,n))*v(i,j,k));
                             }
                         });
                     }

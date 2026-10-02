@@ -11,6 +11,9 @@
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
 #cmakedefine AMREX_USE_ROCTX
+#cmakedefine AMREX_CRAYPAT
+#cmakedefine AMREX_FORGE
+#cmakedefine AMREX_VTUNE
 #cmakedefine AMREX_MEM_PROFILING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
@@ -59,7 +62,6 @@
 #endif
 #cmakedefine AMREX_USE_ACC
 #cmakedefine AMREX_USE_GPU
-#cmakedefine BL_COALESCE_FABS
 #cmakedefine AMREX_USE_GPU_RDC
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5

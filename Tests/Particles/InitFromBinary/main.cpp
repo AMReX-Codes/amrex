@@ -46,7 +46,7 @@ void test_init_binary ()
     Real total_mass = amrex::ReduceSum(pc,
                                        [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
                                        {
-                                           return p.rdata(0);
+                                           return static_cast<Real>(p.rdata(0));
                                        });
 
     ParallelDescriptor::ReduceRealSum(total_mass);

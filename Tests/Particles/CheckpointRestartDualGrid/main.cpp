@@ -134,7 +134,7 @@ void add_finest_level_particles (MyPC& pc, MeshData const& mesh,
 
             PType p;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                p.pos(d) = static_cast<ParticleReal>(problo[d] + (iv[d] + 0.5_rt) * dx[d]);
+                p.pos(d) = static_cast<ParticleReal>(problo[d] + (Real(iv[d]) + 0.5_rt) * dx[d]);
             }
             for (int i = 0; i < NStructReal; ++i) {
                 p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
@@ -174,11 +174,11 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
     for (int icomp = 0; icomp < NStructReal + NArrayReal; ++icomp) {
         auto sm_orig = amrex::ReduceSum(pc_orig,
             [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return p.rdata(icomp);
+                return static_cast<Real>(p.rdata(icomp));
             });
         auto sm_new = amrex::ReduceSum(pc_new,
             [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return p.rdata(icomp);
+                return static_cast<Real>(p.rdata(icomp));
             });
         ParallelDescriptor::ReduceRealSum(sm_orig);
         ParallelDescriptor::ReduceRealSum(sm_new);

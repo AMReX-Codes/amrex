@@ -1,0 +1,21 @@
+# Level 1 covers only the last two coarsened cells at the upper x boundary, so
+# only the partial last one is properly nested for level 2.  Regridding from
+# level 1 must not create a level 2 grid 8 cells wide with blocking factor 16.
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 0 0 0
+
+amr.n_cell = 30 32 32
+amr.max_level = 2
+amr.ref_ratio = 2
+amr.no_box_split_dir = 2
+amr.blocking_factor = 1 8 16
+amr.max_grid_size = 32
+amr.n_error_buf = 0
+amr.refine_grid_layout = 0
+
+test.centers = 10.5 0.5 0.5
+test.radius = 9.52
+test.initial_levels = 1
+test.regrid_lbase = 1
+test.expected_finest = 1

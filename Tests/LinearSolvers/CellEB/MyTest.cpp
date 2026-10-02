@@ -51,13 +51,6 @@ MyTest::solve ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
-    if (use_hypre || use_petsc) {
-        if (factory[0]->isAllRegular()) {
-            linop_maxorder = std::min(3,linop_maxorder);
-        } else {
-            linop_maxorder = 2;
-        }
-    }
     mleb.setMaxOrder(linop_maxorder);
 
     mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -86,10 +79,13 @@ MyTest::solve ()
     mlmg.setBottomTolerance(bottom_reltol);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
     if (use_hypre) {
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
     } else if (use_petsc) {
         mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+    } else if (use_algmg_bottom) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
     }
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
@@ -179,6 +175,8 @@ MyTest::readParameters ()
     pp.query("max_bottom_iter", max_bottom_iter);
     pp.query("bottom_reltol", bottom_reltol);
     pp.query("reltol", reltol);
+    pp.query_enum_case_insensitive("multigrid_type", multigrid_type);
+    pp.query("use_algmg_bottom", use_algmg_bottom);
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE

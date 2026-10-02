@@ -633,6 +633,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcx   holds (  y,z) of the x-face centroid as components ( /0/1)
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n)
@@ -657,8 +662,8 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           phi_x(i,j,k,n) = Real(0.5) * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
       }
-      else if ( apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < Real(1.e-8)) &&
-                                   (std::abs(ccent(i,j,k,2)-ccent(i-1,j,k,2)) < Real(1.e-8)) )
+      else if ( apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < small_ctr) &&
+                                   (std::abs(ccent(i,j,k,2)-ccent(i-1,j,k,2)) < small_ctr) )
       {
           Real d0 = Real(0.5) + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1 = Real(0.5) - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
@@ -671,7 +676,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           // We must add additional tests to avoid the case where fcx is very close to zero, but j-1/j+1 or k-1/k+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid planes
           int jj,kk;
-          if (std::abs(fcx(i,j,k,0)) > Real(1.e-8)) {
+          if (std::abs(fcx(i,j,k,0)) > small_ctr) {
               jj = (fcx(i,j,k,0) < Real(0.0)) ? j - 1 : j + 1;
           } else if (apx(i,j-1,k) > Real(0.)) {
               jj = j-1;
@@ -679,7 +684,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               jj = j+1;
           }
 
-          if (std::abs(fcx(i,j,k,1)) > Real(1.e-8)) {
+          if (std::abs(fcx(i,j,k,1)) > small_ctr) {
               kk = (fcx(i,j,k,1) < Real(0.0)) ? k - 1 : k + 1;
           } else if (apx(i,j,k-1) > Real(0.)) {
               kk = k-1;
@@ -854,6 +859,11 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcy   holds (x,  z) of the y-face centroid as components (0/ /1)
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n)
@@ -878,8 +888,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
         {
             phi_y(i,j,k,n) = Real(0.5) * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
         }
-        else if ( apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < Real(1.e-8)) &&
-                                      (std::abs(ccent(i,j,k,2)-ccent(i,j-1,k,2)) < Real(1.e-8)) )
+        else if ( apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < small_ctr) &&
+                                      (std::abs(ccent(i,j,k,2)-ccent(i,j-1,k,2)) < small_ctr) )
         {
             Real d0 = Real(0.5) + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ,k) to face(i,j,k)
             Real d1 = Real(0.5) - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1,k) to face(i,j,k)
@@ -893,7 +903,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           // We must add additional tests to avoid the case where fcy is very close to zero, but i-1/i+1 or k-1/k+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
           int ii,kk;
-          if (std::abs(fcy(i,j,k,0)) > Real(1.e-8)) {
+          if (std::abs(fcy(i,j,k,0)) > small_ctr) {
               ii = (fcy(i,j,k,0) < Real(0.0)) ? i - 1 : i + 1;
           } else if (apy(i-1,j,k) > Real(0.)) {
               ii = i-1;
@@ -901,7 +911,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               ii = i+1;
           }
 
-          if (std::abs(fcy(i,j,k,1)) > Real(1.e-8)) {
+          if (std::abs(fcy(i,j,k,1)) > small_ctr) {
               kk = (fcy(i,j,k,1) < Real(0.0)) ? k - 1 : k + 1;
           } else if (apy(i,j,k-1) > Real(0.)) {
               kk = k-1;
@@ -1072,6 +1082,11 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcz   holds (x,y  ) of the z-face centroid as components (0/1  )
   amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n)
@@ -1096,8 +1111,8 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
         {
             phi_z(i,j,k,n) = Real(0.5) * (phi(i,j,k,n) + phi(i,j,k-1,n));
         }
-        else if ( apz(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j,k-1,0)) < Real(1.e-8)) &&
-                                      (std::abs(ccent(i,j,k,1)-ccent(i,j,k-1,1)) < Real(1.e-8)) )
+        else if ( apz(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j,k-1,0)) < small_ctr) &&
+                                      (std::abs(ccent(i,j,k,1)-ccent(i,j,k-1,1)) < small_ctr) )
         {
             Real d0 = Real(0.5) + ccent(i,j,k  ,2);                                // distance in z-dir from centroid(i,j,k  ) to face(i,j,k)
             Real d1 = Real(0.5) - ccent(i,j,k-1,2);                                // distance in z-dir from centroid(i,j,k-1) to face(i,j,k)
@@ -1110,7 +1125,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           // We must add additional tests to avoid the case where fcz is very close to zero, but i-1/i+1 or j-1/j+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
           int ii,jj;
-          if (std::abs(fcz(i,j,k,0)) > Real(1.e-8)) {
+          if (std::abs(fcz(i,j,k,0)) > small_ctr) {
               ii = (fcz(i,j,k,0) < Real(0.0)) ? i - 1 : i + 1;
           } else if (apz(i-1,j,k) > Real(0.)) {
               ii = i-1;
@@ -1118,7 +1133,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               ii = i+1;
           }
 
-          if (std::abs(fcz(i,j,k,1)) > Real(1.e-8)) {
+          if (std::abs(fcz(i,j,k,1)) > small_ctr) {
               jj = (fcz(i,j,k,1) < Real(0.0)) ? j - 1 : j + 1;
           } else if (apz(i,j-1,k) > Real(0.)) {
               jj = j-1;

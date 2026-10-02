@@ -5,7 +5,7 @@
 #
 cmake_minimum_required(VERSION 3.25)
 
-project(amrex-test-install)
+project(amrex-test-install LANGUAGES CXX)
 
 if(DEFINED CMAKE_Fortran_COMPILER)
     enable_language(Fortran)

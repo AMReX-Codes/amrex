@@ -8,6 +8,9 @@ on:
 # originated from a fork. The purpose here is to trigger a workflow_run
 # cleanup-cache-postpr.yml that has the right permission.
 
+permissions:
+  contents: read
+
 jobs:
   noop:
     runs-on: ubuntu-latest

@@ -61,6 +61,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | USE_RPATH       | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
+   | USE_MATH_ERRNO  | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
    | WARN_ALL        | TRUE or FALSE                       | TRUE for DEBUG     |
    |                 |                                     | FALSE otherwise    |
    +-----------------+-------------------------------------+--------------------+
@@ -70,7 +72,8 @@ list of important variables.
    | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
-   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE; FALSE with   |
+   |                 |                                     | HIP and OpenMP     |
    +-----------------+-------------------------------------+--------------------+
    | USE_LIBCXX      | If TRUE, add -stdlib=libc++ to      | none               |
    |                 | clang++'s CXXFLAGS.                 |                    |
@@ -132,6 +135,9 @@ If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
 When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
+
+Unless ``USE_MATH_ERRNO`` is ``TRUE``, non-debug GCC and Clang builds use
+``-fno-math-errno`` for AMReX and the application, making math functions faster.
 
 For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
 also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.
@@ -487,6 +493,9 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)         |  YES, NO              |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_MATH_ERRNO             |  Let math functions set errno in non-Debug      | NO                      |  YES, NO              |
+   |                              |  builds                                         |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
@@ -503,7 +512,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES                     | YES, NO               |
+   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES; NO with HIP and    | YES, NO               |
+   |                              |                                                 | OpenMP                  |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

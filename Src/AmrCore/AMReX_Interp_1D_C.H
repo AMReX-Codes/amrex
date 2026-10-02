@@ -62,7 +62,7 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
         for (int i = lo.x; i <= hi.x; ++i) {
             const int ic = amrex::min(amrex::coarsen(i,ratio[0]),chi.x);
             const Real fx = i - ic*ratio[0];
-            fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp) + fx*slope(ic,0,0,0);
+            fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp) + fx*slope(ic,0,0,n);
         }
     }
 }

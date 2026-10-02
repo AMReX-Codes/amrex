@@ -9,8 +9,11 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main");
         MyTest mytest;
-        mytest.solve();
-        mytest.compute_norms();
+        for (auto const& mgt : mytest.getMultigridTypes()) {
+            mytest.setMultigridType(mgt);
+            mytest.solve();
+            mytest.compute_norms();
+        }
         mytest.writePlotfile();
     }
 

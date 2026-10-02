@@ -57,8 +57,21 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
 
 #ifdef AMREX_USE_SYCL
 
+    // oneMKL initializes engine id of an engine_descriptor as
+    // Engine{seed, id*offset}.  With an offset of 1, all N engines would be
+    // the same philox4x32x10 stream shifted by one element per engine, so the
+    // k-th draw of work-item t would equal the (k-1)-th draw of work-item t+1,
+    // and random fields would be correlated across neighboring work-items and
+    // successive kernels.  Give every engine its own window of the stream
+    // instead, in the spirit of the distinct curand/hiprand subsequences
+    // below.  Philox skip-ahead is counter arithmetic, so the size of the
+    // offset does not matter for the cost of initialization.
+    constexpr ULong elements_per_engine = ULong(1) << 36;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (static_cast<ULong>(N) <= std::numeric_limits<ULong>::max() / elements_per_engine,
+         "ResizeRandomSeed: too many RNG engines for the per-engine offset");
     rand_engine_descr = new sycl_rng_descr
-        (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, 1);
+        (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, elements_per_engine);
 
     gpu_rand_generator = new std::remove_pointer_t<decltype(gpu_rand_generator)>
         (Gpu::Device::streamQueue(), gpu_seed+1234ULL);
@@ -200,6 +213,10 @@ RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
     int N = std::min(nthreads, nthreads_old);
     for (int i = 0; i < N; i++) {
         is >> generators[i];
+    }
+    std::mt19937 discarded;
+    for (int i = N; i < nthreads_old; i++) { // consume what SaveRandomState wrote
+        is >> discarded;
     }
     if (nthreads > nthreads_old) {
         const int NProcs = ParallelDescriptor::NProcs();
@@ -388,6 +405,6 @@ extern "C" {
     // This is for Fortran, which doesn't have unsigned long.
     amrex::Long amrex_random_int (amrex::Long n)
     {
-        return static_cast<amrex::Long>(amrex::Random_int(static_cast<amrex::ULong>(n)));
+        return static_cast<amrex::Long>(amrex::Random_long(static_cast<amrex::ULong>(n)));
     }
 }

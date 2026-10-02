@@ -566,16 +566,20 @@ namespace amrex
         return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
     }
 
-    //! Return currently enabled FP exceptions. Linux only.
+    //! Return currently enabled FP exceptions. Linux and macOS only; a
+    //! no-op elsewhere, including musl-based Linux.
     [[nodiscard]] FPExcept getFPExcept ();
 
-    //! Set FP exception traps. Linux only. This enables set flags and
-    //! DISABLES unset flags. This can be used to restore previous settings.
+    //! Set FP exception traps. This enables set flags and DISABLES unset
+    //! flags. This can be used to restore previous settings. See
+    //! disableFPExcept() on when `std::feclearexcept` is also needed. Linux
+    //! and macOS only; a no-op elsewhere, including musl-based Linux.
     //! \param excepts Bit mask describing which traps should be enabled.
     FPExcept setFPExcept (FPExcept excepts);
 
     /**
-     * \brief Disable FP exceptions. Linux Only
+     * \brief Disable FP exceptions. Linux and macOS only; a no-op
+     * elsewhere, including musl-based Linux.
      *
      * This function disables given exception traps and keeps the status of
      * the others. The example below disables FPE invalid and
@@ -584,14 +588,23 @@ namespace amrex
      \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
          // ....
+         std::feclearexcept(FE_ALL_EXCEPT); // see the note below
          setFPExcept(prev_excepts); // restore previous settings
      \endcode
+     *
+     * Disabling a trap does not clear the hardware's record that an
+     * exception occurred. A pending exception may not be reported until
+     * the next floating point instruction, making the SIGFPE appear to
+     * come from an unrelated place. `std::feclearexcept(FE_ALL_EXCEPT)`
+     * (`<cfenv>`) avoids that, but discards all recorded exceptions.
+     *
      * \param excepts Bit mask describing which traps should be disabled.
      */
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
 
     /**
-     * \brief Enable FP exceptions. Linux Only
+     * \brief Enable FP exceptions. Linux and macOS only; a no-op
+     * elsewhere, including musl-based Linux.
      *
      * This function enables given exception traps and keeps the status of
      * the others. The example below enables all FPE traps, and later

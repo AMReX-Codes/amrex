@@ -120,6 +120,24 @@ int main(int argc, char* argv[])
         int qval = -1;
         bool found = pp.query("integers", qval, 1);
         AMREX_ALWAYS_ASSERT(found && qval == 2);
+
+        // Every element is read, not just the first.
+        std::vector<int> fiv;
+        pp.getarr("floats", fiv);
+        AMREX_ALWAYS_ASSERT(fiv == iv && pp.countval("floats") == 3);
+
+        bool b0 = false, b1 = true;
+        pp.get("booleans", b0, 0);
+        pp.get("booleans", b1, 1);
+        AMREX_ALWAYS_ASSERT(b0 && !b1);
+
+        // Non-string elements read as strings keep their text.
+        std::vector<std::string> isv;
+        pp.getarr("integers", isv);
+        AMREX_ALWAYS_ASSERT(isv == std::vector<std::string>({"1","2","3"}));
+        std::string iline;
+        pp.getline("integers", iline);
+        AMREX_ALWAYS_ASSERT(iline == "1 2 3");
     }
 #endif
 

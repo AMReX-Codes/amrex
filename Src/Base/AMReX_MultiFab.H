@@ -149,6 +149,8 @@ public:
     * The parameter \p nghost determines the number of
     * boundary cells to search for the minimum. The default is to
     * search only the valid regions of the FArrayBoxes.
+    *
+    * If the MultiFab has an EB factory, covered cells are ignored.
     */
     [[nodiscard]] Real min (int comp,
               int nghost = 0,
@@ -172,6 +174,8 @@ public:
     * The parameter \p nghost determines the number of
     * boundary cells to search for the maximum. The default is to
     * search only the valid regions of the FArrayBoxes.
+    *
+    * If the MultiFab has an EB factory, covered cells are ignored.
     */
     [[nodiscard]] Real max (int comp,
               int nghost = 0,

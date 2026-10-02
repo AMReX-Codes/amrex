@@ -45,8 +45,10 @@ namespace amrex
         // against std::nextafter itself on the host.
         constexpr Real almost_one
             = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
+        constexpr Real midpoint
+            = Real(1) - Real(0.25)*std::numeric_limits<Real>::epsilon();
         static_assert(almost_one < Real(1));
-        static_assert(Real(1) - Real(0.25)*std::numeric_limits<Real>::epsilon() == Real(1));
+        static_assert(midpoint == Real(1));
         // No generator produces NaN, but note this maps it to almost_one
         // rather than propagating it, since the comparison is false for NaN.
         return (v < almost_one) ? v : almost_one;

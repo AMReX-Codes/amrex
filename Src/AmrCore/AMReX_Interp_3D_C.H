@@ -456,8 +456,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=0; j < ratio[1]; ++j){
     for( int i=1; i < ratio[0]; ++i){
 
-       fine[0](fi + i, fj + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,           fj + j, fk + k, nf)
-                                        +     i       *fine[0](fi+ratio[0], fj + j, fk + k, nf) )/ratio[0];
+       fine[0](fi + i, fj + j, fk + k, nf) = (Real(ratio[0]-i)*fine[0](fi,           fj + j, fk + k, nf)
+                                        +     Real(i) *fine[0](fi+ratio[0], fj + j, fk + k, nf) )/Real(ratio[0]);
 
     }
     }
@@ -467,8 +467,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=1; j < ratio[1]; ++j){
     for( int i=0; i < ratio[0]; ++i){
 
-       fine[1](fi + i, fj + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi + i, fj,           fk + k, nf)
-                                        +     j       *fine[1](fi + i, fj+ratio[1], fk + k, nf) )/ratio[1];
+       fine[1](fi + i, fj + j, fk + k, nf) = (Real(ratio[1]-j)*fine[1](fi + i, fj,           fk + k, nf)
+                                        +     Real(j) *fine[1](fi + i, fj+ratio[1], fk + k, nf) )/Real(ratio[1]);
 
     }
     }
@@ -478,8 +478,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=0; j < ratio[1]; ++j){
     for( int i=0; i < ratio[0]; ++i){
 
-       fine[2](fi + i, fj + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi + i, fj + j, fk,           nf)
-                                        +     k       *fine[2](fi + i, fj + j, fk+ratio[2], nf) )/ratio[2];
+       fine[2](fi + i, fj + j, fk + k, nf) = (Real(ratio[2]-k)*fine[2](fi + i, fj + j, fk,           nf)
+                                        +     Real(k) *fine[2](fi + i, fj + j, fk+ratio[2], nf) )/Real(ratio[2]);
 
     }
     }

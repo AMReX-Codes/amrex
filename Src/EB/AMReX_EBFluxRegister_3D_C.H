@@ -13,7 +13,7 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Real dtdx, Real dtdy, Real dtdz, int ncomp)
 {
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
-        && vfrac(i,j,k) > Real(1.e-14))
+        && vfrac(i,j,k) > eb_flux_reg_small_volfrac)
     {
         Real volinv = Real(1.0)/vfrac(i,j,k);
 
@@ -22,7 +22,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) -= tmp*fx(i,j,k,n);
             }
-        } else if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
+        }
+        if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdx*ax(i+1,j,k)*volinv;
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) += tmp*fx(i+1,j,k,n);
@@ -34,7 +35,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) -= tmp*fy(i,j,k,n);
             }
-        } else if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
+        }
+        if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdy*ay(i,j+1,k)*volinv;
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) += tmp*fy(i,j+1,k,n);
@@ -46,7 +48,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) -= tmp*fz(i,j,k,n);
             }
-        } else if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
+        }
+        if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdz*az(i,j,k+1)*volinv;
             for (int n = 0; n < ncomp; ++n) {
                 d(i,j,k,n) += tmp*fz(i,j,k+1,n);
@@ -84,7 +87,7 @@ void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -103,7 +106,7 @@ void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -122,7 +125,7 @@ void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -141,7 +144,7 @@ void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -160,7 +163,7 @@ void eb_flux_reg_fineadd_va_zlo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -179,7 +182,7 @@ void eb_flux_reg_fineadd_va_zhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,eb_flux_reg_small_volfrac);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }

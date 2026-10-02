@@ -6,7 +6,13 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_BCRec.H>
 
+#include <type_traits>
+
 using namespace amrex;
+
+// The Fortran quadrature module is written for double precision only.
+static_assert(std::is_same_v<amrex_real,double>,
+              "SDC requires amrex_real to be double");
 
 extern "C"  {
 
@@ -27,8 +33,8 @@ class SDCstruct
  {
 
  public:
-   Real* qnodes;      //!< The quadrature nodes
-   int*  Nflags;      //!< Flags for quadrature rules
+   Vector<Real> qnodes;   //!< The quadrature nodes
+   Vector<int>  Nflags;   //!< Flags for quadrature rules
 
    int Nnodes;         //!< Number of quadrature nodes
    int qtype=1;        //!< Type of quadrature nodes
@@ -37,7 +43,7 @@ class SDCstruct
 
 
    // The quadrature matrices
-   Real* Qall;
+   Vector<Real> Qall;
    Vector<Vector<Real>> Qgauss;     //!< Gauss collocation
    Vector<Vector<Real>> Qexp;       //!< Explicit
    Vector<Vector<Real>> Qimp;       //!< Implicit

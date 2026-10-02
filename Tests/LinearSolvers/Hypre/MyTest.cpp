@@ -272,6 +272,11 @@ MyTest::solve ()
                            reltol, 0.0, max_iter);
     }
 
+    // Unlike MLMG, the hypre solve does not stop on a NaN.
+    if (phi.contains_nan(0, phi.nComp(), 0)) {
+        amrex::Abort("MyTest::solve: solution contains NaN");
+    }
+
     amrex::VisMF::Write(phi, "phi");
 }
 

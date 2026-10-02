@@ -1,3 +1,10 @@
+ifndef AMREX_LINEAR_SOLVERS_MAKE
+       AMREX_LINEAR_SOLVERS_MAKE := 1
+
+CEXE_headers += AMReX_AlgMG.H
+
+CEXE_headers += AMReX_BiCGStab.H AMReX_BiCGStab_MV.H AMReX_KrylovMV.H AMReX_PCG.H AMReX_PCG_MV.H
+
 CEXE_headers += AMReX_GMRES.H AMReX_GMRES_MLMG.H
 
 CEXE_headers += AMReX_GMRES_MV.H
@@ -10,12 +17,15 @@ CEXE_sources += AMReX_AlgPartition.cpp
 CEXE_headers += AMReX_AlgVector.H
 CEXE_headers += AMReX_AlgVecUtil.H
 CEXE_headers += AMReX_CSR.H
+CEXE_headers += AMReX_SpGEMM.H
 CEXE_headers += AMReX_SpMatrix.H
 CEXE_headers += AMReX_SpMatUtil.H
 CEXE_headers += AMReX_SpMV.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers
+
+endif
 
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 ifeq ($(DIM),3)

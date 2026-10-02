@@ -23,7 +23,7 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                 } else if (fx(i,j,k) == Type::covered) {
                     excent(i,j,k) = Real(-1.0);
                 } else {
-                    Real xcut = Real(0.5)*(excent(i,j,k) - (problo[0]+i*dx[0]))*dxinv;
+                    Real xcut = Real(0.5)*(excent(i,j,k) - (problo[0]+Real(i)*dx[0]))*dxinv;
                     if (levset(i,j,k) < levset(i+1,j,k)) { // right side covered
                         xcut -= Real(0.5);
                     }
@@ -38,7 +38,7 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                 } else if (fy(i,j,k) == Type::covered) {
                     eycent(i,j,k) = Real(-1.0);
                 } else {
-                    Real ycut = Real(0.5)*(eycent(i,j,k) - (problo[1]+j*dx[1]))*dyinv;
+                    Real ycut = Real(0.5)*(eycent(i,j,k) - (problo[1]+Real(j)*dx[1]))*dyinv;
                     if (levset(i,j,k) < levset(i,j+1,k)) { // right side covered
                         ycut -= Real(0.5);
                     }
@@ -53,7 +53,7 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                 } else if (fz(i,j,k) == Type::covered) {
                     ezcent(i,j,k) = Real(-1.0);
                 } else {
-                    Real zcut = Real(0.5)*(ezcent(i,j,k) - (problo[2]+k*dx[2]))*dzinv;
+                    Real zcut = Real(0.5)*(ezcent(i,j,k) - (problo[2]+Real(k)*dx[2]))*dzinv;
                     if (levset(i,j,k) < levset(i,j,k+1)) { // right side covered
                         zcut -= Real(0.5);
                     }

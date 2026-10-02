@@ -227,6 +227,11 @@ reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
        std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
    }
 
+An enumerator may be given an explicit value, which must be either the name of
+a preceding enumerator or a decimal, octal or hexadecimal integer literal.
+Binary literals and expressions such as :cpp:`1 << 2` are not supported and
+result in a runtime error.
+
 Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
 class template.
 
@@ -898,7 +903,9 @@ Supported Operators and Functions
 **Special functions:** ``erf``, ``jn(n,x)`` (Bessel function of the first
 kind of order ``n``), ``yn(n,x)`` (Bessel function of the second kind of
 order ``n``), ``comp_ellint_1(k)`` and ``comp_ellint_2(k)`` (complete
-elliptic integrals of the first and second kind).
+elliptic integrals of the first and second kind).  In SYCL builds without the
+Intel math extension, ``jn`` and ``yn`` are host-only, so :cpp:`compile` aborts
+for expressions using them; use :cpp:`compileHost` instead.
 
 **Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
 ``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
@@ -909,6 +916,8 @@ elliptic integrals of the first and second kind).
 **Comparison operators:** ``<``, ``>``, ``==``, ``!=``, ``<=``, ``>=``.
 Comparisons return ``1.0`` for true and ``0.0`` for false. They can be
 chained (e.g., ``a < x < b`` is equivalent to ``a < x and x < b``).
+Parentheses stop chaining, so ``(a < x) < b`` compares the result of
+``a < x`` with ``b``.
 
 **Logical operators:** ``and``, ``or``. A value is considered true if it is
 nonzero. The precedence of operators follows the convention of the C and C++
@@ -992,6 +1001,10 @@ The registration functions are :cpp:`registerUserFn1`, :cpp:`registerUserFn2`,
 :cpp:`registerUserFn3`, and :cpp:`registerUserFn4` for functions with one, two,
 three, and four arguments, respectively. In CPU-only builds, either function
 pointer argument may be ``nullptr`` and the non-null one will be used.
+
+Note that user-defined functions are not supported in device code in SYCL
+builds.  :cpp:`compile` aborts for such an expression; use
+:cpp:`compileHost` and evaluate it on the host instead.
 
 Querying the Parser
 -------------------
@@ -1189,7 +1202,11 @@ The class has a static function :cpp:`TheZeroVector()` returning the zero
 vector, :cpp:`TheUnitVector()` returning the unit vector, and
 :cpp:`TheDimensionVector (int dir)` returning a reference to a constant
 :cpp:`IntVect` that is zero except in the :cpp:`dir`-direction. Note the
-direction is zero-based. :cpp:`IntVect` has a number of relational operators,
+direction is zero-based. For index types, :cpp:`TheCellVector()` and
+:cpp:`TheNodeVector()` return the cell-centered and nodal types,
+:cpp:`TheFaceVector (int dir)` the type of faces normal to :cpp:`dir`, and
+:cpp:`TheEdgeVector (int dir)` the type of edges parallel to :cpp:`dir`.
+:cpp:`IntVect` has a number of relational operators,
 :cpp:`==`, :cpp:`!=`, :cpp:`<`, :cpp:`<=`, :cpp:`>`, and :cpp:`>=` that can be
 used for lexicographical comparison (e.g., key of :cpp:`std::map`), and a class
 :cpp:`IntVect::shift_hasher` that can be used as a hash function (e.g., for
@@ -2134,6 +2151,13 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
       // int      nc   : number of components for this operation
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
+
+The infinity norm, :cpp:`mf.norminf(comp, ncomp, nghost)`, counts a NaN as
+infinity, so a NaN in the data always shows up in the norm.  To test single
+values, use :cpp:`amrex::isnan`, :cpp:`amrex::isinf` and
+:cpp:`amrex::isfinite`.  Unlike the ``std::`` versions, they work in builds
+with fast-math optimizations (e.g., ``AMReX_FASTMATH=ON``), where the compiler
+may assume that NaNs and infinities never occur.
 
 We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
 ``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted again

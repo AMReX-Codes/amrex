@@ -22,12 +22,17 @@ enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, 
 if supported.  Alternatively, one can always use runtime parameters to control the
 handling of floating-point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and
-``amrex.fpe_trap_overflow`` for overflow. To trap the
+``amrex.fpe_trap_overflow`` for overflow. Note that by default clang
+assumes floating-point exceptions are not trapped, so an optimized build may
+raise exceptions the source code does not (e.g., in unused SIMD lanes). To
+trap floating-point exceptions in an optimized clang build, also compile with
+``-ffp-exception-behavior=maytrap``. GCC does not need this. To trap the
 use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 ``MultiFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.
 One can also control this setting for ``FArrayBox`` using the runtime parameter ``fab.init_snan``.
-Note for Macs: M1 and M2 chips using the Arm64 architecture are not able to trap division by zero.
+Note for Macs: Apple silicon chips using the Arm64 architecture are not able to trap
+division by zero.
 
 One can get more information than the backtrace of the call stack by
 instrumenting the code.  Here is an example.

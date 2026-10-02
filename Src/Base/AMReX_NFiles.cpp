@@ -164,14 +164,20 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
 
 NFilesIter::NFilesIter(std::string filename,
                        Vector<int> readranks,
-                       bool setBuf)
+                       bool setBuf,
+                       int mpi_tag)
     : myProc       (ParallelDescriptor::MyProc()),
       nProcs       (ParallelDescriptor::NProcs()),
       fullFileName (std::move(filename)),
       isReading    (true),
       readRanks    (std::move(readranks)),
-      myReadIndex  (indexUndefined)
+      myReadIndex  (indexUndefined),
+      stReadTag    (mpi_tag)
 {
+  // ---- the readers hand off to each other with messages tagged stReadTag
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(readRanks.size() <= 1 || stReadTag >= 0,
+      "NFilesIter: reading with multiple ranks requires a valid mpi_tag");
+
   for(int i(0); i < readRanks.size(); ++i) {
     if(myProc == readRanks[i]) {
       if(myReadIndex != indexUndefined) {
@@ -309,12 +315,16 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
   return false;
 
 #else
-  amrex::ignore_unused(appendFirst);
   if(finishedWriting) {
     return false;
   }
-  fileStream.open(fullFileName.c_str(),
-                  std::ios::out | std::ios::trunc | std::ios::binary);
+  if( ! appendFirst) {
+    fileStream.open(fullFileName.c_str(),
+                    std::ios::out | std::ios::trunc | std::ios::binary);
+  } else {
+    fileStream.open(fullFileName.c_str(),
+                    std::ios::out | std::ios::app | std::ios::binary);
+  }
   if( ! fileStream.good()) {
     amrex::FileOpenFailed(fullFileName);
   }

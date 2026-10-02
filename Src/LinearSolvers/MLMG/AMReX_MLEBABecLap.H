@@ -201,7 +201,7 @@ public:
 
     //! Apply physical BCs to \p in on (\p amrlev,\p mglev) using the supplied BC metadata.
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
-                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const override;
     //! Apply the discrete operator to \p in on (\p amrlev,\p mglev) and store the result in \p out.
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;
@@ -285,6 +285,15 @@ public:
     //! Apply Robin BC terms to the stored coefficients when requested.
     void applyRobinBCTermsCoeffs ();
 
+    [[nodiscard]] MultiFab const* getEBBCoeffs (int amrlev, int mglev) const override {
+        return m_eb_b_coeffs[amrlev][mglev].get();
+    }
+
+    //! The assembled matrix uses cell centers and face centers only.
+    [[nodiscard]] bool supportsAlgMG () const override {
+        return m_phi_loc == Location::CellCenter && m_beta_loc == Location::FaceCenter;
+    }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     //! Instantiate a Hypre backend using interface selector \p hypre_interface.
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
@@ -331,7 +340,8 @@ protected:
     //! Average coefficients from fine AMR level \p flev to coarse AMR level \p flev-1.
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
-    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+    // Robin BC modifies alpha, which has only one component.
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return getNComp() == 1; }
 
     mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 

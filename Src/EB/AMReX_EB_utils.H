@@ -37,7 +37,7 @@ namespace amrex {
         bool extend_domain_face = EB2::ExtendDomainFace();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (!extend_domain_face || geom.isPeriodic(idim)) {
-                bounding_box.grow(mf.nGrowVect()[idim]);
+                bounding_box.grow(idim, mf.nGrowVect()[idim]);
             }
         }
 

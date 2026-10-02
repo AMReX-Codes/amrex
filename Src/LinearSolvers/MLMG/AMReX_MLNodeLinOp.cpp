@@ -1,5 +1,6 @@
 
 #include <AMReX_MLNodeLinOp.H>
+#include <AMReX_MLAlgMG.H>
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
@@ -314,7 +315,8 @@ MLNodeLinOp::buildMasks ()
 
             auto& dmask = *m_dirichlet_mask[amrlev][mglev];
 
-            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1);
+            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1,
+                          MFInfo().SetArena(The_Async_Arena()));
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
@@ -322,7 +324,9 @@ MLNodeLinOp::buildMasks ()
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
-                amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
+                IntVect const ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio)
+                                                   : mg_coarsen_ratio_vec[mglev-1];
+                amrex::average_down_nodal(dmask_fine, dmask, ratio);
             }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -496,6 +500,7 @@ MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
             dmsk(i,j,k) = 1 - omsk(i,j,k);
         });
     }
+    m_masks_built = false;
     m_overset_dirichlet_mask = true;
 }
 
@@ -511,7 +516,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
     if (!skip_fillboundary) {
-        phi.FillBoundary(geom.periodicity());
+        phi.FillBoundaryAndSync(geom.periodicity());
     }
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
@@ -538,20 +543,21 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
         m_dirichlet_mask[0].resize(new_size);
     }
 
+    int const amrlev = 0;
+    int const mglev = new_size-1;
+    if (mglev == 0) {
+        m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
+                                                          m_owner_mask_top->nComp());
+    } else {
+        m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
+                                             m_dmap[0][mglev],
+                                             m_geom[0][mglev]);
+    }
+
     if (m_masks_built)
     {
         const auto lobc = LoBC();
         const auto hibc = HiBC();
-        int amrlev = 0;
-        int mglev = new_size-1;
-        if (mglev == 0) {
-            m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
-                                                              m_owner_mask_top->nComp());
-        } else {
-            m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
-                                                 m_dmap[0][mglev],
-                                                 m_geom[0][mglev]);
-        }
         const Geometry& geom = m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask = MultiFab();
@@ -566,12 +572,54 @@ Real
 MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
 {
     const int ncomp = this->getNComp();
-    const int finest_level = NAMRLevels() - 1;
-    if (amrlev == finest_level) {
-        return mf.norminf(0, ncomp, IntVect(0), local);
-    } else {
-        return mf.norminf(*m_norm_fine_mask[amrlev], 0, ncomp, IntVect(0), local);
+    const bool has_fine = amrlev < NAMRLevels() - 1;
+    // Dirichlet and overset nodes do not count, since the user's rhs there may be NaN.
+    iMultiFab const& dmask = *m_dirichlet_mask[amrlev][0];
+    iMultiFab const& fmask = has_fine ? *m_norm_fine_mask[amrlev] : dmask;
+    Math::detail::AbsNanToInf<Real> const absinf{};
+
+    Real nm = 0.0;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = mf.const_arrays();
+        auto const& dma = dmask.const_arrays();
+        auto const& fma = fmask.const_arrays();
+        nm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, mf, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            Real r = 0.0;
+            if (!dma[box_no](i,j,k) && (!has_fine || fma[box_no](i,j,k))) {
+                for (int n = 0; n < ncomp; ++n) {
+                    r = amrex::max(r, absinf(ma[box_no](i,j,k,n)));
+                }
+            }
+            return r;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm)
+#endif
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            auto const& a = mf.const_array(mfi);
+            auto const& dm = dmask.const_array(mfi);
+            auto const& fm = fmask.const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                if (!dm(i,j,k) && (!has_fine || fm(i,j,k))) {
+                    nm = std::max(nm, absinf(a(i,j,k,n)));
+                }
+            });
+        }
     }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm, ParallelContext::CommunicatorSub());
+    }
+
+    return nm;
 }
 
 void
@@ -620,7 +668,8 @@ MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
         auto&       cmf = sol[falev-1];
 
         auto rr = AMRRefRatio(falev-1);
-        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
+        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0,
+                       MFInfo().SetArena(The_Async_Arena()));
         amrex::average_down(fmf, tmpmf, 0, ncomp, rr);
         cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
         nodalSync(falev-1, 0, cmf);
@@ -648,7 +697,7 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
     {
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
-        cfine.define(cba, fine.DistributionMap(), ncomp, 0);
+        cfine.define(cba, fine.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
         cfine.ParallelCopy(crse, 0, 0, ncomp, 0, 0, crse_geom.periodicity());
         cmf = & cfine;
     }
@@ -668,6 +717,19 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
         });
     }
 }
+
+#if (AMREX_SPACEDIM > 1)
+std::unique_ptr<MLAlgMG>
+MLNodeLinOp::makeAlgMG (int mglev) const
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mglev == 0 || mglev == m_num_mg_levels[0]-1,
+                                     "MLNodeLinOp::makeAlgMG: top or bottom MG level only");
+    const auto& owner_mask = (mglev == 0) ? *m_owner_mask_top : *m_owner_mask_bottom;
+    return std::make_unique<MLAlgMG>(mglev, m_grids[0][mglev], m_dmap[0][mglev],
+                                     m_geom[0][mglev], owner_mask,
+                                     *m_dirichlet_mask[0][mglev], *this);
+}
+#endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<HypreNodeLap>

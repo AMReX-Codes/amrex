@@ -1,3 +1,198 @@
+# 26.10
+
+ ## Highlights:
+
+  * Sparse linear algebra and algebraic multigrid
+    AMG: algebraic multigrid for SpMatrix systems (#5962)
+    SpMatrix: sparse matrix-matrix multiplication (SpGEMM) (#5929)
+    Smoothers for SpMatrix: l1-Jacobi, Chebyshev, l1 hybrid Gauss-Seidel (#5955)
+    BiCGStab and PCG: generic solvers and SpMatrix front-ends (#5956)
+    Sparse algebra: 32-bit split blocks, split-form products and transposes (#5952)
+    SpMatrix: 32-bit row offsets in the split blocks (#5968)
+    `AMG<T>` solves square `SpMatrix` systems on CPUs, GPUs and MPI with
+    the same kernels, using PMIS coarsening, extended+i interpolation, and
+    V-cycles with Chebyshev, l1-Jacobi or l1 Gauss-Seidel (CPU builds only)
+    smoothing. It can also be used as a preconditioner for the BiCGStab,
+    GMRES and PCG solvers.
+
+  * AmrMesh: grids for odd ref ratios, arbitrary n_cell, and no_chop_dir (#5914)
+    With `amr.no_box_split_dir` set, grids are not split in that direction,
+    fine-level blocking factors may be ref_ratio times a power of 2 (e.g.,
+    24 for ratio 3), and the domain need not be divisible by them.
+
+  * AmrCore: option to refine the entire domain in one direction (#5908)
+    With `amr.refine_whole_domain_dir`, the fine grids together cover the
+    entire domain in that direction. Add `amr.no_box_split_dir` if each
+    grid must span it. This replaces the workaround of a huge blocking
+    factor plus `amr.check_input=0`.
+
+  * Fast-math-safe isnan/isinf/isfinite and a NaN-aware norminf (#5972)
+    `amrex::isnan`, `isinf` and `isfinite` work under fast math. `norminf`
+    counts a NaN as infinity, and MLMG fails on a non-finite rhs or
+    residual instead of reporting convergence on a NaN solution.
+
+  * Fix EB wall flux on anisotropic cells in MLEBABecLap and MLEBTensorOp (#5967)
+    The EB Dirichlet wall flux was only correct for isotropic cells, so the
+    solvers converged to wrong solutions on anisotropic grids. Results are
+    unchanged for isotropic cells. See also #5960 and #5969.
+
+  * MLMG: Make the single-stream no-sync GPU mode safe and document it (#4895)
+    `MLMG::setNoGpuSync(true)` runs `solve()` without the implicit stream
+    synchronizations. The default stays off, because it only helps small
+    problems with few boxes.
+
+  * MLEBNodeFDLaplacian improvements
+    Add custom bottom solver for MLEBNodeFDLaplacian (#5654)
+    Implement MLEBNodeFDLaplacian::fillIJMatrix and fillRHS (#5649)
+    A GPU-optimized single-box bottom solver, and support for the hypre
+    bottom solver.
+
+  * Hypre, PETSc: honor BoomerAMG options and pass symmetric systems (#5971)
+    The cell-centered hypre and PETSc interfaces build matrices that are
+    closer to symmetric, which improves BoomerAMG convergence for problems
+    with large coefficient jumps.
+
+  * Bug fixes
+    About 100 PRs fix defects, most of them found in a code audit, across
+    Base, AmrCore, EB, LinearSolvers, FFT, Parser, ParmParse, I/O, GPU
+    launch and SYCL. Most are in edge cases, e.g., index-type overflow in GPU
+    launch, Reduce and Scan (#5924), Parser rewrite rules that changed
+    results (#5833), VisMF reads that silently missed data (#5831), and
+    overset cells drifting in multi-level MLMG solves (#5964).
+
+  * Project infrastructure
+    Releases carry an SBOM and signed build provenance (#5937), CI results
+    are published to CDash (#5940), and a Dockerfile provides a prebuilt
+    AMReX environment (#5938). Also added are an OpenSSF Scorecard workflow
+    (#5939), a security assurance case (#5934), CODEOWNERS and issue
+    templates (#5935), and CITATION.cff (#5932).
+
+ ## Other major changes:
+
+  * Make hardcoded small thresholds precision-aware (#5958)
+
+  * CI: add a single precision GCC job that runs ctest (#5895)
+
+  * LLVM Flang support
+    Add LLVM Flang CI (#5614)
+    GNU Make: fix COMP=llvm-flang for modern LLVM Flang (#5900)
+    CMake: support LLVMFlang in the compiler flag targets (#5901)
+
+  * Remove BL_COALESCE_FABS (#5898)
+    CPU builds always use BArena for `The_Arena`.
+
+  * SYCL: give each device RNG engine its own window of the Philox stream (#5662)
+
+  * FFT: fix R2C and R2X on degenerate domains (#5928, #5930)
+
+  * Fix FFT::OpenBCSolver in 2D and for a shifted twod_mode domain (#5827)
+
+  * Fix TOML array parsing in ParmParse (#5961)
+
+  * Parser: reject device-unsupported functions at compile time (#5926)
+
+  * Parser: reject variables that were never registered (#5834)
+
+  * Add "--allow_diff_dx" command line argument to fcompare (#5910)
+
+  * feat(mempool): extend alloc/dealloc to ranks 4-6 (#5907)
+
+  * feat(mempool): add arena alloc/dealloc for Fortran logical arrays (#5896)
+
+  * Support disabling FP exception traps on macOS (#5893)
+
+  * Fix particle transformation issues (#5892)
+
+  * Fix: Polymorphic PC Write Plotfile w/ Runtime Arguments on GPU (#5904)
+
+  * MLTensorOp: mesh-mapping factors for the cross terms (#5909)
+
+  * MLMG: sync duplicated nodal DOFs in MLNodeLinOp::applyBC (#5657)
+
+  * EB2: build levels on the sub-communicator, not the world one (#5882)
+
+  * STL: make EB intersection tolerances scale with the geometry (#5870)
+
+  * Make STL geometry independent of BVH optimization (#5618)
+
+  * Agglomeration BoxArray: Avoid chopping small narrow domain. (#5655)
+
+  * CMake: do not require the C MPI component (#5941)
+
+  * CMake: export AMREX_CUDA_IPO in the installed config (#5992)
+
+# 26.09
+
+ ## Highlights:
+
+  * Fix `Random()` returning 1.0f & add `RandomPositive` (#5643)
+    `amrex::Random()` is documented as `[0,1)` but previously it could
+    return exactly `1.0` on CUDA/HIP.
+
+  * EB state redistribution: Fix Itracker abort with vfrac fallback (#5630)
+    This PR adds a volume-fraction-based fallback pathway in the `itracker`
+    construction for EB state redistribution when the original normal-based
+    neighbor selection fails.
+
+  * Initialize/Finalize: Pop Hooks Before Calling Them (#5648)
+    `amrex::Initialize` and `amrex::Finalize` drained their hook stacks with
+    `top()()` followed by `pop()`. A hook that registers another one with
+    `ExecOnInitialize`/`ExecOnFinalize` therefore left the *calling* hook on
+    top of the stack: it ran a second time, and the following `pop()`
+    silently discarded the newly registered hook without ever running it.
+    Move the hook off the stack before calling it, so that a hook which
+    registers another one runs exactly once and the newly registered hook
+    runs as well.
+
+  * Modernize CMake CUDA to 3.25+ (native arch, device LTO) (#4773)
+
+  * STL optimization
+    Optimize STL ray-box intersection (#5609)
+    Optimize STL BVH distance traversal (#5608)
+
+  * Generalize local mask (#5575)
+    The "local" argument to Redistribute really lumps together two distinct
+    things: 1) whether to do point-to-point MPI communication for the
+    particle count exchange, and 2) whether to use a mask for the grid/tile
+    lookup. This separates these into distinct options.  It also adds a
+    heuristic to fall back to the full BoxArray search in cases where the
+    mask would be too expensive too use.
+
+ ## Other major changes:
+
+  * FFT: expose OpenBCSolver's spectral Green's function (#5627)
+
+  * FFT::R2C: add post-forward support for batch size > 1 (#5642)
+
+  * Fix compGrad on grid-aligned EBs in MLEBNodeFDLaplacian (#5623)
+
+  * Return TheMinVector from indexFromValue when the value is not found (#5626)
+
+  * Add face-centered EB factories (#5548)
+
+  * Bugfix in State Redistribution (#5613)
+
+  * Fix duplicate public attribute bug in Fortran interface (#5604)
+
+  * Add tools for performing Kahan summation, along with a stochastic heat
+    equation test that uses them. (#5587)
+
+  * SYCL: use platform default context (#5597)
+
+  * Fix MLEBABecLap EB setter updates (#5595)
+
+  * Fix tensor operators always reporting needsUpdate (#5590)
+
+  * FabArray: Enable prefetch on non-CUDA GPU backends (#5592)
+
+  * MLTensorOp/MLEBTensorOp: fix scalar bulk viscosity setters (#5589)
+
+  * fcompare: fix wrong variable name in "NaN present in B" report (#5588)
+
+  * TinyProfiler: stdout/stderr keywords for tiny_profiler.output_file (#5585)
+
+  * CMake: Remove hipcc deprecation warning (#5201)
+
 # 26.08
 
  ## Highlights:

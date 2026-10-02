@@ -9,7 +9,13 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main");
         MyTest mytest;
-        mytest.solve();
+        bool first = true;
+        for (auto const& mgt : mytest.getMultigridTypes()) {
+            if (!mytest.setMultigridType(mgt)) { continue; }
+            if (!first) { mytest.initData(); } // restore the initial guess
+            first = false;
+            mytest.solve();
+        }
         mytest.writePlotfile();
     }
 

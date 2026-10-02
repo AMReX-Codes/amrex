@@ -5,6 +5,7 @@
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
 #   Flags_FASTMATH            --> Optional flags for fast-math (floating-point)
+#   Flags_NO_MATH_ERRNO       --> -fno-math-errno for non-Debug builds
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #   Flags_INLINE              --> Optional flags for inlining
 #
@@ -23,12 +24,12 @@ include_guard(GLOBAL)
 # for every combination of
 #
 #     <lang> = cxx,fortran,cuda
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang,llvmflang
 #
 foreach (_language CXX Fortran CUDA )
    string(TOLOWER "${_language}" _lang)
 
-   foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
+   foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang LLVMFlang )
       string(TOLOWER "${_comp}" _id)
       # Define variables
       set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
@@ -104,6 +105,9 @@ target_compile_options( Flags_Fortran
    $<${_fortran_pgi_rel}:-gopt -fast>
    $<${_fortran_cray_dbg}:-O0 -e i>
    $<${_fortran_cray_rel}:>
+   # Flang has no bounds/uninitialized checking options.
+   $<${_fortran_llvmflang_dbg}:-fimplicit-none>
+   $<${_fortran_llvmflang_rel}:-fimplicit-none>
    )
 
 
@@ -125,7 +129,7 @@ target_compile_options( Flags_FASTMATH
       $<${_cxx_pgi}:-ffast-math>
       $<${_fortran_cray}:-ffast-math>
       $<${_cxx_cray}:-ffast-math>
-      $<${_fortran_clang}:-ffast-math>
+      $<${_fortran_llvmflang}:-ffast-math>
       $<${_cxx_clang}:-ffast-math>
       $<${_cxx_appleclang}:-ffast-math>
       $<${_cxx_crayclang}:-ffast-math>
@@ -134,6 +138,23 @@ target_compile_options( Flags_FASTMATH
       $<${_cxx_xlclang}:-ffast-math>
       $<${_cxx_msvc}:/fp:fast>
 )
+
+
+#
+# Math functions do not set errno (non-Debug builds)
+#
+add_library(Flags_NO_MATH_ERRNO INTERFACE)
+add_library(AMReX::Flags_NO_MATH_ERRNO ALIAS Flags_NO_MATH_ERRNO)
+
+# clang-cl and icx-cl (MSVC frontend) do not take -fno-math-errno
+if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+   target_compile_options( Flags_NO_MATH_ERRNO
+      INTERFACE
+         $<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
+         $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>,$<CXX_COMPILER_ID:GNU,Clang,IBMClang,IntelLLVM,ARMClang,CrayClang>,$<NOT:$<CONFIG:Debug>>>:-Xcompiler=-fno-math-errno>
+         $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,Clang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
+   )
+endif ()
 
 
 #
@@ -153,7 +174,8 @@ target_compile_options ( Flags_FPE
    $<${_cxx_pgi}:>
    $<${_fortran_cray}:-K trap=fp>
    $<${_cxx_cray}:-K trap=fp>
-   $<${_fortran_clang}:>
+   # Flang has no FPE trapping option.
+   $<${_fortran_llvmflang}:>
    $<${_cxx_clang}:-ftrapv>
    $<${_cxx_appleclang}:-ftrapv>	
    )
