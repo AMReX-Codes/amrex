@@ -50,6 +50,7 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
+std::atomic<std::string const*> TinyProfiler::current_name{nullptr};
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -169,12 +170,16 @@ TinyProfiler::start ()
         roctxRangePush(fname.c_str());
 #endif
 
+        std::string const* name = nullptr;
         for (auto const& region : regionstack)
         {
-            Stats& st = statsmap[region][fname];
+            const auto it = statsmap[region].try_emplace(fname).first;
+            name = &it->first;
+            Stats& st = it->second;
             ++st.depth;
             stats.push_back(&st);
         }
+        prev_name = current_name.exchange(name);
 
         if (verbose) {
             ++n_print_tabs;
@@ -235,6 +240,7 @@ TinyProfiler::stop ()
             }
 
             ttstack.pop_back();
+            current_name.store(prev_name);
             if (!ttstack.empty()) {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
@@ -475,6 +481,7 @@ TinyProfiler::Finalize (bool bFlushing)
     }
 
     if (!bFlushing) {
+        current_name.store(nullptr);
         regionstack.clear();
         regionstartstack.clear();
         ttstack.clear();
@@ -1029,6 +1036,13 @@ TinyProfiler::PrintCallStack (std::ostream& os)
     for (auto const& x : ttstack) {
         os << *(std::get<2>(x)) << "\n";
     }
+}
+
+const char*
+TinyProfiler::CurrentName () noexcept
+{
+    std::string const* name = current_name.load();
+    return (name != nullptr) ? name->c_str() : nullptr;
 }
 
 void

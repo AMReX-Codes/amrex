@@ -6,6 +6,7 @@
 #include <AMReX_REAL.H>
 
 #include <array>
+#include <atomic>
 #include <deque>
 #include <iosfwd>
 #include <limits>
@@ -66,6 +67,16 @@ public:
     static void StopRegion (const std::string& regname) noexcept;
 
     static void PrintCallStack (std::ostream& os);
+
+    /**
+     * \brief Name of the innermost active profiler, or nullptr if there is none.
+     *
+     * Unlike PrintCallStack, this can be called from any thread while the
+     * profiled code is running, e.g., from a watchdog or status reporting
+     * thread. The returned string stays valid until TinyProfiler::Finalize.
+     */
+    [[nodiscard]] static const char* CurrentName () noexcept;
+
     static void PrintMemoryUsage (std::ostream* os, bool only_local) noexcept;
 
 private:
@@ -119,6 +130,8 @@ private:
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;
+    //! Value of current_name before this profiler started
+    std::string const* prev_name = nullptr;
 
     static std::deque<const TinyProfiler*> mem_stack;
 
@@ -137,6 +150,8 @@ private:
     static std::vector<std::pair<std::string,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
+    //! Points to a key of statsmap, which is stable until Finalize
+    static std::atomic<std::string const*> current_name;
     static double t_init;
     static double t_memory_init;
     static bool device_synchronize_around_region;
