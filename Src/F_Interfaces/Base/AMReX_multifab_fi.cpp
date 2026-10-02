@@ -2,6 +2,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
 
@@ -184,16 +185,6 @@ extern "C" {
         mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
-    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
-                                         const DistributionMapping*& dm,
-                                         const MultiFab* data, const Geometry* geom)
-    {
-        auto owner_mask = data->OwnerMask(geom->periodicity());
-        msk = owner_mask.release();
-        ba = &(msk->boxArray());
-        dm = &(msk->DistributionMap());
-    }
-
     void amrex_fi_multifab_override_sync (MultiFab* mf, const Geometry* geom)
     {
         mf->OverrideSync(geom->periodicity());
@@ -251,6 +242,23 @@ extern "C" {
     void amrex_fi_imultifab_setval (iMultiFab* imf, int val, int ic, int nc, const int* ng)
     {
         imf->setVal(val, ic, nc, IntVect(ng));
+    }
+
+    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
+                                         const DistributionMapping*& dm,
+                                         const MultiFab* data, const Geometry* geom)
+    {
+        auto owner_mask = data->OwnerMask(geom->periodicity());
+        msk = owner_mask.release();
+        ba = &(msk->boxArray());
+        dm = &(msk->DistributionMap());
+    }
+
+    void amrex_fi_new_fine_imultifab (iMultiFab*& msk, const BoxArray*& cba, const DistributionMapping*& cdm, const BoxArray*& fba, int rr, int crse_value, int fine_value)
+    {
+        msk = new iMultiFab(makeFineMask(*cba, *cdm, *fba, IntVect{AMREX_D_DECL(rr,rr,rr)}, crse_value, fine_value));
+        cba = &(msk->boxArray());
+        cdm = &(msk->DistributionMap());
     }
 
     // MFIter routines
