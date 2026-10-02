@@ -554,11 +554,17 @@ void print_row (int icase, Params const& c, Result const& r, std::string const& 
 
 // The cases run for one problem: the given options, or with `variations`,
 // the given options with each bottom solver and variations of the other
-// options with the BiCGStab bottom solver.
-Vector<Params> make_cases (Params const& p)
+// options with the BiCGStab bottom solver. A non-empty `groups` keeps only
+// the variations in those groups.
+Vector<Params> make_cases (Params const& p, Vector<std::string> const& groups)
 {
     Vector<Params> cases;
-    auto add = [&] (std::string const& bottom) -> Params& {
+    Params skipped; // receives the variations of unselected groups
+    auto add = [&] (std::string const& group, std::string const& bottom) -> Params& {
+        if (!groups.empty() && std::find(groups.begin(), groups.end(), group) == groups.end()) {
+            skipped = p;
+            return skipped;
+        }
         cases.push_back(p);
         cases.back().bottom = bottom;
         return cases.back();
@@ -567,31 +573,32 @@ Vector<Params> make_cases (Params const& p)
         cases.push_back(p);
         return cases;
     }
-    for (auto const& b : {"direct", "jacobi", "bicgstab", "gmres"}) { add(b); }
+    for (auto const& b : {"direct", "jacobi", "bicgstab", "gmres"}) { add("bottom", b); }
+    if (cases.empty()) { cases.push_back(p); } // the base case
     for (auto const& it : {"direct", "mm_ext", "mm_ext_i"}) {
-        if (it != p.interp) { add("bicgstab").interp = it; }
+        if (it != p.interp) { add("interp", "bicgstab").interp = it; }
     }
     if (!p.aggressive_levels) {
-        add("bicgstab").aggressive_levels = 1;
+        add("coarsening", "bicgstab").aggressive_levels = 1;
         if (!p.aggressive_direct) {
-            auto& c = add("bicgstab");
+            auto& c = add("coarsening", "bicgstab");
             c.aggressive_levels = 1;
             c.aggressive_direct = 1;
         }
     }
     if (!p.p_max_elmts && !p.trunc_factor) {
-        add("bicgstab").p_max_elmts = 0; // no truncation
-        add("bicgstab").trunc_factor = Real(0.2);
+        add("truncation", "bicgstab").p_max_elmts = 0; // no truncation
+        add("truncation", "bicgstab").trunc_factor = Real(0.2);
     }
-    if (!p.max_coarse_size) { add("bicgstab").max_coarse_size = 1; }
+    if (!p.max_coarse_size) { add("coarsening", "bicgstab").max_coarse_size = 1; }
     // PCG needs a symmetric cycle: as many pre- as post-smoothing sweeps and
     // smoother sweeps at the bottom.
     bool const symmetric = (p.nu1 == p.nu2);
     if (p.alpha != Real(0)) {
         // Singular periodic problem: plain cycles and PCG.
-        add("bicgstab").alpha = Real(0);
+        add("singular", "bicgstab").alpha = Real(0);
         if (symmetric) {
-            auto& c = add("jacobi");
+            auto& c = add("singular", "jacobi");
             c.alpha = Real(0);
             c.krylov = "pcg";
         }
@@ -599,22 +606,22 @@ Vector<Params> make_cases (Params const& p)
     if (p.krylov == "none") {
         // GMRES with smoother sweeps at the bottom, so that the cycle is a
         // fixed linear operator; BiCGStab tolerates the Krylov bottom solver.
-        add("bicgstab").krylov = "bicgstab";
-        add("jacobi").krylov = "gmres";
-        if (symmetric) { add("jacobi").krylov = "pcg"; }
+        add("krylov", "bicgstab").krylov = "bicgstab";
+        add("krylov", "jacobi").krylov = "gmres";
+        if (symmetric) { add("krylov", "jacobi").krylov = "pcg"; }
     }
     Vector<std::string> smoothers = {"jacobi", "l1_jacobi", "chebyshev"};
 #ifndef AMREX_USE_GPU
     smoothers.push_back("l1_gauss_seidel");
 #endif
     for (auto const& sm : smoothers) {
-        if (sm != p.smoother) { add("bicgstab").smoother = sm; }
+        if (sm != p.smoother) { add("smoother", "bicgstab").smoother = sm; }
     }
 #ifndef AMREX_USE_GPU
     if (p.krylov == "none") {
         // PCG with symmetric Gauss-Seidel sweeps at the bottom: one level
         // makes the bottom the whole problem.
-        auto& c = add("jacobi");
+        auto& c = add("smoother", "jacobi");
         c.smoother = "l1_gauss_seidel";
         c.krylov = "pcg";
         c.max_levels = 1;
@@ -650,6 +657,14 @@ int main (int argc, char* argv[])
         if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso"}; }
         Vector<std::string> variation_problems; // empty: all problems
         pp.queryarr("variation_problems", variation_problems);
+        Vector<std::string> variation_groups; // empty: all groups
+        pp.queryarr("variation_groups", variation_groups);
+        for (auto const& g : variation_groups) {
+            if (g != "bottom" && g != "interp" && g != "coarsening" && g != "truncation"
+                && g != "singular" && g != "krylov" && g != "smoother") {
+                amrex::Abort("Unknown variation group: " + g);
+            }
+        }
         pp.query("jump", p.jump);
         pp.query("block", p.block);
         pp.query("eps", p.eps);
@@ -718,7 +733,7 @@ int main (int argc, char* argv[])
                 == variation_problems.end()) {
                 base.variations = 0;
             }
-            for (auto pb : make_cases(base)) {
+            for (auto pb : make_cases(base, variation_groups)) {
                 // Jacobi bottom: an inexact coarse solve, so only check that
                 // ten cycles reduce the residual.
                 bool const inexact = (pb.bottom == "jacobi" && pb.krylov == "none"

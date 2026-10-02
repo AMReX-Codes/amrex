@@ -19,6 +19,8 @@ eps     = 1.e-3
 
 variations = 1  # 0: run only the options given here
 # variation_problems = checker # run variations only for these problems
+# variation_groups = bottom krylov # run only these groups of variations: bottom,
+#   interp, coarsening, truncation, singular, krylov, smoother
 max_iter = 200
 # reltol = 1.e-10 # 1.e-5 in single precision
 # seed = 1        # seed of the random coarse point selection
