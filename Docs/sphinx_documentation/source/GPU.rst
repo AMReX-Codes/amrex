@@ -151,14 +151,9 @@ and Fortran codes with PGI, and link with PGI.  Using ``COMP=pgi`` and
 
 With CUDA, ``GPU_MIN_BLOCKS=B`` (``-DAMReX_GPU_MIN_BLOCKS=B`` in CMake) limits
 the registers per thread in AMReX kernels so that ``B`` blocks of
-``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor. A larger ``B``
-gives higher occupancy, which can speed up register-heavy kernels, but fewer
-registers per thread, which can cause register spilling. Keep ``B`` times
-``GPU_MAX_THREADS`` within the GPU's limit of resident threads per
-multiprocessor (2048 on A100, H100 and B200, 1536 on RTX 30/40/50-series and
-L40, and 1024 on Turing). Above that limit, kernels get no occupancy benefit
-but some code is still limited in registers. Note that ``CUDA_MAXREGCOUNT``
-has no effect on most AMReX kernels.
+``GPU_MAX_THREADS`` threads fit on a streaming multiprocessor, up to the GPU's
+limit of resident threads per multiprocessor. A larger ``B`` gives higher
+occupancy but can cause register spilling.
 
 You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
 to test your programming environment.  For example, building with:
