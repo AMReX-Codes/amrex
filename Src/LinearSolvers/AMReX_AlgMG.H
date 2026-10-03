@@ -10,12 +10,12 @@
 #include <AMReX_GMRES_MV.H>
 #include <AMReX_PCG_MV.H>
 #include <AMReX_ParallelReduce.H>
-#include <AMReX_Random.H>
 #include <AMReX_Scan.H>
 #include <AMReX_Smoother_MV.H>
 #include <AMReX_Vector.H>
 
 #include <cmath>
+#include <cstdint>
 #include <iomanip>
 #include <limits>
 #include <numeric>
@@ -47,6 +47,21 @@ bool pmis_blocked (CsrView<TC const,I> const& csr, Long row, T wi, Long ig,
         }
     }
     return false;
+}
+
+//! PMIS tie-breaker in [0,1): a hash (splitmix64) of the global row index,
+//! so the splitting does not depend on any random number stream.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T pmis_tiebreak (Long ig)
+{
+    auto z = static_cast<std::uint64_t>(ig) + 0x9E3779B97F4A7C15ULL;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+    z ^= (z >> 31);
+    constexpr int digits = std::numeric_limits<T>::digits;
+    static_assert(digits < 64, "pmis_tiebreak: T must be float or double");
+    return T(z >> (64 - digits)) / T(std::uint64_t(1) << digits);
 }
 
 //! True if row `row` of `csr` has a neighbor with state `c`.
@@ -1638,20 +1653,20 @@ void AlgMG<T>::pmis (SpMatrix<TS>& S, SpMatrix<TS>& ST, Gpu::DeviceVector<int>& 
     auto* AMREX_RESTRICT ps = state.data();
     auto* AMREX_RESTRICT ps2 = state2.data();
 
+    Long const row_begin = s.row_begin;
+
     // A point nobody depends on gets a weight below one, so it becomes C
     // only if all its dependencies are F.
-    ParallelForRNG(nrows, [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng) noexcept
+    ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
         if (pm[i] < 0) {
             pw[i] = T(0);
             ps[i] = isolated_as_coarse ? PointType::coarse : PointType::fine;
         } else {
-            pw[i] = T(pm[i]) + T(Random(eng));
+            pw[i] = T(pm[i]) + detail::pmis_tiebreak<T>(i + row_begin);
             ps[i] = PointType::undecided;
         }
     });
-
-    Long const row_begin = s.row_begin;
 
     // Ghost weights are fixed; ghost states are gathered every sweep.
     auto const wS  = S.gatherRemote(pw);

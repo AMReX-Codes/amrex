@@ -672,11 +672,6 @@ int main (int argc, char* argv[])
         pp.query("mlmg_repeat", p.mlmg_repeat);
         pp.queryarr("mlmg_types", p.mlmg_types);
         pp.query("max_grid_size", p.max_grid_size);
-        // Seed of the random PMIS weights; each rank adds its rank.
-        if (Long seed = 0; pp.query("seed", seed)) {
-            auto const s = ULong(seed + ParallelDescriptor::MyProc());
-            amrex::ResetRandomSeed(s, s);
-        }
         auto query_opt = [&] (char const* name, auto& opt) {
             std::remove_reference_t<decltype(*opt)> v;
             if (pp.query(name, v)) { opt = v; }
