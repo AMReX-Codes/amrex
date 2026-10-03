@@ -424,7 +424,7 @@ void mlndlap_restriction_rap (int /*i*/, int /*j*/, int /*k*/, Array4<Real> cons
 {}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_ha (int i, int j, int k, Array4<Real> const& sol,
+void mlndlap_gscolor_ha (int i, int, int, Array4<Real> const& sol,
                          Array4<Real const> const& rhs,
                          Array4<Real const> const& sx,
                          Array4<int const> const& msk,
@@ -454,7 +454,7 @@ void mlndlap_gscolor_aa (int i, int j, int k, Array4<Real> const& sol,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_c (int i, int j, int k, Array4<Real> const& sol,
+void mlndlap_gscolor_c (int i, int, int, Array4<Real> const& sol,
                         Array4<Real const> const& rhs, Real sig,
                         Array4<int const> const& msk,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
