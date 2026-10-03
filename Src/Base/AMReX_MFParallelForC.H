@@ -56,6 +56,49 @@ void ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect c
     }
 }
 
+template <FabArrayType MF, typename F>
+void ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F const& f)
+{
+    const Dim3 s = stride.dim3(1);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,MFItInfo().EnableTiling(FabArrayBase::mfiter_tile_size)); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        int const lidx = mfi.LocalIndex();
+        const auto lo = amrex::lbound(strided_box(bx, stride, offset));
+        const auto hi = amrex::ubound(bx);
+        for (        int k = lo.z; k <= hi.z; k += s.z) {
+            for (    int j = lo.y; j <= hi.y; j += s.y) {
+                for (int i = lo.x; i <= hi.x; i += s.x) {
+                    f(lidx,i,j,k);
+                }
+            }
+        }
+    }
+}
+
+template <FabArrayType MF, typename F>
+void ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,MFItInfo().EnableTiling(FabArrayBase::mfiter_tile_size)); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        int const lidx = mfi.LocalIndex();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (        int k = lo.z; k <= hi.z; ++k) {
+            for (    int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x + ((lo.x+j+k+redblack) & 1); i <= hi.x; i += 2) {
+                    f(lidx,i,j,k);
+                }
+            }
+        }
+    }
+}
+
 }
 /// \endcond
 

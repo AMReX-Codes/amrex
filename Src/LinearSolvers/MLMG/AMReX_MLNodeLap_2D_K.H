@@ -3407,54 +3407,46 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int mlndlap_color (int i, int j, int)
-{
-    return (i%2) + (j%2)*2;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_ha (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sx,
                          Array4<Real const> const& sy, Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                          bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
 
-            Real s0 = Real(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
-                                 +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
+        Real s0 = Real(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
+                             +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
 
-            Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
-                    + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
-                    + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
-                    + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
-                    + sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
-                                        -     facy*(sy(i-1,j-1,k)+sy(i-1,j,k)))
-                    + sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
-                                        -     facy*(sy(i  ,j-1,k)+sy(i  ,j,k)))
-                    + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
-                             +Real(2.0)*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
-                    + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
-                             +Real(2.0)*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
-                    + sol(i,j,k)*s0;
+        Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
+                + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
+                + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
+                + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
+                + sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
+                                    -     facy*(sy(i-1,j-1,k)+sy(i-1,j,k)))
+                + sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
+                                    -     facy*(sy(i  ,j-1,k)+sy(i  ,j,k)))
+                + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
+                         +Real(2.0)*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
+                + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
+                         +Real(2.0)*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
+                + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k);
-                Real frzhi = fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k);
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k);
+            Real frzhi = fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k);
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
+
+        sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -3462,42 +3454,40 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_aa (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sig,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                          bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
-            Real fxy = facx + facy;
-            Real f2xmy = Real(2.0)*facx - facy;
-            Real fmx2y = Real(2.0)*facy - facx;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+        Real fxy = facx + facy;
+        Real f2xmy = Real(2.0)*facx - facy;
+        Real fmx2y = Real(2.0)*facy - facx;
 
-            Real s0 = (-Real(2.0))*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
-            Real Ax =   sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
-                      + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
-                      + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
-                      + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
-                      + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
-                      + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k))
-                      + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
-                      + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k))
-                      + sol(i,j,k)*s0;
+        Real s0 = (-Real(2.0))*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+        Real Ax =   sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
+                  + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
+                  + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
+                  + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
+                  + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
+                  + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k))
+                  + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
+                  + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k))
+                  + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm*sig(i-1,j-1,k)-fp*sig(i,j-1,k);
-                Real frzhi = fm*sig(i-1,j  ,k)-fp*sig(i,j  ,k);
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm*sig(i-1,j-1,k)-fp*sig(i,j-1,k);
+            Real frzhi = fm*sig(i-1,j  ,k)-fp*sig(i,j  ,k);
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
+
+        sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -3505,53 +3495,40 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_c (int i, int j, int k, Array4<Real> const& sol,
                         Array4<Real const> const& rhs, Real sig,
                         Array4<int const> const& msk,
-                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
-            Real fxy = facx + facy;
-            Real f2xmy = Real(2.0)*facx - facy;
-            Real fmx2y = Real(2.0)*facy - facx;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+        Real fxy = facx + facy;
+        Real f2xmy = Real(2.0)*facx - facy;
+        Real fmx2y = Real(2.0)*facy - facx;
 
-            Real s0 = (-Real(2.0))*fxy*Real(4.);
-            Real Ax =   sol(i-1,j-1,k)*fxy
-                      + sol(i+1,j-1,k)*fxy
-                      + sol(i-1,j+1,k)*fxy
-                      + sol(i+1,j+1,k)*fxy
-                      + sol(i-1,j,k)*f2xmy*Real(2.)
-                      + sol(i+1,j,k)*f2xmy*Real(2.)
-                      + sol(i,j-1,k)*fmx2y*Real(2.)
-                      + sol(i,j+1,k)*fmx2y*Real(2.)
-                      + sol(i,j,k)*s0;
+        Real s0 = (-Real(2.0))*fxy*Real(4.);
+        Real Ax =   sol(i-1,j-1,k)*fxy
+                  + sol(i+1,j-1,k)*fxy
+                  + sol(i-1,j+1,k)*fxy
+                  + sol(i+1,j+1,k)*fxy
+                  + sol(i-1,j,k)*f2xmy*Real(2.)
+                  + sol(i+1,j,k)*f2xmy*Real(2.)
+                  + sol(i,j-1,k)*fmx2y*Real(2.)
+                  + sol(i,j+1,k)*fmx2y*Real(2.)
+                  + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm-fp;
-                Real frzhi = fm-fp;
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm-fp;
+            Real frzhi = fm-fp;
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
-    }
-}
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_sten (int i, int j, int k, Array4<Real> const& sol,
-                           Array4<Real const> const& rhs,
-                           Array4<Real const> const& sten,
-                           Array4<int const> const& msk, int color) noexcept
-{
-    if (mlndlap_color(i,j,k) == color) {
-        mlndlap_gauss_seidel_sten(i,j,k,sol,rhs,sten,msk);
+        sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
     }
 }
 

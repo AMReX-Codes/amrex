@@ -2754,6 +2754,27 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
     detail::build_par_for_boxes(m_hp, m_boxes, boxes);
 }
 
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& stride,
+                                      std::span<IntVect const> offsets)
+    : m_bat(fa.boxArray().transformer()),
+      m_ng(0),
+      m_stride(stride),
+      m_offsets(offsets.begin(), offsets.end())
+{
+    Vector<Box> boxes;
+    m_ncellsmax = 0;
+    for (int K : fa.indexArray) {
+        Box const& b = fa.box(K);
+        Long N = 0;
+        for (auto const& offset : offsets) {
+            boxes.push_back(b.ok() ? detail::strided_box(b, stride, offset) : Box());
+            N += boxes.back().numPts();
+        }
+        m_ncellsmax = std::max(m_ncellsmax, N);
+    }
+    detail::build_par_for_boxes(m_hp, m_boxes, boxes);
+}
+
 FabArrayBase::ParForInfo::~ParForInfo ()
 {
     detail::destroy_par_for_boxes(m_hp, (char*)m_boxes);
@@ -2766,13 +2787,34 @@ FabArrayBase::getParForInfo (const IntVect& nghost) const
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         if (it->second->m_bat        == boxArray().transformer() &&
-            it->second->m_ng         == nghost)
+            it->second->m_ng         == nghost &&
+            it->second->m_offsets.empty())
         {
             return *(it->second);
         }
     }
 
     ParForInfo* new_pfi = new ParForInfo(*this, nghost);
+    m_TheParForCache.insert(er_it.second,
+                            std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
+    return *new_pfi;
+}
+
+FabArrayBase::ParForInfo const&
+FabArrayBase::getParForInfo (const IntVect& stride, std::span<IntVect const> offsets) const
+{
+    AMREX_ASSERT(getBDKey() == m_bdkey);
+    auto er_it = m_TheParForCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it) {
+        if (it->second->m_bat        == boxArray().transformer() &&
+            it->second->m_stride     == stride &&
+            std::ranges::equal(it->second->m_offsets, offsets))
+        {
+            return *(it->second);
+        }
+    }
+
+    ParForInfo* new_pfi = new ParForInfo(*this, stride, offsets);
     m_TheParForCache.insert(er_it.second,
                             std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
     return *new_pfi;

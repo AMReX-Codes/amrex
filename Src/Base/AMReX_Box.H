@@ -2607,6 +2607,24 @@ struct BoxIndexerND<1>
 
 using BoxIndexer = BoxIndexerND<AMREX_SPACEDIM>;
 
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+// The points of bx whose index equals offset modulo stride: lower corner is
+// the first such point, lengths are the numbers of such points.
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Box strided_box (Box const& bx, IntVect const& stride, IntVect const& offset)
+{
+    IntVect lo, hi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        const int s = stride[d];
+        lo[d] = bx.smallEnd(d) + ((offset[d]-bx.smallEnd(d))%s + s) % s;
+        hi[d] = lo[d] + (bx.bigEnd(d)-lo[d]+s)/s - 1;
+    }
+    return Box(lo, hi);
+}
+}
+/// \endcond
+
 }
 
 #endif /*AMREX_BOX_H*/
