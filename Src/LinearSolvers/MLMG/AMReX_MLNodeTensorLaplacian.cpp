@@ -285,12 +285,10 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
     int redblack = m_redblack;
 
-    amrex::ParallelFor(sol,
+    amrex::ParallelForRedBlack(sol, redblack,
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
     {
-        if ((i+j+k+redblack) % 2 == 0) {
-            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-        }
+        mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
     });
     if (!Gpu::inNoSyncRegion()) {
         Gpu::streamSynchronize();
