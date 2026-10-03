@@ -23,7 +23,6 @@
 
 #include <cstdint>
 #include <ostream>
-#include <span>
 #include <string>
 #include <utility>
 
@@ -764,9 +763,15 @@ public:
     //! For ParallelFor(FabArray)
     struct ParForInfo
     {
+        enum class Kind { full, strided, redblack };
+        struct RedBlack {};
+
+        //! One BoxIndexer per box, grown by nghost.
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
-        ParForInfo (const FabArrayBase& fa, const IntVect& stride,
-                    std::span<IntVect const> offsets);
+        //! One BoxIndexer per box over the points equal to offset modulo stride.
+        ParForInfo (const FabArrayBase& fa, const IntVect& stride, const IntVect& offset);
+        //! Two BoxIndexers per box: the points with even i, then those with odd i.
+        ParForInfo (const FabArrayBase& fa, RedBlack);
         ~ParForInfo ();
 
         int getNBlocksPerBox (int nthreads) const {
@@ -781,9 +786,10 @@ public:
         void operator= (ParForInfo &&) = delete;
 
         BATransformer m_bat;
+        Kind m_kind = Kind::full;
         IntVect m_ng;
         IntVect m_stride{1};
-        Vector<IntVect> m_offsets;
+        IntVect m_offset{0};
         Long m_ncellsmax = 0;
         BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
@@ -798,13 +804,19 @@ public:
 
     /**
      * \brief Obtain metadata for launching device ParallelFor over the valid
-     * points whose index equals one of \p offsets modulo \p stride.
+     * points whose index equals \p offset modulo \p stride.
      *
-     * Each box gets one BoxIndexer per offset. Its lower corner is the first
-     * such point and its lengths are the numbers of such points.
+     * Each box gets one BoxIndexer. Its lower corner is the first such point
+     * and its lengths are the numbers of such points.
      */
-    ParForInfo const& getParForInfo (const IntVect& stride,
-                                     std::span<IntVect const> offsets) const;
+    ParForInfo const& getParForInfo (const IntVect& stride, const IntVect& offset) const;
+
+    /**
+     * \brief Obtain metadata for a red-black ParallelFor over the valid region.
+     *
+     * Each box gets two BoxIndexers, over its points with even i and with odd i.
+     */
+    ParForInfo const& getParForInfoRedBlack () const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 
