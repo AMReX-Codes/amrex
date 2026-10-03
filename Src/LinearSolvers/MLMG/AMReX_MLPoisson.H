@@ -514,8 +514,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 
         const auto& solnma = sol.arrays();
         const auto& rhsma  = rhs.const_arrays();
-
-        AMREX_ALWAYS_ASSERT(rhs.nGrowVect() == 0);
+        const IntVect rhs_ng = rhs.nGrowVect();
 
         const auto& f0ma = f0.const_arrays();
         const auto& f1ma = f1.const_arrays();
@@ -535,7 +534,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
                                       osmma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                       f0ma[box_no], m0ma[box_no],
@@ -555,7 +554,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi_os(i, j, k, solnma[box_no], rhsma[box_no],
                                         axma[box_no], osmma[box_no],
                                         AMREX_D_DECL(dhx, dhy, dhz),
@@ -579,7 +578,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb_m(i, j, k, solnma[box_no], rhsma[box_no],
                                      AMREX_D_DECL(dhx, dhy, dhz),
                                      f0ma[box_no], m0ma[box_no],
@@ -596,7 +595,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi_m(i, j, k, solnma[box_no], rhsma[box_no],
                                        axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                        f0ma[box_no], m0ma[box_no],
@@ -615,7 +614,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no],
                                    AMREX_D_DECL(dhx, dhy, dhz),
                                    f0ma[box_no], m0ma[box_no],
@@ -635,7 +634,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi(i, j, k, solnma[box_no], rhsma[box_no],
                                      axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                      f0ma[box_no], m0ma[box_no],
