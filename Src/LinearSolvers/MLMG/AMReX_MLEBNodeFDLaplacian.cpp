@@ -20,6 +20,19 @@ namespace amrex {
 
 namespace {
 
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+// The scale of the operator's row at an open node: its smallest open edge
+// fraction.  See mlebndfdlap_scale_rhs.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real row_scale (int i, int j, int k,
+                GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& e) noexcept
+{
+    return amrex::min(AMREX_D_DECL(amrex::min(mlebndfdlap_hm(e[0](i-1,j,k)), e[0](i,j,k)),
+                                   amrex::min(mlebndfdlap_hm(e[1](i,j-1,k)), e[1](i,j,k)),
+                                   amrex::min(mlebndfdlap_hm(e[2](i,j,k-1)), e[2](i,j,k))));
+}
+#endif
+
 // Fill ghost cells outside the domain by reflection.  A direction in which the
 // data are nodal is mirrored about the boundary node, a cell-centered direction
 // about the boundary face.  Periodic directions are skipped.  When the ghost
@@ -637,20 +650,49 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
-#if (AMREX_SPACEDIM == 1)
-    int semicoarsening_dir = 0;
-#else
-    // Direction NOT coarsened by this MG step. Derived from the level's
-    // ratio, because info.semicoarsening_direction is -1 when the direction
-    // is chosen automatically.
-    int semicoarsening_dir = 2;
-    if (ratio[1] == 1) {
-        semicoarsening_dir = 1;
-    } else if (ratio[0] == 1) {
-        semicoarsening_dir = 0;
+    MultiFab const* pfine = &fine;
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    // Rows next to the EB are scaled by row_scale on every level.  Restrict
+    // the unscaled residual, and apply the coarse row scale afterwards.
+    bool const eb_scaled = !m_levset[amrlev].empty();
+    MultiFab ufine;
+    if (eb_scaled) {
+        ufine.define(fine.boxArray(), fine.DistributionMap(), 1, fine.nGrowVect(),
+                     MFInfo().SetArena(The_Async_Arena()));
+        auto const& ebp = m_eb_pos[amrlev][cmglev-1];
+        auto const& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
+        for (MFIter mfi(ufine, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& u = ufine.array(mfi);
+            Array4<Real const> const& f = fine.const_array(mfi);
+            Array4<int const> const& m = dmsk.const_array(mfi);
+            GpuArray<Array4<Real const>,AMREX_SPACEDIM> e{
+                AMREX_D_DECL(ebp[0].const_array(mfi), ebp[1].const_array(mfi),
+                             ebp[2].const_array(mfi))};
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real const sc = m(i,j,k) ? Real(1.0) : row_scale(i,j,k,e);
+                u(i,j,k) = (sc > Real(0.0)) ? f(i,j,k)/sc : f(i,j,k);
+            });
+        }
+        applyBC(amrlev, cmglev-1, ufine, BCMode::Homogeneous, StateMode::Solution);
+        pfine = &ufine;
     }
 #endif
+
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
+    // A semicoarsened step leaves one direction uncoarsened (semi_dir); a
+    // line step coarsens one direction only (line_dir, 3D).
+    int ncoarsened = 0, semi_dir = 0, line_dir = 0;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ratio[idim] == 1) {
+            semi_dir = idim;
+        } else {
+            line_dir = idim;
+            ++ncoarsened;
+        }
+    }
+    bool const line_coarsening = (AMREX_SPACEDIM == 3) && (ncoarsened == 1);
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -669,17 +711,22 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     {
         const Box& bx = mfi.tilebox();
         Array4<Real> cfab = pcrse->array(mfi);
-        Array4<Real const> const& ffab = fine.const_array(mfi);
+        Array4<Real const> const& ffab = pfine->const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
         if (ratio == 2) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 mlndlap_restriction(i,j,k,cfab,ffab,mfab);
             });
+        } else if (line_coarsening) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlebndfdlap_line_restriction(i,j,k,cfab,ffab,mfab,line_dir);
+            });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
-                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab, semicoarsening_dir);
+                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,semi_dir);
             });
         }
     }
@@ -687,6 +734,25 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     if (need_parallel_copy) {
         crse.ParallelCopy(cfine);
     }
+
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    if (eb_scaled) {
+        auto const& ebp = m_eb_pos[amrlev][cmglev];
+        auto const& dmsk = *m_dirichlet_mask[amrlev][cmglev];
+        for (MFIter mfi(crse, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& c = crse.array(mfi);
+            Array4<int const> const& m = dmsk.const_array(mfi);
+            GpuArray<Array4<Real const>,AMREX_SPACEDIM> e{
+                AMREX_D_DECL(ebp[0].const_array(mfi), ebp[1].const_array(mfi),
+                             ebp[2].const_array(mfi))};
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (!m(i,j,k)) { c(i,j,k) *= row_scale(i,j,k,e); }
+            });
+        }
+    }
+#endif
 }
 
 void
@@ -696,19 +762,18 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     BL_PROFILE("MLEBNodeFDLaplacian::interpolation()");
 
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
-#if (AMREX_SPACEDIM == 1)
-    int semicoarsening_dir = 0;
-#else
-    // Direction NOT coarsened by this MG step. Derived from the level's
-    // ratio, because info.semicoarsening_direction is -1 when the direction
-    // is chosen automatically.
-    int semicoarsening_dir = 2;
-    if (ratio[1] == 1) {
-        semicoarsening_dir = 1;
-    } else if (ratio[0] == 1) {
-        semicoarsening_dir = 0;
+    // A semicoarsened step leaves one direction uncoarsened (semi_dir); a
+    // line step coarsens one direction only (line_dir, 3D).
+    int ncoarsened = 0, semi_dir = 0, line_dir = 0;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ratio[idim] == 1) {
+            semi_dir = idim;
+        } else {
+            line_dir = idim;
+            ++ncoarsened;
+        }
     }
-#endif
+    bool const line_coarsening = (AMREX_SPACEDIM == 3) && (ncoarsened == 1);
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -736,10 +801,15 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
             {
                 mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
             });
+        } else if (line_coarsening) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlebndfdlap_line_interpadd(i,j,k,ffab,cfab,mfab,line_dir);
+            });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
-                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semicoarsening_dir);
+                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semi_dir);
             });
         }
     }

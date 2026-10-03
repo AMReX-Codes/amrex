@@ -685,6 +685,12 @@ coarse multigrid levels on its own when they have too few unknowns, or when
 a level would no longer see the embedded boundary or part of it.  Setting
 the MLMG verbosity to 2 or higher prints the resulting number of levels.
 
+Multigrid with :cpp:`MLEBNodeFDLaplacian` also converges on stretched cells.
+When some directions have cells at least 1.5 times as long as the shortest,
+those directions are left uncoarsened until the cells are nearly cubic.  No
+setting is needed, and a direction fixed with
+:cpp:`LPInfo::setSemicoarseningDirection` takes precedence.
+
 External Solvers
 ================
 
