@@ -137,6 +137,56 @@ loaded processes have to wait for messages sent by the heavily loaded
 processes. See also :ref:`sec:profopts` for a diagnostic option that may
 provide more insight on the load imbalance.
 
+.. _sec:tiny:profparser:
+
+Converting TinyProfiler Output for Hatchet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``Tools/TinyProfileParser/profileparser.py`` script converts the
+TinyProfiler summary that AMReX writes to ``stdout`` into a JSON file that
+can be loaded by `Hatchet <https://github.com/hatchet/hatchet>`_, a tool
+from LLNL for hierarchical analysis of performance data. This is useful when
+you want to compare runs, build flamegraph-style views, or apply Hatchet's
+query API to TinyProfiler results.
+
+The script reads a captured ``stdout`` log from an AMReX run and writes
+``profile_data.json`` to a directory of your choice. Both the exclusive and
+inclusive sections of the TinyProfiler output are parsed; each function
+becomes a Hatchet ``frame`` with metrics ``n_calls``, ``excl_min``,
+``excl_avg``, ``excl_max``, ``excl_max_percent``, and the corresponding
+``incl_*`` metrics.
+
+First, capture the ``stdout`` of an AMReX run that has TinyProfiler enabled,
+for example:
+
+.. highlight:: console
+
+::
+
+    ./your_amrex_executable inputs > run.log
+
+Then run the parser, optionally giving it a directory to write the JSON to
+(it defaults to the directory containing the log):
+
+.. highlight:: console
+
+::
+
+    python Tools/TinyProfileParser/profileparser.py run.log
+    python Tools/TinyProfileParser/profileparser.py run.log /path/to/output_dir
+
+The resulting ``profile_data.json`` can then be loaded with
+``hatchet.GraphFrame.from_literal`` (or the equivalent JSON loader for your
+Hatchet version) for downstream analysis.
+
+.. note::
+
+   The parser expects the TinyProfiler summary in the format produced by a
+   plain run end (it skips the first five header lines of the summary and
+   parses both the exclusive and inclusive tables). If you use
+   ``BL_PROFILE_TINY_FLUSH()`` to emit partial summaries mid-run, capture a
+   single intended summary into its own log file before invoking the parser.
+
 .. _sec:full:profiling:
 
 Full Profiling
