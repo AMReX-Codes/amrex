@@ -277,6 +277,56 @@ void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
         "Coarsening did not stop before the level that hides an EB feature");
 }
 
+// Cells 8 times shorter in the last direction.  MG coarsens only that
+// direction until the cells are nearly cubic, and must converge quickly.
+void test_stretched_cells (Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                           int n_cell, int max_grid_size, Real reltol, int verbose)
+{
+    constexpr int ratio = 8;
+    constexpr int zdir = AMREX_SPACEDIM-1;
+    IntVect hi(n_cell-1);
+    hi[zdir] = ratio*n_cell-1;
+    Box const domain(IntVect(0), hi);
+    RealBox const rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    Geometry const geom(domain, rb, CoordSys::cartesian, {AMREX_D_DECL(0,0,0)});
+    BoxArray grids(domain);
+    grids.maxSize(max_grid_size);
+    DistributionMapping const dmap(grids);
+
+    EB2::SphereIF sphere(Real(0.23), {AMREX_D_DECL(Real(0.5), Real(0.5), Real(0.5))}, false);
+    EB2::Build(EB2::makeShop(sphere), geom, 0, 0);
+    auto factory = makeEBFabFactory(geom, grids, dmap, {2,2,2}, EBSupport::full);
+    auto const& ebfactory = *static_cast<EBFArrayBoxFactory const*>(factory.get());
+
+    LPInfo info;
+    info.setMaxCoarseningLevel(30);
+    MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&ebfactory});
+    linop.setDomainBC(lobc, hibc);
+    linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+    linop.setEBDirichlet(Real(1.0));
+
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+    MultiFab rhs(nba, dmap, 1, 0);
+    rhs.setVal(Real(1.0));
+    MultiFab sol(nba, dmap, 1, 1);
+    sol.setVal(Real(0.0));
+
+    MLMG mlmg(linop);
+    mlmg.setVerbose(verbose);
+    mlmg.setMaxIter(20);
+    mlmg.solve({&sol}, {&rhs}, reltol, Real(0.0));
+
+    IntVect const len0 = linop.Geom(0,0).Domain().length();
+    IntVect const len1 = linop.Geom(0,1).Domain().length();
+    amrex::Print() << "# of MG levels: " << linop.NMGLevels(0)
+                   << ", MG level 1: " << len1 << "\n";
+    IntVect expected = len0;
+    expected[zdir] /= 2;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(len1 == expected,
+        "MG level 1 should be coarsened in the short direction only");
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -337,6 +387,9 @@ int main (int argc, char* argv[])
 
         amrex::Print() << "\n==== hidden EB feature ====\n";
         test_hidden_feature(geom, grids, dmap, lobc, hibc, n_cell, reltol, verbose);
+
+        amrex::Print() << "\n==== stretched cells ====\n";
+        test_stretched_cells(lobc, hibc, n_cell, max_grid_size, reltol, verbose);
     }
     amrex::Finalize();
 }

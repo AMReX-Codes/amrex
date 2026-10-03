@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <limits>
 #include <string>
 
 namespace amrex {
@@ -767,6 +768,13 @@ public:
     //! True if makeAlgMG is implemented for this operator.
     [[nodiscard]] virtual bool supportsAlgMG () const { return false; }
 
+    /**
+     * \brief True if the operator supports MG levels coarsened in any subset
+     * of directions. Then MLMG coarsens stretched cells only in their short
+     * directions until they are nearly cubic.
+     */
+    [[nodiscard]] virtual bool supportsAnisotropicCoarsening () const { return false; }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     /**
      * \brief Build a Hypre backend using the requested interface.
@@ -1295,6 +1303,26 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                          && info.semicoarsening_direction >= -1
                          && info.semicoarsening_direction < AMREX_SPACEDIM );
 
+    // Directions to coarsen for stretched cells: those shorter than 1.5
+    // times the shortest. A fixed semicoarsening direction takes precedence.
+    bool const aniso_coarsening = supportsAnisotropicCoarsening() && !hasHiddenDimension()
+        && !(info.do_semicoarsening && info.semicoarsening_direction != -1);
+    auto const dx0 = m_geom[0][0].CellSizeArray();
+    auto base_ratio = [&] (IntVect const& accum) -> IntVect
+    {
+        IntVect rr = mg_coarsen_ratio_v;
+        if (aniso_coarsening) {
+            Real dxmin = std::numeric_limits<Real>::max();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                dxmin = std::min(dxmin, dx0[idim]*Real(accum[idim]));
+            }
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (dx0[idim]*Real(accum[idim]) >= Real(1.5)*dxmin) { rr[idim] = 1; }
+            }
+        }
+        return rr;
+    };
+
     if (info.do_agglomeration && aggable)
     {
         Box dbx = m_geom[0][0].Domain();
@@ -1311,7 +1339,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
         for (int lev = 0; lev < info.max_coarsening_level; ++lev)
         {
-            IntVect rr_level = mg_coarsen_ratio_v;
+            IntVect const rr_base = base_ratio(accum_coarsen_ratio.back());
+            IntVect rr_level = rr_base;
             bool const do_semicoarsening_level = info.do_semicoarsening
                 && numsclevs < info.max_semicoarsening_level;
             if (do_semicoarsening_level
@@ -1340,9 +1369,9 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 int n_ones = AMREX_D_TERM(  static_cast<int>(rr_level[0] == 1),
                                           + static_cast<int>(rr_level[1] == 1),
                                           + static_cast<int>(rr_level[2] == 1));
-                if (n_ones > 1) { break; }
+                if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != mg_coarsen_ratio_v) {
+            if (rr_level != rr_base) {
                 ++numsclevs;
             }
 
@@ -1406,7 +1435,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         int numsclevs = 0;
         for (int lev = 0; lev < info.max_coarsening_level; ++lev)
         {
-            IntVect rr_level = mg_coarsen_ratio_v;
+            IntVect const rr_base = base_ratio(rr_vec);
+            IntVect rr_level = rr_base;
             bool do_semicoarsening_level = info.do_semicoarsening
                 && numsclevs < info.max_semicoarsening_level;
             if (do_semicoarsening_level
@@ -1435,9 +1465,9 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 int n_ones = AMREX_D_TERM(  static_cast<int>(rr_level[0] == 1),
                                           + static_cast<int>(rr_level[1] == 1),
                                           + static_cast<int>(rr_level[2] == 1));
-                if (n_ones > 1) { break; }
+                if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != mg_coarsen_ratio_v) {
+            if (rr_level != rr_base) {
                 ++numsclevs;
             }
             rr_vec *= rr_level;
