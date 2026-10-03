@@ -21,15 +21,29 @@ namespace amrex {
 namespace {
 
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
-// The scale of the operator's row at an open node: its smallest open edge
-// fraction.  See mlebndfdlap_scale_rhs.
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real row_scale (int i, int j, int k,
-                GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& e) noexcept
+// The scale of the operator's row at each open node: its smallest open edge
+// fraction (see mlebndfdlap_scale_rhs); 1 at Dirichlet and covered nodes.
+void fill_row_scale (MultiFab& s, Array<MultiFab,AMREX_SPACEDIM> const& ebp,
+                     iMultiFab const& dmsk)
 {
-    return amrex::min(AMREX_D_DECL(amrex::min(mlebndfdlap_hm(e[0](i-1,j,k)), e[0](i,j,k)),
-                                   amrex::min(mlebndfdlap_hm(e[1](i,j-1,k)), e[1](i,j,k)),
-                                   amrex::min(mlebndfdlap_hm(e[2](i,j,k-1)), e[2](i,j,k))));
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(s, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        Array4<Real> const& sa = s.array(mfi);
+        Array4<int const> const& m = dmsk.const_array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& ex = ebp[0].const_array(mfi);,
+                     Array4<Real const> const& ey = ebp[1].const_array(mfi);,
+                     Array4<Real const> const& ez = ebp[2].const_array(mfi);)
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            sa(i,j,k) = m(i,j,k) ? Real(1.0) : amrex::min(
+                AMREX_D_DECL(amrex::min(mlebndfdlap_hm(ex(i-1,j,k)), ex(i,j,k)),
+                             amrex::min(mlebndfdlap_hm(ey(i,j-1,k)), ey(i,j,k)),
+                             amrex::min(mlebndfdlap_hm(ez(i,j,k-1)), ez(i,j,k))));
+        });
+    }
 }
 #endif
 
@@ -650,36 +664,6 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    MultiFab const* pfine = &fine;
-#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
-    // Rows next to the EB are scaled by row_scale on every level.  Restrict
-    // the unscaled residual, and apply the coarse row scale afterwards.
-    bool const eb_scaled = !m_levset[amrlev].empty();
-    MultiFab ufine;
-    if (eb_scaled) {
-        ufine.define(fine.boxArray(), fine.DistributionMap(), 1, fine.nGrowVect(),
-                     MFInfo().SetArena(The_Async_Arena()));
-        auto const& ebp = m_eb_pos[amrlev][cmglev-1];
-        auto const& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
-        for (MFIter mfi(ufine, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-            Box const& bx = mfi.tilebox();
-            Array4<Real> const& u = ufine.array(mfi);
-            Array4<Real const> const& f = fine.const_array(mfi);
-            Array4<int const> const& m = dmsk.const_array(mfi);
-            GpuArray<Array4<Real const>,AMREX_SPACEDIM> e{
-                AMREX_D_DECL(ebp[0].const_array(mfi), ebp[1].const_array(mfi),
-                             ebp[2].const_array(mfi))};
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                Real const sc = m(i,j,k) ? Real(1.0) : row_scale(i,j,k,e);
-                u(i,j,k) = (sc > Real(0.0)) ? f(i,j,k)/sc : f(i,j,k);
-            });
-        }
-        applyBC(amrlev, cmglev-1, ufine, BCMode::Homogeneous, StateMode::Solution);
-        pfine = &ufine;
-    }
-#endif
-
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
     // A semicoarsened step leaves one direction uncoarsened (semi_dir); a
     // line step coarsens one direction only (line_dir, 3D).
@@ -704,55 +688,78 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    // Rows next to the EB are scaled by fill_row_scale on every level.  The
+    // fine residuals are brought to the scale of the coarse row, but never
+    // enlarged: a row with an EB almost on its node is a near-Dirichlet
+    // condition whose unscaled residual is not comparable.
+    if (!m_levset[amrlev].empty()) {
+        MultiFab sf(fine.boxArray(), fine.DistributionMap(), 1, 1,
+                    MFInfo().SetArena(The_Async_Arena()));
+        fill_row_scale(sf, m_eb_pos[amrlev][cmglev-1], dmsk);
+        fill_domain_ghost(sf, m_geom[amrlev][cmglev-1], -1);
+        MultiFab sc(crse.boxArray(), crse.DistributionMap(), 1, 0,
+                    MFInfo().SetArena(The_Async_Arena()));
+        fill_row_scale(sc, m_eb_pos[amrlev][cmglev], *m_dirichlet_mask[amrlev][cmglev]);
+        MultiFab sc_tmp;
+        MultiFab const* psc = &sc;
+        if (need_parallel_copy) {
+            sc_tmp.define(cfine.boxArray(), cfine.DistributionMap(), 1, 0,
+                          MFInfo().SetArena(The_Async_Arena()));
+            sc_tmp.ParallelCopy(sc);
+            psc = &sc_tmp;
+        }
+        Dim3 const rr = ratio.dim3(1);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& cfab = pcrse->array(mfi);
+            Array4<Real const> const& ffab = fine.const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            Array4<Real const> const& sfab = sf.const_array(mfi);
+            Array4<Real const> const& scfab = psc->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlebndfdlap_eb_restriction(i,j,k,cfab,ffab,mfab,sfab,scfab(i,j,k),rr);
+            });
+        }
+    } else
+#endif
     {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> cfab = pcrse->array(mfi);
-        Array4<Real const> const& ffab = pfine->const_array(mfi);
-        Array4<int const> const& mfab = dmsk.const_array(mfi);
-        if (ratio == 2) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
-            });
-        } else if (line_coarsening) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlebndfdlap_line_restriction(i,j,k,cfab,ffab,mfab,line_dir);
-            });
-        } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,semi_dir);
-            });
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> cfab = pcrse->array(mfi);
+            Array4<Real const> const& ffab = fine.const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            if (ratio == 2) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+                });
+            } else if (line_coarsening) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlebndfdlap_line_restriction(i,j,k,cfab,ffab,mfab,line_dir);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,semi_dir);
+                });
+            }
         }
     }
 
     if (need_parallel_copy) {
         crse.ParallelCopy(cfine);
     }
-
-#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
-    if (eb_scaled) {
-        auto const& ebp = m_eb_pos[amrlev][cmglev];
-        auto const& dmsk = *m_dirichlet_mask[amrlev][cmglev];
-        for (MFIter mfi(crse, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-            Box const& bx = mfi.tilebox();
-            Array4<Real> const& c = crse.array(mfi);
-            Array4<int const> const& m = dmsk.const_array(mfi);
-            GpuArray<Array4<Real const>,AMREX_SPACEDIM> e{
-                AMREX_D_DECL(ebp[0].const_array(mfi), ebp[1].const_array(mfi),
-                             ebp[2].const_array(mfi))};
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (!m(i,j,k)) { c(i,j,k) *= row_scale(i,j,k,e); }
-            });
-        }
-    }
-#endif
 }
 
 void
