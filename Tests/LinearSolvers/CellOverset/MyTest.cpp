@@ -152,9 +152,11 @@ MyTest::writePlotfile ()
                        << " max-norm error: " << plotmf[ilev].norminf(3)
                        << " 1-norm error: " << plotmf[ilev].norm1(3)*dvol << '\n';
     }
-    WriteMultiLevelPlotfile(plot_file_name, nlevels, GetVecOfConstPtrs(plotmf), varname,
-                            geom, 0.0, Vector<int>(nlevels, 0),
-                            Vector<IntVect>(nlevels, IntVect(2)));
+    if (do_plots) {
+        WriteMultiLevelPlotfile(plot_file_name, nlevels, GetVecOfConstPtrs(plotmf), varname,
+                                geom, 0.0, Vector<int>(nlevels, 0),
+                                Vector<IntVect>(nlevels, IntVect(2)));
+    }
 }
 
 void
@@ -168,6 +170,7 @@ MyTest::readParameters ()
     pp.query("plot_file", plot_file_name);
 
     pp.query("verbose", verbose);
+    pp.query("do_plots", do_plots);
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_coarsening_level", max_coarsening_level);
 

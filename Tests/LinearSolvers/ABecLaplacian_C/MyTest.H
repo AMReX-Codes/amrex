@@ -63,6 +63,7 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     int linop_maxorder = 2;
+    bool do_plots = true;
     bool agglomeration = true;
     bool consolidation = true;
     bool deterministic = false;

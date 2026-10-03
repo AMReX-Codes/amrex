@@ -635,6 +635,7 @@ MyTest::readParameters ()
     pp.query("prob_type", prob_type);
 
     pp.query("verbose", verbose);
+    pp.query("do_plots", do_plots);
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);

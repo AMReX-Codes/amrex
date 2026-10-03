@@ -29,6 +29,7 @@ private:
     int max_grid_size = 64;
 
     std::string plot_file_name{"plot"};
+    bool do_plots = true;
 
     // For MLMG solver
     int verbose = 2;

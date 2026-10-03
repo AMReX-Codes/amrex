@@ -35,6 +35,7 @@ private:
     int verbose = 2;
     int bottom_verbose = 0;
     int max_iter = 500;
+    bool do_plots = true;
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
     int use_hypre = 0;

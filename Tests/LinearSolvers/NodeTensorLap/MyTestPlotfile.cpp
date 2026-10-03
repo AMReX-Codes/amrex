@@ -27,8 +27,10 @@ MyTest::writePlotfile () const
         amrex::average_node_to_cellcenter(plotmf[ilev], 3, error, 0, 1);
     }
 
-    WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
-                            varname, geom, 0.0, Vector<int>(nlevels, 0),
-                            Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+    if (do_plots) {
+        WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
+                                varname, geom, 0.0, Vector<int>(nlevels, 0),
+                                Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+    }
 }
 
