@@ -205,6 +205,8 @@ public:
 #endif
 
     [[nodiscard]] bool supportsAlgMG () const override { return !m_rz; }
+
+    [[nodiscard]] bool supportsAnisotropicCoarsening () const override { return true; }
     void fillAlgMatrix (int mglev, MFIter const& mfi,
                         Array4<Long const> const& gid,
                         Array4<int const> const& lid,
