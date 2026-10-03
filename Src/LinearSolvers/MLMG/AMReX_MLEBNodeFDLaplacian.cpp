@@ -1494,6 +1494,9 @@ MLEBNodeFDLaplacian::update_sigma ()
     }
 }
 
+// The single-Box GPU bottom solver is not built in 1D, which this class does
+// not support. Instantiating it there makes nvcc 12.2 hang.
+#if (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)) && (AMREX_SPACEDIM > 1)
 namespace {
     struct LPBase
     {
@@ -1769,6 +1772,7 @@ namespace {
     };
 #endif
 }
+#endif
 
 void
 MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
@@ -1776,7 +1780,7 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
 {
     amrex::ignore_unused(maxiter, eps_rel, eps_abs);
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)) && (AMREX_SPACEDIM > 1)
     bool use_custom_solver = (x.size() == 1);
     if (use_custom_solver)
     {
