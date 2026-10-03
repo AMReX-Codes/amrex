@@ -60,6 +60,7 @@ T pmis_tiebreak (Long ig)
     z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
     z ^= (z >> 31);
     constexpr int digits = std::numeric_limits<T>::digits;
+    static_assert(digits < 64, "pmis_tiebreak: T must be float or double");
     return T(z >> (64 - digits)) / T(std::uint64_t(1) << digits);
 }
 
