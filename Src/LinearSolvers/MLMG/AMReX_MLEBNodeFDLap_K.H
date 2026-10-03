@@ -41,6 +41,49 @@ void mlebndfdlap_line_restriction (int i, int j, int k, Array4<Real> const& crse
     }
 }
 
+/**
+ * \brief Restriction of a residual whose rows are scaled near the EB.
+ *
+ * Full weighting in the coarsened directions (ratio 2; 1 means not
+ * coarsened).  Each fine residual is multiplied by min(1, sc/sf), which
+ * brings it to the scale of the coarse row without enlarging it.
+ *
+ * \param sf row scales of the fine nodes
+ * \param sc row scale of the coarse node
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_eb_restriction (int ic, int jc, int kc, Array4<Real> const& crse,
+                                 Array4<Real const> const& fine,
+                                 Array4<int const> const& msk,
+                                 Array4<Real const> const& sf, Real sc,
+                                 Dim3 const& ratio) noexcept
+{
+    int const i = ic*ratio.x;
+    int const j = jc*ratio.y;
+    int const k = kc*ratio.z;
+    if (msk(i,j,k)) {
+        crse(ic,jc,kc) = Real(0.0);
+        return;
+    }
+    int const nx = ratio.x-1;
+    int const ny = ratio.y-1;
+    int const nz = ratio.z-1;
+    Real r = Real(0.0);
+    for (int dk = -nz; dk <= nz; ++dk) {
+        Real const wz = nz ? ((dk == 0) ? Real(0.5) : Real(0.25)) : Real(1.0);
+        for (int dj = -ny; dj <= ny; ++dj) {
+            Real const wy = ny ? ((dj == 0) ? Real(0.5) : Real(0.25)) : Real(1.0);
+            for (int di = -nx; di <= nx; ++di) {
+                Real const wx = nx ? ((di == 0) ? Real(0.5) : Real(0.25)) : Real(1.0);
+                Real const s = sf(i+di,j+dj,k+dk);
+                Real const f = (s > sc) ? sc/s : Real(1.0);
+                r += wx*wy*wz*f*fine(i+di,j+dj,k+dk);
+            }
+        }
+    }
+    crse(ic,jc,kc) = r;
+}
+
 //! Linear interpolation for an MG level coarsened in direction \p cdir only.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_line_interpadd (int i, int j, int k, Array4<Real> const& fine,
