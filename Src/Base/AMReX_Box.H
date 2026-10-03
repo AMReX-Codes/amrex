@@ -2550,20 +2550,6 @@ struct BoxIndexerND
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::uint64_t numPts () const { return npts; }
-    //! Return the length of the indexed box in each direction.
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> length () const
-    {
-        IntVectND<dim> len(0);
-        if (npts == 0) { return len; }
-        std::uint64_t mult = 1;
-        for (int i = 0; i < dim-1; ++i) {
-            len[i] = int(fdm[i].divisor / mult);
-            mult = fdm[i].divisor;
-        }
-        len[dim-1] = int(npts / mult);
-        return len;
-    }
 };
 
 /**
@@ -2617,12 +2603,27 @@ struct BoxIndexerND<1>
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::uint64_t numPts () const { return npts; }
-    //! Return the length of the indexed box.
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<1> length () const { return IntVectND<1>{int(npts)}; }
 };
 
 using BoxIndexer = BoxIndexerND<AMREX_SPACEDIM>;
+
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+// The points of bx whose index equals offset modulo stride: lower corner is
+// the first such point, lengths are the numbers of such points.
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Box strided_box (Box const& bx, IntVect const& stride, IntVect const& offset)
+{
+    IntVect lo, hi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        const int s = stride[d];
+        lo[d] = bx.smallEnd(d) + ((offset[d]-bx.smallEnd(d))%s + s) % s;
+        hi[d] = lo[d] + (bx.bigEnd(d)-lo[d]+s)/s - 1;
+    }
+    return Box(lo, hi);
+}
+}
+/// \endcond
 
 }
 

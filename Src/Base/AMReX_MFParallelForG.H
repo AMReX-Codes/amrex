@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <span>
 
 /// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
@@ -138,34 +139,23 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool d
     ParallelFor_doit<MT>(mf, nghost, 1, ts, dynamic, std::forward<F>(f));
 }
 
+// One launch over the valid points of all boxes whose index equals one of
+// the offsets modulo stride.
 template <int MT, FabArrayType MF, typename F>
 void
-ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F const& f)
+ParallelForStrided_doit (MF const& mf, IntVect const& stride,
+                         std::span<IntVect const> offsets, F const& f)
 {
-    const auto& index_array = mf.IndexArray();
-    const int nboxes = index_array.size();
+    const int nboxes = mf.IndexArray().size();
     if (nboxes == 0) { return; }
 
-    // Upper bound on the number of strided points in a local box
-    Long npts_max = 0;
-    for (int K : index_array) {
-        Box const& b = mf.box(K);
-        if (b.ok()) {
-            Long n = 1;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                n *= (b.length(idim) + stride[idim] - 1) / stride[idim];
-            }
-            npts_max = std::max(npts_max, n);
-        }
-    }
-    if (npts_max == 0) { return; }
-
-    // The boxes of the valid region are cached with the FabArray.
-    auto const& parforinfo = mf.getParForInfo(IntVect(0));
-    const BoxIndexer* dp_boxes = parforinfo.getBoxes();
-    const auto nblocks_per_box = int((npts_max + MT - 1) / MT);
+    auto const& parforinfo = mf.getParForInfo(stride, offsets);
+    const auto nblocks_per_box = parforinfo.getNBlocksPerBox(MT);
+    if (nblocks_per_box == 0) { return; }
     AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
     const int nblocks = nblocks_per_box * nboxes;
+    const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+    const int noffsets = int(offsets.size());
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -186,28 +176,20 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
              int ibox = int(blockIdxx) / nblocks_per_box;
              auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
 #endif
-             BoxIndexer const& indexer = dp_boxes[ibox];
-             if (indexer.numPts() == 0) { return; }
-             const IntVect lo = indexer.intVect(0);
-             const IntVect len = indexer.length();
-             IntVect first, n;
-             std::uint64_t npts = 1;
-             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                 const int s = stride[idim];
-                 first[idim] = lo[idim] + ((offset[idim]-lo[idim])%s + s) % s;
-                 n[idim] = amrex::max(0, (lo[idim] + len[idim] - first[idim] + s - 1) / s);
-                 npts *= std::uint64_t(n[idim]);
-             }
-             if (icell < npts) {
-                 IntVect iv = first;
-                 for (int idim = 0; idim < AMREX_SPACEDIM-1; ++idim) {
-                     const auto q = icell / std::uint64_t(n[idim]);
-                     iv[idim] += int(icell - q*std::uint64_t(n[idim])) * stride[idim];
-                     icell = q;
+             BoxIndexer const* indexers = dp_boxes + ibox*noffsets;
+             for (int q = 0; q < noffsets; ++q) {
+                 BoxIndexer const& indexer = indexers[q];
+                 if (icell < indexer.numPts()) {
+                     const IntVect lo(indexer.lo);
+                     IntVect iv = indexer.intVect(icell);
+                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                         iv[idim] = lo[idim] + (iv[idim]-lo[idim])*stride[idim];
+                     }
+                     auto const d3 = iv.dim3();
+                     f(ibox, d3.x, d3.y, d3.z);
+                     return;
                  }
-                 iv[AMREX_SPACEDIM-1] += int(icell) * stride[AMREX_SPACEDIM-1];
-                 auto const d3 = iv.dim3();
-                 f(ibox, d3.x, d3.y, d3.z);
+                 icell -= indexer.numPts();
              }
          });
     AMREX_GPU_ERROR_CHECK();
@@ -215,14 +197,66 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
 
 template <FabArrayType MF, typename F>
 void
-ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F&& f)
+ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& offset, F const& f)
 {
+    const auto& index_array = mf.IndexArray();
+    if (index_array.size() == 1) {
+        Box const& b = strided_box(mf.box(index_array[0]), stride, offset);
+        const IntVect lo = b.smallEnd();
+        amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv(AMREX_D_DECL(i,j,k));
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                iv[idim] = lo[idim] + (iv[idim]-lo[idim])*stride[idim];
+            }
+            auto const d3 = iv.dim3();
+            f(0, d3.x, d3.y, d3.z);
+        });
+    } else {
 #ifdef AMREX_USE_CUDA
-    constexpr int MT = 128;
+        constexpr int MT = 128;
 #else
-    constexpr int MT = AMREX_GPU_MAX_THREADS;
+        constexpr int MT = AMREX_GPU_MAX_THREADS;
 #endif
-    ParallelForStrided_doit<MT>(mf, stride, offset, std::forward<F>(f));
+        ParallelForStrided_doit<MT>(mf, stride, std::span<IntVect const>(&offset,1), f);
+    }
+}
+
+template <FabArrayType MF, typename F>
+void
+ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
+{
+    const auto& index_array = mf.IndexArray();
+    if (index_array.size() == 1) {
+        // Checkerboard: i = 2*ic + ((j+k+redblack)&1)
+        Box b = mf.box(index_array[0]);
+        const int xlo = b.smallEnd(0);
+        const int xhi = b.bigEnd(0);
+        b.setSmall(0, amrex::coarsen(xlo,2));
+        b.setBig  (0, amrex::coarsen(xhi,2));
+        amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int ic, int j, int k) noexcept
+        {
+            const int i = 2*ic + ((j+k+redblack) & 1);
+            if (i >= xlo && i <= xhi) {
+                f(0, i, j, k);
+            }
+        });
+    } else {
+#ifdef AMREX_USE_CUDA
+        constexpr int MT = 128;
+#else
+        constexpr int MT = AMREX_GPU_MAX_THREADS;
+#endif
+        // The index parities with an even sum of parities and redblack
+        constexpr int noffsets = AMREX_D_TERM(1,*2,*2);
+        Array<IntVect,noffsets> offsets;
+        for (int q = 0; q < noffsets; ++q) {
+            IntVect& o = offsets[q];
+            o = IntVect(AMREX_D_DECL(0, q&1, (q>>1)&1));
+            o[0] = (o.sum() + redblack) & 1;
+        }
+        ParallelForStrided_doit<MT>(mf, IntVect(2), offsets, f);
+    }
 }
 
 }

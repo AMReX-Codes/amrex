@@ -15,45 +15,6 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_GPU
-/// \cond DOXYGEN_IGNORE
-namespace detail {
-// Launch f(box_no,i,j,k) on the valid cells with i+j+k+redblack even.
-template <typename MF, typename F>
-void ParallelForRedBlack (MF const& mf, int redblack, F const& f)
-{
-    for (int p = 0; p < AMREX_D_TERM(2,*2,*2); ++p) {
-        IntVect const parity(AMREX_D_DECL(p&1, (p>>1)&1, (p>>2)&1));
-        if ((parity.sum() + redblack) % 2 == 0) {
-            ParallelForStrided(mf, IntVect(2), parity, f);
-        }
-    }
-}
-
-// Same as above, but f(box_no,i,j,k,n) for each component n.
-template <typename MF, typename F>
-void ParallelForRedBlack (MF const& mf, int ncomp, int redblack, F const& f)
-{
-    if (ncomp == 1) {
-        ParallelForRedBlack(mf, redblack,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            f(box_no, i, j, k, 0);
-        });
-    } else {
-        ParallelForRedBlack(mf, redblack,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            for (int n = 0; n < ncomp; ++n) {
-                f(box_no, i, j, k, n);
-            }
-        });
-    }
-}
-}
-/// \endcond
-#endif
-
 /**
  * \file AMReX_MLCellLinOp.H
  *

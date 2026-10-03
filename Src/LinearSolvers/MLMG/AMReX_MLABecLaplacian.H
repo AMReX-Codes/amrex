@@ -1058,7 +1058,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
         if (this->m_overset_mask[amrlev][mglev]) {
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
             if (this->m_use_gauss_seidel) {
-                detail::ParallelForRedBlack(sol, nc, redblack,
+                ParallelForRedBlack(sol, nc, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                 {
                     Box vbx(ama[box_no]);
@@ -1090,7 +1090,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
             }
         } else if (regular_coarsening) {
             if (this->m_use_gauss_seidel) {
-                detail::ParallelForRedBlack(sol, nc, redblack,
+                ParallelForRedBlack(sol, nc, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                 {
                     Box vbx(ama[box_no]);

@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <ostream>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -764,6 +765,8 @@ public:
     struct ParForInfo
     {
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
+        ParForInfo (const FabArrayBase& fa, const IntVect& stride,
+                    std::span<IntVect const> offsets);
         ~ParForInfo ();
 
         int getNBlocksPerBox (int nthreads) const {
@@ -779,6 +782,8 @@ public:
 
         BATransformer m_bat;
         IntVect m_ng;
+        IntVect m_stride{1};
+        Vector<IntVect> m_offsets;
         Long m_ncellsmax = 0;
         BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
@@ -790,6 +795,16 @@ public:
      * \param nghost Grow vector describing which halo width will participate in the loop.
      */
     ParForInfo const& getParForInfo (const IntVect& nghost) const;
+
+    /**
+     * \brief Obtain metadata for launching device ParallelFor over the valid
+     * points whose index equals one of \p offsets modulo \p stride.
+     *
+     * Each box gets one BoxIndexer per offset. Its lower corner is the first
+     * such point and its lengths are the numbers of such points.
+     */
+    ParForInfo const& getParForInfo (const IntVect& stride,
+                                     std::span<IntVect const> offsets) const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 

@@ -69,9 +69,9 @@ detailed throughout the rest of this chapter:
   loops, since in AMReX's approach to parallelism it is assumed that separate :cpp:`Box` objects
   can be processed independently. However, AMReX also provides a :cpp:`MultiFab` version
   of :cpp:`ParallelFor` that can process an entire level worth of :cpp:`Box` objects in
-  a single kernel launch when it is safe to do so. :cpp:`ParallelForStrided` does
-  the same for a strided subset of points, e.g., one color of a multi-color
-  Gauss-Seidel sweep.
+  a single kernel launch when it is safe to do so. :cpp:`ParallelForStrided` and
+  :cpp:`ParallelForRedBlack` do the same for a strided subset of points, e.g., one
+  color of a multi-color or red-black Gauss-Seidel sweep.
 
 - AMReX can utilize GPU managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such

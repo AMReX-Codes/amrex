@@ -532,7 +532,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
             AMREX_ASSERT(!this->m_has_metric_term);
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
             if (this->m_use_gauss_seidel) {
-                detail::ParallelForRedBlack(sol, redblack,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);
@@ -576,7 +576,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #if (AMREX_SPACEDIM < 3)
         else if (this->m_has_metric_term) {
             if (this->m_use_gauss_seidel) {
-                detail::ParallelForRedBlack(sol, redblack,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);
@@ -612,7 +612,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
         else {
             if (this->m_use_gauss_seidel) {
-                detail::ParallelForRedBlack(sol, redblack,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Box vbx(rhsma[box_no]);

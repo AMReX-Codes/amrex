@@ -487,6 +487,62 @@ ParallelForStrided (MF const& mf, IntVect const& stride, IntVect const& offset, 
     detail::ParallelForStrided_doit(mf, stride, offset, std::forward<F>(f));
 }
 
+/**
+ * \brief ParallelFor over the red or black points of the valid region of a MultiFab/FabArray.
+ *
+ * Only points (i,j,k) with i+j+k+redblack even are visited, e.g., one half
+ * of a red-black Gauss-Seidel sweep.  For GPU builds, all boxes are covered
+ * by a single kernel launch, and this function is NON-BLOCKING on the host.
+ *
+ * \tparam MF the MultiFab/FabArray type
+ * \tparam F a callable type like lambda
+ *
+ * \param mf the MultiFab/FabArray object used to specify the iteration space
+ * \param redblack 0 or 1, selecting the red or black points
+ * \param f a callable object void(int,int,int,int), where the first argument
+ *           is the local box index, and the following three are spatial indices
+ *           for x, y, and z-directions.
+ */
+template <FabArrayType MF, typename F>
+void
+ParallelForRedBlack (MF const& mf, int redblack, F&& f)
+{
+    detail::ParallelForRedBlack_doit(mf, redblack, std::forward<F>(f));
+}
+
+/**
+ * \brief ParallelFor over the red or black points of the valid region of a MultiFab/FabArray.
+ *
+ * Same as above, but f is called for each of the \p ncomp components.
+ *
+ * \param mf the MultiFab/FabArray object used to specify the iteration space
+ * \param ncomp the number of components
+ * \param redblack 0 or 1, selecting the red or black points
+ * \param f a callable object void(int,int,int,int,int), where the first argument
+ *           is the local box index, the following three are spatial indices
+ *           for x, y, and z-directions, and the last is for component.
+ */
+template <FabArrayType MF, typename F>
+void
+ParallelForRedBlack (MF const& mf, int ncomp, int redblack, F const& f)
+{
+    if (ncomp == 1) {
+        detail::ParallelForRedBlack_doit(mf, redblack,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            f(box_no, i, j, k, 0);
+        });
+    } else {
+        detail::ParallelForRedBlack_doit(mf, redblack,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            for (int n = 0; n < ncomp; ++n) {
+                f(box_no, i, j, k, n);
+            }
+        });
+    }
+}
+
 }
 
 #endif
