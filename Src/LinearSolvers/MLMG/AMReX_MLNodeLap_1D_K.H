@@ -397,6 +397,13 @@ Real mlndlap_adotx_sten (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> con
                          Array4<Real const> const&, Array4<int const> const&) noexcept
 { return Real(0.0); }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_sten (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const&,
+                                Array4<Real const> const&,
+                                Array4<Real const> const&,
+                                Array4<int const> const&) noexcept
+{}
+
 inline
 void mlndlap_gauss_seidel_sten (Box const&, Array4<Real> const&,
                                 Array4<Real const> const&,
@@ -417,30 +424,22 @@ void mlndlap_restriction_rap (int /*i*/, int /*j*/, int /*k*/, Array4<Real> cons
 {}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int mlndlap_color (int i, int, int)
-{
-    return i%2;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_ha (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs,
                          Array4<Real const> const& sx,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,0,0)) {
-            sol(i,0,0) = Real(0.0);
-        } else {
-            Real fac = dxinv[0]*dxinv[0];
+    if (msk(i,0,0)) {
+        sol(i,0,0) = Real(0.0);
+    } else {
+        Real fac = dxinv[0]*dxinv[0];
 
-            Real s0 = Real(-1.0) * fac * (sx(i-1,0,0)+sx(i,0,0));
-            Real Ax = sol(i-1,0,0)*fac*sx(i-1,0,0)
-                +     sol(i+1,0,0)*fac*sx(i  ,0,0)
-                +     sol(i  ,0,0)*s0;
-            sol(i,0,0) += (rhs(i,0,0) - Ax) / s0;
-        }
+        Real s0 = Real(-1.0) * fac * (sx(i-1,0,0)+sx(i,0,0));
+        Real Ax = sol(i-1,0,0)*fac*sx(i-1,0,0)
+            +     sol(i+1,0,0)*fac*sx(i  ,0,0)
+            +     sol(i  ,0,0)*s0;
+        sol(i,0,0) += (rhs(i,0,0) - Ax) / s0;
     }
 }
 
@@ -449,38 +448,29 @@ void mlndlap_gscolor_aa (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs,
                          Array4<Real const> const& sx,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    mlndlap_gscolor_ha(i,j,k,sol,rhs,sx,msk,dxinv,color);
+    mlndlap_gscolor_ha(i,j,k,sol,rhs,sx,msk,dxinv);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_c (int i, int j, int k, Array4<Real> const& sol,
                         Array4<Real const> const& rhs, Real sig,
                         Array4<int const> const& msk,
-                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,0,0)) {
-            sol(i,0,0) = Real(0.0);
-        } else {
-            Real fac = dxinv[0]*dxinv[0];
+    if (msk(i,0,0)) {
+        sol(i,0,0) = Real(0.0);
+    } else {
+        Real fac = dxinv[0]*dxinv[0];
 
-            Real s0 = Real(-2.0) * fac * sig;
-            Real Ax = sol(i-1,0,0)*fac*sig
-                +     sol(i+1,0,0)*fac*sig
-                +     sol(i  ,0,0)*s0;
-            sol(i,0,0) += (rhs(i,0,0) - Ax) / s0;
-        }
+        Real s0 = Real(-2.0) * fac * sig;
+        Real Ax = sol(i-1,0,0)*fac*sig
+            +     sol(i+1,0,0)*fac*sig
+            +     sol(i  ,0,0)*s0;
+        sol(i,0,0) += (rhs(i,0,0) - Ax) / s0;
     }
 }
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_sten (int, int, int, Array4<Real> const&,
-                           Array4<Real const> const&,
-                           Array4<Real const> const&,
-                           Array4<int const> const&, int) noexcept
-{}
 
 }
 

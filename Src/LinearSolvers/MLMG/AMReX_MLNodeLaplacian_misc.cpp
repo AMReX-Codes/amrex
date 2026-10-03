@@ -404,8 +404,8 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     ParallelForStrided(sol, IntVect(2), color_offset(color),
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
-                        mlndlap_gscolor_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
-                                             starr_ma[box_no],dmskarr_ma[box_no],color);
+                        mlndlap_gauss_seidel_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
+                                                  starr_ma[box_no],dmskarr_ma[box_no]);
                     });
                 }
             } else
@@ -439,7 +439,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                          const_sigma, dmskarr_ma[box_no], dxinvarr, color
+                                          const_sigma, dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                           ,is_rz
 #endif
@@ -485,7 +485,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     {
                         mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
                                            AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
-                                           dmskarr_ma[box_no], dxinvarr, color
+                                           dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif
@@ -533,7 +533,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr, color
+                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif
