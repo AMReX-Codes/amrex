@@ -73,7 +73,9 @@ public:
      *
      * Unlike PrintCallStack, this can be called from any thread while the
      * profiled code is running, e.g., from a watchdog or status reporting
-     * thread. The returned string stays valid until TinyProfiler::Finalize.
+     * thread. It is lock-free and does not allocate, so it can also be called
+     * from a signal handler. The returned string stays valid until
+     * TinyProfiler::Finalize.
      */
     [[nodiscard]] static const char* CurrentName () noexcept;
 

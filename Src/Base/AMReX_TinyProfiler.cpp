@@ -51,6 +51,8 @@ std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 std::atomic<std::string const*> TinyProfiler::current_name{nullptr};
+// CurrentName may be called from a signal handler only if this is lock-free
+static_assert(std::atomic<std::string const*>::is_always_lock_free);
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -179,7 +181,9 @@ TinyProfiler::start ()
             ++st.depth;
             stats.push_back(&st);
         }
-        prev_name = current_name.exchange(name);
+        // Only the (OpenMP master) thread that runs the profilers writes current_name
+        prev_name = current_name.load(std::memory_order_relaxed);
+        current_name.store(name, std::memory_order_release);
 
         if (verbose) {
             ++n_print_tabs;
@@ -240,7 +244,7 @@ TinyProfiler::stop ()
             }
 
             ttstack.pop_back();
-            current_name.store(prev_name);
+            current_name.store(prev_name, std::memory_order_release);
             if (!ttstack.empty()) {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
@@ -481,7 +485,7 @@ TinyProfiler::Finalize (bool bFlushing)
     }
 
     if (!bFlushing) {
-        current_name.store(nullptr);
+        current_name.store(nullptr, std::memory_order_release);
         regionstack.clear();
         regionstartstack.clear();
         ttstack.clear();
@@ -1041,7 +1045,7 @@ TinyProfiler::PrintCallStack (std::ostream& os)
 const char*
 TinyProfiler::CurrentName () noexcept
 {
-    std::string const* name = current_name.load();
+    std::string const* name = current_name.load(std::memory_order_acquire);
     return (name != nullptr) ? name->c_str() : nullptr;
 }
 
