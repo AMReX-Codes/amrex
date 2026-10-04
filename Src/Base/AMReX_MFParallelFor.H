@@ -484,7 +484,12 @@ void
 ParallelForStrided (MF const& mf, IntVect const& stride, IntVect const& offset, F&& f)
 {
     AMREX_ASSERT(stride.allGT(0));
-    detail::ParallelForStrided_doit(mf, stride, offset, std::forward<F>(f));
+    // Equivalent offsets share one cached ParForInfo.
+    IntVect o;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        o[d] = ((offset[d] % stride[d]) + stride[d]) % stride[d];
+    }
+    detail::ParallelForStrided_doit(mf, stride, o, std::forward<F>(f));
 }
 
 /**
