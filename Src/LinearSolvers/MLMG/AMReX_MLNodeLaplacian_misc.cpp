@@ -387,6 +387,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     if (m_use_gauss_seidel)
     {
+#ifdef AMREX_USE_GPU
+        // Nodes of a color have index parities given by the color bits.
+        auto color_offset = [] (int color) {
+            return IntVect(AMREX_D_DECL(color&1, (color>>1)&1, (color>>2)&1));
+        };
+#endif
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
 #ifdef AMREX_USE_GPU
@@ -395,10 +401,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& starr_ma = stencil->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
-                        mlndlap_gscolor_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
-                                             starr_ma[box_no],dmskarr_ma[box_no],color);
+                        mlndlap_gauss_seidel_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
+                                                  starr_ma[box_no],dmskarr_ma[box_no]);
                     });
                 }
             } else
@@ -428,10 +435,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             if (Gpu::inLaunchRegion()) {
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                          const_sigma, dmskarr_ma[box_no], dxinvarr, color
+                                          const_sigma, dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                           ,is_rz
 #endif
@@ -472,11 +480,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
                                            AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
-                                           dmskarr_ma[box_no], dxinvarr, color
+                                           dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif
@@ -520,10 +529,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& sarr_ma = sigma[0]->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr, color
+                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif

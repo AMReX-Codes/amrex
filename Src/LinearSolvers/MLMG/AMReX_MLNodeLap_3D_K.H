@@ -10331,114 +10331,106 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int mlndlap_color (int i, int j, int k)
-{
-    return (i%2) + (j%2)*2 + (k%2)*4;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_ha (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sx,
                          Array4<Real const> const& sy, Array4<Real const> const& sz,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
-            Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
 
-            Real s0 = Real(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
-                                       +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
-                                 +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
-                                       +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
-                                 +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
-                                       +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
-            Real Ax = sol(i,j,k)*s0
-                     + sol(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1)
-                                        +facy*sy(i-1,j-1,k-1)
-                                        +facz*sz(i-1,j-1,k-1))
-                     + sol(i+1,j-1,k-1)*(facx*sx(i  ,j-1,k-1)
-                                        +facy*sy(i  ,j-1,k-1)
-                                        +facz*sz(i  ,j-1,k-1))
-                     + sol(i-1,j+1,k-1)*(facx*sx(i-1,j  ,k-1)
-                                        +facy*sy(i-1,j  ,k-1)
-                                        +facz*sz(i-1,j  ,k-1))
-                     + sol(i+1,j+1,k-1)*(facx*sx(i  ,j  ,k-1)
-                                        +facy*sy(i  ,j  ,k-1)
-                                        +facz*sz(i  ,j  ,k-1))
-                     + sol(i-1,j-1,k+1)*(facx*sx(i-1,j-1,k  )
-                                        +facy*sy(i-1,j-1,k  )
-                                        +facz*sz(i-1,j-1,k  ))
-                     + sol(i+1,j-1,k+1)*(facx*sx(i  ,j-1,k  )
-                                        +facy*sy(i  ,j-1,k  )
-                                        +facz*sz(i  ,j-1,k  ))
-                     + sol(i-1,j+1,k+1)*(facx*sx(i-1,j  ,k  )
-                                        +facy*sy(i-1,j  ,k  )
-                                        +facz*sz(i-1,j  ,k  ))
-                     + sol(i+1,j+1,k+1)*(facx*sx(i  ,j  ,k  )
-                                        +facy*sy(i  ,j  ,k  )
-                                        +facz*sz(i  ,j  ,k  ))
-                     +sol(i  ,j-1,k-1)*(          -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1))
-                                        +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)))
-                     +sol(i  ,j+1,k-1)*(          -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1))
-                                        +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1))
-                                        +Real(2.0)*facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)))
-                     +sol(i  ,j-1,k+1)*(          -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  ))
-                                        +Real(2.0)*facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  ))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )))
-                     +sol(i  ,j+1,k+1)*(          -facx*(sx(i-1,j  ,k  )+sx(i,j  ,k  ))
-                                        +Real(2.0)*facy*(sy(i-1,j  ,k  )+sy(i,j  ,k  ))
-                                        +Real(2.0)*facz*(sz(i-1,j  ,k  )+sz(i,j  ,k  )))
-                     +sol(i-1,j  ,k-1)*( Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1))
-                                                  -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)))
-                     +sol(i+1,j  ,k-1)*( Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1))
-                                                  -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1))
-                                        +Real(2.0)*facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)))
-                     +sol(i-1,j  ,k+1)*( Real(2.0)*facx*(sx(i-1,j-1,k  )+sx(i-1,j,k  ))
-                                                  -facy*(sy(i-1,j-1,k  )+sy(i-1,j,k  ))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i-1,j,k  )))
-                     +sol(i+1,j  ,k+1)*( Real(2.0)*facx*(sx(i  ,j-1,k  )+sx(i  ,j,k  ))
-                                                  -facy*(sy(i  ,j-1,k  )+sy(i  ,j,k  ))
-                                        +Real(2.0)*facz*(sz(i  ,j-1,k  )+sz(i  ,j,k  )))
-                     +sol(i-1,j-1,k  )*( Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j-1,k))
-                                        +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i-1,j-1,k))
-                                                  -facz*(sz(i-1,j-1,k-1)+sz(i-1,j-1,k)))
-                     +sol(i+1,j-1,k  )*( Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j-1,k))
-                                        +Real(2.0)*facy*(sy(i  ,j-1,k-1)+sy(i  ,j-1,k))
-                                                  -facz*(sz(i  ,j-1,k-1)+sz(i  ,j-1,k)))
-                     +sol(i-1,j+1,k  )*( Real(2.0)*facx*(sx(i-1,j  ,k-1)+sx(i-1,j  ,k))
-                                        +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i-1,j  ,k))
-                                                  -facz*(sz(i-1,j  ,k-1)+sz(i-1,j  ,k)))
-                     +sol(i+1,j+1,k  )*( Real(2.0)*facx*(sx(i  ,j  ,k-1)+sx(i  ,j  ,k))
-                                        +Real(2.0)*facy*(sy(i  ,j  ,k-1)+sy(i  ,j  ,k))
-                                                  -facz*(sz(i  ,j  ,k-1)+sz(i  ,j  ,k)))
-                     + Real(2.0)*sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k))
-                                                        -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)+sy(i-1,j-1,k)+sy(i-1,j,k))
-                                                        -facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)+sz(i-1,j-1,k)+sz(i-1,j,k)))
-                     + Real(2.0)*sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)+sx(i  ,j-1,k)+sx(i  ,j,k))
-                                                        -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1)+sy(i  ,j-1,k)+sy(i  ,j,k))
-                                                        -facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)+sz(i  ,j-1,k)+sz(i  ,j,k)))
-                     + Real(2.0)*sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j-1,k)+sx(i,j-1,k))
-                                        +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j-1,k)+sy(i,j-1,k))
-                                                  -facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j-1,k)+sz(i,j-1,k)))
-                     + Real(2.0)*sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1)+sx(i-1,j  ,k)+sx(i,j  ,k))
-                                        +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1)+sy(i-1,j  ,k)+sy(i,j  ,k))
-                                                  -facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)+sz(i-1,j  ,k)+sz(i,j  ,k)))
-                     + Real(2.0)*sol(i,j,k-1)*(   -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1))
-                                                  -facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)))
-                     + Real(2.0)*sol(i,j,k+1)*(   -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
-                                                  -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
-                                        +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+        Real s0 = Real(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+                                   +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+                             +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
+                                   +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+                             +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
+                                   +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+        Real Ax = sol(i,j,k)*s0
+                 + sol(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1)
+                                    +facy*sy(i-1,j-1,k-1)
+                                    +facz*sz(i-1,j-1,k-1))
+                 + sol(i+1,j-1,k-1)*(facx*sx(i  ,j-1,k-1)
+                                    +facy*sy(i  ,j-1,k-1)
+                                    +facz*sz(i  ,j-1,k-1))
+                 + sol(i-1,j+1,k-1)*(facx*sx(i-1,j  ,k-1)
+                                    +facy*sy(i-1,j  ,k-1)
+                                    +facz*sz(i-1,j  ,k-1))
+                 + sol(i+1,j+1,k-1)*(facx*sx(i  ,j  ,k-1)
+                                    +facy*sy(i  ,j  ,k-1)
+                                    +facz*sz(i  ,j  ,k-1))
+                 + sol(i-1,j-1,k+1)*(facx*sx(i-1,j-1,k  )
+                                    +facy*sy(i-1,j-1,k  )
+                                    +facz*sz(i-1,j-1,k  ))
+                 + sol(i+1,j-1,k+1)*(facx*sx(i  ,j-1,k  )
+                                    +facy*sy(i  ,j-1,k  )
+                                    +facz*sz(i  ,j-1,k  ))
+                 + sol(i-1,j+1,k+1)*(facx*sx(i-1,j  ,k  )
+                                    +facy*sy(i-1,j  ,k  )
+                                    +facz*sz(i-1,j  ,k  ))
+                 + sol(i+1,j+1,k+1)*(facx*sx(i  ,j  ,k  )
+                                    +facy*sy(i  ,j  ,k  )
+                                    +facz*sz(i  ,j  ,k  ))
+                 +sol(i  ,j-1,k-1)*(          -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1))
+                                    +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)))
+                 +sol(i  ,j+1,k-1)*(          -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1))
+                                    +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1))
+                                    +Real(2.0)*facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)))
+                 +sol(i  ,j-1,k+1)*(          -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  ))
+                                    +Real(2.0)*facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  ))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )))
+                 +sol(i  ,j+1,k+1)*(          -facx*(sx(i-1,j  ,k  )+sx(i,j  ,k  ))
+                                    +Real(2.0)*facy*(sy(i-1,j  ,k  )+sy(i,j  ,k  ))
+                                    +Real(2.0)*facz*(sz(i-1,j  ,k  )+sz(i,j  ,k  )))
+                 +sol(i-1,j  ,k-1)*( Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1))
+                                              -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)))
+                 +sol(i+1,j  ,k-1)*( Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1))
+                                              -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1))
+                                    +Real(2.0)*facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)))
+                 +sol(i-1,j  ,k+1)*( Real(2.0)*facx*(sx(i-1,j-1,k  )+sx(i-1,j,k  ))
+                                              -facy*(sy(i-1,j-1,k  )+sy(i-1,j,k  ))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i-1,j,k  )))
+                 +sol(i+1,j  ,k+1)*( Real(2.0)*facx*(sx(i  ,j-1,k  )+sx(i  ,j,k  ))
+                                              -facy*(sy(i  ,j-1,k  )+sy(i  ,j,k  ))
+                                    +Real(2.0)*facz*(sz(i  ,j-1,k  )+sz(i  ,j,k  )))
+                 +sol(i-1,j-1,k  )*( Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j-1,k))
+                                    +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i-1,j-1,k))
+                                              -facz*(sz(i-1,j-1,k-1)+sz(i-1,j-1,k)))
+                 +sol(i+1,j-1,k  )*( Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j-1,k))
+                                    +Real(2.0)*facy*(sy(i  ,j-1,k-1)+sy(i  ,j-1,k))
+                                              -facz*(sz(i  ,j-1,k-1)+sz(i  ,j-1,k)))
+                 +sol(i-1,j+1,k  )*( Real(2.0)*facx*(sx(i-1,j  ,k-1)+sx(i-1,j  ,k))
+                                    +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i-1,j  ,k))
+                                              -facz*(sz(i-1,j  ,k-1)+sz(i-1,j  ,k)))
+                 +sol(i+1,j+1,k  )*( Real(2.0)*facx*(sx(i  ,j  ,k-1)+sx(i  ,j  ,k))
+                                    +Real(2.0)*facy*(sy(i  ,j  ,k-1)+sy(i  ,j  ,k))
+                                              -facz*(sz(i  ,j  ,k-1)+sz(i  ,j  ,k)))
+                 + Real(2.0)*sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k))
+                                                    -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)+sy(i-1,j-1,k)+sy(i-1,j,k))
+                                                    -facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)+sz(i-1,j-1,k)+sz(i-1,j,k)))
+                 + Real(2.0)*sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)+sx(i  ,j-1,k)+sx(i  ,j,k))
+                                                    -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1)+sy(i  ,j-1,k)+sy(i  ,j,k))
+                                                    -facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)+sz(i  ,j-1,k)+sz(i  ,j,k)))
+                 + Real(2.0)*sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j-1,k)+sx(i,j-1,k))
+                                    +Real(2.0)*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j-1,k)+sy(i,j-1,k))
+                                              -facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j-1,k)+sz(i,j-1,k)))
+                 + Real(2.0)*sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1)+sx(i-1,j  ,k)+sx(i,j  ,k))
+                                    +Real(2.0)*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1)+sy(i-1,j  ,k)+sy(i,j  ,k))
+                                              -facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)+sz(i-1,j  ,k)+sz(i,j  ,k)))
+                 + Real(2.0)*sol(i,j,k-1)*(   -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1))
+                                              -facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)))
+                 + Real(2.0)*sol(i,j,k+1)*(   -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+                                              -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+                                    +Real(2.0)*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
 
-                sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
-        }
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -10446,55 +10438,53 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_aa (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sig,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
-            Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
-            Real fxyz = facx + facy + facz;
-            Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
-            Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
-            Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
-            Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
-            Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
-            Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+        Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+        Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+        Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+        Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+        Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
 
-            Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
-                                      +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
-            Real Ax = sol(i,j,k)*s0
-                + fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
-                      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
-                      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
-                      + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
-                      + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
-                      + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
-                      + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
-                      + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
-                + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
-                         + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
-                         + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
-                         + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
-                + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
-                         + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
-                         + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
-                         + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
-                + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
-                         + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
-                         + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
-                         + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
-                + f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
-                           + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
-                + fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
-                           + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)))
-                + fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
-                           + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+        Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+                                  +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
+        Real Ax = sol(i,j,k)*s0
+            + fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
+                  + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
+                  + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
+                  + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
+                  + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
+                  + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
+                  + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
+                  + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
+            + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
+                     + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
+                     + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
+                     + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
+            + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
+                     + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
+                     + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
+                     + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
+            + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
+                     + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
+                     + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
+                     + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
+            + f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
+                       + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
+            + fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
+                       + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)))
+            + fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
+                       + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
 
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
-        }
+        sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -10502,65 +10492,52 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_c (int i, int j, int k, Array4<Real> const& sol,
                         Array4<Real const> const& rhs, Real sig,
                         Array4<int const> const& msk,
-                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color) noexcept
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
-            Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
-            Real fxyz = facx + facy + facz;
-            Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
-            Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
-            Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
-            Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
-            Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
-            Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+        Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+        Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+        Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+        Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+        Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
 
-            Real s0 = Real(-4.0)*fxyz*Real(8.);
-            Real Ax = sol(i,j,k)*s0
-                + fxyz*(sol(i-1,j-1,k-1)
-                      + sol(i+1,j-1,k-1)
-                      + sol(i-1,j+1,k-1)
-                      + sol(i+1,j+1,k-1)
-                      + sol(i-1,j-1,k+1)
-                      + sol(i+1,j-1,k+1)
-                      + sol(i-1,j+1,k+1)
-                      + sol(i+1,j+1,k+1))
-                + fmx2y2z*(sol(i  ,j-1,k-1)*Real(2.)
-                         + sol(i  ,j+1,k-1)*Real(2.)
-                         + sol(i  ,j-1,k+1)*Real(2.)
-                         + sol(i  ,j+1,k+1)*Real(2.))
-                + f2xmy2z*(sol(i-1,j  ,k-1)*Real(2.)
-                         + sol(i+1,j  ,k-1)*Real(2.)
-                         + sol(i-1,j  ,k+1)*Real(2.)
-                         + sol(i+1,j  ,k+1)*Real(2.))
-                + f2x2ymz*(sol(i-1,j-1,k  )*Real(2.)
-                         + sol(i+1,j-1,k  )*Real(2.)
-                         + sol(i-1,j+1,k  )*Real(2.)
-                         + sol(i+1,j+1,k  )*Real(2.))
-                + f4xm2ym2z*(sol(i-1,j,k)*Real(4.)
-                           + sol(i+1,j,k)*Real(4.))
-                + fm2x4ym2z*(sol(i,j-1,k)*Real(4.)
-                           + sol(i,j+1,k)*Real(4.))
-                + fm2xm2y4z*(sol(i,j,k-1)*Real(4.)
-                           + sol(i,j,k+1)*Real(4.));
+        Real s0 = Real(-4.0)*fxyz*Real(8.);
+        Real Ax = sol(i,j,k)*s0
+            + fxyz*(sol(i-1,j-1,k-1)
+                  + sol(i+1,j-1,k-1)
+                  + sol(i-1,j+1,k-1)
+                  + sol(i+1,j+1,k-1)
+                  + sol(i-1,j-1,k+1)
+                  + sol(i+1,j-1,k+1)
+                  + sol(i-1,j+1,k+1)
+                  + sol(i+1,j+1,k+1))
+            + fmx2y2z*(sol(i  ,j-1,k-1)*Real(2.)
+                     + sol(i  ,j+1,k-1)*Real(2.)
+                     + sol(i  ,j-1,k+1)*Real(2.)
+                     + sol(i  ,j+1,k+1)*Real(2.))
+            + f2xmy2z*(sol(i-1,j  ,k-1)*Real(2.)
+                     + sol(i+1,j  ,k-1)*Real(2.)
+                     + sol(i-1,j  ,k+1)*Real(2.)
+                     + sol(i+1,j  ,k+1)*Real(2.))
+            + f2x2ymz*(sol(i-1,j-1,k  )*Real(2.)
+                     + sol(i+1,j-1,k  )*Real(2.)
+                     + sol(i-1,j+1,k  )*Real(2.)
+                     + sol(i+1,j+1,k  )*Real(2.))
+            + f4xm2ym2z*(sol(i-1,j,k)*Real(4.)
+                       + sol(i+1,j,k)*Real(4.))
+            + fm2x4ym2z*(sol(i,j-1,k)*Real(4.)
+                       + sol(i,j+1,k)*Real(4.))
+            + fm2xm2y4z*(sol(i,j,k-1)*Real(4.)
+                       + sol(i,j,k+1)*Real(4.));
 
-            sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
-        }
-    }
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_sten (int i, int j, int k, Array4<Real> const& sol,
-                           Array4<Real const> const& rhs,
-                           Array4<Real const> const& sten,
-                           Array4<int const> const& msk, int color) noexcept
-{
-    if (mlndlap_color(i,j,k) == color) {
-        mlndlap_gauss_seidel_sten(i,j,k,sol,rhs,sten,msk);
+        sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
     }
 }
 

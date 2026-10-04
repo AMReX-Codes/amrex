@@ -10,7 +10,9 @@ MyTest::writePlotfile () const
 {
     if (prob_type == 4) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
-            VisMF::Write(solution[ilev], "solution-lev"+std::to_string(ilev));
+            if (do_plots) {
+                VisMF::Write(solution[ilev], "solution-lev"+std::to_string(ilev));
+            }
             MultiFab errmf(solution[ilev].boxArray(),
                            solution[ilev].DistributionMap(), 1, 1);
             MultiFab::Copy(errmf, solution[ilev], 0, 0, 1, 0);
@@ -50,9 +52,11 @@ MyTest::writePlotfile () const
             }
         }
 
-        WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
-                                varname, geom, 0.0, Vector<int>(nlevels, 0),
-                                Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+        if (do_plots) {
+            WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
+                                    varname, geom, 0.0, Vector<int>(nlevels, 0),
+                                    Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+        }
     } else {
         const int ncomp = (acoef.empty()) ? 4 : 6;
         Vector<std::string> varname = {"solution", "rhs", "exact_solution", "error"};
@@ -81,8 +85,10 @@ MyTest::writePlotfile () const
                            << " 2-norm error: " << plotmf[ilev].norm2(3)*std::sqrt(dvol) << '\n';
         }
 
-        WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
-                                varname, geom, 0.0, Vector<int>(nlevels, 0),
-                                Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+        if (do_plots) {
+            WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),
+                                    varname, geom, 0.0, Vector<int>(nlevels, 0),
+                                    Vector<IntVect>(nlevels, IntVect{ref_ratio}));
+        }
     }
 }
