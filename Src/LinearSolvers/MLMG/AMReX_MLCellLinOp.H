@@ -168,7 +168,10 @@ public:
      * \param amrlev AMR level index.
      * \param fmglev Multigrid level index within that AMR level.
      * \param fine   Destination fine-grid data (overwritten in place).
-     * \param crse   Source coarse-grid data (its ghost cells may be modified).
+     * \param crse   Source coarse-grid data.  Existing ghost values are
+     *               ignored; interpolation rebuilds the required ghosts with
+     *               homogeneous correction boundary conditions.  Its ghosts
+     *               may be modified when the data can be used directly.
      */
     void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
 
@@ -501,6 +504,7 @@ private:
 
     void defineAuxData ();
     void defineBC ();
+    void applyInterpPhysicalBC (int amrlev, int mglev, MF& mf) const;
 
     void computeVolInv () const;
     mutable Vector<Vector<RT> > m_volinv; // used by solvability fix
@@ -1312,6 +1316,67 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
 
 template <typename MF>
 void
+MLCellLinOpT<MF>::applyInterpPhysicalBC (int amrlev, int mglev, MF& mf) const
+{
+    const Geometry& geom = this->Geom(amrlev,mglev);
+    if (geom.isAllPeriodic()) { return; }
+
+    const Box& domain = geom.Domain();
+    const IntVect ng = mf.nGrowVect();
+    const int ncomp = this->getNComp();
+    const int imaxorder = this->maxorder;
+    const int hidden_direction = this->hiddenDirection();
+    Array4<int const> no_mask;
+    Array4<RT const> no_bcval;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        const auto& fab = mf.array(mfi);
+        for (int iface = 0; iface < 2*AMREX_SPACEDIM; ++iface)
+        {
+            const int idim = iface/2;
+            const Orientation face(idim, static_cast<Orientation::Side>(iface%2));
+            if (idim == hidden_direction || ng[idim] == 0 ||
+                geom.isPeriodic(idim) || vbx[face] != domain[face]) { continue; }
+
+            // Compose the homogeneous closures in coordinate order so edges
+            // and corners are ready before the interpolation stencil reads them.
+            Box bface = amrex::adjCell(vbx, face);
+            bface.grow(ng - ng[idim]*IntVect::TheDimensionVector(idim));
+            bface &= mfi.fabbox();
+            const int iside = face.isLow() ? 0 : 1;
+            const int blen = vbx.length(idim);
+            const RT dxinv = static_cast<RT>(geom.InvCellSize(idim));
+            const RT bcl = static_cast<RT>(face.isLow()
+                ? this->m_domain_bloc_lo[idim] : this->m_domain_bloc_hi[idim]);
+            for (int icomp = 0; icomp < ncomp; ++icomp)
+            {
+                const BoundCond bct(static_cast<int>(face.isLow()
+                    ? this->m_lobc[icomp][idim] : this->m_hibc[icomp][idim]));
+                ParallelFor(bface, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (idim == 0) {
+                        mllinop_apply_bc_x(iside, i, j, k, blen, fab, no_mask,
+                                           bct, bcl, no_bcval,
+                                           imaxorder, dxinv, 0, icomp);
+                    } else if (idim == 1) {
+                        mllinop_apply_bc_y(iside, i, j, k, blen, fab, no_mask,
+                                           bct, bcl, no_bcval,
+                                           imaxorder, dxinv, 0, icomp);
+                    } else {
+                        mllinop_apply_bc_z(iside, i, j, k, blen, fab, no_mask,
+                                           bct, bcl, no_bcval,
+                                           imaxorder, dxinv, 0, icomp);
+                    }
+                });
+            }
+        }
+    }
+}
+
+template <typename MF>
+void
 MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const
 {
     const int ncomp = this->getNComp();
@@ -1322,11 +1387,12 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     const IntVect ng = crse.nGrowVect();
 
     MF cfine;
-    const MF* cmf;
+    MF* cmf;
 
     if (amrex::isMFIterSafe(crse, fine))
     {
-        crse.FillBoundary(crse_geom.periodicity());
+        crse.setBndry(RT(0.0), 0, ncomp);
+        crse.FillBoundary(0, ncomp, crse_geom.periodicity(), false);
         cmf = &crse;
     }
     else
@@ -1338,6 +1404,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
         cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
         cmf = & cfine;
     }
+    applyInterpPhysicalBC(amrlev, fmglev+1, *cmf);
 
     bool isEB = fine.hasEBFabFactory();
     ignore_unused(isEB);
@@ -1356,7 +1423,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     {
         const Box& bx = mfi.tilebox();
         const auto& ff = fine.array(mfi);
-        const auto& cc = cmf->array(mfi);
+        const auto& cc = cmf->const_array(mfi);
 #ifdef AMREX_USE_EB
         bool call_lincc;
         if (isEB)

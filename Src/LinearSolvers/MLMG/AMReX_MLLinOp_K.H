@@ -95,7 +95,8 @@ T mllinop_bcval_extrap (Array4<T const> const& bcval, int i, int j, int k, int i
     return v;
 }
 
-//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! Applies the boundary condition at cell (i,j,k). An empty mask applies
+//! the condition unconditionally. At a ghost cell outside
 //! several domain faces, \p shift and \p len select the boundary value
 //! (see mllinop_bcval_extrap).
 template <typename T>
@@ -108,7 +109,7 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
                          int maxorder, T dxinv, int inhomog, int icomp,
                          Dim3 const& shift, Dim3 const& len) noexcept
 {
-    if (mask(i,j,k) > 0) {
+    if (!mask || mask(i,j,k) > 0) {
         const int s = 1-2*side;  // +1 for lo and -1 for hi
         switch (bct) {
         case AMREX_LO_NEUMANN:
@@ -218,7 +219,8 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
-//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! Applies the boundary condition at cell (i,j,k). An empty mask applies
+//! the condition unconditionally. At a ghost cell outside
 //! several domain faces, \p shift and \p len select the boundary value
 //! (see mllinop_bcval_extrap).
 template <typename T>
@@ -231,7 +233,7 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
                          int maxorder, T dyinv, int inhomog, int icomp,
                          Dim3 const& shift, Dim3 const& len) noexcept
 {
-    if (mask(i,j,k) > 0) {
+    if (!mask || mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
         switch (bct) {
         case AMREX_LO_NEUMANN:
@@ -341,7 +343,8 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
-//! Applies the boundary condition at cell (i,j,k). At a ghost cell outside
+//! Applies the boundary condition at cell (i,j,k). An empty mask applies
+//! the condition unconditionally. At a ghost cell outside
 //! several domain faces, \p shift and \p len select the boundary value
 //! (see mllinop_bcval_extrap).
 template <typename T>
@@ -354,7 +357,7 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
                          int maxorder, T dzinv, int inhomog, int icomp,
                          Dim3 const& shift, Dim3 const& len) noexcept
 {
-    if (mask(i,j,k) > 0) {
+    if (!mask || mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
         switch (bct) {
         case AMREX_LO_NEUMANN:
