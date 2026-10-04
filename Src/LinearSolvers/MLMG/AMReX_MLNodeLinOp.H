@@ -55,9 +55,8 @@ public:
      * \brief Control how many smoother passes are executed inside
      * each Fsmooth call.
      *
-     * Only the CPU Gauss-Seidel smoothers of MLNodeLaplacian and
-     * MLNodeABecLaplacian use it. The GPU smoothers do one multi-color
-     * sweep per call.
+     * Used only by the host Gauss-Seidel sweeps of MLNodeLaplacian and
+     * MLNodeABecLaplacian; ignored elsewhere.
      *
      * \param nsweeps Number of smoothing sweeps per Fsmooth invocation.
      */

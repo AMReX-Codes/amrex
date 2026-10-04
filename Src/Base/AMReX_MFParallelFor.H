@@ -478,7 +478,9 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
  * Only points whose index in direction d equals offset[d] modulo stride[d]
  * are visited, e.g., one color of a multi-color Gauss-Seidel sweep.  For
  * GPU builds, all boxes are covered by a single kernel launch, and this
- * function is NON-BLOCKING on the host.
+ * function is NON-BLOCKING on the host.  For CPU builds, tiles run in
+ * parallel with OpenMP, so a Gauss-Seidel sweep is safe only if the points
+ * visited together are not coupled by the stencil.
  *
  * \tparam MF the MultiFab/FabArray type
  * \tparam F a callable type like lambda

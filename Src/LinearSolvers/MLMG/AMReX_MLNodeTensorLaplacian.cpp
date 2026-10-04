@@ -301,7 +301,8 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 #endif
     {
         // Same colors as on the GPU. Tiles are safe because same-color nodes
-        // are not coupled, so threads scale within a box.
+        // are not coupled, so threads scale within a box. Written out because
+        // ParallelForStrided always launches on the device in GPU builds.
         for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
             IntVect const offset = multicolor_offset(color);
 #ifdef AMREX_USE_OMP
@@ -312,8 +313,12 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
                 auto const& sol_a = sol.array(mfi);
                 auto const& rhs_a = rhs.const_array(mfi);
                 auto const& dmsk_a = dmsk.const_array(mfi);
-                const auto lo = amrex::lbound(detail::strided_box(bx, IntVect(2), offset));
+                // First node of this color in the tile.
+                auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
+                AMREX_D_TERM(lo.x += (offset[0] - lo.x) & 1;,
+                             lo.y += (offset[1] - lo.y) & 1;,
+                             lo.z += (offset[2] - lo.z) & 1;)
                 for (int k = lo.z; k <= hi.z; k += 2) {
                 for (int j = lo.y; j <= hi.y; j += 2) {
                 for (int i = lo.x; i <= hi.x; i += 2) {
