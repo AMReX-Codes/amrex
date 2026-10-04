@@ -9,6 +9,7 @@
 
 #include <AMReX_Arena.H>
 
+#include <atomic>
 #include <cstddef>
 #include <functional>
 #include <iosfwd>
@@ -126,10 +127,10 @@ public:
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
 
-    //! The current amount of heap space used by the CArena object.
+    //! The current amount of heap space used by the CArena object. Thread-safe.
     std::size_t heap_space_used () const noexcept;
 
-    //! Return the total amount of memory given out via alloc.
+    //! Return the total amount of memory given out via alloc. Thread-safe.
     std::size_t heap_space_actually_used () const noexcept;
 
     /**
@@ -269,11 +270,13 @@ protected:
     //! The minimal size of hunks to request from system
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
-    std::size_t m_used{0};
+    //! Atomic, so it can be read without carena_mutex.
+    std::atomic<std::size_t> m_used{0};
     //! The max amount of heap space currently allocated.
     std::size_t m_max_used{0};
     //! The amount of memory given out via alloc().
-    std::size_t m_actually_used{0};
+    //! Atomic, so it can be read without carena_mutex.
+    std::atomic<std::size_t> m_actually_used{0};
     //! The max amount of memory given out via alloc().
     std::size_t m_max_actually_used{0};
 
