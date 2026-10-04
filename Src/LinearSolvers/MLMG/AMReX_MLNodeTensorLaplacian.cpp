@@ -283,16 +283,34 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     auto const& rhs_a = rhs.const_arrays();
     auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
 
-    // Nodes with the same index parities are not coupled by the stencil.
-    for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
-        ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-        });
-    }
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        // Nodes with the same index parities are not coupled by the stencil.
+        for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+            ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+            });
+        }
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+        // Red-black is a valid order for a sequential sweep and costs fewer
+        // passes than the 2^D colors; refill ghost nodes between the halves.
+        for (int redblack = 0; redblack < 2; ++redblack) {
+            if (redblack == 1) {
+                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+            }
+            ParallelForRedBlack(sol, redblack,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+            });
+        }
     }
 #endif
 }
