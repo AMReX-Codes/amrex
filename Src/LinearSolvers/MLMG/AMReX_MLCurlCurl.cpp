@@ -591,6 +591,16 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
+    // On GPU, launch over the nodes of one color only.
+    auto launch_color = [&] (auto const& f)
+    {
+#ifdef AMREX_USE_GPU
+        ParallelForStrided(nmf, IntVect(2), multicolor_offset(color), f);
+#else
+        ParallelFor(nmf, f);
+#endif
+    };
+
     bool const has_beta = (m_bcoefs[amrlev][mglev][0] != nullptr);
 
     if (has_alpha && has_beta) {
@@ -599,7 +609,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
         auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
-        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d_alpha_beta(i,j,k,ex[bno],ey[bno],ez[bno],
@@ -611,7 +621,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
     } else if (has_alpha && !has_beta) {
         auto const& acy = m_acoefs[amrlev][mglev][1]->const_arrays();
         auto const& acz = m_acoefs[amrlev][mglev][2]->const_arrays();
-        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d_alpha(i,j,k,ex[bno],ey[bno],ez[bno],
@@ -624,7 +634,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
         auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
-        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
@@ -633,7 +643,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                                  adxinv,color,dinfo,valid_x,coord);
         });
     } else {
-        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
@@ -678,12 +688,29 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
 
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
+
+    // On GPU, launch over the nodes of one color only. In 3D a color is two
+    // index parity classes, k even and k odd. In 2D the ez update is
+    // red-black over the two classes of a color pair, so launch over the
+    // pair. On the host, the kernel's color test is cheaper than extra passes.
+    auto launch_color = [&] (auto const& f)
+    {
+#if defined(AMREX_USE_GPU) && (AMREX_SPACEDIM == 3)
+        ParallelForStrided(nmf, IntVect(2), multicolor_offset(color), f);
+        ParallelForStrided(nmf, IntVect(2), multicolor_offset(7-color), f);
+#elif defined(AMREX_USE_GPU)
+        ParallelForRedBlack(nmf, (color == 0 || color == 3) ? 0 : 1, f);
+#else
+        ParallelFor(nmf, f);
+#endif
+    };
+
     if (m_lusolver[amrlev][mglev] && !has_alpha && !has_beta) {
 #if (AMREX_SPACEDIM == 2)
         auto b = m_beta;
 #endif
         auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
-        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
             mlcurlcurl_gs4_lu(i,j,k,ex[bno],ey[bno],ez[bno],
                               rhsx[bno],rhsy[bno],rhsz[bno],
@@ -700,7 +727,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
         auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
-        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
             mlcurlcurl_gs4_alpha(i,j,k,ex[bno],ey[bno],ez[bno],
                                  rhsx[bno],rhsy[bno],rhsz[bno],
@@ -714,7 +741,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& acy = m_acoefs[amrlev][mglev][1]->const_arrays();
         auto const& acz = m_acoefs[amrlev][mglev][2]->const_arrays();
         auto b = m_beta;
-        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        launch_color([=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
             Array4<Real const> empty;
             mlcurlcurl_gs4_alpha(i,j,k,ex[bno],ey[bno],ez[bno],
@@ -732,7 +759,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
         if (use_pcg) {
-            ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+            launch_color([=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
             {
                 mlcurlcurl_gs4<true>(i,j,k,ex[bno],ey[bno],ez[bno],
                                      rhsx[bno],rhsy[bno],rhsz[bno],
@@ -740,7 +767,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
                                      dinfo,sinfo);
             });
         } else {
-            ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+            launch_color([=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
             {
                 mlcurlcurl_gs4<false>(i,j,k,ex[bno],ey[bno],ez[bno],
                                       rhsx[bno],rhsy[bno],rhsz[bno],
