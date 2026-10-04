@@ -301,16 +301,13 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     {
         // Red-black is a valid order for a sequential sweep and costs fewer
         // passes than the 2^D colors; refill ghost nodes between the halves.
-        for (int redblack = 0; redblack < 2; ++redblack) {
-            if (redblack == 1) {
-                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
-            }
-            ParallelForRedBlack(sol, redblack,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-            });
-        }
+        auto gs = [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+        };
+        ParallelForRedBlack(sol, 0, gs);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+        ParallelForRedBlack(sol, 1, gs);
     }
 #endif
 }
