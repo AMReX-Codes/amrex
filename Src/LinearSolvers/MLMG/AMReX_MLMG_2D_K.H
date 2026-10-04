@@ -30,6 +30,51 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<T> const& ff,
     }
 }
 
+//! Linear interpolation by a factor of 2 using only coarse cells that have
+//! data: cells in \p dom (the domain, grown in periodic directions) and, if
+//! \p msk is defined, cells where it is nonzero. Terms using other cells are
+//! dropped, so the interpolation stays linear in the remaining directions.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<T> const& ff,
+                            Array4<T const> const& cc,
+                            Array4<int const> const& msk, Box const& dom,
+                            int nc) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    for (int n = 0; n < nc; ++n) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            const int jc = j/2;
+            const int joff = 2*(j-jc*2)-1;
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const int ic = i/2;
+                const int ioff = 2*(i-ic*2)-1;
+                const bool mx = dom.contains(ic+ioff,jc,0) && (!msk || msk(ic+ioff,jc,0));
+                const bool my = dom.contains(ic,jc+joff,0) && (!msk || msk(ic,jc+joff,0));
+                const bool mxy = mx && my && dom.contains(ic+ioff,jc+joff,0)
+                    && (!msk || msk(ic+ioff,jc+joff,0));
+                if (mxy) {
+                    ff(i,j,0,n) = T(0.5625)*cc(ic     ,jc     ,0,n)
+                        +         T(0.1875)*cc(ic+ioff,jc     ,0,n)
+                        +         T(0.1875)*cc(ic     ,jc+joff,0,n)
+                        +         T(0.0625)*cc(ic+ioff,jc+joff,0,n);
+                } else {
+                    // The weights above with the missing terms dropped.
+                    const T c = cc(ic,jc,0,n);
+                    const T x = mx ? cc(ic+ioff,jc,0,n) : c;
+                    const T y = my ? cc(ic,jc+joff,0,n) : c;
+                    const T wx = mx ? T(0.25) : T(0.0);
+                    const T wy = my ? T(0.25) : T(0.0);
+                    ff(i,j,0,n) = (T(1.0)-wx-wy)*c + wx*x + wy*y;
+                }
+            }
+        }
+    }
+}
+
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlmg_lin_cc_interp_r4 (Box const& bx, Array4<T> const& ff,
