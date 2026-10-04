@@ -462,6 +462,17 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
 }
 
 /**
+ * \brief Index offset of one color of a multi-color sweep.
+ *
+ * Bit d of \p color is the index parity in direction d, so the 2^DIM colors
+ * partition the points. Use with ParallelForStrided and a stride of 2.
+ */
+[[nodiscard]] constexpr IntVect color_offset (int color) noexcept
+{
+    return IntVect(AMREX_D_DECL(color&1, (color>>1)&1, (color>>2)&1));
+}
+
+/**
  * \brief ParallelFor over a strided subset of the valid region of a MultiFab/FabArray.
  *
  * Only points whose index in direction d equals offset[d] modulo stride[d]

@@ -387,12 +387,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     if (m_use_gauss_seidel)
     {
-#ifdef AMREX_USE_GPU
-        // Nodes of a color have index parities given by the color bits.
-        auto color_offset = [] (int color) {
-            return IntVect(AMREX_D_DECL(color&1, (color>>1)&1, (color>>2)&1));
-        };
-#endif
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
 #ifdef AMREX_USE_GPU

@@ -55,6 +55,9 @@ public:
      * \brief Control how many smoother passes are executed inside
      * each Fsmooth call.
      *
+     * Applies to the CPU smoothers. On GPU, the multi-color Gauss-Seidel
+     * smoothers do one sweep per call.
+     *
      * \param nsweeps Number of smoothing sweeps per Fsmooth invocation.
      */
     void setSmoothNumSweeps (int nsweeps) noexcept {

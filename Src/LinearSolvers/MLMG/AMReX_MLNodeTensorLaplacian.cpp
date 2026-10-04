@@ -258,11 +258,10 @@ MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const Multi
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
     for (int i = 0; i < niter; ++i) {
-        for (int redblack = 0; redblack < 4; ++redblack) {
+        for (int sweep = 0; sweep < 2; ++sweep) {
             if (!skip_fillboundary) {
                 applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
             }
-            m_redblack = redblack;
             Fsmooth(amrlev, mglev, sol, rhs);
             skip_fillboundary = false;
         }
@@ -283,13 +282,15 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     auto const& sol_a = sol.arrays();
     auto const& rhs_a = rhs.const_arrays();
     auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
-    int redblack = m_redblack;
 
-    amrex::ParallelForRedBlack(sol, redblack,
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-    {
-        mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-    });
+    // Nodes with the same index parities are not coupled by the stencil.
+    for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+        ParallelForStrided(sol, IntVect(2), color_offset(color),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+        });
+    }
     if (!Gpu::inNoSyncRegion()) {
         Gpu::streamSynchronize();
     }
