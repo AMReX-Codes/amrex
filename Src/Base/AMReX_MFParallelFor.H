@@ -462,12 +462,25 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
 }
 
 /**
+ * \brief Index offset of one color of a multi-color sweep.
+ *
+ * Bit d of \p color is the index parity in direction d, so the 2^DIM colors
+ * partition the points. Use with ParallelForStrided and a stride of 2.
+ */
+[[nodiscard]] constexpr IntVect multicolor_offset (int color) noexcept
+{
+    return IntVect(AMREX_D_DECL(color&1, (color>>1)&1, (color>>2)&1));
+}
+
+/**
  * \brief ParallelFor over a strided subset of the valid region of a MultiFab/FabArray.
  *
  * Only points whose index in direction d equals offset[d] modulo stride[d]
  * are visited, e.g., one color of a multi-color Gauss-Seidel sweep.  For
  * GPU builds, all boxes are covered by a single kernel launch, and this
- * function is NON-BLOCKING on the host.
+ * function is NON-BLOCKING on the host.  For CPU builds, tiles run in
+ * parallel with OpenMP, so a Gauss-Seidel sweep is safe only if the points
+ * visited together are not coupled by the stencil.
  *
  * \tparam MF the MultiFab/FabArray type
  * \tparam F a callable type like lambda
@@ -498,6 +511,9 @@ ParallelForStrided (MF const& mf, IntVect const& stride, IntVect const& offset, 
  * Only points (i,j,k) with i+j+k+redblack even are visited, e.g., one half
  * of a red-black Gauss-Seidel sweep.  For GPU builds, all boxes are covered
  * by a single kernel launch, and this function is NON-BLOCKING on the host.
+ * For CPU builds, tiles run in parallel with OpenMP, so a Gauss-Seidel
+ * sweep is safe only if points of the same color are not coupled by the
+ * stencil.
  *
  * \tparam MF the MultiFab/FabArray type
  * \tparam F a callable type like lambda

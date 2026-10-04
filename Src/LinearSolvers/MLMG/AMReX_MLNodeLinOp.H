@@ -55,6 +55,9 @@ public:
      * \brief Control how many smoother passes are executed inside
      * each Fsmooth call.
      *
+     * Used only by the host Gauss-Seidel sweeps of MLNodeLaplacian and
+     * MLNodeABecLaplacian; ignored elsewhere.
+     *
      * \param nsweeps Number of smoothing sweeps per Fsmooth invocation.
      */
     void setSmoothNumSweeps (int nsweeps) noexcept {
@@ -299,11 +302,7 @@ protected:
 
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
-#ifdef AMREX_USE_GPU
-    int m_smooth_num_sweeps = 4;
-#else
     int m_smooth_num_sweeps = 2;
-#endif
     mutable bool m_in_solution_mode = true;
 
 private:

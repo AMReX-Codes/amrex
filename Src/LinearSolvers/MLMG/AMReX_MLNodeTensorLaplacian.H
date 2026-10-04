@@ -181,7 +181,6 @@ private:
 
     GpuArray<Real,nelems> m_sigma;
     bool m_needs_update = false;
-    mutable int m_redblack = 0;
 };
 
 }

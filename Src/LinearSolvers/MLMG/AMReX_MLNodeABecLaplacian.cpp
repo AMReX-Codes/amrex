@@ -131,49 +131,49 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     auto const& dmsk  = *(m_dirichlet_mask[amrlev][mglev]);
 
 #ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& acoef_ma = acoef.const_arrays();
+        auto const& bcoef_ma = bcoef.const_arrays();
+        auto const& dmskarr_ma = dmsk.const_arrays();
+        auto const& solarr_ma = sol.arrays();
+        auto const& rhsarr_ma = rhs.const_arrays();
 
-    auto const& acoef_ma = acoef.const_arrays();
-    auto const& bcoef_ma = bcoef.const_arrays();
-    auto const& dmskarr_ma = dmsk.const_arrays();
-    auto const& solarr_ma = sol.arrays();
-    auto const& rhsarr_ma = rhs.const_arrays();
-
-    for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
-        ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            auto lap = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],bcoef_ma[box_no],dmskarr_ma[box_no],
-#if (AMREX_SPACEDIM == 2)
-                                        false,
-#endif
-                                        dxinvarr);
-            mlndabeclap_jacobi_aa(i,j,k, solarr_ma[box_no], lap, rhsarr_ma[box_no], alpha, beta,
-                                  acoef_ma[box_no], bcoef_ma[box_no],
-                                  dmskarr_ma[box_no], dxinvarr);
-        });
+        // Nodes with the same index parities are not coupled by the stencil.
+        for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+            ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                mlndabeclap_gauss_seidel_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                            alpha, beta, acoef_ma[box_no], bcoef_ma[box_no],
+                                            dmskarr_ma[box_no], dxinvarr);
+            });
+        }
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
-        if (m_smooth_num_sweeps > 1) { nodalSync(amrlev, mglev, sol); }
-    }
-#else
-
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        Array4<Real const> const& aarr = acoef.array(mfi);
-        Array4<Real const> const& barr = bcoef.array(mfi);
-        Array4<Real> const& solarr = sol.array(mfi);
-        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-        for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
-            mlndabeclap_gauss_seidel_aa(bx, solarr, rhsarr, alpha, beta,
-                                        aarr, barr, dmskarr, dxinvarr);
+        for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            Array4<Real const> const& aarr = acoef.array(mfi);
+            Array4<Real const> const& barr = bcoef.array(mfi);
+            Array4<Real> const& solarr = sol.array(mfi);
+            Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+            Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
+                amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
+                {
+                    mlndabeclap_gauss_seidel_aa(i, j, k, solarr, rhsarr, alpha, beta,
+                                                aarr, barr, dmskarr, dxinvarr);
+                });
+            }
         }
     }
     nodalSync(amrlev, mglev, sol);
-#endif
 }
 
 void

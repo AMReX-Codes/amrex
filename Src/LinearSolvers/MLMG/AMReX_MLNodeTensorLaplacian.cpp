@@ -258,11 +258,10 @@ MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const Multi
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
     for (int i = 0; i < niter; ++i) {
-        for (int redblack = 0; redblack < 4; ++redblack) {
+        for (int sweep = 0; sweep < 2; ++sweep) {
             if (!skip_fillboundary) {
                 applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
             }
-            m_redblack = redblack;
             Fsmooth(amrlev, mglev, sol, rhs);
             skip_fillboundary = false;
         }
@@ -280,18 +279,53 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 
     auto const& s = scaledSigma(amrlev, mglev);
 
-    auto const& sol_a = sol.arrays();
-    auto const& rhs_a = rhs.const_arrays();
-    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
-    int redblack = m_redblack;
+    auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
-    amrex::ParallelForRedBlack(sol, redblack,
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& sol_a = sol.arrays();
+        auto const& rhs_a = rhs.const_arrays();
+        auto const& dmsk_a = dmsk.const_arrays();
+        // Nodes with the same index parities are not coupled by the stencil.
+        for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+            ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+            });
+        }
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
     {
-        mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-    });
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
+        // Same colors as on the GPU. Tiles are safe because same-color nodes
+        // are not coupled, so threads scale within a box. Written out because
+        // ParallelForStrided can launch on the device outside a launch region.
+        for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+            IntVect const offset = multicolor_offset(color);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                auto const& sol_a = sol.array(mfi);
+                auto const& rhs_a = rhs.const_array(mfi);
+                auto const& dmsk_a = dmsk.const_array(mfi);
+                // First node of this color in the tile.
+                auto lo = amrex::lbound(bx);
+                const auto hi = amrex::ubound(bx);
+                AMREX_D_TERM(lo.x += (offset[0] - lo.x) & 1;,
+                             lo.y += (offset[1] - lo.y) & 1;,
+                             lo.z += (offset[2] - lo.z) & 1;)
+                for (int k = lo.z; k <= hi.z; k += 2) {
+                for (int j = lo.y; j <= hi.y; j += 2) {
+                for (int i = lo.x; i <= hi.x; i += 2) {
+                    mlndtslap_gauss_seidel(i, j, k, sol_a, rhs_a, dmsk_a, s);
+                }}}
+            }
+        }
     }
 #endif
 }
