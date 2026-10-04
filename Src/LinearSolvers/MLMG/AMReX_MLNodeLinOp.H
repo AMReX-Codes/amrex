@@ -55,8 +55,9 @@ public:
      * \brief Control how many smoother passes are executed inside
      * each Fsmooth call.
      *
-     * Applies to the CPU smoothers. On GPU, the multi-color Gauss-Seidel
-     * smoothers do one sweep per call.
+     * Only the CPU Gauss-Seidel smoothers of MLNodeLaplacian and
+     * MLNodeABecLaplacian use it. The GPU smoothers do one multi-color
+     * sweep per call.
      *
      * \param nsweeps Number of smoothing sweeps per Fsmooth invocation.
      */
@@ -302,11 +303,7 @@ protected:
 
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
-#ifdef AMREX_USE_GPU
-    int m_smooth_num_sweeps = 4;
-#else
     int m_smooth_num_sweeps = 2;
-#endif
     mutable bool m_in_solution_mode = true;
 
 private:
