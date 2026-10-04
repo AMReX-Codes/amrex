@@ -308,8 +308,17 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 #pragma omp parallel
 #endif
             for (MFIter mfi(sol,true); mfi.isValid(); ++mfi) {
-                mlndtslap_gauss_seidel(mfi.tilebox(), offset, sol.array(mfi),
-                                       rhs.const_array(mfi), dmsk.const_array(mfi), s);
+                Box const& bx = mfi.tilebox();
+                auto const& sol_a = sol.array(mfi);
+                auto const& rhs_a = rhs.const_array(mfi);
+                auto const& dmsk_a = dmsk.const_array(mfi);
+                const auto lo = amrex::lbound(detail::strided_box(bx, IntVect(2), offset));
+                const auto hi = amrex::ubound(bx);
+                for (int k = lo.z; k <= hi.z; k += 2) {
+                for (int j = lo.y; j <= hi.y; j += 2) {
+                for (int i = lo.x; i <= hi.x; i += 2) {
+                    mlndtslap_gauss_seidel(i, j, k, sol_a, rhs_a, dmsk_a, s);
+                }}}
             }
         }
     }
