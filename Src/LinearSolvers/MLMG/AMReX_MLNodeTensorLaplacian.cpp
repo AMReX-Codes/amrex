@@ -300,18 +300,15 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     } else
 #endif
     {
-        // Red-black halves, each box swept by one thread: a valid order for a
-        // sequential sweep with fewer passes than the 2^D colors. No tiling,
-        // since the stencil couples same-color diagonal nodes across tiles.
-        for (int redblack = 0; redblack < 2; ++redblack) {
-            if (redblack == 1) {
-                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
-            }
+        // Same colors as on the GPU. Tiles are safe because same-color nodes
+        // are not coupled, so threads scale within a box.
+        for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
+            IntVect const offset = multicolor_offset(color);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
-                mlndtslap_gauss_seidel(mfi.validbox(), redblack, sol.array(mfi),
+            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi) {
+                mlndtslap_gauss_seidel(mfi.tilebox(), offset, sol.array(mfi),
                                        rhs.const_array(mfi), dmsk.const_array(mfi), s);
             }
         }
