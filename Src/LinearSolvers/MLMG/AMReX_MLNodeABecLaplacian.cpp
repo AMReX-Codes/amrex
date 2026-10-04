@@ -140,7 +140,7 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 
         // Nodes with the same index parities are not coupled by the stencil.
         for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
-            ParallelForStrided(sol, IntVect(2), color_parity_offset(color),
+            ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 mlndabeclap_gauss_seidel_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],

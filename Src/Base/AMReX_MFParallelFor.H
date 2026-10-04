@@ -467,7 +467,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
  * Bit d of \p color is the index parity in direction d, so the 2^DIM colors
  * partition the points. Use with ParallelForStrided and a stride of 2.
  */
-[[nodiscard]] constexpr IntVect color_parity_offset (int color) noexcept
+[[nodiscard]] constexpr IntVect multicolor_offset (int color) noexcept
 {
     return IntVect(AMREX_D_DECL(color&1, (color>>1)&1, (color>>2)&1));
 }
