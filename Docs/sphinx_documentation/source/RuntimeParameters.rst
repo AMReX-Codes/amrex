@@ -899,6 +899,25 @@ for debugging.
    If both this flag and ``amrex.signal_handling`` are true, ``SIGILL``
    will be handled by AMReX.
 
+.. py:data:: amrex.handle_crt_reports
+   :type: bool
+   :value: true
+
+   If this flag is true, errors and assertions of the debug Microsoft C
+   runtime library that would open a modal dialog box (e.g., failed STL
+   assertions, ``/RTC`` run-time check failures) are written with the rank
+   to ``stderr``, followed by a break into the debugger. Without a debugger,
+   by default, the process exits with ``STATUS_BREAKPOINT`` (``0x80000003``)
+   and Windows Error Reporting can write a crash dump, so non-interactive
+   runs fail instead of hanging. If :py:data:`amrex.signal_handling` and
+   :py:data:`amrex.handle_sigabrt` are also true, ``abort()`` raises
+   ``SIGABRT`` without such a report. Warnings and report modes without a
+   dialog box are kept. Unlike the ``amrex.handle_sig*`` flags, this flag
+   does not depend on ``amrex.signal_handling``.
+
+   This only affects Windows debug builds (e.g., MSVC or clang-cl with
+   ``CMAKE_BUILD_TYPE=Debug``).
+
 .. py:data:: amrex.throw_exception
    :type: bool
    :value: false
