@@ -680,7 +680,7 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     bool const line_coarsening = (ncoarsened == 1);
 #else
     bool const line_coarsening = false;
-    amrex::ignore_unused(line_dir);
+    amrex::ignore_unused(ncoarsened, line_dir);
 #endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -789,7 +789,7 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     bool const line_coarsening = (ncoarsened == 1);
 #else
     bool const line_coarsening = false;
-    amrex::ignore_unused(line_dir);
+    amrex::ignore_unused(ncoarsened, line_dir);
 #endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
