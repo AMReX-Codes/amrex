@@ -279,12 +279,13 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 
     auto const& s = scaledSigma(amrlev, mglev);
 
-    auto const& sol_a = sol.arrays();
-    auto const& rhs_a = rhs.const_arrays();
-    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
+        auto const& sol_a = sol.arrays();
+        auto const& rhs_a = rhs.const_arrays();
+        auto const& dmsk_a = dmsk.const_arrays();
         // Nodes with the same index parities are not coupled by the stencil.
         for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
             ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
@@ -299,15 +300,21 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     } else
 #endif
     {
-        // Red-black is a valid order for a sequential sweep and costs fewer
-        // passes than the 2^D colors; refill ghost nodes between the halves.
-        auto gs = [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
-        };
-        ParallelForRedBlack(sol, 0, gs);
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
-        ParallelForRedBlack(sol, 1, gs);
+        // Red-black halves, each box swept by one thread: a valid order for a
+        // sequential sweep with fewer passes than the 2^D colors. No tiling,
+        // since the stencil couples same-color diagonal nodes across tiles.
+        for (int redblack = 0; redblack < 2; ++redblack) {
+            if (redblack == 1) {
+                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+                mlndtslap_gauss_seidel(mfi.validbox(), redblack, sol.array(mfi),
+                                       rhs.const_array(mfi), dmsk.const_array(mfi), s);
+            }
+        }
     }
 #endif
 }

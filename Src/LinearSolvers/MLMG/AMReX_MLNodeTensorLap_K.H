@@ -13,4 +13,23 @@
 #include <AMReX_MLNodeTensorLap_3D_K.H>
 #endif
 
+namespace amrex {
+
+template <unsigned int N>
+void mlndtslap_gauss_seidel (Box const& bx, int redblack, Array4<Real> const& sol,
+                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+                             GpuArray<Real,N> const& s) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x + ((lo.x+j+k+redblack) & 1); i <= hi.x; i += 2) {
+            mlndtslap_gauss_seidel(i, j, k, sol, rhs, msk, s);
+        }
+    }}
+}
+
+}
+
 #endif
