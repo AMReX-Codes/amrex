@@ -395,7 +395,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& starr_ma = stencil->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    ParallelForStrided(sol, IntVect(2), color_parity_offset(color),
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gauss_seidel_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
@@ -429,7 +429,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             if (Gpu::inLaunchRegion()) {
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    ParallelForStrided(sol, IntVect(2), color_parity_offset(color),
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
@@ -474,7 +474,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    ParallelForStrided(sol, IntVect(2), color_parity_offset(color),
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
@@ -523,7 +523,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& sarr_ma = sigma[0]->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelForStrided(sol, IntVect(2), color_offset(color),
+                    ParallelForStrided(sol, IntVect(2), color_parity_offset(color),
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
