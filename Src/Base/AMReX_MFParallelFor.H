@@ -509,6 +509,9 @@ ParallelForStrided (MF const& mf, IntVect const& stride, IntVect const& offset, 
  * Only points (i,j,k) with i+j+k+redblack even are visited, e.g., one half
  * of a red-black Gauss-Seidel sweep.  For GPU builds, all boxes are covered
  * by a single kernel launch, and this function is NON-BLOCKING on the host.
+ * For CPU builds, tiles run in parallel with OpenMP, so a Gauss-Seidel
+ * sweep is safe only if points of the same color are not coupled by the
+ * stencil.
  *
  * \tparam MF the MultiFab/FabArray type
  * \tparam F a callable type like lambda
