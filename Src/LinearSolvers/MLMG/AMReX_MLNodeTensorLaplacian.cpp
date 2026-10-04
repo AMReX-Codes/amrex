@@ -302,7 +302,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     {
         // Same colors as on the GPU. Tiles are safe because same-color nodes
         // are not coupled, so threads scale within a box. Written out because
-        // ParallelForStrided always launches on the device in GPU builds.
+        // ParallelForStrided can launch on the device outside a launch region.
         for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color) {
             IntVect const offset = multicolor_offset(color);
 #ifdef AMREX_USE_OMP
