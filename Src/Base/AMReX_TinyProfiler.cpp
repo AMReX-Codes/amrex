@@ -31,6 +31,7 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -50,7 +51,6 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
-std::atomic<const char*> TinyProfiler::current_name{nullptr};
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -63,6 +63,8 @@ std::string TinyProfiler::output_file{"stdout"};
 
 namespace {
     constexpr char mainregion[] = "main";
+    // Innermost active profiler, points into a key of statsmap (stable until Finalize)
+    std::atomic<const char*> current_name{nullptr};
     bool finalized = false;
     bool memprof_finalized = false;
     // Whether tiny_profiler.output_file has been read this Initialize/Finalize

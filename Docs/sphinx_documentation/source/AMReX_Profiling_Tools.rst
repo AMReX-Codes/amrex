@@ -96,6 +96,10 @@ set of timers.
 The results can also be redirected, e.g. to a file or to ``stderr``, with the
 runtime parameter ``tiny_profiler.output_file`` (see :ref:`chap:inputs`).
 
+The name of the innermost active profiler can be queried while the code runs
+with ``amrex::TinyProfiler::CurrentName()``, e.g., to report where a simulation
+currently is from a watchdog thread or a signal handler.
+
 Hot Spots and Load Balance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

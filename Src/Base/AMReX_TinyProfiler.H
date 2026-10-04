@@ -6,7 +6,6 @@
 #include <AMReX_REAL.H>
 
 #include <array>
-#include <atomic>
 #include <deque>
 #include <iosfwd>
 #include <limits>
@@ -73,9 +72,11 @@ public:
      *
      * Unlike PrintCallStack, this can be called from any thread while the
      * profiled code is running, e.g., from a watchdog or status reporting
-     * thread. It is a single lock-free atomic load, so it can also be called
-     * from a signal handler. The returned string stays valid until
-     * TinyProfiler::Finalize.
+     * thread, and it is async-signal-safe. Only the profilers of the thread
+     * that runs them (the OpenMP master thread) are tracked.
+     *
+     * The returned string stays valid until amrex::Finalize. Do not call this
+     * concurrently with amrex::Finalize.
      */
     [[nodiscard]] static const char* CurrentName () noexcept;
 
@@ -152,8 +153,6 @@ private:
     static std::vector<std::pair<std::string,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
-    //! Points into a key of statsmap, which is stable until Finalize
-    static std::atomic<const char*> current_name;
     static double t_init;
     static double t_memory_init;
     static bool device_synchronize_around_region;
