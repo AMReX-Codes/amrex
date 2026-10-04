@@ -50,9 +50,7 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
-std::atomic<std::string const*> TinyProfiler::current_name{nullptr};
-// CurrentName may be called from a signal handler only if this is lock-free
-static_assert(std::atomic<std::string const*>::is_always_lock_free);
+std::atomic<const char*> TinyProfiler::current_name{nullptr};
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
@@ -172,11 +170,11 @@ TinyProfiler::start ()
         roctxRangePush(fname.c_str());
 #endif
 
-        std::string const* name = nullptr;
+        const char* name = nullptr;
         for (auto const& region : regionstack)
         {
             const auto it = statsmap[region].try_emplace(fname).first;
-            name = &it->first;
+            name = it->first.c_str();
             Stats& st = it->second;
             ++st.depth;
             stats.push_back(&st);
@@ -1045,8 +1043,9 @@ TinyProfiler::PrintCallStack (std::ostream& os)
 const char*
 TinyProfiler::CurrentName () noexcept
 {
-    std::string const* name = current_name.load(std::memory_order_acquire);
-    return (name != nullptr) ? name->c_str() : nullptr;
+    // signal-safe only if lock-free
+    static_assert(decltype(current_name)::is_always_lock_free);
+    return current_name.load(std::memory_order_acquire);
 }
 
 void

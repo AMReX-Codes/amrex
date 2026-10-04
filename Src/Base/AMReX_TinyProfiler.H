@@ -73,7 +73,7 @@ public:
      *
      * Unlike PrintCallStack, this can be called from any thread while the
      * profiled code is running, e.g., from a watchdog or status reporting
-     * thread. It is lock-free and does not allocate, so it can also be called
+     * thread. It is a single lock-free atomic load, so it can also be called
      * from a signal handler. The returned string stays valid until
      * TinyProfiler::Finalize.
      */
@@ -133,7 +133,7 @@ private:
     int global_depth = -1;
     std::vector<Stats*> stats;
     //! Value of current_name before this profiler started
-    std::string const* prev_name = nullptr;
+    const char* prev_name = nullptr;
 
     static std::deque<const TinyProfiler*> mem_stack;
 
@@ -152,8 +152,8 @@ private:
     static std::vector<std::pair<std::string,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
-    //! Points to a key of statsmap, which is stable until Finalize
-    static std::atomic<std::string const*> current_name;
+    //! Points into a key of statsmap, which is stable until Finalize
+    static std::atomic<const char*> current_name;
     static double t_init;
     static double t_memory_init;
     static bool device_synchronize_around_region;
