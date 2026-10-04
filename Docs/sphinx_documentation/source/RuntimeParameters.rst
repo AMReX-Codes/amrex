@@ -903,20 +903,10 @@ for debugging.
    :type: bool
    :value: true
 
-   If this flag is true, errors and assertions of the debug Microsoft C
-   runtime library that would open a modal dialog box (e.g., failed STL
-   assertions, ``/RTC`` run-time check failures) are written with the rank
-   to ``stderr``, followed by a break into the debugger. Without a debugger,
-   by default, the process exits with ``STATUS_BREAKPOINT`` (``0x80000003``)
-   and Windows Error Reporting can write a crash dump, so non-interactive
-   runs fail instead of hanging. If :py:data:`amrex.signal_handling` and
-   :py:data:`amrex.handle_sigabrt` are also true, ``abort()`` raises
-   ``SIGABRT`` without such a report. Warnings and report modes without a
-   dialog box are kept. Unlike the ``amrex.handle_sig*`` flags, this flag
-   does not depend on ``amrex.signal_handling``.
-
-   This only affects Windows debug builds (e.g., MSVC or clang-cl with
-   ``CMAKE_BUILD_TYPE=Debug``).
+   Windows debug builds only: if true, failed assertions and run-time check
+   failures of the debug C runtime are printed to ``stderr`` and the process
+   breaks instead of opening a blocking dialog box. Unlike the flags above,
+   this does not depend on ``amrex.signal_handling``.
 
 .. py:data:: amrex.throw_exception
    :type: bool
