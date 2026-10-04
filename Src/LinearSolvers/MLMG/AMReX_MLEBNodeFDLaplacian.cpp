@@ -676,7 +676,12 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
             ++ncoarsened;
         }
     }
-    bool const line_coarsening = (AMREX_SPACEDIM == 3) && (ncoarsened == 1);
+#if (AMREX_SPACEDIM == 3)
+    bool const line_coarsening = (ncoarsened == 1);
+#else
+    bool const line_coarsening = false;
+    amrex::ignore_unused(line_dir);
+#endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -780,7 +785,12 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
             ++ncoarsened;
         }
     }
-    bool const line_coarsening = (AMREX_SPACEDIM == 3) && (ncoarsened == 1);
+#if (AMREX_SPACEDIM == 3)
+    bool const line_coarsening = (ncoarsened == 1);
+#else
+    bool const line_coarsening = false;
+    amrex::ignore_unused(line_dir);
+#endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
