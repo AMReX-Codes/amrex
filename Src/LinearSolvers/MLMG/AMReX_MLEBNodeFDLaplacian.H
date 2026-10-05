@@ -74,7 +74,13 @@ public:
     MLEBNodeFDLaplacian& operator= (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
-    //! Assign constant diagonal conductivity tensor `sigma`.
+    /**
+     * \brief Assign constant diagonal conductivity tensor `sigma`.
+     *
+     * A value set before the first solve also chooses the directions in
+     * which multigrid coarsens.  Later values change the operator, but not
+     * the coarsening.
+     */
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
@@ -206,6 +212,9 @@ public:
 
     [[nodiscard]] bool supportsAnisotropicCoarsening () const override { return true; }
 
+    [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM>
+    anisotropicCoarseningCellSize (Geometry const& geom) const override;
+
     [[nodiscard]] bool supportsAlgMG () const override { return !m_rz; }
 
     void fillAlgMatrix (int mglev, MFIter const& mfi,
@@ -237,6 +246,9 @@ public:
 
     void customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
                             Real eps_rel, Real eps_abs, int maxiter) override;
+
+protected:
+    void buildMGHierarchy () override;
 
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};

@@ -16,6 +16,8 @@
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
+#include <cmath>
+
 namespace amrex {
 
 namespace {
@@ -229,6 +231,20 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
     }
 }
 
+GpuArray<Real,AMREX_SPACEDIM>
+MLEBNodeFDLaplacian::anisotropicCoarseningCellSize (Geometry const& geom) const
+{
+    // The coupling in direction d scales as sigma_d/dx_d^2.
+    auto dx = geom.CellSizeArray();
+    if (m_has_sigma_mf) { return dx; }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_sigma[idim] > Real(0.0)) { // 0 means 1 in RZ
+            dx[idim] /= std::sqrt(m_sigma[idim]);
+        }
+    }
+    return dx;
+}
+
 void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)
 {
@@ -303,7 +319,21 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 
-    build_eb_data();
+    // The EB data are built with the MG levels in buildMGHierarchy.
+    m_levset.resize(this->m_num_amr_levels);
+    m_eb_pos.resize(this->m_num_amr_levels);
+    m_has_eb.resize(this->m_num_amr_levels);
+    m_eb_lost.resize(this->m_num_amr_levels);
+    for (auto const* x : a_factory) {
+        if (x && !x->isAllRegular()) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(x->getEdgeCent()[0] != nullptr,
+                "MLEBNodeFDLaplacian: the EB factory needs EBSupport::full");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(x->getLevelSet().nGrow() >= 1 &&
+                                             x->getEdgeCent()[0]->nGrow() >= 1 &&
+                                             x->getVolFrac().nGrow() >= 1,
+                "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
+        }
+    }
 
     m_sigma_mf.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
@@ -347,12 +377,6 @@ MLEBNodeFDLaplacian::build_eb_data ()
         {
             auto const& levset_f = factory->getLevelSet();
             auto const& edgecent = factory->getEdgeCent();
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(edgecent[0] != nullptr,
-                "MLEBNodeFDLaplacian: the EB factory needs EBSupport::full");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levset_f.nGrow() >= 1 &&
-                                             edgecent[0]->nGrow() >= 1 &&
-                                             factory->getVolFrac().nGrow() >= 1,
-                "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
             MultiFab::Copy(m_levset[amrlev][0], levset_f, 0, 0, 1, 1);
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -658,6 +682,18 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 }
 
 void
+MLEBNodeFDLaplacian::buildMGHierarchy ()
+{
+    MLNodeLinOp::buildMGHierarchy();
+#ifdef AMREX_USE_EB
+    build_eb_data();
+#endif
+    for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
+        m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
+    }
+}
+
+void
 MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
     BL_PROFILE("MLEBNodeFDLaplacian::restriction()");
@@ -824,6 +860,8 @@ void
 MLEBNodeFDLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLEBNodeFDLaplacian::prepareForSolve()");
+
+    prepareMGHierarchy();
 
     MLNodeLinOp::prepareForSolve();
 

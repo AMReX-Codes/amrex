@@ -23,6 +23,9 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Reduce.H>
 
+#include <algorithm>
+#include <cmath>
+
 using namespace amrex;
 
 // A solve that never calls setEBDirichlet makes prepareForSolve pick
@@ -283,7 +286,8 @@ void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
 void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
-                           IntVect const& ncells, int max_grid_size, Real reltol, int verbose)
+                           IntVect const& ncells, Array<Real,AMREX_SPACEDIM> const& sigma,
+                           int max_grid_size, Real reltol, int verbose)
 {
     Box const domain(IntVect(0), ncells-1);
     RealBox const rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
@@ -301,7 +305,7 @@ void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
     info.setMaxCoarseningLevel(30);
     MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&ebfactory});
     linop.setDomainBC(lobc, hibc);
-    linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+    linop.setSigma(sigma); // after define: the MG levels are built at the solve
     linop.setEBDirichlet(Real(1.0));
 
     BoxArray const& nba = amrex::convert(grids, IntVect(1));
@@ -309,6 +313,8 @@ void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
     rhs.setVal(Real(1.0));
     MultiFab sol(nba, dmap, 1, 1);
     sol.setVal(Real(0.0));
+
+    AMREX_ALWAYS_ASSERT(linop.NMGLevels(0) == 1);
 
     MLMG mlmg(linop);
     mlmg.setVerbose(verbose);
@@ -318,10 +324,15 @@ void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
     IntVect const len1 = linop.Geom(0,1).Domain().length();
     amrex::Print() << "# of MG levels: " << linop.NMGLevels(0)
                    << ", MG level 1: " << len1 << "\n";
-    int const nmin = ncells.min();
+    // Cells with weaker coupling count as longer: dx/sqrt(sigma).
+    Array<Real,AMREX_SPACEDIM> h;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        h[idim] = Real(1.0) / (Real(ncells[idim]) * std::sqrt(sigma[idim]));
+    }
+    Real const hmin = *std::min_element(h.begin(), h.end());
     IntVect expected = ncells;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (ncells[idim] > nmin) { expected[idim] /= 2; }
+        if (h[idim] < Real(1.5)*hmin) { expected[idim] /= 2; }
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(len1 == expected,
         "MG level 1 should be coarsened in the short directions only");
@@ -391,11 +402,16 @@ int main (int argc, char* argv[])
         amrex::Print() << "\n==== stretched cells, one short direction ====\n";
         IntVect ncells(n_cell);
         ncells[AMREX_SPACEDIM-1] *= 8;
-        test_stretched_cells(is_periodic, lobc, hibc, ncells, max_grid_size, reltol, verbose);
+        Array<Real,AMREX_SPACEDIM> sigma{AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))};
+        test_stretched_cells(is_periodic, lobc, hibc, ncells, sigma, max_grid_size, reltol, verbose);
+
+        amrex::Print() << "\n==== stretched cells, sigma makes them isotropic ====\n";
+        sigma[AMREX_SPACEDIM-1] = Real(1.0)/Real(64.0);
+        test_stretched_cells(is_periodic, lobc, hibc, ncells, sigma, max_grid_size, reltol, verbose);
 #if (AMREX_SPACEDIM == 3)
         amrex::Print() << "\n==== stretched cells, two short directions ====\n";
         test_stretched_cells(is_periodic, lobc, hibc, IntVect(2*n_cell, 2*n_cell, n_cell/2),
-                             max_grid_size, reltol, verbose);
+                             {Real(1.0), Real(1.0), Real(1.0)}, max_grid_size, reltol, verbose);
 #endif
     }
     amrex::Finalize();
