@@ -98,7 +98,8 @@ runtime parameter ``tiny_profiler.output_file`` (see :ref:`chap:inputs`).
 
 The name of the innermost active profiler can be queried while the code runs
 with ``amrex::TinyProfiler::CurrentName()``, e.g., to report where a simulation
-currently is from a watchdog thread or a signal handler.
+currently is from a watchdog thread or a signal handler. This requires
+``AMReX_TINY_PROFILE=ON``; guard calls with ``#ifdef AMREX_TINY_PROFILING``.
 
 Hot Spots and Load Balance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

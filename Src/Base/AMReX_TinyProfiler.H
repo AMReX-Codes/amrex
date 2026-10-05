@@ -72,8 +72,8 @@ public:
      *
      * Unlike PrintCallStack, this can be called from any thread while the
      * profiled code is running, e.g., from a watchdog or status reporting
-     * thread, and it is async-signal-safe. Only the profilers of the thread
-     * that runs them (the OpenMP master thread) are tracked.
+     * thread, and it is async-signal-safe. Profilers started by threads
+     * other than the OpenMP master thread are not tracked.
      *
      * The returned string stays valid until amrex::Finalize. Do not call this
      * concurrently with amrex::Finalize.
