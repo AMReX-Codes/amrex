@@ -89,6 +89,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ThirdPartyProfiling.H
        AMReX_BLBackTrace.H
        AMReX_BLBackTrace.cpp
+       AMReX_CrtReport.H
+       AMReX_CrtReport.cpp
        AMReX_BLFort.H
        AMReX_NFiles.H
        AMReX_NFiles.cpp

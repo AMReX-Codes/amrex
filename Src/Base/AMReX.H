@@ -63,6 +63,7 @@ namespace amrex
         extern AMREX_EXPORT bool handle_sigabrt;
         extern AMREX_EXPORT bool handle_sigfpe;
         extern AMREX_EXPORT bool handle_sigill;
+        extern AMREX_EXPORT bool handle_crt_reports;
 
         extern AMREX_EXPORT bool call_addr2line;
         extern AMREX_EXPORT bool throw_exception;

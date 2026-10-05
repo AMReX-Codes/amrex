@@ -899,6 +899,15 @@ for debugging.
    If both this flag and ``amrex.signal_handling`` are true, ``SIGILL``
    will be handled by AMReX.
 
+.. py:data:: amrex.handle_crt_reports
+   :type: bool
+   :value: true
+
+   Windows debug builds only: if true, failed assertions and run-time check
+   failures of the debug C runtime are printed to ``stderr`` and the process
+   breaks instead of opening a blocking dialog box. Unlike the flags above,
+   this does not depend on ``amrex.signal_handling``.
+
 .. py:data:: amrex.throw_exception
    :type: bool
    :value: false

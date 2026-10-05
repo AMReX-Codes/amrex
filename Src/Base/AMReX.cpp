@@ -10,6 +10,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 #include <AMReX_BLBackTrace.H>
+#include <AMReX_CrtReport.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
@@ -117,6 +118,7 @@ namespace system
     bool handle_sigabrt;
     bool handle_sigfpe;
     bool handle_sigill;
+    bool handle_crt_reports;
     bool call_addr2line;
     bool throw_exception;
     bool regtest_reduction;
@@ -378,6 +380,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = false;
         system::handle_sigfpe  = false;
         system::handle_sigill  = false;
+        system::handle_crt_reports = false;
         system::call_addr2line = false;
         system::throw_exception = false;
         system::osout = &std::cout;
@@ -393,6 +396,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = true;
         system::handle_sigfpe  = true;
         system::handle_sigill  = true;
+        system::handle_crt_reports = true;
         system::call_addr2line = true;
         system::throw_exception = false;
         system::osout = &a_osout;
@@ -572,6 +576,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         ParmParse pp("amrex");
         pp.query("regtest_reduction", system::regtest_reduction);
         pp.queryAdd("signal_handling", system::signal_handling);
+
+        // independent of signal_handling; we undo this at the end of Finalize
+        pp.queryAdd("handle_crt_reports", system::handle_crt_reports);
+        if (system::handle_crt_reports) {
+            detail::CrtReportInitialize();
+        }
         pp.queryAdd("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
@@ -615,6 +625,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
             if (system::handle_sigabrt) {
                 prev_handler_sigabrt = std::signal(SIGABRT, BLBackTrace::handler);
+                if (prev_handler_sigabrt != SIG_ERR && system::handle_crt_reports) {
+                    // abort() raises SIGABRT for this handler without a CRT report
+                    detail::CrtReportSkipAbortReport(true);
+                }
             } else {
                 prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
@@ -916,7 +930,11 @@ amrex::Finalize (amrex::AMReX* pamrex)
         if (prev_handler_sigsegv != SIG_ERR) { std::signal(SIGSEGV, prev_handler_sigsegv); } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigterm != SIG_ERR) { std::signal(SIGTERM, prev_handler_sigterm); } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigint  != SIG_ERR) { std::signal(SIGINT , prev_handler_sigint);  } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigabrt != SIG_ERR) { std::signal(SIGABRT, prev_handler_sigabrt); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigabrt != SIG_ERR) {
+            // restore the CRT report of abort() together with the previous handler
+            detail::CrtReportSkipAbortReport(false);
+            std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
+        }
         if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__) && defined(__GLIBC__)
@@ -961,6 +979,9 @@ amrex::Finalize (amrex::AMReX* pamrex)
     if (amrex::system::verbose > 0 && is_ioproc) {
         amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << '\n';
     }
+
+    // last, also before this (possibly dynamically loaded) library is unloaded
+    detail::CrtReportFinalize();
 }
 
 std::ostream&
