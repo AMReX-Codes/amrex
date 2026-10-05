@@ -827,7 +827,9 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     MLNodeLinOp::prepareForSolve();
 
+#ifdef AMREX_USE_EB
     bool const masks_rebuilt = !m_masks_built;
+#endif
     buildMasks();
 
 #ifdef AMREX_USE_EB
