@@ -773,11 +773,8 @@ public:
      * of directions. Then MLMG coarsens stretched cells only in their short
      * directions until they are nearly cubic.
      *
-     * The MG levels below the finest one of AMR level 0 are then built at the
-     * first prepareForSolve, so that coefficients set after define are seen.
-     * Such an operator calls prepareMGHierarchy() first in its
-     * prepareForSolve, and sizes its own per-MG-level data in
-     * buildMGHierarchy().
+     * The MG levels of AMR level 0 are then built at the first solve, by
+     * prepareMGHierarchy() in prepareForSolve; see buildMGHierarchy().
      */
     [[nodiscard]] virtual bool supportsAnisotropicCoarsening () const { return false; }
 

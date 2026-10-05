@@ -732,10 +732,7 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
-    // Rows next to the EB are scaled by fill_row_scale on every level.  The
-    // fine residuals are brought to the scale of the coarse row, but never
-    // enlarged: a row with an EB almost on its node is a near-Dirichlet
-    // condition whose unscaled residual is not comparable.
+    // Rows next to the EB are scaled; see mlebndfdlap_eb_restriction.
     if (!m_levset[amrlev].empty()) {
         MultiFab const& sf = m_row_scale[amrlev][cmglev-1];
         MultiFab const& sc = need_parallel_copy ? m_row_scale_crse[amrlev][cmglev]
@@ -900,11 +897,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     limit_coarsening();
 
-    // Row scales for the restriction, rebuilt with the masks they depend on.
-    // A level is the fine one with its ghost nodes (those outside the grids
-    // are 1) unless it is the bottom, and the coarse one unless it is the top.
-    // A coarse level whose layout differs from the coarsened finer level
-    // (agglomeration or consolidation) needs its scale on that layout.
+    // Row scales for restriction, rebuilt with the masks.  A remapped coarse
+    // level also gets its scale on the coarsened finer layout.
     if (masks_rebuilt) {
         m_row_scale.resize(m_num_amr_levels);
         m_row_scale_crse.resize(m_num_amr_levels);
