@@ -590,6 +590,24 @@ class BLProfiler
 #endif
 
 // ============================================================
+// Without the tiny profiler, stub the parts of its API that
+// may be called in any build
+// ============================================================
+
+#ifndef AMREX_TINY_PROFILING
+namespace amrex {
+
+class TinyProfiler
+{
+  public:
+    //! Without the tiny profiler, there is no active profiler
+    [[nodiscard]] static const char* CurrentName () noexcept { return nullptr; }
+};
+
+}
+#endif
+
+// ============================================================
 // If applicable, turn off comm profiling
 // ============================================================
 
