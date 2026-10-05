@@ -265,6 +265,8 @@ private:
     Vector<Vector<int>> m_eb_lost;
     //! Row scale of every node on every MG level, used by restriction.
     Vector<Vector<MultiFab>> m_row_scale;
+    //! The same on the coarsened layout of the finer level, where that differs.
+    Vector<Vector<MultiFab>> m_row_scale_crse;
 #endif
 
 public:

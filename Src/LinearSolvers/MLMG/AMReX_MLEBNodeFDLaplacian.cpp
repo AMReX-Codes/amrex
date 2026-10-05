@@ -700,15 +700,8 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     // condition whose unscaled residual is not comparable.
     if (!m_levset[amrlev].empty()) {
         MultiFab const& sf = m_row_scale[amrlev][cmglev-1];
-        MultiFab const& sc = m_row_scale[amrlev][cmglev];
-        MultiFab sc_tmp;
-        MultiFab const* psc = &sc;
-        if (need_parallel_copy) {
-            sc_tmp.define(cfine.boxArray(), cfine.DistributionMap(), 1, 0,
-                          MFInfo().SetArena(The_Async_Arena()));
-            sc_tmp.ParallelCopy(sc);
-            psc = &sc_tmp;
-        }
+        MultiFab const& sc = need_parallel_copy ? m_row_scale_crse[amrlev][cmglev]
+                                                : m_row_scale[amrlev][cmglev];
         Dim3 const rr = ratio.dim3(1);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -720,7 +713,7 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
             Array4<Real const> const& ffab = fine.const_array(mfi);
             Array4<int const> const& mfab = dmsk.const_array(mfi);
             Array4<Real const> const& sfab = sf.const_array(mfi);
-            Array4<Real const> const& scfab = psc->const_array(mfi);
+            Array4<Real const> const& scfab = sc.const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 mlebndfdlap_eb_restriction(i,j,k,cfab,ffab,mfab,sfab,scfab(i,j,k),rr);
@@ -864,18 +857,37 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     limit_coarsening();
 
-    // Row scales for the restriction.  Ghost nodes outside the grids are 1.
+    // Row scales for the restriction.  A level is the fine one with its ghost
+    // nodes (those outside the grids are 1) unless it is the bottom, and the
+    // coarse one unless it is the top; an agglomerated coarse level needs its
+    // scale on the coarsened layout of the finer level.
     m_row_scale.resize(m_num_amr_levels);
+    m_row_scale_crse.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         if (m_levset[amrlev].empty()) { continue; }
-        m_row_scale[amrlev].resize(m_num_mg_levels[amrlev]);
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+        int const nmglevs = m_num_mg_levels[amrlev];
+        m_row_scale[amrlev].resize(nmglevs);
+        m_row_scale_crse[amrlev].resize(nmglevs);
+        for (int mglev = 0; mglev < nmglevs; ++mglev) {
             auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
-            auto& s = m_row_scale[amrlev][mglev];
-            s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, 1);
-            s.setBndry(Real(1.0));
+            bool const is_bottom = (mglev == nmglevs-1);
+            bool const agglomerated = (mglev > 0) &&
+                !amrex::isMFIterSafe(dmsk, *m_dirichlet_mask[amrlev][mglev-1]);
+            MultiFab tmp;
+            MultiFab& s = (is_bottom && agglomerated) ? tmp : m_row_scale[amrlev][mglev];
+            s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1);
             fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
-            fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
+            if (!is_bottom) {
+                s.setBndry(Real(1.0));
+                fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
+            }
+            if (agglomerated) {
+                auto const& fdmsk = *m_dirichlet_mask[amrlev][mglev-1];
+                IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+                auto& sc = m_row_scale_crse[amrlev][mglev];
+                sc.define(amrex::coarsen(fdmsk.boxArray(), ratio), fdmsk.DistributionMap(), 1, 0);
+                sc.ParallelCopy(s);
+            }
         }
     }
 #endif
