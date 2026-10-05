@@ -191,6 +191,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
             Real const hpz = ebpz(i  ,j  ,k  );
             Real const hmz = mlebndfdlap_hm(ebpz(i  ,j  ,k-1));
             Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
+            bool cut = false; // a link to the EB
 
             Real gamma = Real(0.0);
             Real rho = Real(0.0);
@@ -200,6 +201,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i+1,j,k);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpx);
             }
             sigma = sig.x(i-1,j,k);
@@ -207,6 +209,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i-1,j,k);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmx);
             }
 
@@ -216,6 +219,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i,j+1,k);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpy);
             }
             sigma = sig.y(i,j-1,k);
@@ -223,6 +227,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i,j-1,k);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmy);
             }
 
@@ -232,6 +237,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i,j,k+1);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpz);
             }
             sigma = sig.z(i,j,k-1);
@@ -239,11 +245,13 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * scale;
                 rho += sigma * fac * scale * x(i,j,k-1);
             } else {
+                cut = true;
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmz);
             }
 
             Real const Ax = rho + gamma*x(i,j,k);
-            constexpr Real omega = Real(1.25);
+            // Over-relaxing rows cut by the EB can make MG diverge.
+            Real const omega = cut ? Real(1.0) : Real(1.25);
             x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);
         }
     }
