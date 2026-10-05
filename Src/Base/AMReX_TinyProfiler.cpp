@@ -31,6 +31,7 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -62,6 +63,8 @@ std::string TinyProfiler::output_file{"stdout"};
 
 namespace {
     constexpr char mainregion[] = "main";
+    // Innermost active profiler, points into a key of statsmap (stable until Finalize)
+    std::atomic<const char*> current_name{nullptr};
     bool finalized = false;
     bool memprof_finalized = false;
     // Whether tiny_profiler.output_file has been read this Initialize/Finalize
@@ -169,12 +172,18 @@ TinyProfiler::start ()
         roctxRangePush(fname.c_str());
 #endif
 
+        const char* name = nullptr;
         for (auto const& region : regionstack)
         {
-            Stats& st = statsmap[region][fname];
+            const auto it = statsmap[region].try_emplace(fname).first;
+            name = it->first.c_str();
+            Stats& st = it->second;
             ++st.depth;
             stats.push_back(&st);
         }
+        // Only the (OpenMP master) thread that runs the profilers writes current_name
+        prev_name = current_name.load(std::memory_order_relaxed);
+        current_name.store(name, std::memory_order_release);
 
         if (verbose) {
             ++n_print_tabs;
@@ -235,6 +244,7 @@ TinyProfiler::stop ()
             }
 
             ttstack.pop_back();
+            current_name.store(prev_name, std::memory_order_release);
             if (!ttstack.empty()) {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
@@ -475,6 +485,7 @@ TinyProfiler::Finalize (bool bFlushing)
     }
 
     if (!bFlushing) {
+        current_name.store(nullptr, std::memory_order_release);
         regionstack.clear();
         regionstartstack.clear();
         ttstack.clear();
@@ -1029,6 +1040,14 @@ TinyProfiler::PrintCallStack (std::ostream& os)
     for (auto const& x : ttstack) {
         os << *(std::get<2>(x)) << "\n";
     }
+}
+
+const char*
+TinyProfiler::CurrentName () noexcept
+{
+    // signal-safe only if lock-free
+    static_assert(decltype(current_name)::is_always_lock_free);
+    return current_name.load(std::memory_order_acquire);
 }
 
 void
