@@ -1648,6 +1648,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     linop.setPrintIndentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
+        AMREX_ASSERT(!linop.m_mg_deferred || linop.m_mg_built);
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
@@ -1830,6 +1831,7 @@ MLMGT<MF>::prepareLinOp ()
     linop.setPrintIndentation(print_ident);
     if (!linop_prepared) {
         linop.prepareForSolve();
+        AMREX_ASSERT(!linop.m_mg_deferred || linop.m_mg_built);
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();

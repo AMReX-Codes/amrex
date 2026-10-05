@@ -568,6 +568,31 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
     MLLinOp::resizeMultiGrid(new_size);
 }
 
+void
+MLNodeLinOp::buildMGHierarchy ()
+{
+    BL_PROFILE("MLNodeLinOp::buildMGHierarchy()");
+    MLLinOp::buildMGHierarchy();
+
+    // Level 0 is kept, because it may hold an overset mask.
+    int const nmglevs = m_num_mg_levels[0];
+    m_dirichlet_mask[0].resize(nmglevs);
+    for (int mglev = 1; mglev < nmglevs; ++mglev) {
+        m_dirichlet_mask[0][mglev] = std::make_unique<iMultiFab>
+            (amrex::convert(m_grids[0][mglev],IntVect::TheNodeVector()),
+             m_dmap[0][mglev], 1, 0);
+        m_dirichlet_mask[0][mglev]->setVal(0);
+    }
+
+    if (nmglevs > 1) {
+        m_owner_mask_bottom = makeOwnerMask(m_grids[0][nmglevs-1],
+                                             m_dmap[0][nmglevs-1],
+                                             m_geom[0][nmglevs-1]);
+    }
+
+    m_masks_built = false;
+}
+
 Real
 MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
 {

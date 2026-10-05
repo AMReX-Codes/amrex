@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <limits>
 #include <string>
 
 namespace amrex {
@@ -767,6 +768,24 @@ public:
     //! True if makeAlgMG is implemented for this operator.
     [[nodiscard]] virtual bool supportsAlgMG () const { return false; }
 
+    /**
+     * \brief True if the operator supports MG levels coarsened in any subset
+     * of directions. Then MLMG coarsens stretched cells only in their short
+     * directions until they are nearly cubic.
+     *
+     * The MG levels of AMR level 0 are then built at the first solve, by
+     * prepareMGHierarchy() in prepareForSolve; see buildMGHierarchy().
+     */
+    [[nodiscard]] virtual bool supportsAnisotropicCoarsening () const { return false; }
+
+    /**
+     * \brief Cell size used to pick the directions to coarsen when
+     * supportsAnisotropicCoarsening() is true.  A direction with weaker
+     * coupling counts as having longer cells.
+     */
+    [[nodiscard]] virtual GpuArray<Real,AMREX_SPACEDIM>
+    anisotropicCoarseningCellSize (Geometry const& geom) const { return geom.CellSizeArray(); }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     /**
      * \brief Build a Hypre backend using the requested interface.
@@ -880,7 +899,12 @@ public:
     //! Return the number of AMR levels
     [[nodiscard]] int NAMRLevels () const noexcept { return m_num_amr_levels; }
 
-    //! Return the number of MG levels at given AMR level
+    /**
+     * \brief Return the number of MG levels at given AMR level.
+     *
+     * For an operator with supportsAnisotropicCoarsening(), AMR level 0 has
+     * only one MG level until the first solve.
+     */
     [[nodiscard]] int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
 
     //! Geometry accessor for (\p amr_lev,\p mglev).
@@ -908,6 +932,8 @@ protected:
     int maxorder = 3;
 
     bool enforceSingularSolvable = true;
+    bool m_mg_deferred = false; //!< MG levels of AMR level 0 built at first solve
+    bool m_mg_built = false;
 
     int m_num_amr_levels = 0;
     Vector<int> m_amr_ref_ratio;
@@ -1046,6 +1072,15 @@ protected:
 
     virtual void resizeMultiGrid (int new_size);
 
+    //! Build the deferred MG levels of AMR level 0 once.  See supportsAnisotropicCoarsening.
+    void prepareMGHierarchy ();
+
+    //! Build the MG levels of AMR level 0 below the finest one.
+    virtual void buildMGHierarchy () {
+        BL_PROFILE("MLLinOp::buildMGHierarchy()");
+        defineCoarseMGLevels();
+    }
+
     [[nodiscard]] bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
     [[nodiscard]] int hiddenDirection () const noexcept { return info.hidden_direction; }
     [[nodiscard]] Box compactify (Box const& b) const noexcept;
@@ -1091,6 +1126,7 @@ private:
                       const Vector<DistributionMapping>& a_dmap,
                       const Vector<FabFactory<FAB> const*>& a_factory);
     void defineBC ();
+    void defineCoarseMGLevels ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
     static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
                                       int ratio, int strategy);
@@ -1140,6 +1176,8 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
         }
     }
 #endif
+    m_mg_deferred = supportsAnisotropicCoarsening();
+    m_mg_built = false;
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineBC();
 }
@@ -1191,14 +1229,10 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     const Array<int,AMREX_SPACEDIM>& is_per = a_geom[0].isPeriodic();
 
     IntVect mg_coarsen_ratio_v(mg_coarsen_ratio);
-    IntVect mg_box_min_width_v(mg_box_min_width);
-    IntVect mg_domain_min_width_v(mg_domain_min_width);
     if (hasHiddenDimension()) {
         AMREX_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3,
                                   "Hidden direction only supported for 3d");
         mg_coarsen_ratio_v[info.hidden_direction] = 1;
-        mg_box_min_width_v[info.hidden_direction] = 0;
-        mg_domain_min_width_v[info.hidden_direction] = 0;
     }
 
     // fine amr levels
@@ -1267,22 +1301,73 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                                     compactify(m_geom[amrlev][0].Domain()).numPts());
     }
 
+    if (m_mg_deferred) {
+        // MG levels > 0 of AMR level 0 are built by prepareMGHierarchy.
+        m_bottom_comm = m_default_comm;
+        m_do_agglomeration = false;
+        m_do_consolidation = false;
+    } else {
+        defineCoarseMGLevels();
+    }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_factory[amrlev].emplace_back(makeFactory(amrlev,mglev));
+        }
+    }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(AMRRefRatioVect(amrlev-1)),
+                                  "MLLinOp: grids not coarsenable between AMR levels");
+    }
+}
+
+template <typename MF>
+void
+MLLinOpT<MF>::defineCoarseMGLevels ()
+{
+    BL_PROFILE("MLLinOp::defineCoarseMGLevels()");
+
+    AMREX_ASSERT(m_grids[0].size() == 1 && mg_coarsen_ratio_vec.empty());
+
+    // Copies, because m_geom[0], m_grids[0] and m_dmap[0] grow below.
+    Geometry const geom0 = m_geom[0][0];
+    BoxArray const ba0 = m_grids[0][0];
+    DistributionMapping const dm0 = m_dmap[0][0];
+
+    const RealBox& rb = geom0.ProbDomain();
+    const int coord = geom0.Coord();
+    const Array<int,AMREX_SPACEDIM>& is_per = geom0.isPeriodic();
+    auto const npts0 = ba0.numPts();
+
+    IntVect mg_coarsen_ratio_v(mg_coarsen_ratio);
+    IntVect mg_box_min_width_v(mg_box_min_width);
+    IntVect mg_domain_min_width_v(mg_domain_min_width);
+    if (hasHiddenDimension()) {
+        mg_coarsen_ratio_v[info.hidden_direction] = 1;
+        mg_box_min_width_v[info.hidden_direction] = 0;
+        mg_domain_min_width_v[info.hidden_direction] = 0;
+    }
+
     Box aggbox;
     bool aggable = false;
 
-    if (m_grids[0][0].size() > 1 && info.do_agglomeration)
+    if (ba0.size() > 1 && info.do_agglomeration)
     {
         if (m_domain_covered[0])
         {
-            aggbox = m_geom[0][0].Domain();
+            aggbox = geom0.Domain();
             if (hasHiddenDimension()) {
-                aggbox.makeSlab(hiddenDirection(), m_grids[0][0][0].smallEnd(hiddenDirection()));
+                aggbox.makeSlab(hiddenDirection(), ba0[0].smallEnd(hiddenDirection()));
             }
             aggable = true;
         }
         else
         {
-            aggbox = m_grids[0][0].minimalBox();
+            aggbox = ba0.minimalBox();
             aggable = (aggbox.numPts() == npts0);
         }
     }
@@ -1295,11 +1380,31 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                          && info.semicoarsening_direction >= -1
                          && info.semicoarsening_direction < AMREX_SPACEDIM );
 
+    // Directions to coarsen for stretched cells: those shorter than 1.5
+    // times the shortest. A fixed semicoarsening direction takes precedence.
+    bool const aniso_coarsening = supportsAnisotropicCoarsening() && !hasHiddenDimension()
+        && !(info.do_semicoarsening && info.semicoarsening_direction != -1);
+    auto const dx0 = anisotropicCoarseningCellSize(geom0);
+    auto base_ratio = [&] (IntVect const& accum) -> IntVect
+    {
+        IntVect rr = mg_coarsen_ratio_v;
+        if (aniso_coarsening) {
+            Real dxmin = std::numeric_limits<Real>::max();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                dxmin = std::min(dxmin, dx0[idim]*Real(accum[idim]));
+            }
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (dx0[idim]*Real(accum[idim]) >= Real(1.5)*dxmin) { rr[idim] = 1; }
+            }
+        }
+        return rr;
+    };
+
     if (info.do_agglomeration && aggable)
     {
-        Box dbx = m_geom[0][0].Domain();
+        Box dbx = geom0.Domain();
         Box bbx = aggbox;
-        Real const nbxs = static_cast<Real>(m_grids[0][0].size());
+        Real const nbxs = static_cast<Real>(ba0.size());
         Long const threshold_npts = AMREX_D_TERM(Long(info.agg_grid_size),
                                                      *info.agg_grid_size,
                                                      *info.agg_grid_size);
@@ -1311,7 +1416,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
         for (int lev = 0; lev < info.max_coarsening_level; ++lev)
         {
-            IntVect rr_level = mg_coarsen_ratio_v;
+            IntVect const rr_base = base_ratio(accum_coarsen_ratio.back());
+            IntVect rr_level = rr_base;
             bool const do_semicoarsening_level = info.do_semicoarsening
                 && numsclevs < info.max_semicoarsening_level;
             if (do_semicoarsening_level
@@ -1340,9 +1446,9 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 int n_ones = AMREX_D_TERM(  static_cast<int>(rr_level[0] == 1),
                                           + static_cast<int>(rr_level[1] == 1),
                                           + static_cast<int>(rr_level[2] == 1));
-                if (n_ones > 1) { break; }
+                if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != mg_coarsen_ratio_v) {
+            if (rr_level != rr_base) {
                 ++numsclevs;
             }
 
@@ -1356,10 +1462,10 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
         for (int lev = 1, nlevs = static_cast<int>(domainboxes.size()); lev < nlevs; ++lev) {
             if (!agged && !agg_flag[lev] &&
-                a_grids[0].coarsenable(accum_coarsen_ratio[lev], mg_box_min_width_v))
+                ba0.coarsenable(accum_coarsen_ratio[lev], mg_box_min_width_v))
             {
-                m_grids[0].push_back(amrex::coarsen(a_grids[0], accum_coarsen_ratio[lev]));
-                m_dmap[0].push_back(a_dmap[0]);
+                m_grids[0].push_back(amrex::coarsen(ba0, accum_coarsen_ratio[lev]));
+                m_dmap[0].push_back(dm0);
             } else {
                 IntVect cr = domainboxes[lev-1].length() / domainboxes[lev].length();
                 if (!m_grids[0].back().coarsenable(cr)) {
@@ -1395,18 +1501,19 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         Long consolidation_threshold = 0;
         Real avg_npts = 0.0;
         if (info.do_consolidation) {
-            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
+            avg_npts = static_cast<Real>(ba0.d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             consolidation_threshold = AMREX_D_TERM(Long(info.con_grid_size),
                                                        *info.con_grid_size,
                                                        *info.con_grid_size);
         }
 
-        Box const& dom0 = a_geom[0].Domain();
+        Box const& dom0 = geom0.Domain();
         IntVect rr_vec(1);
         int numsclevs = 0;
         for (int lev = 0; lev < info.max_coarsening_level; ++lev)
         {
-            IntVect rr_level = mg_coarsen_ratio_v;
+            IntVect const rr_base = base_ratio(rr_vec);
+            IntVect rr_level = rr_base;
             bool do_semicoarsening_level = info.do_semicoarsening
                 && numsclevs < info.max_semicoarsening_level;
             if (do_semicoarsening_level
@@ -1419,7 +1526,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 IntVect rr_dir(1);
                 rr_dir[idim] = rr_vec[idim] * rr_level[idim];
                 is_coarsenable[idim] = dom0.coarsenable(rr_dir, mg_domain_min_width_v)
-                    && a_grids[0].coarsenable(rr_dir, mg_box_min_width_v);
+                    && ba0.coarsenable(rr_dir, mg_box_min_width_v);
                 if (!is_coarsenable[idim] && do_semicoarsening_level
                     && info.semicoarsening_direction == -1)
                 {
@@ -1435,15 +1542,15 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 int n_ones = AMREX_D_TERM(  static_cast<int>(rr_level[0] == 1),
                                           + static_cast<int>(rr_level[1] == 1),
                                           + static_cast<int>(rr_level[2] == 1));
-                if (n_ones > 1) { break; }
+                if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != mg_coarsen_ratio_v) {
+            if (rr_level != rr_base) {
                 ++numsclevs;
             }
             rr_vec *= rr_level;
 
             m_geom[0].emplace_back(amrex::coarsen(dom0, rr_vec), rb, coord, is_per);
-            m_grids[0].push_back(amrex::coarsen(a_grids[0], rr_vec));
+            m_grids[0].push_back(amrex::coarsen(ba0, rr_vec));
 
             if (info.do_consolidation)
             {
@@ -1461,7 +1568,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             }
             else
             {
-                m_dmap[0].push_back(a_dmap[0]);
+                m_dmap[0].push_back(dm0);
             }
         }
     }
@@ -1514,18 +1621,21 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         }
     }
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    for (int mglev = 1; mglev < m_num_mg_levels[0]; ++mglev)
     {
-        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            m_factory[amrlev].emplace_back(makeFactory(amrlev,mglev));
-        }
+        m_factory[0].emplace_back(makeFactory(0,mglev));
     }
+}
 
-    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
-    {
-        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(AMRRefRatioVect(amrlev-1)),
-                                  "MLLinOp: grids not coarsenable between AMR levels");
+template <typename MF>
+void
+MLLinOpT<MF>::prepareMGHierarchy ()
+{
+    if (m_mg_deferred && !m_mg_built) {
+        ParallelContext::push(m_default_comm);
+        buildMGHierarchy();
+        ParallelContext::pop();
+        m_mg_built = true;
     }
 }
 

@@ -74,7 +74,13 @@ public:
     MLEBNodeFDLaplacian& operator= (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
-    //! Assign constant diagonal conductivity tensor `sigma`.
+    /**
+     * \brief Assign constant diagonal conductivity tensor `sigma`.
+     *
+     * A value set before the first solve also chooses the directions in
+     * which multigrid coarsens.  Later values change the operator, but not
+     * the coarsening.
+     */
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
@@ -204,7 +210,13 @@ public:
                        Real* mat) const override;
 #endif
 
+    [[nodiscard]] bool supportsAnisotropicCoarsening () const override { return true; }
+
+    [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM>
+    anisotropicCoarseningCellSize (Geometry const& geom) const override;
+
     [[nodiscard]] bool supportsAlgMG () const override { return !m_rz; }
+
     void fillAlgMatrix (int mglev, MFIter const& mfi,
                         Array4<Long const> const& gid,
                         Array4<int const> const& lid,
@@ -235,6 +247,9 @@ public:
     void customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
                             Real eps_rel, Real eps_abs, int maxiter) override;
 
+protected:
+    void buildMGHierarchy () override;
+
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     //! Cell-centered sigma on MG level 0
@@ -260,6 +275,10 @@ private:
     //! Whether a local coarse cell on an MG level hides a covered fine
     //! node.  See mlebndfdlap_eb_lost.  Not reduced across processes.
     Vector<Vector<int>> m_eb_lost;
+    //! Row scale of every node on every MG level, used by restriction.
+    Vector<Vector<MultiFab>> m_row_scale;
+    //! The same on the coarsened layout of the finer level, where that differs.
+    Vector<Vector<MultiFab>> m_row_scale_crse;
 #endif
 
 public:

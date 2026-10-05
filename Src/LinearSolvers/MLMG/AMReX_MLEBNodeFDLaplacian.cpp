@@ -16,9 +16,38 @@
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
+#include <cmath>
+
 namespace amrex {
 
 namespace {
+
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+// The scale of the operator's row at each open node: its smallest open edge
+// fraction (see mlebndfdlap_scale_rhs); 1 at Dirichlet and covered nodes.
+void fill_row_scale (MultiFab& s, Array<MultiFab,AMREX_SPACEDIM> const& ebp,
+                     iMultiFab const& dmsk)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(s, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        Array4<Real> const& sa = s.array(mfi);
+        Array4<int const> const& m = dmsk.const_array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& ex = ebp[0].const_array(mfi);,
+                     Array4<Real const> const& ey = ebp[1].const_array(mfi);,
+                     Array4<Real const> const& ez = ebp[2].const_array(mfi);)
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            sa(i,j,k) = m(i,j,k) ? Real(1.0) : amrex::min(
+                AMREX_D_DECL(amrex::min(mlebndfdlap_hm(ex(i-1,j,k)), ex(i,j,k)),
+                             amrex::min(mlebndfdlap_hm(ey(i,j-1,k)), ey(i,j,k)),
+                             amrex::min(mlebndfdlap_hm(ez(i,j,k-1)), ez(i,j,k))));
+        });
+    }
+}
+#endif
 
 // Fill ghost cells outside the domain by reflection.  A direction in which the
 // data are nodal is mirrored about the boundary node, a cell-centered direction
@@ -202,6 +231,22 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
     }
 }
 
+#if (AMREX_SPACEDIM > 1)
+GpuArray<Real,AMREX_SPACEDIM>
+MLEBNodeFDLaplacian::anisotropicCoarseningCellSize (Geometry const& geom) const
+{
+    // The coupling in direction d scales as sigma_d/dx_d^2.
+    auto dx = geom.CellSizeArray();
+    if (m_has_sigma_mf) { return dx; }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_sigma[idim] > Real(0.0)) { // 0 means 1 in RZ
+            dx[idim] /= std::sqrt(m_sigma[idim]);
+        }
+    }
+    return dx;
+}
+#endif
+
 void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)
 {
@@ -276,7 +321,21 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 
-    build_eb_data();
+    // The EB data are built with the MG levels in buildMGHierarchy.
+    m_levset.resize(this->m_num_amr_levels);
+    m_eb_pos.resize(this->m_num_amr_levels);
+    m_has_eb.resize(this->m_num_amr_levels);
+    m_eb_lost.resize(this->m_num_amr_levels);
+    for (auto const* x : a_factory) {
+        if (x && !x->isAllRegular()) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(x->getEdgeCent()[0] != nullptr,
+                "MLEBNodeFDLaplacian: the EB factory needs EBSupport::full");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(x->getLevelSet().nGrow() >= 1 &&
+                                             x->getEdgeCent()[0]->nGrow() >= 1 &&
+                                             x->getVolFrac().nGrow() >= 1,
+                "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
+        }
+    }
 
     m_sigma_mf.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
@@ -320,12 +379,6 @@ MLEBNodeFDLaplacian::build_eb_data ()
         {
             auto const& levset_f = factory->getLevelSet();
             auto const& edgecent = factory->getEdgeCent();
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(edgecent[0] != nullptr,
-                "MLEBNodeFDLaplacian: the EB factory needs EBSupport::full");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levset_f.nGrow() >= 1 &&
-                                             edgecent[0]->nGrow() >= 1 &&
-                                             factory->getVolFrac().nGrow() >= 1,
-                "MLEBNodeFDLaplacian: the EB factory needs at least one ghost cell");
             MultiFab::Copy(m_levset[amrlev][0], levset_f, 0, 0, 1, 1);
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -631,6 +684,19 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 }
 
 void
+MLEBNodeFDLaplacian::buildMGHierarchy ()
+{
+    BL_PROFILE("MLEBNodeFDLaplacian::buildMGHierarchy()");
+    MLNodeLinOp::buildMGHierarchy();
+#ifdef AMREX_USE_EB
+    build_eb_data();
+#endif
+    for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
+        m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
+    }
+}
+
+void
 MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
     BL_PROFILE("MLEBNodeFDLaplacian::restriction()");
@@ -638,18 +704,22 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
-#if (AMREX_SPACEDIM == 1)
-    int semicoarsening_dir = 0;
-#else
-    // Direction NOT coarsened by this MG step. Derived from the level's
-    // ratio, because info.semicoarsening_direction is -1 when the direction
-    // is chosen automatically.
-    int semicoarsening_dir = 2;
-    if (ratio[1] == 1) {
-        semicoarsening_dir = 1;
-    } else if (ratio[0] == 1) {
-        semicoarsening_dir = 0;
+    // A semicoarsened step leaves one direction uncoarsened (semi_dir); a
+    // line step coarsens one direction only (line_dir, 3D).
+    int ncoarsened = 0, semi_dir = 0, line_dir = 0;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ratio[idim] == 1) {
+            semi_dir = idim;
+        } else {
+            line_dir = idim;
+            ++ncoarsened;
+        }
     }
+#if (AMREX_SPACEDIM == 3)
+    bool const line_coarsening = (ncoarsened == 1);
+#else
+    bool const line_coarsening = false;
+    amrex::ignore_unused(ncoarsened, line_dir);
 #endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -662,25 +732,57 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    // Rows next to the EB are scaled; see mlebndfdlap_eb_restriction.
+    if (!m_levset[amrlev].empty()) {
+        MultiFab const& sf = m_row_scale[amrlev][cmglev-1];
+        MultiFab const& sc = need_parallel_copy ? m_row_scale_crse[amrlev][cmglev]
+                                                : m_row_scale[amrlev][cmglev];
+        Dim3 const rr = ratio.dim3(1);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& cfab = pcrse->array(mfi);
+            Array4<Real const> const& ffab = fine.const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            Array4<Real const> const& sfab = sf.const_array(mfi);
+            Array4<Real const> const& scfab = sc.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlebndfdlap_eb_restriction(i,j,k,cfab,ffab,mfab,sfab,scfab(i,j,k),rr);
+            });
+        }
+    } else
+#endif
     {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> cfab = pcrse->array(mfi);
-        Array4<Real const> const& ffab = fine.const_array(mfi);
-        Array4<int const> const& mfab = dmsk.const_array(mfi);
-        if (ratio == 2) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
-            });
-        } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab, semicoarsening_dir);
-            });
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> cfab = pcrse->array(mfi);
+            Array4<Real const> const& ffab = fine.const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            if (ratio == 2) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+                });
+            } else if (line_coarsening) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlebndfdlap_line_restriction(i,j,k,cfab,ffab,mfab,line_dir);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,semi_dir);
+                });
+            }
         }
     }
 
@@ -696,18 +798,22 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     BL_PROFILE("MLEBNodeFDLaplacian::interpolation()");
 
     IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
-#if (AMREX_SPACEDIM == 1)
-    int semicoarsening_dir = 0;
-#else
-    // Direction NOT coarsened by this MG step. Derived from the level's
-    // ratio, because info.semicoarsening_direction is -1 when the direction
-    // is chosen automatically.
-    int semicoarsening_dir = 2;
-    if (ratio[1] == 1) {
-        semicoarsening_dir = 1;
-    } else if (ratio[0] == 1) {
-        semicoarsening_dir = 0;
+    // A semicoarsened step leaves one direction uncoarsened (semi_dir); a
+    // line step coarsens one direction only (line_dir, 3D).
+    int ncoarsened = 0, semi_dir = 0, line_dir = 0;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ratio[idim] == 1) {
+            semi_dir = idim;
+        } else {
+            line_dir = idim;
+            ++ncoarsened;
+        }
     }
+#if (AMREX_SPACEDIM == 3)
+    bool const line_coarsening = (ncoarsened == 1);
+#else
+    bool const line_coarsening = false;
+    amrex::ignore_unused(ncoarsened, line_dir);
 #endif
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -736,10 +842,15 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
             {
                 mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
             });
+        } else if (line_coarsening) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlebndfdlap_line_interpadd(i,j,k,ffab,cfab,mfab,line_dir);
+            });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
-                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semicoarsening_dir);
+                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semi_dir);
             });
         }
     }
@@ -750,8 +861,13 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLEBNodeFDLaplacian::prepareForSolve()");
 
+    prepareMGHierarchy();
+
     MLNodeLinOp::prepareForSolve();
 
+#ifdef AMREX_USE_EB
+    bool const masks_rebuilt = !m_masks_built;
+#endif
     buildMasks();
 
 #ifdef AMREX_USE_EB
@@ -781,6 +897,40 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     }
 
     limit_coarsening();
+
+    // Row scales for restriction, rebuilt with the masks.  A remapped coarse
+    // level also gets its scale on the coarsened finer layout.
+    if (masks_rebuilt) {
+        m_row_scale.resize(m_num_amr_levels);
+        m_row_scale_crse.resize(m_num_amr_levels);
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+            if (m_levset[amrlev].empty()) { continue; }
+            int const nmglevs = m_num_mg_levels[amrlev];
+            m_row_scale[amrlev].resize(nmglevs);
+            m_row_scale_crse[amrlev].resize(nmglevs);
+            for (int mglev = 0; mglev < nmglevs; ++mglev) {
+                auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
+                bool const is_bottom = (mglev == nmglevs-1);
+                bool const remapped = (mglev > 0) &&
+                    !amrex::isMFIterSafe(dmsk, *m_dirichlet_mask[amrlev][mglev-1]);
+                MultiFab tmp;
+                MultiFab& s = (is_bottom && remapped) ? tmp : m_row_scale[amrlev][mglev];
+                s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1);
+                fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
+                if (!is_bottom) {
+                    s.setBndry(Real(1.0));
+                    fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
+                }
+                if (remapped) {
+                    auto const& fdmsk = *m_dirichlet_mask[amrlev][mglev-1];
+                    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+                    auto& sc = m_row_scale_crse[amrlev][mglev];
+                    sc.define(amrex::coarsen(fdmsk.boxArray(), ratio), fdmsk.DistributionMap(), 1, 0);
+                    sc.ParallelCopy(s);
+                }
+            }
+        }
+    }
 #endif
 
     {

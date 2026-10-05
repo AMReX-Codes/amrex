@@ -651,6 +651,9 @@ MLCellLinOpT<MF>::define (const Vector<Geometry>& a_geom,
                           const LPInfo& a_info,
                           const Vector<FabFactory<FAB> const*>& a_factory)
 {
+    // defineAuxData needs all MG levels, which a deferred hierarchy lacks.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->supportsAnisotropicCoarsening(),
+        "MLCellLinOp: anisotropic coarsening is not supported");
     MLLinOpT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
     defineAuxData();
     defineBC();

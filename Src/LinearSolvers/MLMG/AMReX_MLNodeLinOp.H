@@ -282,6 +282,8 @@ protected:
 
     void resizeMultiGrid (int new_size) override;
 
+    void buildMGHierarchy () override;
+
     std::unique_ptr<iMultiFab> m_owner_mask_top;  // ownership of nodes
     std::unique_ptr<iMultiFab> m_owner_mask_bottom;
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
