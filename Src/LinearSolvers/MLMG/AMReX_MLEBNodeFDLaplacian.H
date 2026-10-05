@@ -272,6 +272,10 @@ private:
     //! Whether a box (grown by one) has open nodes and also covered nodes or
     //! cut edges.  An all-covered box is false.
     Vector<Vector<LayoutData<int>>> m_has_eb;
+#ifdef AMREX_USE_GPU
+    //! Device copy of m_has_eb
+    Vector<Vector<Gpu::DeviceVector<int>>> m_has_eb_d;
+#endif
     //! Whether a local coarse cell on an MG level hides a covered fine
     //! node.  See mlebndfdlap_eb_lost.  Not reduced across processes.
     Vector<Vector<int>> m_eb_lost;

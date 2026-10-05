@@ -2560,7 +2560,7 @@ struct BoxIndexerND<1>
 {
     std::uint64_t npts;
 
-    int lo;
+    IntVectND<1> lo;
 
     /**
      * \brief Construct the 1D indexer; no fast divisors are needed because only one axis exists.
@@ -2581,7 +2581,7 @@ struct BoxIndexerND<1>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVectND<1> intVect (std::uint64_t icell) const
     {
-        return IntVectND<1>{int(icell)+lo};
+        return IntVectND<1>{int(icell)+lo[0]};
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2593,7 +2593,7 @@ struct BoxIndexerND<1>
      */
     Dim3 operator() (std::uint64_t icell) const
     {
-        return Dim3{.x = int(icell)+lo, .y = 0, .z = 0};
+        return Dim3{.x = int(icell)+lo[0], .y = 0, .z = 0};
     }
 
     /**
