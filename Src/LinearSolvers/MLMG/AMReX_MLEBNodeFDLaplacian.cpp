@@ -827,6 +827,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     MLNodeLinOp::prepareForSolve();
 
+    bool const masks_rebuilt = !m_masks_built;
     buildMasks();
 
 #ifdef AMREX_USE_EB
@@ -857,37 +858,39 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     limit_coarsening();
 
-    // Row scales for the restriction.  A level is the fine one with its ghost
-    // nodes (those outside the grids are 1) unless it is the bottom, and the
-    // coarse one unless it is the top.  A coarse level whose layout differs
-    // from the coarsened finer level (agglomeration or consolidation) needs
-    // its scale on that layout.
-    m_row_scale.resize(m_num_amr_levels);
-    m_row_scale_crse.resize(m_num_amr_levels);
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        if (m_levset[amrlev].empty()) { continue; }
-        int const nmglevs = m_num_mg_levels[amrlev];
-        m_row_scale[amrlev].resize(nmglevs);
-        m_row_scale_crse[amrlev].resize(nmglevs);
-        for (int mglev = 0; mglev < nmglevs; ++mglev) {
-            auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
-            bool const is_bottom = (mglev == nmglevs-1);
-            bool const remapped = (mglev > 0) &&
-                !amrex::isMFIterSafe(dmsk, *m_dirichlet_mask[amrlev][mglev-1]);
-            MultiFab tmp;
-            MultiFab& s = (is_bottom && remapped) ? tmp : m_row_scale[amrlev][mglev];
-            s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1);
-            fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
-            if (!is_bottom) {
-                s.setBndry(Real(1.0));
-                fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
-            }
-            if (remapped) {
-                auto const& fdmsk = *m_dirichlet_mask[amrlev][mglev-1];
-                IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
-                auto& sc = m_row_scale_crse[amrlev][mglev];
-                sc.define(amrex::coarsen(fdmsk.boxArray(), ratio), fdmsk.DistributionMap(), 1, 0);
-                sc.ParallelCopy(s);
+    // Row scales for the restriction, rebuilt with the masks they depend on.
+    // A level is the fine one with its ghost nodes (those outside the grids
+    // are 1) unless it is the bottom, and the coarse one unless it is the top.
+    // A coarse level whose layout differs from the coarsened finer level
+    // (agglomeration or consolidation) needs its scale on that layout.
+    if (masks_rebuilt) {
+        m_row_scale.resize(m_num_amr_levels);
+        m_row_scale_crse.resize(m_num_amr_levels);
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+            if (m_levset[amrlev].empty()) { continue; }
+            int const nmglevs = m_num_mg_levels[amrlev];
+            m_row_scale[amrlev].resize(nmglevs);
+            m_row_scale_crse[amrlev].resize(nmglevs);
+            for (int mglev = 0; mglev < nmglevs; ++mglev) {
+                auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
+                bool const is_bottom = (mglev == nmglevs-1);
+                bool const remapped = (mglev > 0) &&
+                    !amrex::isMFIterSafe(dmsk, *m_dirichlet_mask[amrlev][mglev-1]);
+                MultiFab tmp;
+                MultiFab& s = (is_bottom && remapped) ? tmp : m_row_scale[amrlev][mglev];
+                s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1);
+                fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
+                if (!is_bottom) {
+                    s.setBndry(Real(1.0));
+                    fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
+                }
+                if (remapped) {
+                    auto const& fdmsk = *m_dirichlet_mask[amrlev][mglev-1];
+                    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+                    auto& sc = m_row_scale_crse[amrlev][mglev];
+                    sc.define(amrex::coarsen(fdmsk.boxArray(), ratio), fdmsk.DistributionMap(), 1, 0);
+                    sc.ParallelCopy(s);
+                }
             }
         }
     }

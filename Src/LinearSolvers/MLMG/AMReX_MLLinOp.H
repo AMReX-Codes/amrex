@@ -1398,13 +1398,15 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                 Box const cell_box = amrex::enclosedCells(boundboxes[lev]);
                 if (cell_box.numPts() > threshold_npts) {
                     IntVect max_grid_size(info.agg_grid_size);
-                    // Stretch the boxes in the directions not coarsened at this level.
-                    IntVect blen = cell_box.size();
-                    int const nboxes = AMREX_D_TERM(  ((max_grid_size[0]+blen[0]-1) / blen[0]),
-                                                    * ((max_grid_size[1]+blen[1]-1) / blen[1]),
-                                                    * ((max_grid_size[2]+blen[2]-1) / blen[2]));
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        if (cr[idim] == 1) { max_grid_size[idim] *= nboxes; }
+                    if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
+                        && info.semicoarsening_direction != -1)
+                    {
+                        IntVect blen = cell_box.size();
+                        AMREX_D_TERM(int mgs_0 = (max_grid_size[0]+blen[0]-1) / blen[0];,
+                                     int mgs_1 = (max_grid_size[1]+blen[1]-1) / blen[1];,
+                                     int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
+                        max_grid_size[info.semicoarsening_direction]
+                            *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
                     }
                     m_grids[0].back().maxSize(max_grid_size);
                 }
