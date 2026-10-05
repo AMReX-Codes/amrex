@@ -504,7 +504,6 @@ private:
 
     void computeVolInv () const;
     mutable Vector<Vector<RT> > m_volinv; // used by solvability fix
-    mutable Vector<Vector<iMultiFab> > m_interp_mask; // used by interpAssign
 
     int m_interpbndry_halfwidth = 2;
 
@@ -665,7 +664,6 @@ MLCellLinOpT<MF>::defineAuxData ()
 
     m_undrrelxr.resize(this->m_num_amr_levels);
     m_maskvals.resize(this->m_num_amr_levels);
-    m_interp_mask.resize(this->m_num_amr_levels);
     m_fluxreg.resize(this->m_num_amr_levels-1);
     m_norm_fine_mask.resize(this->m_num_amr_levels-1);
     m_bc_tags.resize(this->m_num_amr_levels);
@@ -1326,8 +1324,10 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     MF cfine;
     const MF* cmf;
 
+    // Ghost cells not filled from valid cells are zero in both cases.
     if (amrex::isMFIterSafe(crse, fine))
     {
+        crse.setBndry(RT(0.0));
         crse.FillBoundary(crse_geom.periodicity());
         cmf = &crse;
     }
@@ -1336,30 +1336,9 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
         cfine.define(cba, fine.DistributionMap(), ncomp, ng, MFInfo().SetArena(The_Async_Arena()));
+        cfine.setBndry(RT(0.0));
         cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
         cmf = & cfine;
-    }
-
-    // Coarse cells outside the domain or across a coarse/fine boundary hold
-    // no data and are left out of the interpolation stencil. A mask is only
-    // needed when the grids do not cover the domain.
-    Box dom = crse_geom.Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (crse_geom.isPeriodic(idim)) { dom.grow(idim, ng[idim]); }
-    }
-    iMultiFab const* pmsk = nullptr;
-    if (!this->m_domain_covered[amrlev]) {
-        if (m_interp_mask[amrlev].empty()) {
-            m_interp_mask[amrlev].resize(this->m_num_mg_levels[amrlev]);
-        }
-        iMultiFab& msk = m_interp_mask[amrlev][fmglev];
-        if (!msk.ok() || msk.boxArray() != cmf->boxArray() ||
-            msk.DistributionMap() != cmf->DistributionMap())
-        {
-            msk.define(cmf->boxArray(), cmf->DistributionMap(), 1, ng);
-            msk.BuildMask(crse_geom.Domain(), crse_geom.periodicity(), 1, 0, 0, 1);
-        }
-        pmsk = &msk;
     }
 
     bool isEB = fine.hasEBFabFactory();
@@ -1380,7 +1359,6 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
         const Box& bx = mfi.tilebox();
         const auto& ff = fine.array(mfi);
         const auto& cc = cmf->array(mfi);
-        Array4<int const> const mk = pmsk ? pmsk->const_array(mfi) : Array4<int const>{};
 #ifdef AMREX_USE_EB
         bool call_lincc;
         if (isEB)
@@ -1412,18 +1390,16 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
                 Box const& bx_2d = this->compactify(bx);
                 auto const& ff_2d = this->compactify(ff);
                 auto const& cc_2d = this->compactify(cc);
-                auto const& mk_2d = this->compactify(mk);
-                Box const& dom_2d = this->compactify(dom);
                 AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx_2d, tbx,
                 {
-                    TwoD::mlmg_lin_cc_interp_r2(tbx, ff_2d, cc_2d, mk_2d, dom_2d, ncomp);
+                    TwoD::mlmg_lin_cc_interp_r2(tbx, ff_2d, cc_2d, ncomp);
                 });
             } else
 #endif
             {
                 AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                 {
-                    mlmg_lin_cc_interp_r2(tbx, ff, cc, mk, dom, ncomp);
+                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
                 });
             }
         }
