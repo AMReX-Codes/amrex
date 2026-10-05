@@ -1076,7 +1076,10 @@ protected:
     void prepareMGHierarchy ();
 
     //! Build the MG levels of AMR level 0 below the finest one.
-    virtual void buildMGHierarchy () { defineCoarseMGLevels(); }
+    virtual void buildMGHierarchy () {
+        BL_PROFILE("MLLinOp::buildMGHierarchy()");
+        defineCoarseMGLevels();
+    }
 
     [[nodiscard]] bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
     [[nodiscard]] int hiddenDirection () const noexcept { return info.hidden_direction; }

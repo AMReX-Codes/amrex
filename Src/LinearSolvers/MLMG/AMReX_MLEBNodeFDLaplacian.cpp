@@ -686,6 +686,7 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 void
 MLEBNodeFDLaplacian::buildMGHierarchy ()
 {
+    BL_PROFILE("MLEBNodeFDLaplacian::buildMGHierarchy()");
     MLNodeLinOp::buildMGHierarchy();
 #ifdef AMREX_USE_EB
     build_eb_data();

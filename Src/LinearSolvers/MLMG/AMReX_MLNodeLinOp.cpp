@@ -571,6 +571,7 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
 void
 MLNodeLinOp::buildMGHierarchy ()
 {
+    BL_PROFILE("MLNodeLinOp::buildMGHierarchy()");
     MLLinOp::buildMGHierarchy();
 
     // Level 0 is kept, because it may hold an overset mask.
