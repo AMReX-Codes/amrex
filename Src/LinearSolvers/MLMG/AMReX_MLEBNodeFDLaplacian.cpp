@@ -699,13 +699,8 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     // enlarged: a row with an EB almost on its node is a near-Dirichlet
     // condition whose unscaled residual is not comparable.
     if (!m_levset[amrlev].empty()) {
-        MultiFab sf(fine.boxArray(), fine.DistributionMap(), 1, 1,
-                    MFInfo().SetArena(The_Async_Arena()));
-        fill_row_scale(sf, m_eb_pos[amrlev][cmglev-1], dmsk);
-        fill_domain_ghost(sf, m_geom[amrlev][cmglev-1], -1);
-        MultiFab sc(crse.boxArray(), crse.DistributionMap(), 1, 0,
-                    MFInfo().SetArena(The_Async_Arena()));
-        fill_row_scale(sc, m_eb_pos[amrlev][cmglev], *m_dirichlet_mask[amrlev][cmglev]);
+        MultiFab const& sf = m_row_scale[amrlev][cmglev-1];
+        MultiFab const& sc = m_row_scale[amrlev][cmglev];
         MultiFab sc_tmp;
         MultiFab const* psc = &sc;
         if (need_parallel_copy) {
@@ -868,6 +863,21 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     }
 
     limit_coarsening();
+
+    // Row scales for the restriction.  Ghost nodes outside the grids are 1.
+    m_row_scale.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        if (m_levset[amrlev].empty()) { continue; }
+        m_row_scale[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
+            auto& s = m_row_scale[amrlev][mglev];
+            s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, 1);
+            s.setBndry(Real(1.0));
+            fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
+            fill_domain_ghost(s, m_geom[amrlev][mglev], -1);
+        }
+    }
 #endif
 
     {

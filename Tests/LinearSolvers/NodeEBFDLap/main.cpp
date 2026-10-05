@@ -280,13 +280,14 @@ void test_hidden_feature (Geometry const& geom, BoxArray const& grids,
 // Stretched cells on the unit domain with \p ncells.  MG coarsens only the
 // short directions until the cells are nearly cubic, and must converge
 // quickly.
-void test_stretched_cells (Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
                            IntVect const& ncells, int max_grid_size, Real reltol, int verbose)
 {
     Box const domain(IntVect(0), ncells-1);
     RealBox const rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    Geometry const geom(domain, rb, CoordSys::cartesian, {AMREX_D_DECL(0,0,0)});
+    Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
     BoxArray grids(domain);
     grids.maxSize(max_grid_size);
     DistributionMapping const dmap(grids);
@@ -390,10 +391,10 @@ int main (int argc, char* argv[])
         amrex::Print() << "\n==== stretched cells, one short direction ====\n";
         IntVect ncells(n_cell);
         ncells[AMREX_SPACEDIM-1] *= 8;
-        test_stretched_cells(lobc, hibc, ncells, max_grid_size, reltol, verbose);
+        test_stretched_cells(is_periodic, lobc, hibc, ncells, max_grid_size, reltol, verbose);
 #if (AMREX_SPACEDIM == 3)
         amrex::Print() << "\n==== stretched cells, two short directions ====\n";
-        test_stretched_cells(lobc, hibc, IntVect(2*n_cell, 2*n_cell, n_cell/2),
+        test_stretched_cells(is_periodic, lobc, hibc, IntVect(2*n_cell, 2*n_cell, n_cell/2),
                              max_grid_size, reltol, verbose);
 #endif
     }

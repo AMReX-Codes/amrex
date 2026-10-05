@@ -263,6 +263,8 @@ private:
     //! Whether a local coarse cell on an MG level hides a covered fine
     //! node.  See mlebndfdlap_eb_lost.  Not reduced across processes.
     Vector<Vector<int>> m_eb_lost;
+    //! Row scale of every node on every MG level, used by restriction.
+    Vector<Vector<MultiFab>> m_row_scale;
 #endif
 
 public:
