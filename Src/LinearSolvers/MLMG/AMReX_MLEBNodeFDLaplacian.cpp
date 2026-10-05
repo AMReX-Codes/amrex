@@ -231,6 +231,7 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
     }
 }
 
+#if (AMREX_SPACEDIM > 1)
 GpuArray<Real,AMREX_SPACEDIM>
 MLEBNodeFDLaplacian::anisotropicCoarseningCellSize (Geometry const& geom) const
 {
@@ -244,6 +245,7 @@ MLEBNodeFDLaplacian::anisotropicCoarseningCellSize (Geometry const& geom) const
     }
     return dx;
 }
+#endif
 
 void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)

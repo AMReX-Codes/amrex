@@ -935,6 +935,8 @@ protected:
     int maxorder = 3;
 
     bool enforceSingularSolvable = true;
+    bool m_mg_deferred = false; //!< MG levels of AMR level 0 built at first solve
+    bool m_mg_built = false;
 
     int m_num_amr_levels = 0;
     Vector<int> m_amr_ref_ratio;
@@ -949,9 +951,6 @@ protected:
 
     bool m_do_semicoarsening = false;
     Vector<IntVect> mg_coarsen_ratio_vec;
-
-    bool m_mg_deferred = false; //!< MG levels of AMR level 0 built at first solve
-    bool m_mg_built = false;
 
     //! first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
