@@ -115,6 +115,15 @@ public:
 
     [[nodiscard]] bool isCrossStencil () const override { return false; }
 
+    //! The smoother if the coarsest level covers the domain with at most
+    //! 5x5 columns, else BiCGStab.
+    [[nodiscard]] BottomSolver getDefaultBottomSolver () const override {
+        Box const& cdomain = m_geom[0].back().Domain();
+        bool const few_columns = cdomain.length(0) <= 5 && cdomain.length(1) <= 5;
+        return (m_domain_covered[0] && few_columns) ? BottomSolver::smoother
+                                                    : BottomSolver::bicgstab;
+    }
+
     void prepareForSolve () override;
     [[nodiscard]] bool needsUpdate () const override {
         return m_needs_update || MLCellLinOpT<MultiFab>::needsUpdate();

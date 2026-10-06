@@ -1086,14 +1086,14 @@ Only a single AMR level is supported, and its grids must cover the domain.
 Boxes that span the whole domain in the z-direction are fastest, but boxes
 split in z are also supported.
 
-The operator is not symmetric, so use BiCGStab (the default) or the
-smoother as the bottom solver.  The smoother is sufficient when multigrid
-can coarsen the grids to a few cells in x and y, that is, when the x and y
-sizes of the domain have no prime factors other than 2, 3 and 5 (e.g.,
-:math:`200 = 2^3 \cdot 5^2`) and the boxes can be coarsened at least once
-in x and y (e.g., their sizes are even).  Otherwise, use BiCGStab.  The
-problem can be solved with :cpp:`MLMG`, as below, or with :cpp:`GMRESMLMG`
-(section :ref:`sec:linearsolver:gmres`).
+The operator is not symmetric, so the bottom solver can be BiCGStab or the
+smoother.  By default, :cpp:`MLMG` uses the smoother when multigrid can
+coarsen the grids to a few cells in x and y, and BiCGStab otherwise.
+Multigrid can coarsen that far when the x and y sizes of the domain have
+no prime factors other than 2, 3 and 5 (e.g., :math:`200 = 2^3 \cdot 5^2`)
+and the boxes can be coarsened at least once in x and y (e.g., their sizes
+are even).  The problem can be solved with :cpp:`MLMG`, as below, or with
+:cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`).
 
 ::
 
@@ -1105,8 +1105,6 @@ problem can be solved with :cpp:`MLMG`, as below, or with :cpp:`GMRESMLMG`
     linop.setDetJ(0, detJ);
 
     MLMG mlmg(linop);
-    // Smoother bottom solver, if the grids coarsen to a few cells in x and y:
-    // mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
     mlmg.solve({&phi}, {&rhs}, reltol, abstol);
 
 Open Boundary Poisson Solver

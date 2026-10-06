@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
         pp.query("bottom_verbose", bottom_verbose);
         int max_iter = 200;
         pp.query("max_iter", max_iter);
-        std::string bottom_solver = "bicgstab";
+        std::string bottom_solver = "default";
         pp.query("bottom_solver", bottom_solver);
         std::string zsplit_solver = "spike";
         pp.query("zsplit_solver", zsplit_solver);
@@ -214,7 +214,9 @@ int main (int argc, char* argv[])
         mlmg.setMaxIter(max_iter);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-        if (bottom_solver == "smoother") {
+        if (bottom_solver == "default") {
+            // The operator chooses.
+        } else if (bottom_solver == "smoother") {
             mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
         } else if (bottom_solver == "bicgstab") {
             mlmg.setBottomSolver(MLMG::BottomSolver::bicgstab);
