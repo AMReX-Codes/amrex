@@ -14,6 +14,18 @@
 
 using namespace amrex;
 
+namespace {
+    // Relative tolerance reachable in the working precision
+    Real default_tol_rel ()
+    {
+        if constexpr (std::is_same_v<double,Real>) {
+            return Real(1.0e-10);
+        } else {
+            return Real(1.0e-4);
+        }
+    }
+}
+
 MyTest::MyTest ()
 {
     readParameters();
@@ -93,12 +105,7 @@ MyTest::solvePoisson ()
     info.setDeterministic(deterministic);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    Real tol_rel;
-    if constexpr (std::is_same_v<double,Real>) {
-        tol_rel = Real(1.0e-10);
-    } else {
-        tol_rel = Real(1.0e-4);
-    }
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -194,12 +201,7 @@ MyTest::solveABecLaplacian ()
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
     info.setSemicoarseningDirection(semicoarsening_direction);
 
-    Real tol_rel;
-    if constexpr (std::is_same_v<double,Real>) {
-        tol_rel = Real(1.0e-10);
-    } else {
-        tol_rel = Real(1.0e-4);
-    }
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -324,7 +326,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const auto tol_rel = Real(1.e-10);
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -453,7 +455,7 @@ MyTest::solveNodeABecLaplacian ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const auto tol_rel = Real(1.e-10);
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -501,7 +503,7 @@ MyTest::solveABecLaplacianGMRES ()
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
     info.setSemicoarseningDirection(semicoarsening_direction);
 
-    const auto tol_rel = Real(1.e-10);
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -745,7 +747,7 @@ MyTest::initData ()
 void
 MyTest::solveMLHypre ()
 {
-    const auto tol_rel = Real(1.e-10);
+    const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
