@@ -925,6 +925,7 @@ protected:
     int mg_domain_min_width = 2;
     int mg_agg_no_split_direction = -1; // keep agglomerated grids whole in it
     bool mg_odd_coarsening = false; // coarsen by 3 or 5 where 2 does not fit
+    bool mg_independent_coarsening = false; // coarsen directions on their own
 
     LPInfo info;
 
@@ -1458,6 +1459,22 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                     rr_level[idim] = 1;
                 }
             }
+            if (mg_independent_coarsening) {
+                // A direction that cannot be coarsened gets ratio 1, and one whose
+                // cells are 1.5 times longer than the shortest coarsenable waits.
+                Real hmin = std::numeric_limits<Real>::max();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (is_coarsenable[idim] && rr_level[idim] > 1) {
+                        hmin = std::min(hmin, dx0[idim]*Real(accum_coarsen_ratio.back()[idim]));
+                    }
+                }
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (!is_coarsenable[idim] || dx0[idim]*Real(accum_coarsen_ratio.back()[idim]) >= Real(1.5)*hmin) {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = 1;
+                    }
+                }
+            }
             if (is_coarsenable != IntVect(1) || rr_level == IntVect(1)) {
                 break;
             }
@@ -1590,6 +1607,22 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                 {
                     is_coarsenable[idim] = true;
                     rr_level[idim] = 1;
+                }
+            }
+            if (mg_independent_coarsening) {
+                // A direction that cannot be coarsened gets ratio 1, and one whose
+                // cells are 1.5 times longer than the shortest coarsenable waits.
+                Real hmin = std::numeric_limits<Real>::max();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (is_coarsenable[idim] && rr_level[idim] > 1) {
+                        hmin = std::min(hmin, dx0[idim]*Real(rr_vec[idim]));
+                    }
+                }
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (!is_coarsenable[idim] || dx0[idim]*Real(rr_vec[idim]) >= Real(1.5)*hmin) {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = 1;
+                    }
                 }
             }
             if (is_coarsenable != IntVect(1) || rr_level == IntVect(1)) {

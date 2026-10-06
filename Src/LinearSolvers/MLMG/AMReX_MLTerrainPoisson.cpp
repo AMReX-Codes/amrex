@@ -37,6 +37,7 @@ MLTerrainPoisson::define (const Vector<Geometry>& a_geom,
     mg_domain_min_width = 1;
     mg_agg_no_split_direction = 2;
     mg_odd_coarsening = true;
+    mg_independent_coarsening = true;
 
     MLCellLinOpT<MultiFab>::define(a_geom, a_grids, a_dmap, lpinfo);
 
@@ -604,6 +605,60 @@ MLTerrainPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& 
         mlterrain::Metrics const met{.rx = rx[b], .ry = ry[b], .zf = zf[b]};
         y[b](i,j,k) = mlterrain::adotx(i, j, k, x[b], met, ax[b], ay[b], az[b],
                                        dxinv[0], dxinv[1], dxinv[2], bci);
+    });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+}
+
+void
+MLTerrainPoisson::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
+{
+    BL_PROFILE("MLTerrainPoisson::interpolation()");
+    AMREX_ASSERT(amrlev == 0);
+    amrex::ignore_unused(amrlev);
+
+    // Piecewise constant for ratio (2,2), linear in x and y otherwise.
+    IntVect const ratio = coarsenRatio(fmglev+1);
+    if (ratio[0] == 2 && ratio[1] == 2) {
+        MLCellLinOpT<MultiFab>::interpolation(amrlev, fmglev, fine, crse);
+        return;
+    }
+    IntVect ng(0);
+    for (int d = 0; d < 2; ++d) { ng[d] = (ratio[d] > 1) ? 1 : 0; }
+    MultiFab ct(amrex::coarsen(fine.boxArray(), ratio), fine.DistributionMap(), 1, ng,
+                MFInfo().SetArena(The_Async_Arena()));
+    ct.ParallelCopy(crse, 0, 0, 1, IntVect(0), ng, m_geom[0][fmglev+1].periodicity());
+
+    auto const bci = bcInfo(fmglev+1);
+    auto const& fa = fine.arrays();
+    auto const& ca = ct.const_arrays();
+    ParallelFor(fine, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+    {
+        IntVect const iv(i,j,k);
+        IntVect ic = iv, in = iv;
+        Real w[2], s[2];
+        for (int d = 0; d < 2; ++d) {
+            ic[d] = amrex::coarsen(iv[d], ratio[d]);
+            Real const t = (Real(iv[d] - ratio[d]*ic[d]) + Real(0.5)) / Real(ratio[d]) - Real(0.5);
+            w[d] = std::abs(t);
+            in[d] = ic[d] + ((t < Real(0.0)) ? -1 : 1);
+            s[d] = Real(1.0);
+            // Reflect at non-periodic domain faces: even (Neumann), odd (Dirichlet).
+            if (in[d] < bci.lo[d] && bci.bclo[d] != 0) {
+                in[d] = ic[d];
+                s[d] = Real(bci.bclo[d]);
+            } else if (in[d] > bci.hi[d] && bci.bchi[d] != 0) {
+                in[d] = ic[d];
+                s[d] = Real(bci.bchi[d]);
+            }
+        }
+        auto const& c = ca[b];
+        Real v = (Real(1.0)-w[0])*(Real(1.0)-w[1])*c(ic);
+        if (w[0] > Real(0.0)) { v += w[0]*(Real(1.0)-w[1])*s[0]*c(in[0],ic[1],k); }
+        if (w[1] > Real(0.0)) { v += (Real(1.0)-w[0])*w[1]*s[1]*c(ic[0],in[1],k); }
+        if (w[0] > Real(0.0) && w[1] > Real(0.0)) {
+            v += w[0]*w[1]*s[0]*s[1]*c(in[0],in[1],k);
+        }
+        fa[b](i,j,k) += v;
     });
     if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 }

@@ -144,6 +144,8 @@ public:
                   const MLMGBndryT<MultiFab>* bndry=nullptr,
                   bool skip_fillboundary=false) const override;
 
+    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const override;
+
     void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const override;
     void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                   int redblack) const override;
