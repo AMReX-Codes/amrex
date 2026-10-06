@@ -197,7 +197,7 @@ MLTerrainPoisson::setZPhys (int amrlev, MultiFab const& z_phys_nd)
 {
     AMREX_ALWAYS_ASSERT(amrlev == 0 && z_phys_nd.nGrowVect().allGE(1) &&
                         z_phys_nd.ixType().nodeCentered());
-    m_zphys.ParallelCopy(z_phys_nd, 0, 0, 1, IntVect(1), IntVect(1));
+    m_zphys.LocalCopy(z_phys_nd, 0, 0, 1, IntVect(1));
     m_needs_update = true;
 }
 
@@ -207,7 +207,7 @@ MLTerrainPoisson::setAreas (int amrlev, Array<MultiFab const*,AMREX_SPACEDIM> co
     AMREX_ALWAYS_ASSERT(amrlev == 0);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         AMREX_ALWAYS_ASSERT(area[idim]->ixType() == m_area[0][idim].ixType());
-        m_area[0][idim].ParallelCopy(*area[idim]);
+        m_area[0][idim].LocalCopy(*area[idim], 0, 0, 1, IntVect(0));
     }
     m_needs_update = true;
 }
@@ -217,7 +217,7 @@ MLTerrainPoisson::setDetJ (int amrlev, MultiFab const& detJ)
 {
     AMREX_ALWAYS_ASSERT(amrlev == 0 && detJ.ixType().cellCentered());
     m_detJ.define(m_grids[0][0], m_dmap[0][0], 1, 0);
-    m_detJ.ParallelCopy(detJ);
+    m_detJ.LocalCopy(detJ, 0, 0, 1, IntVect(0));
 }
 
 mlterrain::BCInfo
