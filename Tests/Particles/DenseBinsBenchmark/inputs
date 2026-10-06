@@ -4,13 +4,17 @@ nbins = 4096
 # fraction of items moved to a random bin in nearly_sorted
 frac_moved = 0.05
 
-# cells distribution: ppc items per cell of an ncell^3 grid, binned in tiles
+# cells and deposition distributions: ppc items per cell of an ncell^3
+# grid, binned in tiles
 ncell = 64
 ppc = 8
 tile = 6 6 8
+# deposition distribution: cells per group in PermutationForDeposition
+# (64 on HIP, 1024 on CUDA)
+deposition_block_size = 64
 
 nwarmup = 2
 nrepeat = 20
 
 # distributions to run (default: all)
-#tests = sorted nearly_sorted random cells
+#tests = sorted nearly_sorted random cells deposition

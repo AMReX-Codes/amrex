@@ -3,11 +3,13 @@
 // Times DenseBins::build for several distributions of items over bins and
 // verifies each result. The distributions range from fully sorted by bin
 // (adjacent items share a bin, the common case for particles, which are
-// periodically sorted by cell) to uniformly random.
+// periodically sorted by cell) to uniformly random, plus the orderings
+// produced by sorting particles by cell (cells) and by
+// SortParticlesForDeposition (deposition).
 //
 // Run with the default inputs, or override on the command line, e.g.
 //   ./main3d.hip.HIP.ex inputs tests="sorted random" nitems=33554432 nbins=65536
-//   ./main3d.hip.HIP.ex inputs tests=cells ppc=125
+//   ./main3d.hip.HIP.ex inputs tests="cells deposition" ppc=125
 
 #include <AMReX.H>
 #include <AMReX_DenseBins.H>
@@ -72,6 +74,40 @@ Vector<int> makeCells (int ncell, int ppc, const Vector<int>& tile, int& nbins)
         const int bin = (k / tile[2] * nty + j / tile[1]) * ntx + i / tile[0];
         for (int p = 0; p < ppc; ++p) { items.push_back(bin); }
     }}}
+    return items;
+}
+
+// Same grid and tiles as makeCells, but in the order produced by
+// PermutationForDeposition (used by SortParticlesForDeposition): the cells
+// are processed in groups of block_size consecutive cells, and each group
+// emits the first item of each of its cells in cell order, then the second
+// item of each cell, and so on. The groups are assumed to be in order.
+Vector<int> makeDepositionOrder (int ncell, int ppc, const Vector<int>& tile, int block_size,
+                                 int& nbins)
+{
+    const int ntx = (ncell + tile[0] - 1) / tile[0];
+    const int nty = (ncell + tile[1] - 1) / tile[1];
+    const int ntz = (ncell + tile[2] - 1) / tile[2];
+    nbins = ntx * nty * ntz;
+
+    const Long ncells = Long(ncell) * ncell * ncell;
+    auto cell_bin = [&] (Long icell) {
+        const auto i = static_cast<int>(icell % ncell);
+        const auto j = static_cast<int>((icell / ncell) % ncell);
+        const auto k = static_cast<int>(icell / (Long(ncell) * ncell));
+        return (k / tile[2] * nty + j / tile[1]) * ntx + i / tile[0];
+    };
+
+    Vector<int> items;
+    items.reserve(std::size_t(ncells) * ppc);
+    for (Long block_start = 0; block_start < ncells; block_start += block_size) {
+        const Long block_end = std::min(block_start + block_size, ncells);
+        for (int p = 0; p < ppc; ++p) {
+            for (Long icell = block_start; icell < block_end; ++icell) {
+                items.push_back(cell_bin(icell));
+            }
+        }
+    }
     return items;
 }
 
@@ -163,6 +199,7 @@ int main (int argc, char* argv[])
         int ncell = 64;
         int ppc = 8;
         Vector<int> tile = {6, 6, 8};
+        int deposition_block_size = 64;
         int nwarmup = 2;
         int nrepeat = 20;
         ParmParse pp;
@@ -172,12 +209,13 @@ int main (int argc, char* argv[])
         pp.query("ncell", ncell);
         pp.query("ppc", ppc);
         pp.queryarr("tile", tile);
+        pp.query("deposition_block_size", deposition_block_size);
         pp.query("nwarmup", nwarmup);
         pp.query("nrepeat", nrepeat);
         Vector<std::string> test_list;
         pp.queryarr("tests", test_list);
         if (test_list.empty()) {
-            test_list = {"sorted", "nearly_sorted", "random", "cells"};
+            test_list = {"sorted", "nearly_sorted", "random", "cells", "deposition"};
         }
 
         amrex::Print() << "DenseBins::build benchmark, " << nrepeat << " repetitions\n"
@@ -201,6 +239,9 @@ int main (int argc, char* argv[])
             } else if (test == "cells") {
                 items = makeCells(ncell, ppc, tile, nb);
                 name = "cells_ppc" + std::to_string(ppc);
+            } else if (test == "deposition") {
+                items = makeDepositionOrder(ncell, ppc, tile, deposition_block_size, nb);
+                name = "deposit_ppc" + std::to_string(ppc);
             } else {
                 amrex::Abort("Unknown test " + test);
             }
