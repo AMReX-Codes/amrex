@@ -7,12 +7,18 @@ set(_input_files inputs)
 
 setup_test(3 _sources _input_files)
 
-# Boxes split in z, with each line solver, on the same executable.
+# More cases on the same executable: boxes split in z, with each line
+# solver, and a size that coarsens by 5 after boxes become odd.
 set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/3d)
-foreach (_solver IN ITEMS spike column)
-    set(_name LinearSolvers_TerrainPoisson_zsplit_${_solver}_3d)
-    set(_cmd ${_exe_dir}/Test_LinearSolvers_TerrainPoisson_3d inputs
-        "max_grid_size_v=16 16 8" zsplit_solver=${_solver})
+foreach (_case IN ITEMS zsplit_spike zsplit_column oddsize)
+    set(_name LinearSolvers_TerrainPoisson_${_case}_3d)
+    if (_case STREQUAL "oddsize")
+        set(_args "n_cell=40 40 32" "max_grid_size_v=20 20 32" bottom_solver=smoother)
+    else ()
+        string(REPLACE "zsplit_" "" _solver ${_case})
+        set(_args "max_grid_size_v=16 16 8" zsplit_solver=${_solver})
+    endif ()
+    set(_cmd ${_exe_dir}/Test_LinearSolvers_TerrainPoisson_3d inputs ${_args})
     if (AMReX_OMP)
         add_test(NAME ${_name} COMMAND ${_cmd} WORKING_DIRECTORY ${_exe_dir})
         set_tests_properties(${_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
@@ -24,6 +30,8 @@ foreach (_solver IN ITEMS spike column)
 endforeach ()
 unset(_exe_dir)
 unset(_name)
+unset(_args)
+unset(_solver)
 unset(_cmd)
 
 unset(_sources)

@@ -36,6 +36,7 @@ MLTerrainPoisson::define (const Vector<Geometry>& a_geom,
     mg_box_min_width = 1;
     mg_domain_min_width = 1;
     mg_agg_no_split_direction = 2;
+    mg_odd_coarsening = true;
 
     MLCellLinOpT<MultiFab>::define(a_geom, a_grids, a_dmap, lpinfo);
 

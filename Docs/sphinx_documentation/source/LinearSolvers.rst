@@ -1089,8 +1089,9 @@ split in z are also supported.
 The operator is not symmetric, so use BiCGStab (the default) or the
 smoother as the bottom solver.  The smoother is sufficient when multigrid
 can coarsen the grids to a few cells in x and y, that is, when the x and y
-sizes of the domain and of the boxes are a small number times a large
-power of 2 (e.g., :math:`192 = 3 \cdot 64`).  Otherwise, use BiCGStab.  The
+sizes of the domain have no prime factors other than 2, 3 and 5 (e.g.,
+:math:`200 = 2^3 \cdot 5^2`) and the boxes can be coarsened at least once
+in x and y (e.g., their sizes are even).  Otherwise, use BiCGStab.  The
 problem can be solved with :cpp:`MLMG`, as below, or with :cpp:`GMRESMLMG`
 (section :ref:`sec:linearsolver:gmres`).
 
