@@ -175,10 +175,9 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
 #endif
              BoxIndexer const& indexer = dp_boxes[ibox];
              if (icell < indexer.numPts()) {
-                 const IntVect lo(indexer.lo);
                  IntVect iv = indexer.intVect(icell);
                  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                     iv[idim] = lo[idim] + (iv[idim]-lo[idim])*stride[idim];
+                     iv[idim] = indexer.lo[idim] + (iv[idim]-indexer.lo[idim])*stride[idim];
                  }
                  auto const d3 = iv.dim3();
                  f(ibox, d3.x, d3.y, d3.z);
@@ -239,14 +238,12 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
              const int big = (indexers[1].numPts() > indexers[0].numPts()) ? 1 : 0;
              if (icell < indexers[big].numPts()) {
                  const IntVect iv = indexers[big].intVect(icell);
-                 const IntVect lobig(indexers[big].lo);
-                 const int ic = iv[0] - lobig[0];
+                 const int ic = iv[0] - indexers[big].lo[0];
                  auto const d3 = iv.dim3();
                  const int parity = (d3.y + d3.z + redblack) & 1;
                  BoxIndexer const& indexer = indexers[parity];
                  if (ic < box_indexer_len_x(indexer)) {
-                     const IntVect lo(indexer.lo);
-                     f(ibox, lo[0] + 2*ic, d3.y, d3.z);
+                     f(ibox, indexer.lo[0] + 2*ic, d3.y, d3.z);
                  }
              }
          });
