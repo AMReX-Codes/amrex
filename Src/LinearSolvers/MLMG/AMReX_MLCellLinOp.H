@@ -1327,8 +1327,10 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     MF cfine;
     const MF* cmf;
 
+    // Ghost cells not filled from valid cells are zero in both cases.
     if (amrex::isMFIterSafe(crse, fine))
     {
+        crse.setBndry(RT(0.0));
         crse.FillBoundary(crse_geom.periodicity());
         cmf = &crse;
     }
@@ -1337,7 +1339,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
         cfine.define(cba, fine.DistributionMap(), ncomp, ng, MFInfo().SetArena(The_Async_Arena()));
-        cfine.setVal(RT(0.0));
+        cfine.setBndry(RT(0.0));
         cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
         cmf = & cfine;
     }
