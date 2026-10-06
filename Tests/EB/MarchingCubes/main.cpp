@@ -922,7 +922,10 @@ void main_main ()
         amrex::Print() << "Marching-cubes STL facets: " << facets << "\n";
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(facets > 0, "eb2.mc_stl_file contains no facets");
         Long expected_facets = -1;
+#ifndef AMREX_USE_FLOAT
+        // The expected count assumes the double-precision small-cell repair.
         pp.query("expected_mc_stl_facets", expected_facets);
+#endif
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(expected_facets < 0 || facets == expected_facets,
                                          "eb2.mc_stl_file facet count differs from the "
                                          "expected finest-level count");
@@ -1026,6 +1029,7 @@ void main_main ()
             }
         });
     }
+    bool const legacy_zero_nodes = (eb_method == "legacy");
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         for (MFIter mfi(*dense_edge[d]); mfi.isValid(); ++mfi) {
             auto const edge = dense_edge[d]->const_array(mfi);
@@ -1037,7 +1041,13 @@ void main_main ()
                 bool const lo_fluid = phi(i, j, k) < 0.0_rt;
                 bool const hi_fluid = phi(ih, jh, kh) < 0.0_rt;
                 bool mismatch = false;
-                if (lo_fluid && hi_fluid) {
+                if (legacy_zero_nodes &&
+                    (phi(i, j, k) == 0.0_rt || phi(ih, jh, kh) == 0.0_rt)) {
+                    // The legacy generator may treat a node on the surface as
+                    // either fluid or covered.
+                    mismatch = edge(i, j, k) != 1.0_rt && edge(i, j, k) != -1.0_rt &&
+                               (edge(i, j, k) < -0.5_rt || edge(i, j, k) > 0.5_rt);
+                } else if (lo_fluid && hi_fluid) {
                     mismatch = edge(i, j, k) != 1.0_rt;
                 } else if (!lo_fluid && !hi_fluid) {
                     mismatch = edge(i, j, k) != -1.0_rt;
@@ -1120,8 +1130,14 @@ void main_main ()
                 Real const area_z = apz(i, j, k) - apz(i, j, k + 1);
                 Real const norm =
                     std::sqrt(area_x * area_x + area_y * area_y + area_z * area_z);
-                Real const normal_tolerance =
-                    amrex::max(5.e-12_rt, roundoff_tolerance * amrex::max(1.0_rt, norm));
+#ifdef AMREX_USE_FLOAT
+                // The generator accepts area-vector closure errors up to 2e-5.
+                constexpr Real min_normal_tolerance = 1.e-4_rt;
+#else
+                constexpr Real min_normal_tolerance = 5.e-12_rt;
+#endif
+                Real const normal_tolerance = amrex::max(
+                    min_normal_tolerance, roundoff_tolerance * amrex::max(1.0_rt, norm));
                 if (norm <= 1.e-12_rt ||
                     std::abs(norm * bn(i, j, k, 0) - area_x) > normal_tolerance ||
                     std::abs(norm * bn(i, j, k, 1) - area_y) > normal_tolerance ||
