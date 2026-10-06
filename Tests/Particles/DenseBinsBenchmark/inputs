@@ -1,0 +1,16 @@
+# Items for the sorted / nearly_sorted / random distributions
+nitems = 16777216
+nbins = 4096
+# fraction of items moved to a random bin in nearly_sorted
+frac_moved = 0.05
+
+# cells distribution: ppc items per cell of an ncell^3 grid, binned in tiles
+ncell = 64
+ppc = 8
+tile = 6 6 8
+
+nwarmup = 2
+nrepeat = 20
+
+# distributions to run (default: all)
+#tests = sorted nearly_sorted random cells
