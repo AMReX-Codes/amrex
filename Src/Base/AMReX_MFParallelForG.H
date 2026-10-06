@@ -263,12 +263,10 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
         const IntVect lo = b.smallEnd();
         amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            IntVect iv(AMREX_D_DECL(i,j,k));
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                iv[idim] = lo[idim] + (iv[idim]-lo[idim])*stride[idim];
-            }
-            auto const d3 = iv.dim3();
-            f(0, d3.x, d3.y, d3.z);
+            AMREX_D_TERM(i = lo[0] + (i-lo[0])*stride[0];,
+                         j = lo[1] + (j-lo[1])*stride[1];,
+                         k = lo[2] + (k-lo[2])*stride[2];)
+            f(0, i, j, k);
         });
     } else {
 #ifdef AMREX_USE_CUDA
