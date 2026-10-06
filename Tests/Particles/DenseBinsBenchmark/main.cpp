@@ -25,6 +25,7 @@
 #include <string>
 
 using namespace amrex;
+using namespace amrex::literals;
 
 namespace
 {
@@ -196,7 +197,7 @@ int main (int argc, char* argv[])
     {
         int nitems = 1 << 24;
         int nbins = 4096;
-        Real frac_moved = 0.05;
+        Real frac_moved = 0.05_rt;
         int ncell = 64;
         int ppc = 8;
         Vector<int> tile = {6, 6, 8};
