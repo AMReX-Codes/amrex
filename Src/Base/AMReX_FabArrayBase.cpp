@@ -2092,6 +2092,10 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     const BDKey& srckey = srcfa.getBDKey();
     const BDKey& dstkey = dstfa.getBDKey();
 
+    // Some coarseners (e.g., cell bilinear vs. cell conservative linear)
+    // agree on aligned boxes but not on misaligned ones, so test both.
+    Box const& dstdomain_g1 = amrex::grow(dstdomain, 1);
+
     auto er_it = m_TheFillPatchCache.equal_range(dstkey);
 
     for (auto it = er_it.first; it != er_it.second; ++it)
@@ -2101,7 +2105,8 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
             it->second->m_dstdomain == dstdomain &&
             it->second->m_dstng     == dstng     &&
             it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
-            it->second->m_coarsener->doit(it->second->m_dstdomain) == coarsener.doit(dstdomain))
+            it->second->m_coarsener->doit(dstdomain) == coarsener.doit(dstdomain) &&
+            it->second->m_coarsener->doit(dstdomain_g1) == coarsener.doit(dstdomain_g1))
         {
             ++(it->second->m_nuse);
             m_FPinfo_stats.recordUse();
