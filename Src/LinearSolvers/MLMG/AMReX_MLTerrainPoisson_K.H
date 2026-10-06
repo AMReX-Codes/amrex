@@ -71,11 +71,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real face_x (int i, int j, int k, Array4<Real const> const& x, Metrics const& m,
              Real dxinv, BCInfo const& bci, Real* px) noexcept
 {
-    Real const d1 = x(i,j,k) - x(i-1,j,k);
     if (bci.hidden == 0) {
         px[0] = px[1] = Real(0.0);
-        return d1 * dxinv;
+        return Real(0.0);
     }
+    Real const d1 = x(i,j,k) - x(i-1,j,k);
     Real const d0 = x(i,j,k-1) - x(i-1,j,k-1);
     Real const d2 = x(i,j,k+1) - x(i-1,j,k+1);
     Real const s0 = x(i,j,k-1) + x(i-1,j,k-1);
@@ -94,11 +94,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real face_y (int i, int j, int k, Array4<Real const> const& x, Metrics const& m,
              Real dyinv, BCInfo const& bci, Real* py) noexcept
 {
-    Real const d1 = x(i,j,k) - x(i,j-1,k);
     if (bci.hidden == 1) {
         py[0] = py[1] = Real(0.0);
-        return d1 * dyinv;
+        return Real(0.0);
     }
+    Real const d1 = x(i,j,k) - x(i,j-1,k);
     Real const d0 = x(i,j,k-1) - x(i,j-1,k-1);
     Real const d2 = x(i,j,k+1) - x(i,j-1,k+1);
     Real const s0 = x(i,j,k-1) + x(i,j-1,k-1);

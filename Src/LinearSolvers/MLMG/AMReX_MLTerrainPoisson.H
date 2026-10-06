@@ -25,13 +25,16 @@ namespace amrex {
  *
  * where grad is the physical gradient in terrain-following form, A holds
  * the face area factors (setAreas) and J is the cell volume factor
- * (setDetJ).  The flux on a Neumann domain face is zero.
+ * (setDetJ).  The flux on a Neumann domain face is zero.  MLMG solves the
+ * J-scaled system div(A grad phi) = J rhs, so apply and the residuals
+ * compute div(A grad phi), without the division by J.
  *
  * Only 3D, a single AMR level whose grids cover the domain, and
  * homogeneous boundary conditions are supported.  The level BC must be
  * set with setLevelBC(0, nullptr).  The operator is not symmetric; use
  * BiCGStab or the smoother as the bottom solver.  It can be used with MLMG
- * or with GMRESMLMG.  The semicoarsening settings in LPInfo are ignored.
+ * or with GMRESMLMG, which always uses the smoother as the bottom solver.
+ * The semicoarsening settings in LPInfo are ignored.
  *
  * Boxes that span the whole domain in z are fastest, but boxes split in z
  * are also supported.
@@ -87,7 +90,7 @@ public:
     void setZPhys (int amrlev, MultiFab const& z_phys_nd);
 
     /**
-     * \brief Set the face area factors.
+     * \brief Set the face area factors (required).
      *
      * \param amrlev AMR level (must be 0).
      * \param area   Face MultiFabs in x, y and z.

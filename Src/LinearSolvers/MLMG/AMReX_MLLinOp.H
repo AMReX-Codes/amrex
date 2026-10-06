@@ -1433,15 +1433,19 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 IntVect rr_dir(1);
                 rr_dir[idim] = rr_level[idim];
+                // With odd ratios, the first ratio must also fit the original boxes.
+                bool const fit_ba0 = mg_odd_coarsening && lev == 0;
                 is_coarsenable[idim] = dbx.coarsenable(rr_dir, mg_domain_min_width_v)
-                    && bbx.coarsenable(rr_dir, mg_box_min_width_v);
+                    && bbx.coarsenable(rr_dir, mg_box_min_width_v)
+                    && (!fit_ba0 || ba0.coarsenable(rr_dir, mg_box_min_width_v));
                 for (int r : {3, 5}) {
                     if (is_coarsenable[idim] || !mg_odd_coarsening || rr_level[idim] != 2) {
                         break;
                     }
                     rr_dir[idim] = r;
                     if (dbx.coarsenable(rr_dir, mg_domain_min_width_v)
-                        && bbx.coarsenable(rr_dir, mg_box_min_width_v))
+                        && bbx.coarsenable(rr_dir, mg_box_min_width_v)
+                        && (!fit_ba0 || ba0.coarsenable(rr_dir, mg_box_min_width_v)))
                     {
                         is_coarsenable[idim] = true;
                         rr_level[idim] = r;

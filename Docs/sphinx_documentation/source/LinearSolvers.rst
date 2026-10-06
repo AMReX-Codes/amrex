@@ -1062,8 +1062,10 @@ operator is
 .. math:: L(\phi) = \frac{1}{J} \nabla \cdot (A \nabla \phi),
 
 where :math:`\nabla` is the physical gradient, :math:`A` holds the face
-area factors and :math:`J` is the cell volume factor.  The data are set
-with
+area factors and :math:`J` is the cell volume factor.  :cpp:`MLMG` solves
+the scaled system :math:`\nabla \cdot (A \nabla \phi) = J f` for the
+right-hand side :math:`f`, so :cpp:`MLMG::apply` and the residuals refer to
+this scaled system and are not divided by :math:`J`.  The data are set with
 
 .. highlight:: c++
 
@@ -1072,7 +1074,7 @@ with
     // Physical height of the cell corners, with at least one filled ghost node
     void setZPhys (int amrlev, MultiFab const& z_phys_nd);
 
-    // Face area factors in x, y and z
+    // Face area factors in x, y and z (required)
     void setAreas (int amrlev, Array<MultiFab const*,AMREX_SPACEDIM> const& area);
 
     // Cell volume factor J (optional; 1 if not set)
@@ -1094,7 +1096,8 @@ Multigrid can coarsen that far when the x and y sizes of the domain have
 no prime factors other than 2, 3 and 5 (e.g., :math:`200 = 2^3 \cdot 5^2`)
 and the boxes can be coarsened at least once in x and y (e.g., their sizes
 are even).  The problem can be solved with :cpp:`MLMG`, as below, or with
-:cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`).
+:cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`), which always uses
+the smoother as the bottom solver.
 
 ::
 
