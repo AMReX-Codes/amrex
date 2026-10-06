@@ -1104,7 +1104,8 @@ problem can be solved with :cpp:`MLMG`, as below, or with :cpp:`GMRESMLMG`
     linop.setDetJ(0, detJ);
 
     MLMG mlmg(linop);
-    mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
+    // Smoother bottom solver, if the grids coarsen to a few cells in x and y:
+    // mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
     mlmg.solve({&phi}, {&rhs}, reltol, abstol);
 
 Open Boundary Poisson Solver
