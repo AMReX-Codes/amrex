@@ -4,10 +4,12 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_Algorithm.H>
 #include <AMReX_Array.H>
 #include <AMReX_GpuQualifiers.H>
 
 #include <cstdint>
+#include <limits>
 
 namespace amrex::Morton {
 
@@ -84,7 +86,8 @@ std::uint32_t makeSpace (std::uint32_t x) noexcept {
  * \brief
  *  Convert a Real to a uint32, keeping only 10 significant bits.
  *  This puts the first 10 bits of x into retval with the 22 highest bits set to 0.
- *  It is assumed that xmin <= x < xmax.
+ *  It is assumed that xmin <= x < xmax. The result is clamped so that
+ *  round-off at xmax cannot wrap it to zero.
  *
  *  This is useful in 3D, because you can interleave the bits of 3 10-bit
  *  numbers and store the result in one 32-bit integer.
@@ -97,14 +100,17 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr std::uint32_t code_offset = (1U << 10);
-    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
+    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
+    return (std::uint32_t)(r * code_offset);
 }
 
 /**
  * \brief
  *  Convert a Real to a uint32, keeping only 16 significant bits.
  *  This puts the first 16 bits of x into retval with the 16 highest bits set to 0.
- *  It is assumed that xmin <= x < xmax.
+ *  It is assumed that xmin <= x < xmax. The result is clamped so that
+ *  round-off at xmax cannot wrap it to zero.
  *
  *  This is useful in 2D, because you can interleave the bits of two 16-bit
  *  numbers and store the result in one 32-bit integer.
@@ -117,13 +123,16 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr std::uint32_t code_offset = (1U << 16);
-    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
+    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
+    return (std::uint32_t)(r * code_offset);
 }
 
 /**
  * \brief
  *  Convert a Real to a uint32, keeping all significant bits.
- *  It is assumed that xmin <= x < xmax.
+ *  It is assumed that xmin <= x < xmax. The result is clamped so that
+ *  round-off at xmax cannot wrap it to zero.
  *
  *  This is useful in 1D, because no interleaving is needed.
  *
@@ -135,7 +144,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr unsigned long long code_offset = (1ULL << 32);
-    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * Real(code_offset));
+    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
+    return (std::uint32_t)(r * Real(code_offset));
 }
 
 /**
