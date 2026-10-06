@@ -115,6 +115,7 @@ Vector<int> makeDepositionOrder (int ncell, int ppc, const Vector<int>& tile, in
 bool checkBins (const DenseBins<int>& bins, const Vector<int>& items, int nbins)
 {
     const auto nitems = static_cast<int>(items.size());
+    if (nbins <= 0) { return false; }
 
     Vector<int> perm(nitems);
     Vector<int> offsets(nbins+1);
