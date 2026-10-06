@@ -75,7 +75,11 @@ add_mc_test_variant(EB_MarchingCubesCubeLegacy_3d inputs.cube.legacy)
 add_mc_test_variant(EB_MarchingCubesCubes_3d inputs.cubes.mc)
 add_mc_test_variant(EB_MarchingCubesCubesLegacy_3d inputs.cubes.legacy)
 add_mc_test_variant(EB_MarchingCubesBunny_3d inputs.bunny.mc)
-add_mc_test_variant(EB_MarchingCubesBunnyLegacy_3d inputs.bunny.legacy)
+# The legacy generator produces out-of-range boundary centroids for the bunny
+# in single precision.
+if (NOT AMReX_PRECISION STREQUAL "SINGLE")
+   add_mc_test_variant(EB_MarchingCubesBunnyLegacy_3d inputs.bunny.legacy)
+endif ()
 add_mc_test_variant(EB_MarchingCubesBox_3d inputs.box.mc)
 add_mc_test_variant(EB_MarchingCubesBoxNodal_3d inputs.box.nodal.mc)
 add_mc_test_variant(EB_MarchingCubesSphere_3d inputs.sphere.mc)

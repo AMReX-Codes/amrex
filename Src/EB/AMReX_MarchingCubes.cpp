@@ -60,7 +60,9 @@ bool four_crossing_fluid_is_connected (Real const* levelset) noexcept
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 EB2::Type_t face_type (Real area, Real tolerance) noexcept
 {
-    if (area <= tolerance) {
+    // Like the legacy generator, only a closed face is covered so that the
+    // connectivity flags agree with every nonzero aperture.
+    if (area <= 0.0_rt) {
         return EB2::Type::covered;
     } else if (area >= 1.0_rt-tolerance) {
         return EB2::Type::regular;
@@ -274,8 +276,9 @@ bool cut_face_fraction (Real const* levelset, Real const* intersections,
             return false;
         }
         area = fluid_area;
-        centroid_x = fluid_moment_x/fluid_area - 0.5_rt;
-        centroid_y = fluid_moment_y/fluid_area - 0.5_rt;
+        // Clamp roundoff, which is amplified on small faces.
+        centroid_x = amrex::Clamp(fluid_moment_x/fluid_area - 0.5_rt, -0.5_rt, 0.5_rt);
+        centroid_y = amrex::Clamp(fluid_moment_y/fluid_area - 0.5_rt, -0.5_rt, 0.5_rt);
         return true;
     }
 
@@ -300,8 +303,10 @@ bool cut_face_fraction (Real const* levelset, Real const* intersections,
     }
 
     area = 0.5_rt*twice_area;
-    centroid_x = centroid_x_numerator/(3.0_rt*twice_area) - 0.5_rt;
-    centroid_y = centroid_y_numerator/(3.0_rt*twice_area) - 0.5_rt;
+    centroid_x = amrex::Clamp(centroid_x_numerator/(3.0_rt*twice_area) - 0.5_rt,
+                              -0.5_rt, 0.5_rt);
+    centroid_y = amrex::Clamp(centroid_y_numerator/(3.0_rt*twice_area) - 0.5_rt,
+                              -0.5_rt, 0.5_rt);
     return true;
 }
 
@@ -1514,7 +1519,13 @@ void build_cell_fractions (
             first_moment[2] = 0.0_rt;
         }
 
-        if (volume <= tolerance || volume > 1.0_rt+tolerance
+        if (std::abs(volume) <= tolerance) {
+            // Unresolvable sliver; mark_cells_for_cleanup repairs it as a
+            // small cell.
+            vfrac(i,j,k) = 0.0_rt;
+            return;
+        }
+        if (volume < 0.0_rt || volume > 1.0_rt+tolerance
             || eb_area <= tolerance)
         {
             Gpu::Atomic::AddNoRet(errors+1, 1);
@@ -1989,7 +2000,9 @@ void mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
 
         // A negative volume fraction marks a cell whose moments were rejected.
         bad_topology = bad_topology || (is_cut && vfrac(i,j,k) < 0.0_rt);
-        bool const small_cell = is_cut && !bad_topology && vfrac(i,j,k) < small_volfrac;
+        // A zero volume fraction marks a sliver below the moment tolerance.
+        bool const small_cell = is_cut && !bad_topology
+            && (vfrac(i,j,k) == 0.0_rt || vfrac(i,j,k) < small_volfrac);
 
         rejected(i,j,k) = bad_topology ? RejectionReason::invalid_topology
                                          : (small_cell ? RejectionReason::small_volume : 0);
