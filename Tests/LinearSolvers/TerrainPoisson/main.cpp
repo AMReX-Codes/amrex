@@ -42,15 +42,15 @@ int main (int argc, char* argv[])
 
         // Hill height, phase shift (nonzero gives slopes at the domain faces)
         // and vertical stretching (0 for none).
-        Real hill_height = 100.;
-        Real hill_shift = 0.2;
-        Real stretch = 2.0;
+        Real hill_height = Real(100.);
+        Real hill_shift = Real(0.2);
+        Real stretch = Real(2.0);
         pp.query("hill_height", hill_height);
         pp.query("hill_shift", hill_shift);
         pp.query("stretch", stretch);
 
         // Perturbation of the face area factors, as from map factors.
-        Real area_noise = 0.1;
+        Real area_noise = Real(0.1);
         pp.query("area_noise", area_noise);
         int seed = 42;
         pp.query("seed", seed);
