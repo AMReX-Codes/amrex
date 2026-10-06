@@ -1405,7 +1405,7 @@ MLABecLaplacianT<MF>::supportNSolve () const
     if (this->m_overset_mask[0][0]) {
         if (this->m_geom[0].back().Domain().coarsenable(MLLinOp::mg_coarsen_ratio,
                                                         this->mg_domain_min_width)
-            && this->m_grids[0].back().coarsenable(MLLinOp::mg_coarsen_ratio, MLLinOp::mg_box_min_width))
+            && this->m_grids[0].back().coarsenable(MLLinOp::mg_coarsen_ratio, this->mg_box_min_width))
         {
             support = true;
         }

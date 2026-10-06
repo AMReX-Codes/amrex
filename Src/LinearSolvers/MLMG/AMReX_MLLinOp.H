@@ -921,8 +921,9 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-    static constexpr int mg_box_min_width = 2;
+    int mg_box_min_width = 2;
     int mg_domain_min_width = 2;
+    int mg_agg_no_split_direction = -1; // keep agglomerated grids whole in it
 
     LPInfo info;
 
@@ -1376,7 +1377,9 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
     bool coned = false;
     int agg_lev = 0, con_lev = 0;
 
-    AMREX_ALWAYS_ASSERT( ! (info.do_semicoarsening && info.hasHiddenDimension())
+    AMREX_ALWAYS_ASSERT( ! (info.do_semicoarsening && info.hasHiddenDimension()
+                            && (info.semicoarsening_direction == -1 ||
+                                info.semicoarsening_direction == info.hidden_direction))
                          && info.semicoarsening_direction >= -1
                          && info.semicoarsening_direction < AMREX_SPACEDIM );
 
@@ -1484,6 +1487,12 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                                      int mgs_2 = (max_grid_size[2]+blen[2]-1) / blen[2]);
                         max_grid_size[info.semicoarsening_direction]
                             *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
+                    }
+                    if (mg_agg_no_split_direction >= 0 &&
+                        mg_agg_no_split_direction < AMREX_SPACEDIM)
+                    {
+                        int const d = mg_agg_no_split_direction;
+                        max_grid_size[d] = std::max(max_grid_size[d], cell_box.length(d));
                     }
                     m_grids[0].back().maxSize(max_grid_size);
                 }
