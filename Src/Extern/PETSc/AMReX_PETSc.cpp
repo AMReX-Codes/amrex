@@ -11,10 +11,18 @@
 
 #include <cfenv>
 #include <cmath>
+#include <string>
 #include <numeric>
 #include <limits>
 #include <algorithm>
 #include <type_traits>
+
+#define AMREX_PETSC_SAFE_CALL(call) { \
+    PetscErrorCode amrex_i_ierr = (call); \
+    if (amrex_i_ierr != 0) { \
+        amrex::Abort(std::string("PETSc error ") + std::to_string(int(amrex_i_ierr)) \
+                     + " in " #call " at " __FILE__ " line " + std::to_string(__LINE__)); \
+    }}
 
 namespace amrex {
 
@@ -152,19 +160,19 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real /*a
 
     loadVectors(soln, rhs);
     //
-    VecAssemblyBegin(x->a);
-    VecAssemblyEnd(x->a);
+    AMREX_PETSC_SAFE_CALL(VecAssemblyBegin(x->a));
+    AMREX_PETSC_SAFE_CALL(VecAssemblyEnd(x->a));
     //
-    VecAssemblyBegin(b->a);
-    VecAssemblyEnd(b->a);
-    KSPSetTolerances(solver->a, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
-    KSPSolve(solver->a, b->a, x->a);
+    AMREX_PETSC_SAFE_CALL(VecAssemblyBegin(b->a));
+    AMREX_PETSC_SAFE_CALL(VecAssemblyEnd(b->a));
+    AMREX_PETSC_SAFE_CALL(KSPSetTolerances(solver->a, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter));
+    AMREX_PETSC_SAFE_CALL(KSPSolve(solver->a, b->a, x->a));
     if (verbose >= 2)
     {
         PetscInt niters;
         Real res;
-        KSPGetIterationNumber(solver->a, &niters);
-        KSPGetResidualNorm(solver->a, &res);
+        AMREX_PETSC_SAFE_CALL(KSPGetIterationNumber(solver->a, &niters));
+        AMREX_PETSC_SAFE_CALL(KSPGetResidualNorm(solver->a, &res));
         amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << '\n';
     }
 
@@ -397,14 +405,14 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
-    if (A->a) { MatDestroy(&A->a); }
-    MatCreate(comm, &A->a);
-    MatSetType(A->a, MATMPIAIJ);
-    MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
-    MatMPIAIJSetPreallocation(A->a, d_nz, nullptr, o_nz, nullptr );
+    if (A->a) { AMREX_PETSC_SAFE_CALL(MatDestroy(&A->a)); }
+    AMREX_PETSC_SAFE_CALL(MatCreate(comm, &A->a));
+    AMREX_PETSC_SAFE_CALL(MatSetType(A->a, MATMPIAIJ));
+    AMREX_PETSC_SAFE_CALL(MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world));
+    AMREX_PETSC_SAFE_CALL(MatMPIAIJSetPreallocation(A->a, d_nz, nullptr, o_nz, nullptr ));
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
-    MatSetUp(A->a);
-    MatSetOption(A->a, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+    AMREX_PETSC_SAFE_CALL(MatSetUp(A->a));
+    AMREX_PETSC_SAFE_CALL(MatSetOption(A->a, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE));
 
     // A.SetValues
     const auto dx = geom.CellSizeArray();
@@ -564,41 +572,41 @@ PETScABecLap::prepareSolver ()
             PetscInt matid = 0;
             for (PetscInt rit = 0; rit < nrows; ++rit)
             {
-                MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
+                AMREX_PETSC_SAFE_CALL(MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES));
                 matid += ncols[rit];
             }
         }
     }
 
-    MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY);
+    AMREX_PETSC_SAFE_CALL(MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY));
+    AMREX_PETSC_SAFE_CALL(MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY));
     // create solver
-    if (solver->a) { KSPDestroy(&solver->a); }
-    KSPCreate(comm, &solver->a);
-    KSPSetOperators(solver->a, A->a, A->a);
+    if (solver->a) { AMREX_PETSC_SAFE_CALL(KSPDestroy(&solver->a)); }
+    AMREX_PETSC_SAFE_CALL(KSPCreate(comm, &solver->a));
+    AMREX_PETSC_SAFE_CALL(KSPSetOperators(solver->a, A->a, A->a));
 
     // Set up preconditioner
     PC pc;
-    KSPGetPC(solver->a, &pc);
+    AMREX_PETSC_SAFE_CALL(KSPGetPC(solver->a, &pc));
 
     // Smoothed aggregation AMG
-    PCSetType(pc, PCGAMG);
-    PCGAMGSetType(pc, PCGAMGAGG);
-    PCGAMGSetNSmooths(pc,1);
+    AMREX_PETSC_SAFE_CALL(PCSetType(pc, PCGAMG));
+    AMREX_PETSC_SAFE_CALL(PCGAMGSetType(pc, PCGAMGAGG));
+    AMREX_PETSC_SAFE_CALL(PCGAMGSetNSmooths(pc,1));
 //    PCSetType(pc, PCJACOBI);
 
     // LAPACK's ieeeck, called during GAMG setup, raises FP exceptions on purpose.
     auto prev_excepts = amrex::disableFPExcept(FPExcept::all);
-    KSPSetUp(solver->a);
+    AMREX_PETSC_SAFE_CALL(KSPSetUp(solver->a));
     std::feclearexcept(FE_ALL_EXCEPT);
     amrex::setFPExcept(prev_excepts);
 
 // we are not using command line options    KSPSetFromOptions(solver->a);
     // create b & x
-    if (x->a) { VecDestroy(&x->a); }
-    if (b->a) { VecDestroy(&b->a); }
-    VecCreateMPI(comm, ncells_proc, ncells_world, &x->a);
-    VecDuplicate(x->a, &b->a);
+    if (x->a) { AMREX_PETSC_SAFE_CALL(VecDestroy(&x->a)); }
+    if (b->a) { AMREX_PETSC_SAFE_CALL(VecDestroy(&b->a)); }
+    AMREX_PETSC_SAFE_CALL(VecCreateMPI(comm, ncells_proc, ncells_world, &x->a));
+    AMREX_PETSC_SAFE_CALL(VecDuplicate(x->a, &b->a));
 }
 
 void
@@ -684,8 +692,8 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         if (nrows > 0)
         {
             // soln has been set to zero.
-            VecSetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr(), INSERT_VALUES);
-            VecSetValues(b->a, nrows, cell_id_vec[mfi].dataPtr(), rhs_tmp[mfi].dataPtr(), INSERT_VALUES);
+            AMREX_PETSC_SAFE_CALL(VecSetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr(), INSERT_VALUES));
+            AMREX_PETSC_SAFE_CALL(VecSetValues(b->a, nrows, cell_id_vec[mfi].dataPtr(), rhs_tmp[mfi].dataPtr(), INSERT_VALUES));
         }
     }
     Gpu::synchronize();
@@ -707,7 +715,7 @@ PETScABecLap::getSolution (MultiFab& a_soln)
     {
         const PetscInt nrows = ncells_grid[mfi];
         if (nrows > 0) {
-            VecGetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), (*l_soln)[mfi].dataPtr());
+            AMREX_PETSC_SAFE_CALL(VecGetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), (*l_soln)[mfi].dataPtr()));
         } else {
             (*l_soln)[mfi].setVal<RunOn::Device>(0.0);
         }
