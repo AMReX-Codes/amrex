@@ -1087,8 +1087,9 @@ Boxes that span the whole domain in the z-direction are fastest, but boxes
 split in z are also supported.
 
 The operator is not symmetric, so the bottom solver can be BiCGStab or the
-smoother.  By default, :cpp:`MLMG` uses the smoother when multigrid can
-coarsen the grids to a few cells in x and y, and BiCGStab otherwise.
+smoother.  By default, :cpp:`MLMG` with this operator uses the smoother
+when multigrid can coarsen the grids to a few cells in x and y, and
+BiCGStab otherwise.
 Multigrid can coarsen that far when the x and y sizes of the domain have
 no prime factors other than 2, 3 and 5 (e.g., :math:`200 = 2^3 \cdot 5^2`)
 and the boxes can be coarsened at least once in x and y (e.g., their sizes
