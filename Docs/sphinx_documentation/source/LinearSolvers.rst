@@ -1087,8 +1087,12 @@ Boxes that span the whole domain in the z-direction are fastest, but boxes
 split in z are also supported.
 
 The operator is not symmetric, so use BiCGStab (the default) or the
-smoother as the bottom solver.  The problem can be solved with :cpp:`MLMG`,
-as below, or with :cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`).
+smoother as the bottom solver.  The smoother is sufficient when multigrid
+can coarsen the grids to a few cells in x and y, that is, when the x and y
+sizes of the domain and of the boxes are a small number times a large
+power of 2 (e.g., :math:`192 = 3 \cdot 64`).  Otherwise, use BiCGStab.  The
+problem can be solved with :cpp:`MLMG`, as below, or with :cpp:`GMRESMLMG`
+(section :ref:`sec:linearsolver:gmres`).
 
 ::
 
