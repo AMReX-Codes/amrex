@@ -118,8 +118,8 @@ int main (int argc, char* argv[])
             auto const& z = zp.array(mfi);
             ParallelFor(mfi.fabbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                Real x = i*dx[0];
-                Real y = j*dx[1];
+                Real x = Real(i)*dx[0];
+                Real y = Real(j)*dx[1];
                 Real s = Real(k)/nz;
                 Real hx = Real(0.5) - Real(0.5)*std::cos(Real(2.)*Math::pi<Real>()*(x/Lx-hill_shift));
                 Real hy = Real(0.5) - Real(0.5)*std::cos(Real(2.)*Math::pi<Real>()*(y/Ly-hill_shift));
@@ -165,11 +165,11 @@ int main (int argc, char* argv[])
                     auto const& a = area[idim].array(mfi);
                     ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
                     {
-                        Real x = (i+Real(0.5)*(idim!=0))*dx[0]/Lx;
-                        Real y = (j+Real(0.5)*(idim!=1))*dx[1]/Ly;
-                        Real z = (k+Real(0.5)*(idim!=2))/nz;
+                        Real x = (Real(i)+Real(0.5)*Real(idim!=0))*dx[0]/Lx;
+                        Real y = (Real(j)+Real(0.5)*Real(idim!=1))*dx[1]/Ly;
+                        Real z = (Real(k)+Real(0.5)*Real(idim!=2))/nz;
                         a(i,j,k) *= Real(1.0) + area_noise
-                            * std::sin(Real(2.)*Math::pi<Real>()*(x+Real(0.3)*idim))
+                            * std::sin(Real(2.)*Math::pi<Real>()*(x+Real(0.3)*Real(idim)))
                             * std::cos(Real(2.)*Math::pi<Real>()*(Real(2.)*y-Real(0.1)))
                             * std::cos(Real(3.)*z);
                     });
@@ -201,9 +201,9 @@ int main (int argc, char* argv[])
             auto const& p = phi_exact.array(mfi);
             ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                Real x = (i+Real(0.5))*dx[0]/Lx;
-                Real y = (j+Real(0.5))*dx[1]/Ly;
-                Real z = (k+Real(0.5))/nz;
+                Real x = (Real(i)+Real(0.5))*dx[0]/Lx;
+                Real y = (Real(j)+Real(0.5))*dx[1]/Ly;
+                Real z = (Real(k)+Real(0.5))/nz;
                 p(i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x)
                     *      std::cos(Real(2.)*Math::pi<Real>()*y)
                     *      std::cos(Math::pi<Real>()*z) + Real(0.1)*p(i,j,k);
