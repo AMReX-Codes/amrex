@@ -25,6 +25,9 @@ linear operators include
 - :cpp:`MLNodeLaplacian` for nodal variable coefficient Poisson's
   equation :math:`\nabla \cdot (\sigma \nabla \phi) = f`.
 
+- :cpp:`MLTerrainPoisson` for cell-centered Poisson's equation on a
+  terrain-following mesh (section :ref:`sec:linearsolver:terrain`).
+
 The constructors of these linear operator classes are in the form like
 below
 
@@ -1046,6 +1049,68 @@ The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
 :math:`\vec{E}` still has three components, one for each spatial
 direction.
 
+.. _sec:linearsolver:terrain:
+
+Terrain-Following Poisson
+=========================
+
+:cpp:`MLTerrainPoisson` solves the cell-centered Poisson equation on a 3D
+terrain-following mesh, i.e., a mesh that is uniform in computational space
+but whose cell corners are at physical heights :math:`z(x,y,\zeta)`.  The
+operator is
+
+.. math:: L(\phi) = \frac{1}{J} \nabla \cdot (A \nabla \phi),
+
+where :math:`\nabla` is the physical gradient, :math:`A` holds the face
+area factors and :math:`J` is the cell volume factor.  :cpp:`MLMG` solves
+the scaled system :math:`\nabla \cdot (A \nabla \phi) = J f` for the
+right-hand side :math:`f`, so :cpp:`MLMG::apply` and the residuals refer to
+this scaled system and are not divided by :math:`J`.  The data are set with
+
+.. highlight:: c++
+
+::
+
+    // Physical height of the cell corners, with at least one filled ghost node
+    void setZPhys (int amrlev, MultiFab const& z_phys_nd);
+
+    // Face area factors in x, y and z (required)
+    void setAreas (int amrlev, Array<MultiFab const*,AMREX_SPACEDIM> const& area);
+
+    // Cell volume factor J (optional; 1 if not set)
+    void setDetJ (int amrlev, MultiFab const& detJ);
+
+The supported domain boundary conditions are :cpp:`LinOpBCType::Periodic`,
+:cpp:`LinOpBCType::Neumann` and :cpp:`LinOpBCType::Dirichlet`, all
+homogeneous, so the level boundary condition is set with
+:cpp:`setLevelBC(0, nullptr)`.  The flux through a Neumann face is zero.
+Only a single AMR level is supported, and its grids must cover the domain.
+Boxes that span the whole domain in the z-direction are fastest, but boxes
+split in z are also supported.
+
+The operator is not symmetric, so the bottom solver can be BiCGStab or the
+smoother.  By default, :cpp:`MLMG` with this operator uses the smoother
+when multigrid can coarsen the grids to a few cells in x and y, and
+BiCGStab otherwise.
+Multigrid can coarsen that far when the x and y sizes of the domain have
+no prime factors other than 2, 3 and 5 (e.g., :math:`200 = 2^3 \cdot 5^2`)
+and the boxes can be coarsened at least once in x and y (e.g., their sizes
+are even).  The problem can be solved with :cpp:`MLMG`, as below, or with
+:cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`), which always uses
+the smoother as the bottom solver.
+
+::
+
+    MLTerrainPoisson linop({geom}, {grids}, {dmap});
+    linop.setDomainBC(lobc, hibc);
+    linop.setLevelBC(0, nullptr);
+    linop.setZPhys(0, z_phys_nd);
+    linop.setAreas(0, {&ax, &ay, &az});
+    linop.setDetJ(0, detJ);
+
+    MLMG mlmg(linop);
+    mlmg.solve({&phi}, {&rhs}, reltol, abstol);
+
 Open Boundary Poisson Solver
 ============================
 
@@ -1075,6 +1140,8 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                 const Vector<MultiFab const*>& a_rhs,
                  Real a_tol_rel, Real a_tol_abs);
 
+
+.. _sec:linearsolver:gmres:
 
 GMRES
 =====

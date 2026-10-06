@@ -1,0 +1,13 @@
+n_cell = 32 32 32
+max_grid_size_v = 16 16 32
+
+hill_height = 100.
+hill_shift = 0.2
+stretch = 2.0
+area_noise = 0.1
+
+bc_lo = periodic periodic neumann
+bc_hi = periodic periodic dirichlet
+
+solver = both
+verbose = 1

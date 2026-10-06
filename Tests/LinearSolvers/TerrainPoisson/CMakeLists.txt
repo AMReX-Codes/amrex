@@ -1,0 +1,43 @@
+if (NOT (3 IN_LIST AMReX_SPACEDIM))
+    return()
+endif ()
+
+set(_sources main.cpp)
+set(_input_files inputs)
+
+setup_test(3 _sources _input_files)
+
+# More cases on the same executable: boxes split in z, with each line
+# solver, unequal sizes that coarsen by 3 and 5 after boxes become odd,
+# boxes whose first coarsening must be by 3, and a hidden direction.
+set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/3d)
+foreach (_case IN ITEMS zsplit_spike zsplit_column oddsize oddbox hidden)
+    set(_name LinearSolvers_TerrainPoisson_${_case}_3d)
+    if (_case STREQUAL "oddsize")
+        set(_args "n_cell=40 24 32" "max_grid_size_v=20 12 32")
+    elseif (_case STREQUAL "oddbox")
+        set(_args "n_cell=30 30 32" "max_grid_size_v=15 15 32")
+    elseif (_case STREQUAL "hidden")
+        set(_args "n_cell=1 32 32" "max_grid_size_v=1 16 32" hidden_direction=0)
+    else ()
+        string(REPLACE "zsplit_" "" _solver ${_case})
+        set(_args "max_grid_size_v=16 16 8" zsplit_solver=${_solver} bottom_solver=bicgstab)
+    endif ()
+    set(_cmd ${_exe_dir}/Test_LinearSolvers_TerrainPoisson_3d inputs ${_args})
+    if (AMReX_OMP)
+        add_test(NAME ${_name} COMMAND ${_cmd} WORKING_DIRECTORY ${_exe_dir})
+        set_tests_properties(${_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+    elseif (AMReX_MPI)
+        add_test(NAME ${_name} COMMAND mpiexec -n 2 ${_cmd} WORKING_DIRECTORY ${_exe_dir})
+    else ()
+        add_test(NAME ${_name} COMMAND ${_cmd} WORKING_DIRECTORY ${_exe_dir})
+    endif ()
+endforeach ()
+unset(_exe_dir)
+unset(_name)
+unset(_args)
+unset(_solver)
+unset(_cmd)
+
+unset(_sources)
+unset(_input_files)

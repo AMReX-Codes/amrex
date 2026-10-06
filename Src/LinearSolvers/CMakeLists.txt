@@ -66,6 +66,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           MLMG/AMReX_MLMG_2D_K.H
           MLMG/AMReX_MLPoisson_2D_K.H
           MLMG/AMReX_MLALap_2D_K.H
+          MLMG/AMReX_MLTerrainPoisson.H
+          MLMG/AMReX_MLTerrainPoisson.cpp
+          MLMG/AMReX_MLTerrainPoisson_K.H
           )
     endif ()
 
