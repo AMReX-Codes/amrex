@@ -17,6 +17,11 @@ double parser_exe_eval_threaded (const char* p, double const* x)
 #undef AMREX_PARSER_NEXT
 }
 #pragma GCC diagnostic pop
+#else
+double parser_exe_eval_threaded (const char* p, double const* x)
+{
+    return parser_exe_eval(p, x);
+}
 #endif
 
 void

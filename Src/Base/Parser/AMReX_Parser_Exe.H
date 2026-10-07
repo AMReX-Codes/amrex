@@ -362,12 +362,11 @@ double parser_exe_eval (const char* p, double const* x)
 #undef AMREX_PARSER_NEXT
 }
 
-#if AMREX_PARSER_THREADED_DISPATCH
 // Host-only version with threaded dispatch, defined in
 // AMReX_Parser_Exe.cpp.  ParserExecutor uses it only for expressions
-// long enough to amortize the call.
+// long enough to amortize the call.  It is always defined, falling back
+// to the switch, so code built with a different setting still links.
 double parser_exe_eval_threaded (const char* p, double const* x);
-#endif
 
 void parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
                               int& max_stack_size, int& stack_size,
