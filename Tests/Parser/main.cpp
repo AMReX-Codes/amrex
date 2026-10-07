@@ -6,6 +6,7 @@
 #include <map>
 #include <numbers>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 using namespace amrex;
@@ -257,6 +258,21 @@ int test_elliptic_integral_endpoints ()
     nfail += !close(amrex::Math::comp_ellint_2(T(0)), amrex::Math::pi<T>() / 2);
     nfail += !close(amrex::Math::comp_ellint_1(T(0.5)), T(1.6857503548125961));
     nfail += !close(amrex::Math::comp_ellint_2(T(0.5)), T(1.4674622093394272));
+    // 100-digit references at exactly representable points near the endpoints.
+    T near_one;
+    T expected;
+    if constexpr (std::is_same_v<T,float>) {
+        near_one = T(1) - std::ldexp(T(1), -13);
+        expected = T(5.5454854002371954278);
+    } else {
+        near_one = T(1) - std::ldexp(T(1), -27);
+        expected = T(10.397207745269151667);
+    }
+    for (T k : {-near_one, near_one}) {
+        T const value = amrex::Math::comp_ellint_1(k);
+        nfail += !(amrex::Math::isfinite(value) &&
+            std::abs(value - expected) <= T(4) * std::numeric_limits<T>::epsilon() * expected);
+    }
     amrex::Print() << "Elliptic-integral endpoints (" << sizeof(T)
                    << " bytes): " << nfail << " failures\n";
     return nfail;
