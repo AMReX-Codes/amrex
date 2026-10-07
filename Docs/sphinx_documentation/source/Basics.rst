@@ -353,6 +353,11 @@ by default returns the last one. The difference between :cpp:`query` and
 get the value, whereas :cpp:`query` returns an error code without generating a
 runtime error that will abort the run.
 
+The ``*arr`` functions grow the vector if it is too small, but they never
+shrink it. If ``xr`` above held defaults ``{-1.0, 0.0, 1.0}`` and the inputs
+had ``xrange = 2.0 3.0``, ``xr`` would become ``{2.0, 3.0, 1.0}``. Pass an
+empty vector to get exactly the values in the inputs.
+
 Math Expressions
 ----------------
 
