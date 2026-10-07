@@ -25,16 +25,22 @@ namespace amrex {
 /**
  * \brief Store the arguments of ParserExecutor::operator() in an array.
  *
- * The volatile pointer keeps the stores scalar so that the loads in
- * parser_exe_eval can forward from them.
+ * On the host, the volatile pointer keeps the stores scalar so that the
+ * loads in parser_exe_eval can forward from them.
  */
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void parser_store_args (double* l_var, Ts... var) noexcept
 {
-    volatile double* p = l_var;
-    int i = 0;
-    ([&] { p[i++] = static_cast<double>(var); }(), ...);
+    AMREX_IF_ON_DEVICE((
+        int i = 0;
+        ([&] { l_var[i++] = static_cast<double>(var); }(), ...);
+    ))
+    AMREX_IF_ON_HOST((
+        volatile double* p = l_var;
+        int i = 0;
+        ([&] { p[i++] = static_cast<double>(var); }(), ...);
+    ))
 }
 
 /**
