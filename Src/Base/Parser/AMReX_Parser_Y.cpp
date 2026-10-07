@@ -288,25 +288,31 @@ struct amrex_parser*
 amrex_parser_new ()
 {
     auto *my_parser = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
+    my_parser->p_root = nullptr;
 
-    my_parser->sz_mempool = parser_ast_size(parser_workspace.root);
-    my_parser->p_root = std::malloc(my_parser->sz_mempool);
-    my_parser->p_free = my_parser->p_root;
+    try {
+        my_parser->sz_mempool = parser_ast_size(parser_workspace.root);
+        my_parser->p_root = std::malloc(my_parser->sz_mempool);
+        my_parser->p_free = my_parser->p_root;
 
-    my_parser->ast = parser_ast_dup(my_parser, parser_workspace.root);
+        my_parser->ast = parser_ast_dup(my_parser, parser_workspace.root);
 
-    amrex_parser_delete_ptrs();
+        amrex_parser_delete_ptrs();
 
-    if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
-        amrex::Abort("amrex_parser_new: error in memory size");
+        if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
+            amrex::Abort("amrex_parser_new: error in memory size");
+        }
+
+        std::map<std::string,double> local_consts;
+        parser_ast_optimize(my_parser->ast, local_consts);
+        if (my_parser->ast == nullptr) {
+            amrex::Abort("amrex::Parser: expression optimizes to nothing");
+        }
+        parser_ast_sort(my_parser->ast);
+    } catch (...) { // amrex::Abort throws with amrex.throw_exception=1
+        amrex_parser_delete(my_parser);
+        throw;
     }
-
-    std::map<std::string,double> local_consts;
-    parser_ast_optimize(my_parser->ast, local_consts);
-    if (my_parser->ast == nullptr) {
-        amrex::Abort("amrex::Parser: expression optimizes to nothing");
-    }
-    parser_ast_sort(my_parser->ast);
 
     return my_parser;
 }

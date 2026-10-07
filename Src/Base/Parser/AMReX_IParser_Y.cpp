@@ -198,20 +198,26 @@ struct amrex_iparser*
 amrex_iparser_new ()
 {
     auto *my_iparser = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
+    my_iparser->p_root = nullptr;
 
-    my_iparser->sz_mempool = iparser_ast_size(iparser_workspace.root);
-    my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
-    my_iparser->p_free = my_iparser->p_root;
+    try {
+        my_iparser->sz_mempool = iparser_ast_size(iparser_workspace.root);
+        my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
+        my_iparser->p_free = my_iparser->p_root;
 
-    my_iparser->ast = iparser_ast_dup(my_iparser, iparser_workspace.root);
+        my_iparser->ast = iparser_ast_dup(my_iparser, iparser_workspace.root);
 
-    amrex_iparser_delete_ptrs();
+        amrex_iparser_delete_ptrs();
 
-    if ((char*)my_iparser->p_root + my_iparser->sz_mempool != (char*)my_iparser->p_free) {
-        amrex::Abort("amrex_iparser_new: error in memory size");
+        if ((char*)my_iparser->p_root + my_iparser->sz_mempool != (char*)my_iparser->p_free) {
+            amrex::Abort("amrex_iparser_new: error in memory size");
+        }
+
+        iparser_ast_optimize(my_iparser->ast);
+    } catch (...) { // amrex::Abort throws with amrex.throw_exception=1
+        amrex_iparser_delete(my_iparser);
+        throw;
     }
-
-    iparser_ast_optimize(my_iparser->ast);
 
     return my_iparser;
 }
