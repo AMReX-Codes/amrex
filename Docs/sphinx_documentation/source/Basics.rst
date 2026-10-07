@@ -907,6 +907,11 @@ elliptic integrals of the first and second kind).  In SYCL builds without the
 Intel math extension, ``jn`` and ``yn`` are host-only, so :cpp:`compile` aborts
 for expressions using them; use :cpp:`compileHost` instead.
 
+The elliptic-integral argument ``k`` is the modulus, rather than the parameter
+``m = k*k``. At ``k = -1`` and ``k = 1``, ``comp_ellint_2(k)`` returns ``1``.
+For direct C++ calls, :cpp:`amrex::Math::comp_ellint_1` returns positive infinity
+at these singular endpoints, and :cpp:`amrex::Math::comp_ellint_2` returns ``1``.
+
 **Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
 ``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
 

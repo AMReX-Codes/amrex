@@ -466,6 +466,9 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_1 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return std::numeric_limits<T>::infinity();
+    }
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
     T tol = std::numeric_limits<T>::epsilon();
@@ -491,6 +494,9 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_2 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return T(1);
+    }
     // Computing E based on DLMF
     // https://dlmf.nist.gov/19.8
     T Kcomp = amrex::Math::comp_ellint_1<T>(k);
