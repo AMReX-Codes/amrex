@@ -10,6 +10,84 @@
 
 namespace amrex
 {
+/// \cond DOXYGEN_IGNORE
+namespace detail
+{
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    /**
+     * \brief Equivalent to Gpu::Atomic::Add(&counts[bin], 1) on each active lane, but
+     * each run of adjacent active lanes with the same bin shares a single atomic, issued
+     * by the first lane of the run. The lanes of a run get consecutive return values in
+     * lane order.
+     *
+     * When the items are (partially) sorted by bin, as is common for particles, this
+     * greatly reduces the contention on the counters. The cost is a fixed number of warp
+     * operations, independent of the distribution of the bins.
+     *
+     * Must be called by all lanes of the warp.
+     */
+    template <typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T warpRunAggregatedIncrement (T* counts, T bin, bool active) noexcept
+    {
+        constexpr int warp_size = Gpu::Device::warp_size;
+#if defined(AMREX_USE_HIP)
+        using mask_t = unsigned long long;
+        const int lane = static_cast<int>(__lane_id());
+        const mask_t active_mask = __ballot(active);
+        const T prev_bin = __shfl_up(bin, 1);
+#else
+        using mask_t = unsigned int;
+        constexpr mask_t full_mask = 0xffffffffu;
+        const int lane = static_cast<int>(threadIdx.x) % warp_size;
+        const mask_t active_mask = __ballot_sync(full_mask, active);
+        const T prev_bin = __shfl_up_sync(full_mask, bin, 1);
+#endif
+        const bool prev_active = (lane > 0) && ((active_mask >> (lane-1)) & 1);
+        const bool head = active && (!prev_active || bin != prev_bin);
+#if defined(AMREX_USE_HIP)
+        const mask_t heads = __ballot(head);
+#else
+        const mask_t heads = __ballot_sync(full_mask, head);
+#endif
+        // lanes <= this lane
+        const mask_t lanes_le = (lane == warp_size-1) ? ~mask_t(0)
+                                                      : (mask_t(1) << (lane+1)) - 1;
+
+        // The first lane of this lane's run, and (for heads) the length of the run,
+        // which ends at the next head or inactive lane.
+        int run_start = lane;
+        T base = 0;
+        if (active) {
+            const mask_t heads_le = heads & lanes_le;
+#if defined(AMREX_USE_HIP)
+            run_start = 63 - __clzll(static_cast<long long>(heads_le));
+#else
+            run_start = 31 - __clz(static_cast<int>(heads_le));
+#endif
+        }
+        if (head) {
+            const mask_t ends = (heads | ~active_mask) & ~lanes_le;
+#if defined(AMREX_USE_HIP)
+            const int run_end = (ends != 0) ? __ffsll(static_cast<long long>(ends)) - 1
+                                            : warp_size;
+#else
+            const int run_end = (ends != 0) ? __ffs(static_cast<int>(ends)) - 1
+                                            : warp_size;
+#endif
+            base = Gpu::Atomic::Add(&counts[bin], static_cast<T>(run_end - lane));
+        }
+#if defined(AMREX_USE_HIP)
+        base = __shfl(base, run_start);
+#else
+        base = __shfl_sync(full_mask, base, run_start);
+#endif
+        return base + static_cast<T>(lane - run_start);
+    }
+#endif
+}
+/// \endcond
+
 namespace BinPolicy
 {
     struct GPUBinPolicy {};
@@ -242,12 +320,37 @@ public:
         index_type* pbins   = m_bins.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
         index_type* plocal_offsets  = m_local_offsets.dataPtr();
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // Items are often (partially) sorted by bin, so adjacent threads tend to increment
+        // the same counter. Aggregate those increments within each warp to reduce contention.
+        constexpr int block_size = AMREX_GPU_MAX_THREADS;
+        const auto nblocks = static_cast<int>((Long(nitems) + block_size - 1) / block_size);
+        if (nblocks > 0) {
+            amrex::launch<block_size>(nblocks, Gpu::gpuStream(),
+            [=] AMREX_GPU_DEVICE () noexcept
+            {
+                const Long li = Long(blockIdx.x) * block_size + threadIdx.x;
+                const bool active = li < Long(nitems);
+                const auto i = static_cast<index_type>(li);
+                index_type bin = 0;
+                if (active) {
+                    bin = static_cast<index_type>(call_f(f,v,i));
+                    pbins[i] = bin;
+                }
+                index_type off = detail::warpRunAggregatedIncrement(pcount, bin, active);
+                if (active) {
+                    plocal_offsets[i] = off;
+                }
+            });
+        }
+#else
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             pbins[i] = call_f(f,v,i);
             index_type off = Gpu::Atomic::Add(&pcount[pbins[i]], index_type{ 1 });
             plocal_offsets[i] = off;
         });
+#endif
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
 
