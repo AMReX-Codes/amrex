@@ -286,6 +286,44 @@ int main (int argc, char* argv[])
                         {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 100,
                         1.e-12, 1.e-15);
 
+        // Local variables read right after assignment, including by fused
+        // instructions, and a local assigned from an if().
+        nerror += test3("r=x*x+y*y+z*z; r=sqrt(r); r",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x*x+y*y+z*z; r = std::sqrt(r); return r;
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("r=x+y; r*r+sin(r)-r^3+z*r+(r<0.5)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x+y;
+                            return r*r+std::sin(r)-r*r*r+z*r+((r<0.5)?1.0:0.0);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("r=x*2; s=if(x>y, 3, 4); t=z*3; (r>=1)*(r+s+t*s)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x*2, s = (x>y) ? 3.0 : 4.0, t = z*3;
+                            return ((r>=1) ? 1.0 : 0.0)*(r+s+t*s);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("x^3+sin(y)-sqrt(abs(z))+x^0.5+pow(y,z)+max(x,2)+atan2(3,y)+(x-sin(x))+(sin(x)-x)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            return x*x*x+std::sin(y)-std::sqrt(std::abs(z))+std::sqrt(x)
+                                +std::pow(y,z)+std::max(x,2.0)+std::atan2(3.0,y)
+                                +(x-std::sin(x))+(std::sin(x)-x);
+                        },
+                        {0.1, 0.1, -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
         nerror += test3("( ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))<=r_star) * ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))>=(r_star-dR)) )*dens",
                         {{"xc", 0.1}, {"yc", -1.0}, {"zc", 0.2}, {"r_star", 0.73}, {"dR", 0.57}, {"dens", 12.}},
                         {"x","y","z"},

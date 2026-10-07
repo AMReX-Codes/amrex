@@ -8,7 +8,6 @@
  */
 
 #include <AMReX_Parser_Y.H>
-#include <AMReX_Stack.H>
 #include <AMReX_Vector.H>
 
 #include <limits>
@@ -18,8 +17,29 @@
 #define AMREX_PARSER_STACK_SIZE 16
 #endif
 
+// In host-only builds with GCC or Clang, parser_exe_eval uses threaded
+// dispatch (computed goto), which is faster than a switch and makes the
+// speed less dependent on code layout.  Device compilers and MSVC use the
+// switch.  Define AMREX_PARSER_THREADED_DISPATCH=0 to use the switch
+// everywhere.
+#ifndef AMREX_PARSER_THREADED_DISPATCH
+#if !defined(AMREX_USE_GPU) && (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
+#define AMREX_PARSER_THREADED_DISPATCH 1
+#else
+#define AMREX_PARSER_THREADED_DISPATCH 0
+#endif
+#endif
+
+// Threaded dispatch is used when the bytecode is longer than this (bytes).
+#ifndef AMREX_PARSER_THREADED_MIN_SIZE
+#define AMREX_PARSER_THREADED_MIN_SIZE 48
+#endif
+
 #define AMREX_PARSER_LOCAL_IDX0 1000
-#define AMREX_PARSER_GET_DATA(i) ((i)<1000) ? x[i] : pstack[(i)-1000]
+// Local variable k is stack entry k, which lives in pdata[k+1] once it
+// has been spilled from the cached top (see parser_exe_eval).
+#define AMREX_PARSER_GET_DATA(i) (((i) < AMREX_PARSER_LOCAL_IDX0) ? x[i] : \
+    pdata[(i)-(AMREX_PARSER_LOCAL_IDX0-1)])
 
 namespace amrex {
 
@@ -27,41 +47,20 @@ namespace amrex {
 // P: pointer offset
 // V: value (i.e., double literal)
 
+// Opcodes.  The threaded dispatch table in AMReX_Parser_Exe_Body.H is
+// generated from this list, so the two stay in sync.
+#define AMREX_PARSER_EXE_TYPES(X) \
+    X(NULL) X(NUMBER) X(SYMBOL) X(ADD) X(SUB_F) X(SUB_B) X(MUL) \
+    X(DIV_F) X(DIV_B) X(F1) X(F2_F) X(F2_B) X(ADD_VP) X(SUB_VP) \
+    X(MUL_VP) X(DIV_VP) X(ADD_PP) X(SUB_PP) X(MUL_PP) X(DIV_PP) \
+    X(ADD_VN) X(SUB_VN) X(MUL_VN) X(DIV_VN) X(ADD_PN) X(SUB_PN) \
+    X(MUL_PN) X(DIV_PN) X(SQUARE) X(POWI) X(FMA_VPV) X(IF) X(JUMP) \
+    X(USER_FN) X(F1_P) X(SQUARE_P) X(POWI_P) X(F2_PP) X(F2_PV) X(F2_VP)
+
 enum parser_exe_t {
-    PARSER_EXE_NULL = 0,
-    PARSER_EXE_NUMBER,
-    PARSER_EXE_SYMBOL,
-    PARSER_EXE_ADD,
-    PARSER_EXE_SUB_F,
-    PARSER_EXE_SUB_B,
-    PARSER_EXE_MUL,
-    PARSER_EXE_DIV_F,
-    PARSER_EXE_DIV_B,
-    PARSER_EXE_F1,
-    PARSER_EXE_F2_F,
-    PARSER_EXE_F2_B,
-    PARSER_EXE_ADD_VP,
-    PARSER_EXE_SUB_VP,
-    PARSER_EXE_MUL_VP,
-    PARSER_EXE_DIV_VP,
-    PARSER_EXE_ADD_PP,
-    PARSER_EXE_SUB_PP,
-    PARSER_EXE_MUL_PP,
-    PARSER_EXE_DIV_PP,
-    PARSER_EXE_ADD_VN,
-    PARSER_EXE_SUB_VN,
-    PARSER_EXE_MUL_VN,
-    PARSER_EXE_DIV_VN,
-    PARSER_EXE_ADD_PN,
-    PARSER_EXE_SUB_PN,
-    PARSER_EXE_MUL_PN,
-    PARSER_EXE_DIV_PN,
-    PARSER_EXE_SQUARE,
-    PARSER_EXE_POWI,
-    PARSER_EXE_FMA_VPV,
-    PARSER_EXE_IF,
-    PARSER_EXE_JUMP,
-    PARSER_EXE_USER_FN
+#define AMREX_PARSER_EXE_ENUM(name) PARSER_EXE_##name,
+    AMREX_PARSER_EXE_TYPES(AMREX_PARSER_EXE_ENUM)
+#undef AMREX_PARSER_EXE_ENUM
 };
 
 struct alignas(8) ParserExeNull {
@@ -193,7 +192,7 @@ struct alignas(8) ParserExeADD_PN {
 struct alignas(8) ParserExeSUB_PN {
     enum parser_exe_t type = PARSER_EXE_SUB_PN;
     int i;
-    double sign;
+    bool reverse;
 };
 
 struct alignas(8) ParserExeMUL_PN {
@@ -240,350 +239,135 @@ struct alignas(8) ParserExeUserFn {
     void* fd;
 };
 
+// Fused "push f(leaf)" instructions. P: variable, V: literal.
+
+struct alignas(8) ParserExeF1_P {
+    enum parser_exe_t type = PARSER_EXE_F1_P;
+    parser_f1_t ftype;
+    int i;
+};
+
+struct alignas(8) ParserExeSquare_P {
+    enum parser_exe_t type = PARSER_EXE_SQUARE_P;
+    int i;
+};
+
+struct alignas(8) ParserExePOWI_P {
+    enum parser_exe_t type = PARSER_EXE_POWI_P;
+    int i;
+    int n;
+};
+
+struct alignas(8) ParserExeF2_PP {
+    enum parser_exe_t type = PARSER_EXE_F2_PP;
+    parser_f2_t ftype;
+    int i1;
+    int i2;
+};
+
+struct alignas(8) ParserExeF2_PV {
+    enum parser_exe_t type = PARSER_EXE_F2_PV;
+    parser_f2_t ftype;
+    int i;
+    double v;
+};
+
+struct alignas(8) ParserExeF2_VP {
+    enum parser_exe_t type = PARSER_EXE_F2_VP;
+    parser_f2_t ftype;
+    int i;
+    double v;
+};
+
 namespace parser_detail
 {
-    template <typename T, int N>
+    //! Call a user function.  \p a holds the first argc-1 arguments and
+    //! \p top the last one.
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-    void call_user_fn (ParserExeUserFn* p, Stack<T,N>& pstack)
+    T call_user_fn (ParserExeUserFn const* p, T const* a, T top)
     {
+#if defined(AMREX_USE_SYCL)
+        amrex::ignore_unused(a);
+#endif
         short argc = p->argc;
         if (argc == 1) {
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn1(p->fh)(pstack.top()); ))
+            AMREX_IF_ON_HOST  (( top = ParserUserFn1(p->fh)(top); ))
 #if !defined(AMREX_USE_SYCL)
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn1(p->fd)(pstack.top()); ))
+            AMREX_IF_ON_DEVICE(( top = ParserUserFn1(p->fd)(top); ))
 #endif
         } else if (argc == 2) {
-            T a1 = pstack.top(); // NOLINT
-            pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn2(p->fh)(pstack.top(),a1); ))
-#if defined(AMREX_USE_SYCL)
-            amrex::ignore_unused(a1);
-#else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn2(p->fd)(pstack.top(),a1); ))
+            AMREX_IF_ON_HOST  (( top = ParserUserFn2(p->fh)(a[0],top); ))
+#if !defined(AMREX_USE_SYCL)
+            AMREX_IF_ON_DEVICE(( top = ParserUserFn2(p->fd)(a[0],top); ))
 #endif
         } else if (argc == 3) {
-            T a2 = pstack.top(); // NOLINT
-            pstack.pop();
-            T a1 = pstack.top(); // NOLINT
-            pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn3(p->fh)(pstack.top(),a1,a2); ))
-#if defined(AMREX_USE_SYCL)
-            amrex::ignore_unused(a1,a2);
-#else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn3(p->fd)(pstack.top(),a1,a2); ))
+            AMREX_IF_ON_HOST  (( top = ParserUserFn3(p->fh)(a[0],a[1],top); ))
+#if !defined(AMREX_USE_SYCL)
+            AMREX_IF_ON_DEVICE(( top = ParserUserFn3(p->fd)(a[0],a[1],top); ))
 #endif
         } else if (argc == 4) {
-            T a3 = pstack.top(); // NOLINT
-            pstack.pop();
-            T a2 = pstack.top(); // NOLINT
-            pstack.pop();
-            T a1 = pstack.top(); // NOLINT
-            pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn4(p->fh)(pstack.top(),a1,a2,a3); ))
-#if defined(AMREX_USE_SYCL)
-            amrex::ignore_unused(a1,a2,a3);
-#else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn4(p->fd)(pstack.top(),a1,a2,a3); ))
+            AMREX_IF_ON_HOST  (( top = ParserUserFn4(p->fh)(a[0],a[1],a[2],top); ))
+#if !defined(AMREX_USE_SYCL)
+            AMREX_IF_ON_DEVICE(( top = ParserUserFn4(p->fd)(a[0],a[1],a[2],top); ))
 #endif
         }
+        return top;
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double parser_math_powi (double d, int n)
+{
+    if (n == 0) { return 1.0; }
+    if (n < 0) {
+        d = 1.0/d;
+        n = -n;
+    }
+    // Straight-line code for small exponents, with the same order of
+    // multiplications as the loop below.
+    switch (n) {
+    case 1: return d;
+    case 2: return d*d;
+    case 3: return (d*d)*d;
+    case 4: d *= d; return d*d;
+    case 5: { double y = d; d *= d; d *= d; return d*y; }
+    case 6: { d *= d; double y = d; d *= d; return d*y; }
+    case 7: { double y = d; d *= d; y *= d; d *= d; return d*y; }
+    case 8: d *= d; d *= d; return d*d;
+    default: break;
+    }
+    double y = 1.0;
+    while (n > 1) {
+        if (n % 2 == 0) {
+            d *= d;
+            n = n/2;
+        } else {
+            y *= d;
+            d *= d;
+            n = (n-1)/2;
+        }
+    }
+    return d * y;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double parser_exe_eval (const char* p, double const* x)
 {
     if (p == nullptr) { return std::numeric_limits<double>::max(); }
-
-    Stack<double, AMREX_PARSER_STACK_SIZE> pstack;
-    while (*((parser_exe_t*)p) != PARSER_EXE_NULL) { // NOLINT
-        switch (*((parser_exe_t*)p))
-        {
-        case PARSER_EXE_NUMBER:
-        {
-            pstack.push(((ParserExeNumber*)p)->v);
-            p   += sizeof(ParserExeNumber);
-            break;
-        }
-        case PARSER_EXE_SYMBOL:
-        {
-            int i = ((ParserExeSymbol*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(d);
-            p     += sizeof(ParserExeSymbol);
-            break;
-        }
-        case PARSER_EXE_ADD:
-        {
-            double b = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() += b; // NOLINT
-            p += sizeof(ParserExeADD);
-            break;
-        }
-        case PARSER_EXE_SUB_F:
-        {
-            double b = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() -= b; // NOLINT
-            p += sizeof(ParserExeSUB_F);
-            break;
-        }
-        case PARSER_EXE_SUB_B:
-        {
-            double b = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() = b - pstack.top(); // NOLINT
-            p += sizeof(ParserExeSUB_B);
-            break;
-        }
-        case PARSER_EXE_MUL:
-        {
-            double b = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() *= b; // NOLINT
-            p += sizeof(ParserExeMUL);
-            break;
-        }
-        case PARSER_EXE_DIV_F:
-        {
-            double v = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() /= v; // NOLINT
-            p += sizeof(ParserExeDIV_F);
-            break;
-        }
-        case PARSER_EXE_DIV_B:
-        {
-            double v = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() = v / pstack.top(); // NOLINT
-            p += sizeof(ParserExeDIV_B);
-            break;
-        }
-        case PARSER_EXE_F1:
-        {
-            pstack.top() = parser_call_f1(((ParserExeF1*)p)->ftype, pstack.top()); // NOLINT
-            p += sizeof(ParserExeF1);
-            break;
-        }
-        case PARSER_EXE_F2_F:
-        {
-            double v = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() = parser_call_f2(((ParserExeF2_F*)p)->ftype, pstack.top(), v); // NOLINT
-            p += sizeof(ParserExeF2_F);
-            break;
-        }
-        case PARSER_EXE_F2_B:
-        {
-            double v = pstack.top(); // NOLINT
-            pstack.pop();
-            pstack.top() = parser_call_f2(((ParserExeF2_B*)p)->ftype, v, pstack.top()); // NOLINT
-            p += sizeof(ParserExeF2_B);
-            break;
-        }
-        case PARSER_EXE_ADD_VP:
-        {
-            int i = ((ParserExeADD_VP*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(((ParserExeADD_VP*)p)->v + d);
-            p     += sizeof(ParserExeADD_VP);
-            break;
-        }
-        case PARSER_EXE_SUB_VP:
-        {
-            int i = ((ParserExeSUB_VP*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(((ParserExeSUB_VP*)p)->v - d);
-            p     += sizeof(ParserExeSUB_VP);
-            break;
-        }
-        case PARSER_EXE_MUL_VP:
-        {
-            int i = ((ParserExeMUL_VP*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(((ParserExeMUL_VP*)p)->v * d);
-            p     += sizeof(ParserExeMUL_VP);
-            break;
-        }
-        case PARSER_EXE_DIV_VP:
-        {
-            int i = ((ParserExeDIV_VP*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(((ParserExeDIV_VP*)p)->v / d);
-            p     += sizeof(ParserExeDIV_VP);
-            break;
-        }
-        case PARSER_EXE_ADD_PP:
-        {
-            int i = ((ParserExeADD_PP*)p)->i1;
-            double d1 = AMREX_PARSER_GET_DATA(i);
-            i     = ((ParserExeADD_PP*)p)->i2;
-            double d2 = AMREX_PARSER_GET_DATA(i);
-            pstack.push(d1+d2);
-            p     += sizeof(ParserExeADD_PP);
-            break;
-        }
-        case PARSER_EXE_SUB_PP:
-        {
-            int i = ((ParserExeSUB_PP*)p)->i1;
-            double d1 = AMREX_PARSER_GET_DATA(i);
-            i     = ((ParserExeSUB_PP*)p)->i2;
-            double d2 = AMREX_PARSER_GET_DATA(i);
-            pstack.push(d1-d2);
-            p     += sizeof(ParserExeSUB_PP);
-            break;
-        }
-        case PARSER_EXE_MUL_PP:
-        {
-            int i = ((ParserExeMUL_PP*)p)->i1;
-            double d1 = AMREX_PARSER_GET_DATA(i);
-            i     = ((ParserExeMUL_PP*)p)->i2;
-            double d2 = AMREX_PARSER_GET_DATA(i);
-            pstack.push(d1*d2);
-            p     += sizeof(ParserExeMUL_PP);
-            break;
-        }
-        case PARSER_EXE_DIV_PP:
-        {
-            int i = ((ParserExeDIV_PP*)p)->i1;
-            double d1 = AMREX_PARSER_GET_DATA(i);
-            i     = ((ParserExeDIV_PP*)p)->i2;
-            double d2 = AMREX_PARSER_GET_DATA(i);
-            pstack.push(d1/d2);
-            p      += sizeof(ParserExeDIV_PP);
-            break;
-        }
-        case PARSER_EXE_ADD_VN:
-        {
-            pstack.top() += ((ParserExeADD_VN*)p)->v; // NOLINT
-            p       += sizeof(ParserExeADD_VN);
-            break;
-        }
-        case PARSER_EXE_SUB_VN:
-        {
-            pstack.top() = ((ParserExeSUB_VN*)p)->v - pstack.top(); // NOLINT
-            p      += sizeof(ParserExeSUB_VN);
-            break;
-        }
-        case PARSER_EXE_MUL_VN:
-        {
-            pstack.top() *= ((ParserExeMUL_VN*)p)->v; // NOLINT
-            p       += sizeof(ParserExeMUL_VN);
-            break;
-        }
-        case PARSER_EXE_DIV_VN:
-        {
-            pstack.top() = ((ParserExeDIV_VN*)p)->v / pstack.top(); // NOLINT
-            p      += sizeof(ParserExeDIV_VN);
-            break;
-        }
-        case PARSER_EXE_ADD_PN:
-        {
-            int i = ((ParserExeADD_PN*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() += d; // NOLINT
-            p         += sizeof(ParserExeADD_PN);
-            break;
-        }
-        case PARSER_EXE_SUB_PN:
-        {
-            int i = ((ParserExeSUB_PN*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() = (d - pstack.top()) * (((ParserExeSUB_PN*)p)->sign); // NOLINT
-            p         += sizeof(ParserExeSUB_PN);
-            break;
-        }
-        case PARSER_EXE_MUL_PN:
-        {
-            int i = ((ParserExeMUL_PN*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() *= d; // NOLINT
-            p         += sizeof(ParserExeMUL_PN);
-            break;
-        }
-        case PARSER_EXE_DIV_PN:
-        {
-            int i = ((ParserExeDIV_PN*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            if (((ParserExeDIV_PN*)p)->reverse) {
-                pstack.top() /= d; // NOLINT
-            } else {
-                pstack.top() = d / pstack.top(); // NOLINT
-            }
-            p            += sizeof(ParserExeDIV_PN);
-            break;
-        }
-        case PARSER_EXE_SQUARE:
-        {
-            double& d = pstack.top();
-            d *= d;
-            p += sizeof(ParserExeSquare);
-            break;
-        }
-        case PARSER_EXE_POWI:
-        {
-            double& d = pstack.top();
-            int n = ((ParserExePOWI*)p)->i;
-            if (n != 0) {
-                if (n < 0) {
-                    d = 1.0/d;
-                    n = -n;
-                }
-                double y = 1.0;
-                while (n > 1) {
-                    if (n % 2 == 0) {
-                        d *= d;
-                        n = n/2;
-                    } else {
-                        y *= d;
-                        d *= d;
-                        n = (n-1)/2;
-                    }
-                }
-                d *= y;
-            } else {
-                d = 1.0;
-            }
-            p += sizeof(ParserExePOWI);
-            break;
-        }
-        case PARSER_EXE_FMA_VPV:
-        {
-            int i = ((ParserExeFMA_VPV*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(((ParserExeFMA_VPV*)p)->a * d + ((ParserExeFMA_VPV*)p)->b);
-            p += sizeof(ParserExeFMA_VPV);
-            break;
-        }
-        case PARSER_EXE_IF:
-        {
-            double cond = pstack.top(); // NOLINT
-            pstack.pop();
-            if (cond == 0.0) { // false branch
-                p += ((ParserExeIF*)p)->offset;
-            }
-            p += sizeof(ParserExeIF);
-            break;
-        }
-        case PARSER_EXE_JUMP:
-        {
-            int offset = ((ParserExeJUMP*)p)->offset;
-            p += sizeof(ParserExeJUMP) + offset;
-            break;
-        }
-        case PARSER_EXE_USER_FN:
-        {
-            parser_detail::call_user_fn((ParserExeUserFn*)p, pstack);
-            p += sizeof(ParserExeUserFn);
-            break;
-        }
-        default:
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
-        }
-    }
-    return pstack.top(); // NOLINT
+#define AMREX_PARSER_THREADED_BODY 0
+#include "AMReX_Parser_Exe_Body.H"
+#undef AMREX_PARSER_THREADED_BODY
+#undef AMREX_PARSER_CASE
+#undef AMREX_PARSER_NEXT
 }
+
+#if AMREX_PARSER_THREADED_DISPATCH
+// Host-only version with threaded dispatch, defined in
+// AMReX_Parser_Exe.cpp.  ParserExecutor uses it only for expressions
+// long enough to amortize the call.
+double parser_exe_eval_threaded (const char* p, double const* x);
+#endif
 
 void parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
                               int& max_stack_size, int& stack_size,
