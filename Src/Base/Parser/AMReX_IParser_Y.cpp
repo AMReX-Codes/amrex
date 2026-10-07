@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 void
@@ -34,6 +35,21 @@ namespace {
 void
 iparser_defexpr (struct iparser_node* body)
 {
+    // Statements are a left-nested list. All but the last must be assignments.
+    bool last = true;
+    for (auto* node = body; node != nullptr; last = false) {
+        struct iparser_node* stmt = node;
+        node = nullptr;
+        if (stmt->type == IPARSER_LIST) {
+            node = stmt->l;
+            stmt = stmt->r;
+        }
+        if (last && stmt->type == IPARSER_ASSIGN) {
+            throw std::runtime_error("expression has no value, last statement is an assignment");
+        } else if (!last && stmt->type != IPARSER_ASSIGN) {
+            throw std::runtime_error("statement other than the last is not an assignment");
+        }
+    }
     iparser_workspace.root = body;
 }
 

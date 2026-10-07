@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdarg>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 void
@@ -36,6 +37,21 @@ namespace {
 void
 parser_defexpr (struct parser_node* body)
 {
+    // Statements are a left-nested list. All but the last must be assignments.
+    bool last = true;
+    for (auto* node = body; node != nullptr; last = false) {
+        struct parser_node* stmt = node;
+        node = nullptr;
+        if (stmt->type == PARSER_LIST) {
+            node = stmt->l;
+            stmt = stmt->r;
+        }
+        if (last && stmt->type == PARSER_ASSIGN) {
+            throw std::runtime_error("expression has no value, last statement is an assignment");
+        } else if (!last && stmt->type != PARSER_ASSIGN) {
+            throw std::runtime_error("statement other than the last is not an assignment");
+        }
+    }
     parser_workspace.root = body;
 }
 
