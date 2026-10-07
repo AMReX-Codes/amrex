@@ -314,14 +314,30 @@ int main (int argc, char* argv[])
                         {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
                         1.e-12, 1.e-15);
 
-        nerror += test3("x^3+sin(y)-sqrt(abs(z))+x^0.5+pow(y,z)+max(x,2)+atan2(3,y)+(x-sin(x))+(sin(x)-x)",
+        nerror += test3("x^3+sin(y)-sqrt(abs(z))+x^0.5+pow(y,z)+max(x,2)+atan2(3,y)",
                         {}, {"x","y","z"},
                         [=] (double x, double y, double z) -> double {
                             return x*x*x+std::sin(y)-std::sqrt(std::abs(z))+std::sqrt(x)
-                                +std::pow(y,z)+std::max(x,2.0)+std::atan2(3.0,y)
-                                +(x-std::sin(x))+(std::sin(x)-x);
+                                +std::pow(y,z)+std::max(x,2.0)+std::atan2(3.0,y);
                         },
                         {0.1, 0.1, -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        // Separate tests, since (x-sin(x))+(sin(x)-x) folds to 0.
+        nerror += test3("x-sin(x)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double, double) -> double {
+                            return x-std::sin(x);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("sin(x)-x",
+                        {}, {"x","y","z"},
+                        [=] (double x, double, double) -> double {
+                            return std::sin(x)-x;
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
                         1.e-12, 1.e-15);
 
         nerror += test3("( ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))<=r_star) * ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))>=(r_star-dR)) )*dens",
