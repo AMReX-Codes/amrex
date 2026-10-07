@@ -983,7 +983,8 @@ Local automatic variables can be defined in the expression. For example,
    auto f = parser.compile<2>();  // 2 because there are two variables.
 
 An assignment to a local variable must be terminated with ``;``. The final
-expression in the string (without a trailing ``;``) is the return value.
+expression in the string is the return value, and a trailing ``;`` after it
+is optional.
 One should avoid name conflicts between local variables and the constants set
 by :cpp:`setConstant` or the variables registered by :cpp:`registerVariables`.
 
