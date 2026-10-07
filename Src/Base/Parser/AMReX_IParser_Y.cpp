@@ -208,6 +208,7 @@ amrex_iparser_new ()
     amrex_iparser_delete_ptrs();
 
     if ((char*)my_iparser->p_root + my_iparser->sz_mempool != (char*)my_iparser->p_free) {
+        amrex_iparser_delete(my_iparser);
         amrex::Abort("amrex_iparser_new: error in memory size");
     }
 

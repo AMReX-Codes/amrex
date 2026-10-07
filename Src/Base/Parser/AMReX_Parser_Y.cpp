@@ -298,12 +298,14 @@ amrex_parser_new ()
     amrex_parser_delete_ptrs();
 
     if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
+        amrex_parser_delete(my_parser);
         amrex::Abort("amrex_parser_new: error in memory size");
     }
 
     std::map<std::string,double> local_consts;
     parser_ast_optimize(my_parser->ast, local_consts);
     if (my_parser->ast == nullptr) {
+        amrex_parser_delete(my_parser);
         amrex::Abort("amrex::Parser: expression optimizes to nothing");
     }
     parser_ast_sort(my_parser->ast);
