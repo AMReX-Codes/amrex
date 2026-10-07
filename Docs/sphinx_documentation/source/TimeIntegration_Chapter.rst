@@ -212,8 +212,8 @@ see the section on :ref:`Time Integration Runtime Parameters
   integration.sundials.method = ARKODE_BOGACKI_SHAMPINE_4_2_3
 
   # *** Select a specific SUNDIALS ImEx method ***
-  integration.sundials.method_i = ARKODE_ARK2_DIRK_3_1_2
-  integration.sundials.method_e = ARKODE_ARK2_ERK_3_1_2
+  integration.sundials.method_i = ARKODE_ARK324L2SA_DIRK_4_2_3
+  integration.sundials.method_e = ARKODE_ARK324L2SA_ERK_4_2_3
 
   # *** Select a specific SUNDIALS MRI method ***
   integration.sundials.method = ARKODE_MIS_KW3

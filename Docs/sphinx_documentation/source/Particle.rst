@@ -772,7 +772,7 @@ of each other using a variety of methods.
 
 For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`NeighborParticleContainer` in
-``amrex/Src/Particles/AMReX_NeighborParticleContainer.H.`` The
+``amrex/Src/Particle/AMReX_NeighborParticles.H``. The
 :cpp:`NeighborParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
