@@ -12,6 +12,7 @@
 #endif
 
 #include <functional>
+#include <stdexcept>
 
 namespace amrex {
 
@@ -31,7 +32,7 @@ private:
     {
         amrex::ParmParse pp("integration");
 
-        int integrator_type;
+        int integrator_type = -1;
         std::string integrator_str;
         pp.get("type", integrator_str);
 
@@ -44,7 +45,7 @@ private:
         } else {
             try {
                 integrator_type = std::stoi(integrator_str, nullptr);
-            } catch (const std::invalid_argument& ia) {
+            } catch (const std::logic_error& ia) {
                 Print() << "Invalid integration.type: " << ia.what() << '\n';
                 Error("Failed to initialize AMReX TimeIntegrator class.");
             }
