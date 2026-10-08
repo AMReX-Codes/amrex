@@ -118,7 +118,7 @@ struct ParserExecutor
     }
 
     //! Host evaluation: threaded dispatch for long bytecode, inlined switch otherwise.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     double eval_host (double const* var) const noexcept
     {
 #if AMREX_PARSER_THREADED_DISPATCH
