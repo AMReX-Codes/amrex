@@ -466,46 +466,52 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_1 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return std::numeric_limits<T>::infinity();
+    }
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
     T tol = std::numeric_limits<T>::epsilon();
 
-    T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - k*k);
+    T a0 = T(1);
+    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
     T a = a0;
     T g = g0;
 
     // Find Arithmetic Geometric mean
     while(std::abs(a0 - g0) > tol) {
-        a = 0.5*(a0 + g0);
+        a = T(0.5)*(a0 + g0);
         g = std::sqrt(a0 * g0);
 
         a0 = a;
         g0 = g;
     }
 
-    return 0.5*pi<T>()/a;
+    return T(0.5)*pi<T>()/a;
 }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_2 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return T(1);
+    }
     // Computing E based on DLMF
     // https://dlmf.nist.gov/19.8
     T Kcomp = amrex::Math::comp_ellint_1<T>(k);
     T tol = std::numeric_limits<T>::epsilon();
 
     // Step Zero
-    T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - k*k);
+    T a0 = T(1);
+    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
     T cn = std::sqrt(a0*a0 - g0*g0);
 
     // Step 1
     int n = 1;
-    T a = 0.5 * (a0 + g0);
+    T a = T(0.5) * (a0 + g0);
     T g = std::sqrt(a0*g0);
-    cn = 0.25*cn*cn/a;
+    cn = T(0.25)*cn*cn/a;
 
     T sum_val = a*a;
     a0 = a;
@@ -513,12 +519,12 @@ T comp_ellint_2 (T k)
 
     while(std::abs(cn*cn) > tol) {
         // Compute coefficients for this iteration
-        a = 0.5 * (a0 + g0);
+        a = T(0.5) * (a0 + g0);
         g = std::sqrt(a0*g0);
-        cn = 0.25*cn*cn/a;
+        cn = T(0.25)*cn*cn/a;
 
         n++;
-        sum_val -= std::pow(2,n-1)*cn*cn;
+        sum_val -= amrex::Math::powi(T(2), n-1)*cn*cn;
 
         // Save a and g for next iteration
         a0 = a;

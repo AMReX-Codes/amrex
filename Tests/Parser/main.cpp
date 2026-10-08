@@ -1,10 +1,12 @@
 #include <AMReX.H>
 #include <AMReX_Parser.H>
 #include <AMReX_IParser.H>
+#include <AMReX_Math.H>
 #include <cmath>
 #include <map>
 #include <numbers>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 using namespace amrex;
@@ -234,6 +236,65 @@ int test_concurrent_parser_construction ()
     }
 }
 
+template <typename T>
+int test_elliptic_integral_endpoints ()
+{
+    int nfail = 0;
+    T const tol = 64 * std::numeric_limits<T>::epsilon();
+    auto close = [tol] (T value, T expected) {
+        return amrex::Math::isfinite(value) &&
+            std::abs(value - expected) <= tol * std::abs(expected);
+    };
+    for (T k : {T(-1), T(1)}) {
+        T const first = amrex::Math::comp_ellint_1(k);
+        nfail += !(amrex::Math::isinf(first) && first > T(0));
+        nfail += amrex::Math::comp_ellint_2(k) != T(1);
+        T const inside = std::nextafter(k, T(0));
+        nfail += !amrex::Math::isfinite(amrex::Math::comp_ellint_1(inside));
+        nfail += !close(amrex::Math::comp_ellint_2(inside), T(1));
+    }
+    // Values away from the singular endpoint must remain unchanged.
+    nfail += !close(amrex::Math::comp_ellint_1(T(0)), amrex::Math::pi<T>() / 2);
+    nfail += !close(amrex::Math::comp_ellint_2(T(0)), amrex::Math::pi<T>() / 2);
+    nfail += !close(amrex::Math::comp_ellint_1(T(0.5)), T(1.6857503548125961));
+    nfail += !close(amrex::Math::comp_ellint_2(T(0.5)), T(1.4674622093394272));
+    // 100-digit references at exactly representable points near the endpoints.
+    T near_one;
+    T expected;
+    if constexpr (std::is_same_v<T,float>) {
+        near_one = T(1) - std::ldexp(T(1), -13);
+        expected = T(5.5454854002371954278);
+    } else {
+        near_one = T(1) - std::ldexp(T(1), -27);
+        expected = T(10.397207745269151667);
+    }
+    for (T k : {-near_one, near_one}) {
+        T const value = amrex::Math::comp_ellint_1(k);
+        nfail += !(amrex::Math::isfinite(value) &&
+            std::abs(value - expected) <= T(4) * std::numeric_limits<T>::epsilon() * expected);
+    }
+    amrex::Print() << "Elliptic-integral endpoints (" << sizeof(T)
+                   << " bytes): " << nfail << " failures\n";
+    return nfail;
+}
+
+int test_parser_elliptic_integral_endpoints ()
+{
+    int nfail = 0;
+    Parser parser("comp_ellint_2(k)");
+    parser.registerVariables({"k"});
+    auto const exe = parser.compile<1>();
+    for (double k : {-1., 1.}) {
+        nfail += exe(k) != 1.;
+    }
+    for (auto const* expression : {"comp_ellint_2(-1)", "comp_ellint_2(1)"}) {
+        Parser constant_parser(expression);
+        nfail += constant_parser.compile<0>()() != 1.;
+    }
+    amrex::Print() << "Parser elliptic-integral endpoints: " << nfail << " failures\n";
+    return nfail;
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -241,6 +302,9 @@ int main (int argc, char* argv[])
     {
         amrex::Print() << "\n";
         int nerror = 0;
+        nerror += test_elliptic_integral_endpoints<float>();
+        nerror += test_elliptic_integral_endpoints<double>();
+        nerror += test_parser_elliptic_integral_endpoints();
         nerror += test3("if( ((z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc))^(0.5) < (r_star-dR), 0.0, if(((z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc))^(0.5) <= r_star, dens, 0.0))",
                         {{"xc", 0.1}, {"yc", -1.0}, {"zc", 0.2}, {"r_star", 0.73}, {"dR", 0.57}, {"dens", 12.}},
                         {"x","y","z"},
