@@ -17,13 +17,13 @@
 #define AMREX_PARSER_STACK_SIZE 16
 #endif
 
-// In host-only builds with GCC or Clang, parser_exe_eval uses threaded
-// dispatch (computed goto), which is faster than a switch and makes the
-// speed less dependent on code layout.  Device compilers and MSVC use the
-// switch.  Define AMREX_PARSER_THREADED_DISPATCH=0 to use the switch
-// everywhere.
+// With GCC or Clang (including as the host compiler of nvcc, hipcc and
+// icpx), host evaluation of long bytecode uses threaded dispatch (computed
+// goto), which is faster than a switch and makes the speed less dependent
+// on code layout.  MSVC uses the switch.  Define
+// AMREX_PARSER_THREADED_DISPATCH=0 to use the switch everywhere.
 #ifndef AMREX_PARSER_THREADED_DISPATCH
-#if !defined(AMREX_USE_GPU) && (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
 #define AMREX_PARSER_THREADED_DISPATCH 1
 #else
 #define AMREX_PARSER_THREADED_DISPATCH 0
