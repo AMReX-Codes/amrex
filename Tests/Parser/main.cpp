@@ -679,6 +679,22 @@ int main (int argc, char* argv[])
             }
         }
 
+        {   // All statements but the last must be assignments.
+            amrex::Print() << test_number++ << ". Testing Parser statement lists\n";
+            for (std::string const s : {"b=x", "b=x;", "x; b=x", "x; 1"}) {
+                try {
+                    Parser p(s);
+                    ++nerror;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                }
+            }
+            Parser p("b=2*x; b+1;");
+            p.registerVariables({"x"});
+            auto exe = p.compileHost<1>();
+            if (exe(3.0) != 7.0) { ++nerror; }
+        }
+
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {
             amrex::Print() << nerror << " tests failed\n";
@@ -855,6 +871,24 @@ int main (int argc, char* argv[])
                 iparser.registerVariables({"y","x"});
                 auto exe = iparser.compileHost<2>();
                 AMREX_ALWAYS_ASSERT(exe(3,10) == 7); // y=3, x=10
+            }
+
+            {   // All statements but the last must be assignments.
+                amrex::Print() << count++ << ". Testing IParser statement lists\n";
+                for (std::string const s : {"b=x", "b=x;", "x; b=x", "x; 1"}) {
+                    bool caught = false;
+                    try {
+                        IParser iparser(s);
+                    } catch (std::runtime_error const& e) {
+                        amrex::Print() << "    Expected error: " << e.what() << '\n';
+                        caught = true;
+                    }
+                    AMREX_ALWAYS_ASSERT(caught);
+                }
+                IParser iparser("b=2*x; b+1;");
+                iparser.registerVariables({"x"});
+                auto exe = iparser.compileHost<1>();
+                AMREX_ALWAYS_ASSERT(exe(3) == 7);
             }
 
             AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));
