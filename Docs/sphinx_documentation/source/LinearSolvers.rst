@@ -1018,7 +1018,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
      Coarse nodes underneath level 2 ghost nodes are not updated.
      The remaining coarse nodes are updated by restriction.
 
-  The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
+  The MC nodal operator can inherit from the ``MLNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
