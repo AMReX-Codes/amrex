@@ -1481,17 +1481,24 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
 {
     const int amrlev = 0;
 
-#if (AMREX_SPACEDIM == 2)
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_rz,
-        "MLEBNodeFDLaplacian::fillMatrix_doit: RZ is not supported yet");
-#endif
-
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
     const GpuArray<Real,AMREX_SPACEDIM> bcoef
         {AMREX_D_DECL(m_sigma[0]*dxinv[0]*dxinv[0],
                       m_sigma[1]*dxinv[1]*dxinv[1],
                       m_sigma[2]*dxinv[2]*dxinv[2])};
+
+    bool rz = false;
+    Real sig0 = Real(1.0), dx0 = Real(0.0), dx1 = Real(0.0), xlo = Real(0.0), alpha = Real(0.0);
+#if (AMREX_SPACEDIM == 2)
+    rz = m_rz;
+    sig0 = m_sigma[0];
+    dx0 = geom.CellSize(0);
+    dx1 = geom.CellSize(1)/std::sqrt(m_sigma[1]);
+    xlo = geom.ProbLo(0);
+    alpha = m_rz_alpha;
+#endif
+    amrex::ignore_unused(rz, sig0, dx0, dx1, xlo, alpha);
 
     const Box& nddom = amrex::surroundingNodes(geom.Domain());
     const auto ndlo = amrex::lbound(nddom);
@@ -1536,6 +1543,20 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
          static_cast<Long>(std::numeric_limits<int>::max()),
          "The Box is too big.  We could use Long here, but it would be much slower.");
 
+    auto make_row = [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+        -> ebnodefdlap_detail::Row
+    {
+#if (AMREX_SPACEDIM == 2)
+        if (rz) {
+            return mlebndfdlap_ijmat_row_rz(i, j, k, gid, has_eb, has_sig, sig0, sig,
+                                            levset, ebp, dx0, dx1, xlo, alpha,
+                                            ndlo, ndhi, reflect_lo, reflect_hi);
+        }
+#endif
+        return mlebndfdlap_ijmat_row(i, j, k, gid, has_eb, has_sig, bcoef, sig,
+                                     levset, ebp, ndlo, ndhi, reflect_lo, reflect_hi);
+    };
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         const auto blo = amrex::lbound(ndbx);
@@ -1549,10 +1570,7 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
                  int const j = (offset - k*blen.x*blen.y) / blen.x;
                  int const i = offset - k*blen.x*blen.y - j*blen.x;
                  if (lid(i+blo.x,j+blo.y,k+blo.z) < 0) { return 0; }
-                 return mlebndfdlap_ijmat_row(i+blo.x, j+blo.y, k+blo.z, gid,
-                                              has_eb, has_sig, bcoef, sig,
-                                              levset, ebp, ndlo, ndhi,
-                                              reflect_lo, reflect_hi).n;
+                 return make_row(i+blo.x, j+blo.y, k+blo.z).n;
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
@@ -1561,9 +1579,7 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
                  int const i = offset - k*blen.x*blen.y - j*blen.x;
                  int const row_lid = lid(i+blo.x,j+blo.y,k+blo.z);
                  if (row_lid < 0) { return; }
-                 auto const& row = mlebndfdlap_ijmat_row
-                     (i+blo.x, j+blo.y, k+blo.z, gid, has_eb, has_sig, bcoef,
-                      sig, levset, ebp, ndlo, ndhi, reflect_lo, reflect_hi);
+                 auto const& row = make_row(i+blo.x, j+blo.y, k+blo.z);
                  ncols[row_lid] = row.n;
                  for (int n = 0; n < row.n; ++n) {
                      cols[ps+n] = static_cast<AlgInt>
@@ -1581,9 +1597,7 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
         amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
         {
             if (lid(i,j,k) >= 0) {
-                auto const& row = mlebndfdlap_ijmat_row(i, j, k, gid, has_eb, has_sig,
-                                                        bcoef, sig, levset, ebp,
-                                                        ndlo, ndhi, reflect_lo, reflect_hi);
+                auto const& row = make_row(i, j, k);
                 ncols[lid(i,j,k)] = row.n;
                 for (int n = 0; n < row.n; ++n) {
                     cols[nelems] = static_cast<AlgInt>
@@ -1597,17 +1611,27 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
 }
 
 void
-MLEBNodeFDLaplacian::fillRHS (int /*mglev*/, MFIter const& mfi, Array4<int const> const& lid,
+MLEBNodeFDLaplacian::fillRHS (int mglev, MFIter const& mfi, Array4<int const> const& lid,
                               Real* rhs, Array4<Real const> const& bfab) const
 {
     // Unlike MLNodeLaplacian, this is a finite-difference operator, so nodes on
     // a Neumann boundary need no volume factor here.  fillIJMatrix folds the
-    // ghost node onto its mirror image instead.
+    // ghost node onto its mirror image instead.  In RZ the rows carry the
+    // weight of mlebndfdlap_rz_row_weight.
+    bool rz = false;
+    Real dr = Real(0.0), rlo = Real(0.0);
+#if (AMREX_SPACEDIM == 2)
+    rz = m_rz;
+    dr = m_geom[0][mglev].CellSize(0);
+    rlo = m_geom[0][mglev].ProbLo(0);
+#endif
+    amrex::ignore_unused(mglev);
     const Box& bx = mfi.validbox();
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
     {
         if (lid(i,j,k) >= 0) {
-            rhs[lid(i,j,k)] = bfab(i,j,k);
+            Real const w = rz ? mlebndfdlap_rz_row_weight(i, dr, rlo) : Real(1.0);
+            rhs[lid(i,j,k)] = w * bfab(i,j,k);
         }
     });
 }

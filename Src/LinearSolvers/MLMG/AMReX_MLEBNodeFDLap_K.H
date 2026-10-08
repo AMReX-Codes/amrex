@@ -22,6 +22,19 @@ Real mlebndfdlap_pmax () noexcept
     return Real(1.0) - std::numeric_limits<Real>::epsilon();
 }
 
+/**
+ * \brief Weight of a matrix row in RZ: r, or dr/8 on the axis.
+ *
+ * Multiplying the RZ operator rows by it makes the radial couplings
+ * symmetric.  The matrix and fillRHS both apply it.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebndfdlap_rz_row_weight (int i, Real dr, Real rlo) noexcept
+{
+    Real const r = rlo + Real(i)*dr;
+    return (r == Real(0.0)) ? Real(0.125)*dr : r;
+}
+
 //! Restriction for an MG level coarsened in direction \p cdir only.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_line_restriction (int i, int j, int k, Array4<Real> const& crse,
@@ -753,6 +766,126 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
     }
     return row;
 }
+
+#if (AMREX_SPACEDIM == 2)
+/**
+ * \brief Assemble one row of the MLEBNodeFDLaplacian matrix in RZ.
+ *
+ * Same contract as mlebndfdlap_ijmat_row, reproducing the RZ kernels
+ * mlebndfdlap_adotx_rz and mlebndfdlap_adotx_rz_eb.  The row is multiplied
+ * by mlebndfdlap_rz_row_weight; fillRHS applies the same weight.
+ *
+ * \param sig0   constant radial sigma, used when \p has_sig is false
+ * \param dr     radial cell size
+ * \param dz     axial cell size divided by sqrt(sigma_z)
+ * \param rlo    r of node 0
+ * \param alpha  coefficient of the alpha/r^2 term
+ */
+template <typename AlgGid>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ebnodefdlap_detail::Row
+mlebndfdlap_ijmat_row_rz (int i, int j, int k,
+                          Array4<AlgGid const> const& gid,
+                          bool has_eb, bool has_sig, Real sig0,
+                          GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& sig,
+                          Array4<Real const> const& levset,
+                          GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& ebp,
+                          Real dr, Real dz, Real rlo, Real alpha,
+                          Dim3 const& ndlo, Dim3 const& ndhi,
+                          GpuArray<bool,AMREX_SPACEDIM> const& reflect_lo,
+                          GpuArray<bool,AMREX_SPACEDIM> const& reflect_hi) noexcept
+{
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+
+    Real const r = rlo + Real(i)*dr;
+    bool const axis = (r == Real(0.0));
+
+    // Open length toward each neighbor (1 if uncut) and whether the EB
+    // blocks that side.  Indexed [idim][side].
+    Real h[2][2] = {{Real(1.0), Real(1.0)}, {Real(1.0), Real(1.0)}};
+    bool cut[2][2] = {};
+    Real scale = Real(1.0);
+    if (has_eb) {
+        h[0][0] = mlebndfdlap_hm(ebp[0](i-1,j,k));
+        h[0][1] = ebp[0](i,j,k);
+        h[1][0] = mlebndfdlap_hm(ebp[1](i,j-1,k));
+        h[1][1] = ebp[1](i,j,k);
+        cut[0][0] = (levset(i-1,j,k) >= Real(0.0)) || (h[0][0] != Real(1.0));
+        cut[0][1] = (levset(i+1,j,k) >= Real(0.0)) || (h[0][1] != Real(1.0));
+        cut[1][0] = (levset(i,j-1,k) >= Real(0.0)) || (h[1][0] != Real(1.0));
+        cut[1][1] = (levset(i,j+1,k) >= Real(0.0)) || (h[1][1] != Real(1.0));
+        scale = amrex::min(h[0][1], h[1][0], h[1][1]);
+        if (!axis) { scale = amrex::min(scale, h[0][0]); }
+    }
+
+    Real diag = Real(0.0);
+    Real coef[4] = {};
+    bool used[4] = {};
+
+    for (int idim = 0; idim < 2; ++idim) {
+        for (int side = 0; side < 2; ++side) {
+            // The axis stencil has no node inside the axis.
+            if (idim == 0 && axis && side == 0) { continue; }
+
+            Real const s = (idim == 0 && !has_sig)
+                ? sig0 : ebnodefdlap_detail::edge_sigma(i,j,k,idim,side,has_sig,sig);
+            Real const hh = h[idim][side];
+            bool const blocked = cut[idim][side];
+            // Coefficient of the neighbor, or of the EB value if blocked.
+            Real c;
+            if (idim == 1) {
+                Real const fac = Real(2.0) / ((h[1][0]+h[1][1]) * dz*dz);
+                c = s * fac * (blocked ? mlebndfdlap_scaled_hinv(scale, hh) : scale);
+            } else if (axis) {
+                Real const fac = Real(4.0) / (dr*dr);
+                c = s * fac * (blocked ? mlebndfdlap_scaled_h2inv(scale, hh) : scale);
+            } else {
+                Real const fac = Real(2.0) / ((h[0][0]+h[0][1]) * r * dr*dr);
+                Real const sgn = side ? Real(1.0) : Real(-1.0);
+                c = blocked
+                    ? s * fac * mlebndfdlap_scaled_hinv(scale, hh) * (r + sgn*Real(0.5)*hh*dr)
+                    : s * fac * scale * (r + sgn*Real(0.5)*dr);
+            }
+            diag -= c;
+            if (blocked) { continue; } // Dirichlet value, zero here
+
+            int const nd = (idim == 0) ? i : j;
+            int const dlo = (idim == 0) ? ndlo.x : ndlo.y;
+            int const dhi = (idim == 0) ? ndhi.x : ndhi.y;
+            bool const outside = (side == 0) ? (nd-1 < dlo) : (nd+1 > dhi);
+            bool const reflect = (side == 0) ? reflect_lo[idim] : reflect_hi[idim];
+            // A ghost node outside a Neumann boundary is its mirror image.
+            int const ss = (outside && reflect) ? 1-side : side;
+            int const ii = (idim == 0) ? i + (ss ? 1 : -1) : i;
+            int const jj = (idim == 1) ? j + (ss ? 1 : -1) : j;
+            if (gid(ii,jj,k) < gidmax) {
+                coef[2*idim+ss] += c;
+                used[2*idim+ss] = true;
+            }
+        }
+    }
+    if (!axis) { diag -= scale * alpha / (r*r); }
+
+    Real const w = mlebndfdlap_rz_row_weight(i, dr, rlo);
+    ebnodefdlap_detail::Row row;
+    row.val[0] = diag * w;
+    row.node[0] = Dim3{.x=i, .y=j, .z=k};
+    row.n = 1;
+    for (int idim = 0; idim < 2; ++idim) {
+        for (int side = 0; side < 2; ++side) {
+            int const slot = 2*idim + side;
+            if (used[slot]) {
+                int const d = side ? 1 : -1;
+                row.val[row.n] = coef[slot] * w;
+                row.node[row.n] = (idim == 0) ? Dim3{.x=i+d, .y=j, .z=k}
+                                              : Dim3{.x=i, .y=j+d, .z=k};
+                ++row.n;
+            }
+        }
+    }
+    return row;
+}
+#endif
 
 #endif
 }
