@@ -20,10 +20,10 @@
 // With GCC or Clang (including as the host compiler of nvcc, hipcc and
 // icpx), host evaluation of long bytecode uses threaded dispatch (computed
 // goto), which is faster than a switch and makes the speed less dependent
-// on code layout.  MSVC uses the switch.  Define
+// on code layout.  MSVC and nvc++ use the switch.  Define
 // AMREX_PARSER_THREADED_DISPATCH=0 to use the switch everywhere.
 #ifndef AMREX_PARSER_THREADED_DISPATCH
-#if (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER) && !defined(__NVCOMPILER)
 #define AMREX_PARSER_THREADED_DISPATCH 1
 #else
 #define AMREX_PARSER_THREADED_DISPATCH 0
