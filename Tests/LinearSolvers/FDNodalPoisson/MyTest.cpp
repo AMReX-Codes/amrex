@@ -92,9 +92,6 @@ void
 MyTest::run ()
 {
     for (auto const& mgt : multigrid_types) {
-#if (AMREX_SPACEDIM == 2)
-        if (rz && mgt != "geometric") { continue; } // no RZ matrix assembly
-#endif
         setMultigridType(mgt);
 
         solve(false);

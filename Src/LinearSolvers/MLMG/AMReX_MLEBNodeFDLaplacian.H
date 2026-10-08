@@ -86,7 +86,8 @@ public:
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
-    //! Enable/disable RZ corrections (radial metrics).
+    //! Enable/disable RZ corrections (radial metrics).  The matrix built for
+    //! AlgMG and hypre is then the operator with rows weighted by r/dr.
     void setRZ (bool flag);
 
     //! Set the radial `alpha/r^2` term used when RZ is enabled.
@@ -215,7 +216,7 @@ public:
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM>
     anisotropicCoarseningCellSize (Geometry const& geom) const override;
 
-    [[nodiscard]] bool supportsAlgMG () const override { return !m_rz; }
+    [[nodiscard]] bool supportsAlgMG () const override { return true; }
 
     void fillAlgMatrix (int mglev, MFIter const& mfi,
                         Array4<Long const> const& gid,
