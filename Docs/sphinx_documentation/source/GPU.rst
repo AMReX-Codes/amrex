@@ -641,8 +641,14 @@ to :cpp:`The_Arena()` to reduce memory fragmentation.
 
 In :cpp:`amrex::Initialize`, a large amount of GPU device memory is
 allocated and is kept in :cpp:`The_Arena()`.  The default is 3/4 of the
-total device memory, and it can be changed with a :cpp:`ParmParse`
-parameter, ``amrex.the_arena_init_size``, in the unit of bytes. The default
+total device memory divided by the number of MPI processes sharing the
+device, and it can be changed with a :cpp:`ParmParse` parameter,
+``amrex.the_arena_init_size``, in the unit of bytes.  Note that only the
+processes in the communicator passed to :cpp:`amrex::Initialize` are
+counted.  In MPMD runs, or when an application splits the communicator and
+initializes AMReX on each part, processes from different communicators may
+share a device.  In that case, the default oversubscribes the device, and
+the size should be set explicitly.  The default
 can also be changed with an environment variable
 ``AMREX_THE_ARENA_INIT_SIZE=X``, where ``X`` is the number of bytes. When
 both the :cpp:`ParmParse` parameter and the environment variable are
