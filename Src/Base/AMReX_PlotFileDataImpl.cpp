@@ -144,6 +144,7 @@ PlotFileDataImpl::get (int level, std::string const& varname)
             FArrayBox& dstfab = mf[mfi];
             std::unique_ptr<FArrayBox> srcfab(m_vismf[level]->readFAB(gid, icomp));
             dstfab.copy<RunOn::Device>(*srcfab);
+            Gpu::streamSynchronize(); // srcfab is freed at the end of this iteration
         }
     }
     return mf;
