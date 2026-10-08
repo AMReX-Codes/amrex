@@ -87,7 +87,7 @@ public:
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
     //! Enable/disable RZ corrections (radial metrics).  The matrix built for
-    //! AlgMG and hypre is then the operator with rows weighted by r.
+    //! AlgMG and hypre is then the operator with rows weighted by r/dr.
     void setRZ (bool flag);
 
     //! Set the radial `alpha/r^2` term used when RZ is enabled.

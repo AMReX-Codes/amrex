@@ -23,16 +23,17 @@ Real mlebndfdlap_pmax () noexcept
 }
 
 /**
- * \brief Weight of a matrix row in RZ: r, or dr/8 on the axis.
+ * \brief Weight of a matrix row in RZ: r/dr, or 1/8 on the axis.
  *
  * Multiplying the RZ operator rows by it makes the radial couplings
- * symmetric.  The matrix and fillRHS both apply it.
+ * symmetric.  It is dimensionless, so absolute tolerances keep the units
+ * of the residual.  The matrix and fillRHS both apply it.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlebndfdlap_rz_row_weight (int i, Real dr, Real rlo) noexcept
 {
     Real const r = rlo + Real(i)*dr;
-    return (r == Real(0.0)) ? Real(0.125)*dr : r;
+    return (r == Real(0.0)) ? Real(0.125) : r/dr;
 }
 
 //! Restriction for an MG level coarsened in direction \p cdir only.
