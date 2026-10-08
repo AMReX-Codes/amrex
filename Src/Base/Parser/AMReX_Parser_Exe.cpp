@@ -1,8 +1,19 @@
 #include <AMReX_Parser_Exe.H>
-#include <limits>
 #include <utility>
 
+// Threaded dispatch is used when the bytecode is longer than this (bytes).
+#ifndef AMREX_PARSER_THREADED_MIN_SIZE
+#define AMREX_PARSER_THREADED_MIN_SIZE 48
+#endif
+
 namespace amrex {
+
+bool parser_exe_use_threaded (int exe_size, int max_stack_size)
+{
+    return AMREX_PARSER_THREADED_DISPATCH
+        && exe_size > AMREX_PARSER_THREADED_MIN_SIZE
+        && max_stack_size <= AMREX_PARSER_STACK_SIZE;
+}
 
 #if AMREX_PARSER_THREADED_DISPATCH
 #pragma GCC diagnostic push

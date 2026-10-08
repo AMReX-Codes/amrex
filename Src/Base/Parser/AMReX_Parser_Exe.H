@@ -30,11 +30,6 @@
 #endif
 #endif
 
-// Threaded dispatch is used when the bytecode is longer than this (bytes).
-#ifndef AMREX_PARSER_THREADED_MIN_SIZE
-#define AMREX_PARSER_THREADED_MIN_SIZE 48
-#endif
-
 #define AMREX_PARSER_LOCAL_IDX0 1000
 // Local variable k is stack entry k, which lives in pdata[k+1] once it
 // has been spilled from the cached top (see parser_exe_eval).
@@ -367,6 +362,10 @@ double parser_exe_eval (const char* p, double const* x)
 // long enough to amortize the call.  It is always defined, falling back
 // to the switch, so code built with a different setting still links.
 double parser_exe_eval_threaded (const char* p, double const* x);
+
+// Whether parser_exe_eval_threaded should be used.  Decided with libamrex's
+// settings, including its AMREX_PARSER_STACK_SIZE.
+bool parser_exe_use_threaded (int exe_size, int max_stack_size);
 
 void parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
                               int& max_stack_size, int& stack_size,

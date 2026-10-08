@@ -22,15 +22,13 @@
 
 namespace amrex {
 
-/**
- * \brief Store the arguments of ParserExecutor::operator() in an array.
- *
- * On the host, the volatile pointer keeps the stores scalar so that the
- * loads in parser_exe_eval can forward from them.
- */
+namespace parser_detail {
+
+// Store the arguments in an array.  On the host, volatile keeps the stores
+// scalar so that parser_exe_eval's loads can forward from them.
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void parser_store_args (double* l_var, Ts... var) noexcept
+void store_args (double* l_var, Ts... var) noexcept
 {
     AMREX_IF_ON_DEVICE((
         int i = 0;
@@ -41,6 +39,8 @@ void parser_store_args (double* l_var, Ts... var) noexcept
         int i = 0;
         ([&] { p[i++] = static_cast<double>(var); }(), ...);
     ))
+}
+
 }
 
 /**
@@ -82,7 +82,7 @@ struct ParserExecutor
     double operator() (Ts... var) const noexcept
     {
         double l_var[N];
-        parser_store_args(l_var, var...);
+        parser_detail::store_args(l_var, var...);
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var);))
         AMREX_IF_ON_HOST((return eval_host(l_var);))
     }
@@ -100,7 +100,7 @@ struct ParserExecutor
     float operator() (Ts... var) const noexcept
     {
         double l_var[N];
-        parser_store_args(l_var, var...);
+        parser_detail::store_args(l_var, var...);
         AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var));))
         AMREX_IF_ON_HOST((return static_cast<float>(eval_host(l_var));))
     }
@@ -117,16 +117,6 @@ struct ParserExecutor
         AMREX_IF_ON_HOST((return eval_host(var.data());))
     }
 
-    //! Host evaluation: threaded dispatch for long bytecode, inlined switch otherwise.
-    AMREX_FORCE_INLINE
-    double eval_host (double const* var) const noexcept
-    {
-#if AMREX_PARSER_THREADED_DISPATCH
-        if (m_threaded) { return parser_exe_eval_threaded(m_host_executor, var); }
-#endif
-        return parser_exe_eval(m_host_executor, var);
-    }
-
     /**
      * \brief True when a compiled executor buffer is available.
      */
@@ -141,6 +131,16 @@ struct ParserExecutor
     char* m_device_executor = nullptr; ///< Pointer to device-visible bytecode (if copied).
 #endif
     bool m_threaded = false; ///< Use threaded dispatch on the host (long bytecode).
+
+private:
+    AMREX_FORCE_INLINE
+    double eval_host (double const* var) const noexcept
+    {
+#if AMREX_PARSER_THREADED_DISPATCH
+        if (m_threaded) { return parser_exe_eval_threaded(m_host_executor, var); }
+#endif
+        return parser_exe_eval(m_host_executor, var);
+    }
 };
 
 /// \ingroup amrex_utilities
@@ -351,7 +351,8 @@ Parser::compileHost () const
             }
         }
 
-        bool threaded = (m_data->m_exe_size > AMREX_PARSER_THREADED_MIN_SIZE);
+        bool threaded = parser_exe_use_threaded(m_data->m_exe_size,
+                                                m_data->m_max_stack_size);
 #ifdef AMREX_USE_GPU
         return ParserExecutor<N>{m_data->m_host_executor, m_data->m_device_executor, threaded};
 #else
