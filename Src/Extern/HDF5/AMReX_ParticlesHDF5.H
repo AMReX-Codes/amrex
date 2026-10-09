@@ -81,16 +81,18 @@ public:
     /**
      * \brief Prepare metadata used by deferred HDF5 checkpoint writes.
      *
-     * Tallies particles/NextID values per level so CheckpointPostHDF5() can
-     * finish the header without revisiting particle data.
+     * When pre/post mode is enabled (SetUsePrePost(true)), tallies the
+     * particle count and NextID value so that a following CheckpointHDF5()
+     * call can write them into the HDF5 file.
      */
     void CheckpointPreHDF5 ();
 
     /**
-     * \brief Finalize a checkpoint header handed off by CheckpointPreHDF5().
+     * \brief Finish a checkpoint started with CheckpointPreHDF5().
      *
-     * Aggregates distributed offsets/counts, appends per-level bookkeeping,
-     * and removes empty per-file fragments when requested.
+     * The HDF5 file written by CheckpointHDF5() is already complete, so this
+     * only releases the bookkeeping saved by CheckpointPreHDF5(). It is
+     * provided for symmetry with CheckpointPost().
      */
     void CheckpointPostHDF5 ();
 
