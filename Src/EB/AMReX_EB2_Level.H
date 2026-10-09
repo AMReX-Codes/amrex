@@ -293,7 +293,7 @@ protected:
     IntVect m_shift{0};
     IndexSpace const* m_parent;
 
-    //! Face-centered data storage: [0]=x-face, [1]=y-face, [2]=z-face
+    //! Face-centered data, one per face direction
     Array<std::unique_ptr<FCData>, AMREX_SPACEDIM> m_fc_data;
 
 private:
@@ -1019,7 +1019,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int max_grid_size,
         mvmc_error = b;
     }
     if (mvmc_error) {
-        amrex::Abort("GShopLevel::buildFCData: MVMC error");
+        for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+            skipFC(face_dir, "multi-valued or multi-cut cells at twice the resolution");
+        }
+        return;
     }
 
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
@@ -1094,6 +1097,7 @@ GShopLevel<G>::buildFCDir (GShopLevel<G> const& fine, BoxArray const& fc_base_gr
 
     // Define FC MultiFabs
     BoxArray fc_grids = amrex::convert(fc_base_grids, IntVect::TheDimensionVector(face_dir));
+    // coarsen_from_fine writes the area fractions on boxes that are nodal in each direction
     const int ng = 3;
     fc_cellflag.define(fc_grids, fc_dmap, 1, ng);
     fc_volfrac.define(fc_grids, fc_dmap, 1, ng);

@@ -17,6 +17,7 @@
 #include <AMReX_Reduce.H>
 
 #include <cmath>
+#include <numbers>
 #include <string>
 
 using namespace amrex;
@@ -94,7 +95,7 @@ int run (Array<int, AMREX_SPACEDIM> const& is_periodic)
 
         // Check volume fraction bounds
         Real vf_min = volfrac.min(0), vf_max = volfrac.max(0);
-        if (vf_min < 0.0 || vf_min > 1.0 || vf_max < 0.0 || vf_max > 1.0) {
+        if (volfrac.contains_nan() || !(vf_min >= 0.0 && vf_max <= 1.0)) {
             ++nerrors;
             amrex::Print() << "ERROR: dir=" << face_dir << " volfrac range ["
                            << vf_min << ", " << vf_max << "]\n";

@@ -93,12 +93,12 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     : m_ngrow(std::move(a_ngrow)),
       m_support(a_support),
       m_geom(a_geom),
-      m_is_fc(true),
       m_face_dir(face_dir)
 {
     AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_level.hasFCData(face_dir),
-        "EBDataCollection: FC data not available for face_dir");
+        "EBDataCollection: no face-centered data for face_dir on this level; "
+        "call EB2::BuildFC, whose output says why a level has none");
 
     // For FC mode, we create new MultiFabs and fill from Level's FC data
     const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
