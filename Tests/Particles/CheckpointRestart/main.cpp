@@ -140,6 +140,21 @@ void test ()
 
             amrex::Print() << " done \n";
         }
+
+        // Also exercise the CheckpointPre / CheckpointPost path
+        std::snprintf(fname, sizeof fname, "%splt_prepost", directory.c_str());
+        amrex::Print() << "Writing particle file [" << fname << "] with pre/post ..." << '\n';
+        myPC.SetUsePrePost(true);
+        myPC.CheckpointPre();
+        const Long np_total = myPC.TotalNumberOfParticles();
+        if (ParallelDescriptor::IOProcessor()) {
+            // the pre/post particle count is only reduced to the I/O rank
+            AMREX_ALWAYS_ASSERT(myPC.GetNParticlesPrePost() == np_total);
+        }
+        myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
+        myPC.CheckpointPost();
+        myPC.SetUsePrePost(false);
+        amrex::Print() << " done \n";
     }
 
     ParallelDescriptor::Barrier();
@@ -172,6 +187,25 @@ void test ()
 
             AMREX_ALWAYS_ASSERT(sm_old == sm_new);
         }
+
+        MyPC prepostPC(geom, dmap, ba, ref_ratio);
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt_prepost");
+        prepostPC.Restart(directory_path, "particle0");
+        AMREX_ALWAYS_ASSERT(prepostPC.TotalNumberOfParticles() == myPC.TotalNumberOfParticles());
+
+        auto sm_prepost = amrex::ReduceSum(prepostPC,
+            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+            {
+                return static_cast<Real>(p.rdata(1));
+            });
+        auto sm_old = amrex::ReduceSum(myPC,
+            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+            {
+                return static_cast<Real>(p.rdata(1));
+            });
+        ParallelDescriptor::ReduceRealSum(sm_prepost);
+        ParallelDescriptor::ReduceRealSum(sm_old);
+        AMREX_ALWAYS_ASSERT(sm_old == sm_prepost);
     }
 }
 
