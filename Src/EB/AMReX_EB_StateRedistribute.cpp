@@ -7,6 +7,22 @@
 #include <AMReX_EB_Slopes_K.H>
 #include <AMReX_YAFluxRegister_K.H>
 
+// Neighbor index lookup tables in constant memory for efficient GPU access
+// These map neighbor indices to (i,j,k) offsets
+#if (AMREX_SPACEDIM == 2)
+namespace {
+    AMREX_GPU_CONSTANT int imap[9] = {0,-1, 0, 1,-1, 1,-1, 0, 1};
+    AMREX_GPU_CONSTANT int jmap[9] = {0,-1,-1,-1, 0, 0, 1, 1, 1};
+    AMREX_GPU_CONSTANT int kmap[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+}
+#elif (AMREX_SPACEDIM == 3)
+namespace {
+    AMREX_GPU_CONSTANT int imap[27] = {0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
+    AMREX_GPU_CONSTANT int jmap[27] = {0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
+    AMREX_GPU_CONSTANT int kmap[27] = {0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+}
+#endif
+
 namespace amrex {
 
 void
@@ -59,16 +75,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     //   i --->
     //
     // Note the first component of each of these arrays should never be used
+    // imap, jmap, kmap are now in constant memory (see file scope declarations above)
     //
-#if (AMREX_SPACEDIM == 2)
-    amrex::GpuArray<int,9> imap{0,-1, 0, 1,-1, 1,-1, 0, 1};
-    amrex::GpuArray<int,9> jmap{0,-1,-1,-1, 0, 0, 1, 1, 1};
-    amrex::GpuArray<int,9> kmap{0, 0, 0, 0, 0, 0, 0, 0, 0};
-#else
-    amrex::GpuArray<int,27> imap{0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    amrex::GpuArray<int,27> jmap{0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    amrex::GpuArray<int,27> kmap{0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-#endif
 
     const Box domain = lev_geom.Domain();
     const int domain_ilo = domain.smallEnd(0);
@@ -423,16 +431,8 @@ StateRedistribute ( Box const& bx, int ncomp,
     //   i --->
     //
     // Note the first component of each of these arrays should never be used
+    // imap, jmap, kmap are now in constant memory (see file scope declarations above)
     //
-#if (AMREX_SPACEDIM == 2)
-    amrex::GpuArray<int,9> imap{0,-1, 0, 1,-1, 1,-1, 0, 1};
-    amrex::GpuArray<int,9> jmap{0,-1,-1,-1, 0, 0, 1, 1, 1};
-    amrex::GpuArray<int,9> kmap{0, 0, 0, 0, 0, 0, 0, 0, 0};
-#else
-    amrex::GpuArray<int,27> imap{0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    amrex::GpuArray<int,27> jmap{0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    amrex::GpuArray<int,27> kmap{0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-#endif
 
     const Box domain = lev_geom.Domain();
     const int domain_ilo = domain.smallEnd(0);
