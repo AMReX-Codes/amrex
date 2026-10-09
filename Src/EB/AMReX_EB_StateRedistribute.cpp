@@ -172,7 +172,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
        //
        // ****************************************************************************************
        //
-
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -184,12 +183,105 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         });
 
+        // {
+        // amrex::Gpu::streamSynchronize();
+        // BL_PROFILE("SK:MLStateRedistributeKernel2");
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
             {
-                // MULTIPLE NEIGHBORS
+                // Compute limited slopes once (depends only on i,j,k, not on neighbors)
+                int nx = 1; int ny = 1; int nz = 1;
+
+                // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
+                //    or do we need to enlarge it?
+                AMREX_D_TERM(Real x_max = -Real(1.e30); Real x_min = Real(1.e30);,
+                             Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
+                             Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
+
+                Real slope_stencil_min_width = Real(0.5);
+#if (AMREX_SPACEDIM == 2)
+                int kkk = 0;
+#elif (AMREX_SPACEDIM == 3)
+                for(int kkk(-1); kkk<=1; kkk++) {
+#endif
+                for(int jjj(-1); jjj<=1; jjj++) {
+                for(int iii(-1); iii<=1; iii++) {
+                    if (flag(i,j,k).isConnected(iii,jjj,kkk))
+                    {
+                        int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
+
+                        x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                        x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                        y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
+                        y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
+#if (AMREX_SPACEDIM == 3)
+                        z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
+                        z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
+#endif
+                    }
+                AMREX_D_TERM(},},})
+
+                // If we need to grow the stencil, we let it be -nx:nx in the x-direction,
+                //    for example.   Note that nx,ny,nz are either 1 or 2
+                if ( (x_max-x_min) < slope_stencil_min_width ) { nx = 2; }
+                if ( (y_max-y_min) < slope_stencil_min_width ) { ny = 2; }
+#if (AMREX_SPACEDIM == 3)
+                if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
+#endif
+                bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
+                bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
+                bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
+                bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
+#if (AMREX_SPACEDIM == 3)
+                bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
+                bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
+#endif
+
+                // Compute slopes of Qhat (which is the sum of the qt's) then use
+                //  that for each qt separately
+                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
+                if (nx*ny*nz == 1) {
+                    // Compute slope using 3x3x3 stencil
+                    slopes_eb = amrex_calc_slopes_extdir_eb(
+                                                i,j,k,n,Qhat,cent_hat,vfrac,
+                                                AMREX_D_DECL(fcx,fcy,fcz),flag,
+                                                AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
+                                                AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
+                                                AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                                AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                                max_order);
+                } else {
+                    // Compute slope using grown stencil (no larger than 5x5x5)
+                    slopes_eb = amrex_calc_slopes_extdir_eb_grown(
+                                                i,j,k,n,AMREX_D_DECL(nx,ny,nz),
+                                                Qhat,cent_hat,vfrac,
+                                                AMREX_D_DECL(fcx,fcy,fcz),flag,
+                                                AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
+                                                AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
+                                                AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                                AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                                max_order);
+                }
+
+                // We do the limiting separately because this limiter limits the slope based on the values
+                //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
+                //    which bases the limiting on values extrapolated to the face centroids.
+                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope =
+                    amrex_calc_centroid_limiter(i,j,k,n,Qhat,flag,slopes_eb,cent_hat);
+
+                AMREX_D_TERM(lim_slope[0] *= slopes_eb[0];,
+                             lim_slope[1] *= slopes_eb[1];,
+                             lim_slope[2] *= slopes_eb[2];);
+
+                // Now loop over neighbors using the precomputed slopes
                 for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
                 {
                     int r = i; int s = j; int t = k;
@@ -203,95 +295,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                     if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                     {
-                        // Initialize so that the slope stencil goes from -1:1 in each direction
-                        int nx = 1; int ny = 1; int nz = 1;
-
-                        // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
-                        //    or do we need to enlarge it?
-                        AMREX_D_TERM(Real x_max = -Real(1.e30); Real x_min = Real(1.e30);,
-                                     Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
-                                     Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
-
-                        Real slope_stencil_min_width = Real(0.5);
-#if (AMREX_SPACEDIM == 2)
-                        int kkk = 0;
-#elif (AMREX_SPACEDIM == 3)
-                        for(int kkk(-1); kkk<=1; kkk++) {
-#endif
-                        for(int jjj(-1); jjj<=1; jjj++) {
-                        for(int iii(-1); iii<=1; iii++) {
-                            if (flag(i,j,k).isConnected(iii,jjj,kkk))
-                            {
-                                int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
-
-                                x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
-                                x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
-                                y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
-                                y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
-#if (AMREX_SPACEDIM == 3)
-                                z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
-                                z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
-#endif
-                            }
-                        AMREX_D_TERM(},},})
-
-                        // If we need to grow the stencil, we let it be -nx:nx in the x-direction,
-                        //    for example.   Note that nx,ny,nz are either 1 or 2
-                        if ( (x_max-x_min) < slope_stencil_min_width ) { nx = 2; }
-                        if ( (y_max-y_min) < slope_stencil_min_width ) { ny = 2; }
-#if (AMREX_SPACEDIM == 3)
-                        if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
-#endif
-                        bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
-                        bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
-                        bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
-                        bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
-#if (AMREX_SPACEDIM == 3)
-                        bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
-                        bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
-                                           d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
-#endif
-
-                        // Compute slopes of Qhat (which is the sum of the qt's) then use
-                        //  that for each qt separately
-                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
-                        if (nx*ny*nz == 1) {
-                            // Compute slope using 3x3x3 stencil
-                            slopes_eb = amrex_calc_slopes_extdir_eb(
-                                                        i,j,k,n,Qhat,cent_hat,vfrac,
-                                                        AMREX_D_DECL(fcx,fcy,fcz),flag,
-                                                        AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
-                                                        AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
-                                                        AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                                        AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
-                                                        max_order);
-                        } else {
-                            // Compute slope using grown stencil (no larger than 5x5x5)
-                            slopes_eb = amrex_calc_slopes_extdir_eb_grown(
-                                                        i,j,k,n,AMREX_D_DECL(nx,ny,nz),
-                                                        Qhat,cent_hat,vfrac,
-                                                        AMREX_D_DECL(fcx,fcy,fcz),flag,
-                                                        AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
-                                                        AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
-                                                        AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                                        AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
-                                                        max_order);
-                        }
-
-                        // We do the limiting separately because this limiter limits the slope based on the values
-                        //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
-                        //    which bases the limiting on values extrapolated to the face centroids.
-                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope =
-                            amrex_calc_centroid_limiter(i,j,k,n,Qhat,flag,slopes_eb,cent_hat);
-
-                        AMREX_D_TERM(lim_slope[0] *= slopes_eb[0];,
-                                     lim_slope[1] *= slopes_eb[1];,
-                                     lim_slope[2] *= slopes_eb[2];);
 
                         for (int r_nbor = 0; r_nbor <= itracker(i,j,k,0); r_nbor++)
                         {
@@ -378,7 +381,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             } // vfrac > 0 && itracker > 0
 
         });
-
+        // amrex::Gpu::streamSynchronize();
+        // }
     } // loop over n = 0, ncomp-1
 
     amrex::ParallelFor(bx,ncomp,
