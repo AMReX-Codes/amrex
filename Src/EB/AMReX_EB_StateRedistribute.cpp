@@ -216,7 +216,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                              Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
                              Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
 
-                Real slope_stencil_min_width = Real(0.5);
+                constexpr Real slope_stencil_min_width = Real(0.5);
 #if (AMREX_SPACEDIM == 2)
                 int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
