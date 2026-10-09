@@ -411,6 +411,66 @@ following data:
   range of :math:`[-0.5,0.5]`.
 
 
+.. _sec:EB:fc:
+
+Face-Centered EB Data
+=====================
+
+Algorithms that store data on cell faces, such as a staggered velocity, may
+need EB geometry for control volumes centered on the faces of the grid. AMReX
+can build this face-centered data in addition to the usual cell-centered data.
+After :cpp:`EB2::Build`, call
+
+.. highlight:: c++
+
+::
+
+    EB2::BuildFC();
+
+This builds face-centered data for every face direction on every level of the
+EB index space. It works for implicit-function and STL geometries, but not for
+an EB read from a checkpoint file. If levels are added to the index space
+afterwards (e.g., with :cpp:`EB2::addFineLevels`), call :cpp:`EB2::BuildFC`
+again to build the data for the new levels.
+
+A factory for the face-centered data in direction ``face_dir`` (0 for
+:math:`x`, 1 for :math:`y` and 2 for :math:`z`) takes it as an extra argument:
+
+.. highlight:: c++
+
+::
+
+    EB2::Level const& eb_level = EB2::IndexSpace::top().getLevel(geom);
+    EBFArrayBoxFactory fc_factory(eb_level, geom, ba, dm, ngrow, EBSupport::full, face_dir);
+
+Here ``ba`` is the usual cell-centered :cpp:`BoxArray`. :cpp:`faceDir()`
+returns ``face_dir`` for a face-centered factory and -1 for a cell-centered one.
+
+A face-centered factory provides the same data as a cell-centered one (see
+section `Embedded Boundary Data`_), except for the level set, but for the
+control volumes centered on the faces:
+
+- The control volume with index :math:`i` in ``face_dir`` extends from the
+  center of cell :math:`i-1` to the center of cell :math:`i`, i.e., it is
+  centered on face :math:`i`. Its flags, volume fraction, volume centroid and
+  boundary data are therefore nodal in ``face_dir`` and cell-centered in the
+  other directions, like a face-centered :cpp:`MultiFab`. Centroids are in the
+  control volume's own local coordinates.
+
+- Area fractions and face centroids have that same index type in every
+  direction. ``getAreaFrac()[idim](i,j,k)`` is the area fraction of the low
+  face of control volume :math:`(i,j,k)` in direction ``idim``, and the value
+  at the next index in ``idim`` is its high face. This differs from the
+  cell-centered data, where ``getAreaFrac()[idim]`` is nodal in ``idim`` only.
+
+- Edge centroids have the index types of the cell-centered data, except that
+  ``face_dir`` is always nodal.
+
+The face-centered data are computed by coarsening an EB built at twice the
+resolution. They can therefore differ slightly from the cell-centered data
+and from an EB computed directly on the staggered grid.
+
+
 Embedded Boundary Data Structures
 =================================
 
