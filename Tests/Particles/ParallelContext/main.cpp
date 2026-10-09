@@ -375,7 +375,7 @@ void testSubCommInitAndCount (const Geometry& geom, const DistributionMapping& d
 
         const auto np_local  = pc.NumberOfParticlesInGrid(0, true, true);
         const auto np_global = pc.NumberOfParticlesInGrid(0, true, false);
-        AMREX_ALWAYS_ASSERT(np_global.size() == static_cast<std::size_t>(ba.size()));
+        AMREX_ALWAYS_ASSERT(np_global.size() == ba.size());
 
         Long np_sum = 0;
         for (int i = 0; i < static_cast<int>(np_global.size()); ++i) {
