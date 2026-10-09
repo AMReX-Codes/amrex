@@ -13,8 +13,10 @@
 #include <AMReX_Vector.H>
 
 #include <array>
+#include <cmath>
 #include <concepts>
 #include <iosfwd>
+#include <limits>
 #include <optional>
 #include <set>
 #include <string>
@@ -174,7 +176,8 @@ namespace ppdetail {
 //
 // * Functions with the string "arr" in their names get an Array of
 //   values from the given entry in the table.  The array argument is
-//   resized (if necessary) to hold all the values requested.
+//   grown (if necessary) to hold all the values requested, but it is
+//   never shrunk.
 //
 // * Functions without the string "arr" in their names get single
 //   values from the given entry in the table.
@@ -711,10 +714,11 @@ public:
     /**
     * \brief Gets an std::vector\<int\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an int
-    * and stored in the std::vector\<int\> object ref.  ref is resized (if
-    * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector\<int\>[0], std::vector\<int\>[1]
-    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * and stored in the std::vector\<int\> object ref.  ref is grown (if
+    * necessary) to hold start_ix+num_val values, but never shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence does not exist
     * or there are fewer than start_ix + num_val values associated
     * with the kth occurrence, or if some of the values cannot be
     * converted to an int, an error message is reported and the
@@ -747,10 +751,11 @@ public:
     /**
     * \brief Gets an std::vector\<long\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a long
-    * and stored in the std::vector\<long\> object ref.  ref is resized (if
-    * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector\<long\>[0], std::vector\<long\>[1]
-    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * and stored in the std::vector\<long\> object ref.  ref is grown (if
+    * necessary) to hold start_ix+num_val values, but never shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence does not exist
     * or there are fewer than start_ix + num_val values associated
     * with the kth occurrence, or if some of the values cannot be
     * converted to a long, an error message is reported and the
@@ -783,10 +788,11 @@ public:
     /**
     * \brief Gets an std::vector\<long long\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a long long
-    * and stored in the std::vector\<long long\> object ref.  ref is resized (if
-    * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector\<long long\>[0], std::vector\<long long\>[1]
-    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * and stored in the std::vector\<long long\> object ref.  ref is grown (if
+    * necessary) to hold start_ix+num_val values, but never shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence does not exist
     * or there are fewer than start_ix + num_val values associated
     * with the kth occurrence, or if some of the values cannot be
     * converted to a long long, an error message is reported and the
@@ -819,10 +825,11 @@ public:
     /**
     * \brief Gets an std::vector\<float\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a float
-    * and stored in the std::vector\<float\> object ref.  ref is resized (if
-    * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector\<float\>[0],
-    * std::vector\<float\>[1] holds start_ix+1, etc.  If the kth occurrence
+    * and stored in the std::vector\<float\> object ref.  ref is grown (if
+    * necessary) to hold start_ix+num_val values, but never shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to a float, an error message is
@@ -854,10 +861,11 @@ public:
     /**
     * \brief Gets an std::vector\<double\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a double
-    * and stored in the std::vector\<double\> object ref.  ref is resized (if
-    * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector\<double\>[0],
-    * std::vector\<double\>[1] holds start_ix+1, etc.  If the kth occurrence
+    * and stored in the std::vector\<double\> object ref.  ref is grown (if
+    * necessary) to hold start_ix+num_val values, but never shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to a double, an error message is
@@ -890,9 +898,11 @@ public:
     * \brief Gets an std::vector<std::string> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
     * std::string and stored in the std::vector<std::string> object ref.  ref is
-    * resized (if necessary) to hold num_val values.  The value in
-    * the list indexed by start_ix is copied into std::vector<std::string>[0],
-    * std::vector<std::string>[1] holds start_ix+1, etc.  If the kth occurrence
+    * grown (if necessary) to hold start_ix+num_val values, but never
+    * shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to an std::string, an error message is
@@ -925,9 +935,11 @@ public:
     * \brief Gets an std::vector\<IntVect\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
     * IntVect and stored in the std::vector\<IntVect\> object ref.  ref is
-    * resized (if necessary) to hold num_val values.  The value in
-    * the list indexed by start_ix is copied into std::vector\<IntVect\>[0],
-    * std::vector\<IntVect\>[1] holds start_ix+1, etc.  If the kth occurrence
+    * grown (if necessary) to hold start_ix+num_val values, but never
+    * shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to an IntVect, an error message is
@@ -960,9 +972,11 @@ public:
     * \brief Gets an std::vector\<Box\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
     * Box and stored in the std::vector\<Box\> object ref.  ref is
-    * resized (if necessary) to hold num_val values.  The value in
-    * the list indexed by start_ix is copied into std::vector\<Box\>[0],
-    * std::vector\<Box\>[1] holds start_ix+1, etc.  If the kth occurrence
+    * grown (if necessary) to hold start_ix+num_val values, but never
+    * shrunk.
+    * The value in the list indexed by start_ix is stored in
+    * ref[start_ix], start_ix+1 in ref[start_ix+1], etc.; other
+    * elements of ref are unchanged.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to an Box, an error message is
@@ -1553,16 +1567,19 @@ public:
         double dref;
         int exist = queryWithParser(name, dref);
         if (exist) {
-            if (std::is_integral_v<value_type>) {
+            if constexpr (std::is_integral_v<value_type>) {
                 dref = std::round(dref);
             }
-            auto vref = static_cast<value_type>(dref);
             if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                if (static_cast<double>(vref) != dref) {
+                // Range check before the cast, which would otherwise be UB.
+                // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1); // NOLINT(bugprone-integer-division)
+                if (!(dref >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                      dref <  upper)) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
                 }
             }
-            ref = vref;
+            ref = static_cast<value_type>(dref);
         }
         return exist;
     }
@@ -1584,16 +1601,18 @@ public:
         int exist = queryarrWithParser(name, nvals, dref.data());
         if (exist) {
             for (int i = 0; i < nvals; ++i) {
-                if (std::is_integral_v<value_type>) {
+                if constexpr (std::is_integral_v<value_type>) {
                     dref[i] = std::round(dref[i]);
                 }
-                auto vref = static_cast<value_type>(dref[i]);
                 if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
-                    if (static_cast<double>(vref) != dref[i]) {
+                    // 2^digits, exact; avoids std::ldexp (NVHPC SCALEFS crash on Zen 4 w/o AVX-512)
+                    constexpr double upper = 2.0 * static_cast<double>(std::numeric_limits<value_type>::max()/2 + 1);  // NOLINT(bugprone-integer-division)
+                    if (!(dref[i] >= static_cast<double>(std::numeric_limits<value_type>::lowest()) &&
+                          dref[i] <  upper)) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
                 }
-                ptr[i] = vref;
+                ptr[i] = static_cast<value_type>(dref[i]);
             }
         }
         return exist;

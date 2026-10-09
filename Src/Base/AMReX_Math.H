@@ -7,8 +7,10 @@
 #include <AMReX_INT.H>
 #include <AMReX_SIMD.H>
 #include <AMReX_REAL.H>
+#include <bit>
 #include <concepts>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <numbers>
@@ -49,21 +51,161 @@ using std::copysign;
 using std::floor;
 using std::round;
 
-// However, since Intel's SYCL compiler is very aggressive with fast floating
-// point optimisations, the following must be kept, as using the std functions
-// always evaluates to false (even at -O1).
+// Under fast math (e.g., -ffast-math, -ffinite-math-only, /fp:fast, and Intel's
+// SYCL compiler by default), std::isnan etc. may always evaluate to false.  The
+// functions below work in all modes.  In fast-math modes, they test the bit
+// pattern, hidden from the optimizer so that it cannot fold the test away.
 
-#ifdef AMREX_USE_SYCL
-
-using sycl::isfinite;
-using sycl::isinf;
-
-#else
-
-using std::isfinite;
-using std::isinf;
-
+/// \cond DOXYGEN_IGNORE
+// Clang: no macro tells if -fno-honor-nans or -fno-honor-infinities is on.
+// _WIN32: std::isnan is host only for nvcc with MSVC.
+#if (defined(__FINITE_MATH_ONLY__) && (__FINITE_MATH_ONLY__ == 1)) \
+    || defined(__FAST_MATH__) || defined(_M_FP_FAST) || defined(_WIN32) \
+    || defined(__clang__)
+#  define AMREX_MATH_ISNAN_BITS 1
 #endif
+
+namespace detail {
+    //! Return v, opaque to the optimizer under fast math.  Otherwise, clang
+    //! assumes that the result of a fast-math operation is not NaN or inf, and
+    //! folds a bit test of it to a constant.
+    template <typename U>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    U fp_opaque (U v) noexcept
+    {
+#if defined(AMREX_MATH_ISNAN_BITS) && (defined(__GNUC__) || defined(__clang__))
+#  if defined(__HIP_DEVICE_COMPILE__)
+        __asm__("" : "+v"(v));
+#  else
+        AMREX_IF_ON_HOST((__asm__("" : "+r"(v));))
+#  endif
+#endif
+        return v;
+    }
+
+    template <typename T>
+    using fp_uint_t = std::conditional_t<sizeof(T) == 8, std::uint64_t, std::uint32_t>;
+
+    //! Exponent bits of T, which are also the bits of +inf.
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr fp_uint_t<T> fp_exp_mask () noexcept
+    {
+        return (sizeof(T) == 8) ? fp_uint_t<T>(0x7ff0'0000'0000'0000ULL)
+                                : fp_uint_t<T>(0x7f80'0000U);
+    }
+
+    //! |x| as bits: NaN if > fp_exp_mask(), inf if ==, finite if <.
+    template <bool opaque = true, typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    fp_uint_t<T> fp_abs_bits (T x) noexcept
+    {
+        using U = fp_uint_t<T>;
+        auto bits = std::bit_cast<U>(x);
+        if constexpr (opaque) { bits = fp_opaque(bits); }
+        return bits & (~U(0) >> 1);
+    }
+
+    template <typename T>
+    concept FloatOrDouble = std::same_as<T,float> || std::same_as<T,double>;
+}
+/// \endcond
+
+//! Return true if x is NaN.  Works under fast math.
+template <typename T>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool isnan (T x) noexcept
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::isnan(x);
+#else
+#if defined(AMREX_MATH_ISNAN_BITS)
+    if constexpr (detail::FloatOrDouble<T>) {
+        return detail::fp_abs_bits(x) > detail::fp_exp_mask<T>();
+    } else
+#endif
+    {
+        return std::isnan(x);
+    }
+#endif
+}
+
+//! Return true if x is +/-infinity.  Works under fast math.
+template <typename T>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool isinf (T x) noexcept
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::isinf(x);
+#else
+#if defined(AMREX_MATH_ISNAN_BITS)
+    if constexpr (detail::FloatOrDouble<T>) {
+        return detail::fp_abs_bits(x) == detail::fp_exp_mask<T>();
+    } else
+#endif
+    {
+        return std::isinf(x);
+    }
+#endif
+}
+
+//! Return true if x is neither NaN nor infinity.  Works under fast math.
+template <typename T>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool isfinite (T x) noexcept
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::isfinite(x);
+#else
+#if defined(AMREX_MATH_ISNAN_BITS)
+    if constexpr (detail::FloatOrDouble<T>) {
+        return detail::fp_abs_bits(x) < detail::fp_exp_mask<T>();
+    } else
+#endif
+    {
+        return std::isfinite(x);
+    }
+#endif
+}
+
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    //! |x|, with NaN mapped to +inf so that a max reduction cannot drop it.
+    //! Create it before the loop.  It holds an inf hidden from the optimizer,
+    //! because under fast math clang assumes that a result is never inf.
+    template <typename T>
+    struct AbsNanToInf
+    {
+        T inf = make_inf();
+
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T operator() (T x) const noexcept
+        {
+            if constexpr (FloatOrDouble<T>) {
+                auto const a = fp_abs_bits<false>(x);
+                return (a < fp_exp_mask<T>()) ? std::bit_cast<T>(a) : inf;
+            } else if constexpr (std::is_floating_point_v<T>) {
+                return amrex::Math::isnan(x) ? inf : std::abs(x);
+            } else {
+                return std::abs(x);
+            }
+        }
+
+    private:
+        AMREX_GPU_HOST_DEVICE
+        static T make_inf () noexcept
+        {
+            if constexpr (FloatOrDouble<T>) {
+                return std::bit_cast<T>(fp_opaque(fp_exp_mask<T>()));
+            } else if constexpr (std::is_floating_point_v<T>) {
+                return std::numeric_limits<T>::infinity();
+            } else {
+                return T(0);
+            }
+        }
+    };
+}
+/// \endcond
 
 template <std::floating_point T>
 constexpr T pi ()
@@ -324,46 +466,52 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_1 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return std::numeric_limits<T>::infinity();
+    }
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
     T tol = std::numeric_limits<T>::epsilon();
 
-    T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - k*k);
+    T a0 = T(1);
+    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
     T a = a0;
     T g = g0;
 
     // Find Arithmetic Geometric mean
     while(std::abs(a0 - g0) > tol) {
-        a = 0.5*(a0 + g0);
+        a = T(0.5)*(a0 + g0);
         g = std::sqrt(a0 * g0);
 
         a0 = a;
         g0 = g;
     }
 
-    return 0.5*pi<T>()/a;
+    return T(0.5)*pi<T>()/a;
 }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_2 (T k)
 {
+    if (std::abs(k) == T(1)) {
+        return T(1);
+    }
     // Computing E based on DLMF
     // https://dlmf.nist.gov/19.8
     T Kcomp = amrex::Math::comp_ellint_1<T>(k);
     T tol = std::numeric_limits<T>::epsilon();
 
     // Step Zero
-    T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - k*k);
+    T a0 = T(1);
+    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
     T cn = std::sqrt(a0*a0 - g0*g0);
 
     // Step 1
     int n = 1;
-    T a = 0.5 * (a0 + g0);
+    T a = T(0.5) * (a0 + g0);
     T g = std::sqrt(a0*g0);
-    cn = 0.25*cn*cn/a;
+    cn = T(0.25)*cn*cn/a;
 
     T sum_val = a*a;
     a0 = a;
@@ -371,12 +519,12 @@ T comp_ellint_2 (T k)
 
     while(std::abs(cn*cn) > tol) {
         // Compute coefficients for this iteration
-        a = 0.5 * (a0 + g0);
+        a = T(0.5) * (a0 + g0);
         g = std::sqrt(a0*g0);
-        cn = 0.25*cn*cn/a;
+        cn = T(0.25)*cn*cn/a;
 
         n++;
-        sum_val -= std::pow(2,n-1)*cn*cn;
+        sum_val -= amrex::Math::powi(T(2), n-1)*cn*cn;
 
         // Save a and g for next iteration
         a0 = a;
@@ -584,6 +732,12 @@ struct FastDivmodU64
     }
 };
 
+}
+
+namespace amrex {
+    using Math::isnan;
+    using Math::isinf;
+    using Math::isfinite;
 }
 
 #endif

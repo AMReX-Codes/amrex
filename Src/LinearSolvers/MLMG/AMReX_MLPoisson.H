@@ -200,6 +200,8 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLPoisson::define(overset)");
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
+        "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
 }
 
 template <typename MF>
@@ -443,7 +445,8 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 
     MF Ax;
     if (! this->m_use_gauss_seidel) { // jacobi
-        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0);
+        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0,
+                  MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
     }
 
@@ -493,7 +496,9 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+    // Gauss-Seidel uses a fused launch over the cells of one color.
+    if (Gpu::inLaunchRegion()
+        && (this->m_use_gauss_seidel || sol.isFusingCandidate())
         && ! this->hasHiddenDimension())
     {
         const auto& m0ma = mm0.const_arrays();
@@ -509,8 +514,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 
         const auto& solnma = sol.arrays();
         const auto& rhsma  = rhs.const_arrays();
-
-        AMREX_ALWAYS_ASSERT(rhs.nGrowVect() == 0);
+        const IntVect rhs_ng = rhs.nGrowVect();
 
         const auto& f0ma = f0.const_arrays();
         const auto& f1ma = f1.const_arrays();
@@ -527,10 +531,10 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
             AMREX_ASSERT(!this->m_has_metric_term);
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
                                       osmma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                       f0ma[box_no], m0ma[box_no],
@@ -550,7 +554,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi_os(i, j, k, solnma[box_no], rhsma[box_no],
                                         axma[box_no], osmma[box_no],
                                         AMREX_D_DECL(dhx, dhy, dhz),
@@ -571,10 +575,10 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #if (AMREX_SPACEDIM < 3)
         else if (this->m_has_metric_term) {
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb_m(i, j, k, solnma[box_no], rhsma[box_no],
                                      AMREX_D_DECL(dhx, dhy, dhz),
                                      f0ma[box_no], m0ma[box_no],
@@ -591,7 +595,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi_m(i, j, k, solnma[box_no], rhsma[box_no],
                                        axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                        f0ma[box_no], m0ma[box_no],
@@ -607,10 +611,10 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
         else {
             if (this->m_use_gauss_seidel) {
-                ParallelFor(sol,
+                ParallelForRedBlack(sol, redblack,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no],
                                    AMREX_D_DECL(dhx, dhy, dhz),
                                    f0ma[box_no], m0ma[box_no],
@@ -630,7 +634,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 ParallelFor(sol,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Box vbx(rhsma[box_no]);
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
                     mlpoisson_jacobi(i, j, k, solnma[box_no], rhsma[box_no],
                                      axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
                                      f0ma[box_no], m0ma[box_no],
@@ -646,6 +650,9 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                                      vbx);
                 });
             }
+        }
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
         }
     } else
 #endif
@@ -1191,7 +1198,7 @@ MLPoissonT<MF>::makeNLinOp (int grid_size) const
     dxscale = std::max(dxscale,RT(dxinv[2]));
 #endif
 
-    MF alpha(ba, dm, 1, 0);
+    MF alpha(ba, dm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
     alpha.setVal(RT(1.e30)*dxscale*dxscale);
 
     MF foo(this->m_grids[0].back(), this->m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));

@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
+#include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Vector.H>
 
@@ -15,6 +16,10 @@ namespace amrex {
  *
  * Lightweight helpers that describe how global sparse rows are distributed
  * across MPI ranks for algebra kernels.
+ *
+ * The ranks are those of the ParallelContext communicator current when the
+ * partition is constructed; vectors, matrices and solvers built on it must be
+ * used under that same communicator.
  */
 
 class AlgPartition
@@ -41,14 +46,29 @@ public:
 
     //! Starting global row index owned by rank \p i.
     [[nodiscard]] Long operator[] (int i) const { return m_ref->m_row[i]; }
-    /**
-     * \brief Total number of rows covered by the partition.
-     */
+    //! Number of local rows.
+    [[nodiscard]] Long numLocalRows () const {
+        int myproc = ParallelContext::MyProcSub();
+        return m_ref->m_row[myproc+1] - m_ref->m_row[myproc];
+    }
+    //! Total number of rows covered by the partition.
     [[nodiscard]] Long numGlobalRows () const { return m_ref->m_row.back(); }
     //! Number of MPI ranks that own at least one row.
     [[nodiscard]] int numActiveProcs () const { return m_ref->m_n_active_procs; }
+    //! The sole rank owning rows if numActiveProcs() is one, otherwise -1.
+    [[nodiscard]] int singleActiveProc () const { return m_ref->m_single_active_proc; }
 
-    //! Underlying prefix array describing row offsets (size nproc+1).
+    //! Inclusive global index begin on this process.
+    [[nodiscard]] Long globalRowBegin () const {
+        return m_ref->m_row[ParallelContext::MyProcSub()];
+    }
+
+    //! Exclusive global index end on this process.
+    [[nodiscard]] Long globalRowEnd () const {
+        return m_ref->m_row[ParallelContext::MyProcSub()+1];
+    }
+
+    //! Underlying array describing row offsets (size nproc+1).
     [[nodiscard]] Vector<Long> const& dataVector () const { return m_ref->m_row; }
 
     //! Compare partitions for identical layouts.
@@ -71,6 +91,7 @@ private:
 
         Vector<Long> m_row; // size: nprocs + 1
         int m_n_active_procs = 0;
+        int m_single_active_proc = -1;
     };
 
     std::shared_ptr<Ref> m_ref;

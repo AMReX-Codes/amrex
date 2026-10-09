@@ -1,0 +1,56 @@
+name: Bug report
+description: Report incorrect results, a crash, or a build failure
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. If you have a usage question rather than a
+        bug, please open a
+        [discussion](https://github.com/AMReX-Codes/amrex/discussions) instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >-
+        The smallest input, code snippet, or test that shows the problem, plus
+        the commands you ran to build and run it.
+      render: console
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AMReX version
+      description: Release tag or commit hash.
+      placeholder: "26.09, or 56b9a5ebc0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Build environment
+      description: >-
+        Operating system or HPC machine, compiler and version, build system
+        (CMake or GNU Make), and the dimensionality, MPI/OpenMP and GPU
+        settings you built with.
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Error output
+      description: Relevant build errors, run-time output, or backtrace.
+      render: console

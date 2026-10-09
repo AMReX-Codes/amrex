@@ -27,13 +27,11 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
 
     const BoxArray& nba = amrex::convert(grids,IntVect::TheNodeVector());
 
-#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(Int) < sizeof(Long)) {
         Long nnodes_grids = nba.numPts();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnodes_grids < static_cast<Long>(std::numeric_limits<Int>::max()),
                                          "You might need to configure Hypre with --enable-bigint");
     }
-#endif
 
     // how many non-covered nodes do we have?
     nnodes_grid.define(nba,dmap);
@@ -79,6 +77,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int iupper = proc_end-1;
 
     hypre_ij = std::make_unique<HypreIJIface>(comm, ilower, iupper, verbose);
+    hypre_ij->setRecomputePreconditioner(false); // a new object per matrix
     hypre_ij->parse_inputs(options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
@@ -296,6 +295,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("HypreNodeLap::loadVectors()");
 
     soln.setVal(0.0);
+    if (Gpu::inNoSyncRegion()) { Gpu::synchronize(); }
 
     Gpu::DeviceVector<Real> bvec;
     for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
@@ -312,7 +312,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
             const auto& bfab = rhs.array(mfi);
             const auto& lid = local_node_id.array(mfi);
-            linop->fillRHS(mfi, lid, bp, bfab);
+            linop->fillRHS(linop->NMGLevels(0)-1, mfi, lid, bp, bfab);
 
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)

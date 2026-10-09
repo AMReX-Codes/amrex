@@ -7,7 +7,6 @@
 /// \cond DOXYGEN_IGNORE
 namespace amrex::nodelap_detail {
 
-#ifdef AMREX_USE_HYPRE
 
     struct GetNode {
         AMREX_GPU_DEVICE Dim3 operator() (Dim3 const& lo, Dim3 const& len, int& offset)
@@ -50,7 +49,6 @@ namespace amrex::nodelap_detail {
         }
     };
 
-#endif /* AMREX_USE_HYPRE */
 
     constexpr int crse_cell = 0; // Do NOT change the values
     constexpr int fine_cell = 1;

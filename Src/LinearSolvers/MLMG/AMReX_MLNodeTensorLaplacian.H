@@ -124,7 +124,8 @@ public:
     //! Adjust residual masks \p resmsk so tensor Dirichlet EB nodes remain fixed.
     void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_HYPRE)
     /**
      * \brief Fill Hypre IJ matrix entries for a nodal tensor operator.
      *
@@ -141,19 +142,37 @@ public:
                        HypreNodeLap::Int* ncols,
                        HypreNodeLap::Int* cols,
                        Real* mat) const override;
+#endif
+
+    [[nodiscard]] bool supportsAlgMG () const override { return true; }
+    //! True after setSigma or setBeta, so that cached matrices are rebuilt.
+    [[nodiscard]] bool needsUpdate () const final { return m_needs_update; }
+    void update () final { m_needs_update = false; }
+    void fillAlgMatrix (int mglev, MFIter const& mfi,
+                        Array4<Long const> const& gid,
+                        Array4<int const> const& lid,
+                        Long* ncols, Long* cols, Real* mat) const override;
 
     /**
-     * \brief Fill Hypre RHS vector for nodal tensor solves.
+     * \brief Fill the RHS vector for nodal tensor solves.
      *
+     * \param mglev MG level of AMR level 0.
      * \param mfi MultiFab iterator.
      * \param lid Local ID array.
      * \param rhs RHS values (output).
      * \param bfab Source MultiFab data.
      */
-    void fillRHS (MFIter const& mfi,
+    void fillRHS (int mglev, MFIter const& mfi,
                   Array4<int const> const& lid,
                   Real* rhs,
                   Array4<Real const> const& bfab) const override;
+
+    // Public for nvcc.
+    template <typename AlgInt, typename AlgGid>
+    void fillMatrix_doit (int mglev, MFIter const& mfi,
+                          Array4<AlgGid const> const& gid,
+                          Array4<int const> const& lid,
+                          AlgInt* ncols, AlgInt* cols, Real* mat) const;
 #endif
 
 private:
@@ -161,7 +180,7 @@ private:
     GpuArray<Real,nelems> scaledSigma (int amrlev, int mglev) const noexcept;
 
     GpuArray<Real,nelems> m_sigma;
-    mutable int m_redblack = 0;
+    bool m_needs_update = false;
 };
 
 }

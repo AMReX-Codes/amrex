@@ -1287,7 +1287,7 @@ yyreduce:
     break;
 
   case 33: /* primary_exp: '(' or_exp ')'  */
-                                { (yyval.n) = (yyvsp[-1].n); }
+                                { (yyval.n) = amrex::parser_newparen((yyvsp[-1].n)); }
     break;
 
   case 34: /* primary_exp: F1 '(' or_exp ')'  */

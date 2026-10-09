@@ -2,6 +2,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 
 using namespace amrex;
@@ -32,7 +33,7 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
         IntVect iv(AMREX_D_DECL(i,j,k));
         Real r = 1.0_rt;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Real x = (iv[idim]+0.5_rt) * dx[idim];
+            Real x = (Real(iv[idim])+0.5_rt) * dx[idim];
             if (fft_bc[idim].first == FFT::Boundary::periodic) {
                 r *= (0.11_rt + std::sin((x+0.1_rt)*fac[idim]));
             } else if (fft_bc[idim].first == FFT::Boundary::even &&
@@ -67,13 +68,49 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
     if (! has_dirichlet) {
         // Shift rhs so that its sum is zero.
         auto rhosum = rhs.sum(0);
-        rhs.plus(-rhosum/geom.Domain().d_numPts(), 0, 1);
+        rhs.plus(Real(-rhosum/geom.Domain().d_numPts()), 0, 1);
     }
 }
 
-std::pair<Real,Real> check_convergence
-    (MultiFab const& phi, MultiFab const& rhs, Geometry const& geom)
+#if (AMREX_SPACEDIM == 3)
+// Make the sum of rhs zero on every z-plane if the 2D problems are singular.
+void make_rhs_2d (MultiFab& rhs, Geometry const& geom,
+                  Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM> const& fft_bc)
 {
+    make_rhs(rhs, geom, fft_bc);
+
+    bool has_dirichlet = false;
+    auto domlen = geom.Domain().length();
+    for (int idim = 0; idim < 2; ++idim) {
+        if (domlen[idim] > 1) {
+            has_dirichlet = has_dirichlet ||
+                fft_bc[idim].first == FFT::Boundary::odd ||
+                fft_bc[idim].second == FFT::Boundary::odd;
+        }
+    }
+    if (! has_dirichlet) {
+        auto const& hsum = sumToLine(rhs, 0, 1, geom.Domain(), 2);
+        Gpu::DeviceVector<Real> dsum(hsum.size());
+        Gpu::copyAsync(Gpu::hostToDevice, hsum.begin(), hsum.end(), dsum.begin());
+        auto const* psum = dsum.data();
+        auto npts = Real(domlen[0]) * Real(domlen[1]);
+        auto const& rhsma = rhs.arrays();
+        ParallelFor(rhs, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+        {
+            rhsma[b](i,j,k) -= psum[k] / npts;
+        });
+        Gpu::streamSynchronize();
+    }
+}
+#endif
+
+std::pair<Real,Real> check_convergence
+    (MultiFab const& phi, MultiFab const& rhs, Geometry const& geom,
+     bool include_z = true)
+{
+#if (AMREX_SPACEDIM < 3)
+    amrex::ignore_unused(include_z);
+#endif
     MultiFab res(phi.boxArray(), phi.DistributionMap(), 1, 0);
     auto const& res_ma = res.arrays();
     auto const& phi_ma = phi.const_arrays();
@@ -97,7 +134,7 @@ std::pair<Real,Real> check_convergence
         }
 #endif
 #if (AMREX_SPACEDIM == 3)
-        if (domlen[2] > 1) {
+        if (include_z && domlen[2] > 1) {
             lap += (phia(i,j,k-1)-2._rt*phia(i,j,k)+phia(i,j,k+1)) * lapfac[2];
         }
 #endif
@@ -118,9 +155,9 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
         AMREX_D_TERM(Real prob_lo_x = 0.;,
                      Real prob_lo_y = 0.;,
                      Real prob_lo_z = 0.);
-        AMREX_D_TERM(Real prob_hi_x = 1.1;,
-                     Real prob_hi_y = 0.8;,
-                     Real prob_hi_z = 1.9);
+        AMREX_D_TERM(Real prob_hi_x = Real(1.1);,
+                     Real prob_hi_y = Real(0.8);,
+                     Real prob_hi_z = Real(1.9));
 
         {
             ParmParse pp;
@@ -199,7 +236,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             amrex::Print() << "       rhs inf norm " << bnorm << "\n"
                            << "       res inf norm " << rnorm << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 2.e-3f;
+            auto eps = 2.e-3F;
 #else
             auto eps = 2.e-10;
 #endif
@@ -240,19 +277,72 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             amrex::Print() << "       rhs inf norm " << bnorm << "\n"
                            << "       res inf norm " << rnorm << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 2.e-3f;
+            auto eps = 2.e-3F;
 #else
             auto eps = 2.e-10;
 #endif
             AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
         }}}
+
+        amrex::Print() << "  Testing PoissonHybrid::solve_2d\n";
+
+        icase = 0;
+        for (int ycase = 0; ycase < ncasesy; ++ycase) {
+        for (int xcase = 0; xcase < ncasesx; ++xcase) {
+            ++icase;
+            // Each z-plane is solved on its own; z must not be periodic.
+            Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
+                fft_bc{bcs[xcase], bcs[ycase], bcs[2]};
+            amrex::Print() << "  (" << icase << ") Testing (";
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                amrex::Print() << "(" << getEnumNameString(fft_bc[idim].first)
+                               << "," << getEnumNameString(fft_bc[idim].second)
+                               << ")";
+                if (idim+1 < AMREX_SPACEDIM) { amrex::Print() << " "; }
+            }
+            amrex::Print() << ")\n";
+
+            MultiFab rhs(ba,dm,1,0);
+            MultiFab soln(ba,dm,1,1);
+            soln.setVal(std::numeric_limits<Real>::max());
+            make_rhs_2d(rhs, geom, fft_bc);
+
+            FFT::PoissonHybrid fft_poisson(geom, fft_bc);
+            fft_poisson.solve_2d(soln, rhs);
+
+            auto [bnorm, rnorm] = check_convergence(soln, rhs, geom, false);
+            amrex::Print() << "       rhs inf norm " << bnorm << "\n"
+                           << "       res inf norm " << rnorm << "\n";
+#ifdef AMREX_USE_FLOAT
+            auto eps = 2.e-3F;
+#else
+            auto eps = 2.e-10;
+#endif
+            AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
+        }}
 #endif
     }
 }
 
 int main (int argc, char* argv[])
 {
-    amrex::Initialize(argc, argv);
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, [] () {
+        // Trap floating-point exceptions unless the command line says
+        // otherwise. The singular cases (no Dirichlet boundary) must not
+        // divide by the zero wavenumber, not even speculatively. Optimized
+        // clang builds are skipped, because by default clang may raise
+        // exceptions the source does not (e.g., in unused SIMD lanes).
+#if defined(__clang__) && !defined(AMREX_DEBUG)
+        constexpr int trap_default = 0;
+#else
+        constexpr int trap_default = 1;
+#endif
+        ParmParse pp("amrex");
+        int trap = trap_default;
+        pp.queryAdd("fpe_trap_invalid", trap);
+        trap = trap_default;
+        pp.queryAdd("fpe_trap_zero", trap);
+    });
     {
         BL_PROFILE("main");
 

@@ -338,134 +338,132 @@ if __name__ == "__main__":
     if args.output_dir:
         os.makedirs(args.output_dir, exist_ok=True)
         dest_path = os.path.join(args.output_dir, dest_path)
-    fout = open(dest_path, "w")
+    with open(dest_path, "w") as fout:
 
-    # dictionary view of the args
-    dargs = vars(args)
+        # dictionary view of the args
+        dargs = vars(args)
 
-    for line in source.splitlines():
+        for line in source.splitlines():
 
-        index = line.find("@@")
+            index = line.find("@@")
 
-        if index >= 0:
-            index2 = line.rfind("@@")
-            keyword = line[index+len("@@"):index2]
+            if index >= 0:
+                index2 = line.rfind("@@")
+                keyword = line[index+len("@@"):index2]
 
-            if keyword == "BUILD_DATE":
-                newline = line.replace("@@BUILD_DATE@@", build_date)
-                fout.write(newline)
+                if keyword == "BUILD_DATE":
+                    newline = line.replace("@@BUILD_DATE@@", build_date)
+                    fout.write(newline)
 
-            elif keyword == "BUILD_DIR":
-                newline = line.replace("@@BUILD_DIR@@", build_dir)
-                fout.write(newline)
+                elif keyword == "BUILD_DIR":
+                    newline = line.replace("@@BUILD_DIR@@", build_dir)
+                    fout.write(newline)
 
-            elif keyword == "BUILD_MACHINE":
-                newline = line.replace("@@BUILD_MACHINE@@", build_machine)
-                fout.write(newline)
+                elif keyword == "BUILD_MACHINE":
+                    newline = line.replace("@@BUILD_MACHINE@@", build_machine)
+                    fout.write(newline)
 
-            elif keyword == "AUX_DECLS":
-                indent = index
-                aux_str = ""
-                for n, a in enumerate(AUX):
-                    aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
-                        indent*" ", n+1, a)
-
-                fout.write(aux_str)
-
-            elif keyword == "AUX_CASE":
-                indent = index
-                aux_str = ""
-                for i in range(len(AUX)):
-                    aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
-                        indent*" ", i+1, i+1)
-
-                fout.write(aux_str)
-
-            elif keyword == "NUM_MODULES":
-                num_modules = len(MODULES)
-                indent = index
-                fout.write("{}int const num_modules = {};\n".format(
-                    indent*" ", num_modules))
-
-            elif keyword == "MNAME_DECLS":
-                indent = index
-                aux_str = ""
-                if len(MODULES) > 0:
-                    for i, m in enumerate(list(mod_dict.keys())):
+                elif keyword == "AUX_DECLS":
+                    indent = index
+                    aux_str = ""
+                    for n, a in enumerate(AUX):
                         aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
-                            indent*" ", i+1, m)
+                            indent*" ", n+1, a)
 
-                fout.write(aux_str)
+                    fout.write(aux_str)
 
-            elif keyword == "MNAME_CASE":
-                indent = index
-                aux_str = ""
-                if len(MODULES) > 0:
-                    for i, m in enumerate(list(mod_dict.keys())):
+                elif keyword == "AUX_CASE":
+                    indent = index
+                    aux_str = ""
+                    for i in range(len(AUX)):
                         aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
                             indent*" ", i+1, i+1)
 
-                fout.write(aux_str)
+                    fout.write(aux_str)
 
-            elif keyword == "MVAL_DECLS":
-                indent = index
-                aux_str = ""
-                if len(MODULES) > 0:
-                    for i, m in enumerate(list(mod_dict.keys())):
-                        aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
-                            indent*" ", i+1, mod_dict[m])
+                elif keyword == "NUM_MODULES":
+                    num_modules = len(MODULES)
+                    indent = index
+                    fout.write("{}int const num_modules = {};\n".format(
+                        indent*" ", num_modules))
 
-                fout.write(aux_str)
+                elif keyword == "MNAME_DECLS":
+                    indent = index
+                    aux_str = ""
+                    if len(MODULES) > 0:
+                        for i, m in enumerate(list(mod_dict.keys())):
+                            aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
+                                indent*" ", i+1, m)
 
-            elif keyword == "MVAL_CASE":
-                indent = index
-                aux_str = ""
-                if len(MODULES) > 0:
-                    for i, m in enumerate(list(mod_dict.keys())):
-                        aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+                    fout.write(aux_str)
+
+                elif keyword == "MNAME_CASE":
+                    indent = index
+                    aux_str = ""
+                    if len(MODULES) > 0:
+                        for i, m in enumerate(list(mod_dict.keys())):
+                            aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+                                indent*" ", i+1, i+1)
+
+                    fout.write(aux_str)
+
+                elif keyword == "MVAL_DECLS":
+                    indent = index
+                    aux_str = ""
+                    if len(MODULES) > 0:
+                        for i, m in enumerate(list(mod_dict.keys())):
+                            aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
+                                indent*" ", i+1, mod_dict[m])
+
+                    fout.write(aux_str)
+
+                elif keyword == "MVAL_CASE":
+                    indent = index
+                    aux_str = ""
+                    if len(MODULES) > 0:
+                        for i, m in enumerate(list(mod_dict.keys())):
+                            aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+                                indent*" ", i+1, i+1)
+
+                    fout.write(aux_str)
+
+                elif keyword == "GIT_DECLS":
+                    indent = index
+                    git_str = ""
+                    for i, gh in enumerate(git_hashes):
+                        git_str += '{}static const char HASH{:1d}[] = "{}";\n'.format(
+                            indent*" ", i+1, gh)
+
+                    fout.write(git_str)
+
+                elif keyword == "GIT_CASE":
+                    indent = index
+                    git_str = ""
+                    for i in range(len(git_hashes)):
+                        git_str += '{}case {:1d}: return HASH{:1d};\n'.format(
                             indent*" ", i+1, i+1)
 
-                fout.write(aux_str)
+                    fout.write(git_str)
 
-            elif keyword == "GIT_DECLS":
-                indent = index
-                git_str = ""
-                for i, gh in enumerate(git_hashes):
-                    git_str += '{}static const char HASH{:1d}[] = "{}";\n'.format(
-                        indent*" ", i+1, gh)
+                elif keyword == "BUILDGIT_DECLS":
+                    indent = index
+                    git_str = '{}static const char HASH[] = "{}";\n'.format(
+                        indent*" ", build_git_hash)
+                    fout.write(git_str)
 
-                fout.write(git_str)
+                elif keyword == "BUILDGIT_NAME":
+                    indent = index
+                    git_str = '{}static const char NAME[] = "{}";\n'.format(
+                        indent*" ", args.build_git_name)
+                    fout.write(git_str)
 
-            elif keyword == "GIT_CASE":
-                indent = index
-                git_str = ""
-                for i in range(len(git_hashes)):
-                    git_str += '{}case {:1d}: return HASH{:1d};\n'.format(
-                        indent*" ", i+1, i+1)
+                elif keyword in dargs:
+                    # simple replacement using the commandline arguments
+                    newline = line.replace(f"@@{keyword}@@",
+                                           dargs[keyword].replace('"', r'\"'))
+                    fout.write(newline)
 
-                fout.write(git_str)
+            else:
+                fout.write(line)
 
-            elif keyword == "BUILDGIT_DECLS":
-                indent = index
-                git_str = '{}static const char HASH[] = "{}";\n'.format(
-                    indent*" ", build_git_hash)
-                fout.write(git_str)
-
-            elif keyword == "BUILDGIT_NAME":
-                indent = index
-                git_str = '{}static const char NAME[] = "{}";\n'.format(
-                    indent*" ", args.build_git_name)
-                fout.write(git_str)
-
-            elif keyword in dargs:
-                # simple replacement using the commandline arguments
-                newline = line.replace(f"@@{keyword}@@",
-                                       dargs[keyword].replace('"', r'\"'))
-                fout.write(newline)
-
-        else:
-            fout.write(line)
-
-        fout.write("\n")
-
-    fout.close()
+            fout.write("\n")

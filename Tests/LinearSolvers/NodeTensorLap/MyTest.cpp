@@ -16,6 +16,13 @@ MyTest::MyTest ()
 }
 
 void
+MyTest::setMultigridType (std::string const& name)
+{
+    multigrid_type = amrex::getEnumCaseInsensitive<MultigridType>(name);
+    amrex::Print() << "\nMultigrid type: " << name << "\n";
+}
+
+void
 MyTest::solve ()
 {
     MLNodeTensorLaplacian linop(geom, grids, dmap,
@@ -35,6 +42,7 @@ MyTest::solve ()
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMultigridType(multigrid_type);
 #ifdef AMREX_USE_HYPRE
     if (use_hypre) {
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -95,11 +103,17 @@ MyTest::readParameters ()
 #endif
 
     pp.query("verbose", verbose);
+    pp.query("do_plots", do_plots);
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("reltol", reltol);
+#ifdef AMREX_USE_FLOAT
+    reltol = std::max(reltol, 1.e-5F);
+#endif
+
+    pp.queryarr("multigrid_types", multigrid_types);
 
     Vector<Real> vbeta;
     pp.queryarr("beta", vbeta);
@@ -166,18 +180,18 @@ MyTest::initData ()
                 constexpr Real pi = std::numbers::pi_v<Real>;
                 constexpr Real tpi = 2.*pi;
                 constexpr Real fpi = 4.*pi;
-                constexpr Real fac = 4.*pi*pi;
+                constexpr Real fac = Real(4.)*pi*pi;
 
-                Real x = i*dx[0];
-                Real y = j*dx[1];
+                Real x = Real(i)*dx[0];
+                Real y = Real(j)*dx[1];
 #if (AMREX_SPACEDIM == 2)
                 Real z = 0;
 #else
-                Real z = k*dx[2];
+                Real z = Real(k)*dx[2];
 #endif
 
                 phi(i,j,k) = (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z))
-                    + 0.25 * (std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
+                    + Real(0.25) * (std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
 
                 Real d2phidx2 = -fac * (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
                                       + std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
@@ -186,21 +200,21 @@ MyTest::initData ()
                                       + std::sin(fpi*x) * std::sin(fpi*y) * std::cos(fpi*z));
 
 #if (AMREX_SPACEDIM == 2)
-                rh(i,j,k) = (1.0-lbeta[0]*lbeta[0]) * d2phidx2
-                    +       (1.0-lbeta[1]*lbeta[1]) * d2phidy2
-                    -         2.*lbeta[0]*lbeta[1]  * d2phidxdy;
+                rh(i,j,k) = (Real(1.0)-lbeta[0]*lbeta[0]) * d2phidx2
+                    +       (Real(1.0)-lbeta[1]*lbeta[1]) * d2phidy2
+                    -         Real(2.)*lbeta[0]*lbeta[1]  * d2phidxdy;
 #else
                 Real d2phidz2 = d2phidx2;
                 Real d2phidxdz = fac * (std::sin(tpi*x) * std::sin(tpi*z) * std::cos(tpi*y)
                                       + std::sin(fpi*x) * std::sin(fpi*z) * std::cos(fpi*y));
                 Real d2phidydz = fac * (std::sin(tpi*y) * std::sin(tpi*z) * std::cos(tpi*x)
                                       + std::sin(fpi*y) * std::sin(fpi*z) * std::cos(fpi*x));
-                rh(i,j,k) = (1.0-lbeta[0]*lbeta[0]) * d2phidx2
-                    +       (1.0-lbeta[1]*lbeta[1]) * d2phidy2
-                    +       (1.0-lbeta[2]*lbeta[2]) * d2phidz2
-                    -         2.*lbeta[0]*lbeta[1]  * d2phidxdy
-                    -         2.*lbeta[0]*lbeta[2]  * d2phidxdz
-                    -         2.*lbeta[1]*lbeta[2]  * d2phidydz;
+                rh(i,j,k) = (Real(1.0)-lbeta[0]*lbeta[0]) * d2phidx2
+                    +       (Real(1.0)-lbeta[1]*lbeta[1]) * d2phidy2
+                    +       (Real(1.0)-lbeta[2]*lbeta[2]) * d2phidz2
+                    -         Real(2.)*lbeta[0]*lbeta[1]  * d2phidxdy
+                    -         Real(2.)*lbeta[0]*lbeta[2]  * d2phidxdz
+                    -         Real(2.)*lbeta[1]*lbeta[2]  * d2phidydz;
 #endif
             });
         }

@@ -1,3 +1,5 @@
+#include <AMReX_Config.H>
+
 module amrex_eb_flux_reg_nd_module
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -7,7 +9,11 @@ module amrex_eb_flux_reg_nd_module
   integer, parameter :: crse_cell = 0
   integer, parameter :: crse_fine_boundary_cell = 1
   integer, parameter :: fine_cell = 2
+#ifdef AMREX_USE_FLOAT
+  real(amrex_real), save :: reredistribution_threshold = 1.e-5_amrex_real
+#else
   real(amrex_real), save :: reredistribution_threshold = 1.d-14
+#endif
 
 contains
 

@@ -346,7 +346,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
         std::vector< std::pair<int,Box> > isects;
 
-        std::vector<IntVect> pshifts = m_period.shiftIntVect(ng_dst);
+        // Reach of the intersections below: src grow + dst grow + |offset|,
+        // plus one in each nodal direction, because a nodal box is one
+        // longer than the periodic length.
+        IntVect const reach = ng_src + ng_dst + ba_dst.ixType().toIntVect()
+            + amrex::max(m_offset, -m_offset);
+        std::vector<IntVect> pshifts = m_period.shiftIntVect(reach);
         for (auto& pit : pshifts) { pit += m_offset; }
 
         auto& send_tags = *m_SndTags;
@@ -1196,7 +1201,10 @@ FabArrayBase::FB::define_sb (const FabArrayBase& fa)
     const IntVect& ngsrc = m_sb_snghost;
 
     std::vector<std::pair<int,Box>> isects;
-    const std::vector<IntVect>& pshifts = m_period.shiftIntVect(amrex::max(ngdst,ngsrc));
+    // Reach of the intersections below: src grow + dst grow, plus one in each
+    // nodal direction, because a nodal box is one longer than the periodic length.
+    const std::vector<IntVect>& pshifts
+        = m_period.shiftIntVect(ngdst + ngsrc + ba.ixType().toIntVect());
 
     // In almost all cases of SumBoundary, the operation is not thread
     // safe. So we will assume it's always thread unsafe, which is the
@@ -2746,6 +2754,44 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
     detail::build_par_for_boxes(m_hp, m_boxes, boxes);
 }
 
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& stride,
+                                      const IntVect& offset)
+    : m_bat(fa.boxArray().transformer()),
+      m_kind(Kind::strided),
+      m_ng(0),
+      m_stride(stride),
+      m_offset(offset)
+{
+    Vector<Box> boxes;
+    m_ncellsmax = 0;
+    for (int K : fa.indexArray) {
+        Box const& b = fa.box(K);
+        boxes.push_back(b.ok() ? detail::strided_box(b, stride, offset) : Box());
+        m_ncellsmax = std::max(m_ncellsmax, boxes.back().numPts());
+    }
+    detail::build_par_for_boxes(m_hp, m_boxes, boxes);
+}
+
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, RedBlack)
+    : m_bat(fa.boxArray().transformer()),
+      m_kind(Kind::redblack),
+      m_ng(0)
+{
+    const IntVect stride(AMREX_D_DECL(2,1,1));
+    Vector<Box> boxes;
+    m_ncellsmax = 0;
+    for (int K : fa.indexArray) {
+        Box const& b = fa.box(K);
+        for (int parity = 0; parity < 2; ++parity) {
+            const IntVect offset(AMREX_D_DECL(parity,0,0));
+            boxes.push_back(b.ok() ? detail::strided_box(b, stride, offset) : Box());
+            // A launch enumerates the larger of the two lattices.
+            m_ncellsmax = std::max(m_ncellsmax, boxes.back().numPts());
+        }
+    }
+    detail::build_par_for_boxes(m_hp, m_boxes, boxes);
+}
+
 FabArrayBase::ParForInfo::~ParForInfo ()
 {
     detail::destroy_par_for_boxes(m_hp, (char*)m_boxes);
@@ -2758,6 +2804,7 @@ FabArrayBase::getParForInfo (const IntVect& nghost) const
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         if (it->second->m_bat        == boxArray().transformer() &&
+            it->second->m_kind       == ParForInfo::Kind::full &&
             it->second->m_ng         == nghost)
         {
             return *(it->second);
@@ -2765,6 +2812,46 @@ FabArrayBase::getParForInfo (const IntVect& nghost) const
     }
 
     ParForInfo* new_pfi = new ParForInfo(*this, nghost);
+    m_TheParForCache.insert(er_it.second,
+                            std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
+    return *new_pfi;
+}
+
+FabArrayBase::ParForInfo const&
+FabArrayBase::getParForInfo (const IntVect& stride, const IntVect& offset) const
+{
+    AMREX_ASSERT(getBDKey() == m_bdkey);
+    auto er_it = m_TheParForCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it) {
+        if (it->second->m_bat        == boxArray().transformer() &&
+            it->second->m_kind       == ParForInfo::Kind::strided &&
+            it->second->m_stride     == stride &&
+            it->second->m_offset     == offset)
+        {
+            return *(it->second);
+        }
+    }
+
+    ParForInfo* new_pfi = new ParForInfo(*this, stride, offset);
+    m_TheParForCache.insert(er_it.second,
+                            std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
+    return *new_pfi;
+}
+
+FabArrayBase::ParForInfo const&
+FabArrayBase::getParForInfoRedBlack () const
+{
+    AMREX_ASSERT(getBDKey() == m_bdkey);
+    auto er_it = m_TheParForCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it) {
+        if (it->second->m_bat        == boxArray().transformer() &&
+            it->second->m_kind       == ParForInfo::Kind::redblack)
+        {
+            return *(it->second);
+        }
+    }
+
+    ParForInfo* new_pfi = new ParForInfo(*this, ParForInfo::RedBlack{});
     m_TheParForCache.insert(er_it.second,
                             std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
     return *new_pfi;

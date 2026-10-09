@@ -58,6 +58,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
+    const bool treat_phi_as_on_centroid = (m_phi_loc == Location::CellCentroid) && (mglev == 0);
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
@@ -73,7 +75,14 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                      Array4<Real const> const& byfab = bycoef.const_array(mfi);,
                      Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        // With phi on centroids, a regular cell next to a cut cell needs the EB stencil.
+        auto fabtyp = FabType::regular;
+        if (flags) {
+            auto const& flagfab = (*flags)[mfi];
+            fabtyp = (treat_phi_as_on_centroid)
+                ? flagfab.getType(amrex::grow(bx,1) & flagfab.box())
+                : flagfab.getType(bx);
+        }
 
         if (fabtyp == FabType::covered) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
@@ -117,8 +126,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
-
-            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
             if (treat_phi_as_on_centroid) {
 #ifdef AMREX_USE_HIP
@@ -173,6 +180,26 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         }
     }
 }
+
+// Red-black sweep over one box. On GPU, launch over the half box hbx and map
+// ic back to i, so that only the cells of this color get a thread. On the
+// host, loop over the full box; the kernels skip the other color. Uses hbx,
+// vbx, nc, xlo, xhi and redblack from the enclosing scope.
+#ifdef AMREX_USE_GPU
+#define EB_GSRB_LAUNCH(...)                                               \
+    if (Gpu::inLaunchRegion()) {                                          \
+        amrex::ParallelFor(hbx, nc,                                       \
+        [=] AMREX_GPU_DEVICE (int ic, int j, int k, int n) noexcept       \
+        {                                                                 \
+            const int i = 2*ic + ((j+k+redblack)&1);                      \
+            if (i >= xlo && i <= xhi) { __VA_ARGS__ }                     \
+        });                                                               \
+    } else {                                                              \
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n, __VA_ARGS__) \
+    }
+#else
+#define EB_GSRB_LAUNCH(...) AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n, __VA_ARGS__)
+#endif
 
 void
 MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
@@ -253,6 +280,14 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         const auto& rhsfab  = rhs.const_array(mfi);
         const auto& afab    = acoef.const_array(mfi);
 
+#ifdef AMREX_USE_GPU
+        Box hbx = vbx;
+        hbx.setSmall(0, amrex::coarsen(vbx.smallEnd(0),2));
+        hbx.setBig  (0, amrex::coarsen(vbx.bigEnd  (0),2));
+        const int xlo = vbx.smallEnd(0);
+        const int xhi = vbx.bigEnd(0);
+#endif
+
         AMREX_D_TERM(const auto& bxfab = bxcoef.const_array(mfi);,
                      const auto& byfab = bycoef.const_array(mfi);,
                      const auto& bzfab = bzcoef.const_array(mfi););
@@ -281,7 +316,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         {
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                EB_GSRB_LAUNCH(
                 {
                     abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
@@ -293,7 +328,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  osm, vbx, redblack);
                 });
             } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                EB_GSRB_LAUNCH(
                 {
                     abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
                               AMREX_D_DECL(dhx, dhy, dhz),
@@ -319,11 +354,11 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
+            EB_GSRB_LAUNCH(
             {
                 mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_2D_ONLY_ARGS(dh,h)
+                                 AMREX_2D_ONLY_ARGS(dh) h,
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
                                  AMREX_D_DECL(m0,m2,m4),
                                  AMREX_D_DECL(m1,m3,m5),
@@ -335,7 +370,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             });
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                EB_GSRB_LAUNCH(
                 {
                     if (((i+j+k+redblack)%2 == 0) && (osm(i,j,k) == 0)) {
                         solnfab(i,j,k,n) = Real(0.0);
@@ -345,6 +380,8 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         }
     }
 }
+
+#undef EB_GSRB_LAUNCH
 
 void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,

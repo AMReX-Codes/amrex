@@ -295,7 +295,11 @@ void eb_interp_cc2facecent_x (Box const& ubx,
     {
       if (apx(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+        edg_x(i,j,k,n) = Real(1e20);
+#else
         edg_x(i,j,k,n) = 1e40;
+#endif
       }
       else
       {
@@ -346,7 +350,11 @@ void eb_interp_cc2facecent_y (Box const& vbx,
     {
       if (apy(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+        edg_y(i,j,k,n) = Real(1e20);
+#else
         edg_y(i,j,k,n) = 1e40;
+#endif
       }
       else
       {
@@ -395,11 +403,20 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
       if (apx(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+          edg_x(i,j,k,n) = Real(1e20);
+#else
           edg_x(i,j,k,n) = 1e40;
+#endif
       }
       else if ( (i == domlo.x) && (bc[n].lo(0) == BCType::ext_dir) )
       {
@@ -413,7 +430,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           edg_x(i,j,k,n) = 0.5_rt * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
       }
-      else if (apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < Real(1.e-8)) )
+      else if (apx(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < small_ctr) )
       {
           Real d0 = 0.5_rt + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1 = 0.5_rt - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
@@ -425,7 +442,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           int ii = i - 1;
           int jj;
-          if (std::abs(fcx(i,j,k)) > Real(1.e-8)) {
+          if (std::abs(fcx(i,j,k)) > small_ctr) {
               jj = (fcx(i,j,k) < 0.0_rt) ? j - 1 : j + 1;
           } else {
 
@@ -434,6 +451,19 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               Real min_vol_lo = std::min(cvol(i,j-1,k),cvol(ii,j-1,k));
               Real min_vol_hi = std::min(cvol(i,j+1,k),cvol(ii,j+1,k));
               jj = (min_vol_lo > min_vol_hi) ? j - 1 : j + 1;
+          }
+
+          // Avoid a row jj with a covered cell, as the 3D version does
+          if (cvol(i,jj,k) * cvol(ii,jj,k) == Real(0.)) {
+              int jalt = 2*j - jj;
+              if (cvol(i,jalt,k) * cvol(ii,jalt,k) > Real(0.)) {
+                  jj = jalt;
+              } else { // no usable row: interpolate in x only
+                  Real d0 = 0.5_rt + ccent( i,j,k,0);
+                  Real d1 = 0.5_rt - ccent(ii,j,k,0);
+                  edg_x(i,j,k,n) = (d1*phi(i,j,k,n) + d0*phi(ii,j,k,n)) / (d0 + d1);
+                  return;
+              }
           }
 
           Real d0    = 0.5_rt + ccent( i,j,k,0);                                 // distance in x-dir from centroid(i  ,j) to face(i,j)
@@ -455,8 +485,10 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real phi01_jj = a0_jj *   phi(i,jj,k,n)  + a1_jj *   phi(ii,jj,k,n); // interpolation of phi   in x-direction
           Real y01_jj   = a0_jj * ccent(i,jj,k,1)  + a1_jj * ccent(ii,jj,k,1); // interpolation of y-loc in x-direction
 
-          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj +
-                             (Real(1.) - fcx(i,j,k) + y01_jj) * phi01    ) / (Real(1.) - y01 + y01_jj);
+          Real yjj = Real(jj-j) + y01_jj;                                   // y-loc of row jj relative to face(i,j)
+
+          edg_x(i,j,k,n) = ( (fcx(i,j,k) - y01) * phi01_jj +
+                             (yjj - fcx(i,j,k)) * phi01    ) / (yjj - y01);
       }
   });
 }
@@ -475,11 +507,20 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
+#ifdef AMREX_USE_FLOAT
+  constexpr Real small_ctr = Real(1.e-4); // centroid offsets below this are treated as zero
+#else
+  constexpr Real small_ctr = Real(1.e-8);
+#endif
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
    {
       if (apy(i,j,k) == 0)
       {
+#ifdef AMREX_USE_FLOAT
+          edg_y(i,j,k,n) = Real(1e20);
+#else
           edg_y(i,j,k,n) = 1e40;
+#endif
       }
       else if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
       {
@@ -493,7 +534,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
       {
           edg_y(i,j,k,n) = 0.5_rt * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
       }
-      else if (apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < Real(1.e-8)) )
+      else if (apy(i,j,k) == Real(1.) && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < small_ctr) )
       {
           Real d0 = 0.5_rt + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ) to face(i,j)
           Real d1 = 0.5_rt - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1) to face(i,j)
@@ -505,17 +546,27 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
       {
           int jj = j - 1;
           int ii;
-
-          // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
-          //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
-          if (std::abs(fcy(i,j,k)) > Real(1.e-8)) {
+          if (std::abs(fcy(i,j,k)) > small_ctr) {
               ii = (fcy(i,j,k) < 0.0_rt) ? i - 1 : i + 1;
           } else {
-              // We must add an additional test to avoid the case where fcx is very close to zero,
+              // We must add an additional test to avoid the case where fcy is very close to zero,
               //     but the cells at (i-1) or (i+1) might be covered or very small cells
               Real min_vol_lo = std::min(cvol(i-1,j,k),cvol(i-1,jj,k));
               Real min_vol_hi = std::min(cvol(i+1,j,k),cvol(i+1,jj,k));
               ii = (min_vol_lo > min_vol_hi) ? i - 1 : i + 1;
+          }
+
+          // Avoid a column ii with a covered cell, as the 3D version does
+          if (cvol(ii,j,k) * cvol(ii,jj,k) == Real(0.)) {
+              int ialt = 2*i - ii;
+              if (cvol(ialt,j,k) * cvol(ialt,jj,k) > Real(0.)) {
+                  ii = ialt;
+              } else { // no usable column: interpolate in y only
+                  Real d0 = 0.5_rt + ccent(i, j,k,1);
+                  Real d1 = 0.5_rt - ccent(i,jj,k,1);
+                  edg_y(i,j,k,n) = (d1*phi(i,j,k,n) + d0*phi(i,jj,k,n)) / (d0 + d1);
+                  return;
+              }
           }
 
           Real d0    = 0.5_rt + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
@@ -527,8 +578,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real a0    = d1 / (d0 + d1);                                         // coefficient of phi(i,j  ,k,n)
           Real a1    = d0 / (d0 + d1);                                         // coefficient of phi(i,j-1,k,n)
 
-          Real a0_ii = d1_ii / (d0_ii + d1_ii);                                // coefficient of phi(i  ,jj,k,n)
-          Real a1_ii = d0_ii / (d0_ii + d1_ii);                                // coefficient of phi(i-1,jj,k,n)
+          Real a0_ii = d1_ii / (d0_ii + d1_ii);                                // coefficient of phi(ii,j  ,k,n)
+          Real a1_ii = d0_ii / (d0_ii + d1_ii);                                // coefficient of phi(ii,j-1,k,n)
 
           Real phi01    = a0    *   phi( i,j,k,n)  + a1    *   phi( i,jj,k,n); // interpolation of phi   in y-direction
           Real x01      = a0    * ccent( i,j,k,0)  + a1    * ccent( i,jj,k,0); // interpolation of x-loc in y-direction
@@ -536,8 +587,10 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real phi01_ii = a0_ii *   phi(ii,j,k,n)  + a1_ii *   phi(ii,jj,k,n); // interpolation of phi   in y-direction
           Real x01_ii   = a0_ii * ccent(ii,j,k,0)  + a1_ii * ccent(ii,jj,k,0); // interpolation of x-loc in y-direction
 
-          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii +
-                             (Real(1.) - fcy(i,j,k) + x01_ii) * phi01    ) / (Real(1.) - x01 + x01_ii);
+          Real xii = Real(ii-i) + x01_ii;                                   // x-loc of column ii relative to face(i,j)
+
+          edg_y(i,j,k,n) = ( (fcy(i,j,k) - x01) * phi01_ii +
+                             (xii - fcy(i,j,k)) * phi01    ) / (xii - x01);
         }
     });
 }

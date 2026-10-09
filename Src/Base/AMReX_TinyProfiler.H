@@ -69,6 +69,20 @@ public:
     static void StopRegion (const std::string& regname) noexcept;
 
     static void PrintCallStack (std::ostream& os);
+
+    /**
+     * \brief Name of the innermost active profiler, or nullptr if there is none.
+     *
+     * Unlike PrintCallStack, this can be called from any thread while the
+     * profiled code is running, e.g., from a watchdog or status reporting
+     * thread, and it is async-signal-safe. Profilers started by threads
+     * other than the OpenMP master thread are not tracked.
+     *
+     * The returned string stays valid until amrex::Finalize. Do not call this
+     * concurrently with amrex::Finalize.
+     */
+    [[nodiscard]] static const char* CurrentName () noexcept;
+
     static void PrintMemoryUsage (std::ostream* os, bool only_local) noexcept;
 
 private:
@@ -138,6 +152,8 @@ private:
     int global_depth = -1;
     std::vector<Stats*> stats;
     std::vector<Stats*> selective_stats;
+    //! Value of current_name before this profiler started
+    const char* prev_name = nullptr;
 
     static std::deque<const TinyProfiler*> mem_stack;
 

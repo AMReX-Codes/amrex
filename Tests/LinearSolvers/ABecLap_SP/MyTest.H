@@ -68,7 +68,7 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 
-    amrex::Real ascalar = 1.e-3;
+    amrex::Real ascalar = amrex::Real(1.e-3);
     amrex::Real bscalar = 1.0;
 };
 

@@ -793,6 +793,28 @@ public:
         return retval;
     }
     /**
+    * \brief This static member function returns an IntVectND for the index
+    * type of faces normal to direction d: nodal in d and cell-centered
+    * in the other directions.  It is provided as a convenience to our
+    * users when defining face-centered Boxes and MultiFabs.
+    */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr IntVectND<dim> TheFaceVector (int d) noexcept {
+        return TheDimensionVector(d);
+    }
+    /**
+    * \brief This static member function returns an IntVectND for the index
+    * type of edges parallel to direction d: cell-centered in d and nodal
+    * in the other directions.  It is provided as a convenience to our
+    * users when defining edge-centered Boxes and MultiFabs.
+    */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr IntVectND<dim> TheEdgeVector (int d) noexcept {
+        IntVectND<dim> retval(1);
+        retval[d] = 0;
+        return retval;
+    }
+    /**
     * \brief This static member function returns a reference to a constant IntVectND
     * object, all of whose dim arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.
@@ -893,13 +915,17 @@ inline constexpr const IntVectND<dim> IntVectND<dim>::Unit{1};
 
 // Template deduction guide for IntVectND
 template<std::size_t dim>
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
 template <class...Args>
 requires (IsConvertible_v<int, Args...>)
+#if defined(__clang__) && __clang_major__ < 22
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
+#endif
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
 //! \brief IntVect is an alias for \ref amrex::IntVectND instantiated with

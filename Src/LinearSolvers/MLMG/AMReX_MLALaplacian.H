@@ -209,6 +209,7 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
             m_a_coeffs[amrlev][0].setVal(RT(0.0));
         }
     }
+    m_needs_update = true;
 }
 
 template <typename MF>
@@ -297,8 +298,36 @@ MLALaplacianT<MF>::updateSingularFlag ()
                     // are similar.
                     RT asum = m_a_coeffs[alev].back().sum(0,IntVect(0));
                     RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
-                    m_is_singular[alev] = (asum <= amax * RT(1.e-12));
+                    m_is_singular[alev] = (std::abs(asum) <= amax * RT(1.e-12));
                 }
+            }
+        }
+    }
+
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == BCType::Neumann)
+    {
+        bool lev0_a_is_zero = false;
+        if (m_a_scalar == RT(0.0)) {
+            lev0_a_is_zero = true;
+        } else {
+            RT asum = m_a_coeffs[0].back().sum(0,IntVect(0));
+            RT amax = m_a_coeffs[0].back().norminf(0,1,IntVect(0));
+            lev0_a_is_zero = std::abs(asum) <= amax * RT(1.e-12);
+        }
+
+        if (lev0_a_is_zero) {
+            auto bbox = this->m_grids[0][0].minimalBox();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (this->m_lobc[0][idim] == BCType::Dirichlet) {
+                    bbox.growLo(idim,1);
+                }
+                if (this->m_hibc[0][idim] == BCType::Dirichlet) {
+                    bbox.growHi(idim,1);
+                }
+            }
+            if (this->m_geom[0][0].Domain().contains(bbox)) {
+                m_is_singular[0] = true;
             }
         }
     }
@@ -513,6 +542,74 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
 #endif
 
     const RT alpha = m_a_scalar;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && !this->hasHiddenDimension())
+    {
+        const auto& m0ma = mm0.const_arrays();
+        const auto& m1ma = mm1.const_arrays();
+        const auto& f0ma = f0.const_arrays();
+        const auto& f1ma = f1.const_arrays();
+#if (AMREX_SPACEDIM > 1)
+        const auto& m2ma = mm2.const_arrays();
+        const auto& m3ma = mm3.const_arrays();
+        const auto& f2ma = f2.const_arrays();
+        const auto& f3ma = f3.const_arrays();
+#if (AMREX_SPACEDIM > 2)
+        const auto& m4ma = mm4.const_arrays();
+        const auto& m5ma = mm5.const_arrays();
+        const auto& f4ma = f4.const_arrays();
+        const auto& f5ma = f5.const_arrays();
+#endif
+#endif
+        const auto& solnma = sol.arrays();
+        const auto& rhsma = rhs.const_arrays();
+        const auto& ama = acoef.const_arrays();
+
+#if (AMREX_SPACEDIM < 3)
+        if (this->m_has_metric_term) {
+            ParallelForRedBlack(sol, ncomp, redblack,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                Box vbx(ama[box_no]);
+                mlalap_gsrb_m(i,j,k,n, solnma[box_no], rhsma[box_no], alpha,
+                              AMREX_D_DECL(dhx, dhy, dhz), ama[box_no],
+                              f0ma[box_no], m0ma[box_no],
+                              f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                              f2ma[box_no], m2ma[box_no],
+                              f3ma[box_no], m3ma[box_no],
+#endif
+                              vbx, redblack, dx, probxlo);
+            });
+        } else
+#endif
+        {
+            ParallelForRedBlack(sol, ncomp, redblack,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                Box vbx(ama[box_no]);
+                mlalap_gsrb(i,j,k,n, solnma[box_no], rhsma[box_no], alpha,
+                            AMREX_D_DECL(dhx, dhy, dhz), ama[box_no],
+                            f0ma[box_no], m0ma[box_no],
+                            f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                            f2ma[box_no], m2ma[box_no],
+                            f3ma[box_no], m3ma[box_no],
+#if (AMREX_SPACEDIM > 2)
+                            f4ma[box_no], m4ma[box_no],
+                            f5ma[box_no], m5ma[box_no],
+#endif
+#endif
+                            vbx, redblack);
+            });
+        }
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+        return;
+    }
+#endif
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }

@@ -726,7 +726,7 @@ void mlcurlcurl_smooth_1d (int i, int j, int k,
 {
     Real dxx = adxinv[0] * adxinv[0];
 
-    int my_color = i%2;
+    int my_color = i&1;
 
     if (my_color == color)
     {
@@ -813,7 +813,7 @@ void mlcurlcurl_smooth_1d (int i, int j, int k,
 {
     Real dxx = adxinv[0] * adxinv[0];
 
-    int my_color = i%2;
+    int my_color = i&1;
 
     if (my_color == color)
     {
@@ -900,7 +900,7 @@ void mlcurlcurl_smooth_1d_alpha_beta (int i, int j, int k,
 {
     Real dxx = adxinv[0] * adxinv[0];
 
-    int my_color = i%2;
+    int my_color = i&1;
     if (my_color != color) { return; }
 
     if (valid_x) {
@@ -1011,7 +1011,7 @@ void mlcurlcurl_smooth_1d_alpha (int i, int j, int k,
 {
     Real dxx = adxinv[0] * adxinv[0];
 
-    int my_color = i%2;
+    int my_color = i&1;
     if (my_color != color) { return; }
 
     if (valid_x) {
@@ -1123,8 +1123,8 @@ void mlcurlcurl_gs4_lu (int i, int j, int k,
 {
     if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
-    int my_color = i%2 + 2*(j%2);
-    if (k%2 != 0) {
+    int my_color = (i&1) + 2*(j&1);
+    if (k&1) {
         my_color = 3 - my_color;
     }
 
@@ -1296,8 +1296,8 @@ void mlcurlcurl_gs4 (int i, int j, int k,
 {
     if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
-    int my_color = i%2 + 2*(j%2);
-    if (k%2 != 0) {
+    int my_color = (i&1) + 2*(j&1);
+    if (k&1) {
         my_color = 3 - my_color;
     }
 
@@ -1624,8 +1624,8 @@ void mlcurlcurl_gs4_alpha (int i, int j, int k,
 {
     if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
-    int my_color = i%2 + 2*(j%2);
-    if (k%2 != 0) {
+    int my_color = (i&1) + 2*(j&1);
+    if (k&1) {
         my_color = 3 - my_color;
     }
 

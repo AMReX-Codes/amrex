@@ -1509,6 +1509,14 @@ public:
      * \param period periodic length if it's non-zero
      */
     void OverrideSync (int scomp, int ncomp, const Periodicity& period);
+    /**
+     * \brief Split-phase version of OverrideSync.
+     *
+     * OverrideSync_nowait starts the synchronization and OverrideSync_finish
+     * completes it.  On GPUs, the two calls must be made within the same
+     * external-stream region (if any), because the temporary storage created
+     * by OverrideSync_nowait is released in a stream-ordered fashion.
+     */
     void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period);
     void OverrideSync_finish ();
@@ -1709,7 +1717,7 @@ public:
 
     /**
      * \ingroup amrex_fabarray_communication
-     * \brief Return infinity norm
+     * \brief Return infinity norm.  A NaN counts as infinity.
      *
      * \param comp           starting component
      * \param ncomp          number of components
@@ -1727,7 +1735,7 @@ public:
 
     /**
      * \ingroup amrex_fabarray_communication
-     * \brief Return infinity norm in masked region
+     * \brief Return infinity norm in masked region.  A NaN counts as infinity.
      *
      * \param mask   only mask=true region is included
      * \param comp   starting component
@@ -1749,6 +1757,9 @@ protected:
     DataAllocator m_dallocator;
     std::unique_ptr<detail::SingleChunkArena> m_single_chunk_arena;
     Long m_single_chunk_size = 0;
+
+    //! Free the cached Array4s so that they are rebuilt by the next arrays() call.
+    void clear_arrays ();
 
     //! has define() been called?
     bool define_function_called = false;
@@ -1831,7 +1842,7 @@ private:
     requires (BaseFabType<F>)
     void build_arrays () const;
 
-    void clear_arrays ();
+    void clear_fab_caches ();
 
 #ifdef AMREX_USE_GPU
     std::map<std::uint64_t,
@@ -2131,8 +2142,14 @@ void
 FabArray<FAB>::clear_arrays ()
 {
 #ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
+    // The host-to-device copy of the Array4s issued in build_arrays() is
+    // asynchronous and is not synchronized when we are in a NoSync region.
+    // Use stream-ordered frees so that the pinned and device buffers are not
+    // reused before the copy and any kernels using them have completed.
+    if (m_hp_arrays) {
+        Gpu::freeAsync(The_Pinned_Arena(), m_hp_arrays);
+        Gpu::freeAsync(The_Arena(), m_dp_arrays);
+    }
     m_dp_arrays = nullptr;
 #else
     std::free(m_hp_arrays);
@@ -2140,6 +2157,18 @@ FabArray<FAB>::clear_arrays ()
     m_hp_arrays = nullptr;
     m_arrays.hp = nullptr;
     m_const_arrays.hp = nullptr;
+}
+
+template <class FAB>
+void
+FabArray<FAB>::clear_fab_caches ()
+{
+    clear_arrays();
+#ifdef AMREX_USE_GPU
+    m_fb_local_copy_handler.clear();
+    m_recv_copy_handler.clear();
+    m_send_copy_handler.clear();
+#endif
 }
 
 template <class FAB>
@@ -2156,6 +2185,7 @@ FabArray<FAB>::release (int K)
                 updateMemUsage(t, -nbytes, nullptr);
             }
         }
+        clear_fab_caches();
         return std::exchange(m_fabs_v[li], nullptr);
     } else {
         return nullptr;
@@ -2176,6 +2206,7 @@ FabArray<FAB>::release (const MFIter& mfi)
                 updateMemUsage(t, -nbytes, nullptr);
             }
         }
+        clear_fab_caches();
         return std::exchange(m_fabs_v[li], nullptr);
     } else {
         return nullptr;
@@ -2656,6 +2687,7 @@ FabArray<FAB>::setFab (int boxno, std::unique_ptr<FAB> elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = elem.release();
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2679,6 +2711,7 @@ FabArray<FAB>::setFab (int boxno, FAB&& elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = new FAB(std::move(elem));
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2700,6 +2733,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, std::unique_ptr<FAB> elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = elem.release();
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -2723,6 +2757,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, FAB&& elem)
         m_factory->destroy(m_fabs_v[li]);
     }
     m_fabs_v[li] = new FAB(std::move(elem));
+    clear_fab_caches();
 }
 
 template <class FAB>
@@ -4177,6 +4212,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
     using RT = typename F::value_type;
 
     auto nm0 = RT(0.0);
+    Math::detail::AbsNanToInf<RT> const absinf{};
 
 #ifdef AMREX_USE_EB
     if ( this->is_cell_centered() && this->hasEBFabFactory() && ignore_covered )
@@ -4196,7 +4232,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                     auto tmp = RT(0.0);
                     auto const& a = ma[box_no];
                     for (int n = 0; n < ncomp; ++n) {
-                        tmp = amrex::max(tmp, std::abs(a(i,j,k,comp+n)));
+                        tmp = amrex::max(tmp, absinf(a(i,j,k,comp+n)));
                     }
                     return tmp;
                 }
@@ -4215,7 +4251,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                     AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                     {
                         if (!flag(i,j,k).isCovered()) {
-                            nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
+                            nm0 = std::max(nm0, absinf(a(i,j,k,comp+n)));
                         }
                     });
                 }
@@ -4231,7 +4267,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
             nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
             {
-                return std::abs(ma[box_no](i,j,k,comp+n));
+                return absinf(ma[box_no](i,j,k,comp+n));
             });
         } else
 #endif
@@ -4244,7 +4280,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                 auto const& a = this->const_array(mfi);
                 AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                 {
-                    nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
+                    nm0 = std::max(nm0, absinf(a(i,j,k,comp+n)));
                 });
             }
         }
@@ -4269,6 +4305,7 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
     using RT = typename F::value_type;
 
     auto nm0 = RT(0.0);
+    Math::detail::AbsNanToInf<RT> const absinf{};
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -4281,7 +4318,7 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
                 auto tmp = RT(0.0);
                 auto const& a = ma[box_no];
                 for (int n = 0; n < ncomp; ++n) {
-                    tmp = amrex::max(tmp, std::abs(a(i,j,k,comp+n)));
+                    tmp = amrex::max(tmp, absinf(a(i,j,k,comp+n)));
                 }
                 return tmp;
             } else {
@@ -4301,7 +4338,7 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
             AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
             {
                 if (mskfab(i,j,k)) {
-                    nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
+                    nm0 = std::max(nm0, absinf(a(i,j,k,comp+n)));
                 }
             });
         }

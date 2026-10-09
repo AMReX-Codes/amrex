@@ -6,6 +6,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
+#include <AMReX_LayoutData.H>
 #include <AMReX_MLNodeLinOp.H>
 
 #include <limits>
@@ -29,6 +30,11 @@ namespace amrex {
 // scalar constant that is zero by default.
 //
 // New feature: sigma can also be a single-component cell-centered multifab.
+//
+// The EB information needed on the coarse MG levels (covered nodes and open
+// EB positions on edges) is built here from the level-0 factory, so multigrid
+// coarsening is not limited by the EB index space.  Coarsening stops at the
+// last level that still has a handful of open nodes.
 
 /**
  * \brief Nodal finite-difference Laplacian with optional embedded boundaries.
@@ -68,13 +74,20 @@ public:
     MLEBNodeFDLaplacian& operator= (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
-    //! Assign constant diagonal conductivity tensor `sigma`.
+    /**
+     * \brief Assign constant diagonal conductivity tensor `sigma`.
+     *
+     * A value set before the first solve also chooses the directions in
+     * which multigrid coarsens.  Later values change the operator, but not
+     * the coarsening.
+     */
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
-    //! Enable/disable RZ corrections (radial metrics).
+    //! Enable/disable RZ corrections (radial metrics).  The matrix built for
+    //! AlgMG and hypre is then the operator with rows weighted by r/dr.
     void setRZ (bool flag);
 
     //! Set the radial `alpha/r^2` term used when RZ is enabled.
@@ -108,9 +121,6 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
-
-    //! EB-aware factory allocator for (\p amrlev,\p mglev).
-    [[nodiscard]] std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
 
     [[nodiscard]] bool scaleRHS (int amrlev, MultiFab* rhs) const final;
 
@@ -191,26 +201,62 @@ public:
     void compGrad_doit (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                         MultiFab& sol) const;
 
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_HYPRE)
     void fillIJMatrix (MFIter const& mfi,
                        Array4<HypreNodeLap::AtomicInt const> const& gid,
                        Array4<int const> const& lid,
                        HypreNodeLap::Int* ncols,
                        HypreNodeLap::Int* cols,
                        Real* mat) const override;
+#endif
 
-    void fillRHS (MFIter const& mfi,
+    [[nodiscard]] bool supportsAnisotropicCoarsening () const override { return true; }
+
+    [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM>
+    anisotropicCoarseningCellSize (Geometry const& geom) const override;
+
+    [[nodiscard]] bool supportsAlgMG () const override { return true; }
+
+    void fillAlgMatrix (int mglev, MFIter const& mfi,
+                        Array4<Long const> const& gid,
+                        Array4<int const> const& lid,
+                        Long* ncols, Long* cols, Real* mat) const override;
+
+    void fillRHS (int mglev, MFIter const& mfi,
                   Array4<int const> const& lid,
                   Real* rhs,
                   Array4<Real const> const& bfab) const override;
+
+    // Public for nvcc.
+    template <typename AlgInt, typename AlgGid>
+    void fillMatrix_doit (int mglev, MFIter const& mfi,
+                          Array4<AlgGid const> const& gid,
+                          Array4<int const> const& lid,
+                          AlgInt* ncols, AlgInt* cols, Real* mat) const;
 #endif
 
     //! Post-process the solution hierarchy.
     void postSolve (Vector<MultiFab*> const& sol) const override;
 
+    [[nodiscard]] BottomSolver getDefaultBottomSolver () const override {
+        return BottomSolver::custom;
+    }
+
+    [[nodiscard]] bool supportCustomBottomSolver () const override { return true; }
+
+    void customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, const MultiFab& b,
+                            Real eps_rel, Real eps_abs, int maxiter) override;
+
+protected:
+    void buildMGHierarchy () override;
+
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
-    Vector<Vector<std::unique_ptr<MultiFab>>> m_sigma_mf;
+    //! Cell-centered sigma on MG level 0
+    Vector<std::unique_ptr<MultiFab>> m_sigma_mf;
+    //! Edge-centered sigma on every MG level
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_sigma_edge;
     bool m_has_sigma_mf = false;
     bool m_needs_update = true;
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
@@ -218,6 +264,35 @@ private:
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
 
+#ifdef AMREX_USE_EB
+    //! Nodal level set on every MG level.  A node is covered if it's >= 0.
+    Vector<Vector<MultiFab>> m_levset;
+    //! Position of the EB on every edge on every MG level, measured from
+    //! the low node in units of dx.  See mlebndfdlap_eb_pos_from_cent.
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_eb_pos;
+    //! Whether a box (grown by one) has open nodes and also covered nodes or
+    //! cut edges.  An all-covered box is false.
+    Vector<Vector<LayoutData<int>>> m_has_eb;
+#ifdef AMREX_USE_GPU
+    //! Device copy of m_has_eb
+    Vector<Vector<Gpu::DeviceVector<int>>> m_has_eb_d;
+#endif
+    //! Whether a local coarse cell on an MG level hides a covered fine
+    //! node.  See mlebndfdlap_eb_lost.  Not reduced across processes.
+    Vector<Vector<int>> m_eb_lost;
+    //! Row scale of every node on every MG level, used by restriction.
+    Vector<Vector<MultiFab>> m_row_scale;
+    //! The same on the coarsened layout of the finer level, where that differs.
+    Vector<Vector<MultiFab>> m_row_scale_crse;
+#endif
+
+public:
+    // These are public only because they launch GPU kernels.
+#ifdef AMREX_USE_EB
+    void build_eb_data ();
+    //! Drop coarse MG levels with too few unknowns, no EB, or a hidden EB feature.
+    void limit_coarsening ();
+#endif
     void update_sigma ();
 };
 
@@ -227,6 +302,9 @@ template <typename F>
 requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
 void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 {
+    // Select m_phi_eb again, in case a previous prepareForSolve defaulted
+    // to homogeneous Dirichlet or a scalar value was set earlier.
+    m_s_phi_eb = std::numeric_limits<Real>::lowest();
     m_phi_eb.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -254,9 +332,9 @@ void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
                     AMREX_HOST_DEVICE_FOR_3D(ndbx, i, j, k,
                     {
                         if (lstarr(i,j,k) >= Real(0.0)) {
-                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+i*cellsize[0],
-                                                        problo[1]+j*cellsize[1],
-                                                        problo[2]+k*cellsize[2]));
+                            phi(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*cellsize[0],
+                                                        problo[1]+Real(j)*cellsize[1],
+                                                        problo[2]+Real(k)*cellsize[2]));
                         }
                     });
                 }

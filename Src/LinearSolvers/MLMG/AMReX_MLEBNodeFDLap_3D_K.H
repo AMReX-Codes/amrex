@@ -3,273 +3,42 @@
 
 namespace amrex {
 
+// See the 2D header for the EB position convention.
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_scale_rhs (int i, int j, int k, Array4<Real> const& rhs,
-                            Array4<int const> const& dmsk, Array4<Real const> const& ecx,
-                            Array4<Real const> const& ecy, Array4<Real const> const& ecz) noexcept
+                            Array4<int const> const& dmsk, Array4<Real const> const& ebpx,
+                            Array4<Real const> const& ebpy, Array4<Real const> const& ebpz) noexcept
 {
     if (!dmsk(i,j,k)) {
-        Real hmx = (ecx(i-1,j  ,k  ) == Real(1.)) ? Real(1.) : Real(1.) - Real(2.)*ecx(i-1,j  ,k  );
-        Real hpx = (ecx(i  ,j  ,k  ) == Real(1.)) ? Real(1.) : Real(1.) + Real(2.)*ecx(i  ,j  ,k  );
-        Real hmy = (ecy(i  ,j-1,k  ) == Real(1.)) ? Real(1.) : Real(1.) - Real(2.)*ecy(i  ,j-1,k  );
-        Real hpy = (ecy(i  ,j  ,k  ) == Real(1.)) ? Real(1.) : Real(1.) + Real(2.)*ecy(i  ,j  ,k  );
-        Real hmz = (ecz(i  ,j  ,k-1) == Real(1.)) ? Real(1.) : Real(1.) - Real(2.)*ecz(i  ,j  ,k-1);
-        Real hpz = (ecz(i  ,j  ,k  ) == Real(1.)) ? Real(1.) : Real(1.) + Real(2.)*ecz(i  ,j  ,k  );
-        Real const s = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
+        Real const s = amrex::min(mlebndfdlap_hm(ebpx(i-1,j,k)), ebpx(i,j,k),
+                                  mlebndfdlap_hm(ebpy(i,j-1,k)), ebpy(i,j,k),
+                                  mlebndfdlap_hm(ebpz(i,j,k-1)), ebpz(i,j,k));
         rhs(i,j,k) *= s;
     }
 }
 
-template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
-                                Array4<Real const> const& x, Array4<Real const> const& levset,
-                                Array4<int const> const& dmsk,
-                                Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                                Array4<Real const> const& ecz, F const& xeb,
-                                Real bx, Real by, Real bz) noexcept
+Real mlebndfdlap_scaled_hinv (Real scale, Real h) noexcept
 {
-    if (dmsk(i,j,k)) {
-        y(i,j,k) = Real(0.0);
-    } else {
-        Real tmp;
-        Real hp, hm, scale, out;
-
-        hp = (ecx(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecx(i,j,k));
-        if (levset(i+1,j,k) < Real(0.0)) { // regular
-            tmp = x(i+1,j,k) - x(i,j,k);
-        } else {
-            tmp = (xeb(i+1,j,k) - x(i,j,k)) / hp;
-        }
-
-        hm = (ecx(i-1,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecx(i-1,j,k));
-        if (levset(i-1,j,k) < Real(0.0)) {
-            tmp += x(i-1,j,k) - x(i,j,k);
-        } else {
-            tmp += (xeb(i-1,j,k) - x(i,j,k)) / hm;
-        }
-
-        out = tmp * bx * Real(2.0) / (hp+hm);
-        scale = amrex::min(hm, hp);
-
-        hp = (ecy(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecy(i,j,k));
-        if (levset(i,j+1,k) < Real(0.0)) {
-            tmp = x(i,j+1,k) - x(i,j,k);
-        } else {
-            tmp = (xeb(i,j+1,k) - x(i,j,k)) / hp;
-        }
-
-        hm = (ecy(i,j-1,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecy(i,j-1,k));
-        if (levset(i,j-1,k) < Real(0.0)) {
-            tmp += x(i,j-1,k) - x(i,j,k);
-        } else {
-            tmp += (xeb(i,j-1,k) - x(i,j,k)) / hm;
-        }
-
-        out += tmp * by * Real(2.0) / (hp+hm);
-        scale = amrex::min(scale, hm, hp);
-
-        hp = (ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.0)*ecz(i,j,k));
-        if (levset(i,j,k+1) < Real(0.0)) {
-            tmp = x(i,j,k+1) - x(i,j,k);
-        } else {
-            tmp = (xeb(i,j,k+1) - x(i,j,k)) / hp;
-        }
-
-        hm = (ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
-        if (levset(i,j,k-1) < Real(0.0)) {
-            tmp += x(i,j,k-1) - x(i,j,k);
-        } else {
-            tmp += (xeb(i,j,k-1) - x(i,j,k)) / hm;
-        }
-
-        out += tmp * bz * Real(2.0) / (hp+hm);
-        scale = amrex::min(scale, hm, hp);
-
-        y(i,j,k) = out*scale;
-    }
+    return (h == Real(0.0)) ? Real(1.0) : scale / h;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
-                           Array4<Real const> const& x, Array4<Real const> const& levset,
-                           Array4<int const> const& dmsk,
-                           Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                           Array4<Real const> const& ecz, Real xeb,
-                           Real bx, Real by, Real bz) noexcept
-{
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ecx, ecy, ecz,
-                              [=] (int, int, int) -> Real { return xeb; },
-                              bx, by, bz);
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
-                           Array4<Real const> const& x, Array4<Real const> const& levset,
-                           Array4<int const> const& dmsk,
-                           Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                           Array4<Real const> const& ecz, Array4<Real const> const& xeb,
-                           Real bx, Real by, Real bz) noexcept
-{
-    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ecx, ecy, ecz,
-                              [=] (int i1, int i2, int i3) -> Real {
-                                  return xeb(i1,i2,i3); },
-                              bx, by, bz);
-}
-
+template <typename S>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx (int i, int j, int k, Array4<Real> const& y,
                         Array4<Real const> const& x, Array4<int const> const& dmsk,
-                        Real bx, Real by, Real bz) noexcept
+                        S const& sig, Real bx, Real by, Real bz) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
     } else {
-        y(i,j,k) = bx * (x(i-1,j,k) + x(i+1,j,k))
-            +      by * (x(i,j-1,k) + x(i,j+1,k))
-            +      bz * (x(i,j,k-1) + x(i,j,k+1))
-            - (Real(2.0)*(bx+by+bz)) * x(i,j,k);
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
-                          Array4<Real const> const& rhs, Array4<Real const> const& levset,
-                          Array4<int const> const& dmsk,
-                          Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                          Array4<Real const> const& ecz, Real bx, Real by, Real bz,
-                          int redblack) noexcept
-{
-    if ((i+j+k+redblack)%2 == 0) {
-        if (dmsk(i,j,k)) {
-            x(i,j,k) = Real(0.);
-        } else {
-            Real tmp0, tmp1;
-            Real hp, hm, scale;
-            hp = (ecx(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecx(i,j,k));
-            if (levset(i+1,j,k) < Real(0.0)) { // regular
-                tmp0 = Real(-1.0);
-                tmp1 = x(i+1,j,k);
-            } else {
-                tmp0 = Real(-1.0) / hp;
-                tmp1 = Real(0.0);
-            }
-
-            hm = (ecx(i-1,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecx(i-1,j,k));
-            if (levset(i-1,j,k) < Real(0.0)) {
-                tmp0 += Real(-1.0);
-                tmp1 += x(i-1,j,k);
-            } else {
-                tmp0 += Real(-1.0) / hm;
-            }
-
-            Real gamma = tmp0 * (bx * Real(2.0) / (hp+hm));
-            Real rho   = tmp1 * (bx * Real(2.0) / (hp+hm));
-            scale = amrex::min(hm, hp);
-
-            hp = (ecy(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecy(i,j,k));
-            if (levset(i,j+1,k) < Real(0.0)) {
-                tmp0 = Real(-1.0);
-                tmp1 = x(i,j+1,k);
-            } else {
-                tmp0 = Real(-1.0) / hp;
-                tmp1 = Real(0.0);
-            }
-
-            hm = (ecy(i,j-1,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecy(i,j-1,k));
-            if (levset(i,j-1,k) < Real(0.0)) {
-                tmp0 += Real(-1.0);
-                tmp1 += x(i,j-1,k);
-            } else {
-                tmp0 += Real(-1.0) / hm;
-            }
-
-            gamma += tmp0 * (by * Real(2.0) / (hp+hm));
-            rho   += tmp1 * (by * Real(2.0) / (hp+hm));
-            scale = amrex::min(scale, hm, hp);
-
-            hp = (ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.0)*ecz(i,j,k));
-            if (levset(i,j,k+1) < Real(0.0)) {
-                tmp0 = Real(-1.0);
-                tmp1 = x(i,j,k+1);
-            } else {
-                tmp0 = Real(-1.0) / hp;
-                tmp1 = Real(0.0);
-            }
-
-            hm = (ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
-            if (levset(i,j,k-1) < Real(0.0)) {
-                tmp0 += Real(-1.0);
-                tmp1 += x(i,j,k-1);
-            } else {
-                tmp0 += Real(-1.0) / hm;
-            }
-
-            gamma += tmp0 * (bz * Real(2.0) / (hp+hm));
-            rho   += tmp1 * (bz * Real(2.0) / (hp+hm));
-            scale = amrex::min(scale, hm, hp);
-
-            Real Ax = rho + gamma*x(i,j,k);
-            constexpr Real omega = Real(1.25);
-            x(i,j,k) += (rhs(i,j,k) - Ax*scale) * (omega / (gamma*scale));
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_gsrb (int i, int j, int k, Array4<Real> const& x,
-                       Array4<Real const> const& rhs, Array4<int const> const& dmsk,
-                       Real bx, Real by, Real bz, int redblack) noexcept
-{
-    if ((i+j+k+redblack)%2 == 0) {
-        if (dmsk(i,j,k)) {
-            x(i,j,k) = Real(0.);
-        } else {
-            Real gamma = Real(-2.0)*(bx+by+bz);
-            Real Ax = bx * (x(i-1,j,k) + x(i+1,j,k))
-                +     by * (x(i,j-1,k) + x(i,j+1,k))
-                +     bz * (x(i,j,k-1) + x(i,j,k+1))
-                + gamma * x(i,j,k);
-            constexpr Real omega = Real(1.25);
-            x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_adotx (int i, int j, int k, Array4<Real> const& y,
-                            Array4<Real const> const& x,
-                            Array4<int const> const& dmsk,
-                            Array4<Real const> const& sig,
-                            Real bx, Real by, Real bz) noexcept
-{
-    if (dmsk(i,j,k)) {
-        y(i,j,k) = Real(0.0);
-    } else {
-        Real sigxm = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                 sig(i-1,j  ,k-1) +
-                                 sig(i-1,j-1,k  ) +
-                                 sig(i-1,j  ,k  ));
-        Real sigxp = Real(0.25)*(sig(i  ,j-1,k-1) +
-                                 sig(i  ,j  ,k-1) +
-                                 sig(i  ,j-1,k  ) +
-                                 sig(i  ,j  ,k  ));
-        Real sigym = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                 sig(i  ,j-1,k-1) +
-                                 sig(i-1,j-1,k  ) +
-                                 sig(i  ,j-1,k  ));
-        Real sigyp = Real(0.25)*(sig(i-1,j  ,k-1) +
-                                 sig(i  ,j  ,k-1) +
-                                 sig(i-1,j  ,k  ) +
-                                 sig(i  ,j  ,k  ));
-        Real sigzm = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                 sig(i  ,j-1,k-1) +
-                                 sig(i-1,j  ,k-1) +
-                                 sig(i  ,j  ,k-1));
-        Real sigzp = Real(0.25)*(sig(i-1,j-1,k  ) +
-                                 sig(i  ,j-1,k  ) +
-                                 sig(i-1,j  ,k  ) +
-                                 sig(i  ,j  ,k  ));
+        Real const sigxm = sig.x(i-1,j,k);
+        Real const sigxp = sig.x(i  ,j,k);
+        Real const sigym = sig.y(i,j-1,k);
+        Real const sigyp = sig.y(i,j  ,k);
+        Real const sigzm = sig.z(i,j,k-1);
+        Real const sigzp = sig.z(i,j,k  );
         y(i,j,k) = bx * (sigxm*x(i-1,j,k) + sigxp*x(i+1,j,k))
             +      by * (sigym*x(i,j-1,k) + sigyp*x(i,j+1,k))
             +      bz * (sigzm*x(i,j,k-1) + sigzp*x(i,j,k+1))
@@ -277,45 +46,26 @@ void mlebndfdlap_sig_adotx (int i, int j, int k, Array4<Real> const& y,
     }
 }
 
+template <typename S>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_gsrb (int i, int j, int k, Array4<Real> const& x,
-                           Array4<Real const> const& rhs,
-                           Array4<int const> const& dmsk,
-                           Array4<Real const> const& sig,
-                           Real bx, Real by, Real bz, int redblack) noexcept
+void mlebndfdlap_gsrb (int i, int j, int k, Array4<Real> const& x,
+                       Array4<Real const> const& rhs, Array4<int const> const& dmsk,
+                       S const& sig, Real bx, Real by, Real bz, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
             x(i,j,k) = Real(0.);
         } else {
-            Real sigxm = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                     sig(i-1,j  ,k-1) +
-                                     sig(i-1,j-1,k  ) +
-                                     sig(i-1,j  ,k  ));
-            Real sigxp = Real(0.25)*(sig(i  ,j-1,k-1) +
-                                     sig(i  ,j  ,k-1) +
-                                     sig(i  ,j-1,k  ) +
-                                     sig(i  ,j  ,k  ));
-            Real sigym = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                     sig(i  ,j-1,k-1) +
-                                     sig(i-1,j-1,k  ) +
-                                     sig(i  ,j-1,k  ));
-            Real sigyp = Real(0.25)*(sig(i-1,j  ,k-1) +
-                                     sig(i  ,j  ,k-1) +
-                                     sig(i-1,j  ,k  ) +
-                                     sig(i  ,j  ,k  ));
-            Real sigzm = Real(0.25)*(sig(i-1,j-1,k-1) +
-                                     sig(i  ,j-1,k-1) +
-                                     sig(i-1,j  ,k-1) +
-                                     sig(i  ,j  ,k-1));
-            Real sigzp = Real(0.25)*(sig(i-1,j-1,k  ) +
-                                     sig(i  ,j-1,k  ) +
-                                     sig(i-1,j  ,k  ) +
-                                     sig(i  ,j  ,k  ));
-            Real gamma = -(bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp));
-            Real Ax = bx * (sigxm*x(i-1,j,k) + sigxp*x(i+1,j,k))
-                +     by * (sigym*x(i,j-1,k) + sigyp*x(i,j+1,k))
-                +     bz * (sigzm*x(i,j,k-1) + sigzp*x(i,j,k+1))
+            Real const sigxm = sig.x(i-1,j,k);
+            Real const sigxp = sig.x(i  ,j,k);
+            Real const sigym = sig.y(i,j-1,k);
+            Real const sigyp = sig.y(i,j  ,k);
+            Real const sigzm = sig.z(i,j,k-1);
+            Real const sigzp = sig.z(i,j,k  );
+            Real const gamma = -(bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp));
+            Real const Ax = bx * (sigxm*x(i-1,j,k) + sigxp*x(i+1,j,k))
+                +           by * (sigym*x(i,j-1,k) + sigyp*x(i,j+1,k))
+                +           bz * (sigzm*x(i,j,k-1) + sigzp*x(i,j,k+1))
                 + gamma * x(i,j,k);
             constexpr Real omega = Real(1.25);
             x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);
@@ -323,298 +73,186 @@ void mlebndfdlap_sig_gsrb (int i, int j, int k, Array4<Real> const& x,
     }
 }
 
-template <typename F>
+template <typename S, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
-                                    Array4<Real const> const& x,
-                                    Array4<Real const> const& levset,
-                                    Array4<int const> const& dmsk,
-                                    Array4<Real const> const& ecx,
-                                    Array4<Real const> const& ecy,
-                                    Array4<Real const> const& ecz,
-                                    Array4<Real const> const& sig,
-                                    Array4<Real const> const& vfrc,
-                                    F const& xeb,
-                                    Real bx, Real by, Real bz) noexcept
+void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
+                                Array4<Real const> const& x, Array4<Real const> const& levset,
+                                Array4<int const> const& dmsk,
+                                Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                                Array4<Real const> const& ebpz,
+                                S const& sig, F const& xeb, Real bx, Real by, Real bz) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
     } else {
-        Real tmp, sigma;
-        Real hp, hm, scale, out;
+        Real const xc = x(i,j,k);
+        Real const hpx = ebpx(i  ,j  ,k  );
+        Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k  ));
+        Real const hpy = ebpy(i  ,j  ,k  );
+        Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k  ));
+        Real const hpz = ebpz(i  ,j  ,k  );
+        Real const hmz = mlebndfdlap_hm(ebpz(i  ,j  ,k-1));
+        Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
 
-        sigma = (sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                 sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1) +
-                 sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ) +
-                 sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-            /   (                   vfrc(i  ,j-1,k-1) +
-                                    vfrc(i  ,j  ,k-1) +
-                                    vfrc(i  ,j-1,k  ) +
-                                    vfrc(i  ,j  ,k  ));
-        hp = (ecx(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecx(i,j,k));
-        if (levset(i+1,j,k) < Real(0.0)) { // regular
-            tmp = sigma*(x(i+1,j,k) - x(i,j,k));
+        Real out = Real(0.0);
+        Real fac = bx * Real(2.0) / (hpx+hmx);
+        Real sigma = sig.x(i,j,k);
+        if (levset(i+1,j,k) < Real(0.0) && hpx == Real(1.0)) {
+            out += sigma * fac * scale * (x(i+1,j,k) - xc);
         } else {
-            tmp = sigma*((xeb(i+1,j,k) - x(i,j,k)) / hp);
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hpx) * (xeb(i+1,j,k) - xc);
+        }
+        sigma = sig.x(i-1,j,k);
+        if (levset(i-1,j,k) < Real(0.0) && hmx == Real(1.0)) {
+            out += sigma * fac * scale * (x(i-1,j,k) - xc);
+        } else {
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hmx) * (xeb(i-1,j,k) - xc);
         }
 
-        sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                 sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                 sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                 sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ))
-            /   (                   vfrc(i-1,j-1,k-1) +
-                                    vfrc(i-1,j  ,k-1) +
-                                    vfrc(i-1,j-1,k  ) +
-                                    vfrc(i-1,j  ,k  ));
-        hm = (ecx(i-1,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecx(i-1,j,k));
-        if (levset(i-1,j,k) < Real(0.0)) {
-            tmp += sigma*(x(i-1,j,k) - x(i,j,k));
+        fac = by * Real(2.0) / (hpy+hmy);
+        sigma = sig.y(i,j,k);
+        if (levset(i,j+1,k) < Real(0.0) && hpy == Real(1.0)) {
+            out += sigma * fac * scale * (x(i,j+1,k) - xc);
         } else {
-            tmp += sigma*((xeb(i-1,j,k) - x(i,j,k)) / hm);
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hpy) * (xeb(i,j+1,k) - xc);
+        }
+        sigma = sig.y(i,j-1,k);
+        if (levset(i,j-1,k) < Real(0.0) && hmy == Real(1.0)) {
+            out += sigma * fac * scale * (x(i,j-1,k) - xc);
+        } else {
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hmy) * (xeb(i,j-1,k) - xc);
         }
 
-        out = tmp * bx * Real(2.0) / (hp+hm);
-        scale = amrex::min(hm, hp);
-
-        sigma = (sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                 sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1) +
-                 sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ) +
-                 sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-            /   (                   vfrc(i-1,j  ,k-1) +
-                                    vfrc(i  ,j  ,k-1) +
-                                    vfrc(i-1,j  ,k  ) +
-                                    vfrc(i  ,j  ,k  ));
-        hp = (ecy(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecy(i,j,k));
-        if (levset(i,j+1,k) < Real(0.0)) {
-            tmp = sigma*(x(i,j+1,k) - x(i,j,k));
+        fac = bz * Real(2.0) / (hpz+hmz);
+        sigma = sig.z(i,j,k);
+        if (levset(i,j,k+1) < Real(0.0) && hpz == Real(1.0)) {
+            out += sigma * fac * scale * (x(i,j,k+1) - xc);
         } else {
-            tmp = sigma*((xeb(i,j+1,k) - x(i,j,k)) / hp);
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hpz) * (xeb(i,j,k+1) - xc);
+        }
+        sigma = sig.z(i,j,k-1);
+        if (levset(i,j,k-1) < Real(0.0) && hmz == Real(1.0)) {
+            out += sigma * fac * scale * (x(i,j,k-1) - xc);
+        } else {
+            out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hmz) * (xeb(i,j,k-1) - xc);
         }
 
-        sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                 sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                 sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                 sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ))
-            /   (                   vfrc(i-1,j-1,k-1) +
-                                    vfrc(i  ,j-1,k-1) +
-                                    vfrc(i-1,j-1,k  ) +
-                                    vfrc(i  ,j-1,k  ));
-        hm = (ecy(i,j-1,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecy(i,j-1,k));
-        if (levset(i,j-1,k) < Real(0.0)) {
-            tmp += sigma*(x(i,j-1,k) - x(i,j,k));
-        } else {
-            tmp += sigma*((xeb(i,j-1,k) - x(i,j,k)) / hm);
-        }
-
-        out += tmp * by * Real(2.0) / (hp+hm);
-        scale = amrex::min(scale, hm, hp);
-
-        sigma = (sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                 sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ) +
-                 sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ) +
-                 sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-            /   (                   vfrc(i-1,j-1,k  ) +
-                                    vfrc(i  ,j-1,k  ) +
-                                    vfrc(i-1,j  ,k  ) +
-                                    vfrc(i  ,j  ,k  ));
-        hp = (ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.0)*ecz(i,j,k));
-        if (levset(i,j,k+1) < Real(0.0)) {
-            tmp = sigma*(x(i,j,k+1) - x(i,j,k));
-        } else {
-            tmp = sigma*((xeb(i,j,k+1) - x(i,j,k)) / hp);
-        }
-
-        sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                 sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                 sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                 sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1))
-            /   (                   vfrc(i-1,j-1,k-1) +
-                                    vfrc(i  ,j-1,k-1) +
-                                    vfrc(i-1,j  ,k-1) +
-                                    vfrc(i  ,j  ,k-1));
-        hm = (ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
-        if (levset(i,j,k-1) < Real(0.0)) {
-            tmp += sigma*(x(i,j,k-1) - x(i,j,k));
-        } else {
-            tmp += sigma*((xeb(i,j,k-1) - x(i,j,k)) / hm);
-        }
-
-        out += tmp * bz * Real(2.0) / (hp+hm);
-        scale = amrex::min(scale, hm, hp);
-
-        y(i,j,k) = out*scale;
+        y(i,j,k) = out;
     }
 }
 
+template <typename S>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_adotx_eb (int i, int j, int k, Array4<Real> const& y,
-                               Array4<Real const> const& x,
-                               Array4<Real const> const& levset,
-                               Array4<int const> const& dmsk,
-                               Array4<Real const> const& ecx,
-                               Array4<Real const> const& ecy,
-                               Array4<Real const> const& ecz,
-                               Array4<Real const> const& sig,
-                               Array4<Real const> const& vfrc,
-                               Real xeb, Real bx, Real by, Real bz) noexcept
+void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
+                           Array4<Real const> const& x, Array4<Real const> const& levset,
+                           Array4<int const> const& dmsk,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                           Array4<Real const> const& ebpz,
+                           S const& sig, Real xeb, Real bx, Real by, Real bz) noexcept
 {
-    mlebndfdlap_sig_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ecx, ecy, ecz, sig, vfrc,
-                                  [=] (int, int, int) -> Real { return xeb; },
-                                  bx, by, bz);
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, ebpz, sig,
+                              [=] (int, int, int) -> Real { return xeb; },
+                              bx, by, bz);
 }
 
+template <typename S>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_adotx_eb (int i, int j, int k, Array4<Real> const& y,
-                               Array4<Real const> const& x,
-                               Array4<Real const> const& levset,
-                               Array4<int const> const& dmsk,
-                               Array4<Real const> const& ecx,
-                               Array4<Real const> const& ecy,
-                               Array4<Real const> const& ecz,
-                               Array4<Real const> const& sig,
-                               Array4<Real const> const& vfrc,
-                               Array4<Real const> const& xeb,
-                               Real bx, Real by, Real bz) noexcept
+void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
+                           Array4<Real const> const& x, Array4<Real const> const& levset,
+                           Array4<int const> const& dmsk,
+                           Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                           Array4<Real const> const& ebpz,
+                           S const& sig, Array4<Real const> const& xeb,
+                           Real bx, Real by, Real bz) noexcept
 {
-    mlebndfdlap_sig_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ecx, ecy, ecz, sig, vfrc,
-                                  [=] (int i1, int i2, int i3) -> Real {
-                                      return xeb(i1,i2,i3); },
-                                  bx, by, bz);
+    mlebndfdlap_adotx_eb_doit(i, j, k, y, x, levset, dmsk, ebpx, ebpy, ebpz, sig,
+                              [=] (int i1, int i2, int i3) -> Real {
+                                  return xeb(i1,i2,i3); },
+                              bx, by, bz);
 }
 
+template <typename S>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebndfdlap_sig_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
-                              Array4<Real const> const& rhs,
-                              Array4<Real const> const& levset,
-                              Array4<int const> const& dmsk,
-                              Array4<Real const> const& ecx,
-                              Array4<Real const> const& ecy,
-                              Array4<Real const> const& ecz,
-                              Array4<Real const> const& sig,
-                              Array4<Real const> const& vfrc,
-                              Real bx, Real by, Real bz, int redblack) noexcept
+void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
+                          Array4<Real const> const& rhs, Array4<Real const> const& levset,
+                          Array4<int const> const& dmsk,
+                          Array4<Real const> const& ebpx, Array4<Real const> const& ebpy,
+                          Array4<Real const> const& ebpz,
+                          S const& sig, Real bx, Real by, Real bz, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
             x(i,j,k) = Real(0.);
         } else {
-            Real tmp0, tmp1, sigma;
-            Real hp, hm, scale;
+            Real const hpx = ebpx(i  ,j  ,k  );
+            Real const hmx = mlebndfdlap_hm(ebpx(i-1,j  ,k  ));
+            Real const hpy = ebpy(i  ,j  ,k  );
+            Real const hmy = mlebndfdlap_hm(ebpy(i  ,j-1,k  ));
+            Real const hpz = ebpz(i  ,j  ,k  );
+            Real const hmz = mlebndfdlap_hm(ebpz(i  ,j  ,k-1));
+            Real const scale = amrex::min(hmx,hpx,hmy,hpy,hmz,hpz);
+            bool cut = false; // a link to the EB
 
-            sigma = (sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                     sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1) +
-                     sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ) +
-                     sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-                /   (                   vfrc(i  ,j-1,k-1) +
-                                        vfrc(i  ,j  ,k-1) +
-                                        vfrc(i  ,j-1,k  ) +
-                                        vfrc(i  ,j  ,k  ));
-            hp = (ecx(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecx(i,j,k));
-            if (levset(i+1,j,k) < Real(0.0)) { // regular
-                tmp0 = sigma*Real(-1.0);
-                tmp1 = sigma*x(i+1,j,k);
+            Real gamma = Real(0.0);
+            Real rho = Real(0.0);
+            Real fac = bx * Real(2.0) / (hpx+hmx);
+            Real sigma = sig.x(i,j,k);
+            if (levset(i+1,j,k) < Real(0.0) && hpx == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i+1,j,k);
             } else {
-                tmp0 = sigma*Real(-1.0) / hp;
-                tmp1 = Real(0.0);
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpx);
+            }
+            sigma = sig.x(i-1,j,k);
+            if (levset(i-1,j,k) < Real(0.0) && hmx == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i-1,j,k);
+            } else {
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmx);
             }
 
-            sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                     sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                     sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                     sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ))
-                /   (                   vfrc(i-1,j-1,k-1) +
-                                        vfrc(i-1,j  ,k-1) +
-                                        vfrc(i-1,j-1,k  ) +
-                                        vfrc(i-1,j  ,k  ));
-            hm = (ecx(i-1,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecx(i-1,j,k));
-            if (levset(i-1,j,k) < Real(0.0)) {
-                tmp0 += sigma*Real(-1.0);
-                tmp1 += sigma*x(i-1,j,k);
+            fac = by * Real(2.0) / (hpy+hmy);
+            sigma = sig.y(i,j,k);
+            if (levset(i,j+1,k) < Real(0.0) && hpy == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i,j+1,k);
             } else {
-                tmp0 += sigma*Real(-1.0) / hm;
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpy);
+            }
+            sigma = sig.y(i,j-1,k);
+            if (levset(i,j-1,k) < Real(0.0) && hmy == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i,j-1,k);
+            } else {
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmy);
             }
 
-            Real gamma = tmp0 * (bx * Real(2.0) / (hp+hm));
-            Real rho   = tmp1 * (bx * Real(2.0) / (hp+hm));
-            scale = amrex::min(hm, hp);
-
-            sigma = (sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                     sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1) +
-                     sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ) +
-                     sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-                /   (                   vfrc(i-1,j  ,k-1) +
-                                        vfrc(i  ,j  ,k-1) +
-                                        vfrc(i-1,j  ,k  ) +
-                                        vfrc(i  ,j  ,k  ));
-            hp = (ecy(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecy(i,j,k));
-            if (levset(i,j+1,k) < Real(0.0)) {
-                tmp0 = sigma*Real(-1.0);
-                tmp1 = sigma*x(i,j+1,k);
+            fac = bz * Real(2.0) / (hpz+hmz);
+            sigma = sig.z(i,j,k);
+            if (levset(i,j,k+1) < Real(0.0) && hpz == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i,j,k+1);
             } else {
-                tmp0 = sigma*Real(-1.0) / hp;
-                tmp1 = Real(0.0);
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hpz);
+            }
+            sigma = sig.z(i,j,k-1);
+            if (levset(i,j,k-1) < Real(0.0) && hmz == Real(1.0)) {
+                gamma -= sigma * fac * scale;
+                rho += sigma * fac * scale * x(i,j,k-1);
+            } else {
+                cut = true;
+                gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmz);
             }
 
-            sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                     sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                     sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                     sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ))
-                /   (                   vfrc(i-1,j-1,k-1) +
-                                        vfrc(i  ,j-1,k-1) +
-                                        vfrc(i-1,j-1,k  ) +
-                                        vfrc(i  ,j-1,k  ));
-            hm = (ecy(i,j-1,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecy(i,j-1,k));
-            if (levset(i,j-1,k) < Real(0.0)) {
-                tmp0 += sigma*Real(-1.0);
-                tmp1 += sigma*x(i,j-1,k);
-            } else {
-                tmp0 += sigma*Real(-1.0) / hm;
-            }
-
-            gamma += tmp0 * (by * Real(2.0) / (hp+hm));
-            rho   += tmp1 * (by * Real(2.0) / (hp+hm));
-            scale = amrex::min(scale, hm, hp);
-
-            sigma = (sig(i-1,j-1,k  ) * vfrc(i-1,j-1,k  ) +
-                     sig(i  ,j-1,k  ) * vfrc(i  ,j-1,k  ) +
-                     sig(i-1,j  ,k  ) * vfrc(i-1,j  ,k  ) +
-                     sig(i  ,j  ,k  ) * vfrc(i  ,j  ,k  ))
-                /   (                   vfrc(i-1,j-1,k  ) +
-                                        vfrc(i  ,j-1,k  ) +
-                                        vfrc(i-1,j  ,k  ) +
-                                        vfrc(i  ,j  ,k  ));
-            hp = (ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.0)*ecz(i,j,k));
-            if (levset(i,j,k+1) < Real(0.0)) {
-                tmp0 = sigma*Real(-1.0);
-                tmp1 = sigma*x(i,j,k+1);
-            } else {
-                tmp0 = sigma*Real(-1.0) / hp;
-                tmp1 = Real(0.0);
-            }
-
-            sigma = (sig(i-1,j-1,k-1) * vfrc(i-1,j-1,k-1) +
-                     sig(i  ,j-1,k-1) * vfrc(i  ,j-1,k-1) +
-                     sig(i-1,j  ,k-1) * vfrc(i-1,j  ,k-1) +
-                     sig(i  ,j  ,k-1) * vfrc(i  ,j  ,k-1))
-                /   (                   vfrc(i-1,j-1,k-1) +
-                                        vfrc(i  ,j-1,k-1) +
-                                        vfrc(i-1,j  ,k-1) +
-                                        vfrc(i  ,j  ,k-1));
-            hm = (ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
-            if (levset(i,j,k-1) < Real(0.0)) {
-                tmp0 += sigma*Real(-1.0);
-                tmp1 += sigma*x(i,j,k-1);
-            } else {
-                tmp0 += sigma*Real(-1.0) / hm;
-            }
-
-            gamma += tmp0 * (bz * Real(2.0) / (hp+hm));
-            rho   += tmp1 * (bz * Real(2.0) / (hp+hm));
-            scale = amrex::min(scale, hm, hp);
-
-            Real Ax = rho + gamma*x(i,j,k);
-            constexpr Real omega = Real(1.25);
-            x(i,j,k) += (rhs(i,j,k) - Ax*scale) * (omega / (gamma*scale));
+            Real const Ax = rho + gamma*x(i,j,k);
+            // Over-relaxing rows cut by the EB can make MG diverge.
+            Real const omega = cut ? Real(1.0) : Real(1.25);
+            x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);
         }
     }
 }

@@ -1,4 +1,5 @@
 #include <AMReX_HypreMLABecLap.H>
+#include <AMReX_Hypre.H>
 #include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
@@ -539,14 +540,16 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         }
     }
 
-    MultiFab empty;
+    MultiFab zero;
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         MultiFab const* levelbc;
         if (ilev < a_levelbcdata.size() && a_levelbcdata[ilev]) {
             levelbc = a_levelbcdata[ilev];
         } else {
-            levelbc = &empty;
+            zero.define(m_grids[ilev], m_dmap[ilev], ncomp, 1);
+            zero.setVal(Real(0.0));
+            levelbc = &zero;
         }
 
         IntVect br_ref_ratio;
@@ -794,7 +797,9 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 Gpu::DeviceVector<int> d_f2c_bno(m_f2c_bno[clev].size());
                 Gpu::DeviceVector<IntVect> d_f2c_cell(m_f2c_cell[clev].size());
                 Gpu::DeviceVector<std::size_t> d_f2c_offset(m_f2c_offset[clev].size());
-                Gpu::DeviceVector<Real> d_f2c_values(m_f2c_values[clev].size());
+                // hypmlabeclap_f2c_set_values accumulates into the values,
+                // so they must start from zero (as the host vector does).
+                Gpu::DeviceVector<Real> d_f2c_values(m_f2c_values[clev].size(), Real(0.0));
                 Gpu::copyAsync(Gpu::hostToDevice,
                                m_f2c_bno[clev].begin(),
                                m_f2c_bno[clev].end(),
@@ -912,9 +917,14 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
 
         HYPRE_BoomerAMGCreate(&m_solver);
 
-        HYPRE_BoomerAMGSetOldDefault(m_solver); // Falgout coarsening with modified classical interpolation
+        if (HypreDefaults::old_default) {
+            HYPRE_BoomerAMGSetOldDefault(m_solver); // Falgout coarsening with modified classical interpolation
+        } else {
+            HypreDefaults::setGpuOptions(m_solver);
+            HYPRE_BoomerAMGSetRelaxType(m_solver, HypreDefaults::relax_type);
+        }
         HYPRE_BoomerAMGSetStrongThreshold(m_solver, (AMREX_SPACEDIM == 3) ? 0.4 : 0.25); // default is 0.25
-        HYPRE_BoomerAMGSetRelaxOrder(m_solver, 1);   /* 0: default, natural order, 1: C/F relaxation order */
+        HYPRE_BoomerAMGSetRelaxOrder(m_solver, HypreDefaults::relax_order);   /* 0: natural order, 1: C/F relaxation order */
         HYPRE_BoomerAMGSetNumSweeps(m_solver, 2);   /* Sweeps on fine levels */
         // HYPRE_BoomerAMGSetFCycle(m_solver, 1); // default is 0
         // HYPRE_BoomerAMGSetCoarsenType(m_solver, 6);

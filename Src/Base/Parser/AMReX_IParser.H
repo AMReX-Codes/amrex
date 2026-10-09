@@ -176,6 +176,7 @@ private:
         int m_exe_size = 0;
         Data () = default;
         ~Data ();
+        void clear_host_executor ();
         Data (Data const&) = delete;
         Data (Data &&) = delete;
         Data& operator= (Data const&) = delete;
@@ -218,6 +219,8 @@ IParser::compileHost () const
             try {
                 iparser_compile(m_data->m_iparser, m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
+                // Do not leave a partially compiled executor behind.
+                m_data->clear_host_executor();
                 throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
                                          + m_data->m_expression + "\"");
             }

@@ -207,8 +207,38 @@ cuda_print_option(AMReX_CUDA_LTO)
 
 set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
-message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
 
+set(AMReX_GPU_MIN_BLOCKS "" CACHE STRING
+   "Limit registers per thread so that this many blocks fit on an SM (empty: no limit)" )
+
+# Effective -maxrregcount. With AMReX_GPU_MIN_BLOCKS, non-inlined device functions
+# must fit in the kernels' register cap: 64K registers per SM / (GPU_MAX_THREADS*B),
+# rounded down to 8.
+set(AMREX_CUDA_EFFECTIVE_MAXREGCOUNT ${AMReX_CUDA_MAXREGCOUNT})
+if (NOT AMReX_GPU_MIN_BLOCKS STREQUAL "")
+   # 2048 is the most resident threads per SM of any NVIDIA GPU.
+   set(_threads 0)
+   if (AMReX_GPU_MIN_BLOCKS MATCHES "^[1-9][0-9]?[0-9]?[0-9]?$")
+      math(EXPR _threads "${AMReX_GPU_MIN_BLOCKS} * ${AMReX_GPU_MAX_THREADS}")
+   endif ()
+   if (_threads LESS 1 OR _threads GREATER 2048)
+      message(FATAL_ERROR "AMReX_GPU_MIN_BLOCKS must be a positive integer with "
+                          "AMReX_GPU_MIN_BLOCKS * AMReX_GPU_MAX_THREADS <= 2048")
+   endif ()
+   unset(_threads)
+   message( STATUS "   AMReX_GPU_MIN_BLOCKS = ${AMReX_GPU_MIN_BLOCKS}")
+   math(EXPR _regs "65536 / (${AMReX_GPU_MAX_THREADS} * ${AMReX_GPU_MIN_BLOCKS}) / 8 * 8")
+   if (_regs LESS AMREX_CUDA_EFFECTIVE_MAXREGCOUNT)
+      set(AMREX_CUDA_EFFECTIVE_MAXREGCOUNT ${_regs})
+   endif ()
+   unset(_regs)
+endif ()
+if (AMREX_CUDA_EFFECTIVE_MAXREGCOUNT EQUAL AMReX_CUDA_MAXREGCOUNT)
+   message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
+else ()
+   message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMREX_CUDA_EFFECTIVE_MAXREGCOUNT} (lowered from "
+                   "${AMReX_CUDA_MAXREGCOUNT} by AMReX_GPU_MIN_BLOCKS)")
+endif ()
 # this warns on a typical user bug when developing on (forgiving) Power9 machines (e.g. Summit)
 option(AMReX_CUDA_WARN_CAPTURE_THIS "Warn if a CUDA lambda captures a class' this" ON)
 # no code should ever ship -Werror, but one can turn this on manually in CI if one likes

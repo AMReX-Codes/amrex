@@ -90,8 +90,8 @@ void main_main ()
     ba.maxSize(max_grid_size);
 
     // This defines the physical box, [0,1] in each direction.
-    RealBox real_box({AMREX_D_DECL( 0., 0., 0.)},
-                     {AMREX_D_DECL( 1., 1., 1.)});
+    RealBox real_box(AMREX_D_DECL( 0., 0., 0.),
+                     AMREX_D_DECL( 1., 1., 1.));
 
     // periodic in all direction
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};

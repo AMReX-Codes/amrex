@@ -794,10 +794,15 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             // Don't include corner cells. Could make this even more strict
             // by removing the on_?_face restrictions.
             if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y))){
+                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
+                ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
+                ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y))) {
                 continue;
             }
 
+            if ( !phi.contains(ii,jj,k) ) {
+               continue;
+            }
 
             if (!flag(ii,jj,k).isCovered())
             {

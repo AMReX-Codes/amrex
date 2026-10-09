@@ -10,6 +10,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 #include <AMReX_BLBackTrace.H>
+#include <AMReX_CrtReport.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
@@ -117,6 +118,7 @@ namespace system
     bool handle_sigabrt;
     bool handle_sigfpe;
     bool handle_sigill;
+    bool handle_crt_reports;
     bool call_addr2line;
     bool throw_exception;
     bool regtest_reduction;
@@ -260,7 +262,7 @@ amrex::Error_host (const char* type, const char * msg)
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
-        throw RuntimeError(msg);
+        throw RuntimeError(msg ? msg : type);
     } else {
         write_lib_id(type);
         write_to_stderr_without_buffering(msg);
@@ -378,6 +380,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = false;
         system::handle_sigfpe  = false;
         system::handle_sigill  = false;
+        system::handle_crt_reports = false;
         system::call_addr2line = false;
         system::throw_exception = false;
         system::osout = &std::cout;
@@ -393,6 +396,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = true;
         system::handle_sigfpe  = true;
         system::handle_sigill  = true;
+        system::handle_crt_reports = true;
         system::call_addr2line = true;
         system::throw_exception = false;
         system::osout = &a_osout;
@@ -572,6 +576,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         ParmParse pp("amrex");
         pp.query("regtest_reduction", system::regtest_reduction);
         pp.queryAdd("signal_handling", system::signal_handling);
+
+        // independent of signal_handling; we undo this at the end of Finalize
+        pp.queryAdd("handle_crt_reports", system::handle_crt_reports);
+        if (system::handle_crt_reports) {
+            detail::CrtReportInitialize();
+        }
         pp.queryAdd("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
@@ -615,6 +625,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
             if (system::handle_sigabrt) {
                 prev_handler_sigabrt = std::signal(SIGABRT, BLBackTrace::handler);
+                if (prev_handler_sigabrt != SIG_ERR && system::handle_crt_reports) {
+                    // abort() raises SIGABRT for this handler without a CRT report
+                    detail::CrtReportSkipAbortReport(true);
+                }
             } else {
                 prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
@@ -916,7 +930,11 @@ amrex::Finalize (amrex::AMReX* pamrex)
         if (prev_handler_sigsegv != SIG_ERR) { std::signal(SIGSEGV, prev_handler_sigsegv); } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigterm != SIG_ERR) { std::signal(SIGTERM, prev_handler_sigterm); } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigint  != SIG_ERR) { std::signal(SIGINT , prev_handler_sigint);  } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigabrt != SIG_ERR) { std::signal(SIGABRT, prev_handler_sigabrt); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigabrt != SIG_ERR) {
+            // restore the CRT report of abort() together with the previous handler
+            detail::CrtReportSkipAbortReport(false);
+            std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
+        }
         if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__) && defined(__GLIBC__)
@@ -961,6 +979,9 @@ amrex::Finalize (amrex::AMReX* pamrex)
     if (amrex::system::verbose > 0 && is_ioproc) {
         amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << '\n';
     }
+
+    // last, also before this (possibly dynamically loaded) library is unloaded
+    detail::CrtReportFinalize();
 }
 
 std::ostream&
@@ -984,13 +1005,13 @@ amrex::get_command ()
 int
 amrex::command_argument_count ()
 {
-    return static_cast<int>(command_arguments.size())-1;
+    return std::max(0, static_cast<int>(command_arguments.size())-1);
 }
 
 std::string
 amrex::get_command_argument (int number)
 {
-    if (number < std::ssize(command_arguments)) {
+    if (number >= 0 && number < std::ssize(command_arguments)) {
         return command_arguments[number];
     } else {
         return std::string();
@@ -1040,6 +1061,62 @@ AMReX::erase (AMReX* pamrex)
     }
 }
 
+#if defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))
+namespace {
+    /* macOS has no fe{get,enable,disable}except, so we read and write the
+     * trap bits of the floating point control register directly. */
+    FPExcept apple_get_fpexcept ()
+    {
+        auto r = FPExcept::none;
+#if defined(__x86_64__)
+        // A set mask bit means the exception is masked, i.e. not trapped.
+        auto const mask = _MM_GET_EXCEPTION_MASK();
+        if (!(mask & _MM_MASK_INVALID )) { r = r | FPExcept::invalid ; }
+        if (!(mask & _MM_MASK_DIV_ZERO)) { r = r | FPExcept::zero    ; }
+        if (!(mask & _MM_MASK_OVERFLOW)) { r = r | FPExcept::overflow; }
+#else
+        fenv_t env;
+        fegetenv(&env);
+        if (env.__fpcr & __fpcr_trap_invalid  ) { r = r | FPExcept::invalid ; }
+        if (env.__fpcr & __fpcr_trap_divbyzero) { r = r | FPExcept::zero    ; }
+        if (env.__fpcr & __fpcr_trap_overflow ) { r = r | FPExcept::overflow; }
+#endif
+        return r;
+    }
+
+    //! Enable trapping of the exceptions in `on`, disable those in `off`.
+    void apple_set_fpexcept (FPExcept on, FPExcept off)
+    {
+        unsigned int on_bits = 0U;
+        unsigned int off_bits = 0U;
+#if defined(__x86_64__)
+        if (any(on  & FPExcept::invalid )) { on_bits  |= _MM_MASK_INVALID ; }
+        if (any(on  & FPExcept::zero    )) { on_bits  |= _MM_MASK_DIV_ZERO; }
+        if (any(on  & FPExcept::overflow)) { on_bits  |= _MM_MASK_OVERFLOW; }
+        if (any(off & FPExcept::invalid )) { off_bits |= _MM_MASK_INVALID ; }
+        if (any(off & FPExcept::zero    )) { off_bits |= _MM_MASK_DIV_ZERO; }
+        if (any(off & FPExcept::overflow)) { off_bits |= _MM_MASK_OVERFLOW; }
+        auto mask = _MM_GET_EXCEPTION_MASK();
+        mask |= off_bits;   // masked, i.e. not trapped
+        mask &= ~on_bits;   // unmasked, i.e. trapped
+        _MM_SET_EXCEPTION_MASK(mask);
+#else
+        if (any(on  & FPExcept::invalid )) { on_bits  |= __fpcr_trap_invalid  ; }
+        if (any(on  & FPExcept::zero    )) { on_bits  |= __fpcr_trap_divbyzero; }
+        if (any(on  & FPExcept::overflow)) { on_bits  |= __fpcr_trap_overflow ; }
+        if (any(off & FPExcept::invalid )) { off_bits |= __fpcr_trap_invalid  ; }
+        if (any(off & FPExcept::zero    )) { off_bits |= __fpcr_trap_divbyzero; }
+        if (any(off & FPExcept::overflow)) { off_bits |= __fpcr_trap_overflow ; }
+        fenv_t env;
+        fegetenv(&env);
+        env.__fpcr &= ~static_cast<unsigned long long>(off_bits);
+        env.__fpcr |= on_bits;
+        fesetenv(&env);
+#endif
+    }
+}
+#endif
+
 FPExcept getFPExcept ()
 {
     auto r = FPExcept::none;
@@ -1048,6 +1125,8 @@ FPExcept getFPExcept ()
     if (excepts & FE_INVALID  ) { r = r | FPExcept::invalid ; }
     if (excepts & FE_DIVBYZERO) { r = r | FPExcept::zero    ; }
     if (excepts & FE_OVERFLOW ) { r = r | FPExcept::overflow; }
+#elif defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))
+    r = apple_get_fpexcept();
 #endif
     return r;
 }
@@ -1063,6 +1142,8 @@ FPExcept setFPExcept (FPExcept excepts)
     if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
     if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
     feenableexcept(flags);
+#elif defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))
+    apple_set_fpexcept(excepts, FPExcept::all);
 #else
     amrex::ignore_unused(excepts);
 #endif
@@ -1078,6 +1159,8 @@ FPExcept disableFPExcept (FPExcept excepts)
     if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
     if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
     fedisableexcept(flags);
+#elif defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))
+    apple_set_fpexcept(FPExcept::none, excepts);
 #else
     amrex::ignore_unused(excepts);
 #endif
@@ -1093,6 +1176,8 @@ FPExcept enableFPExcept (FPExcept excepts)
     if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
     if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
     feenableexcept(flags);
+#elif defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))
+    apple_set_fpexcept(excepts, FPExcept::none);
 #else
     amrex::ignore_unused(excepts);
 #endif

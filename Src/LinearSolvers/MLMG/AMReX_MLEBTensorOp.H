@@ -188,6 +188,18 @@ public:
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                 StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
     /**
+     * \brief Fill the ghost cells of \p in, including the corner and edge
+     * cells outside two or three domain faces that the EB stencils read.
+     */
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
+                  const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+    /**
+     * \brief Smooth with the scalar smoother of MLEBABecLap, which only
+     * needs the face ghost cells, so the corner and edge fill is skipped.
+     */
+    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                 bool skip_fillboundary, int niter) const final;
+    /**
      * \brief Assemble viscous fluxes on AMR level \p amrlev.
      *
      * \param amrlev Level whose fluxes are being computed.

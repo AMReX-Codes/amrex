@@ -214,6 +214,10 @@ RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
     for (int i = 0; i < N; i++) {
         is >> generators[i];
     }
+    std::mt19937 discarded;
+    for (int i = N; i < nthreads_old; i++) { // consume what SaveRandomState wrote
+        is >> discarded;
+    }
     if (nthreads > nthreads_old) {
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
@@ -401,6 +405,6 @@ extern "C" {
     // This is for Fortran, which doesn't have unsigned long.
     amrex::Long amrex_random_int (amrex::Long n)
     {
-        return static_cast<amrex::Long>(amrex::Random_int(static_cast<amrex::ULong>(n)));
+        return static_cast<amrex::Long>(amrex::Random_long(static_cast<amrex::ULong>(n)));
     }
 }

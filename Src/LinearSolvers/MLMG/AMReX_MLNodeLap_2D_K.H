@@ -678,7 +678,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
         if (!msk(i,j,0)) {
             int ic = i;
             int jc = amrex::coarsen(j,2);
-            bool j_is_odd = (ic*2 != i);
+            bool j_is_odd = (jc*2 != j);
             if (j_is_odd) {
                 // Node on Y line
                 fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
@@ -787,11 +787,10 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
                    + facy*(-vel(i-1,j-1,k,1)*zero_ilo - vel(i,j-1,k,1)*zero_ihi
                            +vel(i-1,j  ,k,1)*zero_ilo + vel(i,j  ,k,1)*zero_ihi);
         if (is_rz) {
-            // Here we assume we can't have inflow in the radial direction
             Real fm = facy / static_cast<Real>(6*i-3);
             Real fp = facy / static_cast<Real>(6*i+3);
-            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))
-                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1));
+            rhs(i,j,k) += fm*(vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*zero_ilo
+                        - fp*(vel(i  ,j,k,1)-vel(i  ,j-1,k,1))*zero_ihi;
         }
     }
 }
@@ -820,7 +819,7 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     u(i,j,k,1) -= sig(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -843,7 +842,7 @@ void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real 
     u(i,j,k,1) -= sy(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sy(i,j,k)*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -858,7 +857,7 @@ void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real c
     u(i,j,k,1) -= sig*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
         Real frz = sig*facy / static_cast<Real>(6*i+3);
-        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+        u(i,j,k,1) -= frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     }
 }
 
@@ -1962,7 +1961,7 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
 {
     using namespace nodelap_detail;
 
-    Real fac_eb = 0.25 *dxinv[0];
+    Real fac_eb = Real(0.25) * dxinv[0];
 
     if (!msk(i,j,0)) {
         rhs(i,j,0) += fac_eb*(
@@ -2030,10 +2029,18 @@ Real mlndlap_rhcc_eb (int i, int j, int, Array4<Real const> const& rhcc,
 
     if (!msk(i,j,0)) {
         return
-            rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
-            rhcc(i-1,j  ,0)*(Real(0.25)*vfrac(i-1,j  ,0)+intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y)-intg(i-1,j  ,0,i_S_xy)) +
-            rhcc(i-1,j-1,0)*(Real(0.25)*vfrac(i-1,j-1,0)+intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y)+intg(i-1,j-1,0,i_S_xy)) +
-            rhcc(i  ,j-1,0)*(Real(0.25)*vfrac(i  ,j-1,0)-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y)-intg(i  ,j-1,0,i_S_xy));
+            rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)
+                             + Real(0.5)*(-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y))
+                             +             intg(i  ,j  ,0,i_S_xy)) +
+            rhcc(i-1,j  ,0)*(Real(0.25)*vfrac(i-1,j  ,0)
+                             + Real(0.5)*( intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y))
+                             -             intg(i-1,j  ,0,i_S_xy)) +
+            rhcc(i-1,j-1,0)*(Real(0.25)*vfrac(i-1,j-1,0)
+                             + Real(0.5)*( intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y))
+                             +             intg(i-1,j-1,0,i_S_xy)) +
+            rhcc(i  ,j-1,0)*(Real(0.25)*vfrac(i  ,j-1,0)
+                             + Real(0.5)*(-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y))
+                             -             intg(i  ,j-1,0,i_S_xy));
     } else {
         return Real(0.);
     }
@@ -2128,7 +2135,7 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Real bb = bcy-kk*bcx;
             Sxy = Real(1./8.)*kk*kk*(xmax4-xmin4) + Real(1./3.)*kk*bb*(xmax3-xmin3)
                 + (Real(0.25)*bb*bb-Real(1./16.))*(xmax*xmax-xmin*xmin);
-            Sxy = std::copysign(Sxy, anrmy);
+            if (anrmy < Real(0.)) { Sxy = -Sxy; }
         }
 
         if (std::abs(anrmy) <= almostzero) {
@@ -2200,25 +2207,24 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
 
 #endif
 
-#if defined(AMREX_USE_HYPRE)
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
-                                 Array4<AtomicInt const> const& gid,
+                                 Array4<AlgGid const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* ncols, HypreInt* cols,
+                                 AlgInt* ncols, AlgInt* cols,
                                  Real* mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
         {
             cols[nelems] = gid(i,j,k);
             mat[nelems] = sten(i,j,k,0);
-            HypreNodeLap::Int nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             ++nelems;
 
             if                (gid(i-1,j-1,k) < gidmax) {
@@ -2274,11 +2280,11 @@ void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2293,8 +2299,8 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2307,7 +2313,7 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2422,11 +2428,11 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
@@ -2439,8 +2445,8 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2453,7 +2459,7 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2576,11 +2582,11 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
     });
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
-                               Array4<AtomicInt const> const& gid,
+                               Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Real sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2595,8 +2601,8 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
     // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
-    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
-    HypreInt nelems = 0;
+    constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
+    AlgInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
         if (lid(i,j,k) >= 0)
@@ -2609,7 +2615,7 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
                 fp = fm = Real(0.0);
             }
 
-            HypreInt nelems_old = nelems;
+            AlgInt nelems_old = nelems;
             cols[nelems_old] = gid(i,j,k);
             Real m0 = Real(0.);
             ++nelems;
@@ -2726,19 +2732,19 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
 
 #ifdef AMREX_USE_GPU
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const int k,
                                  const int offset,
-                                 Array4<AtomicInt const> const& gid,
+                                 Array4<AlgGid const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* ncols, HypreInt* cols,
+                                 AlgInt* ncols, AlgInt* cols,
                                  Real* mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
     if (lid(i,j,k) >= 0)
     {
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
 
         if (offset == 1 || offset == 0) {
@@ -2836,13 +2842,13 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2866,7 +2872,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
 
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3021,13 +3027,13 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
@@ -3049,7 +3055,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
 
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3212,13 +3218,13 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
     }
 }
 
-template <typename HypreInt, typename AtomicInt>
+template <typename AlgInt, typename AlgGid>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int k,
                                const int offset,
-                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Box const& /*ndbx*/, Array4<AlgGid const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* ncols, HypreInt* cols,
+                               AlgInt* ncols, AlgInt* cols,
                                Real* mat, // NOLINT(readability-non-const-parameter)
                                Real sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom, bool is_rz) noexcept
@@ -3242,7 +3248,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
         // Note that nddom has been grown at periodic boundaries.
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
-        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        constexpr auto gidmax = std::numeric_limits<AlgGid>::max();
         int nelems = 0;
         Real m0 = Real(0.);
 
@@ -3399,57 +3405,48 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
 
 #endif
 
-#endif
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int mlndlap_color (int i, int j, int)
-{
-    return (i%2) + (j%2)*2;
-}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_ha (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sx,
                          Array4<Real const> const& sy, Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                          bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
 
-            Real s0 = Real(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
-                                 +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
+        Real s0 = Real(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
+                             +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
 
-            Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
-                    + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
-                    + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
-                    + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
-                    + sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
-                                        -     facy*(sy(i-1,j-1,k)+sy(i-1,j,k)))
-                    + sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
-                                        -     facy*(sy(i  ,j-1,k)+sy(i  ,j,k)))
-                    + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
-                             +Real(2.0)*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
-                    + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
-                             +Real(2.0)*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
-                    + sol(i,j,k)*s0;
+        Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
+                + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
+                + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
+                + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
+                + sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
+                                    -     facy*(sy(i-1,j-1,k)+sy(i-1,j,k)))
+                + sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
+                                    -     facy*(sy(i  ,j-1,k)+sy(i  ,j,k)))
+                + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
+                         +Real(2.0)*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
+                + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
+                         +Real(2.0)*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
+                + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k);
-                Real frzhi = fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k);
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k);
+            Real frzhi = fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k);
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
+
+        sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -3457,42 +3454,40 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_aa (int i, int j, int k, Array4<Real> const& sol,
                          Array4<Real const> const& rhs, Array4<Real const> const& sig,
                          Array4<int const> const& msk,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                          bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
-            Real fxy = facx + facy;
-            Real f2xmy = Real(2.0)*facx - facy;
-            Real fmx2y = Real(2.0)*facy - facx;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+        Real fxy = facx + facy;
+        Real f2xmy = Real(2.0)*facx - facy;
+        Real fmx2y = Real(2.0)*facy - facx;
 
-            Real s0 = (-Real(2.0))*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
-            Real Ax =   sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
-                      + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
-                      + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
-                      + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
-                      + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
-                      + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k))
-                      + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
-                      + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k))
-                      + sol(i,j,k)*s0;
+        Real s0 = (-Real(2.0))*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+        Real Ax =   sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
+                  + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
+                  + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
+                  + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
+                  + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
+                  + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k))
+                  + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
+                  + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k))
+                  + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm*sig(i-1,j-1,k)-fp*sig(i,j-1,k);
-                Real frzhi = fm*sig(i-1,j  ,k)-fp*sig(i,j  ,k);
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm*sig(i-1,j-1,k)-fp*sig(i,j-1,k);
+            Real frzhi = fm*sig(i-1,j  ,k)-fp*sig(i,j  ,k);
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
+
+        sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
     }
 }
 
@@ -3500,53 +3495,40 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gscolor_c (int i, int j, int k, Array4<Real> const& sol,
                         Array4<Real const> const& rhs, Real sig,
                         Array4<int const> const& msk,
-                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv, int color,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                         bool is_rz) noexcept
 {
-    if (mlndlap_color(i,j,k) == color) {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else {
-            Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
-            Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
-            Real fxy = facx + facy;
-            Real f2xmy = Real(2.0)*facx - facy;
-            Real fmx2y = Real(2.0)*facy - facx;
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
+        Real fxy = facx + facy;
+        Real f2xmy = Real(2.0)*facx - facy;
+        Real fmx2y = Real(2.0)*facy - facx;
 
-            Real s0 = (-Real(2.0))*fxy*Real(4.);
-            Real Ax =   sol(i-1,j-1,k)*fxy
-                      + sol(i+1,j-1,k)*fxy
-                      + sol(i-1,j+1,k)*fxy
-                      + sol(i+1,j+1,k)*fxy
-                      + sol(i-1,j,k)*f2xmy*Real(2.)
-                      + sol(i+1,j,k)*f2xmy*Real(2.)
-                      + sol(i,j-1,k)*fmx2y*Real(2.)
-                      + sol(i,j+1,k)*fmx2y*Real(2.)
-                      + sol(i,j,k)*s0;
+        Real s0 = (-Real(2.0))*fxy*Real(4.);
+        Real Ax =   sol(i-1,j-1,k)*fxy
+                  + sol(i+1,j-1,k)*fxy
+                  + sol(i-1,j+1,k)*fxy
+                  + sol(i+1,j+1,k)*fxy
+                  + sol(i-1,j,k)*f2xmy*Real(2.)
+                  + sol(i+1,j,k)*f2xmy*Real(2.)
+                  + sol(i,j-1,k)*fmx2y*Real(2.)
+                  + sol(i,j+1,k)*fmx2y*Real(2.)
+                  + sol(i,j,k)*s0;
 
-            if (is_rz) {
-                Real fp = facy / static_cast<Real>(2*i+1);
-                Real fm = facy / static_cast<Real>(2*i-1);
-                Real frzlo = fm-fp;
-                Real frzhi = fm-fp;
-                s0 += - frzhi - frzlo;
-                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
-                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
-            }
-
-            sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            Real frzlo = fm-fp;
+            Real frzhi = fm-fp;
+            s0 += - frzhi - frzlo;
+            Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                + frzlo*(sol(i,j-1,k)-sol(i,j,k));
         }
-    }
-}
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlndlap_gscolor_sten (int i, int j, int k, Array4<Real> const& sol,
-                           Array4<Real const> const& rhs,
-                           Array4<Real const> const& sten,
-                           Array4<int const> const& msk, int color) noexcept
-{
-    if (mlndlap_color(i,j,k) == color) {
-        mlndlap_gauss_seidel_sten(i,j,k,sol,rhs,sten,msk);
+        sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
     }
 }
 

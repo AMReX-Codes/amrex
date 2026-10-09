@@ -5,6 +5,10 @@
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
+// threadprivate doesn't work with Cray, Intel, PGI/NVHPC, and Fujitsu
+#if !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI) && !defined(__NVCOMPILER) && !defined(__FUJITSU)
+#define AMREX_BT_STACK_THREADPRIVATE 1
+#endif
 #endif
 
 /**
@@ -64,8 +68,7 @@ struct BLBackTrace
     static void print_backtrace_info (const std::string& filename);
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
-// threadprivate here doesn't work with Cray, Intel, and Fujitsu
-#if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI) && !defined(__NVCOMPILER) && !defined(__FUJITSU)
+#ifdef AMREX_BT_STACK_THREADPRIVATE
 #pragma omp threadprivate(bt_stack)
 #endif
 };

@@ -17,6 +17,11 @@ public:
 
     void initData ();
 
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    void setMultigridType (std::string const& name);
+
 private:
 
     void readParameters ();
@@ -30,10 +35,13 @@ private:
     int verbose = 2;
     int bottom_verbose = 0;
     int max_iter = 500;
+    bool do_plots = true;
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
     int use_hypre = 0;
-    amrex::Real reltol = 1.e-11;
+    amrex::Real reltol = amrex::Real(1.e-11);
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
@@ -42,7 +50,7 @@ private:
     amrex::Vector<amrex::MultiFab> solution;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> exact_solution;
-    amrex::Array<amrex::Real,AMREX_SPACEDIM> beta = {{AMREX_D_DECL(0.9,0.0,0.0)}};
+    amrex::Array<amrex::Real,AMREX_SPACEDIM> beta = {{AMREX_D_DECL(amrex::Real(0.9),0.0,0.0)}};
 };
 
 #endif

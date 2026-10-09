@@ -4,11 +4,31 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_ParallelReduce.H>
 
+#include <atomic>
 #include <utility>
 #include <cstring>
 #include <iostream>
 
 namespace amrex {
+
+namespace {
+    // The usage counters are only updated with carena_mutex held and do not publish
+    // other data, so relaxed loads and stores are sufficient.
+    std::size_t relaxed_load (std::atomic<std::size_t> const& counter) noexcept
+    {
+        return counter.load(std::memory_order_relaxed);
+    }
+
+    void relaxed_add (std::atomic<std::size_t>& counter, std::size_t n) noexcept
+    {
+        counter.store(relaxed_load(counter) + n, std::memory_order_relaxed);
+    }
+
+    void relaxed_sub (std::atomic<std::size_t>& counter, std::size_t n) noexcept
+    {
+        counter.store(relaxed_load(counter) - n, std::memory_order_relaxed);
+    }
+}
 
 CArena::CArena (std::size_t hunk_size, ArenaInfo info)
     : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
@@ -37,7 +57,7 @@ void*
 CArena::alloc_protected (std::size_t nbytes)
 {
     bool freeunused_called = false;
-    if (std::cmp_greater_equal(m_used+nbytes, arena_info.release_threshold)) {
+    if (std::cmp_greater_equal(relaxed_load(m_used)+nbytes, arena_info.release_threshold)) {
         freeUnused_protected();
         freeunused_called = true;
     }
@@ -92,8 +112,8 @@ CArena::alloc_protected (std::size_t nbytes)
 
         vp = allocate_system(N);
 
-        m_used += N;
-        m_max_used = std::max(m_used, m_max_used);
+        relaxed_add(m_used, N);
+        m_max_used = std::max(relaxed_load(m_used), m_max_used);
 
         m_alloc.emplace_back(vp,N);
 
@@ -153,8 +173,8 @@ CArena::alloc_protected (std::size_t nbytes)
         m_freelist.erase(free_it);
     }
 
-    m_actually_used += nbytes;
-    m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+    relaxed_add(m_actually_used, nbytes);
+    m_max_actually_used = std::max(relaxed_load(m_actually_used), m_max_actually_used);
 
     BL_ASSERT(vp != nullptr);
 
@@ -204,8 +224,8 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                     const_cast<Node&>(*busy_it).mem_stat(stat);
                 }
 #endif
-                m_actually_used += new_size - busy_it->size();
-                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                relaxed_add(m_actually_used, new_size - busy_it->size());
+                m_max_actually_used = std::max(relaxed_load(m_actually_used), m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(new_size);
                 return std::make_pair(pt, new_size);
             } else if (total_size >= szmin) {
@@ -218,8 +238,8 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                     const_cast<Node&>(*busy_it).mem_stat(stat);
                 }
 #endif
-                m_actually_used += total_size - busy_it->size();
-                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                relaxed_add(m_actually_used, total_size - busy_it->size());
+                m_max_actually_used = std::max(relaxed_load(m_actually_used), m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(total_size);
                 return std::make_pair(pt, total_size);
             }
@@ -278,7 +298,7 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
 
         const_cast<Node&>(*busy_it).size(new_size);
 
-        m_actually_used -= leftover_size;
+        relaxed_sub(m_actually_used, leftover_size);
 
 #ifdef AMREX_TINY_PROFILING
         if (m_profiler.m_do_profiling) {
@@ -314,7 +334,7 @@ CArena::free (void* vp)
     }
     BL_ASSERT(!m_freelist.contains(*busy_it));
 
-    m_actually_used -= busy_it->size();
+    relaxed_sub(m_actually_used, busy_it->size());
 
 #ifdef AMREX_TINY_PROFILING
     TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
@@ -434,7 +454,7 @@ CArena::freeUnused_protected ()
         }
         return false;
     });
-    m_used -= nbytes;
+    relaxed_sub(m_used, nbytes);
 
     // deallocate_system can call cudafree which may perform implicit synchronization
     // of all cuda streams. In case amrex::Gpu::Elixir is used, a cudaLaunchHostFunc can be
@@ -461,7 +481,7 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 
         std::size_t nbytes = Arena::align(sz == 0 ? 1 : sz);
 
-        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+        if (static_cast<Long>(relaxed_load(m_used)+nbytes) >= arena_info.release_threshold) {
             freeUnused_protected();
         }
 
@@ -493,13 +513,13 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 std::size_t
 CArena::heap_space_used () const noexcept
 {
-    return m_used;
+    return relaxed_load(m_used);
 }
 
 std::size_t
 CArena::heap_space_actually_used () const noexcept
 {
-    return m_actually_used;
+    return relaxed_load(m_actually_used);
 }
 
 std::size_t
@@ -559,8 +579,8 @@ std::ostream& operator<< (std::ostream& os, const CArena& arena)
 {
     os << "CArea:\n"
        << "    Hunk size: " << arena.m_hunk << "\n"
-       << "    Memory allocated: " << arena.m_used << "\n"
-       << "    Memory actually used: " << arena.m_actually_used << "\n";
+       << "    Memory allocated: " << relaxed_load(arena.m_used) << "\n"
+       << "    Memory actually used: " << relaxed_load(arena.m_actually_used) << "\n";
 
     if (arena.m_alloc.empty()) {
         os << "    No memory allocations\n";

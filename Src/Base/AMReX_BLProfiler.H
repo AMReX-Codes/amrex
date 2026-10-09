@@ -423,7 +423,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_ADD_STEP(snum)  amrex::BLProfiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  amrex::BLProfiler::SetRunTime(rtime);
 
-#define BL_PROFILE_REGION(rname) amrex::BLProfileRegion bl_profile_region_##vname((rname));
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::BLProfileRegion BL_PROFILE_PASTE(bl_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 #define BL_PROFILE_REGION_GPU_SYNC(rname) BL_PROFILE_REGION(rname)
 
 #define BL_PROFILE_REGION_START(rname) amrex::BLProfiler::RegionStart(rname);
@@ -523,9 +526,15 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
-#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region_##vname((rname))
+#define BL_PROFILE_REGION(rname)                                      \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::TinyProfileRegion BL_PROFILE_PASTE(tiny_profile_region_, __COUNTER__)((rname)); \
+    AMREX_WARNING_POP
 #ifdef AMREX_USE_GPU
-#define BL_PROFILE_REGION_GPU_SYNC(rname) amrex::TinyProfileRegion tiny_profile_region_gpu_sync_##vname((rname), true)
+#define BL_PROFILE_REGION_GPU_SYNC(rname)                             \
+    AMREX_WARNING_PUSH_COUNTER                                       \
+    amrex::TinyProfileRegion BL_PROFILE_PASTE(tiny_profile_region_, __COUNTER__)((rname), true); \
+    AMREX_WARNING_POP
 #else
 #define BL_PROFILE_REGION_GPU_SYNC(rname) BL_PROFILE_REGION(rname)
 #endif
@@ -609,6 +618,24 @@ class BLProfiler
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
+#endif
+
+// ============================================================
+// Without the tiny profiler, stub the parts of its API that
+// may be called in any build
+// ============================================================
+
+#ifndef AMREX_TINY_PROFILING
+namespace amrex {
+
+class TinyProfiler
+{
+  public:
+    //! Without the tiny profiler, there is no active profiler
+    [[nodiscard]] static const char* CurrentName () noexcept { return nullptr; }
+};
+
+}
 #endif
 
 // ============================================================

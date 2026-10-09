@@ -149,7 +149,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
-                cfine.define(ba, fine.DistributionMap(), 1, 0);
+                cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
             }
 
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -395,10 +395,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& starr_ma = stencil->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
-                        mlndlap_gscolor_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
-                                             starr_ma[box_no],dmskarr_ma[box_no],color);
+                        mlndlap_gauss_seidel_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
+                                                  starr_ma[box_no],dmskarr_ma[box_no]);
                     });
                 }
             } else
@@ -428,10 +429,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             if (Gpu::inLaunchRegion()) {
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                          const_sigma, dmskarr_ma[box_no], dxinvarr, color
+                                          const_sigma, dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                           ,is_rz
 #endif
@@ -472,11 +474,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
                                            AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
-                                           dmskarr_ma[box_no], dxinvarr, color
+                                           dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif
@@ -520,10 +523,11 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 auto const& sarr_ma = sigma[0]->const_arrays();
                 for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                     {
                         mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
-                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr, color
+                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr
 #if (AMREX_SPACEDIM == 2)
                                            ,is_rz
 #endif
@@ -580,7 +584,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     }
     else
     {
-        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
 
 #ifdef AMREX_USE_GPU
@@ -718,7 +722,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     }
@@ -733,8 +737,11 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping
     // or harmonic averaging), each velocity component needs its own
     // sigma direction.  Otherwise fall through to the scalar-sigma path.
+    // The RAP stencil is built from sigma component 0 alone, so the
+    // correction must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -930,9 +937,11 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping),
     // each flux component needs its own sigma direction.  Otherwise fall
-    // through to the scalar-sigma path.
+    // through to the scalar-sigma path.  The RAP stencil is built from
+    // sigma component 0 alone, so the fluxes must use that component too.
 #if (AMREX_SPACEDIM >= 2)
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped &&
+        (m_coarsening_strategy != CoarseningStrategy::RAP);
 #endif
 
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);

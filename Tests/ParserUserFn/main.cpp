@@ -35,7 +35,7 @@ int main (int argc, char* argv[])
         parser.registerUserFn3("uf3", f3_h, nullptr);
         parser.registerUserFn4("uf4", f4_h, nullptr);
 
-        auto const exe = parser.compile<2>();
+        auto const exe = parser.compileHost<2>();
         auto const result = exe(x,y);
         AMREX_ALWAYS_ASSERT(result == expected);
         amrex::Print() << "SUCCESS on host\n";

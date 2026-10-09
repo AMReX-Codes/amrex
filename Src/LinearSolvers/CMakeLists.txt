@@ -9,6 +9,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        PRIVATE
        MLMG/AMReX_MLMG.H
        MLMG/AMReX_MLMG.cpp
+       MLMG/AMReX_MLAlgMG.H
+       MLMG/AMReX_MLAlgMG.cpp
        MLMG/AMReX_MLMG_K.H
        MLMG/AMReX_MLMG_${D}D_K.H
        MLMG/AMReX_MLMGBndry.H
@@ -22,8 +24,11 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLCellABecLap.H
        MLMG/AMReX_MLCellABecLap_K.H
        MLMG/AMReX_MLCellABecLap_${D}D_K.H
+       MLMG/AMReX_Habec_K.H
+       MLMG/AMReX_Habec_${D}D_K.H
        MLMG/AMReX_MLCGSolver.H
        MLMG/AMReX_PCGSolver.H
+       MLMG/AMReX_SingleBoxCGSolver.H
        MLMG/AMReX_MLABecLaplacian.H
        MLMG/AMReX_MLABecLap_K.H
        MLMG/AMReX_MLABecLap_${D}D_K.H
@@ -33,9 +38,15 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson.H
        MLMG/AMReX_MLPoisson_K.H
        MLMG/AMReX_MLPoisson_${D}D_K.H
+       AMReX_AlgMG.H
+       AMReX_BiCGStab.H
+       AMReX_BiCGStab_MV.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
        AMReX_GMRES_MV.H
+       AMReX_KrylovMV.H
+       AMReX_PCG.H
+       AMReX_PCG_MV.H
        AMReX_Smoother_MV.H
        AMReX_Algebra.H
        AMReX_AlgPartition.H
@@ -43,6 +54,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_AlgVector.H
        AMReX_AlgVecUtil.H
        AMReX_CSR.H
+       AMReX_SpGEMM.H
        AMReX_SpMatrix.H
        AMReX_SpMatUtil.H
        AMReX_SpMV.H
@@ -54,6 +66,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           MLMG/AMReX_MLMG_2D_K.H
           MLMG/AMReX_MLPoisson_2D_K.H
           MLMG/AMReX_MLALap_2D_K.H
+          MLMG/AMReX_MLTerrainPoisson.H
+          MLMG/AMReX_MLTerrainPoisson.cpp
+          MLMG/AMReX_MLTerrainPoisson_K.H
           )
     endif ()
 
@@ -90,6 +105,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           MLMG/AMReX_MLNodeLaplacian_sync.cpp
           MLMG/AMReX_MLNodeLaplacian_sten.cpp
           MLMG/AMReX_MLNodeLaplacian_misc.cpp
+          MLMG/AMReX_MLNodeLaplacian_matrix.cpp
           MLMG/AMReX_MLNodeLap_K.H
           MLMG/AMReX_MLNodeLap_${D}D_K.H
           MLMG/AMReX_MLTensorOp.H
@@ -131,12 +147,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (AMReX_HYPRE AND AMReX_LINEAR_SOLVERS_INCFLO)
-       target_sources(amrex_${D}d
-          PRIVATE
-          MLMG/AMReX_MLNodeLaplacian_hypre.cpp
-          )
-    endif ()
 
     if (D EQUAL 3)
 

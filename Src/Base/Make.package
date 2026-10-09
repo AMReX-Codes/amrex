@@ -64,6 +64,7 @@ C$(AMREX_BASE)_headers += AMReX_BackgroundThread.H
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
 C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
+C$(AMREX_BASE)_headers += AMReX_CrtReport.H
 
 C$(AMREX_BASE)_headers += AMReX_BLFort.H
 
@@ -260,6 +261,7 @@ endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
+C$(AMREX_BASE)_sources += AMReX_CrtReport.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
 
 ifeq ($(LAZY),TRUE)
@@ -319,6 +321,7 @@ CEXE_headers += AMReX_Parser_Y.H
 CEXE_sources += AMReX_Parser_Y.cpp
 
 CEXE_headers += AMReX_Parser_Exe.H
+CEXE_headers += AMReX_Parser_Exe_Body.H
 CEXE_sources += AMReX_Parser_Exe.cpp
 
 CEXE_headers += AMReX_Parser.H

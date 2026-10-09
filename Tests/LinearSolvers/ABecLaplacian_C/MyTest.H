@@ -15,6 +15,13 @@ public:
 
     void solve ();
     void writePlotfile () const;
+    void initData ();
+
+    [[nodiscard]] amrex::Vector<std::string> const& getMultigridTypes () const {
+        return multigrid_types;
+    }
+    //! Returns false if this problem does not support the type.
+    bool setMultigridType (std::string const& name);
 
 // make these public for cuda
     void initProbPoisson ();
@@ -25,12 +32,12 @@ public:
 private:
 
     void readParameters ();
-    void initData ();
     void solvePoisson ();
     void solveABecLaplacian ();
     void solveABecLaplacianInhomNeumann ();
     void solveNodeABecLaplacian ();
     void solveABecLaplacianGMRES ();
+    void configureMLMG (amrex::MLMG& mlmg) const;
 
 #ifdef AMREX_USE_HYPRE
     void solveMLHypre ();
@@ -56,15 +63,25 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     int linop_maxorder = 2;
+    bool do_plots = true;
     bool agglomeration = true;
     bool consolidation = true;
     bool deterministic = false;
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    int semicoarsening_direction = -1;
     bool use_gauss_seidel = true; // true: red-black, false: jacobi
     bool use_hypre = false;
     bool use_petsc = false;
+    amrex::Vector<std::string> multigrid_types{"geometric"};
+    amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
+    //! Testing aid: AlgMG as the bottom solver of the geometric cycles of
+    //! the hybrid type only, so that the geometric type stays the benchmark.
+    bool use_algmg_bottom = false;
+    //! Testing aid, not for normal use: a non-negative value overrides the
+    //! hybrid stall rate; 0 forces the switch to AlgMG.
+    amrex::Real hybrid_stall_rate = -1.0;
 
     // GMRES
     bool use_gmres = false;
@@ -84,7 +101,7 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 
-    amrex::Real ascalar = 1.e-3;
+    amrex::Real ascalar = amrex::Real(1.e-3);
     amrex::Real bscalar = 1.0;
 };
 

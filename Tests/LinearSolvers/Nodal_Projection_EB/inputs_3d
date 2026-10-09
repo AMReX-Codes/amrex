@@ -9,3 +9,5 @@ use_hypre = 0                            # if 1 then use hypre instead of geomet
 
 mg_verbose = 2                           # specify verbosity of geometric multigrid solver         (default: 0)
 bottom_verbose = 2                       # specify verbosity of the bottom solver if used (default: 0)
+
+multigrid_types = algebraic hybrid geometric   # solve once per type

@@ -454,7 +454,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  const AMRErrorTagInfo&           info = AMRErrorTagInfo()) noexcept
       : m_test(test), m_field(std::move(field)), m_info(info), m_ngrow(SetNGrow())
       {
-          AMREX_ASSERT(!value.empty());
+          AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!value.empty(),
+              "AMRErrorTag: value must not be empty");
           m_value.resize((info.m_max_level > 0) ? info.m_max_level : 1);
           for (int i = 0; i < m_value.size() && i < value.size(); ++i) {
               m_value[i] = value[i];

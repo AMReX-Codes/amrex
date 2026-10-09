@@ -111,8 +111,8 @@ BARef::define (std::istream& is, int& ndims)
     AMREX_ASSERT(maxbox >= 0 && maxbox < std::numeric_limits<int>::max());
     resize(maxbox);
     auto pos = is.tellg();
-    {
-        ndims = AMREX_SPACEDIM;
+    ndims = AMREX_SPACEDIM;
+    if (maxbox > 0) { // No box to probe otherwise, and we would hit EOF.
         char c1, c2;
         int itmp;
         is >> std::ws >> c1 >> std::ws >> c2;
@@ -589,6 +589,19 @@ BoxArray::minmaxSize (const IntVect& min_size, const IntVect& max_size)
     return *this;
 }
 
+void
+BoxArray::repartition (BoxList&& bl)
+{
+    AMREX_ASSERT(bl.ixType() == ixType());
+    if ((! m_bat.is_simple()) || (crseRatio() != IntVect::TheUnitVector())) {
+        m_simplified_list.reset();
+    }
+    std::shared_ptr<BoxList> bak;
+    bak.swap(m_simplified_list);
+    define(std::move(bl));
+    m_simplified_list = std::move(bak);
+}
+
 BoxArray&
 BoxArray::refine (int refinement_ratio)
 {
@@ -677,7 +690,10 @@ BoxArray::coarsen (int refinement_ratio)
 BoxArray&
 BoxArray::coarsen (const IntVect& iv)
 {
-    m_bat.set_coarsen_ratio(crseRatio()*iv);
+    if (iv != IntVect::TheUnitVector()) {
+        m_bat.set_coarsen_ratio(crseRatio()*iv);
+        m_simplified_list.reset();
+    }
     return *this;
 }
 
@@ -1161,7 +1177,7 @@ BoxArray::minimalBox (Long& npts_avg_box) const
     auto cr = crseRatio();
     minbox.coarsen(cr).convert(ixType());
     npts_tot /= AMREX_D_TERM(Long(cr[0]),*cr[1],*cr[2]);
-    npts_avg_box = npts_tot / N;
+    npts_avg_box = (N > 0) ? npts_tot / N : 0L;
     return minbox;
 }
 
@@ -1245,7 +1261,8 @@ BoxArray::intersections (const Box&                         bx,
         const IntVect& doilo = getDoiLo();
         const IntVect& doihi = getDoiHi();
 
-        gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        // gbx is now in the index space of the stored (cell-centered) boxes.
+        gbx.setSmall(glo - doihi).setBig(ghi + doilo).setType(IndexType::TheCellType());
         gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
@@ -1365,7 +1382,8 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     const IntVect& doilo = getDoiLo();
     const IntVect& doihi = getDoiHi();
 
-    gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+    // gbx is now in the index space of the stored (cell-centered) boxes.
+    gbx.setSmall(glo - doihi).setBig(ghi + doilo).setType(IndexType::TheCellType());
     gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 
     const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());

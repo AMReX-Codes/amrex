@@ -80,6 +80,14 @@ MyTest::solve ()
 
     mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
 
+    // MLMG checks the solve, but not the velocity computed from it.
+    for (int ilev = 0; ilev < int(vel.size()); ++ilev) {
+        if (vel[ilev].contains_nan(0, vel[ilev].nComp(), 0)) {
+            amrex::Abort("MyTest::solve: velocity contains NaN on level "
+                         + std::to_string(ilev));
+        }
+    }
+
 #if 0
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
 

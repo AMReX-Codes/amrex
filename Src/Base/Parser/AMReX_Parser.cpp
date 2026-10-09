@@ -27,6 +27,13 @@ Parser::define (std::string const& func_body)
 
     if (!func_body.empty()) {
         m_data->m_expression = func_body;
+        // Strip // comments before joining lines, so a comment ends at its own line.
+        for (auto pos = m_data->m_expression.find("//"); pos != std::string::npos;
+             pos = m_data->m_expression.find("//", pos)) {
+            auto eol = m_data->m_expression.find('\n', pos);
+            m_data->m_expression.erase(pos, (eol == std::string::npos)
+                                       ? std::string::npos : eol - pos);
+        }
         std::erase_if(m_data->m_expression, [](char c) { return c == '\n' || c == '\r'; });
         std::string f = m_data->m_expression + "\n";
 
@@ -34,13 +41,13 @@ Parser::define (std::string const& func_body)
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
         try {
             amrex_parserparse();
+            m_data->m_parser = amrex_parser_new();
         } catch (const std::runtime_error& e) {
             amrex_parser_delete_buffer(buffer); // delete buffer allocated by bison
             amrex_parser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                      + m_data->m_expression + "\"");
         }
-        m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
         m_ufs = parser_get_user_functions(m_data->m_parser);
     }
@@ -51,16 +58,24 @@ Parser::Data::~Data ()
 {
     m_expression.clear();
     if (m_parser) { amrex_parser_delete(m_parser); }
+    clear_host_executor();
+#ifdef AMREX_USE_GPU
+    if (m_device_executor) { The_Arena()->free(m_device_executor); }
+#endif
+}
+
+void
+Parser::Data::clear_host_executor ()
+{
     if (m_host_executor) {
         if (m_use_arena) {
             The_Pinned_Arena()->free(m_host_executor);
         } else {
             std::free(m_host_executor);
         }
+        m_host_executor = nullptr;
+        m_use_arena = true;
     }
-#ifdef AMREX_USE_GPU
-    if (m_device_executor) { The_Arena()->free(m_device_executor); }
-#endif
 }
 /// \endcond
 
@@ -89,6 +104,11 @@ Parser::registerVariables (Vector<std::string> const& vars)
 
     m_vars = vars;
     if (m_data && m_data->m_parser) {
+        // The syntax tree may be shared with copies of this object, so forget
+        // every previous registration, not just this object's.  A variable
+        // dropped here then fails at compile time instead of reading past the
+        // argument array.
+        parser_clearvar(m_data->m_parser);
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             parser_regvar(m_data->m_parser, vars[i].c_str(), i);

@@ -247,6 +247,9 @@ endif ()
 set(_GPU_RDC_default ON)
 if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
     set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
+elseif(AMReX_HIP AND AMReX_OMP)
+    # HIP with OpenMP and RDC fails to find some kernels at run time.
+    set(_GPU_RDC_default OFF)
 endif()
 cmake_dependent_option( AMReX_GPU_RDC "Enable Relocatable Device Code" ${_GPU_RDC_default}
    "AMReX_CUDA OR AMReX_HIP" OFF)
@@ -258,6 +261,9 @@ print_option(AMReX_GPU_RDC)
 #
 option(AMReX_FASTMATH  "Enable fast-math optimizations" OFF)
 print_option(AMReX_FASTMATH)
+
+option(AMReX_MATH_ERRNO "Let math functions set errno in non-Debug builds" OFF)
+print_option(AMReX_MATH_ERRNO)
 
 #
 # Parallel backends    ========================================================
@@ -471,9 +477,9 @@ if (AMReX_TP_PROFILE)
 endif ()
 
 # Check profile options
-if ( NOT ( CMAKE_C_COMPILER_ID STREQUAL "Intel" ) AND
+if ( NOT ( CMAKE_CXX_COMPILER_ID MATCHES "^Intel(LLVM)?$" ) AND
       ( AMReX_TP_PROFILE STREQUAL "VTUNE") )
-   message( FATAL_ERROR "VTUNE cannot be used with ${CMAKE_C_COMPILER_ID} compiler" )
+   message( FATAL_ERROR "VTUNE cannot be used with ${CMAKE_CXX_COMPILER_ID} compiler" )
 endif ()
 
 if (  ( ( AMReX_TP_PROFILE STREQUAL "CRAYPAT" ) OR

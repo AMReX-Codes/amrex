@@ -25,6 +25,9 @@ linear operators include
 - :cpp:`MLNodeLaplacian` for nodal variable coefficient Poisson's
   equation :math:`\nabla \cdot (\sigma \nabla \phi) = f`.
 
+- :cpp:`MLTerrainPoisson` for cell-centered Poisson's equation on a
+  terrain-following mesh (section :ref:`sec:linearsolver:terrain`).
+
 The constructors of these linear operator classes are in the form like
 below
 
@@ -317,6 +320,29 @@ store the numerical values in the condition,
 
 Note this is an integer (not bool) MultiFab, so the values must be only either 0 or 1.
 
+5) Cell-centered solvers :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
+:cpp:`MLTensorOp` and :cpp:`MLEBABecLap` also accept an overset mask,
+passed to the constructor or :cpp:`define` with one mask per AMR level:
+
+.. highlight:: c++
+
+::
+
+   // 1 means the cell is an unknown. 0 means it's known.
+   MLABecLaplacian (const Vector<Geometry>& a_geom,
+                    const Vector<BoxArray>& a_grids,
+                    const Vector<DistributionMapping>& a_dmap,
+                    const Vector<iMultiFab const*>& a_overset_mask,
+                    const LPInfo& a_info = LPInfo());
+
+The solver does not change the solution in known cells. Their values come
+from the solution MultiFab passed to :cpp:`MLMG::solve`, and the right-hand
+side there is ignored. The mask needs no ghost cells. Multi-level composite
+solves are supported. Convergence is best when the edges of the masked
+region on each fine level fall on faces of the next coarser level's cells.
+With an overset mask, :cpp:`MLPoisson` does not support metric terms; use
+:cpp:`MLABecLaplacian` instead.
+
 
 .. _sec:linearsolver:pars:
 
@@ -367,7 +393,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
 Available choices of the bottom solver are
 
-- :cpp:`MLMG::BottomSolver::bicgstab`: The default.
+- :cpp:`MLMG::BottomSolver::bicgstab`: The default for most operators.
 
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
@@ -384,6 +410,17 @@ Available choices of the bottom solver are
   see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+
+- :cpp:`MLMG::BottomSolver::algmg`: AMReX's own algebraic multigrid
+  (see :ref:`sec:linearsolver:algmg`), available in every build for the
+  operators that hypre supports.
+
+- :cpp:`MLMG::BottomSolver::custom`: A solver provided by the linear operator
+  itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
+  the only such operator, and it uses this by default.  Its custom solver is a
+  BiCGStab that runs entirely on the GPU when the bottom level has a single
+  Box.  This is currently available for CUDA and HIP only; other builds fall
+  back to the standard BiCGStab solver.
 
 The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.
@@ -409,6 +446,15 @@ consolidation strategy for multigrid coarsening.
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.  If agglomeration is used, consolidation is ignored.
+
+- :cpp:`LPInfo::setSemicoarsening(bool)` (by default false) allows multigrid
+  to coarsen in only some of the directions when a direction can no longer be
+  coarsened.  :cpp:`LPInfo::setMaxSemicoarseningLevel(int)` caps how many such
+  levels are built, and :cpp:`LPInfo::setSemicoarseningDirection(int)` pins the
+  direction that is left uncoarsened.  On semi-coarsened levels the
+  cell-centered solvers smooth with a line solve along the uncoarsened
+  direction.  That smoother runs on the CPU only, so cell-centered
+  semi-coarsening is not supported in GPU builds and will abort.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
@@ -440,6 +486,71 @@ For example, using AMReX-Hydro's :cpp:`NodalProjector`
         // Do something else...
     }
 
+On GPUs, calling :cpp:`MLMG::setNoGpuSync(true)` makes :cpp:`MLMG::solve`
+run in a single-stream region without the implicit stream synchronizations
+that :cpp:`MFIter` and many AMReX functions normally perform (see
+:ref:`sec:gpu:stream`).  This is off by default.  When it is on, the GPU
+streams are synchronized once when :cpp:`solve` returns, so the solution is
+complete when control comes back to the application, unless the application
+itself is inside a :cpp:`Gpu::NoSyncRegion`.  Whether this is faster depends
+on the problem.  Avoiding the many small synchronizations of a multigrid
+cycle helps small problems with few boxes per process, but running on a
+single stream removes the concurrency between the per-box kernels that some
+solvers (e.g., the nodal and EB solvers) launch, which can make solves with
+many small boxes slower.  Users are encouraged to time their solves with and
+without :cpp:`setNoGpuSync(true)` and use whichever is faster.
+
+
+Multigrid Type
+--------------
+
+By default, the coarsest AMR level is solved with geometric multigrid
+V-cycles down to the bottom solver.  For problems where geometric
+coarsening converges slowly or not at all, such as strongly varying or
+anisotropic coefficients, :cpp:`MLMG::setMultigridType` selects how that
+level is solved:
+
+- :cpp:`MultigridType::geometric`: the default described above.
+
+- :cpp:`MultigridType::algebraic`: AlgMG (:ref:`sec:linearsolver:algmg`)
+  solves the whole coarsest AMR level in every MLMG iteration, using the
+  bottom solver's tolerance, iteration limit and verbosity.  The
+  geometric levels of that AMR level are then unused, so
+  :cpp:`LPInfo::setMaxCoarseningLevel(0)` avoids building them.
+
+- :cpp:`MultigridType::hybrid`: geometric multigrid first.  If the residual
+  stalls, grows or becomes NaN, MLMG switches to the algebraic solver and
+  restarts from the best iterate it has seen.  The switch is reported at
+  verbosity 1.  :cpp:`MLMG::setHybridStallCriterion(window, rate)` (defaults
+  4 and 0.8) declares a stall when the residual has not dropped by
+  ``rate`` per iteration on average over the last ``window`` iterations,
+  and :cpp:`MLMG::setHybridDivergenceFactor` (default 10) declares
+  divergence when the residual exceeds that multiple of the best residual.
+  After the switch, the algebraic phase gets its own :cpp:`setMaxIter`
+  budget.
+
+Finer AMR levels always use the geometric cycles.  The algebraic types
+support the same operators as the hypre bottom solver, for single
+component :cpp:`MultiFab` problems.  When MLMG serves as a preconditioner
+(for example in :cpp:`GMRESMLMG`), the algebraic type applies one AlgMG
+V-cycle on the coarsest AMR level, so the preconditioner stays a fixed
+linear operation; the hybrid type needs a convergence test and is not
+available there or with :cpp:`setFixedIter`.  :cpp:`MLMG::setAlgMGOptions` takes a
+callback that receives the :cpp:`AlgMG` solver so that its multigrid
+parameters, such as the Krylov acceleration (BiCGStab by default when driven
+by MLMG), can be changed; the tolerances, iteration limit and verbosity come
+from the bottom-solver settings.  The callback runs once per assembled matrix.
+Code that calls :cpp:`AlgMG` members in the callback includes
+``AMReX_AlgMG.H``.  The type can also be read from an inputs file:
+
+.. highlight:: c++
+
+::
+
+    MultigridType mg_type = MultigridType::geometric;
+    ParmParse pp("mlmg");
+    pp.query_enum_case_insensitive("multigrid_type", mg_type); // geometric, algebraic, hybrid
+    mlmg.setMultigridType(mg_type);
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
@@ -459,7 +570,14 @@ The order determines the number of interior cells that are used in the extrapola
 of the boundary value from the cell face to the center of the ghost cell, where
 the extrapolated value is then used in the regular stencil.  For example,
 :cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
-to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values;
+:cpp:`maxorder = 4` uses the boundary value and the first three interior values.
+The hypre, PETSc and AlgMG bottom solvers and the algebraic and hybrid multigrid
+types assemble the operator into a matrix. AlgMG, PETSc and hypre's IJ interface
+support orders up to 4, and hypre's structured and semi-structured interfaces up
+to 3. With embedded boundaries, AlgMG, PETSc and hypre's IJ interface support
+orders up to 3. MLMG lowers a higher order to what the solver supports, and the
+operator keeps that order afterwards.
 
 
 Curvilinear Coordinates
@@ -561,6 +679,25 @@ as living at face centroids, modify the setBCoeffs command to be
 
     ml_ebabeclap->setBCoeffs(lev, beta, MLMG::Location::FaceCentroid);
 
+The nodal finite-difference operator :cpp:`MLEBNodeFDLaplacian` takes an
+:cpp:`EBFArrayBoxFactory` only on the finest AMR level.  It builds the EB
+information it needs on the multigrid levels from that factory by itself, so
+multigrid can coarsen as far as the grids allow, regardless of the
+``max_coarsening_level`` given to :cpp:`EB2::Build`.  The operator drops
+coarse multigrid levels on its own when they have too few unknowns, or when
+a level would no longer see the embedded boundary or part of it.  Setting
+the MLMG verbosity to 2 or higher prints the resulting number of levels.
+
+:cpp:`MLEBNodeFDLaplacian` applies semicoarsening automatically on stretched
+cells.  When some directions have cells at least 1.5 times as long as the
+shortest, those directions are left uncoarsened until the cells are nearly
+cubic.  No setting is needed, and a direction fixed with
+:cpp:`LPInfo::setSemicoarseningDirection` takes precedence.  A constant
+:cpp:`sigma` set with :cpp:`setSigma` before the first solve is accounted
+for: a direction with smaller :cpp:`sigma` counts as having longer cells.
+The coarse multigrid levels are built at the first solve, so their number is
+known only after it.
+
 External Solvers
 ================
 
@@ -639,7 +776,7 @@ The following parameters can be set in the inputs file to control the choice of 
 
 - :cpp:`hypre.hypre_preconditioner`: Default is none;  otherwise the type must be specified.
 
-- :cpp:`hypre.recompute_preconditioner`: Default true.  Option to recompute the preconditioner.
+- :cpp:`hypre.recompute_preconditioner`: Option to redo the solver and preconditioner setup on every solve.  AMReX's own hypre solvers default to false, because they redo the setup whenever the matrix changes; :cpp:`HypreIJIface` used directly defaults to true.
 
 - :cpp:`hypre.write_matrix_files`: Default false.   Option to write the matrix to text files.
 
@@ -652,13 +789,13 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 - :cpp:`hypre.bamg_logging`: Default 0. See `HYPRE_BoomerAMGSetLogging`
 
-- :cpp:`hypre.bamg_coarsen_type`: Default 6.  See `HYPRE_BoomerAMGSetCoarsenType`
+- :cpp:`hypre.bamg_coarsen_type`: Default 6 (8 on GPUs).  See `HYPRE_BoomerAMGSetCoarsenType`
 
 - :cpp:`hypre.bamg_cycle_type`: Default 1.  See `HYPRE_BoomerAMGSetCycleType`
 
-- :cpp:`hypre.bamg_relax_type`: Default 6.  See `HYPRE_BoomerAMGSetRelaxType`
+- :cpp:`hypre.bamg_relax_type`: Default 6 (18 on GPUs).  See `HYPRE_BoomerAMGSetRelaxType`
 
-- :cpp:`hypre.bamg_relax_order`: Default 1.  See `HYPRE_BoomerAMGSetRelaxOrder`
+- :cpp:`hypre.bamg_relax_order`: Default 1 (0 on GPUs).  See `HYPRE_BoomerAMGSetRelaxOrder`
 
 - :cpp:`hypre.bamg_num_sweeps`: Default 2.  See `HYPRE_BoomerAMGSetNumSweeps`
 
@@ -666,7 +803,29 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 
 - :cpp:`hypre.bamg_strong_threshold`: Default 0.25 for 2D, 0.57 for 3D.  See `HYPRE_BoomerAMGSetStrongThreshold`
 
-- :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
+- :cpp:`hypre.bamg_interp_type`:  Default 0 (6 on GPUs).  See `HYPRE_BoomerAMGSetInterpType`
+
+- :cpp:`hypre.bamg_use_old_default`: Default true (false on GPUs).  Only used when BoomerAMG is the solver.
+  See `HYPRE_BoomerAMGSetOldDefault`
+
+With a GPU build of HYPRE, the defaults above switch to HYPRE's recommended GPU options
+(PMIS coarsening, extended+i interpolation with :cpp:`hypre.bamg_pmax_elmts` 4, l1-Jacobi
+relaxation in natural order, and :cpp:`hypre.bamg_keep_transpose` 1).  For symmetric problems,
+Chebyshev relaxation (:cpp:`hypre.bamg_relax_type` 16) often needs half as many iterations.
+
+When BoomerAMG is the solver, :cpp:`hypre.bamg_max_levels` defaults to HYPRE's own default.
+The defaults of :cpp:`hypre.bamg_coarsen_type`, :cpp:`hypre.bamg_interp_type` and
+:cpp:`hypre.bamg_pmax_elmts` come from `HYPRE_BoomerAMGSetOldDefault` if
+:cpp:`hypre.bamg_use_old_default` is true, and from HYPRE's own defaults otherwise.
+
+Other BoomerAMG parameters: :cpp:`hypre.bamg_pmax_elmts`, :cpp:`hypre.bamg_trunc_factor`,
+:cpp:`hypre.bamg_agg_num_levels`, :cpp:`hypre.bamg_agg_interp_type`,
+:cpp:`hypre.bamg_agg_pmax_elmts`, :cpp:`hypre.bamg_agg_trunc_factor`, :cpp:`hypre.bamg_num_paths`,
+:cpp:`hypre.bamg_keep_transpose`, :cpp:`hypre.bamg_rap2`, :cpp:`hypre.bamg_mod_rap2`,
+:cpp:`hypre.bamg_min_coarse_size`, :cpp:`hypre.bamg_max_coarse_size`, :cpp:`hypre.bamg_variant`,
+:cpp:`hypre.bamg_set_restriction`, :cpp:`hypre.bamg_cheby_order`, :cpp:`hypre.bamg_cheby_fraction`,
+:cpp:`hypre.bamg_cheby_eig_est`, :cpp:`hypre.bamg_cheby_variant` and :cpp:`hypre.bamg_cheby_scale`.
+See the corresponding `HYPRE_BoomerAMGSet...` function.
 
 The user is referred to the
 `HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ HYPRE Reference Manual for full details on the usage of the parameters described briefly above.
@@ -859,7 +1018,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
      Coarse nodes underneath level 2 ghost nodes are not updated.
      The remaining coarse nodes are updated by restriction.
 
-  The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
+  The MC nodal operator can inherit from the ``MLNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
@@ -889,6 +1048,68 @@ on edges shared by multiple :cpp:`Box`\ es.  If needed, you can call
 The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
 :math:`\vec{E}` still has three components, one for each spatial
 direction.
+
+.. _sec:linearsolver:terrain:
+
+Terrain-Following Poisson
+=========================
+
+:cpp:`MLTerrainPoisson` solves the cell-centered Poisson equation on a 3D
+terrain-following mesh, i.e., a mesh that is uniform in computational space
+but whose cell corners are at physical heights :math:`z(x,y,\zeta)`.  The
+operator is
+
+.. math:: L(\phi) = \frac{1}{J} \nabla \cdot (A \nabla \phi),
+
+where :math:`\nabla` is the physical gradient, :math:`A` holds the face
+area factors and :math:`J` is the cell volume factor.  :cpp:`MLMG` solves
+the scaled system :math:`\nabla \cdot (A \nabla \phi) = J f` for the
+right-hand side :math:`f`, so :cpp:`MLMG::apply` and the residuals refer to
+this scaled system and are not divided by :math:`J`.  The data are set with
+
+.. highlight:: c++
+
+::
+
+    // Physical height of the cell corners, with at least one filled ghost node
+    void setZPhys (int amrlev, MultiFab const& z_phys_nd);
+
+    // Face area factors in x, y and z (required)
+    void setAreas (int amrlev, Array<MultiFab const*,AMREX_SPACEDIM> const& area);
+
+    // Cell volume factor J (optional; 1 if not set)
+    void setDetJ (int amrlev, MultiFab const& detJ);
+
+The supported domain boundary conditions are :cpp:`LinOpBCType::Periodic`,
+:cpp:`LinOpBCType::Neumann` and :cpp:`LinOpBCType::Dirichlet`, all
+homogeneous, so the level boundary condition is set with
+:cpp:`setLevelBC(0, nullptr)`.  The flux through a Neumann face is zero.
+Only a single AMR level is supported, and its grids must cover the domain.
+Boxes that span the whole domain in the z-direction are fastest, but boxes
+split in z are also supported.
+
+The operator is not symmetric, so the bottom solver can be BiCGStab or the
+smoother.  By default, :cpp:`MLMG` with this operator uses the smoother
+when multigrid can coarsen the grids to a few cells in x and y, and
+BiCGStab otherwise.
+Multigrid can coarsen that far when the x and y sizes of the domain have
+no prime factors other than 2, 3 and 5 (e.g., :math:`200 = 2^3 \cdot 5^2`)
+and the boxes can be coarsened at least once in x and y (e.g., their sizes
+are even).  The problem can be solved with :cpp:`MLMG`, as below, or with
+:cpp:`GMRESMLMG` (section :ref:`sec:linearsolver:gmres`), which always uses
+the smoother as the bottom solver.
+
+::
+
+    MLTerrainPoisson linop({geom}, {grids}, {dmap});
+    linop.setDomainBC(lobc, hibc);
+    linop.setLevelBC(0, nullptr);
+    linop.setZPhys(0, z_phys_nd);
+    linop.setAreas(0, {&ax, &ay, &az});
+    linop.setDetJ(0, detJ);
+
+    MLMG mlmg(linop);
+    mlmg.solve({&phi}, {&rhs}, reltol, abstol);
 
 Open Boundary Poisson Solver
 ============================
@@ -920,6 +1141,8 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                  Real a_tol_rel, Real a_tol_abs);
 
 
+.. _sec:linearsolver:gmres:
+
 GMRES
 =====
 
@@ -934,10 +1157,239 @@ must provide some basic operations such as dot product and linear
 combination. For the full set of requirements on the operator class, see
 https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1GMRES.html#details.
 
+By default, :cpp:`GMRES<V,M>::solve` starts from a zero initial guess and
+overwrites the solution vector passed in. Call
+:cpp:`setInitialGuessNonzero(true)` to use the solution vector passed in as
+the initial guess instead. The relative tolerance is relative to the initial
+residual norm, which is the norm of the right-hand side only for a zero
+initial guess. BiCGStab and PCG below behave the same way.
+
 An example of using GMRES combined with a Jacobi preconditioner to solve
 Poisson's equation can be found at
 https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
 
 AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
 linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
-the preconditioner.
+the preconditioner. Like :cpp:`MLMG`, its :cpp:`solve` uses the solution
+passed in as the initial guess.
+
+BiCGStab
+========
+
+:cpp:`BiCGStab<V,M>` in ``AMReX_BiCGStab.H`` is a right-preconditioned
+BiCGStab solver with the same template parameters and operator requirements
+as :cpp:`GMRES<V,M>`, so an operator class written for GMRES can be used
+with BiCGStab without changes. Compared with GMRES, it needs a fixed number
+of vectors and performs a fixed number of dot products per iteration. Use
+:cpp:`getStatus` to check for a breakdown.
+
+PCG
+===
+
+:cpp:`PCG<V,M>` in ``AMReX_PCG.H`` is the preconditioned conjugate gradient
+method with the same operator requirements as :cpp:`GMRES<V,M>`. It needs a
+symmetric definite operator and preconditioner of the same sign (positive
+or negative definite), and is then the cheapest of the three: one operator
+and one preconditioner application and three global reductions per
+iteration. :cpp:`getStatus` reports a loss of definiteness.
+
+Sparse Linear Algebra
+=====================
+
+AMReX provides distributed sparse matrices and vectors in
+``AMReX_Algebra.H``. An :cpp:`AlgPartition` describes how global row indices
+are divided among MPI processes: each process owns a contiguous range of
+rows. :cpp:`AlgVector<T>` is a vector distributed with such a partition, and
+:cpp:`SpMatrix<T>` is a sparse matrix in compressed sparse row (CSR) format
+whose rows are distributed with a partition. The data live in GPU memory in
+GPU builds.
+
+A matrix can be built with a fixed number of nonzeros per row and filled
+with a functor that sets the global column indices and values of each row,
+or from existing CSR arrays with :cpp:`define`.
+
+.. highlight:: c++
+
+::
+
+    // 1D Laplacian with n global rows, 3 nonzeros per row
+    AlgPartition partition(n);
+    SpMatrix<Real> A(partition, 3);
+    A.setVal([=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
+    {
+        col[0] = (row+n-1) % n; val[0] = Real(-1);
+        col[1] = row;           val[1] = Real(2);
+        col[2] = (row+1) % n;   val[2] = Real(-1);
+    }, CsrSorted{false});
+
+The following operations are available.
+
+- :cpp:`SpMV(y, A, x)` computes :math:`y = A x`.
+- :cpp:`transpose(A, col_partition)` returns :math:`A^T`, where
+  ``col_partition`` is the column partition of ``A`` and becomes the row
+  partition of the result.
+- :cpp:`SpGEMM(A, B, col_partition)` returns the product :math:`A B`. Its
+  rows are partitioned like ``A``, and ``col_partition`` is the column
+  partition of ``B`` and of the product. The rows of ``B`` needed by other
+  processes are exchanged with MPI, and the local product uses cuSPARSE,
+  rocSPARSE or oneMKL on GPUs and an OpenMP-parallel kernel on CPUs.
+
+Column partitions are set on first use. Since a matrix keeps its column
+partition, a given matrix must always be used with the same column
+partition; for example, the same ``col_partition`` must be passed every time
+a matrix appears on the right-hand side of :cpp:`SpGEMM`. The first use in
+:cpp:`SpMV`, :cpp:`SpGEMM`, :cpp:`transpose` or a smoother also ends the
+setup of a matrix, in serial builds too: afterwards its entries can no longer be
+changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
+:cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
+
+Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
+:cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See
+``Tests/Algebra`` for examples.
+
+The following Krylov solvers work with :cpp:`SpMatrix` systems. Each of
+them accepts a preconditioner functor.
+
+- :cpp:`GMRES_MV<T>` in ``AMReX_GMRES_MV.H``: GMRES.
+- :cpp:`BiCGStab_MV<T>` in ``AMReX_BiCGStab_MV.H``: BiCGStab.
+- :cpp:`PCG_MV<T>` in ``AMReX_PCG_MV.H``: preconditioned conjugate
+  gradient, for symmetric definite systems.
+
+All three are aliases of :cpp:`KrylovMV<S,T>` in ``AMReX_KrylovMV.H``. Use
+:cpp:`getSolver` to reach the underlying solver, e.g., to call
+:cpp:`setInitialGuessNonzero` or :cpp:`getStatus`.
+
+The smoothers in ``AMReX_Smoother_MV.H`` can be used as preconditioners and
+as multigrid smoothers. All of them work with MPI, and all of them build
+their scaling on first use, so the first application, and
+:cpp:`ChebyshevSmoother::lambdaMax`, must be called on all processes.
+
+- :cpp:`JacobiSmoother<T>`: weighted Jacobi, or l1-Jacobi with the l1
+  option. Works on CPUs and GPUs.
+- :cpp:`ChebyshevSmoother<T>`: Chebyshev polynomial smoother. Works on
+  CPUs and GPUs.
+- :cpp:`L1GaussSeidelSmoother<T>`: hybrid Gauss-Seidel with l1
+  correction. CPU builds only.
+
+The algebraic multigrid solver :cpp:`AlgMG<T>` in ``AMReX_AlgMG.H`` is
+described below.
+
+.. _sec:linearsolver:algmg:
+
+Algebraic Multigrid
+-------------------
+
+:cpp:`AlgMG<T>` solves :math:`A x = b` for a square :cpp:`SpMatrix<T>` with
+V-cycles. The setup selects coarse points with PMIS coarsening
+[DeSterck2006]_ based on the classical strength of connection [Ruge1987]_,
+builds the interpolation :math:`P`, and forms the coarse operator
+:math:`A_c = P^T A P`. By default, the interpolation is extended+i
+[DeSterck2008]_ [Li2021]_, the smoother is Chebyshev [Adams2003]_, and the
+coarsest level is solved directly. The coarse point selection is
+deterministic: the same matrix with the same row distribution always gives
+the same hierarchy.
+
+.. highlight:: c++
+
+::
+
+    AlgMG<Real> amg(A);   // A must outlive amg
+    amg.setVerbose(1);
+    amg.setRelTol(1.e-10);
+    amg.setBottomSolver(AlgMG<Real>::BottomSolver::bicgstab);
+    amg.solve(x, b);    // x holds the initial guess
+
+The iteration stops when the residual 2-norm is below :cpp:`setRelTol` times
+the norm of the right-hand side; ``x`` holds the initial guess. The V-cycle
+is also available on its own as :cpp:`precond(x, b)` for use in other
+solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
+set per solver object, so several solvers with different settings can
+coexist. The solver runs on CPUs and GPUs with any number of MPI processes.
+:cpp:`MLMG` can use it on the coarsest AMR level or as its bottom solver
+(see :ref:`sec:linearsolver:pars`). The
+enumerations below are ``AMREX_ENUM`` types, so they can be read from an
+inputs file with :cpp:`ParmParse::query_enum_case_insensitive`.
+The following can be tuned:
+
+- :cpp:`setInterpType`: extended+i (``mm_ext_i``, the default), extended
+  (``mm_ext``) or classical direct (``direct``) [Ruge1987]_ interpolation.
+- :cpp:`setSmoother`: Chebyshev (``chebyshev``, the default), l1-Jacobi
+  (``l1_jacobi``) [Baker2011]_, weighted Jacobi (``jacobi``) or, in CPU
+  builds, l1 hybrid Gauss-Seidel (``l1_gauss_seidel``) [Baker2011]_. In the
+  Poisson tests l1 hybrid Gauss-Seidel needs fewer cycles than the other
+  smoothers, but each sweep is sequential within a process or OpenMP thread.
+- :cpp:`setChebyshevDegree` and :cpp:`setChebyshevRatio`: the Chebyshev
+  smoother is a polynomial of the given degree (2) in the l1-scaled
+  operator that damps its eigenvalues between one divided by the given
+  ratio (6) and one, the upper bound of its spectrum.
+- :cpp:`setRelaxWeight`: weight of the l1-Jacobi (4/3) and weighted Jacobi
+  (2/3) smoothers.
+- :cpp:`setPreSmooth` and :cpp:`setPostSmooth`: number of smoother sweeps
+  before and after the coarse correction (1 for Chebyshev, 2 for the other
+  smoothers).
+- :cpp:`setBottomSolver`: a direct solve of the coarsest level (``direct``,
+  the default, for up to 1024 rows), smoother sweeps (``jacobi``), or
+  BiCGStab (``bicgstab``) or GMRES
+  (``gmres``) preconditioned by l1-Jacobi (weighted Jacobi when the smoother
+  is ``jacobi``).
+- :cpp:`setBottomTol`: relative tolerance of the BiCGStab or GMRES bottom
+  solver (:math:`10^{-4}`).
+- :cpp:`setKrylovSolver`: use one V-cycle as the preconditioner of an outer
+  BiCGStab (``bicgstab``), GMRES (``gmres``) or conjugate gradient (``pcg``)
+  solver instead of iterating it on its own (``none``, the default). In the
+  tests in ``Tests/Algebra/AlgMG`` this roughly halved the number of V-cycles.
+  The coarse operators are Galerkin products with :math:`R = P^T`, so the
+  matrix should be symmetric or nearly so (solve row-scaled systems in
+  their unscaled form); PCG also requires definiteness (either sign). With PCG
+  or GMRES, use the direct bottom solver or smoother sweeps (not a Krylov
+  bottom solver), and with PCG also the same number of pre- and
+  post-smoothing sweeps.
+- :cpp:`setSingular(true)`: for singular matrices whose null space is the
+  constant vector, such as the Poisson operator with periodic or Neumann
+  boundaries. As in MLMG, the mean of the right-hand side is removed, but
+  the caller's right-hand side is not modified, and the solution is returned
+  with zero mean.
+- :cpp:`setStrongThreshold`: threshold of the strength of connection,
+  typically between 0.1 and 0.5 (0.25 by default). It trades performance
+  for robustness: a smaller value gives a cheaper hierarchy, with less
+  memory and less work per cycle, but is less robust for anisotropic or
+  strongly varying coefficients, where the solver may need many more
+  cycles. A larger value might be more robust, at the price of a more
+  expensive hierarchy.
+- :cpp:`setPMaxElmts` and :cpp:`setTruncFactor`: rows of :math:`P` are
+  truncated to at most four entries by default (0 disables the limit, 32 is
+  the largest allowed, a negative value restores the default), and entries
+  below the given fraction of the row maximum are dropped (0 by default).
+- :cpp:`setMaxCoarseSize` and :cpp:`setMaxLevels`: coarsening stops when a
+  level has at most this many rows (9) or this many levels (25) have been
+  built.
+- :cpp:`setAggressiveNumLevels(n)`: the first ``n`` levels use aggressive
+  coarsening [Yang2010]_ (0 by default). In the tests this roughly halved
+  the operator complexity at the price of more cycles.
+- :cpp:`setAggressiveDirectInterp(true)`: makes the setup of the aggressive
+  levels cheaper but costs further cycles, so it is off by default.
+
+.. [Ruge1987] J. W. Ruge and K. Stüben, Algebraic multigrid, in
+   *Multigrid Methods*, S. F. McCormick, ed., SIAM, Philadelphia, 1987,
+   pp. 73-130, https://doi.org/10.1137/1.9781611971057.ch4.
+.. [DeSterck2006] H. De Sterck, U. M. Yang and J. J. Heys, Reducing
+   complexity in parallel algebraic multigrid preconditioners, *SIAM J.
+   Matrix Anal. Appl.* 27 (2006), pp. 1019-1039,
+   https://doi.org/10.1137/040615729.
+.. [DeSterck2008] H. De Sterck, R. D. Falgout, J. W. Nolting and
+   U. M. Yang, Distance-two interpolation for parallel algebraic multigrid,
+   *Numer. Linear Algebra Appl.* 15 (2008), pp. 115-139,
+   https://doi.org/10.1002/nla.559.
+.. [Li2021] R. Li, B. Sjögreen and U. M. Yang, A new class of AMG
+   interpolation methods based on matrix-matrix multiplications, *SIAM J.
+   Sci. Comput.* 43 (2021), pp. S540-S564,
+   https://doi.org/10.1137/20M134931X.
+.. [Adams2003] M. Adams, M. Brezina, J. Hu and R. Tuminaro, Parallel
+   multigrid smoothing: polynomial versus Gauss-Seidel, *J. Comput. Phys.*
+   188 (2003), pp. 593-610, https://doi.org/10.1016/S0021-9991(03)00194-3.
+.. [Baker2011] A. H. Baker, R. D. Falgout, T. V. Kolev and U. M. Yang,
+   Multigrid smoothers for ultraparallel computing, *SIAM J. Sci. Comput.*
+   33 (2011), pp. 2864-2887, https://doi.org/10.1137/100798806.
+.. [Yang2010] U. M. Yang, On long-range interpolation operators for
+   aggressive coarsening, *Numer. Linear Algebra Appl.* 17 (2010),
+   pp. 453-472, https://doi.org/10.1002/nla.689.

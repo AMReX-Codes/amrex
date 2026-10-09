@@ -44,11 +44,11 @@ HIPCC_FLAGS += -pthread
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targeting the gnu library
+# OpenMP with the compiler's default runtime
 ifeq ($(USE_OMP),TRUE)
-  CXXFLAGS += -fopenmp=libgomp
-  CFLAGS   += -fopenmp=libgomp
-  HIPCC_FLAGS += -fopenmp=libgomp
+  CXXFLAGS += -fopenmp
+  CFLAGS   += -fopenmp
+  HIPCC_FLAGS += -fopenmp
 endif
 
 ifneq ($(BL_NO_FORT),TRUE)
@@ -100,6 +100,10 @@ ifeq ($(HIP_COMPILER),clang)
     CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
     FFLAGS   += -g1 -O3
     F90FLAGS += -g1 -O3
+    ifneq ($(USE_MATH_ERRNO),TRUE)
+      CXXFLAGS += -fno-math-errno
+      CFLAGS   += -fno-math-errno
+    endif
 
   endif
 

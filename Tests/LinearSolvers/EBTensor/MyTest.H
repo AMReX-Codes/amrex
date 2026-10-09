@@ -16,7 +16,7 @@ public:
     void solve ();
     void writePlotfile () const;
 
-public: // make these public for cuda
+    // public for cuda
     void initProb ();
     void initData ();
 
@@ -25,6 +25,7 @@ private:
     void readParameters ();
 
     int n_cell = 128;
+    amrex::IntVect n_cells; // number of cells in each direction, n_cell by default
     int max_grid_size = 64;
 
     // For MLMG solver
@@ -36,6 +37,7 @@ private:
     bool agglomeration = true;
     bool consolidation = true;
     int max_coarsening_level = 30;
+    amrex::Real max_error = -1; // abort if a max-norm error exceeds it (if > 0)
 
     amrex::Geometry geom;
     amrex::BoxArray grids;

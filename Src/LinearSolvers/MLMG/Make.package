@@ -1,12 +1,17 @@
 ifndef AMREX_MLMG_MAKE
        AMREX_MLMG_MAKE := 1
 
+# MLMG uses the sparse linear algebra (AlgMG) in Src/LinearSolvers.
+include $(AMREX_HOME)/Src/LinearSolvers/Make.package
+
 USE_LINEAR_SOLVERS_INCFLO ?= TRUE
 USE_LINEAR_SOLVERS_EM ?= TRUE
 
 CEXE_sources += AMReX_MLMG.cpp
 
 CEXE_headers   += AMReX_MLMG.H
+CEXE_headers   += AMReX_MLAlgMG.H
+CEXE_sources   += AMReX_MLAlgMG.cpp
 CEXE_headers   += AMReX_MLMG_K.H AMReX_MLMG_$(DIM)D_K.H
 ifeq ($(DIM),3)
 CEXE_headers   += AMReX_MLMG_2D_K.H
@@ -19,13 +24,19 @@ CEXE_headers   += AMReX_MLLinOp_K.H
 
 CEXE_headers   += AMReX_MLCellLinOp.H
 
+ifeq ($(DIM),3)
+CEXE_headers   += AMReX_MLTerrainPoisson.H AMReX_MLTerrainPoisson_K.H
+CEXE_sources   += AMReX_MLTerrainPoisson.cpp
+endif
+
 CEXE_headers   += AMReX_MLNodeLinOp.H AMReX_MLNodeLinOp_K.H AMReX_MLNodeLinOp_$(DIM)D_K.H
 CEXE_sources   += AMReX_MLNodeLinOp.cpp
 
 CEXE_headers   += AMReX_MLCellABecLap.H
 CEXE_headers   += AMReX_MLCellABecLap_K.H AMReX_MLCellABecLap_$(DIM)D_K.H
+CEXE_headers   += AMReX_Habec_K.H AMReX_Habec_$(DIM)D_K.H
 
-CEXE_headers   += AMReX_MLCGSolver.H AMReX_PCGSolver.H
+CEXE_headers   += AMReX_MLCGSolver.H AMReX_PCGSolver.H AMReX_SingleBoxCGSolver.H
 
 CEXE_headers   += AMReX_MLABecLaplacian.H
 CEXE_headers   += AMReX_MLABecLap_K.H AMReX_MLABecLap_$(DIM)D_K.H
@@ -66,12 +77,10 @@ ifneq ($(USE_LINEAR_SOLVERS_INCFLO),FALSE)
   CEXE_sources += AMReX_MLNodeLaplacian_sync.cpp
   CEXE_sources += AMReX_MLNodeLaplacian_sten.cpp
   CEXE_sources += AMReX_MLNodeLaplacian_misc.cpp
+  CEXE_sources += AMReX_MLNodeLaplacian_matrix.cpp
   CEXE_headers += AMReX_MLNodeLap_K.H AMReX_MLNodeLap_$(DIM)D_K.H
 ifeq ($(USE_EB),TRUE)
   CEXE_sources += AMReX_MLNodeLaplacian_eb.cpp
-endif
-ifeq ($(USE_HYPRE),TRUE)
-  CEXE_sources += AMReX_MLNodeLaplacian_hypre.cpp
 endif
 
   CEXE_headers += AMReX_MLTensorOp.H

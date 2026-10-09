@@ -103,7 +103,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     }
     else
     {
-        const Box& bx = amrex::enclosedCells(bx_in);
+        const Box& bx = amrex::convert(bx_in, this->box().ixType());
         std::map<Box,NumCells>::iterator it;
 #ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)
@@ -148,7 +148,7 @@ EBCellFlagFab::getNumRegularCells (const Box& bx_in) const noexcept
 {
     FabType thistype = getType();
 
-    const Box& bx = amrex::enclosedCells(bx_in);
+    const Box& bx = amrex::convert(bx_in, this->box().ixType());
 
     if (thistype == FabType::regular)
     {
@@ -189,7 +189,7 @@ EBCellFlagFab::getNumCutCells (const Box& bx_in) const noexcept
 {
     FabType thistype = getType();
 
-    const Box& bx = amrex::enclosedCells(bx_in);
+    const Box& bx = amrex::convert(bx_in, this->box().ixType());
 
     if (thistype == FabType::regular ||
         thistype == FabType::covered)
@@ -227,7 +227,7 @@ EBCellFlagFab::getNumCoveredCells (const Box& bx_in) const noexcept
 {
     FabType thistype = getType();
 
-    const Box& bx = amrex::enclosedCells(bx_in);
+    const Box& bx = amrex::convert(bx_in, this->box().ixType());
 
     if (thistype == FabType::regular)
     {

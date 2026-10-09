@@ -111,6 +111,7 @@ namespace amrex {
             if (n < 0 || n >= ncomp) {
                 AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" %d is out of bound (0:%d)", n, ncomp-1);
+                    amrex::Abort();
                 ))
                 AMREX_IF_ON_HOST((
                     std::stringstream ss;
@@ -239,7 +240,7 @@ namespace amrex {
 
             AMREX_DEVICE_PRINTF(msg.data(),
                 iv.vect[idx]...,
-                ((idx2x % 2 == 0) ? begin.vect[idx2x / 2] : end.vect[idx2x / 2])...
+                ((idx2x % 2 == 0) ? begin.vect[idx2x / 2] : end.vect[idx2x / 2] - 1)...
             );
         }
 

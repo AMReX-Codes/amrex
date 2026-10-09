@@ -486,6 +486,11 @@ private:
 };
 
 template <typename T, int N, Order ORDER>
+TableData<T,N,ORDER>::TableData (Arena* ar) noexcept
+    : DataAllocator{ar}
+{}
+
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::TableData (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
     : DataAllocator{ar}, m_lo(lo), m_hi(hi)
 {

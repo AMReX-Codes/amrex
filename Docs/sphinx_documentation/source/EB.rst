@@ -169,7 +169,8 @@ max_coarsening_levels` parameter specifies the number of coarsening levels AMReX
 should try to have. This is usually set to a big number, say 20 if multigrid
 solvers are used. This essentially tells the build to coarsen as much as it can.
 If there are no multigrid solvers, the parameter should be set to the same as
-:cpp:`required_coarsening_level`. It should be noted that coarsening could
+:cpp:`required_coarsening_level`. The nodal solver :cpp:`MLEBNodeFDLaplacian`
+does not use coarsened EB levels, so it does not need this parameter to be large. It should be noted that coarsening could
 create multi-valued cells even if the fine level does not have any multi-valued
 cells. This occurs when the embedded boundary cuts a cell in such a way that
 there is fluid on multiple sides of the boundary within that cell. Because
@@ -220,7 +221,9 @@ an STL file using:
                     int num_coarsen_opt = NumCoarsenOpt());
 
 This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
-``eb2.stl_file`` to specify the STL file path.
+``eb2.stl_file`` to specify the STL file path. Because an STL file is expected
+to describe a water-tight object, the embedded boundary outside the domain is
+always taken from the STL mesh itself, and ``extend_domain_face`` is ignored.
 
 **Managing IndexSpace Objects**
 
@@ -350,7 +353,8 @@ following data:
   cell's local coordinates with respect to the regular cell's center.
 
 - **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
-  components representing the unit vector pointing toward the covered part.
+  components representing the unit vector in physical space pointing toward
+  the covered part.
 
 - **Boundary area** is in a :cpp:`MultiCutFab` with a single component
   representing the dimensionless boundary area. When the cell is isotropic
@@ -621,6 +625,17 @@ redistribution algorithm as described in Guiliani et al (2021),
 which is available on `arXiv <https://arxiv.org/abs/2112.12360>`_.
 This is an extension of the original state redistribution algorithm
 of Berger and Guiliani (2020).
+
+Each small cell is merged with enough of its neighbors that the merged
+neighborhood has a volume of at least ``target_volfrac`` (0.5 by default).
+A neighborhood never reaches across a domain boundary unless that direction
+is periodic, because the state outside a non-periodic boundary is not part of
+the solution and including it would break conservation. As a consequence, a
+small cell sitting against a non-periodic domain boundary can end up with a
+neighborhood whose volume is less than ``target_volfrac`` -- it is merged with
+everything the domain makes available, which is the best that can be done
+there. Away from domain boundaries, failing to reach ``target_volfrac``
+still indicates a problem with the geometry and aborts.
 
 
 Linear Solvers

@@ -16,7 +16,7 @@ endforeach()
 #
 #
 if (AMReX_MPI)
-   set(_mpi_comps C CXX)  # Do we need MPI_C ?
+   set(_mpi_comps CXX)
    if (AMReX_FORTRAN_INTERFACES)
       list(APPEND _mpi_comps Fortran)
    endif ()
@@ -94,7 +94,7 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
           --expt-relaxed-constexpr --expt-extended-lambda
           "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
           "SHELL:-Xcudafe --diag_suppress=implicit_return_from_non_void_function"
-          -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
+          -maxrregcount=${AMREX_CUDA_EFFECTIVE_MAXREGCOUNT}
           "SHELL:-Xcudafe --display_error_number"
           $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
           )

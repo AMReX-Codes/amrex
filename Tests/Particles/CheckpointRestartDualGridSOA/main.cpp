@@ -106,11 +106,11 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
     for (int icomp = AMREX_SPACEDIM; icomp < NReal; ++icomp) {
         auto sm_orig = amrex::ReduceSum(pc_orig,
             [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real {
-                return ptd.rdata(icomp)[i];
+                return static_cast<Real>(ptd.rdata(icomp)[i]);
             });
         auto sm_new = amrex::ReduceSum(pc_new,
             [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real {
-                return ptd.rdata(icomp)[i];
+                return static_cast<Real>(ptd.rdata(icomp)[i]);
             });
         ParallelDescriptor::ReduceRealSum(sm_orig);
         ParallelDescriptor::ReduceRealSum(sm_new);

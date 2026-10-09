@@ -15,19 +15,21 @@ public:
     void solve ();
     void initData ();
 
+    // public for CUDA device lambdas
+    void resetPhi ();
+    void buildOversetMask ();
+    void prepareOversetSolve ();
+    void reportOversetError () const;
+    void writePlotfile (amrex::Vector<amrex::MultiFab> const& plot_phi,
+                        std::string const& plotfile,
+                        bool include_overset_mask) const;
+
 private:
 
     void initializeEB ();
     void readParameters ();
     void initGrids ();
-    void resetPhi ();
-    void buildOversetMask ();
-    void prepareOversetSolve ();
-    void reportOversetError () const;
     void solve (bool use_overset_mask);
-    void writePlotfile (amrex::Vector<amrex::MultiFab> const& plot_phi,
-                        std::string const& plotfile,
-                        bool include_overset_mask) const;
 
     int max_level = 0;
     int ref_ratio = 2;

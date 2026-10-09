@@ -12,6 +12,19 @@ on a monthly basis with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
+Each release on GitHub carries a source tarball, ``amrex-YY.MM.tar.gz``,
+together with a signed build-provenance attestation,
+``amrex-YY.MM.intoto.jsonl``, that records the commit it was made from. To
+check a downloaded tarball with the GitHub CLI, run
+
+.. code-block:: bash
+
+   gh attestation verify amrex-YY.MM.tar.gz --repo AMReX-Codes/amrex
+
+The release also carries ``amrex-YY.MM.spdx.json``, an SBOM that lists the
+GitHub Actions used by AMReX's CI rather than the library's build
+dependencies.
+
 AMReX can also be obtained using Spack (https://spack.io/).  Assuming
 you have Spack installed, simply type, ``spack install amrex``. For more
 information see the :ref:`sec:build:spack` section in Building AMReX.

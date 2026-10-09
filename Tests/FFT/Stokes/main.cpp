@@ -63,9 +63,9 @@ int main (int argc, char* argv[])
         auto const& p = pres.arrays();
         ParallelFor(pres, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
-                         Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
-                         Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
+            AMREX_D_TERM(Real x = (Real(i)+0.5_rt) * dx[0] - 0.5_rt;,
+                         Real y = (Real(j)+0.5_rt) * dx[1] - 0.5_rt;,
+                         Real z = (Real(k)+0.5_rt) * dx[2] - 0.5_rt);
             p[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x)
                          + std::cos(Real(2.)*Math::pi<Real>()*y);
 #if (BL_SPACEDIM == 3)
@@ -207,7 +207,7 @@ int main (int argc, char* argv[])
             amrex::Print() << "  U error expected to be close to zero: " << u_error << "\n";
             amrex::Print() << "  V error expected to be close to zero: " << v_error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-3f;
+            auto eps = 1.e-3F;
 #else
             auto eps = 1.e-11;
 #endif

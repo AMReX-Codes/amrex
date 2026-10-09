@@ -9,6 +9,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
+#include <AMReX_Math.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
 #include <iosfwd>
@@ -20,8 +21,7 @@
 #include <curand_kernel.h>   // Is this needed here?
 #endif
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -151,33 +151,10 @@ namespace Gpu {
 #endif
     }
 
-    template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isnan (T m) noexcept
-    {
-#if defined(_WIN32)
-        AMREX_IF_ON_DEVICE((return m != m;))
-        AMREX_IF_ON_HOST((return std::isnan(m);))
-#elif defined(AMREX_USE_SYCL)
-        return sycl::isnan(m);
-#else
-        return std::isnan(m);
-#endif
-    }
-
-    template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isinf (T m) noexcept
-    {
-#if defined(_WIN32)
-        AMREX_IF_ON_DEVICE((return (2*m == m) && (m != 0);))
-        AMREX_IF_ON_HOST((return std::isinf(m);))
-#elif defined(AMREX_USE_SYCL)
-        return sycl::isinf(m);
-#else
-        return std::isinf(m);
-#endif
-    }
+    // Kept for backward compatibility.  See amrex::Math.
+    using Math::isnan;
+    using Math::isinf;
+    using Math::isfinite;
 
     struct StreamItInfo
     {
@@ -232,16 +209,13 @@ void* memcpy (void* dest, const void* src, std::size_t count)
 #endif
 }
 
-} // namespace Gpu
+} // namespace amrex::Gpu
 
 #ifdef AMREX_USE_GPU
+namespace amrex {
 std::ostream& operator<< (std::ostream& os, const dim3& d);
+}
 #endif
-
-using Gpu::isnan;
-using Gpu::isinf;
-
-} // namespace amrex
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 /* Somehow I cannot get cudaMemcpyFromSymbol to work. */

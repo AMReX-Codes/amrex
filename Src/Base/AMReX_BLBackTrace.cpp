@@ -384,10 +384,15 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         ss0 << "Proc. " << ParallelDescriptor::MyProc()
             << ", Thread " << omp_get_thread_num()
             << ": \"" << s << "\"";
+#ifndef AMREX_BT_STACK_THREADPRIVATE
+        #pragma omp critical (amrex_bt_stack)
+#endif
         BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
     }
     else {
+#ifdef AMREX_BT_STACK_THREADPRIVATE
         #pragma omp parallel
+#endif
         {
             std::ostringstream ss0;
             ss0 << "Proc. " << ParallelDescriptor::MyProc()
@@ -408,10 +413,15 @@ BLBTer::~BLBTer()
 {
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
+#ifndef AMREX_BT_STACK_THREADPRIVATE
+        #pragma omp critical (amrex_bt_stack)
+#endif
         pop_bt_stack();
     }
     else {
+#ifdef AMREX_BT_STACK_THREADPRIVATE
         #pragma omp parallel
+#endif
         {
             pop_bt_stack();
         }

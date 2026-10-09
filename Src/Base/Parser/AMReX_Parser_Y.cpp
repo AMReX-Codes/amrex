@@ -1,9 +1,13 @@
 #include <AMReX.H>
+#include <AMReX_Math.H>
 #include <AMReX_Parser_Y.H>
 #include <amrex_parser.tab.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
+#include <set>
+#include <stdexcept>
 #include <vector>
 
 void
@@ -23,6 +27,7 @@ namespace {
     struct ParserWorkspace {
         struct parser_node* root = nullptr;
         std::vector<void*> ptrs;
+        std::set<struct parser_node*> parens; // parenthesized comparisons
     };
 
     thread_local ParserWorkspace parser_workspace;
@@ -32,6 +37,21 @@ namespace {
 void
 parser_defexpr (struct parser_node* body)
 {
+    // Statements are a left-nested list. All but the last must be assignments.
+    bool last = true;
+    for (auto* node = body; node != nullptr; last = false) {
+        struct parser_node* stmt = node;
+        node = nullptr;
+        if (stmt->type == PARSER_LIST) {
+            node = stmt->l;
+            stmt = stmt->r;
+        }
+        if (last && stmt->type == PARSER_ASSIGN) {
+            throw std::runtime_error("expression has no value, last statement is an assignment");
+        } else if (!last && stmt->type != PARSER_ASSIGN) {
+            throw std::runtime_error("statement other than the last is not an assignment");
+        }
+    }
     parser_workspace.root = body;
 }
 
@@ -230,13 +250,36 @@ bool parser_is_comparison (struct parser_node* node)
         return false;
     }
 }
+
+// Is the node a number with a finite integer value?
+bool parser_is_integer (struct parser_node* node)
+{
+    if (node && node->type == PARSER_NUMBER) {
+        auto v = parser_get_number(node);
+        return amrex::isfinite(v) && v == std::floor(v);
+    } else {
+        return false;
+    }
+}
+
+// Does the node already evaluate to 1 or 0?
+bool parser_is_boolean (struct parser_node* node)
+{
+    if (node && node->type == PARSER_F2) {
+        auto ftype = ((struct parser_f2*)node)->ftype;
+        return (ftype == PARSER_AND || ftype == PARSER_OR ||
+                parser_is_comparison(node));
+    } else {
+        return false;
+    }
+}
 }
 
 struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
                                         struct parser_node* nr)
 {
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::parser_is_comparison(nl)) {
+    /* If left side is an unparenthesized comparison, this extends the chain */
+    if (amrex::parser_is_comparison(nl) && !parser_workspace.parens.contains(nl)) {
        return amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, nl,
                                   amrex::parser_newf2(cmp,
                                                       amrex::parser_get_rightmost_operand(nl),
@@ -246,31 +289,46 @@ struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t
     }
 }
 
+struct parser_node* parser_newparen (struct parser_node* n)
+{
+    /* A parenthesized comparison must not become part of a chain. */
+    if (amrex::parser_is_comparison(n)) {
+        parser_workspace.parens.insert(n);
+    }
+    return n;
+}
+
 /*******************************************************************/
 
 struct amrex_parser*
 amrex_parser_new ()
 {
     auto *my_parser = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
+    my_parser->p_root = nullptr;
 
-    my_parser->sz_mempool = parser_ast_size(parser_workspace.root);
-    my_parser->p_root = std::malloc(my_parser->sz_mempool);
-    my_parser->p_free = my_parser->p_root;
+    try {
+        my_parser->sz_mempool = parser_ast_size(parser_workspace.root);
+        my_parser->p_root = std::malloc(my_parser->sz_mempool);
+        my_parser->p_free = my_parser->p_root;
 
-    my_parser->ast = parser_ast_dup(my_parser, parser_workspace.root);
+        my_parser->ast = parser_ast_dup(my_parser, parser_workspace.root);
 
-    amrex_parser_delete_ptrs();
+        amrex_parser_delete_ptrs();
 
-    if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
-        amrex::Abort("amrex_parser_new: error in memory size");
+        if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
+            amrex::Abort("amrex_parser_new: error in memory size");
+        }
+
+        std::map<std::string,double> local_consts;
+        parser_ast_optimize(my_parser->ast, local_consts);
+        if (my_parser->ast == nullptr) {
+            amrex::Abort("amrex::Parser: expression optimizes to nothing");
+        }
+        parser_ast_sort(my_parser->ast);
+    } catch (...) { // amrex::Abort throws with amrex.throw_exception=1
+        amrex_parser_delete(my_parser);
+        throw;
     }
-
-    std::map<std::string,double> local_consts;
-    parser_ast_optimize(my_parser->ast, local_consts);
-    if (my_parser->ast == nullptr) {
-        amrex::Abort("amrex::Parser: expression optimizes to nothing");
-    }
-    parser_ast_sort(my_parser->ast);
 
     return my_parser;
 }
@@ -289,6 +347,7 @@ amrex_parser_delete_ptrs ()
         std::free(p);
     }
     parser_workspace.ptrs.clear();
+    parser_workspace.parens.clear();
     parser_workspace.root = nullptr;
 }
 
@@ -1409,8 +1468,13 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) != 0.0)
-        { // ? and true => ?
-            std::memcpy(node, node->l, sizeof(struct parser_node));
+        { // ? and true => (? != 0)
+            if (parser_is_boolean(node->l)) {
+                std::memcpy(node, node->l, sizeof(struct parser_node));
+            } else {
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+                parser_set_number(node->r, 0.0);
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
@@ -1421,8 +1485,14 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) != 0.0)
-        { // true and ? => ?
-            std::memcpy(node, node->r, sizeof(struct parser_node));
+        { // true and ? => (? != 0)
+            if (parser_is_boolean(node->r)) {
+                std::memcpy(node, node->r, sizeof(struct parser_node));
+            } else {
+                std::swap(node->l, node->r);
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+                parser_set_number(node->r, 0.0);
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
@@ -1433,8 +1503,12 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) == 0.0)
-        { // ? or false => ?
-            std::memcpy(node, node->l, sizeof(struct parser_node));
+        { // ? or false => (? != 0)
+            if (parser_is_boolean(node->l)) {
+                std::memcpy(node, node->l, sizeof(struct parser_node));
+            } else {
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
@@ -1445,8 +1519,13 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) == 0.0)
-        { // false or ? => ?
-            std::memcpy(node, node->r, sizeof(struct parser_node));
+        { // false or ? => (? != 0)
+            if (parser_is_boolean(node->r)) {
+                std::memcpy(node, node->r, sizeof(struct parser_node));
+            } else {
+                std::swap(node->l, node->r);
+                ((struct parser_f2*)node)->ftype = PARSER_NEQ;
+            }
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
@@ -1462,12 +1541,6 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                         sizeof(struct parser_node));
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
-                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
-                 parser_get_number(((struct parser_f2*)node)->l) == 0.0)
-        {
-            parser_set_number(node, 0.0);
-        }
-        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->r) == -1.0)
         {
@@ -1477,8 +1550,10 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->l->type == PARSER_F2 &&
-                 ((struct parser_f2*)((struct parser_f2*)node)->l)->ftype == PARSER_POW)
-        { // pow(pow(,),)
+                 ((struct parser_f2*)((struct parser_f2*)node)->l)->ftype == PARSER_POW &&
+                 parser_is_integer(((struct parser_f2*)node)->r) &&
+                 parser_is_integer(((struct parser_f2*)((struct parser_f2*)node)->l)->r))
+        { // pow(pow(x,m),n) => pow(x,m*n), for integer m and n only
             std::swap(node->l, node->r);
             std::swap(node->l, node->r->l);
             node->r->type = PARSER_MUL;
@@ -1814,7 +1889,9 @@ parser_ast_regvar (struct parser_node* node, char const* name, int i)
     case PARSER_NUMBER:
         break;
     case PARSER_SYMBOL:
-        if (std::strcmp(name, ((struct parser_symbol*)node)->name) == 0) {
+        // A null name matches every symbol.
+        if (name == nullptr ||
+            std::strcmp(name, ((struct parser_symbol*)node)->name) == 0) {
             ((struct parser_symbol*)node)->ip = i;
         }
         break;
@@ -2054,10 +2131,83 @@ void parser_ast_get_user_functions (struct parser_node* node,
     }
 }
 
+void parser_ast_get_device_unsupported_functions (struct parser_node* node,
+                                                  std::set<std::string>& functions)
+{
+#if !defined(AMREX_USE_SYCL)
+    // Only SYCL device code has unsupported functions.
+    amrex::ignore_unused(node, functions);
+#else
+    switch (node->type)
+    {
+    case PARSER_NUMBER:
+        break;
+    case PARSER_SYMBOL:
+        break;
+    case PARSER_ADD:
+    case PARSER_SUB:
+    case PARSER_MUL:
+    case PARSER_DIV:
+    case PARSER_LIST:
+        parser_ast_get_device_unsupported_functions(node->l, functions);
+        parser_ast_get_device_unsupported_functions(node->r, functions);
+        break;
+    case PARSER_F1:
+        parser_ast_get_device_unsupported_functions(((struct parser_f1*)node)->l, functions);
+        break;
+    case PARSER_F2:
+#if !defined(AMREX_SYCL_EXT_INTEL_MATH)
+        if (((struct parser_f2*)node)->ftype == PARSER_JN) { functions.insert("jn"); }
+        if (((struct parser_f2*)node)->ftype == PARSER_YN) { functions.insert("yn"); }
+#endif
+        parser_ast_get_device_unsupported_functions(((struct parser_f2*)node)->l, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f2*)node)->r, functions);
+        break;
+    case PARSER_F3:
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n1, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n2, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_f3*)node)->n3, functions);
+        break;
+    case PARSER_USRF1:
+        functions.insert(((struct parser_usrf1*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf1*)node)->l, functions);
+        break;
+    case PARSER_USRF2:
+        functions.insert(((struct parser_usrf2*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf2*)node)->l, functions);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrf2*)node)->r, functions);
+        break;
+    case PARSER_USRFN:
+    {
+        short argc = ((struct parser_usrfn*)node)->argc;
+        functions.insert(((struct parser_usrfn*)node)->name);
+        parser_ast_get_device_unsupported_functions(((struct parser_usrfn*)node)->n1, functions);
+        for (short iarg = 0; iarg < argc-1; ++iarg) {
+            parser_ast_get_device_unsupported_functions
+                (((struct parser_usrfn*)node)->others[iarg], functions);
+        }
+        break;
+    }
+    case PARSER_ASSIGN:
+        parser_ast_get_device_unsupported_functions(((struct parser_assign*)node)->v, functions);
+        break;
+    default:
+        amrex::Abort("parser_ast_get_device_unsupported_functions: unknown node type "
+                     + std::to_string(node->type));
+    }
+#endif
+}
+
 void
 parser_regvar (struct amrex_parser* parser, char const* name, int i)
 {
     parser_ast_regvar(parser->ast, name, i);
+}
+
+void
+parser_clearvar (struct amrex_parser* parser)
+{
+    parser_ast_regvar(parser->ast, nullptr, -1);
 }
 
 void
@@ -2099,6 +2249,14 @@ parser_get_user_functions (struct amrex_parser* parser)
     std::map<std::string,int> user_functions;
     parser_ast_get_user_functions(parser->ast, user_functions);
     return user_functions;
+}
+
+std::set<std::string>
+parser_get_device_unsupported_functions (struct amrex_parser* parser)
+{
+    std::set<std::string> functions;
+    parser_ast_get_device_unsupported_functions(parser->ast, functions);
+    return functions;
 }
 
 int

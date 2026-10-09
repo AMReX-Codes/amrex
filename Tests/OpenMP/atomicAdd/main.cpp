@@ -16,7 +16,7 @@ void test_atomicAdd (MultiFab& mf)
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
             Box const& tbx = mfi.growntilebox();
             tmp.resize(tbx);
-            tmp.template setVal<RunOn::Host>(0.2);
+            tmp.template setVal<RunOn::Host>(Real(0.2));
             mf[mfi].template atomicAdd<RunOn::Host>(tmp, tbx, tbx, 0, 0, 1);
         }
     }
@@ -33,7 +33,7 @@ void test_lockAdd (MultiFab& mf)
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
             Box const& tbx = mfi.growntilebox();
             tmp.resize(tbx);
-            tmp.template setVal<RunOn::Host>(0.2);
+            tmp.template setVal<RunOn::Host>(Real(0.2));
             mf[mfi].template lockAdd<RunOn::Host>(tmp, tbx, tbx, 0, 0, 1);
         }
     }

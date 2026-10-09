@@ -252,7 +252,7 @@ protected:
      * \brief Current integrator fast time scale time step size with multirate
      * methods (Real)
      */
-    amrex::Real fast_time_step;
+    amrex::Real fast_time_step = 0;
 
     /**
      * \brief Number of integrator time steps (Long)
@@ -272,7 +272,11 @@ protected:
     /**
      * \brief Absolute tolerance for adaptive time stepping (Real)
      */
+#ifdef AMREX_USE_FLOAT
+    amrex::Real abs_tol = 1.0e-6F;
+#else
     amrex::Real abs_tol = 1.0e-9;
+#endif
 
     /**
      * \brief Relative tolerance for adaptive time stepping at the fast time
@@ -284,7 +288,11 @@ protected:
      * \brief Absolute tolerance for adaptive time stepping at the fast time
      * scale (Real)
      */
+#ifdef AMREX_USE_FLOAT
+    amrex::Real fast_abs_tol = 1.0e-6F;
+#else
     amrex::Real fast_abs_tol = 1.0e-9;
+#endif
 
 
 public:

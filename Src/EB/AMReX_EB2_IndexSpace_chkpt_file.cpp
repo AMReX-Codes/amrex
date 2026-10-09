@@ -65,6 +65,8 @@ const Level&
 IndexSpaceChkptFile::getLevel (const Geometry& geom) const
 {
     auto it = std::ranges::find(m_domain, geom.Domain());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
+                                     "IndexSpaceChkptFile::getLevel: Geometry not found");
     auto i = std::distance(m_domain.begin(), it);
     return m_chkpt_file_level[i];
 }
@@ -73,6 +75,8 @@ const Geometry&
 IndexSpaceChkptFile::getGeometry (const Box& dom) const
 {
     auto it = std::ranges::find(m_domain, dom);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
+                                     "IndexSpaceChkptFile::getGeometry: domain not found");
     auto i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }

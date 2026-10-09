@@ -143,9 +143,9 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
         const auto ndhi = amrex::ubound(fdom);
         Real tmp = Real(0.0);
         for (int joff = -rr+1; joff <= rr-1; ++joff) {
-            Real wy = rr - std::abs(joff);
+            Real wy = rr - Real(std::abs(joff));
             for (int ioff = -rr+1; ioff <= rr-1; ++ioff) {
-                Real wx = rr - std::abs(ioff);
+                Real wx = rr - Real(std::abs(ioff));
                 int itmp = ii + ioff;
                 int jtmp = jj + joff;
                 if ((itmp < ndlo.x && (bclo[0] == LinOpBCType::Neumann ||
