@@ -541,7 +541,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
                                                      ParallelContext::IOProcessorNumberSub());
         ParallelDescriptor::Bcast(nparticles.data(), nparticles.size(),
-                                  ParallelContext::IOProcessorNumberSub());
+                                  ParallelContext::IOProcessorNumberSub(),
+                                  ParallelContext::CommunicatorSub());
     }
 
     return nparticles;
