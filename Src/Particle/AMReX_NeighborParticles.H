@@ -486,7 +486,7 @@ protected:
 
     static bool use_mask;
 
-    static bool enable_inverse;
+    bool enable_inverse = false;
 
 #ifdef AMREX_USE_GPU
 
