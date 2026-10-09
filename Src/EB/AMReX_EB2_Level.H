@@ -351,11 +351,14 @@ public:
         return r;
     }
 
-    //! Build face-centered EB data for face_dir. Builds refined CC transiently.
-    void buildFCData (G const& gshop, int face_dir, int max_grid_size,
-                      bool extend_domain_face, int num_crse_opt);
+    //! Build face-centered EB data for every face direction from one transient 2x refined level.
+    void buildFCData (G const& gshop, int max_grid_size, bool extend_domain_face, int num_crse_opt);
 
 private:
+
+    void buildFCDir (GShopLevel<G> const& fine, BoxArray const& fc_base_grids,
+                     BoxArray const& fc_covered_grids, int face_dir);
+    void skipFC (int face_dir, char const* why);
 
     Box m_bounding_box;
 
@@ -881,70 +884,54 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
 template <typename G>
 void
-GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
+GShopLevel<G>::buildFCData (G const& gshop, int max_grid_size,
                             bool extend_domain_face, int num_crse_opt)
 {
     BL_PROFILE("EB2::GShopLevel::buildFCData");
 
-    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
-
-    // Allocate FC data structure if needed
-    if (!m_fc_data[face_dir]) {
-        m_fc_data[face_dir] = std::make_unique<FCData>();
+    bool all_tried = true;
+    for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+        if (!m_fc_data[face_dir]) { m_fc_data[face_dir] = std::make_unique<FCData>(); }
+        all_tried = all_tried && triedFCData(face_dir);
     }
-
-    if (triedFCData(face_dir)) { return; }
+    if (all_tried) { return; }
 
     if (m_allregular) {
         // An all-regular level carries no MultiFabs, and there is nothing to coarsen. Mark the
         // face-centered data built anyway so that hasFCData() is true and a face-centered factory
         // can be constructed: the fill*FC functions fill the regular values for such a level
         // without reading anything, exactly as their cell-centered counterparts do.
-        m_fc_data[face_dir]->m_built = true;
+        for (auto& fc : m_fc_data) { fc->m_built = true; }
         return;
     }
 
     // **********************************************************************
-    // STEP1: Get or build the one-level-finer CC data
+    // STEP1: Build the one-level-finer CC data, shared by all face directions
     // **********************************************************************
-
-    Level const* refined_cc_level = nullptr;
-    std::unique_ptr<GShopLevel<G>> transient_level;
 
     // An even max_grid_size keeps the refined grids coarsenable by 2, and a doubled ngrow
     // makes the face-centered data reach at least as far outside the domain as m_ngrow.
     Geometry refined_geom = amrex::refine(m_geom, 2);
-    transient_level = std::make_unique<GShopLevel<G>>(m_parent, refined_geom);
-    transient_level->define_fine(gshop, refined_geom,
+    GShopLevel<G> fine(m_parent, refined_geom);
+    fine.define_fine(gshop, refined_geom,
         std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()),
         extend_domain_face, num_crse_opt);
 
-    if (!transient_level->isOK()) {
+    if (!fine.isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
     }
-    refined_cc_level = transient_level.get();
-
-    // Leave the data unbuilt; a face-centered factory on this level would then fail.
-    // Remember the attempt so that later BuildFC calls do not repeat it.
-    auto skip = [&] (char const* why) {
-        if (amrex::Verbose() > 0) {
-            amrex::Print() << "AMReX EB: no face-centered data for face_dir " << face_dir
-                           << " on domain " << m_geom.Domain() << ": " << why << '\n';
-        }
-        m_fc_data[face_dir] = std::make_unique<FCData>();
-        m_fc_data[face_dir]->m_skipped = true;
-    };
 
     // Coarse levels can have features too thin for their 2x rebuild to see.
-    if (refined_cc_level->isAllRegular()) {
-        skip("refined level has no cut cells");
+    if (fine.isAllRegular()) {
+        for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+            skipFC(face_dir, "refined level has no cut cells");
+        }
         return;
     }
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        refined_cc_level->m_grids.coarsenable(2) &&
-        (refined_cc_level->m_covered_grids.empty() ||
-         refined_cc_level->m_covered_grids.coarsenable(2)),
+        fine.m_grids.coarsenable(2) &&
+        (fine.m_covered_grids.empty() || fine.m_covered_grids.coarsenable(2)),
         "GShopLevel::buildFCData: refined grids are not coarsenable");
 
     // **********************************************************************
@@ -960,17 +947,17 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
     //
     // The grids are coarsened from the refined level rather than taken from m_grids so that the
     // DistributionMapping stays compatible with the refined data we read below.
-    const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
-    if (!refined_cc_level->m_covered_grids.empty()) {
-        m_fc_data[face_dir]->m_covered_grids_fc =
-            amrex::coarsen(refined_cc_level->m_covered_grids, 2).simplified();
+    const BoxArray fc_base_grids = amrex::coarsen(fine.m_grids, 2);
+    BoxArray fc_covered_grids;
+    if (!fine.m_covered_grids.empty()) {
+        fc_covered_grids = amrex::coarsen(fine.m_covered_grids, 2).simplified();
     }
-    const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
+    const DistributionMapping& fc_dmap = fine.m_dmap;
 
     // Face-centered data provides no level set, so nothing here coarsens one. The multi-cut check
     // below only needs an MFIter over the coarse boxes, walking alongside the refined level set
     // that shares this DistributionMapping, so this MultiFab is declared without data.
-    auto const& f_levelset = refined_cc_level->m_levelset;
+    auto const& f_levelset = fine.m_levelset;
     MultiFab crse_boxes(amrex::convert(fc_base_grids,IntVect::TheNodeVector()), fc_dmap, 1, 0,
                         MFInfo{}.SetAlloc(false));
 
@@ -984,13 +971,13 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
         for (MFIter mfi(crse_boxes,true); mfi.isValid(); ++mfi)
         {
             const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
-            auto const& fine = f_levelset.const_array(mfi);
+            auto const& fls = f_levelset.const_array(mfi);
 
             int tile_error = 0;
             amrex::LoopOnCpu(ccbx,
             [=,&tile_error] (int i, int j, int k) noexcept
             {
-                int ierror = check_mvmc(i,j,k,fine);
+                int ierror = check_mvmc(i,j,k,fls);
                 tile_error = std::max(tile_error,ierror);
             });
 
@@ -1007,13 +994,13 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
         {
             const Box& ndbx = mfi.validbox();
             const Box& ccbx = amrex::enclosedCells(ndbx);
-            auto const& fine = f_levelset.const_array(mfi);
+            auto const& fls = f_levelset.const_array(mfi);
             reduce_op.eval(ndbx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 int ierror;
                 if (ccbx.contains(IntVect{AMREX_D_DECL(i,j,k)})) {
-                    ierror = check_mvmc(i,j,k,fine);
+                    ierror = check_mvmc(i,j,k,fls);
                 } else {
                     ierror = 0;
                 }
@@ -1032,6 +1019,35 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
     if (mvmc_error) {
         amrex::Abort("GShopLevel::buildFCData: MVMC error");
     }
+
+    for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+        if (!triedFCData(face_dir)) {
+            buildFCDir(fine, fc_base_grids, fc_covered_grids, face_dir);
+        }
+    }
+}
+
+template <typename G>
+void
+GShopLevel<G>::skipFC (int face_dir, char const* why)
+{
+    // Leave the data unbuilt; a face-centered factory on this level would then fail.
+    // Remember the attempt so that later BuildFC calls do not repeat it.
+    if (amrex::Verbose() > 0) {
+        amrex::Print() << "AMReX EB: no face-centered data for face_dir " << face_dir
+                       << " on domain " << m_geom.Domain() << ": " << why << '\n';
+    }
+    m_fc_data[face_dir] = std::make_unique<FCData>();
+    m_fc_data[face_dir]->m_skipped = true;
+}
+
+template <typename G>
+void
+GShopLevel<G>::buildFCDir (GShopLevel<G> const& fine, BoxArray const& fc_base_grids,
+                           BoxArray const& fc_covered_grids, int face_dir)
+{
+    m_fc_data[face_dir]->m_covered_grids_fc = fc_covered_grids;
+    const DistributionMapping& fc_dmap = fine.m_dmap;
 
     // **********************************************************************
     // STEP3: Define FC data structures
@@ -1096,15 +1112,15 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
     // **********************************************************************
 
     // Fine CC MultiFabs
-    auto const& cc_cellflag = refined_cc_level->m_cellflag;
-    MultiFab const& cc_volfrac = refined_cc_level->m_volfrac;
-    MultiFab const& cc_centroid = refined_cc_level->m_centroid;
-    MultiFab const& cc_bndryarea = refined_cc_level->m_bndryarea;
-    MultiFab const& cc_bndrycent = refined_cc_level->m_bndrycent;
-    MultiFab const& cc_bndrynorm = refined_cc_level->m_bndrynorm;
-    auto const& cc_areafrac = refined_cc_level->m_areafrac;
-    auto const& cc_facecent = refined_cc_level->m_facecent;
-    auto const& cc_edgecent = refined_cc_level->m_edgecent;
+    auto const& cc_cellflag = fine.m_cellflag;
+    MultiFab const& cc_volfrac = fine.m_volfrac;
+    MultiFab const& cc_centroid = fine.m_centroid;
+    MultiFab const& cc_bndryarea = fine.m_bndryarea;
+    MultiFab const& cc_bndrycent = fine.m_bndrycent;
+    MultiFab const& cc_bndrynorm = fine.m_bndrynorm;
+    auto const& cc_areafrac = fine.m_areafrac;
+    auto const& cc_facecent = fine.m_facecent;
+    auto const& cc_edgecent = fine.m_edgecent;
 
     int error = 0;
 
@@ -1249,7 +1265,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
     }
 
     if (error) {
-        skip("coarsening failed");
+        skipFC(face_dir, "coarsening failed");
         return;
     }
 

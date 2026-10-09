@@ -142,11 +142,9 @@ IndexSpaceSTL::buildAllFCData ()
     stl_tools.setBVHOptimization(m_bvh_optimization);
     stl_tools.read_stl_file(m_stl_file, m_stl_scale, m_stl_center, m_stl_reverse_normal);
 
-    for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
-        for (int ilev = 0; ilev < int(m_stllevel.size()); ++ilev) {
-            m_stllevel[ilev].buildFCData(stl_tools, face_dir, EB2::max_grid_size,
-                                         m_extend_domain_face, m_num_coarsen_opt-ilev);
-        }
+    for (int ilev = 0; ilev < int(m_stllevel.size()); ++ilev) {
+        m_stllevel[ilev].buildFCData(stl_tools, EB2::max_grid_size,
+                                     m_extend_domain_face, m_num_coarsen_opt-ilev);
     }
 }
 
