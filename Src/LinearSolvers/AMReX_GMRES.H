@@ -75,6 +75,7 @@ namespace amrex {
  *               applies right-preconditioning, i.e.,
  *               solve P(lhs) = rhs, where P is an approximation to A
  *               If there is no preconditioner, P = I and thus this function should do lhs = rhs.
+ *               P may change between calls only if setFlexible(true) is used.
  *
  *             - `void scale(V& v, RT fac)`\n
  *               scales v by fac. For example, `v.mult(fac)`.
@@ -125,6 +126,15 @@ public:
     void setVerbose (int v) { m_verbose = v; }
 
     /**
+     * \brief Use flexible GMRES (FGMRES) (default: false).
+     *
+     * FGMRES allows the preconditioner to change between iterations, for
+     * example an inner iterative solve stopped by a tolerance. It stores
+     * one more vector per iteration.
+     */
+    void setFlexible (bool flag) { m_flexible = flag; }
+
+    /**
      * \brief Set the Krylov restart length.
      *
      * \param rl Number of Krylov vectors retained between restarts.
@@ -168,6 +178,7 @@ private:
     int m_status = -1;
     int m_restrtlen = 30;
     bool m_nonzero_guess = false;
+    bool m_flexible = false;
     RT m_res = std::numeric_limits<RT>::max();
     RT m_rnorm0 = std::numeric_limits<RT>::max();
     RT m_rtol = RT(0);
@@ -182,6 +193,7 @@ private:
     std::unique_ptr<V> m_v_tmp_rhs;
     std::unique_ptr<V> m_v_tmp_lhs;
     Vector<V> m_vv;
+    Vector<V> m_zz; // preconditioned vectors, FGMRES only
     M* m_linop = nullptr;
 };
 
@@ -214,6 +226,7 @@ void GMRES<V,M>::setRestartLength (int rl)
         m_restrtlen = rl;
         allocate_scratch();
         m_vv.clear();
+        m_zz.clear();
     }
 }
 
@@ -233,6 +246,7 @@ void GMRES<V,M>::clear ()
     m_v_tmp_rhs.reset();
     m_v_tmp_lhs.reset();
     m_vv.clear();
+    m_zz.clear();
     m_linop = nullptr;
 }
 
@@ -293,6 +307,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
     m_v_tmp_rhs.reset();
     m_v_tmp_lhs.reset();
     m_vv.clear();
+    m_zz.clear();
 
     auto t1 = amrex::second();
     if (m_verbose > 0) {
@@ -334,11 +349,19 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0, in
             m_vv.emplace_back(m_linop->makeVecRHS());
         }
 
+        if (m_flexible) {
+            if (m_zz.empty()) { m_zz.reserve(m_restrtlen); }
+            while (m_zz.size() < it+1) {
+                m_zz.emplace_back(m_linop->makeVecLHS());
+            }
+        }
+
         auto const& vv_it  = m_vv[it  ];
         auto      & vv_it1 = m_vv[it+1];
+        auto      & zz_it  = m_flexible ? m_zz[it] : *m_v_tmp_lhs;
 
-        m_linop->precond(*m_v_tmp_lhs, vv_it);
-        m_linop->apply(vv_it1, *m_v_tmp_lhs);
+        m_linop->precond(zz_it, vv_it);
+        m_linop->apply(vv_it1, zz_it);
 
         gram_schmidt_orthogonalization(it);
 
@@ -449,13 +472,21 @@ void GMRES<V,M>::build_solution (V& a_xx, int const it)
         m_grs[k] = tt / m_hh(k,k);
     }
 
-    m_linop->setToZero(*m_v_tmp_rhs);
-    for (int ii = 0; ii < it+1; ++ii) {
-        m_linop->increment(*m_v_tmp_rhs, m_vv[ii], m_grs[ii]);
-    }
+    if (m_flexible) {
+        // x += Z y, with Z the stored preconditioned vectors
+        for (int ii = 0; ii < it+1; ++ii) {
+            m_linop->increment(a_xx, m_zz[ii], m_grs[ii]);
+        }
+    } else {
+        // x += P^{-1} V y, valid only if P^{-1} is the same in all iterations
+        m_linop->setToZero(*m_v_tmp_rhs);
+        for (int ii = 0; ii < it+1; ++ii) {
+            m_linop->increment(*m_v_tmp_rhs, m_vv[ii], m_grs[ii]);
+        }
 
-    m_linop->precond(*m_v_tmp_lhs, *m_v_tmp_rhs);
-    m_linop->increment(a_xx, *m_v_tmp_lhs, RT(1.0));
+        m_linop->precond(*m_v_tmp_lhs, *m_v_tmp_rhs);
+        m_linop->increment(a_xx, *m_v_tmp_lhs, RT(1.0));
+    }
 }
 
 template <typename V, typename M>
