@@ -175,7 +175,6 @@ TinyProfiler::start ()
 #endif
 
         const double t = amrex::second();
-        bool const outermost = ttstack.empty();
 
         if (key.gpu_sync) {
             selective_reporting = true;
@@ -208,7 +207,9 @@ TinyProfiler::start ()
         prev_name = current_name.load(std::memory_order_relaxed);
         current_name.store(name, std::memory_order_release);
 
-        if (outermost || key.gpu_sync) {
+#ifdef AMREX_USE_GPU
+        // The focused report is only possible on GPU builds.
+        if (global_depth == 1 || key.gpu_sync) {
             Stats& st = selective_statsmap[mainregion][key];
             ++st.depth;
             selective_stats.push_back(&st);
@@ -220,6 +221,7 @@ TinyProfiler::start ()
                 selective_stats.push_back(&st);
             }
         }
+#endif
 
         if (verbose) {
             ++n_print_tabs;
@@ -477,8 +479,11 @@ TinyProfiler::Finalize (bool bFlushing)
 
     double t_final = amrex::second();
 
-    bool use_selective_stats = selective_reporting;
+    bool use_selective_stats = false;
+#ifdef AMREX_USE_GPU
+    use_selective_stats = selective_reporting;
     ParallelDescriptor::ReduceBoolOr(use_selective_stats);
+#endif
 
     // Make a local copy so that timers completed during output are not included.
     auto lstatsmap = use_selective_stats ? selective_statsmap : statsmap;
@@ -616,24 +621,21 @@ TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
 {
     // make sure the set of profiled functions is the same on all processes
     {
-        for (bool const gpu_sync_key : {false, true}) {
-            Vector<std::string> localStrings, syncedStrings;
-            bool alreadySynced;
+        // The first character encodes gpu_sync, so one sync covers both kinds.
+        Vector<std::string> localStrings, syncedStrings;
+        bool alreadySynced;
 
-            for (auto const& kv : regstats) {
-                if (kv.first.gpu_sync == gpu_sync_key) {
-                    localStrings.push_back(kv.first.name);
-                }
-            }
+        for (auto const& kv : regstats) {
+            localStrings.push_back((kv.first.gpu_sync ? '1' : '0') + kv.first.name);
+        }
 
-            amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
+        amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
-            if (!alreadySynced) {
-                for (auto const& s : syncedStrings) {
-                    TimerKey const key{.name = s, .gpu_sync = gpu_sync_key};
-                    if (!regstats.contains(key)) {
-                        regstats.insert(std::make_pair(key, Stats()));
-                    }
+        if (!alreadySynced) {
+            for (auto const& s : syncedStrings) {
+                TimerKey const key{.name = s.substr(1), .gpu_sync = (s[0] == '1')};
+                if (!regstats.contains(key)) {
+                    regstats.insert(std::make_pair(key, Stats()));
                 }
             }
         }
@@ -685,6 +687,11 @@ TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
             pst.dtinavg /= nprocs;
             pst.dtexavg /= nprocs;
             pst.fname = regstat.first.name;
+            // Tell a synchronized timer apart from an ordinary one of the same name.
+            if (regstat.first.gpu_sync &&
+                regstats.contains(TimerKey{.name = regstat.first.name})) {
+                pst.fname += "[sync]";
+            }
             allprocstats.push_back(pst);
             maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
             maxncalls = std::max(maxncalls, pst.nmax);

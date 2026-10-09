@@ -458,8 +458,12 @@ when profiling is disabled.
 
 After any GPU-synchronized timer starts, TinyProfiler uses a focused report for
 the remainder of that AMReX initialization cycle. The focused report contains
-the outermost active timer, timers created by the GPU-synchronized macros, and
-tables created by :cpp:`BL_PROFILE_REGION_GPU_SYNC`. Ordinary nested timers and
+every timer that ran at the top level since :cpp:`amrex::Initialize`, including
+those that finished before the first synchronized timer, timers created by the
+GPU-synchronized macros, and tables created by
+:cpp:`BL_PROFILE_REGION_GPU_SYNC`. A synchronized timer that shares its name
+with an ordinary timer in the same table is shown with a ``[sync]`` suffix.
+Ordinary nested timers and
 ordinary region tables are omitted from the timer tables of focused flushes and
 the final report; memory profiler tables are not filtered. Activation is combined
 across all MPI processes, so every process uses the same report even if only one
