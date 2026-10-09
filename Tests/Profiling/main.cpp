@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_GpuContainers.H>
+#include <AMReX_ParmParse.H>
 
 #include <cstdio>
 #include <fstream>
@@ -10,8 +11,6 @@
 #include <vector>
 
 namespace {
-
-constexpr char output_file[] = "tiny_profiler_test.out";
 
 void preactivation_phase ()
 {
@@ -96,6 +95,7 @@ void macro_coverage_phase ()
 #endif
 }
 
+#ifdef AMREX_TINY_PROFILING
 std::vector<std::string> split_reports (std::string const& output)
 {
     constexpr char marker[] = "TinyProfiler total time across processes";
@@ -139,7 +139,7 @@ bool expect (bool condition, std::string const& message)
     return condition;
 }
 
-bool validate_report ()
+bool validate_report (std::string const& output_file, bool focused)
 {
     std::ifstream stream(output_file);
     std::string const output((std::istreambuf_iterator<char>(stream)),
@@ -159,52 +159,53 @@ bool validate_report ()
                 contains(preactivation_report, "BEGIN REGION preactivation_region"),
                 "flush before activation did not preserve the complete report") && ok;
 
-#ifdef AMREX_USE_GPU
-    // Only rank 1 uses a synchronized macro before the flush.  Every rank must
-    // nevertheless choose the focused report collectively.
-    ok = expect(contains(activated_flush_report, "ordinary_outermost"),
-                "focused flush omitted the outermost timer") && ok;
-    ok = expect(contains(activated_flush_report, "rank_one_gpu_sync"),
-                "focused flush omitted the rank-local synchronized timer") && ok;
-    ok = expect(!contains(activated_flush_report, "ordinary_nested"),
-                "focused flush retained an ordinary nested timer") && ok;
-    ok = expect(!contains(activated_flush_report, "BEGIN REGION ordinary_region"),
-                "focused flush retained an ordinary region") && ok;
+    if (focused) {
+        // Only rank 1 uses a synchronized macro before the flush.  Every rank must
+        // nevertheless choose the focused report collectively.
+        ok = expect(contains(activated_flush_report, "ordinary_outermost"),
+                    "focused flush omitted the outermost timer") && ok;
+        ok = expect(contains(activated_flush_report, "rank_one_gpu_sync"),
+                    "focused flush omitted the rank-local synchronized timer") && ok;
+        ok = expect(!contains(activated_flush_report, "ordinary_nested"),
+                    "focused flush retained an ordinary nested timer") && ok;
+        ok = expect(!contains(activated_flush_report, "BEGIN REGION ordinary_region"),
+                    "focused flush retained an ordinary region") && ok;
 
-    ok = expect(contains(final_report, "coverage_outermost"),
-                "focused report omitted an outermost timer") && ok;
-    ok = expect(contains(final_report, "scoped_gpu_sync") &&
-                contains(final_report, "variable_gpu_sync") &&
-                contains(final_report, "no_start_gpu_sync"),
-                "focused report omitted a synchronized timer macro") && ok;
-    ok = expect(contains(final_report, "BEGIN REGION gpu_sync_region"),
-                "focused report omitted the synchronized region") && ok;
-    ok = expect(contains(final_report, "gpu_sync_timer_in_gpu_sync_region"),
-                "synchronized region omitted its synchronized timer") && ok;
-    ok = expect(!contains(final_report, "ordinary_timer_in_gpu_sync_region"),
-                "synchronized region retained an ordinary nested timer") && ok;
+        ok = expect(contains(final_report, "coverage_outermost"),
+                    "focused report omitted an outermost timer") && ok;
+        ok = expect(contains(final_report, "scoped_gpu_sync") &&
+                    contains(final_report, "variable_gpu_sync") &&
+                    contains(final_report, "no_start_gpu_sync"),
+                    "focused report omitted a synchronized timer macro") && ok;
+        ok = expect(contains(final_report, "BEGIN REGION gpu_sync_region"),
+                    "focused report omitted the synchronized region") && ok;
+        ok = expect(contains(final_report, "gpu_sync_timer_in_gpu_sync_region"),
+                    "synchronized region omitted its synchronized timer") && ok;
+        ok = expect(!contains(final_report, "ordinary_timer_in_gpu_sync_region"),
+                    "synchronized region retained an ordinary nested timer") && ok;
 
-    auto const same_name_calls = calls_in_main_table(final_report, "same_name");
-    ok = expect(same_name_calls.size() == 2 && same_name_calls[0] == 1 &&
-                same_name_calls[1] == 1,
-                "ordinary samples contaminated the identically named synchronized timer") && ok;
-#else
-    // On CPU, every new macro is an exact alias for its ordinary counterpart.
-    ok = expect(contains(activated_flush_report, "ordinary_nested") &&
-                contains(activated_flush_report, "BEGIN REGION ordinary_region"),
-                "CPU synchronized aliases changed ordinary TinyProfiler output") && ok;
-    ok = expect(contains(final_report, "ordinary_timer_in_gpu_sync_region") &&
-                contains(final_report, "BEGIN REGION gpu_sync_region"),
-                "CPU synchronized region alias changed ordinary region output") && ok;
+        auto const same_name_calls = calls_in_main_table(final_report, "same_name");
+        ok = expect(same_name_calls.size() == 2 && same_name_calls[0] == 1 &&
+                    same_name_calls[1] == 1,
+                    "ordinary samples contaminated the identically named synchronized timer") && ok;
+    } else {
+        // On CPU, or with device_synchronize_around_region, the report is complete.
+        ok = expect(contains(activated_flush_report, "ordinary_nested") &&
+                    contains(activated_flush_report, "BEGIN REGION ordinary_region"),
+                    "complete flush omitted an ordinary timer or region") && ok;
+        ok = expect(contains(final_report, "ordinary_timer_in_gpu_sync_region") &&
+                    contains(final_report, "BEGIN REGION gpu_sync_region"),
+                    "complete report omitted an ordinary timer or region") && ok;
 
-    auto const same_name_calls = calls_in_main_table(final_report, "same_name");
-    ok = expect(same_name_calls.size() == 2 && same_name_calls[0] == 2 &&
-                same_name_calls[1] == 2,
-                "CPU synchronized timer alias did not aggregate like an ordinary timer") && ok;
-#endif
+        auto const same_name_calls = calls_in_main_table(final_report, "same_name");
+        ok = expect(same_name_calls.size() == 2 && same_name_calls[0] == 2 &&
+                    same_name_calls[1] == 2,
+                    "synchronized timer did not aggregate with the ordinary timer of the same name") && ok;
+    }
 
     return ok;
 }
+#endif // AMREX_TINY_PROFILING
 
 }
 
@@ -216,8 +217,21 @@ int main (int argc, char* argv[])
 
     amrex::Initialize(argc, argv);
 
+    std::string output_file;
+    bool device_sync = false;
+    {
+        amrex::ParmParse pp("tiny_profiler");
+        pp.get("output_file", output_file);
+        pp.query("device_synchronize_around_region", device_sync);
+    }
+#ifdef AMREX_USE_GPU
+    [[maybe_unused]] bool const focused = !device_sync;
+#else
+    [[maybe_unused]] bool const focused = false;
+#endif
+
     if (amrex::ParallelDescriptor::IOProcessor()) {
-        std::remove(output_file);
+        std::remove(output_file.c_str());
     }
     amrex::ParallelDescriptor::Barrier();
 
@@ -227,12 +241,12 @@ int main (int argc, char* argv[])
     BL_PROFILE_TINY_FLUSH();
     macro_coverage_phase();
 
-    bool const io_processor = amrex::ParallelDescriptor::IOProcessor();
+    [[maybe_unused]] bool const io_processor = amrex::ParallelDescriptor::IOProcessor();
     amrex::Finalize();
 
     int result = 0;
 #ifdef AMREX_TINY_PROFILING
-    if (io_processor && !validate_report()) {
+    if (io_processor && !validate_report(output_file, focused)) {
         result = 1;
     }
 #endif

@@ -434,13 +434,16 @@ is isolated in its own group.
 Any timers inside :cpp:`MyFunc_0` and :cpp:`MyFunc_1` are not included in the
 region groupings.
 
+.. _sec:tiny:gpu_sync:
+
 GPU-synchronized TinyProfiler timers
 ------------------------------------
 
 GPU kernels normally launch asynchronously, so a host timer does not necessarily
 measure the work launched inside its scope. On GPU builds, TinyProfiler provides
 opt-in variants that synchronize the current AMReX GPU stream immediately before
-recording both the start and stop timestamps:
+recording both the start and stop timestamps. Work on other GPU streams is not
+waited for:
 
 * :cpp:`BL_PROFILE_GPU_SYNC(name)`
 * :cpp:`BL_PROFILE_VAR_GPU_SYNC(name, variable)`
@@ -457,17 +460,15 @@ After any GPU-synchronized timer starts, TinyProfiler uses a focused report for
 the remainder of that AMReX initialization cycle. The focused report contains
 the outermost active timer, timers created by the GPU-synchronized macros, and
 tables created by :cpp:`BL_PROFILE_REGION_GPU_SYNC`. Ordinary nested timers and
-ordinary region tables are still collected in the complete internal statistics,
-but are omitted from focused flushes and the final report. Activation is combined
+ordinary region tables are omitted from the timer tables of focused flushes and
+the final report; memory profiler tables are not filtered. Activation is combined
 across all MPI processes, so every process uses the same report even if only one
 process executes a synchronized timer. Percentages remain relative to the total
 application run time.
 
-The runtime parameter
-``tiny_profiler.device_synchronize_around_region`` remains available and is
-independent of these macros. When enabled, it retains its existing behavior of
-synchronizing all TinyProfiler timer boundaries; it does not by itself activate
-the focused report.
+The runtime parameter ``tiny_profiler.device_synchronize_around_region``
+synchronizes all TinyProfiler timer boundaries. When it is enabled, the complete
+report is kept, even if GPU-synchronized macros are used.
 
 Instrumenting Fortran90 Code
 ============================

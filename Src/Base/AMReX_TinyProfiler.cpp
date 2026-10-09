@@ -49,7 +49,7 @@ std::vector<std::string> TinyProfiler::all_memnames;
 std::vector<std::string>          TinyProfiler::regionstack;
 std::vector<std::string>          TinyProfiler::selective_regionstack;
 std::vector<std::tuple<std::string,bool,bool> > TinyProfiler::regionstartstack;
-std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
+std::deque<std::tuple<double,double,std::string*,double> > TinyProfiler::ttstack;
 TinyProfiler::StatsMap TinyProfiler::statsmap;
 TinyProfiler::StatsMap TinyProfiler::selective_statsmap;
 bool TinyProfiler::selective_reporting = false;
@@ -105,37 +105,37 @@ namespace {
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname))
+    : key{.name = std::move(funcname)}
 {
     start();
 }
 
 TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
-    : fname(std::move(funcname))
+    : key{.name = std::move(funcname)}
 {
     if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool gpu_sync_) noexcept
-    : fname(std::move(funcname)), gpu_sync(gpu_sync_)
+    : key{.name = std::move(funcname)}, gpu_sync(gpu_sync_)
 {
     if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname)
+    : key{.name = funcname}
 {
     start();
 }
 
 TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
-    : fname(funcname)
+    : key{.name = funcname}
 {
     if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool gpu_sync_) noexcept
-    : fname(funcname), gpu_sync(gpu_sync_)
+    : key{.name = funcname}, gpu_sync(gpu_sync_)
 {
     if (start_) { start(); }
 }
@@ -169,16 +169,19 @@ TinyProfiler::start ()
         if (gpu_sync || device_synchronize_around_region) {
             amrex::Gpu::streamSynchronize();
         }
+        // With device_synchronize_around_region, every timer is synchronized,
+        // so the complete report is kept. On CPU, key.gpu_sync stays false.
+        key.gpu_sync = gpu_sync && !device_synchronize_around_region;
 #endif
 
         const double t = amrex::second();
         bool const outermost = ttstack.empty();
 
-        if (gpu_sync) {
+        if (key.gpu_sync) {
             selective_reporting = true;
         }
 
-        ttstack.emplace_back(t, 0.0, &fname);
+        ttstack.emplace_back(t, 0.0, &key.name, 0.0);
         global_depth = static_cast<int>(ttstack.size());
 #ifdef AMREX_USE_OMP
         in_parallel_region = omp_in_parallel();
@@ -187,12 +190,11 @@ TinyProfiler::start ()
 #endif
 
 #ifdef AMREX_USE_CUDA
-        nvtxRangePush(fname.c_str());
+        nvtxRangePush(key.name.c_str());
 #elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-        roctxRangePush(fname.c_str());
+        roctxRangePush(key.name.c_str());
 #endif
 
-        TimerKey const key{fname, gpu_sync};
         const char* name = nullptr;
         for (auto const& region : regionstack)
         {
@@ -206,12 +208,12 @@ TinyProfiler::start ()
         prev_name = current_name.load(std::memory_order_relaxed);
         current_name.store(name, std::memory_order_release);
 
-        if (outermost || gpu_sync) {
+        if (outermost || key.gpu_sync) {
             Stats& st = selective_statsmap[mainregion][key];
             ++st.depth;
             selective_stats.push_back(&st);
         }
-        if (gpu_sync) {
+        if (key.gpu_sync) {
             for (auto const& region : selective_regionstack) {
                 Stats& st = selective_statsmap[region][key];
                 ++st.depth;
@@ -227,7 +229,7 @@ TinyProfiler::start ()
             }
             // If we try to print to output_file here, it may not be thread
             // safe. Also note that this is controlled by verbose already.
-            amrex::Print() << whitespace << "TP: Entering " << fname << '\n';
+            amrex::Print() << whitespace << "TP: Entering " << key.name << '\n';
         }
     }
 }
@@ -260,12 +262,14 @@ TinyProfiler::stop ()
 #endif
 
         {
-            const std::tuple<double,double,std::string*>& tt = ttstack.back();
+            auto const& tt = ttstack.back();
 
             // first: wall time when the pair is pushed into the stack
             // second: accumulated dt of children
+            // fourth: accumulated dt of children shown in the focused report
             double dtin = t - std::get<0>(tt); // elapsed time since start() is called.
             double dtex = dtin - std::get<1>(tt);
+            double const shown_child_time = std::get<3>(tt);
 
             for (Stats* st : stats)
             {
@@ -284,14 +288,17 @@ TinyProfiler::stop ()
                 if (st->depth == 0) {
                     st->dtin += dtin;
                 }
-                st->dtex += dtex;
+                st->dtex += dtin - shown_child_time;
             }
 
             ttstack.pop_back();
             current_name.store(prev_name, std::memory_order_release);
             if (!ttstack.empty()) {
-                std::tuple<double,double,std::string*>& parent = ttstack.back();
+                auto& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
+                // A hidden timer passes up only the time of its shown descendants,
+                // so its own time stays with the nearest shown ancestor.
+                std::get<3>(parent) += selective_stats.empty() ? shown_child_time : dtin;
             }
 
 #ifdef AMREX_USE_CUDA
@@ -312,7 +319,7 @@ TinyProfiler::stop ()
             --n_print_tabs;
             // If we try to print to output_file here, it may not be thread
             // safe. Also note that this is controlled by verbose already.
-            amrex::Print() << whitespace << "TP: Leaving  " << fname << '\n';
+            amrex::Print() << whitespace << "TP: Leaving  " << key.name << '\n';
         }
     }
 }
@@ -367,12 +374,12 @@ TinyProfiler::memory_alloc (std::size_t nbytes, std::map<std::string, MemStat>& 
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel() && !mem_stack_thread_private[omp_get_thread_num()].deque.empty()) {
         stat = &memstats[
-            mem_stack_thread_private[omp_get_thread_num()].deque.back()->fname
+            mem_stack_thread_private[omp_get_thread_num()].deque.back()->key.name
         ];
     } else
 #endif
     if (!mem_stack.empty()) {
-        stat = &memstats[mem_stack.back()->fname];
+        stat = &memstats[mem_stack.back()->key.name];
     } else {
         stat = &memstats["Unprofiled"];
     }
@@ -623,7 +630,7 @@ TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
 
             if (!alreadySynced) {
                 for (auto const& s : syncedStrings) {
-                    TimerKey const key{s, gpu_sync_key};
+                    TimerKey const key{.name = s, .gpu_sync = gpu_sync_key};
                     if (!regstats.contains(key)) {
                         regstats.insert(std::make_pair(key, Stats()));
                     }

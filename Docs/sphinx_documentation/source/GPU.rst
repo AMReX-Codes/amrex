@@ -2128,7 +2128,8 @@ AMReX GPU stream at their timer boundaries.
 Due to asynchronous GPU kernel launches, an ordinary host timer might finish
 before the work launched inside it. Use :cpp:`BL_PROFILE_GPU_SYNC` (or its
 variable and region variants) when a TinyProfiler timer must include work
-launched on the current stream. For example:
+launched on the current stream. With the full profiler (``PROFILE=TRUE``),
+these macros are ordinary, unsynchronized timers. For example:
 
 .. highlight:: cpp
 
@@ -2144,10 +2145,10 @@ launched on the current stream. For example:
 The synchronized macros add synchronization points that are unnecessary for
 correctness and may affect application performance. Once one executes, the
 TinyProfiler report focuses on synchronized timers, synchronized regions, and
-the outermost timer; see :ref:`sec:tiny:profiling` for the complete behavior.
-The runtime parameter ``tiny_profiler.device_synchronize_around_region`` can
-still synchronize every TinyProfiler timer boundary and does not activate this
-focused report. For detailed kernel information, use a backend profiling tool.
+the outermost timer; see :ref:`sec:tiny:gpu_sync` for the complete behavior.
+The runtime parameter ``tiny_profiler.device_synchronize_around_region``
+instead synchronizes every TinyProfiler timer boundary and keeps the complete
+report. For detailed kernel information, use a backend profiling tool.
 
 
 Performance Tips

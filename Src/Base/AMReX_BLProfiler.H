@@ -414,7 +414,11 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_VAR_START(vname) bl_profiler_##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler_##vname.stop();
 
-#define BL_PROFILE_GPU_SYNC(fname) BL_PROFILE(fname)
+#define BL_PROFILE_GPU_SYNC(fname)                    \
+    AMREX_WARNING_PUSH_COUNTER                        \
+    BL_PROFILE_GPU_SYNC_IMPL(fname, __COUNTER__)      \
+    AMREX_WARNING_POP
+#define BL_PROFILE_GPU_SYNC_IMPL(funame, counter) amrex::BLProfiler BL_PROFILE_PASTE(bl_profiler_, counter)((funame));
 #define BL_PROFILE_VAR_GPU_SYNC(fname, vname) BL_PROFILE_VAR(fname, vname)
 #define BL_PROFILE_VAR_NS_GPU_SYNC(fname, vname) BL_PROFILE_VAR_NS(fname, vname)
 

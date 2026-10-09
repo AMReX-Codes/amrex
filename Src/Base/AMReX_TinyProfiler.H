@@ -146,8 +146,9 @@ private:
         }
     };
 
-    std::string fname;
-    bool gpu_sync = false;
+    //! Timer name, and whether it is reported as a synchronized timer
+    TimerKey key;
+    [[maybe_unused]] bool gpu_sync = false; // only used on GPU builds
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;
@@ -171,7 +172,8 @@ private:
     static std::vector<std::string> regionstack;
     static std::vector<std::string> selective_regionstack;
     static std::vector<std::tuple<std::string,bool,bool> > regionstartstack;
-    static std::deque<std::tuple<double,double,std::string*> > ttstack;
+    //! start time, child time, name, child time shown in the focused report
+    static std::deque<std::tuple<double,double,std::string*,double> > ttstack;
     static StatsMap statsmap;
     static StatsMap selective_statsmap;
     static bool selective_reporting;

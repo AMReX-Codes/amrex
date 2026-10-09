@@ -46,8 +46,10 @@ my timings are inconsistent.
 
 **A.** Due to the asynchronous nature of GPU execution, profilers might only
 measure the runtime on the CPU if there is no explicit synchronization.  For
-``TINY_PROFILE``, one could use :cpp:`ParmParse` parameter
-``tiny_profiler.device_synchronize_around_region=1`` to add synchronization.
+``TINY_PROFILE``, use the GPU-synchronized macros such as
+:cpp:`BL_PROFILE_GPU_SYNC` for selected timers (see :ref:`sec:tiny:gpu_sync`),
+or the :cpp:`ParmParse` parameter
+``tiny_profiler.device_synchronize_around_region=1`` to synchronize all timers.
 Note that this may degrade performance.
 
 |

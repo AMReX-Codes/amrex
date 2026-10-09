@@ -1654,9 +1654,9 @@ enabled.
   synchronization could be misleading. Enabling this parameter can provide
   more accurate measurements. However, the added synchronization points,
   which are unnecessary for correctness, could potentially degrade the
-  performance. This global setting is independent of the selective
-  GPU-synchronized profiling macros described in :ref:`sec:tiny:profiling`;
-  enabling it does not activate their focused report.
+  performance. When this parameter is enabled, the GPU-synchronized profiling
+  macros described in :ref:`sec:tiny:gpu_sync` do not switch TinyProfiler to
+  their focused report.
 
 .. py:data:: tiny_profiler.enabled
    :type: bool
