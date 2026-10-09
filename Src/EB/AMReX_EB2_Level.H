@@ -866,13 +866,12 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     Level const* refined_cc_level = nullptr;
     std::unique_ptr<GShopLevel<G>> transient_level;
 
-    // Always create transient refined CC level to avoid grid mismatch
-    // with application-defined BoxArrays (ERF EB-FC development)
-    // An even max_grid_size keeps the refined grids coarsenable by 2.
+    // An even max_grid_size keeps the refined grids coarsenable by 2, and a doubled ngrow
+    // makes the face-centered data reach at least as far outside the domain as m_ngrow.
     Geometry refined_geom = amrex::refine(m_geom, 2);
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
-        std::max(2, max_grid_size - max_grid_size%2), m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+        std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()), true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");

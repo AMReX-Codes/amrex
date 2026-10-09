@@ -111,11 +111,6 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         m_cellflags = new FabArray<EBCellFlagFab>(fc_grids, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlagFC(*m_cellflags, face_dir, m_geom);
-
-        m_levelset = new MultiFab(amrex::convert(a_ba,IntVect::TheUnitVector()), a_dm,
-                                  1, m_ngrow[0], MFInfo(), FArrayBoxFactory());
-        // FC mode does not provide levelset - leave as default (levelset concept is CC)
-        m_levelset->setVal(0.0);
     }
 
     if (m_support >= EBSupport::volume)
@@ -192,11 +187,15 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
 
     if (level_domain.contains(data_domain)) { return; }
 
+    // Face-centered data are nodal in m_face_dir, and so are all their area fractions.
+    bool const is_fc = m_face_dir >= 0;
+    if (is_fc) { level_domain.surroundingNodes(m_face_dir); }
+
     Box const& level_nodal_domain = amrex::surroundingNodes(level_domain);
     Array<Box,AMREX_SPACEDIM> lev_ap_domain
-        {AMREX_D_DECL(amrex::surroundingNodes(level_domain,0),
-                      amrex::surroundingNodes(level_domain,1),
-                      amrex::surroundingNodes(level_domain,2))};
+        {AMREX_D_DECL(is_fc ? level_domain : amrex::surroundingNodes(level_domain,0),
+                      is_fc ? level_domain : amrex::surroundingNodes(level_domain,1),
+                      is_fc ? level_domain : amrex::surroundingNodes(level_domain,2))};
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -210,28 +209,34 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
         Box const& bx = mfi.fabbox();
         if (! level_domain.contains(bx)) {
             Box const& nbx = amrex::surroundingNodes(bx);
-            auto const& ls_a = m_levelset->array(mfi);
+            // No level set for face-centered data: a cut cell is extended as cut.
+            Array4<Real> ls_a;
+            if (m_levelset) {
+                ls_a = m_levelset->array(mfi);
+            }
             auto const& flag_a = m_cellflags->array(mfi);
             Array4<Real> vfrc_a;
             if (m_volfrac) {
                 vfrc_a = m_volfrac->array(mfi);
             }
-            amrex::ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                if (! level_nodal_domain.contains(i,j,k)) {
-                    int ii = amrex::Clamp(i, level_nodal_domain.smallEnd(0),
-                                             level_nodal_domain.bigEnd  (0));
-                    int jj = amrex::Clamp(j, level_nodal_domain.smallEnd(1),
-                                             level_nodal_domain.bigEnd  (1));
+            if (ls_a) {
+                amrex::ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    if (! level_nodal_domain.contains(i,j,k)) {
+                        int ii = amrex::Clamp(i, level_nodal_domain.smallEnd(0),
+                                                 level_nodal_domain.bigEnd  (0));
+                        int jj = amrex::Clamp(j, level_nodal_domain.smallEnd(1),
+                                                 level_nodal_domain.bigEnd  (1));
 #if (AMREX_SPACEDIM > 2)
-                    int kk = amrex::Clamp(k, level_nodal_domain.smallEnd(2),
-                                             level_nodal_domain.bigEnd  (2));
+                        int kk = amrex::Clamp(k, level_nodal_domain.smallEnd(2),
+                                                 level_nodal_domain.bigEnd  (2));
 #else
-                    int kk = 0;
+                        int kk = 0;
 #endif
-                    ls_a(i,j,k) = ls_a(ii,jj,kk);
-                }
-            });
+                        ls_a(i,j,k) = ls_a(ii,jj,kk);
+                    }
+                });
+            }
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (! level_domain.contains(i,j,k)) {
@@ -250,6 +255,8 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
                         flag.setCovered();
                     } else if (flag_a(ii,jj,kk).isRegular()) {
                         flag.setRegular();
+                    } else if (!ls_a) {
+                        flag.setSingleValued();
                     } else {
                         int ncov = 0;
 #if (AMREX_SPACEDIM > 2)
@@ -293,11 +300,18 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
                 if (m_areafrac[idim] && m_areafrac[idim]->ok(mfi)) {
                     auto const& ap = m_areafrac[idim]->array(mfi);
                     Box apbx = Box(ap);
-                    if (apbx.smallEnd(idim) == nbx.smallEnd(idim)) {
-                        apbx.growLo(idim,-1);
-                    }
-                    if (apbx.bigEnd(idim) == nbx.bigEnd(idim)) {
-                        apbx.growHi(idim,-1);
+                    if (is_fc) {
+                        // ap(i) is the low face of cell i, between cells i-1 and i.
+                        Box const cbx(bx.smallEnd(), bx.bigEnd());
+                        apbx &= cbx;
+                        apbx &= amrex::shift(cbx, idim, 1);
+                    } else {
+                        if (apbx.smallEnd(idim) == nbx.smallEnd(idim)) {
+                            apbx.growLo(idim,-1);
+                        }
+                        if (apbx.bigEnd(idim) == nbx.bigEnd(idim)) {
+                            apbx.growHi(idim,-1);
+                        }
                     }
                     auto const& lev_apidim_domain = lev_ap_domain[idim];
                     Dim3 const& off = IntVect::TheDimensionVector(idim).dim3();
@@ -351,7 +365,8 @@ EBDataCollection::getMultiEBCellFlagFab () const
 const MultiFab&
 EBDataCollection::getLevelSet () const
 {
-    AMREX_ASSERT(m_levelset != nullptr);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_levelset != nullptr,
+        "EBDataCollection::getLevelSet: no level set (face-centered or EBSupport::none)");
     return *m_levelset;
 }
 
