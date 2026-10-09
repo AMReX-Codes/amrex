@@ -168,20 +168,19 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (vfrac(i,j,k) > 0.0)
+            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) == 0)
             {
-                // NO NEIGHBORS EXCEPT SELF
-                if (itracker(i,j,k,0) == 0)
-                {
-                    if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                        //
-                        // Update U_out(i,j,k) with qt(i,j,k,0)
-                        //
-                        amrex::HostDevice::Atomic::Add(&U_out(i,j,k,n), alpha(i,j,k,0) * qt(i,j,k,0));
-                    }
+                if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    U_out(i,j,k,n) += alpha(i,j,k,0) * qt(i,j,k,0);
+                }
+            }
+        });
 
-                } else {
-
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
+            {
                 // MULTIPLE NEIGHBORS
                 for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
                 {
@@ -368,8 +367,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                         } // r_nbor
                     } // bx contains
                 } // i_nbor
-                } // ELSE
-            } // vfrac
+            } // vfrac > 0 && itracker > 0
 
         });
 
