@@ -1519,6 +1519,31 @@ public: // NOLINT(readability-redundant-access-specifiers)
     /** Get the names for the int SoA components **/
     std::vector<std::string> GetIntSoANames () const {return m_soa_idata_names;}
 
+    /** Get the name used for real component i when writing plotfiles and
+     *  checkpoints without explicit component names. For pure SoA particles,
+     *  these are the names set with SetSoACompileTimeNames or AddRealComp.
+     *  Here, i counts all real components, including the positions for pure
+     *  SoA particles and the struct components for AoS particles. **/
+    std::string GetRealCompName (int i) const {
+        if constexpr (ParticleType::is_soa_particle) {
+            return m_soa_rdata_names.at(i);
+        } else {
+            return getDefaultCompNameReal<ParticleType>(i);
+        }
+    }
+
+    /** Get the name used for int component i when writing plotfiles and
+     *  checkpoints without explicit component names. For pure SoA particles,
+     *  these are the names set with SetSoACompileTimeNames or AddIntComp.
+     *  For AoS particles, i includes the struct components. **/
+    std::string GetIntCompName (int i) const {
+        if constexpr (ParticleType::is_soa_particle) {
+            return m_soa_idata_names.at(i);
+        } else {
+            return getDefaultCompNameInt<ParticleType>(i);
+        }
+    }
+
     /** Check if a container has a ParticleReal component
      *
      * @param name component name to check

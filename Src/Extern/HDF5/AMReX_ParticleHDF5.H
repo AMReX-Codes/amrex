@@ -41,7 +41,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         write_real_comp.push_back(1);
         if (real_comp_names.empty())
         {
-            tmp_real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+            tmp_real_comp_names.push_back(GetRealCompName(i));
         }
         else
         {
@@ -56,7 +56,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         write_int_comp.push_back(1);
         if (int_comp_names.empty())
         {
-            tmp_int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+            tmp_int_comp_names.push_back(GetIntCompName(i));
         }
         else
         {
@@ -87,7 +87,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        real_comp_names.push_back(GetRealCompName(i));
     }
 
     Vector<int> write_int_comp;
@@ -95,7 +95,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -121,7 +121,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        real_comp_names.push_back(GetRealCompName(i));
     }
 
     Vector<int> write_int_comp;
@@ -129,7 +129,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -192,7 +192,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name,
@@ -223,13 +223,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> real_comp_names;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        real_comp_names.push_back(GetRealCompName(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -280,7 +280,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        real_comp_names.push_back(GetRealCompName(i));
     }
 
     Vector<int> write_int_comp;
@@ -288,7 +288,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -346,7 +346,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name,
@@ -374,13 +374,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> real_comp_names;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        real_comp_names.push_back(GetRealCompName(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        int_comp_names.push_back(GetIntCompName(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
