@@ -4,12 +4,48 @@
 #include <AMReX_Particles.H>
 
 #include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
                        Vector<BoxArray>& grids,
                        Vector<IntVect>& ref_ratio);
+
+// Write the particles with WriteAsciiFile and check the header and the
+// number of values on each particle line.
+template <class PC>
+void check_ascii_file (PC& pc, std::string const& filename, Long np_total,
+                       int nreal, int nint, int nvals_per_line)
+{
+    amrex::Print() << "Writing ascii particle file [" << filename << "] ..." << '\n';
+    pc.WriteAsciiFile(filename);
+
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ifstream ifs(filename);
+        Long np = 0;
+        int nstruct_real = 0, nstruct_int = 0, nr = 0, ni = 0;
+        ifs >> np >> nstruct_real >> nstruct_int >> nr >> ni;
+        AMREX_ALWAYS_ASSERT(np == np_total);
+        AMREX_ALWAYS_ASSERT(nr == nreal && ni == nint);
+
+        std::string line;
+        std::getline(ifs, line); // rest of the last header line
+        Long nlines = 0;
+        while (std::getline(ifs, line)) {
+            std::istringstream iss(line);
+            std::string val;
+            int nvals = 0;
+            while (iss >> val) { ++nvals; }
+            AMREX_ALWAYS_ASSERT(nvals == nvals_per_line);
+            ++nlines;
+        }
+        AMREX_ALWAYS_ASSERT(nlines == np_total);
+    }
+    amrex::Print() << " done \n";
+}
 void test ();
 
 int main(int argc, char* argv[])
@@ -145,14 +181,16 @@ void test ()
         myPC.SetUsePrePost(true);
         myPC.CheckpointPre();
         const Long np_total = myPC.TotalNumberOfParticles();
-        if (ParallelDescriptor::IOProcessor()) {
-            // the pre/post particle count is only reduced to the I/O rank
-            AMREX_ALWAYS_ASSERT(myPC.GetNParticlesPrePost() == np_total);
-        }
+        AMREX_ALWAYS_ASSERT(myPC.GetNParticlesPrePost() == np_total);
         myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
         myPC.CheckpointPost();
         myPC.SetUsePrePost(false);
         amrex::Print() << " done \n";
+
+        // Positions are written once, so they are not repeated with the
+        // other real components.
+        check_ascii_file(myPC, directory + "particles_ascii.txt", np_total,
+                         NReal - AMREX_SPACEDIM, NInt, AMREX_SPACEDIM + 2 + NReal - AMREX_SPACEDIM + NInt);
     }
 
     AsyncOut::Finish();
@@ -161,10 +199,10 @@ void test ()
     char directory_path[512];
     if (restart_check && nparticlefile > 0)
     {
-        for (std::string const restart_dir : {"plt00000", "plt_prepost"})
+        for (const char* restart_dir : {"plt00000", "plt_prepost"})
         {
             MyPC newPC(geom, dmap, ba, ref_ratio);
-            std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), restart_dir.c_str());
+            std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), restart_dir);
             amrex::Print() << "Checking restart from [" << directory_path << "] ..." << '\n';
             newPC.Restart(directory_path, "particle0");
 

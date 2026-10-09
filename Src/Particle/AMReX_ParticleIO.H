@@ -430,7 +430,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                            const Vector<std::string>& int_comp_names,
                            F const& f, bool is_checkpoint) const
 {
-    if (AsyncOut::UseAsyncOut()) {
+    // The pre/post path finishes the Header in CheckpointPost /
+    // WritePlotFilePost using bookkeeping that only the synchronous writer
+    // records, so it always writes synchronously.
+    if (AsyncOut::UseAsyncOut() && !usePrePost) {
         WriteBinaryParticleDataAsync(*this, dir, name,
                                      write_real_comp, write_int_comp,
                                      real_comp_names, int_comp_names, is_checkpoint);
@@ -456,26 +459,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     BL_PROFILE("ParticleContainer::CheckpointPre()");
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    Long nparticles = 0;
     Long  maxnextid  = ParticleType::NextID();
 
-    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
-        // Only count (and checkpoint) valid particles.
-        nparticles += NumberOfParticlesAtLevel(lev, true, true);
+    // Only count (and checkpoint) valid particles.
+    nParticlesAtLevelPrePost.clear();
+    nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
+    Long nparticles = 0;
+    for(int lev(0); lev <= finestLevel(); ++lev) {
+        nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
+        nparticles += nParticlesAtLevelPrePost[lev];
     }
-    ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
 
     ParticleType::NextID(maxnextid);
     ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     nparticlesPrePost = nparticles;
     maxnextidPrePost  = maxnextid;
-
-    nParticlesAtLevelPrePost.clear();
-    nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
-    for(int lev(0); lev <= finestLevel(); ++lev) {
-        nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
-    }
 
     whichPrePost.clear();
     whichPrePost.resize(finestLevel() + 1);
@@ -1013,31 +1012,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     //
     // Count # of valid particles.
     //
-    Long nparticles = 0;
-
-    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
-        auto& pmap = m_particles[lev];
-        for (const auto& kv : pmap) {
-            const auto& aos = kv.second.GetArrayOfStructs();
-            auto np = aos.numParticles();
-            Gpu::HostVector<ParticleType> host_aos(np);
-            Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.begin() + np, host_aos.begin());
-            for (int k = 0; k < np; ++k) {
-                const ParticleType& p = host_aos[k];
-                if (p.id().is_valid()) {
-                    //
-                    // Only count (and checkpoint) valid particles.
-                    //
-                    nparticles++;
-                }
-            }
-        }
-    }
+    Long nparticles = TotalNumberOfParticles(true, true);
 
     //
     // And send count to I/O processor.
     //
     ParallelDescriptor::ReduceLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
+
+    // For pure SoA particles, the positions are the first AMREX_SPACEDIM
+    // real components. They are written with the particle struct data below,
+    // so they are not repeated with the other real components.
+    constexpr int soa_real_start = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1055,7 +1040,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         File << nparticles  << '\n';
         File << NStructReal << '\n';
         File << NStructInt  << '\n';
-        File << NumRealComps()  << '\n';
+        File << NumRealComps() - soa_real_start << '\n';
         File << NumIntComps()   << '\n';
 
         File.flush();
@@ -1101,32 +1086,36 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                         nullptr, nullptr, The_Pinned_Arena());
                     pinned_ptile.resize(kv.second.numParticles());
                     amrex::copyParticles(pinned_ptile, kv.second);
-                    const auto& host_aos = pinned_ptile.GetArrayOfStructs();
+                    Gpu::streamSynchronize();
+                    const auto ptd = pinned_ptile.getConstParticleTileData();
                     const auto& host_soa = pinned_ptile.GetStructOfArrays();
 
-                    auto np = host_aos.numParticles();
+                    auto np = pinned_ptile.numParticles();
                     for (int index = 0; index < np; ++index) {
-                        const ParticleType* it = &host_aos[index];
-                        if (it->id().is_valid()) {
+                        if (ptd.id(index).is_valid()) {
 
                             // write out the particle struct first...
-                            AMREX_D_TERM(File << it->pos(0) << ' ',
-                                              << it->pos(1) << ' ',
-                                              << it->pos(2) << ' ');
+                            AMREX_D_TERM(File << ptd.pos(0, index) << ' ',
+                                              << ptd.pos(1, index) << ' ',
+                                              << ptd.pos(2, index) << ' ');
 
-                            for (int i = 0; i < NStructReal; i++) {
-                                File << it->rdata(i) << ' ';
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                for (int i = 0; i < NStructReal; i++) {
+                                    File << ptd.m_aos[index].rdata(i) << ' ';
+                                }
                             }
 
-                            File << it->id()  << ' ';
-                            File << it->cpu() << ' ';
+                            File << ptd.id(index)  << ' ';
+                            File << ptd.cpu(index) << ' ';
 
-                            for (int i = 0; i < NStructInt; i++) {
-                                File << it->idata(i) << ' ';
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                for (int i = 0; i < NStructInt; i++) {
+                                    File << ptd.m_aos[index].idata(i) << ' ';
+                                }
                             }
 
                             // then the particle attributes.
-                            for (int i = 0; i < NumRealComps(); i++) {
+                            for (int i = soa_real_start; i < NumRealComps(); i++) {
                                 File << host_soa.GetRealData(i)[index] << ' ';
                             }
 
