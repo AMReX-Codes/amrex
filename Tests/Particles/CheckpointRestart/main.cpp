@@ -209,18 +209,25 @@ void test ()
 
             AMREX_ALWAYS_ASSERT(newPC.TotalNumberOfParticles() == myPC.TotalNumberOfParticles());
 
-            for (int icomp=0; icomp<AMREX_SPACEDIM; ++icomp)
             {
+                // Weight each direction differently so that swapped
+                // coordinates would also be caught. The position indices are
+                // constants so that the clang static analyzer can see that
+                // they are in bounds.
                 auto sm_new = amrex::ReduceSum(newPC,
                     [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
                     {
-                        return static_cast<Real>(p.pos(icomp));
+                        return AMREX_D_TERM(  static_cast<Real>(p.pos(0)),
+                                            + static_cast<Real>(p.pos(1))*Real(2.),
+                                            + static_cast<Real>(p.pos(2))*Real(3.));
                     });
 
                 auto sm_old = amrex::ReduceSum(myPC,
                     [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
                     {
-                        return static_cast<Real>(p.pos(icomp));
+                        return AMREX_D_TERM(  static_cast<Real>(p.pos(0)),
+                                            + static_cast<Real>(p.pos(1))*Real(2.),
+                                            + static_cast<Real>(p.pos(2))*Real(3.));
                     });
 
                 ParallelDescriptor::ReduceRealSum(sm_new);
