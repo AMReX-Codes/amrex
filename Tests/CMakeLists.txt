@@ -145,7 +145,7 @@ else()
    #
    set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut Base CallNoinline CommType CTOParFor DeviceGlobal
                             Enum GpuParallelReduce HeatEquation Morton MultiBlock MultiPeriod ParmParse Parser Parser2
-                            ParserUserFn Reducer ReduceToPlaneGuards ReduceToPlanePatchy Reinit RoundoffDomain Scan SIMD
+                            ParserUserFn Profiling Reducer ReduceToPlaneGuards ReduceToPlanePatchy Reinit RoundoffDomain Scan SIMD
                             SmallMatrix StochasticHeatEquation SumBoundary TOML)
 
    if (AMReX_PARTICLES)
