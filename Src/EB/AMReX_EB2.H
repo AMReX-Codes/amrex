@@ -66,8 +66,10 @@ public:
         amrex::Abort("IndexSpace::setShift: not supported");
     }
 
-    //! Build face-centered EB data for all three face directions.
-    virtual void buildAllFCData () {}
+    //! Build face-centered EB data for every face direction.
+    virtual void buildAllFCData () {
+        amrex::Abort("EB2::BuildFC: face-centered data are not supported for this IndexSpace");
+    }
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -277,9 +279,11 @@ void addFineLevels (int num_new_fine_levels);
 void addRegularCoarseLevels (int num_new_coarse_levels);
 
 /**
- * \brief Build face-centered EB data for all three face directions.
+ * \brief Build face-centered EB data for every face direction.
  *
  * Must be called after EB2::Build() has created the cell-centered EB geometry.
+ * Supported for implicit-function and STL geometries, not for an EB read from a
+ * checkpoint file.
  */
 void BuildFC ();
 

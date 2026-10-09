@@ -1179,7 +1179,11 @@ Level::buildCellFlagFC (int face_dir)
         ap[idim].define(fc.m_areafrac_fc[idim].boxArray(),
                         fc.m_areafrac_fc[idim].DistributionMap(), 1, 1);
     }
+    // The flags are stored unshifted, so build them from unshifted area fractions.
+    IntVect const shift = m_shift;
+    m_shift = IntVect(0);
     fillAreaFracFC(amrex::GetArrOfPtrs(ap), face_dir, m_geom);
+    m_shift = shift;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1212,7 +1216,8 @@ Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
     if (!cov.empty())
     {
         BoxArray cov_fc = amrex::convert(cov, vfrac.ixType());
-        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<IntVect> pshifts = geom.periodicity().shiftIntVect();
+        for (auto& pit : pshifts) { pit += m_shift; }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1236,7 +1241,7 @@ Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
         }
     }
 
-    vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, 0, vfrac.nGrow(), geom.periodicity());
+    vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, IntVect(0), vfrac.nGrowVect(), -m_shift, geom.periodicity());
 }
 
 void
@@ -1251,7 +1256,8 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
     BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
     if (!cov.empty())
     {
-        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<IntVect> pshifts = geom.periodicity().shiftIntVect();
+        for (auto& pit : pshifts) { pit += m_shift; }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             // the area fractions are indexed by the staggered cell, so the conversion reaches
             // one further in face_dir, over the cells that straddle the covered interface
@@ -1281,7 +1287,7 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        areafrac[idim]->ParallelCopy(m_fc_data[face_dir]->m_areafrac_fc[idim], 0, 0, 1, 0, areafrac[idim]->nGrow(), geom.periodicity());
+        areafrac[idim]->ParallelCopy(m_fc_data[face_dir]->m_areafrac_fc[idim], 0, 0, 1, IntVect(0), areafrac[idim]->nGrowVect(), -m_shift, geom.periodicity());
     }
 }
 
@@ -1310,7 +1316,7 @@ Level::fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) c
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     centroid.setVal(0.0);
     if (isAllRegular()) { return; }
-    centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, 0, centroid.nGrow(), geom.periodicity());
+    centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, IntVect(0), centroid.nGrowVect(), -m_shift, geom.periodicity());
 }
 
 void
@@ -1328,7 +1334,7 @@ Level::fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndryarea.setVal(0.0);
     if (isAllRegular()) { return; }
-    bndryarea.ParallelCopy(m_fc_data[face_dir]->m_bndryarea_fc, 0, 0, 1, 0, bndryarea.nGrow(), geom.periodicity());
+    bndryarea.ParallelCopy(m_fc_data[face_dir]->m_bndryarea_fc, 0, 0, 1, IntVect(0), bndryarea.nGrowVect(), -m_shift, geom.periodicity());
 }
 
 void
@@ -1346,7 +1352,7 @@ Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndrycent.setVal(-1.0);   // cell-centered convention: -1 where there is no boundary
     if (isAllRegular()) { return; }
-    bndrycent.ParallelCopy(m_fc_data[face_dir]->m_bndrycent_fc, 0, 0, AMREX_SPACEDIM, 0, bndrycent.nGrow(), geom.periodicity());
+    bndrycent.ParallelCopy(m_fc_data[face_dir]->m_bndrycent_fc, 0, 0, AMREX_SPACEDIM, IntVect(0), bndrycent.nGrowVect(), -m_shift, geom.periodicity());
 }
 
 void
@@ -1364,7 +1370,7 @@ Level::fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
     bndrynorm.setVal(0.0);
     if (isAllRegular()) { return; }
-    bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, 0, bndrynorm.nGrow(), geom.periodicity());
+    bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, IntVect(0), bndrynorm.nGrowVect(), -m_shift, geom.periodicity());
 }
 
 void
@@ -1395,7 +1401,8 @@ Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const 
     {
         auto cov_val = EBCellFlag::TheCoveredCell();
         BoxArray cov_fc = amrex::convert(cov, cellflag.ixType());
-        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<IntVect> pshifts = geom.periodicity().shiftIntVect();
+        for (auto& pit : pshifts) { pit += m_shift; }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1419,7 +1426,7 @@ Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const 
         }
     }
 
-    cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, 0, cellflag.nGrow(), geom.periodicity());
+    cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, IntVect(0), cellflag.nGrowVect(), -m_shift, geom.periodicity());
 
     // Set FabType for each fab (similar to fillEBCellFlag)
     const int ng = cellflag.nGrow();
@@ -1437,7 +1444,7 @@ Level::fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face
     }
     if (isAllRegular()) { return; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        facecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_facecent_fc[idim], 0, 0, AMREX_SPACEDIM-1, 0, facecent[idim]->nGrow(), geom.periodicity());
+        facecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_facecent_fc[idim], 0, 0, AMREX_SPACEDIM-1, IntVect(0), facecent[idim]->nGrowVect(), -m_shift, geom.periodicity());
     }
 }
 
@@ -1472,7 +1479,8 @@ Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face
     BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
     if (!cov.empty())
     {
-        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<IntVect> pshifts = geom.periodicity().shiftIntVect();
+        for (auto& pit : pshifts) { pit += m_shift; }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             BoxArray cov_fc = amrex::convert(cov, edgecent[idim]->ixType());
 #ifdef AMREX_USE_OMP
@@ -1500,7 +1508,7 @@ Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, 0, edgecent[idim]->nGrow(), geom.periodicity());
+        edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, IntVect(0), edgecent[idim]->nGrowVect(), -m_shift, geom.periodicity());
     }
 }
 

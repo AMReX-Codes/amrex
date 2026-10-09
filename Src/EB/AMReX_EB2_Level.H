@@ -345,7 +345,8 @@ public:
     }
 
     //! Build face-centered EB data for face_dir. Builds refined CC transiently.
-    void buildFCData (G const& gshop, int face_dir, int max_grid_size);
+    void buildFCData (G const& gshop, int face_dir, int max_grid_size,
+                      bool extend_domain_face, int num_crse_opt);
 
 private:
 
@@ -873,7 +874,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
 template <typename G>
 void
-GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
+                            bool extend_domain_face, int num_crse_opt)
 {
     BL_PROFILE("EB2::GShopLevel::buildFCData");
 
@@ -905,9 +907,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // An even max_grid_size keeps the refined grids coarsenable by 2, and a doubled ngrow
     // makes the face-centered data reach at least as far outside the domain as m_ngrow.
     Geometry refined_geom = amrex::refine(m_geom, 2);
-    transient_level = std::make_unique<GShopLevel<G>>(
-        m_parent, gshop, refined_geom,
-        std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()), true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+    transient_level = std::make_unique<GShopLevel<G>>(m_parent, refined_geom);
+    transient_level->define_fine(gshop, refined_geom,
+        std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()),
+        extend_domain_face, num_crse_opt);
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
