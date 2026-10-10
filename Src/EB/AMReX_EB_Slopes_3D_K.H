@@ -11,15 +11,22 @@ namespace amrex {
 
 struct EBSlopeNormalEquation
 {
-    Real a00 = 0.0_rt;
-    Real a01 = 0.0_rt;
-    Real a02 = 0.0_rt;
-    Real a11 = 0.0_rt;
-    Real a12 = 0.0_rt;
-    Real a22 = 0.0_rt;
-    Real b0 = 0.0_rt;
-    Real b1 = 0.0_rt;
-    Real b2 = 0.0_rt;
+    Real a00;
+    Real a01;
+    Real a02;
+    Real a11;
+    Real a12;
+    Real a22;
+    Real b0;
+    Real b1;
+    Real b2;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    EBSlopeNormalEquation() noexcept
+        : a00(0.0_rt), a01(0.0_rt), a02(0.0_rt),
+          a11(0.0_rt), a12(0.0_rt), a22(0.0_rt),
+          b0(0.0_rt), b1(0.0_rt), b2(0.0_rt)
+    {}
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void add (Real offset_x, Real offset_y, Real offset_z, Real du) noexcept
