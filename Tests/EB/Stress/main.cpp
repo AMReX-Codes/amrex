@@ -160,14 +160,16 @@ struct Rng
 
 using V3 = std::array<Real,3>;
 
-V3 operator+ (V3 const& a, V3 const& b) { return {a[0]+b[0], a[1]+b[1], a[2]+b[2]}; }
-V3 operator- (V3 const& a, V3 const& b) { return {a[0]-b[0], a[1]-b[1], a[2]-b[2]}; }
 V3 operator* (Real s, V3 const& a) { return {s*a[0], s*a[1], s*a[2]}; }
 Real dot (V3 const& a, V3 const& b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+#if (AMREX_SPACEDIM == 3)
+V3 operator+ (V3 const& a, V3 const& b) { return {a[0]+b[0], a[1]+b[1], a[2]+b[2]}; }
+V3 operator- (V3 const& a, V3 const& b) { return {a[0]-b[0], a[1]-b[1], a[2]-b[2]}; }
 V3 cross (V3 const& a, V3 const& b)
 {
     return {a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]};
 }
+#endif
 V3 normalize (V3 const& a) { return (1.0_rt/std::sqrt(dot(a,a))) * a; }
 
 struct Triangle { V3 v[3]; };
