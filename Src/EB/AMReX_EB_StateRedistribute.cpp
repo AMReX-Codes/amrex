@@ -119,6 +119,11 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #endif
     Array4<Real> qt = qtracker_fab.array();
 
+    // Limited slopes are computed separately from the redistribution updates so
+    // the large slope stencils do not increase the update kernel's register use.
+    FArrayBox limited_slopes_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
+    Array4<Real> limited_slopes = limited_slopes_fab.array();
+
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
     // caller's responsibility.
@@ -283,6 +288,22 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 AMREX_D_TERM(lim_slope[0] *= slopes_eb[0];,
                              lim_slope[1] *= slopes_eb[1];,
                              lim_slope[2] *= slopes_eb[2];);
+
+                AMREX_D_TERM(limited_slopes(i,j,k,0) = lim_slope[0];,
+                             limited_slopes(i,j,k,1) = lim_slope[1];,
+                             limited_slopes(i,j,k,2) = lim_slope[2];);
+            } // vfrac > 0 && itracker > 0
+        });
+
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
+            {
+                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
+                    AMREX_D_DECL(limited_slopes(i,j,k,0),
+                                 limited_slopes(i,j,k,1),
+                                 limited_slopes(i,j,k,2))};
 
                 // Now loop over neighbors using the precomputed slopes
                 for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
