@@ -65,6 +65,7 @@ public:
     static constexpr int m_bvh_max_size = 4; // max # of triangles in a leaf node
     static constexpr int m_bvh_max_splits = 4; // max # of children
     static constexpr int m_bvh_max_stack_size = 12; // max depth of the tree
+    static constexpr int m_num_ref = 4; // # of reference points for inside/outside rays
 
     using Node = BVHNodeT<m_bvh_max_size,m_bvh_max_splits>;
 
@@ -134,8 +135,12 @@ private:
     int m_num_tri=0;
 
     XDim3 m_ptmin;  // All triangles are inside the bounding box defined by
-    XDim3 m_ptmax;  //     m_ptmin and m_ptmax.
-    XDim3 m_ptref;  // The reference point is slightly outside the bounding box.
+    XDim3 m_ptmax;  //     m_ptmin and m_ptmax, grown by roundoff.
+    XDim3 m_bbmin;  // The bounding box of the triangles
+    XDim3 m_bbmax;
+    // Reference points slightly outside the bounding box.  The others are
+    // used only when the ray from the first one is ambiguous.
+    GpuArray<XDim3,m_num_ref> m_ptref;
     bool m_boundry_is_outside; // Is the bounding box boundary outside or inside the object?
 
     void read_ascii_stl_file (std::string const& fname, Real scale,

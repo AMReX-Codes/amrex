@@ -116,7 +116,8 @@ void set_eb_data (const int i, const int j, const int k,
     Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) * (dx[2]/dx[0])
                       + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) * (dx[2]/dx[1]);
 
-    vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz);
+    // At most 1, which it can exceed when the apertures are not of one plane
+    vfrac(i,j,k) = amrex::min(0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz), 1.0_rt);
 
     // remove small cell
     if (vfrac(i,j,k) < small_volfrac) {
@@ -125,9 +126,13 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    bcent(i,j,k,0) = (Bx + nx*vfrac(i,j,k)) * apnorminv * dx[1] * dx[2];
-    bcent(i,j,k,1) = (By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2];
-    bcent(i,j,k,2) = (Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1];
+    // Clamped because it is ill-conditioned when the EB area is tiny
+    bcent(i,j,k,0) = amrex::Clamp((Bx + nx*vfrac(i,j,k)) * apnorminv * dx[1] * dx[2],
+                                  -0.5_rt, 0.5_rt);
+    bcent(i,j,k,1) = amrex::Clamp((By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2],
+                                  -0.5_rt, 0.5_rt);
+    bcent(i,j,k,2) = amrex::Clamp((Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1],
+                                  -0.5_rt, 0.5_rt);
 
     Real dx1 = dx[0];
     Real dx2 = dx1*dx1;
