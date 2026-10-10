@@ -1,0 +1,11 @@
+# EB generation stress test.  Each case is a geometry generated from the
+# seed and the case number, so there is no fixed set.  The seed is random
+# unless seed=S is given, and it is printed, so a failing case can be rerun
+# with seed=S case=N (add verbose=2 for the bad cells, write_surface=1 to
+# plot it with plot_eb.py).  Run more with ncases=N first_case=M, or for a
+# given time with run_time=seconds (e.g. run_time=48*3600 verbose=0), and
+# print progress every so many seconds with progress_interval=seconds.
+ncases = 100
+verbose = 1  # 0: only failures and the summary
+amrex.verbose = 0
+
