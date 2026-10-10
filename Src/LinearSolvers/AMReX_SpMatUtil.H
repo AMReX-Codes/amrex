@@ -21,8 +21,8 @@ namespace amrex {
  * \param ncols Total number of columns in the source matrix.
  * \return CSR representing the transpose.
  */
-template <typename IO = Long, typename T, template <typename> class V, typename I>
-CSR<T,V,IO> transpose (CSR<T,V,I> const& csr, Long ncols)
+template <typename IO = Long, typename T, template <typename> class V, typename Index>
+CSR<T,V,IO> transpose (CSR<T,V,Index> const& csr, Long ncols)
 {
     Long nnz = csr.nnz;
 
@@ -82,11 +82,11 @@ SpMatrix<T,Allocator> transpose (SpMatrix<T,Allocator> const& A,
 template <typename T, template<typename> class Allocator = DefaultAllocator>
 SpMatrix<T,Allocator> IdentityMatrix (AlgPartition partition)
 {
-    SpMatrix<T,Allocator> I(std::move(partition), 1);
-    I.setVal([=] AMREX_GPU_DEVICE (Long row, Long* col, T* val) {
+    SpMatrix<T,Allocator> mat(std::move(partition), 1);
+    mat.setVal([=] AMREX_GPU_DEVICE (Long row, Long* col, T* val) {
         *col = row; *val = T(1);
     }, CsrSorted{true});
-    return I;
+    return mat;
 }
 
 /**

@@ -208,66 +208,66 @@ namespace Reduce::detail {
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s, Gpu::Handler const& h)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s), h);
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s, Gpu::Handler const& h)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
-        for_each_parallel<I+1,T,P1,Ps...>(d, s, h);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s), h);
+        for_each_parallel<Idx+1,T,P1,Ps...>(d, s, h);
     }
 #else
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_parallel<I+1,T,P1,Ps...>(d, s);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_parallel<Idx+1,T,P1,Ps...>(d, s);
     }
 #endif
 #endif
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void for_each_local (T& d, T const& s)
     {
-        P().local_update(amrex::get<I>(d), amrex::get<I>(s));
+        P().local_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void for_each_local (T& d, T const& s)
     {
-        P().local_update(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_local<I+1,T,P1,Ps...>(d, s);
+        P().local_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_local<Idx+1,T,P1,Ps...>(d, s);
     }
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr void for_each_init (T& t)
     {
-        P().init(amrex::get<I>(t));
+        P().init(amrex::get<Idx>(t));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr void for_each_init (T& t)
     {
-        P().init(amrex::get<I>(t));
-        for_each_init<I+1,T,P1,Ps...>(t);
+        P().init(amrex::get<Idx>(t));
+        for_each_init<Idx+1,T,P1,Ps...>(t);
     }
 }
 /// \endcond
@@ -569,8 +569,8 @@ namespace Reduce::detail {
     struct iterate_box {};
     struct iterate_box_comp {};
 
-    template <typename I, typename F, typename T, typename... Ps>
-    requires (std::same_as<iterate_box,I>)
+    template <typename Tag, typename F, typename T, typename... Ps>
+    requires (std::same_as<iterate_box,Tag>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int, T& r) noexcept
     {
@@ -578,8 +578,8 @@ namespace Reduce::detail {
         Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
     }
 
-    template <typename I, typename F, typename T, typename... Ps>
-    requires (std::same_as<iterate_box_comp,I>)
+    template <typename Tag, typename F, typename T, typename... Ps>
+    requires (std::same_as<iterate_box_comp,Tag>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int ncomp, T& r) noexcept
     {
@@ -600,8 +600,8 @@ public:
 /// \cond DOXYGEN_IGNORE
 
     // This is public for CUDA
-    template <typename I, typename MF, typename D, typename F>
-    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F const& f)
+    template <typename Tag, typename MF, typename D, typename F>
+    void eval_mf (Tag, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
@@ -649,7 +649,7 @@ public:
                     BoxIndexer const& indexer = dp_boxes[ibox];
                     if (icell < indexer.numPts()) {
                         auto [i, j, k] = indexer(icell);
-                        Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
+                        Reduce::detail::mf_call_f<Tag, F, ReduceTuple, Ps...>
                             (f, ibox, i, j, k, ncomp, r);
                     }
                 }
@@ -663,8 +663,8 @@ public:
     }
 
     // This is public for CUDA
-    template <typename I, int dim, typename D, typename F>
-    void eval_box (I, BoxND<dim> const& box, int ncomp, D& reduce_data, F const& f)
+    template <typename Tag, int dim, typename D, typename F>
+    void eval_box (Tag, BoxND<dim> const& box, int ncomp, D& reduce_data, F const& f)
     {
         if (box.isEmpty()) { return; }
         using ReduceTuple = typename D::Type;
@@ -706,7 +706,7 @@ public:
             {
                 auto iv = indexer.intVect(icell);
                 amrex::ignore_unused(f,ncomp,ixtype); // work around first-capture
-                if constexpr (std::is_same_v<Reduce::detail::iterate_box,I>) {
+                if constexpr (std::is_same_v<Reduce::detail::iterate_box,Tag>) {
                     auto pr = Reduce::detail::call_f_intvect_box(f, iv, ixtype);
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 } else {

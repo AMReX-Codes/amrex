@@ -76,9 +76,9 @@ namespace detail
         AMREX_ASSERT(found_option);
     }
 
-    template <int Begin, int End, int... I>
-    constexpr auto MakeCTOImpl(std::integer_sequence<int, I...>)
-        -> CompileTimeOptions<Begin + I...>;
+    template <int Begin, int End, int... Idx>
+    constexpr auto MakeCTOImpl(std::integer_sequence<int, Idx...>)
+        -> CompileTimeOptions<Begin + Idx...>;
 }
 /// \endcond
 
