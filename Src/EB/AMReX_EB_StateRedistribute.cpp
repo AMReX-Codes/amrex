@@ -188,22 +188,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         });
 
-        // Compute BC flags on host (outside kernel) to reduce register pressure
-        bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
-        bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
-        bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
-        bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
-#if (AMREX_SPACEDIM == 3)
-        bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
-        bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
-#endif
-
         // {
         // amrex::Gpu::streamSynchronize();
         // BL_PROFILE("SK:MLStateRedistributeKernel2");
@@ -251,7 +235,20 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 3)
                 if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
 #endif
-                // BC flags are now captured from outer scope (precomputed on host)
+                bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
+                bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
+                bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
+                bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
+#if (AMREX_SPACEDIM == 3)
+                bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
+                bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
+                                   d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
+#endif
 
                 // Compute slopes of Qhat (which is the sum of the qt's) then use
                 //  that for each qt separately
