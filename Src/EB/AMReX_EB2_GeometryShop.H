@@ -394,32 +394,38 @@ public:
     [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
+    // Nodes are classified as in fillFab: on the surface within roundoff is
+    // body.  Otherwise a box the body touches only at such nodes would be
+    // regular here but have cut cells in a neighboring box.
     [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
     {
-        const Real* problo = geom.ProbLo();
-        const Real* dx = geom.CellSize();
-        const auto& len3 = bx.length3d();
-        const int* blo = bx.loVect();
-        int nbody = 0, nzero = 0, nfluid = 0;
-        for         (int k = 0; k < len3[2]; ++k) {
-            for     (int j = 0; j < len3[1]; ++j) {
-                for (int i = 0; i < len3[0]; ++i) {
-                    RealArray xyz {AMREX_D_DECL(problo[0]+(i+blo[0])*dx[0],
-                                                problo[1]+(j+blo[1])*dx[1],
-                                                problo[2]+(k+blo[2])*dx[2])};
-                    Real v = m_f(xyz);
-                    if (v == 0.0_rt) {
-                        ++nzero;
-                    } else if (v > 0.0_rt) {
-                        ++nbody;
-                    } else {
-                        ++nfluid;
-                    }
-                    if (nbody > 0 && nfluid > 0) { return mixedcells; }
-                }
+        const auto& problo = geom.ProbLoArray();
+        const auto& dx = geom.CellSizeArray();
+        const Box gbx = amrex::grow(bx, 1); // neighbors for the roundoff tolerance
+        BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
+        const auto& fv = ffab.array();
+        const auto& fc = ffab.const_array();
+        amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
+        {
+            amrex::ignore_unused(j,k);
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(i)*dx[0],
+                                                   problo[1]+Real(j)*dx[1],
+                                                   problo[2]+Real(k)*dx[2])});
+        });
+        IntVect const glo = gbx.smallEnd();
+        IntVect const ghi = gbx.bigEnd();
+        int nbody = 0, nfluid = 0;
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
+        {
+            IntVect const iv(AMREX_D_DECL(i,j,k));
+            Real const v = fc(i,j,k);
+            if (v >= 0.0_rt ||
+                std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, glo, ghi)) {
+                ++nbody;
+            } else {
+                ++nfluid;
             }
-        }
-        amrex::ignore_unused(nzero);
+        });
 
         if (nbody == 0) {
             return allregular;
@@ -432,6 +438,7 @@ public:
 
     /**
      * \brief Classify \p bx as regular, covered, or mixed (GPU-capable case).
+     *        Nodes on the surface within roundoff count as body, as in fillFab().
      *
      * \param bx   Box to inspect.
      * \param geom Geometry providing physical coordinates.
@@ -446,30 +453,36 @@ public:
             const auto& problo = geom.ProbLoArray();
             const auto& dx = geom.CellSizeArray();
             auto const& f = m_f;
-            ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
-            ReduceData<int,int,int> reduce_data(reduce_op);
+            // Node classification as in getBoxType_Cpu.
+            const Box gbx = amrex::grow(bx, 1);
+            BaseFab<Real> ffab(gbx, 1, The_Async_Arena());
+            auto const& fv = ffab.array();
+            auto const& fc = ffab.const_array();
+            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                amrex::ignore_unused(j,k);
+                fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*dx[0],
+                                           problo[1]+Real(j)*dx[1],
+                                           problo[2]+Real(k)*dx[2]));
+            });
+            IntVect const glo = gbx.smallEnd();
+            IntVect const ghi = gbx.bigEnd();
+            ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
+            ReduceData<int,int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 amrex::ignore_unused(j,k);
-                Real v = f(AMREX_D_DECL(problo[0]+Real(i)*dx[0],
-                                        problo[1]+Real(j)*dx[1],
-                                        problo[2]+Real(k)*dx[2]));
-                int nbody = 0, nzero = 0, nfluid = 0;
-                if (v == 0.0_rt) {
-                    ++nzero;
-                } else if (v > 0.0_rt) {
-                    ++nbody;
-                } else {
-                    ++nfluid;
-                }
-                return {nbody,nzero,nfluid};
+                IntVect const iv(AMREX_D_DECL(i,j,k));
+                Real const v = fc(iv);
+                bool const body = v >= 0.0_rt ||
+                    std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, glo, ghi);
+                return {int(body), int(!body)};
             });
             ReduceTuple hv = reduce_data.value(reduce_op);
             int nbody = amrex::get<0>(hv);
-            // int nzero = amrex::get<1>(hv);
-            int nfluid = amrex::get<2>(hv);
+            int nfluid = amrex::get<1>(hv);
 
             if (nbody == 0) {
                 return allregular;
@@ -517,39 +530,46 @@ public:
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        const auto& a = levelset.array();
+        // One more node layer, so that ResolveZeroSaddles gives the nodes of
+        // the cells built from this fab the same values as in neighboring fabs.
+        const Box gbx = amrex::grow(bx, 1);
         const auto& blo = amrex::lbound(bounding_box);
         const auto& bhi = amrex::ubound(bounding_box);
         const auto& f = m_f;
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+        bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
+        Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
+        BaseFab<Real> ffab(gbx, 1, arena);
+        auto const& fv = ffab.array();
+        auto const& fc = ffab.const_array();
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
         {
-            a(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                      problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                      problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2]));
+            amrex::ignore_unused(j,k);
+            fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
+                                       problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
+                                       problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2]));
         });
 
         // Nodes on the surface within roundoff get a zero level set.
-        bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
-        BaseFab<Real> tmp(bx, 1, on_gpu ? The_Async_Arena() : The_Cpu_Arena());
-        auto const& t = tmp.array();
-        auto const& tc = tmp.const_array();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
-        {
-            t(i,j,k) = a(i,j,k);
-        });
+        BaseFab<Real> sfab(gbx, 1, arena);
+        auto const& s = sfab.array();
+        auto const& sc = sfab.const_array();
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
-            Real const v = tc(iv);
-            if (v != 0.0_rt &&
-                std::abs(v) <= IF_roundoff(f, iv, v, tc, problo, dx, bloiv, bhiiv)) {
-                a(i,j,k) = 0.0_rt;
-            }
+            Real const v = fc(i,j,k);
+            s(i,j,k) = (v != 0.0_rt &&
+                        std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, bloiv, bhiiv))
+                ? 0.0_rt : v;
+        });
+        ResolveZeroSaddles(sfab, run_on);
+        const auto& a = levelset.array();
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+        {
+            a(i,j,k) = sc(i,j,k);
         });
         if (on_gpu) { Gpu::streamSynchronize(); }
-        ResolveZeroSaddles(levelset, run_on);
     }
 
     //! CPU-only overload of fillFab().
@@ -580,33 +600,37 @@ public:
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
+        // One more node layer, see the GPU version.
+        const Box gbx = amrex::grow(bx, 1);
         const auto& blo = amrex::lbound(bounding_box);
         const auto& bhi = amrex::ubound(bounding_box);
 
-        const auto& a = levelset.array();
-        amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
+        BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
+        const auto& fv = ffab.array();
+        const auto& fc = ffab.const_array();
+        amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
         {
-            a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                                  problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                                  problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2])});
+            amrex::ignore_unused(j,k);
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
+                                                   problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
+                                                   problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2])});
         });
 
         // Nodes on the surface within roundoff get a zero level set.
-        BaseFab<Real> tmp(bx, 1, The_Cpu_Arena());
-        tmp.copy<RunOn::Host>(levelset);
-        auto const& tc = tmp.const_array();
+        BaseFab<Real> sfab(gbx, 1, The_Cpu_Arena());
+        auto const& s = sfab.array();
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
-        amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
-            Real const v = tc(iv);
-            if (v != 0.0_rt &&
-                std::abs(v) <= IF_roundoff(m_f, iv, v, tc, problo, dx, bloiv, bhiiv)) {
-                a(i,j,k) = 0.0_rt;
-            }
+            Real const v = fc(i,j,k);
+            s(i,j,k) = (v != 0.0_rt &&
+                        std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, bloiv, bhiiv))
+                ? 0.0_rt : v;
         });
-        ResolveZeroSaddles(levelset, RunOn::Cpu);
+        ResolveZeroSaddles(sfab, RunOn::Cpu);
+        levelset.copy<RunOn::Host>(sfab, bx);
     }
 
 

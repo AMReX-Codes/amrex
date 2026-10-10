@@ -681,7 +681,6 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     // Choose a reference point by extending the normal vector of the first
     // triangle until it's slightly outside the bounding box.
     XDim3 cent0{.x = tri0.cent(0), .y = tri0.cent(1), .z = tri0.cent(2)};
-    int is_ref_positive;
     {
         // We are computing the normal ourselves in case the stl file does
         // not have valid data on normal.
@@ -748,12 +747,10 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
             m_ptref[0].x = cent0.x + (Lp+Leps) * norm.x;
             m_ptref[0].y = cent0.y + (Lp+Leps) * norm.y;
             m_ptref[0].z = cent0.z + (Lp+Leps) * norm.z;
-            is_ref_positive = true;
         } else {
             m_ptref[0].x = cent0.x + (Lm-Leps) * norm.x;
             m_ptref[0].y = cent0.y + (Lm-Leps) * norm.y;
             m_ptref[0].z = cent0.z + (Lm-Leps) * norm.z;
-            is_ref_positive = false;
         }
     }
 
@@ -785,20 +782,30 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     }
 
     // We now need to figure out if the boundary and the reference is
-    // outside or inside the object.
-    XDim3 ptref = m_ptref[0];
-    int num_isects = Reduce::Sum<int>(m_num_tri, [=] AMREX_GPU_DEVICE (int i) -> int
+    // outside or inside the object.  A ray that grazes an edge or a vertex
+    // is ambiguous; then the next reference point is tried.
+    XDim3 const norm0 = triangle_norm(tri0);
+    for (int n = 0; n < m_num_ref; ++n) {
+        XDim3 const ptref = m_ptref[n];
+        bool const ref_positive = (ptref.x-cent0.x)*norm0.x + (ptref.y-cent0.y)*norm0.y
+                                + (ptref.z-cent0.z)*norm0.z > Real(0.0);
+        ReduceOps<ReduceOpSum,ReduceOpMax> reduce_op;
+        ReduceData<int,int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(m_num_tri, reduce_data, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
-            if (i == 0) {
-                return 1-is_ref_positive;
-            } else {
-                Real p1[] = {ptref.x, ptref.y, ptref.z};
-                Real p2[] = {cent0.x, cent0.y, cent0.z};
-                return static_cast<int>(line_tri_intersects(p1, p2, tri_pts[i]));
-            }
+            if (i == 0) { return {0, 0}; }
+            Real const p1[] = {ptref.x, ptref.y, ptref.z};
+            Real const p2[] = {cent0.x, cent0.y, cent0.z};
+            bool ambiguous = false;
+            int const hit = static_cast<int>(line_tri_intersects(p1, p2, tri_pts[i], &ambiguous));
+            return {hit, static_cast<int>(ambiguous)};
         });
-
-    m_boundry_is_outside = num_isects % 2 == 0;
+        ReduceTuple const hv = reduce_data.value(reduce_op);
+        int const num_isects = amrex::get<0>(hv) + (ref_positive ? 0 : 1);
+        m_boundry_is_outside = num_isects % 2 == 0;
+        if (amrex::get<1>(hv) == 0) { break; }
+    }
 }
 
 void
@@ -1120,8 +1127,10 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
 
     auto const* bvh_root = m_bvh_nodes.data();
 
-    auto const& a = levelset.array();
-    const Box& bx = levelset.box();
+    // One more node layer, see GeometryShop::fillFab.
+    const Box bx = amrex::grow(levelset.box(), 1);
+    BaseFab<Real> gfab(bx, 1, Gpu::inLaunchRegion() ? The_Async_Arena() : The_Cpu_Arena());
+    auto const& a = gfab.array();
 
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
@@ -1150,7 +1159,14 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
         a(i,j,k) = (parity == 2) ? 0.0_rt
                  : ((parity == 0) ? reference_value : other_value);
     });
-    EB2::ResolveZeroSaddles(levelset, RunOn::Gpu);
+    EB2::ResolveZeroSaddles(gfab, RunOn::Gpu);
+    auto const& l = levelset.array();
+    auto const& gc = gfab.const_array();
+    ParallelFor(levelset.box(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        l(i,j,k) = gc(i,j,k);
+    });
+    Gpu::streamSynchronize();
 }
 
 void
