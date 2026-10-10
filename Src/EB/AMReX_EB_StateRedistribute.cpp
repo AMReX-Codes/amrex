@@ -119,8 +119,11 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #endif
     Array4<Real> qt = qtracker_fab.array();
 
-    // Limited slopes are computed separately from the redistribution updates so
-    // the large slope stencils do not increase the update kernel's register use.
+    // Raw slopes, limiting, and redistribution updates use separate kernels so
+    // their live values do not contribute to one another's register pressure.
+    FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
+    Array4<Real> slopes_eb_arr = slopes_eb_fab.array();
+
     FArrayBox limited_slopes_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
     Array4<Real> limited_slopes = limited_slopes_fab.array();
 
@@ -196,7 +199,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
             if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
             {
-                // Compute limited slopes once (depends only on i,j,k, not on neighbors)
+                // Compute slopes once (depends only on i,j,k, not on neighbors)
                 int nx = 1; int ny = 1; int nz = 1;
 
                 // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
@@ -275,6 +278,22 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                                 AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
                                                 max_order);
                 }
+
+                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
+                             slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
+                             slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
+            } // vfrac > 0 && itracker > 0
+        });
+
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
+            {
+                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb{
+                    AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
+                                 slopes_eb_arr(i,j,k,1),
+                                 slopes_eb_arr(i,j,k,2))};
 
                 // We do the limiting separately because this limiter limits the slope based on the values
                 //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
