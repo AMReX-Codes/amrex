@@ -228,11 +228,12 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 apx(i,j,0) = 0.0_rt;
                 fcx(i,j,0) = 0.0_rt;
             } else {
+                Real const cut = intercept_fraction(intery(i,j,0), problo[1], j, dx[1], dyinv);
                 if (levset(i,j,0) < 0.0_rt) {
-                    apx(i,j,0) = (intery(i,j,0)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                    apx(i,j,0) = cut;
                     fcx(i,j,0) = 0.5_rt*apx(i,j,0) - 0.5_rt;
                 } else {
-                    apx(i,j,0) = 1.0_rt - (intery(i,j,0)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                    apx(i,j,0) = 1.0_rt - cut;
                     fcx(i,j,0) = 0.5_rt - 0.5_rt*apx(i,j,0);
                 }
 
@@ -261,11 +262,12 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 apy(i,j,0) = 0.0_rt;
                 fcy(i,j,0) = 0.0_rt;
             } else {
+                Real const cut = intercept_fraction(interx(i,j,0), problo[0], i, dx[0], dxinv);
                 if (levset(i,j,0) < 0.0_rt) {
-                    apy(i,j,0) = (interx(i,j,0)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                    apy(i,j,0) = cut;
                     fcy(i,j,0) = 0.5_rt*apy(i,j,0) - 0.5_rt;
                 } else {
-                    apy(i,j,0) = 1.0_rt - (interx(i,j,0)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                    apy(i,j,0) = 1.0_rt - cut;
                     fcy(i,j,0) = 0.5_rt - 0.5_rt*apy(i,j,0);
                 }
 

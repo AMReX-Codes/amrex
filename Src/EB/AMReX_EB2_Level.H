@@ -415,7 +415,8 @@ GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
             for (Long i = iproc; i < nboxes; i += nprocs) {
                 const Box& vbx = boxes[i];
                 const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-                auto box_type = gshop.getBoxType(gbx&crse_bounding_box,crse_geom,RunOn::Gpu);
+                auto box_type = gshop.getBoxType(gbx&crse_bounding_box,crse_geom,RunOn::Gpu,
+                                                 crse_bounding_box);
                 if (box_type == gshop.allcovered) {
                     covered_boxes.push_back(amrex::refine(vbx, crse_ratio));
                 } else if (box_type == gshop.mixedcells) {

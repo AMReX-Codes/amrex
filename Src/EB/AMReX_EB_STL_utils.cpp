@@ -968,7 +968,7 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
 }
 
 int
-STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
+STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const
 {
     BL_PROFILE("STLtools::getBoxType");
 
@@ -1159,13 +1159,7 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
         a(i,j,k) = (parity == 2) ? 0.0_rt
                  : ((parity == 0) ? reference_value : other_value);
     });
-    EB2::ResolveZeroSaddles(gfab, RunOn::Gpu);
-    auto const& l = levelset.array();
-    auto const& gc = gfab.const_array();
-    ParallelFor(levelset.box(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        l(i,j,k) = gc(i,j,k);
-    });
+    EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
     Gpu::streamSynchronize();
 }
 

@@ -177,43 +177,85 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
     return bPt[rangedir];
 }
 
+// Inverse squared distance to a neighboring node, by the bits of its
+// nonzero index offsets, for IF_roundoff.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+GpuArray<Real,8> IF_invdist2 (GpuArray<Real,AMREX_SPACEDIM> const& dx)
+{
+    Real const d2x = dx[0]*dx[0];
+    Real const d2y = dx[1]*dx[1];
+    Real const d2z = (AMREX_SPACEDIM == 3) ? dx[AMREX_SPACEDIM-1]*dx[AMREX_SPACEDIM-1] : 0.0_rt;
+    GpuArray<Real,8> invd2;
+    invd2[0] = 0.0_rt;
+    for (int m = 1; m < 8; ++m) {
+        invd2[m] = Real(1.0) / (Real(m&1)*d2x + Real((m>>1)&1)*d2y + Real((m>>2)&1)*d2z);
+    }
+    return invd2;
+}
+
 // Tolerance below which f at node iv is roundoff: 16 epsilon times the
-// change of f to the neighboring nodes times the size of the operands of
-// the node position.  Nodes are placed as in fillFab.  Neighbor values are
-// taken from fab where it has them.
+// largest slope of f to a neighboring node, diagonals included so that a
+// kink of the surface at the node does not hide the slope, times the size
+// of the operands of the node position.  Neighbor values are taken from fab
+// where it has them.  Nodes outside [blo,bhi] take the values of the clamped
+// node, so they get its tolerance.
 template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_roundoff (F const& f, IntVect const& iv, Real fv, Array4<Real const> const& fab,
              GpuArray<Real,AMREX_SPACEDIM> const& problo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dx,
+             GpuArray<Real,AMREX_SPACEDIM> const& dx, GpuArray<Real,8> const& invd2,
              IntVect const& blo, IntVect const& bhi)
 {
-    // Outside the bounding box, nodes take the values at the clamped node,
-    // so they must get its tolerance too.
     IntVect ivc = iv;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) { ivc[d] = amrex::Clamp(iv[d], blo[d], bhi[d]); }
-    Real tol = 0.0_rt;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        Real df = 0.0_rt;
-        for (int s = -1; s <= 1; s += 2) {
-            IntVect ivn = ivc;
-            ivn[d] += s;
-            Real fn;
-            if (fab.contains(ivn)) {
-                fn = fab(ivn);
-            } else {
-                GpuArray<Real,AMREX_SPACEDIM> p;
-                for (int dd = 0; dd < AMREX_SPACEDIM; ++dd) {
-                    p[dd] = problo[dd] + Real(amrex::Clamp(ivn[dd],blo[dd],bhi[dd]))*dx[dd];
-                }
-                fn = IF_f(f, p);
+    constexpr int kmax = (AMREX_SPACEDIM == 3) ? 1 : 0;
+    int const ic = ivc[0];
+    int const jc = ivc[1];
+    int const kc = (AMREX_SPACEDIM == 3) ? ivc[AMREX_SPACEDIM-1] : 0;
+    Real slope2 = 0.0_rt;
+    IntVect const ivlo = ivc - 1;
+    IntVect const ivhi = ivc + 1;
+    if (ivlo.allGE(blo) && ivhi.allLE(bhi) && fab.contains(ivlo) && fab.contains(ivhi)) {
+        for (int kk = -kmax; kk <= kmax; ++kk) {
+        for (int jj = -1; jj <= 1; ++jj) {
+        for (int ii = -1; ii <= 1; ++ii) {
+            int const m = int(ii != 0) | (int(jj != 0) << 1) | (int(kk != 0) << 2);
+            if (m != 0) {
+                Real const df = fab(ic+ii, jc+jj, kc+kk) - fv;
+                slope2 = amrex::max(slope2, df*df*invd2[m]);
             }
-            df = amrex::max(df, std::abs(fn - fv));
-        }
-        tol += df / dx[d] * (std::abs(problo[d]) + std::abs(Real(ivc[d])*dx[d]));
+        }}}
+    } else {
+        for (int kk = -kmax; kk <= kmax; ++kk) {
+        for (int jj = -1; jj <= 1; ++jj) {
+        for (int ii = -1; ii <= 1; ++ii) {
+            int const m = int(ii != 0) | (int(jj != 0) << 1) | (int(kk != 0) << 2);
+            if (m != 0) {
+                IntVect ivn = ivc + IntVect(AMREX_D_DECL(ii,jj,kk));
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    ivn[d] = amrex::Clamp(ivn[d], blo[d], bhi[d]);
+                }
+                Real fn;
+                if (fab.contains(ivn)) {
+                    fn = fab(ivn);
+                } else {
+                    GpuArray<Real,AMREX_SPACEDIM> p;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        p[d] = problo[d] + Real(ivn[d])*dx[d];
+                    }
+                    fn = IF_f(f, p);
+                }
+                Real const df = fn - fv;
+                slope2 = amrex::max(slope2, df*df*invd2[m]);
+            }
+        }}}
     }
-    return Real(16.0) * std::numeric_limits<Real>::epsilon() * tol;
+    Real size = 0.0_rt;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        size += std::abs(problo[d]) + std::abs(Real(ivc[d])*dx[d]);
+    }
+    return Real(16.0) * std::numeric_limits<Real>::epsilon() * std::sqrt(slope2) * size;
 }
 
 // Intercept on the edge from node ivz, which is on the surface (zero level
@@ -223,6 +265,7 @@ template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
+                  Array4<Real const> const& lst,
                   GpuArray<Real,AMREX_SPACEDIM> const& problo,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   IntVect const& blo, IntVect const& bhi)
@@ -231,8 +274,7 @@ ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         p[d] = problo[d] + Real(amrex::Clamp(ivz[d],blo[d],bhi[d]))*dx[d];
     }
-    Real const tol = IF_roundoff(f, ivz, IF_f(f, p), Array4<Real const>{},
-                                 problo, dx, blo, bhi);
+    Real const tol = IF_roundoff(f, ivz, IF_f(f, p), lst, problo, dx, IF_invdist2(dx), blo, bhi);
     IntVect ivf = ivz;
     ivf[rangedir] += side;
     Real a = p[rangedir];
@@ -267,87 +309,82 @@ inline constexpr Real on_surface_fluid = -std::numeric_limits<Real>::min();
 // on the fluid side, unless that makes the opposite pattern on another face.
 // Of two diagonal nodes of a face whose other corners are body, only one
 // moves, or the face would be cut twice.
-inline void ResolveZeroSaddles (BaseFab<Real>& levelset, RunOn run_on)
+// The decision needs the snapped level set one layer beyond the levelset box.
+inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& levelset,
+                                RunOn run_on)
 {
     const Box& bx = levelset.box();
+    const Box gbx = amrex::grow(bx, 1);
     bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
-    BaseFab<Real> tmp(bx, 1, on_gpu ? The_Async_Arena() : The_Cpu_Arena());
+    BaseFab<Real> tmp(gbx, 1, on_gpu ? The_Async_Arena() : The_Cpu_Arena());
     auto const& t = tmp.array();
     auto const& tc = tmp.const_array();
+    auto const& s = snapped.const_array();
     auto const& a = levelset.array();
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+    // Candidates get on_surface_fluid in t, which is the snapped level set otherwise.
+    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
     {
-        t(i,j,k) = a(i,j,k);
-    });
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
-    {
-        if (tc(i,j,k) == 0.0_rt) {
+        Real v = s(i,j,k);
+        if (v == 0.0_rt) {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             bool body_saddle = false;
             bool fluid_saddle = false;
             for (int d = 0; d < 3; ++d) { // face normal
                 int const u = (d+1)%3;
-                int const v = (d+2)%3;
-                if (u >= AMREX_SPACEDIM || v >= AMREX_SPACEDIM) { continue; }
+                int const w = (d+2)%3;
+                if (u >= AMREX_SPACEDIM || w >= AMREX_SPACEDIM) { continue; }
                 for (int su = -1; su <= 1; su += 2) {
-                    for (int sv = -1; sv <= 1; sv += 2) {
+                    for (int sw = -1; sw <= 1; sw += 2) {
                         IntVect ib = iv;
                         IntVect ie = iv;
                         ib[u] += su;
-                        ie[v] += sv;
+                        ie[w] += sw;
                         IntVect ic = ib;
-                        ic[v] += sv;
-                        if (tc.contains(ib) && tc.contains(ie) && tc.contains(ic)) {
-                            bool const cb = tc(ic) >= 0.0_rt;
-                            bool const bb = tc(ib) >= 0.0_rt;
-                            bool const eb = tc(ie) >= 0.0_rt;
+                        ic[w] += sw;
+                        if (s.contains(ib) && s.contains(ie) && s.contains(ic)) {
+                            bool const cb = s(ic) >= 0.0_rt;
+                            bool const bb = s(ib) >= 0.0_rt;
+                            bool const eb = s(ie) >= 0.0_rt;
                             body_saddle = body_saddle || (cb && !bb && !eb);
                             fluid_saddle = fluid_saddle || (!cb && bb && eb);
                         }
                     }
                 }
             }
-            if (body_saddle && !fluid_saddle) { a(i,j,k) = on_surface_fluid; }
+            if (body_saddle && !fluid_saddle) { v = on_surface_fluid; }
         }
+        t(i,j,k) = v;
     });
-    // a now has the candidates; the decisions go to t.
     AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
     {
-        if (a(i,j,k) == on_surface_fluid) {
+        Real v = tc(i,j,k);
+        if (v == on_surface_fluid) {
             IntVect const iv(AMREX_D_DECL(i,j,k));
-            bool move = true;
             for (int d = 0; d < 3; ++d) {
                 int const u = (d+1)%3;
-                int const v = (d+2)%3;
-                if (u >= AMREX_SPACEDIM || v >= AMREX_SPACEDIM) { continue; }
+                int const w = (d+2)%3;
+                if (u >= AMREX_SPACEDIM || w >= AMREX_SPACEDIM) { continue; }
                 for (int su = -1; su <= 1; su += 2) {
-                    for (int sv = -1; sv <= 1; sv += 2) {
+                    for (int sw = -1; sw <= 1; sw += 2) {
                         IntVect ib = iv;
                         IntVect ie = iv;
                         ib[u] += su;
-                        ie[v] += sv;
+                        ie[w] += sw;
                         IntVect ic = ib;
-                        ic[v] += sv;
-                        if (a.contains(ib) && a.contains(ie) && a.contains(ic)) {
-                            bool const bb = a(ib) >= 0.0_rt || a(ib) == on_surface_fluid;
-                            bool const eb = a(ie) >= 0.0_rt || a(ie) == on_surface_fluid;
-                            // The one with the lower index moves.
-                            if (a(ic) == on_surface_fluid && bb && eb &&
-                                ic[amrex::max(u,v)] < iv[amrex::max(u,v)]) {
-                                move = false;
-                            }
+                        ic[w] += sw;
+                        bool const bb = tc(ib) >= 0.0_rt || tc(ib) == on_surface_fluid;
+                        bool const eb = tc(ie) >= 0.0_rt || tc(ie) == on_surface_fluid;
+                        // The one with the lower index moves.
+                        if (tc(ic) == on_surface_fluid && bb && eb &&
+                            ic[amrex::max(u,w)] < iv[amrex::max(u,w)]) {
+                            v = 0.0_rt;
                         }
                     }
                 }
             }
-            t(i,j,k) = move ? on_surface_fluid : 0.0_rt;
         }
+        a(i,j,k) = v;
     });
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
-    {
-        if (a(i,j,k) == on_surface_fluid) { a(i,j,k) = t(i,j,k); }
-    });
-    if (on_gpu) { Gpu::streamSynchronize(); }
 }
 
 /**
@@ -394,33 +431,37 @@ public:
     [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
-    // Nodes are classified as in fillFab: on the surface within roundoff is
-    // body.  Otherwise a box the body touches only at such nodes would be
-    // regular here but have cut cells in a neighboring box.
-    [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
+    // Nodes are classified as in fillFab, with the same neighbors and
+    // clamping for the roundoff tolerance, so that a box is regular or
+    // covered only if fillFab would make no cut cells in it.
+    [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom,
+                                      Box const& bounding_box) const noexcept
     {
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
-        const Box gbx = amrex::grow(bx, 1); // neighbors for the roundoff tolerance
+        const Box gbx = amrex::grow(bx, 1);
+        const auto& blo = amrex::lbound(bounding_box);
+        const auto& bhi = amrex::ubound(bounding_box);
         BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
         const auto& fv = ffab.array();
         const auto& fc = ffab.const_array();
         amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(i)*dx[0],
-                                                   problo[1]+Real(j)*dx[1],
-                                                   problo[2]+Real(k)*dx[2])});
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
+                                                   problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
+                                                   problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2])});
         });
-        IntVect const glo = gbx.smallEnd();
-        IntVect const ghi = gbx.bigEnd();
+        IntVect const glo = bounding_box.smallEnd();
+        IntVect const ghi = bounding_box.bigEnd();
+        auto const invd2 = IF_invdist2(dx);
         int nbody = 0, nfluid = 0;
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             if (v >= 0.0_rt ||
-                std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, glo, ghi)) {
+                std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, glo, ghi)) {
                 ++nbody;
             } else {
                 ++nfluid;
@@ -443,10 +484,12 @@ public:
      * \param bx   Box to inspect.
      * \param geom Geometry providing physical coordinates.
      * \param run_on Whether to run on CPU or GPU.
+     * \param bounding_box Bounding box limiting the sampling region.
      */
     template <class U=F>
     requires (IsGPUable<U>::value)
-    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on,
+                                  Box const& bounding_box) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -455,18 +498,21 @@ public:
             auto const& f = m_f;
             // Node classification as in getBoxType_Cpu.
             const Box gbx = amrex::grow(bx, 1);
+            const auto& blo = amrex::lbound(bounding_box);
+            const auto& bhi = amrex::ubound(bounding_box);
             BaseFab<Real> ffab(gbx, 1, The_Async_Arena());
             auto const& fv = ffab.array();
             auto const& fc = ffab.const_array();
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(j,k);
-                fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*dx[0],
-                                           problo[1]+Real(j)*dx[1],
-                                           problo[2]+Real(k)*dx[2]));
+                fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
+                                           problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
+                                           problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2]));
             });
-            IntVect const glo = gbx.smallEnd();
-            IntVect const ghi = gbx.bigEnd();
+            IntVect const glo = bounding_box.smallEnd();
+            IntVect const ghi = bounding_box.bigEnd();
+            auto const invd2 = IF_invdist2(dx);
             ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
             ReduceData<int,int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -477,7 +523,7 @@ public:
                 IntVect const iv(AMREX_D_DECL(i,j,k));
                 Real const v = fc(iv);
                 bool const body = v >= 0.0_rt ||
-                    std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, glo, ghi);
+                    std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, glo, ghi);
                 return {int(body), int(!body)};
             });
             ReduceTuple hv = reduce_data.value(reduce_op);
@@ -494,16 +540,17 @@ public:
         }
         else
         {
-            return getBoxType_Cpu(bx, geom);
+            return getBoxType_Cpu(bx, geom, bounding_box);
         }
     }
 
     //! CPU-only fallback for getBoxType().
     template <class U=F>
     requires (!IsGPUable<U>::value)
-    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn,
+                                  Box const& bounding_box) const noexcept
     {
-        return getBoxType_Cpu(bx, geom);
+        return getBoxType_Cpu(bx, geom, bounding_box);
     }
 
     template <class U=F>
@@ -531,45 +578,70 @@ public:
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         // One more node layer, so that ResolveZeroSaddles gives the nodes of
-        // the cells built from this fab the same values as in neighboring fabs.
+        // the cells built from this fab the same values as in neighboring
+        // fabs, and another one for the neighbors in the roundoff tolerance.
         const Box gbx = amrex::grow(bx, 1);
-        const auto& blo = amrex::lbound(bounding_box);
-        const auto& bhi = amrex::ubound(bounding_box);
+        const Box gbx2 = amrex::grow(bx, 2);
+        // Nodes outside the bounding box take the values of the nearest node in it.
+        const Box ibx = gbx & bounding_box;
+        const Box ibx2 = gbx2 & bounding_box;
+        IntVect const bloiv = bounding_box.smallEnd();
+        IntVect const bhiiv = bounding_box.bigEnd();
         const auto& f = m_f;
         bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
         Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
-        BaseFab<Real> ffab(gbx, 1, arena);
+        BaseFab<Real> ffab(gbx2, 1, arena);
         auto const& fv = ffab.array();
         auto const& fc = ffab.const_array();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx2, i, j, k,
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                       problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                       problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2]));
+            fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*dx[0],
+                                       problo[1]+Real(j)*dx[1],
+                                       problo[2]+Real(k)*dx[2]));
         });
+        if (ibx2 != gbx2) {
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx2, i, j, k,
+            {
+                amrex::ignore_unused(k);
+                IntVect const iv(AMREX_D_DECL(i,j,k));
+                if (!ibx2.contains(iv)) {
+                    IntVect ivc = iv;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        ivc[d] = amrex::Clamp(iv[d], bloiv[d], bhiiv[d]);
+                    }
+                    fv(iv) = fv(ivc);
+                }
+            });
+        }
 
         // Nodes on the surface within roundoff get a zero level set.
         BaseFab<Real> sfab(gbx, 1, arena);
         auto const& s = sfab.array();
-        auto const& sc = sfab.const_array();
-        IntVect const bloiv = bounding_box.smallEnd();
-        IntVect const bhiiv = bounding_box.bigEnd();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
+        auto const invd2 = IF_invdist2(dx);
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx, i, j, k,
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             s(i,j,k) = (v != 0.0_rt &&
-                        std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, bloiv, bhiiv))
+                        std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, bloiv, bhiiv))
                 ? 0.0_rt : v;
         });
-        ResolveZeroSaddles(sfab, run_on);
-        const auto& a = levelset.array();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
-        {
-            a(i,j,k) = sc(i,j,k);
-        });
-        if (on_gpu) { Gpu::streamSynchronize(); }
+        if (ibx != gbx) {
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
+            {
+                amrex::ignore_unused(k);
+                IntVect const iv(AMREX_D_DECL(i,j,k));
+                if (!ibx.contains(iv)) {
+                    IntVect ivc = iv;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        ivc[d] = amrex::Clamp(iv[d], bloiv[d], bhiiv[d]);
+                    }
+                    s(iv) = s(ivc);
+                }
+            });
+        }
+        ResolveZeroSaddles(sfab, levelset, run_on);
     }
 
     //! CPU-only overload of fillFab().
@@ -600,37 +672,66 @@ public:
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        // One more node layer, see the GPU version.
+        // See the GPU version.
         const Box gbx = amrex::grow(bx, 1);
-        const auto& blo = amrex::lbound(bounding_box);
-        const auto& bhi = amrex::ubound(bounding_box);
+        const Box gbx2 = amrex::grow(bx, 2);
+        const Box ibx = gbx & bounding_box;
+        const Box ibx2 = gbx2 & bounding_box;
+        IntVect const bloiv = bounding_box.smallEnd();
+        IntVect const bhiiv = bounding_box.bigEnd();
 
-        BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
+        BaseFab<Real> ffab(gbx2, 1, The_Cpu_Arena());
         const auto& fv = ffab.array();
         const auto& fc = ffab.const_array();
-        amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(ibx2, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                                   problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                                   problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2])});
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(i)*dx[0],
+                                                   problo[1]+Real(j)*dx[1],
+                                                   problo[2]+Real(k)*dx[2])});
         });
+        if (ibx2 != gbx2) {
+            amrex::LoopOnCpu(gbx2, [&] (int i, int j, int k) noexcept
+            {
+                amrex::ignore_unused(k);
+                IntVect const iv(AMREX_D_DECL(i,j,k));
+                if (!ibx2.contains(iv)) {
+                    IntVect ivc = iv;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        ivc[d] = amrex::Clamp(iv[d], bloiv[d], bhiiv[d]);
+                    }
+                    fv(iv) = fv(ivc);
+                }
+            });
+        }
 
         // Nodes on the surface within roundoff get a zero level set.
         BaseFab<Real> sfab(gbx, 1, The_Cpu_Arena());
         auto const& s = sfab.array();
-        IntVect const bloiv = bounding_box.smallEnd();
-        IntVect const bhiiv = bounding_box.bigEnd();
-        amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
+        auto const invd2 = IF_invdist2(dx);
+        amrex::LoopOnCpu(ibx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             s(i,j,k) = (v != 0.0_rt &&
-                        std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, bloiv, bhiiv))
+                        std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, bloiv, bhiiv))
                 ? 0.0_rt : v;
         });
-        ResolveZeroSaddles(sfab, RunOn::Cpu);
-        levelset.copy<RunOn::Host>(sfab, bx);
+        if (ibx != gbx) {
+            amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
+            {
+                amrex::ignore_unused(k);
+                IntVect const iv(AMREX_D_DECL(i,j,k));
+                if (!ibx.contains(iv)) {
+                    IntVect ivc = iv;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        ivc[d] = amrex::Clamp(iv[d], bloiv[d], bhiiv[d]);
+                    }
+                    s(iv) = s(ivc);
+                }
+            });
+        }
+        ResolveZeroSaddles(sfab, levelset, RunOn::Cpu);
     }
 
 
@@ -676,10 +777,10 @@ public:
                         inter(i,j,k) = problo[idim]
                             + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
                     } else if (lst(ivlo) == 0.0_rt) {
-                        inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, problo, dx,
+                        inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, lst, problo, dx,
                                                         bloiv, bhiiv);
                     } else if (lst(ivhi) == 0.0_rt) {
-                        inter(i,j,k) = ZeroEndIntercept(f, ivhi, idim, -1, problo, dx,
+                        inter(i,j,k) = ZeroEndIntercept(f, ivhi, idim, -1, lst, problo, dx,
                                                         bloiv, bhiiv);
                     } else {
                         inter(i,j,k) = BrentRootFinder
@@ -773,10 +874,10 @@ public:
                     inter(i,j,k) = problo[idim]
                         + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
                 } else if (lst(ivlo) == 0.0_rt) {
-                    inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, problo, dx,
+                    inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, lst, problo, dx,
                                                     bloiv, bhiiv);
                 } else if (lst(ivhi) == 0.0_rt) {
-                    inter(i,j,k) = ZeroEndIntercept(m_f, ivhi, idim, -1, problo, dx,
+                    inter(i,j,k) = ZeroEndIntercept(m_f, ivhi, idim, -1, lst, problo, dx,
                                                     bloiv, bhiiv);
                 } else {
                     inter(i,j,k) = BrentRootFinder

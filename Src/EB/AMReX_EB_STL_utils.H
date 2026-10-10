@@ -99,7 +99,7 @@ public:
                Real outside_value = -1._rt, Real inside_value = 1._rt) const;
 
     //! Return whether the EB is regular/covered/mixed inside \p box.
-    [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn) const;
+    [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const;
 
     static constexpr bool isGPUable () noexcept { return true; }
 

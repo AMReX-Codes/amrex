@@ -15,6 +15,19 @@
 
 namespace amrex::EB2 {
 
+// Fraction of the edge from node i to node i+1 before the intercept.  Within
+// the roundoff of the node coordinates it is exactly 0 or 1, so an intercept
+// put at a node by another code path does not leave a sliver.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real intercept_fraction (Real inter, Real problo, int i, Real dx, Real dxinv) noexcept
+{
+    Real const x = problo + Real(i)*dx;
+    Real const cut = (inter - x)*dxinv;
+    Real const tol = Real(8.0)*std::numeric_limits<Real>::epsilon()
+        * (std::abs(problo) + std::abs(x))*dxinv;
+    return (cut < tol) ? Real(0.0) : ((cut > Real(1.0)-tol) ? Real(1.0) : cut);
+}
+
 #if (AMREX_SPACEDIM == 2)
 
 int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
