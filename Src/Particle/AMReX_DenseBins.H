@@ -444,8 +444,8 @@ public:
 
         int nchunks = OpenMP::get_max_threads();
         int chunksize = nitems / nchunks;
-        auto* counts = (index_type*)(The_Arena()->alloc(nchunks*nbins*sizeof(index_type)));
-        for (int i = 0; i < nbins*nchunks; ++i) { counts[i] = 0;}
+        auto* counts = (index_type*)(The_Arena()->alloc(std::size_t(nchunks)*nbins*sizeof(index_type)));
+        for (Long i = 0; i < Long(nbins)*nchunks; ++i) { counts[i] = 0;}
 
         m_counts.resize(0);
         m_counts.resize(nbins+1, 0);
@@ -461,7 +461,7 @@ public:
             int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
             for (int i = istart; i < istop; ++i) {
                 m_bins[i] = call_f(f,v,i);
-                ++counts[nbins*j+m_bins[i]];
+                ++counts[Long(nbins)*j+m_bins[i]];
             }
         }
 
@@ -471,8 +471,8 @@ public:
         for (int i = 0; i < nbins; ++i) {
             index_type total = 0;
             for (int j = 0; j < nchunks; ++j) {
-                auto tmp = counts[nbins*j+i];
-                counts[nbins*j+i] = total;
+                auto tmp = counts[Long(nbins)*j+i];
+                counts[Long(nbins)*j+i] = total;
                 total += tmp;
             }
             m_counts[i] = total;
@@ -487,7 +487,7 @@ public:
 #endif
         for (int i = 0; i < nbins; ++i) {
             for (int j = 0; j < nchunks; ++j) {
-                counts[nbins*j+i] += m_offsets[i];
+                counts[Long(nbins)*j+i] += m_offsets[i];
             }
         }
 
@@ -499,7 +499,7 @@ public:
             int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
             for (int i = istart; i < istop; ++i) {
                 auto bid = m_bins[i];
-                m_perm[counts[nbins*j+bid]++] = i;
+                m_perm[counts[Long(nbins)*j+bid]++] = i;
             }
         }
 

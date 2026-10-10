@@ -686,8 +686,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     int            my_mfi_cnt = 0;
     ULong          my_mfi_int_total_size = 0, my_mfi_real_total_size = 0, int_size, real_size;
     Vector<int>    all_mfi_cnt(ParallelDescriptor::NProcs());
-    Vector<int>    my_mfi_real_size;
-    Vector<int>    my_mfi_int_size;
+    Vector<ULong>  my_mfi_real_size;
+    Vector<ULong>  my_mfi_int_size;
     Vector<int>    my_nparticles;
     Vector<ULong>  all_mfi_real_total_size(ParallelDescriptor::NProcs());
     Vector<ULong>  all_mfi_int_total_size(ParallelDescriptor::NProcs());
@@ -716,13 +716,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         if (count[grid] == 0)
             continue;
 
-        int_size = count[grid] * int_comp_count;
+        int_size = static_cast<ULong>(count[grid]) * int_comp_count;
         my_mfi_int_size.push_back(int_size);
         my_nparticles.push_back(count[grid]);
         my_mfi_int_total_size += int_size;
 
 
-        real_size = count[grid] * real_comp_count;
+        real_size = static_cast<ULong>(count[grid]) * real_comp_count;
         my_mfi_real_size.push_back(real_size);
         my_mfi_real_total_size += real_size;
         my_mfi_cnt++;
