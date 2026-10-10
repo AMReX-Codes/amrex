@@ -576,6 +576,8 @@ public:
      *
      * \param inter_arr Array of intercept FABs per direction.
      * \param type_arr  Edge-type arrays marking regular/covered/irregular edges.
+     * \param lst       Level set; edges from a zero node are cut where the
+     *                  surface leaves them.
      * \param geom      Geometry providing metrics.
      * \param run_on    Execution target.
      * \param bounding_box Bounding box limiting evaluation.

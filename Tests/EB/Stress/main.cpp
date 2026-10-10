@@ -62,14 +62,14 @@ struct Shape
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real box_sd (Real const q[3], Real const lo[3], Real const hi[3])
 {
-    Real dout2 = 0.0_rt;
+    Real dist_out2 = 0.0_rt;
     Real din = std::numeric_limits<Real>::max();
     for (int d = 0; d < 3; ++d) {
         Real const v = amrex::max(lo[d]-q[d], q[d]-hi[d]);
-        if (v > 0.0_rt) { dout2 += v*v; }
+        if (v > 0.0_rt) { dist_out2 += v*v; }
         din = amrex::min(din, -v);
     }
-    return (dout2 > 0.0_rt) ? -std::sqrt(dout2) : din;
+    return (dist_out2 > 0.0_rt) ? -std::sqrt(dist_out2) : din;
 }
 
 // Signed distance to a piece, positive inside.  For a polyhedron the

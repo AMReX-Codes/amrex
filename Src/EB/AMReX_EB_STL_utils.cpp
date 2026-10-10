@@ -763,12 +763,12 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         Real const pmin[] = {m_ptmin.x, m_ptmin.y, m_ptmin.z};
         Real const pmax[] = {m_ptmax.x, m_ptmax.y, m_ptmax.z};
         Real const p0[] = {m_ptref[0].x, m_ptref[0].y, m_ptref[0].z};
-        int dout = 0;
+        int dir_out = 0;
         Real hmax = 0;
         for (int d = 0; d < 3; ++d) {
             Real const outside = amrex::max(pmin[d]-p0[d], p0[d]-pmax[d]);
-            Real const outside_dout = amrex::max(pmin[dout]-p0[dout], p0[dout]-pmax[dout]);
-            if (outside > outside_dout) { dout = d; }
+            Real const outside_max = amrex::max(pmin[dir_out]-p0[dir_out], p0[dir_out]-pmax[dir_out]);
+            if (outside > outside_max) { dir_out = d; }
             hmax = amrex::max(hmax, pmax[d]-pmin[d]);
         }
         constexpr Real shift[STLtools::m_num_ref-1][2] = {{Real( 0.0137), Real( 0.0291)},
@@ -778,7 +778,7 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
             Real p[] = {p0[0], p0[1], p0[2]};
             int m = 0;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                if (d != dout) { p[d] += shift[n-1][m++] * hmax; }
+                if (d != dir_out) { p[d] += shift[n-1][m++] * hmax; }
             }
             m_ptref[n] = XDim3{.x = p[0], .y = p[1], .z = p[2]};
         }

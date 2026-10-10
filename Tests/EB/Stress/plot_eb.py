@@ -14,10 +14,8 @@ view = GetActiveViewOrCreate("RenderView")
 view.ViewSize = [2000, 1260]
 view.Background = [1, 1, 1]
 view.OrientationAxesVisibility = 1
-try:
+if hasattr(view, "UseColorPaletteForBackground"):  # newer ParaView only
     view.UseColorPaletteForBackground = 0
-except AttributeError:
-    pass
 
 eb = OpenDataFile(run_dir + "/eb.pvtp")
 d = Show(eb, view)
