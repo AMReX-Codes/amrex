@@ -293,24 +293,20 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
             if (slopes_eb_arr(i,j,k,AMREX_SPACEDIM) != 0.0_rt)
             {
-                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb{
-                    AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
-                                 slopes_eb_arr(i,j,k,1),
-                                 slopes_eb_arr(i,j,k,2))};
+                AMREX_D_TERM(Real slope_x = slopes_eb_arr(i,j,k,0);,
+                             Real slope_y = slopes_eb_arr(i,j,k,1);,
+                             Real slope_z = slopes_eb_arr(i,j,k,2););
 
                 // We do the limiting separately because this limiter limits the slope based on the values
                 //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
                 //    which bases the limiting on values extrapolated to the face centroids.
-                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope =
-                    amrex_calc_centroid_limiter(i,j,k,n,Qhat,flag,slopes_eb,cent_hat);
+                amrex_apply_centroid_limiter(i,j,k,n,Qhat,flag,
+                                             AMREX_D_DECL(slope_x,slope_y,slope_z),
+                                             cent_hat);
 
-                AMREX_D_TERM(lim_slope[0] *= slopes_eb[0];,
-                             lim_slope[1] *= slopes_eb[1];,
-                             lim_slope[2] *= slopes_eb[2];);
-
-                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = lim_slope[0];,
-                             slopes_eb_arr(i,j,k,1) = lim_slope[1];,
-                             slopes_eb_arr(i,j,k,2) = lim_slope[2];);
+                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slope_x;,
+                             slopes_eb_arr(i,j,k,1) = slope_y;,
+                             slopes_eb_arr(i,j,k,2) = slope_z;);
             } // activity marker
         });
 
@@ -657,12 +653,12 @@ StateRedistribute ( Box const& bx, int ncomp,
                     // We do the limiting separately because this limiter limits the slope based on the values
                     //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
                     //    which bases the limiting on values extrapolated to the face centroids.
-                    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope =
-                        amrex_calc_centroid_limiter(i,j,k,n,Qhat,flag,slopes_eb,cent_hat);
-
-                    AMREX_D_TERM(lim_slope[0] *= slopes_eb[0];,
-                                 lim_slope[1] *= slopes_eb[1];,
-                                 lim_slope[2] *= slopes_eb[2];);
+                    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope = slopes_eb;
+                    amrex_apply_centroid_limiter(i,j,k,n,Qhat,flag,
+                                                 AMREX_D_DECL(lim_slope[0],
+                                                              lim_slope[1],
+                                                              lim_slope[2]),
+                                                 cent_hat);
 
                     // Add to the cell itself
                     if (bx.contains(IntVect(AMREX_D_DECL(i,j,k))))

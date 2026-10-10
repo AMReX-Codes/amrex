@@ -27,12 +27,14 @@ amrex_calc_alpha_stencil(Real q_hat, Real q_max, Real q_min, Real state) noexcep
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
-amrex_calc_centroid_limiter(int i, int j, int k, int n,
-                            amrex::Array4<amrex::Real const> const& state,
-                            amrex::Array4<amrex::EBCellFlag const> const& flag,
-                            const amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>& slopes,
-                            amrex::Array4<amrex::Real const> const& ccent) noexcept
+void
+amrex_apply_centroid_limiter(int i, int j, int k, int n,
+                             amrex::Array4<amrex::Real const> const& state,
+                             amrex::Array4<amrex::EBCellFlag const> const& flag,
+                             AMREX_D_DECL(amrex::Real& slope_x,
+                                          amrex::Real& slope_y,
+                                          amrex::Real& slope_z),
+                             amrex::Array4<amrex::Real const> const& ccent) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real epsilon = amrex::Real(1.e-6);
@@ -63,9 +65,9 @@ amrex_calc_centroid_limiter(int i, int j, int k, int n,
                          Real delta_y = ccent(i+ii,j+jj,k+kk,1) -  ccent(i,j,k,1) + static_cast<Real>(jj);,
                          Real delta_z = ccent(i+ii,j+jj,k+kk,2) -  ccent(i,j,k,2) + static_cast<Real>(kk););
 
-            Real q_hat = state(i,j,k,n) + AMREX_D_TERM(  delta_x * slopes[0],
-                                                       + delta_y * slopes[1],
-                                                       + delta_z * slopes[2]);
+            Real q_hat = state(i,j,k,n) + AMREX_D_TERM(  delta_x * slope_x,
+                                                       + delta_y * slope_y,
+                                                       + delta_z * slope_z);
 
             Real q_max = amrex::max(state(i+ii,j+jj,k+kk,n),state(i,j,k,n));
             Real q_min = amrex::min(state(i+ii,j+jj,k+kk,n),state(i,j,k,n));
@@ -85,7 +87,9 @@ amrex_calc_centroid_limiter(int i, int j, int k, int n,
      }
     }
 
-    return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
+    AMREX_D_TERM(slope_x *= xalpha;,
+                 slope_y *= yalpha;,
+                 slope_z *= zalpha;);
 }
 
 }
