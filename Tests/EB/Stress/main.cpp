@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <limits>
 #include <random>
@@ -595,7 +596,81 @@ struct Result
     Long nbad_data = 0;
     Real max_dist = 0;
     Real max_vf_err = 0;
+    Real layout_diff = 0;
 };
+
+// Build the EB again with another grid layout and compare the EB data,
+// which must not depend on how the domain is divided into boxes.
+Real layout_diff (Geometry const& geom, BoxArray const& ba, DistributionMapping const& dm,
+                  std::function<void(int)> const& build, int max_grid_size, int verbose)
+{
+    auto fac1 = makeEBFabFactory(geom, ba, dm, {1,1,1}, EBSupport::full);
+    MultiFab vf(ba, dm, 1, 0);
+    MultiFab::Copy(vf, fac1->getVolFrac(), 0, 0, 1, 0);
+    MultiFab barea = fac1->getBndryArea().ToMultiFab(0.0_rt, 0.0_rt);
+    MultiFab ls(amrex::convert(ba, IntVect(1)), dm, 1, 0);
+    MultiFab::Copy(ls, fac1->getLevelSet(), 0, 0, 1, 0);
+    // Away from the EB the level set is a constant that depends on the box
+    // classification, and a node shared with such a box can take that
+    // constant, so only the sign is compared, at the nodes of cut cells.
+    MultiFab cut(ba, dm, 1, 1);
+    cut.setVal(0.0_rt);
+    {
+        auto const& fa = fac1->getMultiEBCellFlagFab().const_arrays();
+        auto const& ca = cut.arrays();
+        ParallelFor(cut, IntVect(0), [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) {
+            ca[b](i,j,k) = fa[b](i,j,k).isSingleValued() ? 1.0_rt : 0.0_rt;
+        });
+        Gpu::streamSynchronize();
+        cut.FillBoundary(geom.periodicity());
+    }
+    Array<MultiFab,AMREX_SPACEDIM> ap;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        ap[d] = fac1->getAreaFrac()[d]->ToMultiFab(1.0_rt, 0.0_rt);
+    }
+    fac1.reset();
+    EB2::IndexSpace::pop();
+
+    build(max_grid_size);
+    auto fac2 = makeEBFabFactory(geom, ba, dm, {1,1,1}, EBSupport::full);
+    Real diff = 0.0_rt;
+    auto maxdiff = [&] (MultiFab& a, MultiFab const& b) {
+        MultiFab::Subtract(a, b, 0, 0, 1, 0);
+        diff = amrex::max(diff, a.norm0(0, 0));
+    };
+    maxdiff(vf, fac2->getVolFrac());
+    MultiFab const barea2 = fac2->getBndryArea().ToMultiFab(0.0_rt, 0.0_rt);
+    maxdiff(barea, barea2);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        MultiFab const ap2 = fac2->getAreaFrac()[d]->ToMultiFab(1.0_rt, 0.0_rt);
+        maxdiff(ap[d], ap2);
+    }
+    {
+        auto const& l1 = ls.const_arrays();
+        auto const& l2 = fac2->getLevelSet().const_arrays();
+        auto const& ca = cut.const_arrays();
+        Real lsdiff = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, ls, IntVect(0),
+            [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) -> GpuTuple<Real>
+            {
+                bool near = false;
+                for (int kk = 0; kk <= (AMREX_SPACEDIM == 3 ? 1 : 0); ++kk) {
+                    for (int jj = 0; jj <= 1; ++jj) {
+                        for (int ii = 0; ii <= 1; ++ii) {
+                            near = near || ca[b](i-ii,j-jj,k-kk) == 1.0_rt;
+                        }
+                    }
+                }
+                return {(near && ((l1[b](i,j,k) < 0.0_rt) != (l2[b](i,j,k) < 0.0_rt)))
+                        ? 1.0_rt : 0.0_rt};
+            });
+        ParallelDescriptor::ReduceRealMax(lsdiff);
+        if (verbose > 1) {
+            amrex::Print() << "  layout: data diff " << diff << ", level set diff " << lsdiff << "\n";
+        }
+        diff = amrex::max(diff, lsdiff);
+    }
+    return diff;
+}
 
 Result check (Case const& c, Geometry const& geom, BoxArray const& ba,
               DistributionMapping const& dm, Real const* planes, int verbose,
@@ -864,6 +939,8 @@ int main (int argc, char* argv[])
         pp.query("max_volfrac_error_sharp", max_vf_err_sharp);
         int write_surface = 0;
         pp.query("write_surface", write_surface);
+        int layout_check = 1;
+        pp.query("layout_check", layout_check);
         {
             // Sharp edges crossing faces obliquely can make cells that look
             // cut twice; cover them unless told otherwise.
@@ -921,33 +998,43 @@ int main (int argc, char* argv[])
             Gpu::streamSynchronize();
             Real const* pplanes = planes.data();
 
-            int const saved_max_grid_size = EB2::max_grid_size;
-            EB2::max_grid_size = c.eb_max_grid_size;
             std::string stl_file;
             if (c.stl) {
                 stl_file = "eb_stress_" + std::to_string(seed) + "_" + std::to_string(icase) + ".stl";
                 write_stl(stl_file, c.triangles);
-                EB2::IndexSpace::push(std::make_unique<EB2::IndexSpaceSTL>
-                    (stl_file, 1.0_rt, Array<Real,3>{0.0_rt,0.0_rt,0.0_rt}, 0, geom, 0,
-                     c.max_coarsening_level, 4, true, true, 0, c.use_bvh, false));
-            } else {
-                ShapeIF f;
-                f.shape = c.shape;
-                f.planes = pplanes;
-                EB2::Build(EB2::makeShop(f), geom, 0, c.max_coarsening_level);
             }
-            EB2::max_grid_size = saved_max_grid_size;
+            auto build = [&] (int max_grid_size) {
+                int const saved_max_grid_size = EB2::max_grid_size;
+                EB2::max_grid_size = max_grid_size;
+                if (c.stl) {
+                    EB2::IndexSpace::push(std::make_unique<EB2::IndexSpaceSTL>
+                        (stl_file, 1.0_rt, Array<Real,3>{0.0_rt,0.0_rt,0.0_rt}, 0, geom, 0,
+                         c.max_coarsening_level, 4, true, true, 0, c.use_bvh, false));
+                } else {
+                    ShapeIF f;
+                    f.shape = c.shape;
+                    f.planes = pplanes;
+                    EB2::Build(EB2::makeShop(f), geom, 0, c.max_coarsening_level);
+                }
+                EB2::max_grid_size = saved_max_grid_size;
+            };
+            build(c.eb_max_grid_size);
 
-            Result const r = check(c, geom, ba, dm, pplanes, verbose, write_surface);
+            Result r = check(c, geom, ba, dm, pplanes, verbose, write_surface);
+            if (layout_check) {
+                // box boundaries mostly different from those of 16, 32 and 64
+                r.layout_diff = layout_diff(geom, ba, dm, build,
+                                            (c.eb_max_grid_size == 16) ? 28 : 20, verbose);
+            }
             EB2::IndexSpace::pop();
 
             bool const ok = r.nbad_nodes == 0 && r.nbad_data == 0 && r.max_dist <= 2.0_rt
-                && r.max_vf_err <= c.vf_tol;
+                && r.max_vf_err <= c.vf_tol && r.layout_diff == 0.0_rt;
             std::ostringstream line;
             line << "case " << icase << " " << (ok ? "ok  " : "FAIL") << " [" << c.desc
                  << "] cut=" << r.ncut << " vf_err=" << std::setprecision(3) << r.max_vf_err
                  << " dist=" << r.max_dist << " bad_nodes=" << r.nbad_nodes
-                 << " bad_data=" << r.nbad_data;
+                 << " bad_data=" << r.nbad_data << " layout=" << r.layout_diff;
             if (verbose > 0 || !ok) { amrex::Print() << line.str() << "\n"; }
 
             // Log a failure right away and keep its STL file; nothing is

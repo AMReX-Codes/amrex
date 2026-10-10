@@ -8,4 +8,5 @@
 ncases = 100
 verbose = 1  # 0: only failures and the summary
 amrex.verbose = 0
+layout_check = 1  # build each case again with another grid layout and compare
 
