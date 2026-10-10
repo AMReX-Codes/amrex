@@ -208,66 +208,66 @@ namespace Reduce::detail {
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s, Gpu::Handler const& h)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s), h);
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s, Gpu::Handler const& h)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
-        for_each_parallel<I+1,T,P1,Ps...>(d, s, h);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s), h);
+        for_each_parallel<Idx+1,T,P1,Ps...>(d, s, h);
     }
 #else
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void for_each_parallel (T& d, T const& s)
     {
-        P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_parallel<I+1,T,P1,Ps...>(d, s);
+        P().parallel_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_parallel<Idx+1,T,P1,Ps...>(d, s);
     }
 #endif
 #endif
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void for_each_local (T& d, T const& s)
     {
-        P().local_update(amrex::get<I>(d), amrex::get<I>(s));
+        P().local_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void for_each_local (T& d, T const& s)
     {
-        P().local_update(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_local<I+1,T,P1,Ps...>(d, s);
+        P().local_update(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_local<Idx+1,T,P1,Ps...>(d, s);
     }
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr void for_each_init (T& t)
     {
-        P().init(amrex::get<I>(t));
+        P().init(amrex::get<Idx>(t));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr void for_each_init (T& t)
     {
-        P().init(amrex::get<I>(t));
-        for_each_init<I+1,T,P1,Ps...>(t);
+        P().init(amrex::get<Idx>(t));
+        for_each_init<Idx+1,T,P1,Ps...>(t);
     }
 }
 /// \endcond

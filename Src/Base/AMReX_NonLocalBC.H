@@ -351,37 +351,37 @@ static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>() ); // NOLINT
 //! \brief This is a permutation where only two components are swapped.
 //!
 //! This class is used with MapComponents to define fab projections that swap components on FABs,
-//! e.g. for velocity components. The template arguments I, J should be greater or equal to -1. The
+//! e.g. for velocity components. The template arguments CompI, CompJ should be greater or equal to -1. The
 //! value -1 indicates run-time values and increase the object size of this function object.
-template <int I, int J> struct SwapComponents {
-    static_assert(I >= 0 && J >= 0, "I >= 0 && J >= 0");
+template <int CompI, int CompJ> struct SwapComponents {
+    static_assert(CompI >= 0 && CompJ >= 0, "CompI >= 0 && CompJ >= 0");
 
-    //! \brief Swaps indices I and J.
+    //! \brief Swaps indices CompI and CompJ.
     //!
-    //! \return If i == I then return J. If i == J then return I. Otherwise returns i.
+    //! \return If i == CompI then return CompJ. If i == CompJ then return CompI. Otherwise returns i.
     constexpr int operator()(int i) const noexcept {
-        const int map[2] = {I, J};
-        return i == I || i == J ? map[std::size_t(i == I)] : i;
+        const int map[2] = {CompI, CompJ};
+        return i == CompI || i == CompJ ? map[std::size_t(i == CompI)] : i;
     }
 };
 
-template <int I> struct SwapComponents<I, -1> {
-    static_assert(I >= 0, "I >= 0");
+template <int CompI> struct SwapComponents<CompI, -1> {
+    static_assert(CompI >= 0, "CompI >= 0");
 
     int J;
     constexpr int operator()(int i) const noexcept {
-        const int map[2] = {I, J};
-        return i == I || i == J ? map[std::size_t(i == I)] : i;
+        const int map[2] = {CompI, J};
+        return i == CompI || i == J ? map[std::size_t(i == CompI)] : i;
     }
 };
 
-template <int J> struct SwapComponents<-1, J> {
-    static_assert(J >= 0, "J >= 0");
+template <int CompJ> struct SwapComponents<-1, CompJ> {
+    static_assert(CompJ >= 0, "CompJ >= 0");
 
     int I;
     constexpr int operator()(int i) const noexcept {
-        const int map[2] = {I, J};
-        return i == I || i == J ? map[std::size_t(i == I)] : i;
+        const int map[2] = {I, CompJ};
+        return i == I || i == CompJ ? map[std::size_t(i == I)] : i;
     }
 };
 
@@ -396,7 +396,7 @@ template <> struct SwapComponents<-1, -1> {
 
 using DynamicSwapComponents = SwapComponents<-1, -1>;
 
-template <int I, int J> static constexpr SwapComponents<I, J> swap_indices{};
+template <int CompI, int CompJ> static constexpr SwapComponents<CompI, CompJ> swap_indices{};
 
 static_assert(sizeof(SwapComponents<0, 1>) == 1 );
 static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int) );

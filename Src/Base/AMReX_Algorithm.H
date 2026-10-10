@@ -216,7 +216,7 @@ namespace amrex
      * for the first element which is not less than `v`.
      *
      * \tparam T value type.
-     * \tparam I integral index type.
+     * \tparam Index integral index type.
      * \param d pointer to a sorted array of values.
      * \param lo inclusive lower bound of the search range.
      * \param hi exclusive upper bound of the search range.

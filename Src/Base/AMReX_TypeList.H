@@ -17,11 +17,11 @@ struct TypeList
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
-    template <std::size_t I, typename T> struct TypeListGet;
+    template <std::size_t Idx, typename T> struct TypeListGet;
 
-    template <std::size_t I, typename Head, typename... Tail>
-    struct TypeListGet<I, TypeList<Head, Tail...> >
-        : TypeListGet<I-1, TypeList<Tail...> > {};
+    template <std::size_t Idx, typename Head, typename... Tail>
+    struct TypeListGet<Idx, TypeList<Head, Tail...> >
+        : TypeListGet<Idx-1, TypeList<Tail...> > {};
 
     template <typename Head, typename... Tail>
     struct TypeListGet<0, TypeList<Head, Tail...> > {
@@ -30,9 +30,9 @@ namespace detail {
 }
 /// \endcond
 
-//! Type at position I of a TypeList
-template <std::size_t I, typename T>
-using TypeAt = typename detail::TypeListGet<I,T>::type;
+//! Type at position Idx of a TypeList
+template <std::size_t Idx, typename T>
+using TypeAt = typename detail::TypeListGet<Idx,T>::type;
 
 /// \cond DOXYGEN_IGNORE
 namespace detail
