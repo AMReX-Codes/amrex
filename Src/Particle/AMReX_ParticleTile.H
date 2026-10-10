@@ -10,8 +10,11 @@
 #include <AMReX_REAL.H>
 #include <AMReX_RealVect.H>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
+#include <iterator>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -1105,6 +1108,7 @@ struct ParticleTile
     ///
     /// Add a range of Real values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source must be in the same memory space as this tile's data.
     ///
     void push_back_real (int comp, const ParticleReal* beg, const ParticleReal* end) {
         invalidateRuntimePtrCaches();
@@ -1115,14 +1119,19 @@ struct ParticleTile
     ///
     /// Add a range of Real values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source is host memory; any device copy completes before returning.
     ///
     void push_back_real (int comp, amrex::Vector<amrex::ParticleReal>::const_iterator beg, amrex::Vector<amrex::ParticleReal>::const_iterator end) {
-        push_back_real(comp, &(*beg), &(*end));
+        if (beg != end) {
+            appendHostRange(m_soa_tile.GetRealData(comp), std::addressof(*beg),
+                            static_cast<std::size_t>(std::distance(beg, end)));
+        }
     }
 
     ///
     /// Add a range of Real values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source is host memory; any device copy completes before returning.
     ///
     void push_back_real (int comp, amrex::Vector<amrex::ParticleReal> const & vec) {
         push_back_real(comp, vec.cbegin(), vec.cend());
@@ -1160,6 +1169,7 @@ struct ParticleTile
     ///
     /// Add a range of int values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source must be in the same memory space as this tile's data.
     ///
     void push_back_int (int comp, const int* beg, const int* end) {
         invalidateRuntimePtrCaches();
@@ -1170,14 +1180,19 @@ struct ParticleTile
     ///
     /// Add a range of int values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source is host memory; any device copy completes before returning.
     ///
     void push_back_int (int comp, amrex::Vector<int>::const_iterator beg, amrex::Vector<int>::const_iterator end) {
-        push_back_int(comp, &(*beg), &(*end));
+        if (beg != end) {
+            appendHostRange(m_soa_tile.GetIntData(comp), std::addressof(*beg),
+                            static_cast<std::size_t>(std::distance(beg, end)));
+        }
     }
 
     ///
     /// Add a range of int values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
+    /// The source is host memory; any device copy completes before returning.
     ///
     void push_back_int (int comp, amrex::Vector<int> const & vec) {
         push_back_int(comp, vec.cbegin(), vec.cend());
@@ -1463,6 +1478,31 @@ struct ParticleTile
     }
 
 private:
+
+    template <typename T>
+    void appendHostRange (PODVector<T, Allocator<T>>& data, T const* source,
+                          std::size_t count)
+    {
+        invalidateRuntimePtrCaches();
+        auto const old_size = data.size();
+        data.resize(old_size + count, GrowthStrategy::Geometric);
+        auto* destination = data.data() + old_size;
+#ifdef AMREX_USE_GPU
+        if constexpr (RunOnGpu<Allocator<T>>::value) {
+            Gpu::htod_memcpy_async(destination, source, count * sizeof(T));
+            Gpu::streamSynchronize();
+            return;
+        } else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value) {
+            auto const allocator = data.get_allocator();
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                Gpu::htod_memcpy_async(destination, source, count * sizeof(T));
+                Gpu::streamSynchronize();
+                return;
+            }
+        }
+#endif
+        std::copy_n(source, count, destination);
+    }
 
     void invalidateRuntimePtrCaches () noexcept
     {
