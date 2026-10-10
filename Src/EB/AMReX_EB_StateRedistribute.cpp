@@ -121,11 +121,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
     // Raw slopes, limiting, and redistribution updates use separate kernels so
     // their live values do not contribute to one another's register pressure.
+    // The limiter overwrites the raw slopes in place before the scatter kernel.
     FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
     Array4<Real> slopes_eb_arr = slopes_eb_fab.array();
-
-    FArrayBox limited_slopes_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
-    Array4<Real> limited_slopes = limited_slopes_fab.array();
 
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
@@ -305,9 +303,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                              lim_slope[1] *= slopes_eb[1];,
                              lim_slope[2] *= slopes_eb[2];);
 
-                AMREX_D_TERM(limited_slopes(i,j,k,0) = lim_slope[0];,
-                             limited_slopes(i,j,k,1) = lim_slope[1];,
-                             limited_slopes(i,j,k,2) = lim_slope[2];);
+                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = lim_slope[0];,
+                             slopes_eb_arr(i,j,k,1) = lim_slope[1];,
+                             slopes_eb_arr(i,j,k,2) = lim_slope[2];);
             } // vfrac > 0 && itracker > 0
         });
 
@@ -317,9 +315,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
             {
                 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
-                    AMREX_D_DECL(limited_slopes(i,j,k,0),
-                                 limited_slopes(i,j,k,1),
-                                 limited_slopes(i,j,k,2))};
+                    AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
+                                 slopes_eb_arr(i,j,k,1),
+                                 slopes_eb_arr(i,j,k,2))};
 
                 // Now loop over neighbors using the precomputed slopes
                 for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
