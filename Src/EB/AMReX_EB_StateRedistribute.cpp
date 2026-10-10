@@ -122,7 +122,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     // Raw slopes, limiting, and redistribution updates use separate kernels so
     // their live values do not contribute to one another's register pressure.
     // The limiter overwrites the raw slopes in place before the scatter kernel.
-    FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
+    // The final component records which cells satisfy the limiter predicate so
+    // the limiter kernel does not need to capture vfrac and itracker.
+    FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM+1,The_Async_Arena());
     Array4<Real> slopes_eb_arr = slopes_eb_fab.array();
 
     // We do not initialize dm_as_fine here because we also add to cells outside
@@ -195,7 +197,10 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
+            bool const has_redist_nbors = vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0;
+            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = has_redist_nbors ? 1.0_rt : 0.0_rt;
+
+            if (has_redist_nbors)
             {
                 // Compute slopes once (depends only on i,j,k, not on neighbors)
                 int nx = 1; int ny = 1; int nz = 1;
@@ -280,13 +285,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
                              slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
                              slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
-            } // vfrac > 0 && itracker > 0
+            } // has_redist_nbors
         });
 
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
+            if (slopes_eb_arr(i,j,k,AMREX_SPACEDIM) != 0.0_rt)
             {
                 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb{
                     AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
@@ -306,7 +311,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = lim_slope[0];,
                              slopes_eb_arr(i,j,k,1) = lim_slope[1];,
                              slopes_eb_arr(i,j,k,2) = lim_slope[2];);
-            } // vfrac > 0 && itracker > 0
+            } // activity marker
         });
 
         amrex::ParallelFor(bxg1,
