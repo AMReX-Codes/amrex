@@ -432,7 +432,7 @@ Case make_case (int icase, std::uint64_t seed)
                     Real const len = std::sqrt(Real(ta*ta + tb*tb));
                     for (int d = 0; d < 3; ++d) {
                         // a multiple of dx/len keeps the faces on nodes for square cells
-                        pc.p[3+d] = Real(rng.uniform(int(3*len)+1, int(6*grow*len)+1)) * dxmin / len;
+                        pc.p[3+d] = Real(rng.uniform(int(3*len)+1, int(Real(6*grow)*len)+1)) * dxmin / len;
                     }
                     rotation(is3d ? rng.uniform(0, 2) : 2, ta, tb, pc.p+6);
                     if (!is3d) { pc.p[5] = huge_len; }
@@ -473,7 +473,7 @@ Case make_case (int icase, std::uint64_t seed)
         desc << (c.stl ? " stl" : " if") << " grid-boxes";
         std::array<std::vector<Real>,3> lat;
         for (int d = 0; d < 3; ++d) {
-            if (d >= AMREX_SPACEDIM) {
+            if (!is3d && d == 2) {
                 lat[d] = {-huge_len, huge_len};
                 continue;
             }
@@ -687,14 +687,14 @@ Result check (Case const& c, Geometry const& geom, BoxArray const& ba,
         // fractions may be off by roundoff
         constexpr Real ftol = 16.0_rt*std::numeric_limits<Real>::epsilon();
         // away from the surface the cell must be regular or covered
-        bool bad = (far && v != exact) || !std::isfinite(v) || v < -ftol || v > 1.0_rt+ftol;
+        bool bad = (far && v != exact) || !amrex::isfinite(v) || v < -ftol || v > 1.0_rt+ftol;
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             IntVect ivp(AMREX_D_DECL(i,j,k));
             ivp[d] += 1;
             Real const am = ap_a[d][b](i,j,k);
             Real const app = ap_a[d][b](ivp);
-            bad = bad || !std::isfinite(am) || am < -ftol || am > 1.0_rt+ftol
-                      || !std::isfinite(app) || app < -ftol || app > 1.0_rt+ftol;
+            bad = bad || !amrex::isfinite(am) || am < -ftol || am > 1.0_rt+ftol
+                      || !amrex::isfinite(app) || app < -ftol || app > 1.0_rt+ftol;
         }
         if (flag.isRegular()) {
             bad = bad || v != 1.0_rt;
@@ -712,12 +712,12 @@ Result check (Case const& c, Geometry const& geom, BoxArray const& ba,
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 Real const bc = bc_a[b](i,j,k,d);
                 bn2 += bn_a[b](i,j,k,d)*bn_a[b](i,j,k,d);
-                finite = finite && std::isfinite(bc);
-                bad = bad || !std::isfinite(bc) || std::abs(bc) > 0.5_rt + 1.e-4_rt;
+                finite = finite && amrex::isfinite(bc);
+                bad = bad || !amrex::isfinite(bc) || std::abs(bc) > 0.5_rt + 1.e-4_rt;
                 q[d] = clo[d] + (0.5_rt+bc)*dx[d];
             }
             Real const area = ba_a[b](i,j,k);
-            bad = bad || !std::isfinite(area) || area <= 0.0_rt
+            bad = bad || !amrex::isfinite(area) || area <= 0.0_rt
                       || std::abs(bn2 - 1.0_rt) > 1.e-3_rt;
             dist = finite ? std::abs(shape_sd(shape, planes, q[0], q[1], q[2])) / dxmax
                           : std::numeric_limits<Real>::max();

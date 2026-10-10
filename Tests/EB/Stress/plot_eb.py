@@ -5,7 +5,14 @@ where run_dir has the output of a run with case=N write_surface=1.
 """
 import sys
 
-from paraview.simple import *  # noqa: F401,F403
+from paraview.simple import (
+    GetActiveViewOrCreate,
+    OpenDataFile,
+    Render,
+    SaveScreenshot,
+    Show,
+    Text,
+)
 
 run_dir, out = sys.argv[1], sys.argv[2]
 title = sys.argv[3] if len(sys.argv) > 3 else ""
