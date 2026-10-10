@@ -265,6 +265,8 @@ inline constexpr Real on_surface_fluid = -std::numeric_limits<Real>::min();
 // body while the other two corners are fluid makes the face look cut twice,
 // although the body only touches the face along a line.  Such a node is put
 // on the fluid side, unless that makes the opposite pattern on another face.
+// Of two diagonal nodes of a face whose other corners are body, only one
+// moves, or the face would be cut twice.
 inline void ResolveZeroSaddles (BaseFab<Real>& levelset, RunOn run_on)
 {
     const Box& bx = levelset.box();
@@ -307,6 +309,43 @@ inline void ResolveZeroSaddles (BaseFab<Real>& levelset, RunOn run_on)
             }
             if (body_saddle && !fluid_saddle) { a(i,j,k) = on_surface_fluid; }
         }
+    });
+    // a now has the candidates; the decisions go to t.
+    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+    {
+        if (a(i,j,k) == on_surface_fluid) {
+            IntVect const iv(AMREX_D_DECL(i,j,k));
+            bool move = true;
+            for (int d = 0; d < 3; ++d) {
+                int const u = (d+1)%3;
+                int const v = (d+2)%3;
+                if (u >= AMREX_SPACEDIM || v >= AMREX_SPACEDIM) { continue; }
+                for (int su = -1; su <= 1; su += 2) {
+                    for (int sv = -1; sv <= 1; sv += 2) {
+                        IntVect ib = iv;
+                        IntVect ie = iv;
+                        ib[u] += su;
+                        ie[v] += sv;
+                        IntVect ic = ib;
+                        ic[v] += sv;
+                        if (a.contains(ib) && a.contains(ie) && a.contains(ic)) {
+                            bool const bb = a(ib) >= 0.0_rt || a(ib) == on_surface_fluid;
+                            bool const eb = a(ie) >= 0.0_rt || a(ie) == on_surface_fluid;
+                            // The one with the lower index moves.
+                            if (a(ic) == on_surface_fluid && bb && eb &&
+                                ic[amrex::max(u,v)] < iv[amrex::max(u,v)]) {
+                                move = false;
+                            }
+                        }
+                    }
+                }
+            }
+            t(i,j,k) = move ? on_surface_fluid : 0.0_rt;
+        }
+    });
+    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
+    {
+        if (a(i,j,k) == on_surface_fluid) { a(i,j,k) = t(i,j,k); }
     });
     if (on_gpu) { Gpu::streamSynchronize(); }
 }
@@ -760,7 +799,9 @@ public:
                             // became irregular because small cell fixing set lst
                             // to zero, or lst changed in FillBoundary at periodic
                             // boundaries.  A node that was zero from the start
-                            // keeps the intercept from getIntercept.
+                            // keeps the intercept from getIntercept.  Other
+                            // edges are reset, so an edge that is irregular
+                            // again gets a new intercept.
                             inter(i,j,k) = problo[0] + Real(i)*dx[0];
                         }
                         else if (no_inter && lst(i+1,j,k) >= Real(0.0))
@@ -786,6 +827,8 @@ public:
                             inter(i,j,k) = problo[2] + Real(k+1)*dx[2];
                         }
                     }
+                } else {
+                    inter(i,j,k) = no_intercept;
                 }
             });
         }

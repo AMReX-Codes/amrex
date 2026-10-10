@@ -1370,7 +1370,9 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         // became irregular because small cell fixing set lst
                         // to zero, or lst changed in FillBoundary at periodic
                         // boundaries.  A node that was zero from the start
-                        // keeps the intercept from getIntercept.
+                        // keeps the intercept from getIntercept.  Other
+                        // edges are reset, so an edge that is irregular
+                        // again gets a new intercept.
                         inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
                     }
                     else if (no_inter && lst(i+1,j,k) >= Real(0.0))
@@ -1396,6 +1398,8 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         inter(i,j,k) = problo[2] + static_cast<Real>(k+1)*dx[2];
                     }
                 }
+            } else {
+                inter(i,j,k) = EB2::no_intercept;
             }
         });
     }
