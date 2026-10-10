@@ -46,6 +46,9 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
                  amrex::Real yalpha = 1.0;,
                  amrex::Real zalpha = 1.0;);
 
+    // Load center cell flag once to avoid repeated array accesses
+    auto const cell_flag = flag(i,j,k);
+
     // Compute the limiters needed to keep the predicted q_hat between the max and min
 #if (AMREX_SPACEDIM == 2)
     int kk = 0;
@@ -64,15 +67,17 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
 #pragma unroll 1
 #endif
       for(int ii(-1); ii<=1; ii++){
-        Real alpha = amrex::max(xalpha,yalpha);
-#if (AMREX_SPACEDIM == 3)
-        alpha = amrex::max(alpha,zalpha);
-#endif
-        if (flag(i,j,k).isConnected(ii,jj,kk) && alpha > 0.0)
+
+        if (cell_flag.isConnected(ii,jj,kk) && AMREX_D_TERM(xalpha > 0.0_rt, || yalpha > 0.0_rt, || zalpha > 0.0_rt))
         {
-            AMREX_D_TERM(Real delta_x = ccent(i+ii,j+jj,k+kk,0) -  ccent(i,j,k,0) + static_cast<Real>(ii);,
-                         Real delta_y = ccent(i+ii,j+jj,k+kk,1) -  ccent(i,j,k,1) + static_cast<Real>(jj);,
-                         Real delta_z = ccent(i+ii,j+jj,k+kk,2) -  ccent(i,j,k,2) + static_cast<Real>(kk););
+            AMREX_D_TERM(Real delta_x = ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0) + static_cast<Real>(ii);,
+                         Real delta_y = ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1) + static_cast<Real>(jj);,
+                         Real delta_z = ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2) + static_cast<Real>(kk););
+
+            // Capture which dimensions are affected before deltas go out of scope
+            AMREX_D_TERM(bool const affects_x = amrex::Math::abs(delta_x) > epsilon;,
+                         bool const affects_y = amrex::Math::abs(delta_y) > epsilon;,
+                         bool const affects_z = amrex::Math::abs(delta_z) > epsilon;);
 
             Real q_hat = state(i,j,k,n) + AMREX_D_TERM(  delta_x * slope_x,
                                                        + delta_y * slope_y,
@@ -85,11 +90,9 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
             {
                 Real new_lim = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n));
 
-                if (amrex::Math::abs(delta_x) > epsilon) { xalpha = amrex::min(xalpha,new_lim); }
-                if (amrex::Math::abs(delta_y) > epsilon) { yalpha = amrex::min(yalpha,new_lim); }
-#if (AMREX_SPACEDIM == 3)
-                if (amrex::Math::abs(delta_z) > epsilon) { zalpha = amrex::min(zalpha,new_lim); }
-#endif
+                AMREX_D_TERM(if (affects_x) { xalpha = amrex::min(xalpha,new_lim); },
+                             if (affects_y) { yalpha = amrex::min(yalpha,new_lim); },
+                             if (affects_z) { zalpha = amrex::min(zalpha,new_lim); });
             }
         }
       }
