@@ -50,10 +50,19 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
 #if (AMREX_SPACEDIM == 2)
     int kk = 0;
 #elif (AMREX_SPACEDIM == 3)
+#if defined(AMREX_USE_CUDA)
+#pragma unroll 1
+#endif
     for(int kk(-1); kk<=1; kk++)
 #endif
     {
+#if defined(AMREX_USE_CUDA)
+#pragma unroll 1
+#endif
      for(int jj(-1); jj<=1; jj++){
+#if defined(AMREX_USE_CUDA)
+#pragma unroll 1
+#endif
       for(int ii(-1); ii<=1; ii++){
         Real alpha = amrex::max(xalpha,yalpha);
 #if (AMREX_SPACEDIM == 3)
