@@ -14,10 +14,6 @@ bool NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Alloc
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-bool NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::enable_inverse = false;
-
-template <typename T_ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator, class CellAssignor>
 NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::NeighborParticleContainer_impl (ParGDBBase* gdb, int ncells)
     : ParticleContainerType(gdb),

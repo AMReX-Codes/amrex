@@ -72,13 +72,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
+    ParmParse pp("particles");
+
+    // usePrePost and doUnlink are per-container, so read them for every container
+    pp.query("use_prepost", usePrePost);
+    pp.query("do_unlink", doUnlink);
+
     static bool initialized = false;
     if ( ! initialized)
     {
         static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
                       "sizeof ParticleType is not a multiple of sizeof RealType");
 
-        ParmParse pp("particles");
         pp.queryAdd("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
@@ -90,8 +95,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
 
-        pp.query("use_prepost", usePrePost);
-        pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
         pp.queryAdd("use_comms_arena", use_comms_arena);
 

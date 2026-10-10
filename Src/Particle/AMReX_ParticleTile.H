@@ -1117,7 +1117,9 @@ struct ParticleTile
     /// This sets the data for several particles at once.
     ///
     void push_back_real (int comp, amrex::Vector<amrex::ParticleReal>::const_iterator beg, amrex::Vector<amrex::ParticleReal>::const_iterator end) {
-        push_back_real(comp, &(*beg), &(*end));
+        if (beg == end) { return; }
+        const ParticleReal* p = &(*beg); // never dereference end
+        push_back_real(comp, p, p + (end - beg));
     }
 
     ///
@@ -1172,7 +1174,9 @@ struct ParticleTile
     /// This sets the data for several particles at once.
     ///
     void push_back_int (int comp, amrex::Vector<int>::const_iterator beg, amrex::Vector<int>::const_iterator end) {
-        push_back_int(comp, &(*beg), &(*end));
+        if (beg == end) { return; }
+        const int* p = &(*beg); // never dereference end
+        push_back_int(comp, p, p + (end - beg));
     }
 
     ///
