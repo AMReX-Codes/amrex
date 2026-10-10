@@ -179,8 +179,18 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 {
     amrex::EBSlopeNormalEquation normal_eq;
 
+    // Prevent loop unrolling to reduce register pressure
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int kk(-1); kk<=1; kk++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int jj(-1); jj<=1; jj++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int ii(-1); ii<=1; ii++)
     {
         if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
@@ -235,8 +245,18 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
 
     amrex::EBSlopeNormalEquation normal_eq;
 
+    // Prevent loop unrolling to reduce register pressure
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int kk(-nz); kk<=nz; kk++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int jj(-ny); jj<=ny; jj++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
     for(int ii(-nx); ii<=nx; ii++)
     {
         if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
@@ -398,8 +418,18 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
         amrex::EBSlopeNormalEquation normal_eq;
 
+        // Prevent loop unrolling to reduce register pressure
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int kk(-1); kk<=1; kk++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int jj(-1); jj<=1; jj++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int ii(-1); ii<=1; ii++)
         {
             if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
@@ -565,8 +595,18 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
 
         amrex::EBSlopeNormalEquation normal_eq;
 
+        // Prevent loop unrolling to reduce register pressure
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int kk(-nz); kk<=nz; kk++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int jj(-ny); jj<=ny; jj++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
         for(int ii(-nx); ii<=nx; ii++)
         {
             // Cells more than one cell outside an extdir/hoextrap boundary hold no usable data,
