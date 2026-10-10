@@ -323,13 +323,13 @@ public:
     /**
      * \brief Private helper (exposed for CUDA) that copies/filters CSR arrays into device storage.
      *
-     * \tparam I Prefix-scan index type.
+     * \tparam Index Prefix-scan index type.
      * \param mat        Input values array.
      * \param col_index  Input column indices.
      * \param nentries   Number of candidate entries.
      * \param row_offset Row offsets array.
      */
-    template <typename I>
+    template <typename Index>
     void define_and_filter_doit (T const* mat, Long const* col_index,
                                  Long nentries, Long const* row_offset);
 
@@ -575,8 +575,8 @@ inline bool spmat_comm_is_local (AlgPartition const& row_partition,
 }
 
 // Diagonal of a square matrix: entry with column index == row index + offset.
-template <typename T, typename I>
-void extract_diagonal (T* p, CsrView<T const,I> const& csr, Long offset)
+template <typename T, typename Index>
+void extract_diagonal (T* p, CsrView<T const,Index> const& csr, Long offset)
 {
     auto const* AMREX_RESTRICT mat = csr.mat;
     auto const* AMREX_RESTRICT col = csr.col_index;
@@ -1022,19 +1022,19 @@ SpMatrix<T,Allocator>::setColumnPartition (AlgPartition const& col_partition)
 }
 
 template <typename T, template<typename> class Allocator>
-template <typename I>
+template <typename Index>
 void
 SpMatrix<T,Allocator>::define_and_filter_doit (T const* mat, Long const* col_index,
                                                Long nentries, Long const* row_offset)
 {
-    Gpu::DeviceVector<I> psum(nentries);
+    Gpu::DeviceVector<Index> psum(nentries);
     auto* ps = psum.data();
-    m_nnz = Scan::PrefixSum<I>(I(nentries),
-                               [=] AMREX_GPU_DEVICE (I i) -> I {
-                                   return col_index[i] >= 0 && mat[i] != 0; },
-                               [=] AMREX_GPU_DEVICE (I i, I x) {
-                                   ps[i] = x; },
-                               Scan::Type::exclusive, Scan::retSum);
+    m_nnz = Scan::PrefixSum<Index>(Index(nentries),
+                                   [=] AMREX_GPU_DEVICE (Index i) -> Index {
+                                       return col_index[i] >= 0 && mat[i] != 0; },
+                                   [=] AMREX_GPU_DEVICE (Index i, Index x) {
+                                       ps[i] = x; },
+                                   Scan::Type::exclusive, Scan::retSum);
     Long nlocalrows = this->numLocalRows();
     m_csr.mat.resize(m_nnz);
     m_csr.col_index.resize(m_nnz);

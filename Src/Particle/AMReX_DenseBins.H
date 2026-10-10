@@ -170,10 +170,10 @@ public:
 
 private:
 
-    template <typename F, typename I>
+    template <typename F, typename Index>
     AMREX_GPU_HOST_DEVICE
-    static auto call_f (F const& f, const_pointer_input_type v, I& index) {
-        if constexpr (IsCallable<F, decltype(v), I>::value) {
+    static auto call_f (F const& f, const_pointer_input_type v, Index& index) {
+        if constexpr (IsCallable<F, decltype(v), Index>::value) {
             return f(v, index);
         } else {
             return f(v[index]);

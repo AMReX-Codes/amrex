@@ -589,10 +589,10 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <std::integral I>
-requires (sizeof(I) >= sizeof(Long))
+template <std::integral Int>
+requires (sizeof(Int) >= sizeof(Long))
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<Int>& mem, int lev) const
 {
     AMREX_ASSERT(lev >= 0 && lev < std::ssize(m_particles));
 
@@ -603,7 +603,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
     {
         int gid = pti.index();
-        mem[gid] += static_cast<I>(pti.capacity());
+        mem[gid] += static_cast<Int>(pti.capacity());
     }
 }
 

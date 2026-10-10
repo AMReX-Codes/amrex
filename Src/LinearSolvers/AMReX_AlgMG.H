@@ -32,9 +32,9 @@ namespace detail {
 //! True if row `row` of `csr` has an undecided neighbor with a larger PMIS
 //! weight than `wi`. Ties go to the larger global index. `gmap` maps the
 //! column index to the global index, or, if null, `goff` is added.
-template <typename TC, typename I, typename T>
+template <typename TC, typename Index, typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool pmis_blocked (CsrView<TC const,I> const& csr, Long row, T wi, Long ig,
+bool pmis_blocked (CsrView<TC const,Index> const& csr, Long row, T wi, Long ig,
                    T const* AMREX_RESTRICT w, int const* AMREX_RESTRICT state,
                    Long const* AMREX_RESTRICT gmap, Long goff, int undecided)
 {
@@ -65,9 +65,9 @@ T pmis_tiebreak (Long ig)
 }
 
 //! True if row `row` of `csr` has a neighbor with state `c`.
-template <typename T, typename I>
+template <typename T, typename Index>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool csr_row_has_state (CsrView<T const,I> const& csr, Long row,
+bool csr_row_has_state (CsrView<T const,Index> const& csr, Long row,
                         int const* AMREX_RESTRICT state, int c)
 {
     for (Long idx = csr.row_offset[row]; idx < csr.row_offset[row+1]; ++idx) {
