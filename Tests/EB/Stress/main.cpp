@@ -634,16 +634,29 @@ Real layout_diff (Geometry const& geom, BoxArray const& ba, DistributionMapping 
     build(max_grid_size);
     auto fac2 = makeEBFabFactory(geom, ba, dm, {1,1,1}, EBSupport::full);
     Real diff = 0.0_rt;
-    auto maxdiff = [&] (MultiFab& a, MultiFab const& b) {
+    auto maxdiff = [&] (MultiFab& a, MultiFab const& b, char const* name) {
         MultiFab::Subtract(a, b, 0, 0, 1, 0);
-        diff = amrex::max(diff, a.norm0(0, 0));
+        Real const d = a.norm0(0, 0);
+        diff = amrex::max(diff, d);
+        if (verbose > 1 && d > 0.0_rt) {
+            amrex::Print() << "  layout: " << name << " differs\n";
+            auto const& aa = a.const_arrays();
+            auto const& bb = b.const_arrays();
+            ParallelFor(a, IntVect(0), [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) {
+                if (aa[bx](i,j,k) != 0.0_rt) {
+                    AMREX_DEVICE_PRINTF("    (%d,%d,%d) %g vs %g\n", i, j, k,
+                                        double(aa[bx](i,j,k)+bb[bx](i,j,k)), double(bb[bx](i,j,k)));
+                }
+            });
+            Gpu::streamSynchronize();
+        }
     };
-    maxdiff(vf, fac2->getVolFrac());
+    maxdiff(vf, fac2->getVolFrac(), "volfrac");
     MultiFab const barea2 = fac2->getBndryArea().ToMultiFab(0.0_rt, 0.0_rt);
-    maxdiff(barea, barea2);
+    maxdiff(barea, barea2, "bndryarea");
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         MultiFab const ap2 = fac2->getAreaFrac()[d]->ToMultiFab(1.0_rt, 0.0_rt);
-        maxdiff(ap[d], ap2);
+        maxdiff(ap[d], ap2, "areafrac");
     }
     {
         auto const& l1 = ls.const_arrays();
@@ -664,6 +677,21 @@ Real layout_diff (Geometry const& geom, BoxArray const& ba, DistributionMapping 
                         ? 1.0_rt : 0.0_rt};
             });
         ParallelDescriptor::ReduceRealMax(lsdiff);
+        if (verbose > 2) {
+            auto const& va = vf.const_arrays();
+            ParallelFor(vf, IntVect(0), [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) {
+                if (va[b](i,j,k) != 0.0_rt) {
+                    for (int jj = j-1; jj <= j+2; ++jj) {
+                    for (int ii = i-1; ii <= i+2; ++ii) {
+                        if (l1[b].contains(ii,jj,k)) {
+                            AMREX_DEVICE_PRINTF("  layout: node (%d,%d,%d) ls %.17g vs %.17g\n", ii, jj, k,
+                                                double(l1[b](ii,jj,k)), double(l2[b](ii,jj,k)));
+                        }
+                    }}
+                }
+            });
+            Gpu::streamSynchronize();
+        }
         if (verbose > 1) {
             amrex::Print() << "  layout: data diff " << diff << ", level set diff " << lsdiff << "\n";
         }
@@ -798,8 +826,10 @@ Result check (Case const& c, Geometry const& geom, BoxArray const& ba,
                           : std::numeric_limits<Real>::max();
         }
         if (verbose > 1 && (bad || vf_err > vf_tol || dist > 2.0_rt)) {
-            AMREX_DEVICE_PRINTF("  bad cell (%d,%d,%d) volfrac %g exact %g dist %g data %d\n",
-                                i, j, k, double(v), double(exact), double(dist), int(bad));
+            AMREX_DEVICE_PRINTF("  bad cell (%d,%d,%d) volfrac %g exact %g dist %g data %d type %d area %g\n",
+                                i, j, k, double(v), double(exact), double(dist), int(bad),
+                                int(flag.isRegular()) + 2*int(flag.isCovered()) + 4*int(flag.isSingleValued()),
+                                double(ba_a[b](i,j,k)));
         }
         return {vf_err, dist, Long(bad), cut};
     });
