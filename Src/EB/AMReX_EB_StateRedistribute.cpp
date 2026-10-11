@@ -304,21 +304,23 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             // Process only interior cells: code in range [1, 8]
             if (code_real < 1.0_rt || code_real > 8.0_rt) { return; }
 
-            int const code = static_cast<int>(code_real + 0.5_rt);  // Round to nearest
+            int const code = static_cast<int>(code_real);
             int const mask = code - 1;
-            int const nx = (mask & 1) ? 2 : 1;
-            int const ny = (mask & 2) ? 2 : 1;
-#if (AMREX_SPACEDIM == 3)
-            int const nz = (mask & 4) ? 2 : 1;
-#else
-            int const nz = 1;
-#endif
 
             // Interior path: call the boundary-free slope functions directly
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
-            if (nx*ny*nz == 1) {
+            if (mask == 0) {
+                // Standard 3x3x3 stencil (nx=ny=nz=1)
                 slopes_eb = amrex_calc_slopes_eb(i,j,k,n,Qhat,cent_hat,vfrac,flag,max_order);
             } else {
+                // Grown stencil path
+                int const nx = (mask & 1) ? 2 : 1;
+                int const ny = (mask & 2) ? 2 : 1;
+#if (AMREX_SPACEDIM == 3)
+                int const nz = (mask & 4) ? 2 : 1;
+#else
+                int const nz = 1;
+#endif
                 slopes_eb = amrex_calc_slopes_eb_grown(i,j,k,n,AMREX_D_DECL(nx,ny,nz),
                                                        Qhat,cent_hat,vfrac,flag,max_order);
             }
@@ -343,15 +345,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if (code_real < 11.0_rt || code_real > 18.0_rt) { return; }
 
             // Decode: boundary codes [11,18] -> masks [0,7]
-            int const code = static_cast<int>(code_real + 0.5_rt) - 10;  // Round and map back
+            int const code = static_cast<int>(code_real) - 10;
             int const mask = code - 1;
-            int const nx = (mask & 1) ? 2 : 1;
-            int const ny = (mask & 2) ? 2 : 1;
-#if (AMREX_SPACEDIM == 3)
-            int const nz = (mask & 4) ? 2 : 1;
-#else
-            int const nz = 1;
-#endif
 
             // Compute boundary condition flags on device
             auto const& bc = d_bcrec_ptr[n];
@@ -372,7 +367,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
             // Boundary path: call functions with full boundary logic
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
-            if (nx*ny*nz == 1) {
+            if (mask == 0) {
+                // Standard 3x3x3 stencil (nx=ny=nz=1)
                 slopes_eb = amrex_calc_slopes_extdir_eb(
                                             i,j,k,n,Qhat,cent_hat,vfrac,
                                             AMREX_D_DECL(fcx,fcy,fcz),flag,
@@ -382,6 +378,14 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                             AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
                                             max_order);
             } else {
+                // Grown stencil path
+                int const nx = (mask & 1) ? 2 : 1;
+                int const ny = (mask & 2) ? 2 : 1;
+#if (AMREX_SPACEDIM == 3)
+                int const nz = (mask & 4) ? 2 : 1;
+#else
+                int const nz = 1;
+#endif
                 slopes_eb = amrex_calc_slopes_extdir_eb_grown(
                                             i,j,k,n,AMREX_D_DECL(nx,ny,nz),
                                             Qhat,cent_hat,vfrac,
