@@ -210,11 +210,13 @@ Real near_node (Rng& rng, Geometry const& geom, int d, int i)
     switch (rng.uniform(0, 8)) {
     case 0: case 1: case 2: return x;
     case 3: case 4: {
+        // ulps of the node, or of the cell size at x = 0 (an ulp of zero is
+        // a denormal, which not every ASCII STL reader accepts)
         int const k = rng.uniform(1, 3);
-        Real const to = rng.uniform(0,1) ? std::numeric_limits<Real>::max()
-                                         : std::numeric_limits<Real>::lowest();
-        for (int n = 0; n < k; ++n) { x = std::nextafter(x, to); }
-        return x;
+        Real const sign = rng.uniform(0,1) ? 1.0_rt : -1.0_rt;
+        Real const ref = (x == 0.0_rt) ? h : std::abs(x);
+        Real const ulp = std::nextafter(ref, std::numeric_limits<Real>::max()) - ref;
+        return x + sign*Real(k)*ulp;
     }
     case 5: return x + Real(0.01)*h;
     case 6: return x + Real(0.25)*h;
@@ -335,8 +337,8 @@ Case make_case (int icase, std::uint64_t seed)
     // Grid: cell counts (log uniform), scale, origin and aspect ratio vary.
     double const nmin = is3d ? 20 : 32;
     double const nmax = is3d ? 64 : 512;
-    auto ncell = [&] () {
-        return int(std::lround(nmin * std::pow(nmax/nmin, rng.real())));
+    auto ncell = [&] () { // multiple of 4, like a blocking factor
+        return 4*int(std::lround(nmin * std::pow(nmax/nmin, rng.real()) / 4.0));
     };
     std::array<int,3> n{ncell(), ncell(), is3d ? ncell() : 1};
     // Feature sizes and counts grow with the domain

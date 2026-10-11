@@ -571,6 +571,10 @@ STLtools::read_ascii_stl_file (std::string const& fname, Real scale,
                 std::swap(a_tri_pts[i].v1, a_tri_pts[i].v2);
             }
         }
+
+        if (!is) {
+            amrex::Abort("STLtools::read_ascii_stl_file: failed to parse " + fname);
+        }
     }
 }
 
