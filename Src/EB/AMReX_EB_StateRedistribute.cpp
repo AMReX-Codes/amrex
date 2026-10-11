@@ -191,10 +191,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         });
 
-        // Step 1: Combined stencil and boundary classification kernel
-        // Classify cells as inactive (0), interior (1-8), or boundary (11-18)
-        // The mask encodes the grown-axis requirements in bits 0-2
-        // Encoding: 0=inactive, 1-8=interior (mask+1), 11-18=boundary (mask+11)
+        // Step 1: Combined stencil and boundary classification kernel.
+        // Bit layout: 0-2 = grown axes, 3-8 = nearby physical-boundary
+        // faces (xlo,xhi,ylo,yhi,zlo,zhi), and 9 = active cell.
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-classify");
@@ -255,11 +254,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if ( (z_max-z_min) < slope_stencil_min_width ) { mask |= 4; }
 #endif
 
-            // Base code: mask+1 gives values 1-8
-            int code = mask + 1;
-
-            // Check if this cell needs boundary stencil (reproduces needs_bdry_stencil test)
-            // Compute boundary condition flags on device
+            // Encode only boundary faces close enough to affect this cell's slope.
             auto const& bc = d_bcrec_ptr[n];
             bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
                                      bc.lo(0) == amrex::BCType::hoextrap);
@@ -276,18 +271,17 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                      bc.hi(2) == amrex::BCType::hoextrap);
 #endif
 
-            // Note: includes cells one in from the boundary because 4th-order stencils reach domlo+1/domhi-1
-            bool const needs_bdry = (extdir_ilo && i <= domain_ilo+1) || (extdir_ihi && i >= domain_ihi-1) ||
-                                    (extdir_jlo && j <= domain_jlo+1) || (extdir_jhi && j >= domain_jhi-1)
+            int boundary_mask = 0;
+            if (extdir_ilo && i <= domain_ilo+1) { boundary_mask |= 1 << 0; }
+            if (extdir_ihi && i >= domain_ihi-1) { boundary_mask |= 1 << 1; }
+            if (extdir_jlo && j <= domain_jlo+1) { boundary_mask |= 1 << 2; }
+            if (extdir_jhi && j >= domain_jhi-1) { boundary_mask |= 1 << 3; }
 #if (AMREX_SPACEDIM == 3)
-                                 || (extdir_klo && k <= domain_klo+1) || (extdir_khi && k >= domain_khi-1)
+            if (extdir_klo && k <= domain_klo+1) { boundary_mask |= 1 << 4; }
+            if (extdir_khi && k >= domain_khi-1) { boundary_mask |= 1 << 5; }
 #endif
-                                    ;
 
-            // Store classification: interior cells (1-8) or boundary cells (11-18)
-            if (needs_bdry) {
-                code += 10;  // Remap to boundary range: 1-8 -> 11-18
-            }
+            int const code = (1 << 9) | (boundary_mask << 3) | mask;
             slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real(code);
         });
         amrex::Gpu::streamSynchronize();
@@ -300,12 +294,11 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
-            // Process only interior cells: code in range [1, 8]
-            if (code_real < 1.0_rt || code_real > 8.0_rt) { return; }
+            int const code = static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const boundary_mask = (code >> 3) & 0x3f;
+            if ((code & (1 << 9)) == 0 || boundary_mask != 0) { return; }
 
-            int const code = static_cast<int>(code_real);
-            int const mask = code - 1;
+            int const mask = code & 0x7;
 
             // Interior path: call the boundary-free slope functions directly
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
@@ -340,29 +333,18 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
-            // Process only boundary cells: code in range [11, 18]
-            if (code_real < 11.0_rt || code_real > 18.0_rt) { return; }
+            int const code = static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const boundary_mask = (code >> 3) & 0x3f;
+            if ((code & (1 << 9)) == 0 || boundary_mask == 0) { return; }
 
-            // Decode: boundary codes [11,18] -> masks [0,7]
-            int const code = static_cast<int>(code_real) - 10;
-            int const mask = code - 1;
-
-            // Compute boundary condition flags on device
-            auto const& bc = d_bcrec_ptr[n];
-            bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
-                                     bc.lo(0) == amrex::BCType::hoextrap);
-            bool const extdir_ihi = (bc.hi(0) == amrex::BCType::ext_dir ||
-                                     bc.hi(0) == amrex::BCType::hoextrap);
-            bool const extdir_jlo = (bc.lo(1) == amrex::BCType::ext_dir ||
-                                     bc.lo(1) == amrex::BCType::hoextrap);
-            bool const extdir_jhi = (bc.hi(1) == amrex::BCType::ext_dir ||
-                                     bc.hi(1) == amrex::BCType::hoextrap);
+            int const mask = code & 0x7;
+            bool const extdir_ilo = (boundary_mask & (1 << 0)) != 0;
+            bool const extdir_ihi = (boundary_mask & (1 << 1)) != 0;
+            bool const extdir_jlo = (boundary_mask & (1 << 2)) != 0;
+            bool const extdir_jhi = (boundary_mask & (1 << 3)) != 0;
 #if (AMREX_SPACEDIM == 3)
-            bool const extdir_klo = (bc.lo(2) == amrex::BCType::ext_dir ||
-                                     bc.lo(2) == amrex::BCType::hoextrap);
-            bool const extdir_khi = (bc.hi(2) == amrex::BCType::ext_dir ||
-                                     bc.hi(2) == amrex::BCType::hoextrap);
+            bool const extdir_klo = (boundary_mask & (1 << 4)) != 0;
+            bool const extdir_khi = (boundary_mask & (1 << 5)) != 0;
 #endif
 
             // Boundary path: call functions with full boundary logic
