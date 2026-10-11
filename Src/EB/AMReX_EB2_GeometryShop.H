@@ -193,19 +193,32 @@ GpuArray<Real,8> IF_invdist2 (GpuArray<Real,AMREX_SPACEDIM> const& dx)
     return invd2;
 }
 
+// Size of the coordinate operands anywhere in the domain, for IF_roundoff.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real IF_size (GpuArray<Real,AMREX_SPACEDIM> const& problo,
+              GpuArray<Real,AMREX_SPACEDIM> const& probhi)
+{
+    Real size = 0.0_rt;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        size += std::abs(problo[d]) + (probhi[d]-problo[d]);
+    }
+    return size;
+}
+
 // Tolerance below which f at node iv is roundoff: 16 epsilon times the
 // largest slope of f to a neighboring node, diagonals included so that a
-// kink of the surface at the node does not hide the slope, times the size
-// of the operands of the node position.  Neighbor values are taken from fab
-// where it has them.  Nodes outside [blo,bhi] take the values of the clamped
-// node, so they get its tolerance.
+// kink of the surface at the node does not hide the slope, times size (see
+// IF_size).  size is uniform over the domain so that a surface at the same
+// distance from a whole row of nodes is classified the same along the row.
+// Neighbor values are taken from fab where it has them.  Nodes outside
+// [blo,bhi] take the neighbor values of the clamped node.
 template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_roundoff (F const& f, IntVect const& iv, Real fv, Array4<Real const> const& fab,
              GpuArray<Real,AMREX_SPACEDIM> const& problo,
              GpuArray<Real,AMREX_SPACEDIM> const& dx, GpuArray<Real,8> const& invd2,
-             IntVect const& blo, IntVect const& bhi)
+             Real size, IntVect const& blo, IntVect const& bhi)
 {
     IntVect ivc = iv;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) { ivc[d] = amrex::Clamp(iv[d], blo[d], bhi[d]); }
@@ -251,10 +264,6 @@ IF_roundoff (F const& f, IntVect const& iv, Real fv, Array4<Real const> const& f
             }
         }}}
     }
-    Real size = 0.0_rt;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        size += std::abs(problo[d]) + std::abs(Real(ivc[d])*dx[d]);
-    }
     return Real(16.0) * std::numeric_limits<Real>::epsilon() * std::sqrt(slope2) * size;
 }
 
@@ -267,14 +276,15 @@ Real
 ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
                   Array4<Real const> const& lst,
                   GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx, Real size,
                   IntVect const& blo, IntVect const& bhi)
 {
     GpuArray<Real,AMREX_SPACEDIM> p;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         p[d] = problo[d] + Real(amrex::Clamp(ivz[d],blo[d],bhi[d]))*dx[d];
     }
-    Real const tol = IF_roundoff(f, ivz, IF_f(f, p), lst, problo, dx, IF_invdist2(dx), blo, bhi);
+    Real const tol = IF_roundoff(f, ivz, IF_f(f, p), lst, problo, dx, IF_invdist2(dx), size,
+                                 blo, bhi);
     IntVect ivf = ivz;
     ivf[rangedir] += side;
     Real a = p[rangedir];
@@ -455,13 +465,14 @@ public:
         IntVect const glo = bounding_box.smallEnd();
         IntVect const ghi = bounding_box.bigEnd();
         auto const invd2 = IF_invdist2(dx);
+        auto const size = IF_size(problo, geom.ProbHiArray());
         int nbody = 0, nfluid = 0;
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             if (v >= 0.0_rt ||
-                std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, glo, ghi)) {
+                std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, size, glo, ghi)) {
                 ++nbody;
             } else {
                 ++nfluid;
@@ -513,6 +524,7 @@ public:
             IntVect const glo = bounding_box.smallEnd();
             IntVect const ghi = bounding_box.bigEnd();
             auto const invd2 = IF_invdist2(dx);
+            auto const size = IF_size(problo, geom.ProbHiArray());
             ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
             ReduceData<int,int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -523,7 +535,7 @@ public:
                 IntVect const iv(AMREX_D_DECL(i,j,k));
                 Real const v = fc(iv);
                 bool const body = v >= 0.0_rt ||
-                    std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, glo, ghi);
+                    std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, size, glo, ghi);
                 return {int(body), int(!body)};
             });
             ReduceTuple hv = reduce_data.value(reduce_op);
@@ -619,12 +631,14 @@ public:
         BaseFab<Real> sfab(gbx, 1, arena);
         auto const& s = sfab.array();
         auto const invd2 = IF_invdist2(dx);
+        auto const size = IF_size(problo, geom.ProbHiArray());
         AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx, i, j, k,
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             s(i,j,k) = (v != 0.0_rt &&
-                        std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, bloiv, bhiiv))
+                        std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, size,
+                                                   bloiv, bhiiv))
                 ? 0.0_rt : v;
         });
         if (ibx != gbx) {
@@ -709,12 +723,14 @@ public:
         BaseFab<Real> sfab(gbx, 1, The_Cpu_Arena());
         auto const& s = sfab.array();
         auto const invd2 = IF_invdist2(dx);
+        auto const size = IF_size(problo, geom.ProbHiArray());
         amrex::LoopOnCpu(ibx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
             s(i,j,k) = (v != 0.0_rt &&
-                        std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, bloiv, bhiiv))
+                        std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, size,
+                                                   bloiv, bhiiv))
                 ? 0.0_rt : v;
         });
         if (ibx != gbx) {
@@ -759,6 +775,7 @@ public:
         const auto& bhi = amrex::ubound(bounding_box);
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
+        Real const size = IF_size(problo, geom.ProbHiArray());
         auto const& f = m_f;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             Array4<Real> const& inter = inter_arr[idim];
@@ -777,10 +794,10 @@ public:
                         inter(i,j,k) = problo[idim]
                             + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
                     } else if (lst(ivlo) == 0.0_rt) {
-                        inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, lst, problo, dx,
+                        inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, lst, problo, dx, size,
                                                         bloiv, bhiiv);
                     } else if (lst(ivhi) == 0.0_rt) {
-                        inter(i,j,k) = ZeroEndIntercept(f, ivhi, idim, -1, lst, problo, dx,
+                        inter(i,j,k) = ZeroEndIntercept(f, ivhi, idim, -1, lst, problo, dx, size,
                                                         bloiv, bhiiv);
                     } else {
                         inter(i,j,k) = BrentRootFinder
@@ -860,6 +877,7 @@ public:
         const auto& bhi = amrex::ubound(bounding_box);
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
+        Real const size = IF_size(problo, geom.ProbHiArray());
         const Box bx{inter};
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
         {
@@ -874,10 +892,10 @@ public:
                     inter(i,j,k) = problo[idim]
                         + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
                 } else if (lst(ivlo) == 0.0_rt) {
-                    inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, lst, problo, dx,
+                    inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, lst, problo, dx, size,
                                                     bloiv, bhiiv);
                 } else if (lst(ivhi) == 0.0_rt) {
-                    inter(i,j,k) = ZeroEndIntercept(m_f, ivhi, idim, -1, lst, problo, dx,
+                    inter(i,j,k) = ZeroEndIntercept(m_f, ivhi, idim, -1, lst, problo, dx, size,
                                                     bloiv, bhiiv);
                 } else {
                     inter(i,j,k) = BrentRootFinder

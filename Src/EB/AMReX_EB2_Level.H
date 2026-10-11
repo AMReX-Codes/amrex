@@ -567,137 +567,142 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 
                 auto& cellflag = m_cellflag[mfi];
 
-                gfab.buildTypes(cellflag);
+                // From the second iteration on, repeat a box until it stops covering
+                // cells, so a cascade advances a box per iteration instead of a cell.
+                for (int biter = 0; biter < maxiter; ++biter) {
+                    gfab.buildTypes(cellflag);
 
-                Array4<Real const> const& clst = levelset.const_array();
-                Array4<Real      > const&  lst = levelset.array();
-                Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
-                Array4<Real> const& vfr = m_volfrac.array(mfi);
-                Array4<Real> const& ctr = m_centroid.array(mfi);
-                Array4<Real> const& bar = m_bndryarea.array(mfi);
-                Array4<Real> const& bct = m_bndrycent.array(mfi);
-                Array4<Real> const& bnm = m_bndrynorm.array(mfi);
-                AMREX_D_TERM(Array4<Real> const& apx = m_areafrac[0].array(mfi);,
-                             Array4<Real> const& apy = m_areafrac[1].array(mfi);,
-                             Array4<Real> const& apz = m_areafrac[2].array(mfi););
-                AMREX_D_TERM(Array4<Real> const& fcx = m_facecent[0].array(mfi);,
-                             Array4<Real> const& fcy = m_facecent[1].array(mfi);,
-                             Array4<Real> const& fcz = m_facecent[2].array(mfi););
+                    Array4<Real const> const& clst = levelset.const_array();
+                    Array4<Real      > const&  lst = levelset.array();
+                    Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
+                    Array4<Real> const& vfr = m_volfrac.array(mfi);
+                    Array4<Real> const& ctr = m_centroid.array(mfi);
+                    Array4<Real> const& bar = m_bndryarea.array(mfi);
+                    Array4<Real> const& bct = m_bndrycent.array(mfi);
+                    Array4<Real> const& bnm = m_bndrynorm.array(mfi);
+                    AMREX_D_TERM(Array4<Real> const& apx = m_areafrac[0].array(mfi);,
+                                 Array4<Real> const& apy = m_areafrac[1].array(mfi);,
+                                 Array4<Real> const& apz = m_areafrac[2].array(mfi););
+                    AMREX_D_TERM(Array4<Real> const& fcx = m_facecent[0].array(mfi);,
+                                 Array4<Real> const& fcy = m_facecent[1].array(mfi);,
+                                 Array4<Real> const& fcz = m_facecent[2].array(mfi););
 
-                auto& facetype = gfab.getFaceType();
-                AMREX_D_TERM(Array4<Type_t> const& ftx = facetype[0].array();,
-                             Array4<Type_t> const& fty = facetype[1].array();,
-                             Array4<Type_t> const& ftz = facetype[2].array(););
+                    auto& facetype = gfab.getFaceType();
+                    AMREX_D_TERM(Array4<Type_t> const& ftx = facetype[0].array();,
+                                 Array4<Type_t> const& fty = facetype[1].array();,
+                                 Array4<Type_t> const& ftz = facetype[2].array(););
 
-                int nmc = 0;
-                int nsm = 0;
+                    int nmc = 0;
+                    int nsm = 0;
 
 #if (AMREX_SPACEDIM == 3)
-                auto& edgetype = gfab.getEdgeType();
-                Array4<Type_t const> const& xdg = edgetype[0].const_array();
-                Array4<Type_t const> const& ydg = edgetype[1].const_array();
-                Array4<Type_t const> const& zdg = edgetype[2].const_array();
+                    auto& edgetype = gfab.getEdgeType();
+                    Array4<Type_t const> const& xdg = edgetype[0].const_array();
+                    Array4<Type_t const> const& ydg = edgetype[1].const_array();
+                    Array4<Type_t const> const& zdg = edgetype[2].const_array();
 
-                Array4<Real> const& xip = m_edgecent[0].array(mfi);
-                Array4<Real> const& yip = m_edgecent[1].array(mfi);
-                Array4<Real> const& zip = m_edgecent[2].array(mfi);
+                    Array4<Real> const& xip = m_edgecent[0].array(mfi);
+                    Array4<Real> const& yip = m_edgecent[1].array(mfi);
+                    Array4<Real> const& zip = m_edgecent[2].array(mfi);
 
-                if (iter == 0) {
+                    if (iter == 0 && biter == 0) {
 #ifdef AMREX_USE_GPU
-                    if (hybrid) {
-                        Gpu::streamSynchronize();
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            edgetype[idim].prefetchToHost();
-                            m_edgecent[idim][mfi].prefetchToHost();
+                        if (hybrid) {
+                            Gpu::streamSynchronize();
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                edgetype[idim].prefetchToHost();
+                                m_edgecent[idim][mfi].prefetchToHost();
+                            }
                         }
-                    }
 #endif
 
-                    gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst,
-                                       geom, gshop_run_on, bounding_box);
+                        gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst,
+                                           geom, gshop_run_on, bounding_box);
 
 #ifdef AMREX_USE_GPU
-                    if (hybrid) {
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            edgetype[idim].prefetchToDevice();
-                            m_edgecent[idim][mfi].prefetchToDevice();
+                        if (hybrid) {
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                edgetype[idim].prefetchToDevice();
+                                m_edgecent[idim][mfi].prefetchToDevice();
+                            }
                         }
-                    }
 #endif
-                } else {
-                    gshop.updateIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst, geom);
-                }
+                    } else {
+                        gshop.updateIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst, geom);
+                    }
 
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    const Box& b = facetype[idim].box();
-                    M2[idim].resize(b,3);
-                }
-                Array4<Real> const& xm2 = M2[0].array();
-                Array4<Real> const& ym2 = M2[1].array();
-                Array4<Real> const& zm2 = M2[2].array();
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        const Box& b = facetype[idim].box();
+                        M2[idim].resize(b,3);
+                    }
+                    Array4<Real> const& xm2 = M2[0].array();
+                    Array4<Real> const& ym2 = M2[1].array();
+                    Array4<Real> const& zm2 = M2[2].array();
 
-                nmc = build_faces(vbx, cfg, ftx, fty, ftz, xdg, ydg, zdg, lst,
-                                  xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
-                                  xm2, ym2, zm2, dx, problo, cover_multiple_cuts);
+                    nmc = build_faces(vbx, cfg, ftx, fty, ftz, xdg, ydg, zdg, lst,
+                                      xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
+                                      xm2, ym2, zm2, dx, problo, cover_multiple_cuts);
 
-                cellflagtmp.resize(m_cellflag[mfi].box());
-                Elixir cellflagtmp_eli = cellflagtmp.elixir();
-                Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
+                    cellflagtmp.resize(m_cellflag[mfi].box());
+                    Elixir cellflagtmp_eli = cellflagtmp.elixir();
+                    Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
 
-                build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
-                            fcx, fcy, fcz, xm2, ym2, zm2, dx, vfr, ctr,
-                            bar, bct, bnm, cfgtmp, lst,
-                            small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
-                            nsm, nmc);
+                    build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
+                                fcx, fcy, fcz, xm2, ym2, zm2, dx, vfr, ctr,
+                                bar, bct, bnm, cfgtmp, lst,
+                                small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
+                                nsm, nmc);
 
-                // Because it is used in a synchronous reduction kernel in
-                // build_cells, we do not need to worry about M2's lifetime.
-                // But we still need to use Elixir to extend the life of
-                // cellflagtmp.
+                    // Because it is used in a synchronous reduction kernel in
+                    // build_cells, we do not need to worry about M2's lifetime.
+                    // But we still need to use Elixir to extend the life of
+                    // cellflagtmp.
 
 #elif (AMREX_SPACEDIM == 2)
-                Array4<Real> const& xip = m_edgecent[0].array(mfi);
-                Array4<Real> const& yip = m_edgecent[1].array(mfi);
+                    Array4<Real> const& xip = m_edgecent[0].array(mfi);
+                    Array4<Real> const& yip = m_edgecent[1].array(mfi);
 
-                if (iter == 0) {
+                    if (iter == 0 && biter == 0) {
 #ifdef AMREX_USE_GPU
-                    if (hybrid) {
-                        Gpu::streamSynchronize();
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            facetype[idim].prefetchToHost();
-                            m_edgecent[idim][mfi].prefetchToHost();
+                        if (hybrid) {
+                            Gpu::streamSynchronize();
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                facetype[idim].prefetchToHost();
+                                m_edgecent[idim][mfi].prefetchToHost();
+                            }
                         }
-                    }
 #endif
 
-                    //                         yes, factype[1] and then [0]
-                    gshop.getIntercept({xip,yip},
-                                       {facetype[1].const_array(), facetype[0].const_array()},
-                                       clst, geom, gshop_run_on, bounding_box);
+                        //                         yes, factype[1] and then [0]
+                        gshop.getIntercept({xip,yip},
+                                           {facetype[1].const_array(), facetype[0].const_array()},
+                                           clst, geom, gshop_run_on, bounding_box);
 
 #ifdef AMREX_USE_GPU
-                    if (hybrid) {
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            facetype[idim].prefetchToDevice();
-                            m_edgecent[idim][mfi].prefetchToDevice();
+                        if (hybrid) {
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                facetype[idim].prefetchToDevice();
+                                m_edgecent[idim][mfi].prefetchToDevice();
+                            }
                         }
-                    }
 #endif
-                } else {
-                    gshop.updateIntercept({xip,yip},
-                                          {facetype[1].const_array(), facetype[0].const_array()},
-                                          clst, geom);
+                    } else {
+                        gshop.updateIntercept({xip,yip},
+                                              {facetype[1].const_array(), facetype[0].const_array()},
+                                              clst, geom);
+                    }
+
+                    nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
+                                      dx, problo, cover_multiple_cuts, nsm);
+
+                    build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
+                                bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,
+                                nsm, nmc);
+#endif
+                    nsmallcells += nsm;
+                    nmulticuts  += nmc;
+                    if (iter == 0 || (nsm == 0 && nmc == 0)) { break; }
                 }
-
-                nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
-                                  dx, problo, cover_multiple_cuts, nsm);
-
-                build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
-                            bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,
-                            nsm, nmc);
-#endif
-                nsmallcells += nsm;
-                nmulticuts  += nmc;
             }
         }
 
