@@ -191,103 +191,235 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         });
 
-        // {
-        // amrex::Gpu::streamSynchronize();
-        // BL_PROFILE("SK:MLStateRedistributeKernel2");
+        // Step 1: Stencil classification kernel
+        // Classify cells as inactive (0), standard stencil (1), or grown stencil (2-8)
+        // The marker encodes the grown-axis mask in bits 0-2
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-classify");
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             bool const has_redist_nbors = vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0;
-            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = has_redist_nbors ? 1.0_rt : 0.0_rt;
 
-            if (has_redist_nbors)
-            {
-                // Compute slopes once (depends only on i,j,k, not on neighbors)
-                int nx = 1; int ny = 1; int nz = 1;
+            if (!has_redist_nbors) {
+                slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = 0.0_rt;
+                return;
+            }
 
-                // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
-                //    or do we need to enlarge it?
-                AMREX_D_TERM(Real x_max = -Real(1.e30); Real x_min = Real(1.e30);,
-                             Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
-                             Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
+            // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
+            //    or do we need to enlarge it?
+            AMREX_D_TERM(Real x_max = -Real(1.e30); Real x_min = Real(1.e30);,
+                         Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
+                         Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
 
-                constexpr Real slope_stencil_min_width = Real(0.5);
+            constexpr Real slope_stencil_min_width = Real(0.5);
 #if (AMREX_SPACEDIM == 2)
-                int kkk = 0;
+            int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
-                for(int kkk(-1); kkk<=1; kkk++) {
+            // Prevent loop unrolling to reduce register pressure
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
 #endif
-                for(int jjj(-1); jjj<=1; jjj++) {
-                for(int iii(-1); iii<=1; iii++) {
-                    if (flag(i,j,k).isConnected(iii,jjj,kkk))
-                    {
-                        int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
+            for(int kkk(-1); kkk<=1; kkk++) {
+#endif
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
+            for(int jjj(-1); jjj<=1; jjj++) {
+#ifdef AMREX_USE_GPU
+#pragma unroll 1
+#endif
+            for(int iii(-1); iii<=1; iii++) {
+                if (flag(i,j,k).isConnected(iii,jjj,kkk))
+                {
+                    int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
 
-                        x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
-                        x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
-                        y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
-                        y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
+                    x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                    x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                    y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
+                    y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
 #if (AMREX_SPACEDIM == 3)
-                        z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
-                        z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
+                    z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
+                    z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
 #endif
-                    }
-                AMREX_D_TERM(},},})
-
-                // If we need to grow the stencil, we let it be -nx:nx in the x-direction,
-                //    for example.   Note that nx,ny,nz are either 1 or 2
-                if ( (x_max-x_min) < slope_stencil_min_width ) { nx = 2; }
-                if ( (y_max-y_min) < slope_stencil_min_width ) { ny = 2; }
-#if (AMREX_SPACEDIM == 3)
-                if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
-#endif
-                bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
-                bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
-                bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
-                bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
-#if (AMREX_SPACEDIM == 3)
-                bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
-                bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
-                                   d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
-#endif
-
-                // Compute slopes of Qhat (which is the sum of the qt's) then use
-                //  that for each qt separately
-                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
-                if (nx*ny*nz == 1) {
-                    // Compute slope using 3x3x3 stencil
-                    slopes_eb = amrex_calc_slopes_extdir_eb(
-                                                i,j,k,n,Qhat,cent_hat,vfrac,
-                                                AMREX_D_DECL(fcx,fcy,fcz),flag,
-                                                AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
-                                                AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
-                                                AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                                AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
-                                                max_order);
-                } else {
-                    // Compute slope using grown stencil (no larger than 5x5x5)
-                    slopes_eb = amrex_calc_slopes_extdir_eb_grown(
-                                                i,j,k,n,AMREX_D_DECL(nx,ny,nz),
-                                                Qhat,cent_hat,vfrac,
-                                                AMREX_D_DECL(fcx,fcy,fcz),flag,
-                                                AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
-                                                AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
-                                                AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                                AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
-                                                max_order);
                 }
+            AMREX_D_TERM(},},})
 
-                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
-                             slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
-                             slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
-            } // has_redist_nbors
+            // Build grown-axis mask as an int
+            int mask = 0;
+            if ( (x_max-x_min) < slope_stencil_min_width ) { mask |= 1; }
+            if ( (y_max-y_min) < slope_stencil_min_width ) { mask |= 2; }
+#if (AMREX_SPACEDIM == 3)
+            if ( (z_max-z_min) < slope_stencil_min_width ) { mask |= 4; }
+#endif
+
+            // Store classification code: 0 = inactive, 1 = standard, 2-8 = grown (mask+1)
+            // Values 0-8 are exactly representable in Real, so decoding is exact
+            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real(mask + 1);
         });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-classify
 
+        // Step 2a: Boundary classification kernel
+        // Classify cells as interior (no bdry stencil needed) or boundary
+        // Encoding: 0=inactive, 1-8=interior (mask+1), 11-18=boundary (mask+11)
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-bdry-classify");
+
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
+            if (code_real == 0.0_rt) { return; }  // Inactive cell
+
+            // Compute boundary condition flags on device
+            auto const& bc = d_bcrec_ptr[n];
+            bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
+                                     bc.lo(0) == amrex::BCType::hoextrap);
+            bool const extdir_ihi = (bc.hi(0) == amrex::BCType::ext_dir ||
+                                     bc.hi(0) == amrex::BCType::hoextrap);
+            bool const extdir_jlo = (bc.lo(1) == amrex::BCType::ext_dir ||
+                                     bc.lo(1) == amrex::BCType::hoextrap);
+            bool const extdir_jhi = (bc.hi(1) == amrex::BCType::ext_dir ||
+                                     bc.hi(1) == amrex::BCType::hoextrap);
+#if (AMREX_SPACEDIM == 3)
+            bool const extdir_klo = (bc.lo(2) == amrex::BCType::ext_dir ||
+                                     bc.lo(2) == amrex::BCType::hoextrap);
+            bool const extdir_khi = (bc.hi(2) == amrex::BCType::ext_dir ||
+                                     bc.hi(2) == amrex::BCType::hoextrap);
+#endif
+
+            // Check if this cell needs boundary stencil (reproduces needs_bdry_stencil test)
+            // Note: includes cells one in from the boundary because 4th-order stencils reach domlo+1/domhi-1
+            bool const needs_bdry = (extdir_ilo && i <= domain_ilo+1) || (extdir_ihi && i >= domain_ihi-1) ||
+                                    (extdir_jlo && j <= domain_jlo+1) || (extdir_jhi && j >= domain_jhi-1)
+#if (AMREX_SPACEDIM == 3)
+                                 || (extdir_klo && k <= domain_klo+1) || (extdir_khi && k >= domain_khi-1)
+#endif
+                                    ;
+
+            if (needs_bdry) {
+                // Remap to boundary range: 1-8 -> 11-18
+                // Interior: code in [1,8], Boundary: code in [11,18]
+                slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = code_real + Real(10);
+            }
+            // Interior cells keep their original code values (1-8)
+        });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-bdry-classify
+
+        // Step 2b: Interior slope computation kernel (no boundary logic)
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-slope-interior");
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
+            // Process only interior cells: code in range [1, 8]
+            if (code_real < 1.0_rt || code_real > 8.0_rt) { return; }
+
+            int const code = static_cast<int>(code_real + 0.5_rt);  // Round to nearest
+            int const mask = code - 1;
+            int const nx = (mask & 1) ? 2 : 1;
+            int const ny = (mask & 2) ? 2 : 1;
+#if (AMREX_SPACEDIM == 3)
+            int const nz = (mask & 4) ? 2 : 1;
+#else
+            int const nz = 1;
+#endif
+
+            // Interior path: call the boundary-free slope functions directly
+            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
+            if (nx*ny*nz == 1) {
+                slopes_eb = amrex_calc_slopes_eb(i,j,k,n,Qhat,cent_hat,vfrac,flag,max_order);
+            } else {
+                slopes_eb = amrex_calc_slopes_eb_grown(i,j,k,n,AMREX_D_DECL(nx,ny,nz),
+                                                       Qhat,cent_hat,vfrac,flag,max_order);
+            }
+
+            AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
+                         slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
+                         slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
+        });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-slope-interior
+
+        // Step 2c: Boundary slope computation kernel (with boundary logic)
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-slope-boundary");
+
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
+            // Process only boundary cells: code in range [11, 18]
+            if (code_real < 11.0_rt || code_real > 18.0_rt) { return; }
+
+            // Decode: boundary codes [11,18] -> masks [0,7]
+            int const code = static_cast<int>(code_real + 0.5_rt) - 10;  // Round and map back
+            int const mask = code - 1;
+            int const nx = (mask & 1) ? 2 : 1;
+            int const ny = (mask & 2) ? 2 : 1;
+#if (AMREX_SPACEDIM == 3)
+            int const nz = (mask & 4) ? 2 : 1;
+#else
+            int const nz = 1;
+#endif
+
+            // Compute boundary condition flags on device
+            auto const& bc = d_bcrec_ptr[n];
+            bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
+                                     bc.lo(0) == amrex::BCType::hoextrap);
+            bool const extdir_ihi = (bc.hi(0) == amrex::BCType::ext_dir ||
+                                     bc.hi(0) == amrex::BCType::hoextrap);
+            bool const extdir_jlo = (bc.lo(1) == amrex::BCType::ext_dir ||
+                                     bc.lo(1) == amrex::BCType::hoextrap);
+            bool const extdir_jhi = (bc.hi(1) == amrex::BCType::ext_dir ||
+                                     bc.hi(1) == amrex::BCType::hoextrap);
+#if (AMREX_SPACEDIM == 3)
+            bool const extdir_klo = (bc.lo(2) == amrex::BCType::ext_dir ||
+                                     bc.lo(2) == amrex::BCType::hoextrap);
+            bool const extdir_khi = (bc.hi(2) == amrex::BCType::ext_dir ||
+                                     bc.hi(2) == amrex::BCType::hoextrap);
+#endif
+
+            // Boundary path: call functions with full boundary logic
+            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
+            if (nx*ny*nz == 1) {
+                slopes_eb = amrex_calc_slopes_extdir_eb(
+                                            i,j,k,n,Qhat,cent_hat,vfrac,
+                                            AMREX_D_DECL(fcx,fcy,fcz),flag,
+                                            AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
+                                            AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
+                                            AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                            AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                            max_order);
+            } else {
+                slopes_eb = amrex_calc_slopes_extdir_eb_grown(
+                                            i,j,k,n,AMREX_D_DECL(nx,ny,nz),
+                                            Qhat,cent_hat,vfrac,
+                                            AMREX_D_DECL(fcx,fcy,fcz),flag,
+                                            AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
+                                            AMREX_D_DECL(extdir_ihi, extdir_jhi, extdir_khi),
+                                            AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                            AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                            max_order);
+            }
+
+            AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
+                         slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
+                         slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
+        });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-slope-boundary
+
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-limiter");
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -309,7 +441,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                              slopes_eb_arr(i,j,k,2) = slope_z;);
             } // activity marker
         });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-limiter
 
+
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-scatter");        
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -420,8 +558,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             } // vfrac > 0 && itracker > 0
 
         });
-        // amrex::Gpu::streamSynchronize();
-        // }
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-scatter
     } // loop over n = 0, ncomp-1
 
     amrex::ParallelFor(bx,ncomp,
