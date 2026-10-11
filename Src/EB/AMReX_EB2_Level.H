@@ -831,6 +831,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
     {
         Level fine_level_2(is, fineLevel.m_geom);
         fine_level_2.prepareForCoarsening(fineLevel, max_grid_size, amrex::scale(m_ngrow,2));
+        if (fine_level_2.isAllRegular()) {
+            m_allregular = true;
+            m_ok = true;
+            return;
+        }
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
     }
