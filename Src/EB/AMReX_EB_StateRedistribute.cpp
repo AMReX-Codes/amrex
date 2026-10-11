@@ -369,7 +369,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
             if (mask == 0) {
                 // Standard 3x3x3 stencil (nx=ny=nz=1)
-                slopes_eb = amrex_calc_slopes_extdir_eb(
+                slopes_eb = amrex_calc_slopes_extdir_eb<true>(
                                             i,j,k,n,Qhat,cent_hat,vfrac,
                                             AMREX_D_DECL(fcx,fcy,fcz),flag,
                                             AMREX_D_DECL(extdir_ilo, extdir_jlo, extdir_klo),
@@ -386,7 +386,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #else
                 int const nz = 1;
 #endif
-                slopes_eb = amrex_calc_slopes_extdir_eb_grown(
+                slopes_eb = amrex_calc_slopes_extdir_eb_grown<true>(
                                             i,j,k,n,AMREX_D_DECL(nx,ny,nz),
                                             Qhat,cent_hat,vfrac,
                                             AMREX_D_DECL(fcx,fcy,fcz),flag,
