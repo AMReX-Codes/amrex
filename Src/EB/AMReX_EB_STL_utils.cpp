@@ -857,8 +857,15 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
         centmax.max(cent);
     }
     int max_dir = (centmax-centmin).maxDir(false);
-    std::sort(begin, end, [max_dir] (Triangle const& a, Triangle const& b) -> bool
-                              { return a.cent(max_dir) < b.cent(max_dir); });
+    // Sort stored keys.  Recomputing the centroid in the comparator is not
+    // a strict weak ordering under -ffast-math and std::sort runs off the
+    // array.  Ties are broken by index so the order is deterministic.
+    Vector<std::pair<Real,int>> keys(ntri);
+    for (int i = 0; i < ntri; ++i) { keys[i] = {begin[i].cent(max_dir), i}; }
+    std::sort(keys.begin(), keys.end());
+    Vector<Triangle> sorted(ntri);
+    for (int i = 0; i < ntri; ++i) { sorted[i] = begin[keys[i].second]; }
+    std::copy(sorted.begin(), sorted.end(), begin);
 
     int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
     int tsize = ntri / nsplits;
