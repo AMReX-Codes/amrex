@@ -191,9 +191,10 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         });
 
-        // Step 1: Stencil classification kernel
-        // Classify cells as inactive (0), standard stencil (1), or grown stencil (2-8)
-        // The marker encodes the grown-axis mask in bits 0-2
+        // Step 1: Combined stencil and boundary classification kernel
+        // Classify cells as inactive (0), interior (1-8), or boundary (11-18)
+        // The mask encodes the grown-axis requirements in bits 0-2
+        // Encoding: 0=inactive, 1-8=interior (mask+1), 11-18=boundary (mask+11)
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-classify");
@@ -218,16 +219,16 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
             // Prevent loop unrolling to reduce register pressure
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_CUDA
 #pragma unroll 1
 #endif
             for(int kkk(-1); kkk<=1; kkk++) {
 #endif
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_CUDA
 #pragma unroll 1
 #endif
             for(int jjj(-1); jjj<=1; jjj++) {
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_CUDA
 #pragma unroll 1
 #endif
             for(int iii(-1); iii<=1; iii++) {
@@ -254,26 +255,10 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if ( (z_max-z_min) < slope_stencil_min_width ) { mask |= 4; }
 #endif
 
-            // Store classification code: 0 = inactive, 1 = standard, 2-8 = grown (mask+1)
-            // Values 0-8 are exactly representable in Real, so decoding is exact
-            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real(mask + 1);
-        });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-classify
+            // Base code: mask+1 gives values 1-8
+            int code = mask + 1;
 
-        // Step 2a: Boundary classification kernel
-        // Classify cells as interior (no bdry stencil needed) or boundary
-        // Encoding: 0=inactive, 1-8=interior (mask+1), 11-18=boundary (mask+11)
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-bdry-classify");
-
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            Real const code_real = slopes_eb_arr(i,j,k,AMREX_SPACEDIM);
-            if (code_real == 0.0_rt) { return; }  // Inactive cell
-
+            // Check if this cell needs boundary stencil (reproduces needs_bdry_stencil test)
             // Compute boundary condition flags on device
             auto const& bc = d_bcrec_ptr[n];
             bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
@@ -291,7 +276,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                      bc.hi(2) == amrex::BCType::hoextrap);
 #endif
 
-            // Check if this cell needs boundary stencil (reproduces needs_bdry_stencil test)
             // Note: includes cells one in from the boundary because 4th-order stencils reach domlo+1/domhi-1
             bool const needs_bdry = (extdir_ilo && i <= domain_ilo+1) || (extdir_ihi && i >= domain_ihi-1) ||
                                     (extdir_jlo && j <= domain_jlo+1) || (extdir_jhi && j >= domain_jhi-1)
@@ -300,15 +284,14 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #endif
                                     ;
 
+            // Store classification: interior cells (1-8) or boundary cells (11-18)
             if (needs_bdry) {
-                // Remap to boundary range: 1-8 -> 11-18
-                // Interior: code in [1,8], Boundary: code in [11,18]
-                slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = code_real + Real(10);
+                code += 10;  // Remap to boundary range: 1-8 -> 11-18
             }
-            // Interior cells keep their original code values (1-8)
+            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real(code);
         });
         amrex::Gpu::streamSynchronize();
-        } // Kernel2-bdry-classify
+        } // Kernel2-classify
 
         // Step 2b: Interior slope computation kernel (no boundary logic)
         {
