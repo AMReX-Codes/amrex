@@ -759,7 +759,8 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     }
 
     // The other reference points are shifted from the first one along the
-    // bounding box face it is outside of, so that they stay on the same side.
+    // bounding box face it is outside of, and away from the box, so that a
+    // ray to a node near a face on the box does not run nearly in that face.
     {
         Real const pmin[] = {m_ptmin.x, m_ptmin.y, m_ptmin.z};
         Real const pmax[] = {m_ptmax.x, m_ptmax.y, m_ptmax.z};
@@ -775,12 +776,15 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         constexpr Real shift[STLtools::m_num_ref-1][2] = {{Real( 0.0137), Real( 0.0291)},
                                                           {Real(-0.0241), Real( 0.0173)},
                                                           {Real( 0.0313), Real(-0.0119)}};
+        constexpr Real shift_out[STLtools::m_num_ref-1] = {Real(0.17), Real(0.29), Real(0.41)};
+        Real const out = (p0[dir_out] > pmax[dir_out]) ? Real(1.0) : Real(-1.0);
         for (int n = 1; n < m_num_ref; ++n) {
             Real p[] = {p0[0], p0[1], p0[2]};
             int m = 0;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 if (d != dir_out) { p[d] += shift[n-1][m++] * hmax; }
             }
+            p[dir_out] += out * shift_out[n-1] * hmax;
             m_ptref[n] = XDim3{.x = p[0], .y = p[1], .z = p[2]};
         }
     }
