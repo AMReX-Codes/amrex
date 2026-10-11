@@ -256,7 +256,7 @@ IF_roundoff (F const& f, IntVect const& iv, Real fv, Array4<Real const> const& f
                 } else {
                     GpuArray<Real,AMREX_SPACEDIM> p;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                        p[d] = problo[d] + Real(ivn[d])*dx[d];
+                        p[d] = node_coord(problo[d], ivn[d], dx[d]);
                     }
                     fn = IF_f(f, p);
                 }
@@ -282,15 +282,15 @@ ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
 {
     GpuArray<Real,AMREX_SPACEDIM> p;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        p[d] = problo[d] + Real(amrex::Clamp(ivz[d],blo[d],bhi[d]))*dx[d];
+        p[d] = node_coord(problo[d], amrex::Clamp(ivz[d],blo[d],bhi[d]), dx[d]);
     }
     Real const tol = IF_roundoff(f, ivz, IF_f(f, p), lst, problo, dx, IF_invdist2(dx), size,
                                  blo, bhi);
     IntVect ivf = ivz;
     ivf[rangedir] += side;
     Real a = p[rangedir];
-    Real b = problo[rangedir] + Real(amrex::Clamp(ivf[rangedir],blo[rangedir],bhi[rangedir]))
-        * dx[rangedir];
+    Real b = node_coord(problo[rangedir], amrex::Clamp(ivf[rangedir],blo[rangedir],bhi[rangedir]),
+                        dx[rangedir]);
     Real const xtol = Real(4.0) * std::numeric_limits<Real>::epsilon()
         * amrex::max(std::abs(a), std::abs(b), std::abs(problo[rangedir]));
     Real const x0 = a;
@@ -459,9 +459,9 @@ public:
         amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                                   problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                                   problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2])});
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
+                                                   node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
+                                                   node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2]))});
         });
         IntVect const glo = bounding_box.smallEnd();
         IntVect const ghi = bounding_box.bigEnd();
@@ -518,9 +518,9 @@ public:
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(j,k);
-                fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(amrex::Clamp(i,blo.x,bhi.x))*dx[0],
-                                           problo[1]+Real(amrex::Clamp(j,blo.y,bhi.y))*dx[1],
-                                           problo[2]+Real(amrex::Clamp(k,blo.z,bhi.z))*dx[2]));
+                fv(i,j,k) = f(AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
+                                           node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
+                                           node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2])));
             });
             IntVect const glo = bounding_box.smallEnd();
             IntVect const ghi = bounding_box.bigEnd();
@@ -609,9 +609,9 @@ public:
         AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx2, i, j, k,
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = f(AMREX_D_DECL(problo[0]+Real(i)*dx[0],
-                                       problo[1]+Real(j)*dx[1],
-                                       problo[2]+Real(k)*dx[2]));
+            fv(i,j,k) = f(AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
+                                       node_coord(problo[1], j, dx[1]),
+                                       node_coord(problo[2], k, dx[2])));
         });
         if (ibx2 != gbx2) {
             AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx2, i, j, k,
@@ -701,9 +701,9 @@ public:
         amrex::LoopOnCpu(ibx2, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+Real(i)*dx[0],
-                                                   problo[1]+Real(j)*dx[1],
-                                                   problo[2]+Real(k)*dx[2])});
+            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
+                                                   node_coord(problo[1], j, dx[1]),
+                                                   node_coord(problo[2], k, dx[2]))});
         });
         if (ibx2 != gbx2) {
             amrex::LoopOnCpu(gbx2, [&] (int i, int j, int k) noexcept
@@ -802,12 +802,12 @@ public:
                                                         bloiv, bhiiv);
                     } else {
                         inter(i,j,k) = BrentRootFinder
-                            ({AMREX_D_DECL(problo[0]+Real(amrex::Clamp(ivlo[0],blo.x,bhi.x))*dx[0],
-                                           problo[1]+Real(amrex::Clamp(ivlo[1],blo.y,bhi.y))*dx[1],
-                                           problo[2]+Real(amrex::Clamp(ivlo[2],blo.z,bhi.z))*dx[2])},
-                             {AMREX_D_DECL(problo[0]+Real(amrex::Clamp(ivhi[0],blo.x,bhi.x))*dx[0],
-                                           problo[1]+Real(amrex::Clamp(ivhi[1],blo.y,bhi.y))*dx[1],
-                                           problo[2]+Real(amrex::Clamp(ivhi[2],blo.z,bhi.z))*dx[2])},
+                            ({AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(ivlo[0],blo.x,bhi.x), dx[0]),
+                                           node_coord(problo[1], amrex::Clamp(ivlo[1],blo.y,bhi.y), dx[1]),
+                                           node_coord(problo[2], amrex::Clamp(ivlo[2],blo.z,bhi.z), dx[2]))},
+                             {AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(ivhi[0],blo.x,bhi.x), dx[0]),
+                                           node_coord(problo[1], amrex::Clamp(ivhi[1],blo.y,bhi.y), dx[1]),
+                                           node_coord(problo[2], amrex::Clamp(ivhi[2],blo.z,bhi.z), dx[2]))},
                                 idim, f);
                     }
                 } else {
@@ -900,12 +900,12 @@ public:
                                                     bloiv, bhiiv);
                 } else {
                     inter(i,j,k) = BrentRootFinder
-                        ({AMREX_D_DECL(problo[0]+Real(amrex::Clamp(ivlo[0],blo.x,bhi.x))*dx[0],
-                                       problo[1]+Real(amrex::Clamp(ivlo[1],blo.y,bhi.y))*dx[1],
-                                       problo[2]+Real(amrex::Clamp(ivlo[2],blo.z,bhi.z))*dx[2])},
-                         {AMREX_D_DECL(problo[0]+Real(amrex::Clamp(ivhi[0],blo.x,bhi.x))*dx[0],
-                                       problo[1]+Real(amrex::Clamp(ivhi[1],blo.y,bhi.y))*dx[1],
-                                       problo[2]+Real(amrex::Clamp(ivhi[2],blo.z,bhi.z))*dx[2])},
+                        ({AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(ivlo[0],blo.x,bhi.x), dx[0]),
+                                       node_coord(problo[1], amrex::Clamp(ivlo[1],blo.y,bhi.y), dx[1]),
+                                       node_coord(problo[2], amrex::Clamp(ivlo[2],blo.z,bhi.z), dx[2]))},
+                         {AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(ivhi[0],blo.x,bhi.x), dx[0]),
+                                       node_coord(problo[1], amrex::Clamp(ivhi[1],blo.y,bhi.y), dx[1]),
+                                       node_coord(problo[2], amrex::Clamp(ivhi[2],blo.z,bhi.z), dx[2]))},
                          idim, m_f);
                 }
             } else {
@@ -946,29 +946,29 @@ public:
                             // keeps the intercept from getIntercept.  Other
                             // edges are reset, so an edge that is irregular
                             // again gets a new intercept.
-                            inter(i,j,k) = problo[0] + Real(i)*dx[0];
+                            inter(i,j,k) = node_coord(problo[0], i, dx[0]);
                         }
                         else if (no_inter && lst(i+1,j,k) >= Real(0.0))
                         {
-                            inter(i,j,k) = problo[0] + Real(i+1)*dx[0];
+                            inter(i,j,k) = node_coord(problo[0], i+1, dx[0]);
                         }
                     } else if (idim == 1) {
                         if (no_inter && lst(i,j,k) >= Real(0.0))
                         {
-                            inter(i,j,k) = problo[1] + Real(j)*dx[1];
+                            inter(i,j,k) = node_coord(problo[1], j, dx[1]);
                         }
                         else if (no_inter && lst(i,j+1,k) >= Real(0.0))
                         {
-                            inter(i,j,k) = problo[1] + Real(j+1)*dx[1];
+                            inter(i,j,k) = node_coord(problo[1], j+1, dx[1]);
                         }
                     } else {
                         if (no_inter && lst(i,j,k) >= Real(0.0))
                         {
-                            inter(i,j,k) = problo[2] + Real(k)*dx[2];
+                            inter(i,j,k) = node_coord(problo[2], k, dx[2]);
                         }
                         else if (no_inter && lst(i,j,k+1) >= Real(0.0))
                         {
-                            inter(i,j,k) = problo[2] + Real(k+1)*dx[2];
+                            inter(i,j,k) = node_coord(problo[2], k+1, dx[2]);
                         }
                     }
                 } else {

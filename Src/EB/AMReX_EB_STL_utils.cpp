@@ -986,21 +986,21 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) c
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
 
-    XDim3 blo{.x = plo[0] + static_cast<Real>(box.smallEnd(0))*dx[0],
-              .y = plo[1] + static_cast<Real>(box.smallEnd(1))*dx[1],
+    XDim3 blo{.x = node_coord(plo[0], box.smallEnd(0), dx[0]),
+              .y = node_coord(plo[1], box.smallEnd(1), dx[1]),
 #if (AMREX_SPACEDIM == 2)
               .z = 0._rt
 #else
-              .z = plo[2] + static_cast<Real>(box.smallEnd(2))*dx[2]
+              .z = node_coord(plo[2], box.smallEnd(2), dx[2])
 #endif
     };
 
-    XDim3 bhi{.x = plo[0] + static_cast<Real>(box.bigEnd(0))*dx[0],
-              .y = plo[1] + static_cast<Real>(box.bigEnd(1))*dx[1],
+    XDim3 bhi{.x = node_coord(plo[0], box.bigEnd(0), dx[0]),
+              .y = node_coord(plo[1], box.bigEnd(1), dx[1]),
 #if (AMREX_SPACEDIM == 2)
               .z = 0._rt
 #else
-              .z = plo[2] + static_cast<Real>(box.bigEnd(2))*dx[2]
+              .z = node_coord(plo[2], box.bigEnd(2), dx[2])
 #endif
     };
 
@@ -1040,13 +1040,13 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) c
             for (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real coords[3];
-                coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-                coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+                coords[0]=node_coord(plo[0], i, dx[0]);
+                coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
                 coords[2]=Real(0.);
 #else
-                coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+                coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
                 if (coords[0] < ptmin.x || coords[0] > ptmax.x ||
                     coords[1] < ptmin.y || coords[1] > ptmax.y ||
@@ -1086,13 +1086,13 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) c
                [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) -> ReduceTuple
         {
             Real coords[3];
-            coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-            coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+            coords[0]=node_coord(plo[0], i, dx[0]);
+            coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
             amrex::ignore_unused(k);
             coords[2]=Real(0.);
 #else
-            coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+            coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
             int parity = 0;
             if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -1151,12 +1151,12 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
                 bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
     {
         Real coords[3];
-        coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-        coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+        coords[0]=node_coord(plo[0], i, dx[0]);
+        coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
         coords[2]=Real(0.);
 #else
-        coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+        coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
         int parity = 0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -1210,16 +1210,16 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 #endif
             Real r = EB2::no_intercept;
             if (type(i,j,k) == EB2::Type::irregular) {
-                XDim3 p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
-                         .y = plo[1]+static_cast<Real>(j)*dx[1],
+                XDim3 p1{.x = node_coord(plo[0], i, dx[0]),
+                         .y = node_coord(plo[1], j, dx[1]),
 #if (AMREX_SPACEDIM == 2)
                          .z = Real(0.)
 #else
-                         .z = plo[2]+static_cast<Real>(k)*dx[2]
+                         .z = node_coord(plo[2], k, dx[2])
 #endif
                 };
                 if (idim == 0) {
-                    Real x2 = plo[0]+static_cast<Real>(i+1)*dx[0];
+                    Real x2 = node_coord(plo[0], i+1, dx[0]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1262,7 +1262,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         r = (lst(i,j,k) >= 0._rt) ? p1.x : x2;
                     }
                 } else if (idim == 1) {
-                    Real y2 = plo[1]+static_cast<Real>(j+1)*dx[1];
+                    Real y2 = node_coord(plo[1], j+1, dx[1]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1313,7 +1313,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                 }
 #if (AMREX_SPACEDIM == 3)
                 else {
-                    Real z2 = plo[2]+static_cast<Real>(k+1)*dx[2];
+                    Real z2 = node_coord(plo[2], k+1, dx[2]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1394,29 +1394,29 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         // keeps the intercept from getIntercept.  Other
                         // edges are reset, so an edge that is irregular
                         // again gets a new intercept.
-                        inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
+                        inter(i,j,k) = node_coord(problo[0], i, dx[0]);
                     }
                     else if (no_inter && lst(i+1,j,k) >= Real(0.0))
                     {
-                        inter(i,j,k) = problo[0] + static_cast<Real>(i+1)*dx[0];
+                        inter(i,j,k) = node_coord(problo[0], i+1, dx[0]);
                     }
                 } else if (idim == 1) {
                     if (no_inter && lst(i,j,k) >= Real(0.0))
                     {
-                        inter(i,j,k) = problo[1] + static_cast<Real>(j)*dx[1];
+                        inter(i,j,k) = node_coord(problo[1], j, dx[1]);
                     }
                     else if (no_inter && lst(i,j+1,k) >= Real(0.0))
                     {
-                        inter(i,j,k) = problo[1] + static_cast<Real>(j+1)*dx[1];
+                        inter(i,j,k) = node_coord(problo[1], j+1, dx[1]);
                     }
                 } else {
                     if (no_inter && lst(i,j,k) >= Real(0.0))
                     {
-                        inter(i,j,k) = problo[2] + static_cast<Real>(k)*dx[2];
+                        inter(i,j,k) = node_coord(problo[2], k, dx[2]);
                     }
                     else if (no_inter && lst(i,j,k+1) >= Real(0.0))
                     {
-                        inter(i,j,k) = problo[2] + static_cast<Real>(k+1)*dx[2];
+                        inter(i,j,k) = node_coord(problo[2], k+1, dx[2]);
                     }
                 }
             } else {
