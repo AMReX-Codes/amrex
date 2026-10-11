@@ -789,10 +789,10 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         XDim3 const ptref = m_ptref[n];
         bool const ref_positive = (ptref.x-cent0.x)*norm0.x + (ptref.y-cent0.y)*norm0.y
                                 + (ptref.z-cent0.z)*norm0.z > Real(0.0);
-        ReduceOps<ReduceOpSum,ReduceOpMax> reduce_op;
-        ReduceData<int,int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(m_num_tri, reduce_data, [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+        ReduceOps<ReduceOpSum,ReduceOpMax> isect_op;
+        ReduceData<int,int> isect_data(isect_op);
+        using IsectTuple = typename decltype(isect_data)::Type;
+        isect_op.eval(m_num_tri, isect_data, [=] AMREX_GPU_DEVICE (int i) -> IsectTuple
         {
             if (i == 0) { return {0, 0}; }
             Real const p1[] = {ptref.x, ptref.y, ptref.z};
@@ -801,10 +801,10 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
             int const hit = static_cast<int>(line_tri_intersects(p1, p2, tri_pts[i], &ambiguous));
             return {hit, static_cast<int>(ambiguous)};
         });
-        ReduceTuple const hv = reduce_data.value(reduce_op);
-        int const num_isects = amrex::get<0>(hv) + (ref_positive ? 0 : 1);
+        IsectTuple const isect = isect_data.value(isect_op);
+        int const num_isects = amrex::get<0>(isect) + (ref_positive ? 0 : 1);
         m_boundry_is_outside = num_isects % 2 == 0;
-        if (amrex::get<1>(hv) == 0) { break; }
+        if (amrex::get<1>(isect) == 0) { break; }
     }
 }
 
