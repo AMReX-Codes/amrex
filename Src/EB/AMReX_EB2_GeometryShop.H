@@ -188,7 +188,8 @@ GpuArray<Real,8> IF_invdist2 (GpuArray<Real,AMREX_SPACEDIM> const& dx)
     GpuArray<Real,8> invd2;
     invd2[0] = 0.0_rt;
     for (int m = 1; m < 8; ++m) {
-        invd2[m] = Real(1.0) / (Real(m&1)*d2x + Real((m>>1)&1)*d2y + Real((m>>2)&1)*d2z);
+        Real const den = Real(m&1)*d2x + Real((m>>1)&1)*d2y + Real((m>>2)&1)*d2z;
+        invd2[m] = (den > 0.0_rt) ? Real(1.0)/den : 0.0_rt; // z entries unused in 2D
     }
     return invd2;
 }
