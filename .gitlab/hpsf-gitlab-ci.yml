@@ -106,7 +106,7 @@ AMD-MI300A:
 Intel-PVC:
   extends: .dependency-n-fetch-pr
   tags: [intel-data-center-max-1100]
-  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+  image: intel/oneapi:2026.1.0-devel-ubuntu24.04
   script:
     - sycl-ls
     - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
