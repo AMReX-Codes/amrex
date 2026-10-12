@@ -2092,22 +2092,6 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     const BDKey& srckey = srcfa.getBDKey();
     const BDKey& dstkey = dstfa.getBDKey();
 
-    // A coarsener's result can depend on how the box ends align with the
-    // refinement ratio (e.g., cell bilinear), so compare on one box per
-    // low/high offset.
-    auto same_coarsener = [&] (BoxConverter const& other) -> bool
-    {
-        IntVect const ratio = fgeom.Domain().length() / cgeom.Domain().length();
-        int const rmax = ratio.max();
-        Box const base(IntVect(0), ratio*8-1, dstdomain.ixType());
-        for (int slo = 0; slo < rmax; ++slo) {
-        for (int shi = 0; shi < rmax; ++shi) {
-            Box const b(base.smallEnd()+slo, base.bigEnd()+shi, base.ixType());
-            if (other.doit(b) != coarsener.doit(b)) { return false; }
-        }}
-        return true;
-    };
-
     auto er_it = m_TheFillPatchCache.equal_range(dstkey);
 
     for (auto it = er_it.first; it != er_it.second; ++it)
@@ -2116,8 +2100,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
             it->second->m_dstbdk    == dstkey    &&
             it->second->m_dstdomain == dstdomain &&
             it->second->m_dstng     == dstng     &&
-            it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
-            same_coarsener(*(it->second->m_coarsener)))
+            it->second->m_coarsener->equals(coarsener))
         {
             ++(it->second->m_nuse);
             m_FPinfo_stats.recordUse();
