@@ -337,7 +337,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
         if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-        amrex::ParallelFor(sol, IntVect(0), nc,
+        ParallelForRedBlack(sol, nc, redblack,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             Box vbx(rhsma[box_no]);
