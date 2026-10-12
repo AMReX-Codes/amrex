@@ -249,6 +249,37 @@ int main (int argc, char* argv[])
             phi.setVal(Real(0.0));
             mlmg.solve({&phi}, {&rhs}, reltol, Real(0.0));
             amrex::Print() << "MLMG iterations: " << mlmg.getNumIters() << "\n";
+
+            // -div(A flux) must equal the operator applied to phi.
+            Array<MultiFab,AMREX_SPACEDIM> flux;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                flux[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 0);
+            }
+            mlmg.getFluxes({GetArrOfPtrs(flux)}, {&phi}, MLMG::Location::FaceCenter);
+            MultiFab lphi(ba, dm, 1, 0);
+            mlmg.apply({&lphi}, {&phi});
+            Real const lnorm = lphi.norminf(0);
+            for (MFIter mfi(lphi); mfi.isValid(); ++mfi) {
+                auto const& l = lphi.array(mfi);
+                auto const& fx = flux[0].const_array(mfi);
+                auto const& fy = flux[1].const_array(mfi);
+                auto const& fz = flux[2].const_array(mfi);
+                auto const& ax = area[0].const_array(mfi);
+                auto const& ay = area[1].const_array(mfi);
+                auto const& az = area[2].const_array(mfi);
+                ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    l(i,j,k) += (ax(i+1,j,k)*fx(i+1,j,k) - ax(i,j,k)*fx(i,j,k)) * dxinv[0]
+                        +       (ay(i,j+1,k)*fy(i,j+1,k) - ay(i,j,k)*fy(i,j,k)) * dxinv[1]
+                        +       (az(i,j,k+1)*fz(i,j,k+1) - az(i,j,k)*fz(i,j,k)) * dxinv[2];
+                });
+            }
+            Real const flux_err = lphi.norminf(0) / lnorm;
+            amrex::Print() << "MLMG getFluxes: relative max error " << flux_err << "\n";
+            if (!(flux_err < check_tol)) {
+                amrex::Abort("MLMG getFluxes failed");
+            }
+
             check(phi, "MLMG");
         }
 

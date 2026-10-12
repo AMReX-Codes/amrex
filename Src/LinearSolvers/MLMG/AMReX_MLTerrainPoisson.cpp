@@ -1136,4 +1136,14 @@ MLTerrainPoisson::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& g
     }
 }
 
+void
+MLTerrainPoisson::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                             const Vector<MultiFab*>& a_sol, Location a_loc) const
+{
+    BL_PROFILE("MLMG::getFluxes()");
+    for (int alev = 0; alev < NAMRLevels(); ++alev) {
+        compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
+    }
+}
+
 }

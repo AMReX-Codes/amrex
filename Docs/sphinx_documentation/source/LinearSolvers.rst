@@ -1111,6 +1111,15 @@ the smoother as the bottom solver.
     MLMG mlmg(linop);
     mlmg.solve({&phi}, {&rhs}, reltol, abstol);
 
+:cpp:`MLMG::getFluxes` returns the fluxes without the area factors
+:math:`A`: :math:`-\partial \phi / \partial x` and
+:math:`-\partial \phi / \partial y` on the x- and y-faces, and
+:math:`-(\partial \phi / \partial z - z_\xi \, \partial \phi / \partial x
+- z_\eta \, \partial \phi / \partial y)` on the z-faces, where
+:math:`z_\xi` and :math:`z_\eta` are the slopes of the coordinate
+surfaces.  :cpp:`MLMG::getGradSolution` returns the same with the opposite
+sign.
+
 Open Boundary Poisson Solver
 ============================
 
