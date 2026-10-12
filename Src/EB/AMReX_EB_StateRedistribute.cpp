@@ -222,16 +222,16 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
             // Prevent loop unrolling to reduce register pressure
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #pragma unroll 1
 #endif
             for(int kkk(-1); kkk<=1; kkk++) {
 #endif
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #pragma unroll 1
 #endif
             for(int jjj(-1); jjj<=1; jjj++) {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #pragma unroll 1
 #endif
             for(int iii(-1); iii<=1; iii++) {
