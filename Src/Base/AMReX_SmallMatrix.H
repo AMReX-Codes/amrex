@@ -227,10 +227,10 @@ namespace amrex {
         Identity () noexcept requires (NRows==NCols)
         {
             static_assert(StartIndex == 0 || StartIndex == 1);
-            SmallMatrix<T,NRows,NCols,ORDER,StartIndex> I{};
+            SmallMatrix<T,NRows,NCols,ORDER,StartIndex> mat{};
             constexpr_for<StartIndex,NRows+StartIndex>(
-                [&] (int i) { I(i,i) = T(1); });
-            return I;
+                [&] (int i) { mat(i,i) = T(1); });
+            return mat;
         }
 
         /** Returns the skew-symmetric matrix Omega (symplectic form)

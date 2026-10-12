@@ -92,49 +92,49 @@ namespace Reduce::detail {
 
     // The recursions below mirror for_each_local / for_each_init in AMReX_Reduce.H.
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_FORCE_INLINE
     void for_each_simd_init (T& t)
     {
-        simd_init<P>(amrex::get<I>(t));
+        simd_init<P>(amrex::get<Idx>(t));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_FORCE_INLINE
     void for_each_simd_init (T& t)
     {
-        simd_init<P>(amrex::get<I>(t));
-        for_each_simd_init<I+1,T,P1,Ps...>(t);
+        simd_init<P>(amrex::get<Idx>(t));
+        for_each_simd_init<Idx+1,T,P1,Ps...>(t);
     }
 
-    template <std::size_t I, typename T, typename P>
+    template <std::size_t Idx, typename T, typename P>
     AMREX_FORCE_INLINE
     void for_each_simd_local (T& d, T const& s)
     {
-        simd_local_update<P>(amrex::get<I>(d), amrex::get<I>(s));
+        simd_local_update<P>(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename T, typename P, typename P1, typename... Ps>
     AMREX_FORCE_INLINE
     void for_each_simd_local (T& d, T const& s)
     {
-        simd_local_update<P>(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_simd_local<I+1,T,P1,Ps...>(d, s);
+        simd_local_update<P>(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_simd_local<Idx+1,T,P1,Ps...>(d, s);
     }
 
-    template <std::size_t I, typename TD, typename TS, typename P>
+    template <std::size_t Idx, typename TD, typename TS, typename P>
     AMREX_FORCE_INLINE
     void for_each_horizontal (TD& d, TS const& s)
     {
-        simd_horizontal_update<P>(amrex::get<I>(d), amrex::get<I>(s));
+        simd_horizontal_update<P>(amrex::get<Idx>(d), amrex::get<Idx>(s));
     }
 
-    template <std::size_t I, typename TD, typename TS, typename P, typename P1, typename... Ps>
+    template <std::size_t Idx, typename TD, typename TS, typename P, typename P1, typename... Ps>
     AMREX_FORCE_INLINE
     void for_each_horizontal (TD& d, TS const& s)
     {
-        simd_horizontal_update<P>(amrex::get<I>(d), amrex::get<I>(s));
-        for_each_horizontal<I+1,TD,TS,P1,Ps...>(d, s);
+        simd_horizontal_update<P>(amrex::get<Idx>(d), amrex::get<Idx>(s));
+        for_each_horizontal<Idx+1,TD,TS,P1,Ps...>(d, s);
     }
 
 #endif // AMREX_USE_SIMD && !AMREX_USE_GPU

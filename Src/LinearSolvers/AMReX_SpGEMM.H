@@ -18,15 +18,15 @@ namespace amrex::detail {
 
 //! Row callback of SpGEMM that leaves the rows as they are.
 struct NoRowPost {
-    template <typename I, typename T>
-    Long operator() (Long, I*, T*, Long n) const { return n; }
+    template <typename Index, typename T>
+    Long operator() (Long, Index*, T*, Long n) const { return n; }
 };
 
 //! CSR with `nrows` empty rows.
-template <typename T, template<typename> class V, typename I = Long>
-CSR<T,V,I> spgemm_empty (Long nrows)
+template <typename T, template<typename> class V, typename Index = Long>
+CSR<T,V,Index> spgemm_empty (Long nrows)
 {
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
     auto* p = C.row_offset.data();
     ParallelForOMP(nrows+1, [=] AMREX_GPU_DEVICE (Long i) { p[i] = 0; });
@@ -37,13 +37,13 @@ CSR<T,V,I> spgemm_empty (Long nrows)
 #if !defined(AMREX_USE_GPU)
 
 // Sorts the n entries of a row by column; `tmp` is scratch for long rows.
-template <typename T, typename I>
-void sort_row_cpu (I* AMREX_RESTRICT col, T* AMREX_RESTRICT val, Long n,
-                   Vector<std::pair<I,T>>& tmp)
+template <typename T, typename Index>
+void sort_row_cpu (Index* AMREX_RESTRICT col, T* AMREX_RESTRICT val, Long n,
+                   Vector<std::pair<Index,T>>& tmp)
 {
     if (n <= 32) {
         for (Long k = 1; k < n; ++k) {
-            I const c = col[k];
+            Index const c = col[k];
             T const v = val[k];
             Long m = k;
             for (; m > 0 && col[m-1] > c; --m) {
@@ -72,12 +72,12 @@ void sort_row_cpu (I* AMREX_RESTRICT col, T* AMREX_RESTRICT val, Long n,
  * and copied into the result once all counts are known, so no symbolic
  * pass is needed.
  */
-template <typename T, template<typename> class V, typename I, typename W, typename F>
-CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
+template <typename T, template<typename> class V, typename Index, typename W, typename F>
+CSR<T,V,Index> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
 {
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
-    I* AMREX_RESTRICT crow = C.row_offset.data();
+    Index* AMREX_RESTRICT crow = C.row_offset.data();
     AMREX_ASSUME(crow != nullptr); // gcc -Wnull-dereference false positive
     crow[0] = 0;
 
@@ -106,7 +106,7 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
         auto row = make_row(0);
         Long p = 0;
         for (Long i = 0; i < nrows; ++i) {
-            I const* rc = nullptr;
+            Index const* rc = nullptr;
             T const* rv = nullptr;
             Long const n = row(i, rc, rv);
             if (p + n > Long(C.col_index.size())) {
@@ -119,9 +119,9 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
             std::copy(rc, rc+n, C.col_index.data()+p);
             std::copy(rv, rv+n, C.mat.data()+p);
             p += n;
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p <= Long(std::numeric_limits<I>::max()),
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p <= Long(std::numeric_limits<Index>::max()),
                                              "SpGEMM: too many nonzeros for the index type");
-            crow[i+1] = I(p);
+            crow[i+1] = Index(p);
         }
         C.col_index.resize(p);
         C.mat.resize(p);
@@ -130,7 +130,7 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
     }
 
     struct Buffer {
-        V<I> col;
+        V<Index> col;
         V<T> val;
         Long n = 0;
     };
@@ -144,7 +144,7 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
         auto row = make_row(t);
         auto& bufs = buffers[t];
         for (Long i = rbegin[t]; i < rbegin[t+1]; ++i) {
-            I const* rc = nullptr;
+            Index const* rc = nullptr;
             T const* rv = nullptr;
             Long const n = row(i, rc, rv);
             if (bufs.empty() || bufs.back().n + n > Long(bufs.back().col.size())) {
@@ -156,7 +156,7 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
             std::copy(rc, rc+n, buf.col.data()+buf.n);
             std::copy(rv, rv+n, buf.val.data()+buf.n);
             buf.n += n;
-            crow[i+1] = I(n);
+            crow[i+1] = Index(n);
         }
     }
 
@@ -164,16 +164,16 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
     Long total = 0;
     for (Long i = 0; i < nrows; ++i) {
         Long const cnt = crow[i+1];
-        crow[i] = I(total);
+        crow[i] = Index(total);
         total += cnt;
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(total <= Long(std::numeric_limits<I>::max()),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(total <= Long(std::numeric_limits<Index>::max()),
                                      "SpGEMM: too many nonzeros for the index type");
-    crow[nrows] = I(total);
+    crow[nrows] = Index(total);
     C.nnz = total;
     C.col_index.resize(C.nnz);
     C.mat.resize(C.nnz);
-    I* AMREX_RESTRICT ccol = C.col_index.data();
+    Index* AMREX_RESTRICT ccol = C.col_index.data();
     T* AMREX_RESTRICT cmat = C.mat.data();
 
 #ifdef AMREX_USE_OMP
@@ -196,10 +196,10 @@ CSR<T,V,I> csr_from_rows_cpu (Long nrows, W const& work, F const& make_row)
 // column in the current row. Output rows are sorted, then passed to
 // `row_post(i, col, val, n)`, which may change them in place and returns
 // the new length.
-template <typename T, template<typename> class V, typename I, typename F = NoRowPost>
-CSR<T,V,I> spgemm_local_cpu (Long nrows, Long ncols,
-                             CsrView<T const,I> const& A, CsrView<T const,I> const& B,
-                             F const& row_post = {})
+template <typename T, template<typename> class V, typename Index, typename F = NoRowPost>
+CSR<T,V,Index> spgemm_local_cpu (Long nrows, Long ncols,
+                                 CsrView<T const,Index> const& A, CsrView<T const,Index> const& B,
+                                 F const& row_post = {})
 {
     auto nprod = [&] (Long i) {
         Long n = 0;
@@ -209,10 +209,10 @@ CSR<T,V,I> spgemm_local_cpu (Long nrows, Long ncols,
         }
         return n;
     };
-    return csr_from_rows_cpu<T,V,I>(nrows, nprod, [&] (int) {
-        return [&, marker = Vector<I>(ncols, I(-1)), col = Vector<I>(), val = Vector<T>(),
-                tmp = Vector<std::pair<I,T>>()]
-            (Long i, I const*& rc, T const*& rv) mutable -> Long
+    return csr_from_rows_cpu<T,V,Index>(nrows, nprod, [&] (int) {
+        return [&, marker = Vector<Index>(ncols, Index(-1)), col = Vector<Index>(), val = Vector<T>(),
+                tmp = Vector<std::pair<Index,T>>()]
+            (Long i, Index const*& rc, T const*& rv) mutable -> Long
         {
             Long const maxlen = std::min(nprod(i), ncols);
             if (Long(col.size()) < maxlen) {
@@ -224,12 +224,12 @@ CSR<T,V,I> spgemm_local_cpu (Long nrows, Long ncols,
                 Long const k = A.col_index[ap];
                 T const a = A.mat[ap];
                 for (Long bp = B.row_offset[k]; bp < B.row_offset[k+1]; ++bp) {
-                    I const j = B.col_index[bp];
+                    Index const j = B.col_index[bp];
                     Long const m = marker[j]; // may be left over from an earlier row
                     if (m >= 0 && m < n && col[m] == j) {
                         val[m] += a * B.mat[bp];
                     } else {
-                        marker[j] = I(n);
+                        marker[j] = Index(n);
                         col[n] = j;
                         val[n] = a * B.mat[bp];
                         ++n;
@@ -256,11 +256,11 @@ CSR<T,V,I> spgemm_local_cpu (Long nrows, Long ncols,
  * of spgemm_local_cpu on the concatenated blocks. `row_post` is as in
  * spgemm_local_cpu.
  */
-template <typename T, template<typename> class V, typename I, typename F>
-CSR<T,V,I> spgemm_split_cpu (Long nrows, Long ncols, Long nb,
-                             CsrView<T const,I> const& A0, CsrView<T const,I> const& A1,
-                             CsrView<T const,I> const& B0, CsrView<T const,I> const& B1,
-                             I const* b1map, CsrView<T const,I> const& E, F const& row_post)
+template <typename T, template<typename> class V, typename Index, typename F>
+CSR<T,V,Index> spgemm_split_cpu (Long nrows, Long ncols, Long nb,
+                                 CsrView<T const,Index> const& A0, CsrView<T const,Index> const& A1,
+                                 CsrView<T const,Index> const& B0, CsrView<T const,Index> const& B1,
+                                 Index const* b1map, CsrView<T const,Index> const& E, F const& row_post)
 {
     auto blen = [&] (Long k) -> Long {
         if (k < nb) {
@@ -278,10 +278,10 @@ CSR<T,V,I> spgemm_split_cpu (Long nrows, Long ncols, Long nb,
         }
         return n;
     };
-    return csr_from_rows_cpu<T,V,I>(nrows, nprod, [&] (int) {
-        return [&, marker = Vector<I>(ncols, I(-1)), col = Vector<I>(), val = Vector<T>(),
-                tmp = Vector<std::pair<I,T>>()]
-            (Long i, I const*& rc, T const*& rv) mutable -> Long
+    return csr_from_rows_cpu<T,V,Index>(nrows, nprod, [&] (int) {
+        return [&, marker = Vector<Index>(ncols, Index(-1)), col = Vector<Index>(), val = Vector<T>(),
+                tmp = Vector<std::pair<Index,T>>()]
+            (Long i, Index const*& rc, T const*& rv) mutable -> Long
         {
             Long const maxlen = std::min(nprod(i), ncols);
             if (Long(col.size()) < maxlen) {
@@ -289,12 +289,12 @@ CSR<T,V,I> spgemm_split_cpu (Long nrows, Long ncols, Long nb,
                 val.resize(maxlen);
             }
             Long n = 0;
-            auto add = [&] (I j, T x) {
+            auto add = [&] (Index j, T x) {
                 Long const m = marker[j]; // may be left over from an earlier row
                 if (m >= 0 && m < n && col[m] == j) {
                     val[m] += x;
                 } else {
-                    marker[j] = I(n);
+                    marker[j] = Index(n);
                     col[n] = j;
                     val[n] = x;
                     ++n;
@@ -343,11 +343,11 @@ CSR<T,V,I> spgemm_split_cpu (Long nrows, Long ncols, Long nb,
  * to col/val at position p, with the same sums as spgemm_local_cpu, but
  * leaves it unsorted.
  */
-template <typename T, typename I>
+template <typename T, typename Index>
 struct APRowsCpu
 {
-    CsrView<T const,I> A0, A1, P0, P1, PE;
-    I const* p1map = nullptr;
+    CsrView<T const,Index> A0, A1, P0, P1, PE;
+    Index const* p1map = nullptr;
 
     [[nodiscard]] Long plen (Long k) const {
         return (P0.row_offset[k+1] - P0.row_offset[k])
@@ -369,14 +369,14 @@ struct APRowsCpu
 
     //! `marker[j]` holds the position of column j; positions before p are
     //! from earlier rows. col/val must have room for maxlen(i) more entries.
-    Long row (Long i, I* marker, I* col, T* val, Long p) const {
+    Long row (Long i, Index* marker, Index* col, T* val, Long p) const {
         Long const rs = p;
-        auto add = [&] (I j, T x) {
+        auto add = [&] (Index j, T x) {
             Long const m = marker[j]; // may be left over from elsewhere
             if (m >= rs && m < p && col[m] == j) {
                 val[m] += x;
             } else {
-                marker[j] = I(p);
+                marker[j] = Index(p);
                 col[p] = j;
                 val[p] = x;
                 ++p;
@@ -417,10 +417,10 @@ struct APRowsCpu
  * stored in full. The sums are done in the same order as
  * SpGEMM(R, SpGEMM(A, P)). Output rows are sorted.
  */
-template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> rap_local_cpu (Long nf, Long nc, Long ncols,
-                          CsrView<T const,I> const& R0, CsrView<T const,I> const& R1,
-                          CsrView<T const,I> const& APE, APRowsCpu<T,I> const& ap)
+template <typename T, template<typename> class V, typename Index>
+CSR<T,V,Index> rap_local_cpu (Long nf, Long nc, Long ncols,
+                              CsrView<T const,Index> const& R0, CsrView<T const,Index> const& R1,
+                              CsrView<T const,Index> const& APE, APRowsCpu<T,Index> const& ap)
 {
     constexpr Long chunk_rows = 1024;
     Long const nchunks = (nf + chunk_rows - 1) / chunk_rows;
@@ -455,17 +455,17 @@ CSR<T,V,I> rap_local_cpu (Long nf, Long nc, Long ncols,
 
     struct Chunk {
         Vector<Long> off;
-        Vector<I> col;
+        Vector<Index> col;
         Vector<T> val;
     };
 
-    return csr_from_rows_cpu<T,V,I>(nc, work, [&] (int) {
-        return [&, cmarker = Vector<I>(ncols, I(-1)), marker = Vector<I>(ncols, I(-1)),
+    return csr_from_rows_cpu<T,V,Index>(nc, work, [&] (int) {
+        return [&, cmarker = Vector<Index>(ncols, Index(-1)), marker = Vector<Index>(ncols, Index(-1)),
                 slot = Vector<int>(nchunks, -1), chunks = Vector<Chunk>(),
                 live = Vector<Long>(), free_slots = Vector<int>(),
                 next_release = std::numeric_limits<Long>::max(),
-                col = Vector<I>(), val = Vector<T>(), tmp = Vector<std::pair<I,T>>()]
-            (Long c, I const*& rc, T const*& rv) mutable -> Long
+                col = Vector<Index>(), val = Vector<T>(), tmp = Vector<std::pair<Index,T>>()]
+            (Long c, Index const*& rc, T const*& rv) mutable -> Long
         {
             auto compute_chunk = [&] (Long q) {
                 int s;
@@ -534,12 +534,12 @@ CSR<T,V,I> rap_local_cpu (Long nf, Long nc, Long ncols,
             }
 
             Long n = 0;
-            auto add = [&] (I j, T x) {
+            auto add = [&] (Index j, T x) {
                 Long const m = marker[j]; // may be left over from an earlier row
                 if (m >= 0 && m < n && col[m] == j) {
                     val[m] += x;
                 } else {
-                    marker[j] = I(n);
+                    marker[j] = Index(n);
                     col[n] = j;
                     val[n] = x;
                     ++n;
@@ -583,11 +583,11 @@ inline void spgemm_cusparse_check (cusparseStatus_t status)
     AMREX_CUSPARSE_SAFE_CALL(status);
 }
 
-template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
-                                  CsrView<T const,I> const& A, CsrView<T const,I> const& B)
+template <typename T, template<typename> class V, typename Index>
+CSR<T,V,Index> spgemm_local_cusparse (Long nrows, Long ncols,
+                                      CsrView<T const,Index> const& A, CsrView<T const,Index> const& B)
 {
-    static_assert(std::is_same_v<I,int>, "spgemm_local_cusparse: 32-bit indices only");
+    static_assert(std::is_same_v<Index,int>, "spgemm_local_cusparse: 32-bit indices only");
 
     cudaDataType data_type;
     if constexpr (std::is_same_v<T,float>) {
@@ -605,7 +605,7 @@ CSR<T,V,I> spgemm_local_cusparse (Long nrows, Long ncols,
     AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
                         ncols < Long(std::numeric_limits<int>::max()));
 
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
 
     // Releases everything, also when an OutOfMemoryError is thrown.
@@ -709,11 +709,11 @@ inline void spgemm_rocsparse_check (rocsparse_status status)
     AMREX_ROCSPARSE_SAFE_CALL(status);
 }
 
-template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
-                                   CsrView<T const,I> const& A, CsrView<T const,I> const& B)
+template <typename T, template<typename> class V, typename Index>
+CSR<T,V,Index> spgemm_local_rocsparse (Long nrows, Long ncols,
+                                       CsrView<T const,Index> const& A, CsrView<T const,Index> const& B)
 {
-    static_assert(std::is_same_v<I,int>, "spgemm_local_rocsparse: 32-bit indices only");
+    static_assert(std::is_same_v<Index,int>, "spgemm_local_rocsparse: 32-bit indices only");
 
     AMREX_ALWAYS_ASSERT(nrows < Long(std::numeric_limits<int>::max()) &&
                         ncols < Long(std::numeric_limits<int>::max()));
@@ -734,7 +734,7 @@ CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
     constexpr rocsparse_indextype index_type = rocsparse_indextype_i32;
     constexpr rocsparse_index_base index_base = rocsparse_index_base_zero;
 
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
 
     // Releases everything, also when an OutOfMemoryError is thrown.
@@ -822,16 +822,16 @@ CSR<T,V,I> spgemm_local_rocsparse (Long nrows, Long ncols,
 
 #elif defined(AMREX_USE_SYCL)
 
-template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
-                                CsrView<T const,I> const& A, CsrView<T const,I> const& B)
+template <typename T, template<typename> class V, typename Index>
+CSR<T,V,Index> spgemm_local_onemkl (Long nrows, Long ncols,
+                                    CsrView<T const,Index> const& A, CsrView<T const,Index> const& B)
 {
     auto& q = Gpu::Device::streamQueue();
 
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
     // oneMKL wants valid pointers for C before the nnz is known.
-    V<I> dummy_col(1);
+    V<Index> dummy_col(1);
     V<T> dummy_mat(1);
 
     // Releases everything, also when an OutOfMemoryError is thrown.
@@ -863,18 +863,18 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
     mkl::sparse::init_matrix_handle(&r.hC);
 
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    mkl::sparse::set_csr_data(q, r.hA, I(nrows), I(B.nrows), mkl::index_base::zero,
-                              (I*)A.row_offset, (I*)A.col_index, (T*)A.mat);
-    mkl::sparse::set_csr_data(q, r.hB, I(B.nrows), I(ncols), mkl::index_base::zero,
-                              (I*)B.row_offset, (I*)B.col_index, (T*)B.mat);
-    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hA, Index(nrows), Index(B.nrows), mkl::index_base::zero,
+                              (Index*)A.row_offset, (Index*)A.col_index, (T*)A.mat);
+    mkl::sparse::set_csr_data(q, r.hB, Index(B.nrows), Index(ncols), mkl::index_base::zero,
+                              (Index*)B.row_offset, (Index*)B.col_index, (T*)B.mat);
+    mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), mkl::index_base::zero,
                               C.row_offset.data(), dummy_col.data(), dummy_mat.data());
 #else
-    mkl::sparse::set_csr_data(q, r.hA, I(nrows), I(B.nrows), I(A.nnz), mkl::index_base::zero,
-                              (I*)A.row_offset, (I*)A.col_index, (T*)A.mat);
-    mkl::sparse::set_csr_data(q, r.hB, I(B.nrows), I(ncols), I(B.nnz), mkl::index_base::zero,
-                              (I*)B.row_offset, (I*)B.col_index, (T*)B.mat);
-    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), I(0), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hA, Index(nrows), Index(B.nrows), Index(A.nnz), mkl::index_base::zero,
+                              (Index*)A.row_offset, (Index*)A.col_index, (T*)A.mat);
+    mkl::sparse::set_csr_data(q, r.hB, Index(B.nrows), Index(ncols), Index(B.nnz), mkl::index_base::zero,
+                              (Index*)B.row_offset, (Index*)B.col_index, (T*)B.mat);
+    mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), Index(0), mkl::index_base::zero,
                               C.row_offset.data(), dummy_col.data(), dummy_mat.data());
 #endif
 
@@ -905,16 +905,16 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
     mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::get_nnz, r.descr,
                         size_buf, nullptr, {}).wait();
     Long const c_nnz = *size_buf;
-    AMREX_ALWAYS_ASSERT(c_nnz < Long(std::numeric_limits<I>::max()));
+    AMREX_ALWAYS_ASSERT(c_nnz < Long(std::numeric_limits<Index>::max()));
 
     C.mat.resize(c_nnz);
     C.col_index.resize(c_nnz);
     C.nnz = c_nnz;
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
-    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), mkl::index_base::zero,
                               C.row_offset.data(), C.col_index.data(), C.mat.data());
 #else
-    mkl::sparse::set_csr_data(q, r.hC, I(nrows), I(ncols), I(c_nnz), mkl::index_base::zero,
+    mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), Index(c_nnz), mkl::index_base::zero,
                               C.row_offset.data(), C.col_index.data(), C.mat.data());
 #endif
 
@@ -936,17 +936,17 @@ CSR<T,V,I> spgemm_local_onemkl (Long nrows, Long ncols,
 
 #ifdef AMREX_USE_GPU
 
-template <typename T, template<typename> class V, typename I>
-using SpGEMMLocalFn = CSR<T,V,I> (*) (Long, Long, CsrView<T const,I> const&,
-                                      CsrView<T const,I> const&);
+template <typename T, template<typename> class V, typename Index>
+using SpGEMMLocalFn = CSR<T,V,Index> (*) (Long, Long, CsrView<T const,Index> const&,
+                                          CsrView<T const,Index> const&);
 
 // Copies block Cb into rows [r0,r1) of C, starting at nonzero p.
-template <typename T, template<typename> class V, typename I>
-void spgemm_copy_block (CSR<T,V,I>& C, Long r0, Long r1, CSR<T,V,I> const& Cb, Long p)
+template <typename T, template<typename> class V, typename Index>
+void spgemm_copy_block (CSR<T,V,Index>& C, Long r0, Long r1, CSR<T,V,Index> const& Cb, Long p)
 {
     auto* crow = C.row_offset.data() + r0;
     auto const* src = Cb.row_offset.data();
-    auto const offset = I(p);
+    auto const offset = Index(p);
     ParallelFor(r1 - r0 + 1, [=] AMREX_GPU_DEVICE (Long i) {
         crow[i] = src[i] + offset;
     });
@@ -960,11 +960,11 @@ void spgemm_copy_block (CSR<T,V,I>& C, Long r0, Long r1, CSR<T,V,I> const& Cb, L
 // A block that runs out of memory is split in half. Each block is copied
 // into C at nonzero p if C is given; p is advanced by its nonzeros.
 // Returns the blocks used.
-template <typename T, template<typename> class V, typename I>
+template <typename T, template<typename> class V, typename Index>
 Vector<std::pair<Long,Long>>
 spgemm_blocks (Vector<std::pair<Long,Long>> const& blocks, Long ncols,
-               CsrView<T const,I> const& A, CsrView<T const,I> const& B,
-               SpGEMMLocalFn<T,V,I> f, CSR<T,V,I>* C, Long& p)
+               CsrView<T const,Index> const& A, CsrView<T const,Index> const& B,
+               SpGEMMLocalFn<T,V,Index> f, CSR<T,V,Index>* C, Long& p)
 {
     Vector<std::pair<Long,Long>> done;
     Vector<std::pair<Long,Long>> todo(blocks.rbegin(), blocks.rend()); // processed from the back
@@ -974,23 +974,23 @@ spgemm_blocks (Vector<std::pair<Long,Long>> const& blocks, Long ncols,
         Long const n = r1 - r0;
         if (n == 0) { continue; }
 
-        I a[2];
-        Gpu::dtoh_memcpy_async(a  , A.row_offset+r0, sizeof(I));
-        Gpu::dtoh_memcpy_async(a+1, A.row_offset+r1, sizeof(I));
+        Index a[2];
+        Gpu::dtoh_memcpy_async(a  , A.row_offset+r0, sizeof(Index));
+        Gpu::dtoh_memcpy_async(a+1, A.row_offset+r1, sizeof(Index));
         Gpu::streamSynchronize();
-        I const a0 = a[0];
+        Index const a0 = a[0];
         Long const annz = Long(a[1]) - Long(a0);
 
         try {
-            CSR<T,V,I> Cb;
+            CSR<T,V,Index> Cb;
             if (annz == 0) {
-                Cb = spgemm_empty<T,V,I>(n);
+                Cb = spgemm_empty<T,V,Index>(n);
             } else {
-                V<I> row(n+1);
+                V<Index> row(n+1);
                 auto* prow = row.data();
                 auto const* arow = A.row_offset + r0;
                 ParallelFor(n+1, [=] AMREX_GPU_DEVICE (Long i) { prow[i] = arow[i] - a0; });
-                CsrView<T const,I> Ab{A.mat + a0, A.col_index + a0, row.data(), annz, n};
+                CsrView<T const,Index> Ab{A.mat + a0, A.col_index + a0, row.data(), annz, n};
                 Cb = f(n, ncols, Ab, B);
             }
             if (C) { spgemm_copy_block(*C, r0, r1, Cb, p); }
@@ -1011,20 +1011,20 @@ spgemm_blocks (Vector<std::pair<Long,Long>> const& blocks, Long ncols,
  * The first pass only counts the nonzeros; the second recomputes each block
  * into the allocated C.
  */
-template <typename T, template<typename> class V, typename I>
-CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
-                                 CsrView<T const,I> const& A, CsrView<T const,I> const& B,
-                                 SpGEMMLocalFn<T,V,I> f)
+template <typename T, template<typename> class V, typename Index>
+CSR<T,V,Index> spgemm_local_chunked (Long nrows, Long ncols,
+                                     CsrView<T const,Index> const& A, CsrView<T const,Index> const& B,
+                                     SpGEMMLocalFn<T,V,Index> f)
 {
     Long total = 0;
-    auto const blocks = spgemm_blocks<T,V,I>({{0, nrows/2}, {nrows/2, nrows}}, ncols, A, B, f,
-                                             nullptr, total);
-    AMREX_ALWAYS_ASSERT(total <= Long(std::numeric_limits<I>::max()));
+    auto const blocks = spgemm_blocks<T,V,Index>({{0, nrows/2}, {nrows/2, nrows}}, ncols, A, B, f,
+                                                 nullptr, total);
+    AMREX_ALWAYS_ASSERT(total <= Long(std::numeric_limits<Index>::max()));
 
-    CSR<T,V,I> C;
+    CSR<T,V,Index> C;
     C.resize(nrows, total);
     Long p = 0;
-    spgemm_blocks<T,V,I>(blocks, ncols, A, B, f, &C, p);
+    spgemm_blocks<T,V,Index>(blocks, ncols, A, B, f, &C, p);
     Gpu::streamSynchronize();
 
     return C;
@@ -1040,42 +1040,42 @@ CSR<T,V,I> spgemm_local_chunked (Long nrows, Long ncols,
  * GPUs, a slower algorithm that uses less memory is used if the default one
  * runs out of memory.
  */
-template <typename T, template<typename> class V, typename I, typename F = NoRowPost>
-CSR<T,V,I> spgemm_local (Long nrows, Long ncols,
-                         CsrView<T const,I> const& A, CsrView<T const,I> const& B,
-                         F const& row_post = {})
+template <typename T, template<typename> class V, typename Index, typename F = NoRowPost>
+CSR<T,V,Index> spgemm_local (Long nrows, Long ncols,
+                             CsrView<T const,Index> const& A, CsrView<T const,Index> const& B,
+                             F const& row_post = {})
 {
     AMREX_ASSERT(A.nrows == nrows);
 
     if (nrows <= 0 || ncols <= 0 || A.nnz <= 0 || B.nnz <= 0 || B.nrows <= 0) {
-        return spgemm_empty<T,V,I>(nrows);
+        return spgemm_empty<T,V,Index>(nrows);
     }
 
 #if !defined(AMREX_USE_GPU)
-    return spgemm_local_cpu<T,V,I>(nrows, ncols, A, B, row_post);
+    return spgemm_local_cpu<T,V,Index>(nrows, ncols, A, B, row_post);
 #else
     amrex::ignore_unused(row_post);
 #endif
 #if defined(AMREX_USE_CUDA)
     try {
-        return spgemm_local_cusparse<T,V,I>(nrows, ncols, A, B);
+        return spgemm_local_cusparse<T,V,Index>(nrows, ncols, A, B);
     } catch (OutOfMemoryError const&) {
-        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
-                                           spgemm_local_cusparse<T,V,I>);
+        return spgemm_local_chunked<T,V,Index>(nrows, ncols, A, B,
+                                               spgemm_local_cusparse<T,V,Index>);
     }
 #elif defined(AMREX_USE_HIP)
     try {
-        return spgemm_local_rocsparse<T,V,I>(nrows, ncols, A, B);
+        return spgemm_local_rocsparse<T,V,Index>(nrows, ncols, A, B);
     } catch (OutOfMemoryError const&) {
-        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
-                                           spgemm_local_rocsparse<T,V,I>);
+        return spgemm_local_chunked<T,V,Index>(nrows, ncols, A, B,
+                                               spgemm_local_rocsparse<T,V,Index>);
     }
 #elif defined(AMREX_USE_SYCL)
     try {
-        return spgemm_local_onemkl<T,V,I>(nrows, ncols, A, B);
+        return spgemm_local_onemkl<T,V,Index>(nrows, ncols, A, B);
     } catch (OutOfMemoryError const&) {
-        return spgemm_local_chunked<T,V,I>(nrows, ncols, A, B,
-                                           spgemm_local_onemkl<T,V,I>);
+        return spgemm_local_chunked<T,V,Index>(nrows, ncols, A, B,
+                                               spgemm_local_onemkl<T,V,Index>);
     }
 #endif
 }
@@ -1085,8 +1085,8 @@ CSR<T,V,I> spgemm_local (Long nrows, Long ncols,
 
 // Row i of the result is row i of X0 followed by row i of X1, with column
 // indices transformed by map0 and map1. Both views must have full row offsets.
-template <typename T, template<typename> class V, typename I, typename F0, typename F1>
-CSR<T,V,int> concat_csr_cols (Long nrows, CsrView<T const,I> const& X0, CsrView<T const,I> const& X1,
+template <typename T, template<typename> class V, typename Index, typename F0, typename F1>
+CSR<T,V,int> concat_csr_cols (Long nrows, CsrView<T const,Index> const& X0, CsrView<T const,Index> const& X1,
                               F0 const& map0, F1 const& map1)
 {
     AMREX_ALWAYS_ASSERT(X0.nnz + X1.nnz < Long(std::numeric_limits<int>::max()));

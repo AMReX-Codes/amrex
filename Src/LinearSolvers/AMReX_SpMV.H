@@ -15,7 +15,7 @@ namespace amrex {
  * Back-end implementations of sparse matrix-vector products (CSR).
  */
 
-template <typename T, typename I = Long>
+template <typename T, typename Index = Long>
 /**
  * \brief Perform y = A * x using CSR data (GPU/CPU aware).
  *
@@ -27,7 +27,7 @@ template <typename T, typename I = Long>
  * \param A     CSR view of the matrix.
  * \param px    Source vector (length ncols).
  */
-void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> const& A,
+void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> const& A,
            T const* AMREX_RESTRICT px)
 {
     T const* AMREX_RESTRICT mat = A.mat;
@@ -65,7 +65,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
 
     // cuSPARSE needs the same index type for the row offsets and the
     // column indices (mixed types came with CUDA 13.3).
-    constexpr cusparseIndexType_t index_type = std::is_same_v<I,int>
+    constexpr cusparseIndexType_t index_type = std::is_same_v<Index,int>
         ? CUSPARSE_INDEX_32I : CUSPARSE_INDEX_64I;
 
     cusparseSpMatDescr_t mat_descr;
@@ -125,7 +125,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    constexpr rocsparse_indextype index_type = std::is_same_v<I,int>
+    constexpr rocsparse_indextype index_type = std::is_same_v<Index,int>
         ? rocsparse_indextype_i32 : rocsparse_indextype_i64;
 
     rocsparse_spmat_descr mat_descr;
@@ -275,11 +275,11 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,I> cons
 
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
     amrex::ignore_unused(nnz);
-    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, I(nrows), I(ncols),
-                              mkl::index_base::zero, (I*)row, (I*)col, (T*)mat);
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, Index(nrows), Index(ncols),
+                              mkl::index_base::zero, (Index*)row, (Index*)col, (T*)mat);
 #else
-    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, I(nrows), I(ncols),
-                              I(nnz), mkl::index_base::zero, (I*)row, (I*)col, (T*)mat);
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, Index(nrows), Index(ncols),
+                              Index(nnz), mkl::index_base::zero, (Index*)row, (Index*)col, (T*)mat);
 #endif
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);
