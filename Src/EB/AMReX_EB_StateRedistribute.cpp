@@ -192,8 +192,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         });
 
         // Step 1: Combined stencil and boundary classification kernel.
-        // Bit layout: 0-2 = grown axes, 3-8 = nearby physical-boundary
-        // faces (xlo,xhi,ylo,yhi,zlo,zhi), and 9 = active cell.
+        // Bit layout: 0-4 = classification code (1-8 interior, 11-18 boundary)
+        // and 5-10 = nearby physical-boundary faces (xlo,xhi,ylo,yhi,zlo,zhi).
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-classify");
@@ -281,8 +281,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if (extdir_khi && k >= domain_khi-1) { boundary_mask |= 1 << 5; }
 #endif
 
-            int const code = (1 << 9) | (boundary_mask << 3) | mask;
-            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real(code);
+            int code = mask + 1;
+            if (boundary_mask != 0) { code += 10; }
+            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real((boundary_mask << 5) | code);
         });
         amrex::Gpu::streamSynchronize();
         } // Kernel2-classify
@@ -294,11 +295,15 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int const code = static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
-            int const boundary_mask = (code >> 3) & 0x3f;
-            if ((code & (1 << 9)) == 0 || boundary_mask != 0) { return; }
+            int const packed_code =
+                static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const code = packed_code & 0x1f;
+            if (code == 0) { return; }
 
-            int const mask = code & 0x7;
+            bool const boundary = code >= 11;
+            if (boundary) { return; }
+
+            int const mask = code - 1;
 
             // Interior path: call the boundary-free slope functions directly
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
@@ -333,11 +338,16 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int const code = static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
-            int const boundary_mask = (code >> 3) & 0x3f;
-            if ((code & (1 << 9)) == 0 || boundary_mask == 0) { return; }
+            int const packed_code =
+                static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const code = packed_code & 0x1f;
+            if (code == 0) { return; }
 
-            int const mask = code & 0x7;
+            bool const boundary = code >= 11;
+            if (!boundary) { return; }
+
+            int const mask = code - 11;
+            int const boundary_mask = (packed_code >> 5) & 0x3f;
             bool const extdir_ilo = (boundary_mask & (1 << 0)) != 0;
             bool const extdir_ihi = (boundary_mask & (1 << 1)) != 0;
             bool const extdir_jlo = (boundary_mask & (1 << 2)) != 0;
