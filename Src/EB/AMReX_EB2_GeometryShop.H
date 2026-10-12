@@ -467,7 +467,9 @@ public:
 
     // Nodes are classified as in fillFab, with the same neighbors and
     // clamping for the roundoff tolerance, so that a box is regular or
-    // covered only if fillFab would make no cut cells in it.
+    // covered only if fillFab would make no cut cells in it.  Both signs
+    // make the box mixed.  If all nodes are fluid, only those within
+    // IF_tolmax can be body, which needs the roundoff stencil.
     [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom,
                                       Box const& bounding_box) const noexcept
     {
@@ -479,37 +481,51 @@ public:
         BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
         const auto& fv = ffab.array();
         const auto& fc = ffab.const_array();
+        const auto& lo = amrex::lbound(bx);
+        const auto& hi = amrex::ubound(bx);
+        int npos = 0, nneg = 0;
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real const v = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
+                                                      node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
+                                                      node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2]))});
+            fv(i,j,k) = v;
+            if (v >= 0.0_rt) { ++npos; } else { ++nneg; }
+            if (npos > 0 && nneg > 0) { return mixedcells; }
+        }}}
+        if (nneg == 0) { return allcovered; }
+
+        Real vmin = std::numeric_limits<Real>::max();
+        Real vmax = std::numeric_limits<Real>::lowest();
         amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
-                                                   node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
-                                                   node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2]))});
+            if (!bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
+                                                       node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
+                                                       node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2]))});
+            }
+            vmin = amrex::min(vmin, fc(i,j,k));
+            vmax = amrex::max(vmax, fc(i,j,k));
         });
         IntVect const glo = bounding_box.smallEnd();
         IntVect const ghi = bounding_box.bigEnd();
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
-        int nbody = 0, nfluid = 0;
-        amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
-        {
+        Real const tolmax = IF_tolmax(vmin, vmax, invd2, size);
+        if (vmax < -tolmax) { return allregular; }
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
-            if (v >= 0.0_rt ||
+            if (std::abs(v) <= tolmax &&
                 std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, size, glo, ghi)) {
-                ++nbody;
-            } else {
-                ++nfluid;
+                return mixedcells;
             }
-        });
-
-        if (nbody == 0) {
-            return allregular;
-        } else if (nfluid == 0) {
-            return allcovered;
-        } else {
-            return mixedcells;
-        }
+        }}}
+        return allregular;
     }
 
     /**
@@ -538,41 +554,47 @@ public:
             BaseFab<Real> ffab(gbx, 1, The_Async_Arena());
             auto const& fv = ffab.array();
             auto const& fc = ffab.const_array();
-            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpMin,ReduceOpMax> reduce_op;
+            ReduceData<int,int,Real,Real> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+            reduce_op.eval(gbx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 amrex::ignore_unused(j,k);
-                fv(i,j,k) = f(AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
-                                           node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
-                                           node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2])));
+                Real const v = f(AMREX_D_DECL(node_coord(problo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]),
+                                              node_coord(problo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]),
+                                              node_coord(problo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2])));
+                fv(i,j,k) = v;
+                bool const inbx = bx.contains(IntVect(AMREX_D_DECL(i,j,k)));
+                return {int(inbx && v >= 0.0_rt), int(inbx && v < 0.0_rt), v, v};
             });
+            ReduceTuple hv = reduce_data.value(reduce_op);
+            int const npos = amrex::get<0>(hv);
+            int const nneg = amrex::get<1>(hv);
+            if (npos > 0 && nneg > 0) { return mixedcells; }
+            if (nneg == 0) { return allcovered; }
+
             IntVect const glo = bounding_box.smallEnd();
             IntVect const ghi = bounding_box.bigEnd();
             auto const invd2 = IF_invdist2(dx);
             auto const size = IF_size(problo, geom.ProbHiArray());
-            ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
-            ReduceData<int,int> reduce_data(reduce_op);
-            using ReduceTuple = typename decltype(reduce_data)::Type;
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            Real const tolmax = IF_tolmax(amrex::get<2>(hv), amrex::get<3>(hv), invd2, size);
+            if (amrex::get<3>(hv) < -tolmax) { return allregular; }
+            ReduceOps<ReduceOpSum> reduce_op2;
+            ReduceData<int> reduce_data2(reduce_op2);
+            using ReduceTuple2 = typename decltype(reduce_data2)::Type;
+            reduce_op2.eval(bx, reduce_data2,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple2
             {
                 amrex::ignore_unused(j,k);
                 IntVect const iv(AMREX_D_DECL(i,j,k));
                 Real const v = fc(iv);
-                bool const body = v >= 0.0_rt ||
+                bool const body = std::abs(v) <= tolmax &&
                     std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, size, glo, ghi);
-                return {int(body), int(!body)};
+                return {int(body)};
             });
-            ReduceTuple hv = reduce_data.value(reduce_op);
-            int nbody = amrex::get<0>(hv);
-            int nfluid = amrex::get<1>(hv);
-
-            if (nbody == 0) {
-                return allregular;
-            } else if (nfluid == 0) {
-                return allcovered;
-            } else {
-                return mixedcells;
-            }
+            int const nbody = amrex::get<0>(reduce_data2.value(reduce_op2));
+            return (nbody > 0) ? mixedcells : allregular;
         }
         else
         {
