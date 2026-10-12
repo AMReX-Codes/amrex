@@ -2188,6 +2188,9 @@ FabArrayBase::flushFPinfo (bool no_assertion) const
 void
 FabArrayBase::flushFPinfo (const EB2::IndexSpace* ispace)
 {
+    // Trivially destructible flag: safe during static destruction after Finalize.
+    if (!initialized) { return; }
+
     std::set<FPinfo*> dead;
     for (auto it = m_TheFillPatchCache.begin(); it != m_TheFillPatchCache.end(); ) {
         if (it->second->m_index_space == ispace) {
