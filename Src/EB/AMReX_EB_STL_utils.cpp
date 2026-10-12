@@ -192,21 +192,10 @@ namespace {
         }
     }
 
-    // Is pt on the triangle within the roundoff tolerance tol?
+    // pt_on_tri without its bounding box reject
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool pt_on_tri (Real const pt[3], STLtools::Triangle const& tri, Real tol)
+    bool pt_on_tri_nobox (Real const pt[3], STLtools::Triangle const& tri, Real tol)
     {
-        // Cheap reject. The accepted region fits in this box unless a vertex
-        // angle is below ~2 degrees; parity classifies the rest of that ear.
-        Real const m = Real(64) * tol;
-        if (pt[0] < amrex::min(tri.v1.x, tri.v2.x, tri.v3.x) - m ||
-            pt[0] > amrex::max(tri.v1.x, tri.v2.x, tri.v3.x) + m ||
-            pt[1] < amrex::min(tri.v1.y, tri.v2.y, tri.v3.y) - m ||
-            pt[1] > amrex::max(tri.v1.y, tri.v2.y, tri.v3.y) + m ||
-            pt[2] < amrex::min(tri.v1.z, tri.v2.z, tri.v3.z) - m ||
-            pt[2] > amrex::max(tri.v1.z, tri.v2.z, tri.v3.z) + m) {
-            return false;
-        }
         Real const v[3][3] = {{tri.v1.x, tri.v1.y, tri.v1.z},
                               {tri.v2.x, tri.v2.y, tri.v2.z},
                               {tri.v3.x, tri.v3.y, tri.v3.z}};
@@ -233,6 +222,84 @@ namespace {
             if (c[0]*n[0] + c[1]*n[1] + c[2]*n[2] < -tol*lab*nn) { return false; }
         }
         return true;
+    }
+
+    // Is pt on the triangle within the roundoff tolerance tol?
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool pt_on_tri (Real const pt[3], STLtools::Triangle const& tri, Real tol)
+    {
+        // Cheap reject. The accepted region fits in this box unless a vertex
+        // angle is below ~2 degrees; parity classifies the rest of that ear.
+        Real const m = Real(64) * tol;
+        if (pt[0] < amrex::min(tri.v1.x, tri.v2.x, tri.v3.x) - m ||
+            pt[0] > amrex::max(tri.v1.x, tri.v2.x, tri.v3.x) + m ||
+            pt[1] < amrex::min(tri.v1.y, tri.v2.y, tri.v3.y) - m ||
+            pt[1] > amrex::max(tri.v1.y, tri.v2.y, tri.v3.y) + m ||
+            pt[2] < amrex::min(tri.v1.z, tri.v2.z, tri.v3.z) - m ||
+            pt[2] > amrex::max(tri.v1.z, tri.v2.z, tri.v3.z) + m) {
+            return false;
+        }
+        return pt_on_tri_nobox(pt, tri, tol);
+    }
+
+    // pt_on_tri (if tol >= 0) and line_tri_intersects in one pass for the
+    // brute force search.  Returns 2 if pt is on the triangle, else 1 if the
+    // segment pr->pt with bounding box [smin,smax] crosses it, else 0.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int tri_tests (Real const pr[3], Real const pt[3], Real const smin[3], Real const smax[3],
+                   STLtools::Triangle const& tri, Real tol, bool& ambiguous)
+    {
+        Real const t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
+        Real const t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
+        Real const t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
+        // m as in pt_on_tri
+        bool const test_on = (tol >= 0.0_rt);
+        Real const m = test_on ? Real(64) * tol : 0.0_rt;
+        Real lo[3], hi[3];
+        for (int d = 0; d < 3; ++d) {
+            lo[d] = amrex::min(t1[d], t2[d], t3[d]);
+            hi[d] = amrex::max(t1[d], t2[d], t3[d]);
+            // pt is in the segment box, so this rejects for both tests.
+            if (smax[d] < lo[d] - m || smin[d] > hi[d] + m) { return 0; }
+        }
+        if (test_on &&
+            pt[0] >= lo[0] - m && pt[0] <= hi[0] + m &&
+            pt[1] >= lo[1] - m && pt[1] <= hi[1] + m &&
+            pt[2] >= lo[2] - m && pt[2] <= hi[2] + m &&
+            pt_on_tri_nobox(pt, tri, tol)) {
+            return 2;
+        }
+        if (smax[0] < lo[0] || smin[0] > hi[0] ||
+            smax[1] < lo[1] || smin[1] > hi[1] ||
+            smax[2] < lo[2] || smin[2] > hi[2]) {
+            return 0;
+        }
+        return int(1-tri_geom_ops::lineseg_tri_intersect(pr,pt,t1,t2,t3,&ambiguous));
+    }
+
+    // Number of triangles crossed by the segment pr->pt, found with the BVH.
+    // The on-surface test runs if test_on.  Not inlined, which lets the
+    // compiler inline the leaf visitor here.
+    template <typename BVHNode>
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    int bvh_crossings (Real const pr[3], Real const pt[3], BVHNode const* bvh_root,
+                       Real tol, bool test_on, bool& ambiguous, bool& on_surface)
+    {
+        int num_intersects = 0;
+        bvh_line_tri_intersects(pr, pt, bvh_root,
+                                [&] (int ntri, STLtools::Triangle const* tri,
+                                     XDim3 const*) -> int
+        {
+            for (int tr = 0; tr < ntri; ++tr) {
+                if (test_on && pt_on_tri(pt, tri[tr], tol)) {
+                    on_surface = true;
+                    return 1;
+                }
+                num_intersects += int(line_tri_intersects(pr, pt, tri[tr], &ambiguous));
+            }
+            return 0;
+        }, test_on ? tol : 0.0_rt);
+        return num_intersects;
     }
 
     // Parity of the number of triangles crossed by the segment from a
@@ -266,27 +333,22 @@ namespace {
             bool on_surface = false;
             if constexpr (UseBVH) {
                 amrex::ignore_unused(tri_pts, num_triangles);
-                bvh_line_tri_intersects(pr, pt, bvh_root,
-                                        [&] (int ntri, STLtools::Triangle const* tri,
-                                             XDim3 const*) -> int
-                {
-                    for (int tr = 0; tr < ntri; ++tr) {
-                        if (n == 0 && pt_on_tri(pt, tri[tr], tol)) {
-                            on_surface = true;
-                            return 1;
-                        }
-                        num_intersects += int(line_tri_intersects(pr, pt, tri[tr], &ambiguous));
-                    }
-                    return 0;
-                }, (n == 0) ? tol : 0.0_rt);
+                num_intersects = bvh_crossings(pr, pt, bvh_root, tol, n == 0,
+                                               ambiguous, on_surface);
             } else {
                 amrex::ignore_unused(bvh_root);
+                Real const smin[] = {amrex::min(pr[0],pt[0]), amrex::min(pr[1],pt[1]),
+                                     amrex::min(pr[2],pt[2])};
+                Real const smax[] = {amrex::max(pr[0],pt[0]), amrex::max(pr[1],pt[1]),
+                                     amrex::max(pr[2],pt[2])};
+                Real const tol_n = (n == 0) ? tol : -1.0_rt; // on-surface test for ray 0 only
                 for (int tr = 0; tr < num_triangles; ++tr) {
-                    if (n == 0 && pt_on_tri(pt, tri_pts[tr], tol)) {
+                    int const r = tri_tests(pr, pt, smin, smax, tri_pts[tr], tol_n, ambiguous);
+                    if (r == 2) {
                         on_surface = true;
                         break;
                     }
-                    num_intersects += int(line_tri_intersects(pr, pt, tri_pts[tr], &ambiguous));
+                    num_intersects += r;
                 }
             }
             if (on_surface) { return 2; }
