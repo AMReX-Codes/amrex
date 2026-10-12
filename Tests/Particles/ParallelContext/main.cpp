@@ -2,6 +2,11 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Particles.H>
+#include <AMReX_TracerParticles.H>
+
+#include <cstdio>
+#include <fstream>
+#include <string>
 
 using namespace amrex;
 
@@ -349,6 +354,71 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("sort", params.sort);
 }
 
+// Exercise particle routines that communicate internally, from inside a pushed
+// ParallelContext sub-communicator. Each sub-communicator uses a different
+// particle count so that results leaking across sub-communicators are detected.
+void testSubCommInitAndCount (const Geometry& geom, const DistributionMapping& dm,
+                              const BoxArray& ba, int task_me)
+{
+    BL_PROFILE("testSubCommInitAndCount");
+
+    const Long icount = 1000 + 37*task_me;
+    const ULong iseed = 451;
+
+    for (bool serialize : {false, true})
+    {
+        TestParticleContainer pc(geom, dm, ba);
+        TestParticleContainer::ParticleInitData pdata = {{}, {}, {}, {}};
+        pc.InitRandom(icount, iseed, pdata, serialize);
+
+        AMREX_ALWAYS_ASSERT(pc.TotalNumberOfParticles() == icount);
+
+        const auto np_local  = pc.NumberOfParticlesInGrid(0, true, true);
+        const auto np_global = pc.NumberOfParticlesInGrid(0, true, false);
+        AMREX_ALWAYS_ASSERT(np_global.size() == ba.size());
+
+        Long np_sum = 0;
+        for (int i = 0; i < static_cast<int>(np_global.size()); ++i) {
+            np_sum += np_global[i];
+            if (dm[i] == ParallelDescriptor::MyProc()) {
+                AMREX_ALWAYS_ASSERT(np_global[i] == np_local[i]);
+            }
+        }
+        AMREX_ALWAYS_ASSERT(np_sum == icount);
+    }
+
+    {
+        TracerParticleContainer tpc(geom, dm, ba);
+        TracerParticleContainer::ParticleInitData pdata = {{AMREX_D_DECL(0.0, 0.0, 0.0)}, {}, {}, {}};
+        tpc.InitRandom(icount, iseed, pdata, false);
+
+        MultiFab mf(ba, dm, 1, 1);
+        mf.setVal(0.0);
+
+        const std::string basename = "ParallelContextTimestamp_task" + std::to_string(task_me);
+        const int nfiles = std::min(64, ParallelContext::NProcsSub());
+        if (ParallelContext::IOProcessorSub()) {
+            for (int i = 0; i < nfiles; ++i) {
+                std::remove(amrex::Concatenate(basename + '_', i, 2).c_str());
+            }
+        }
+        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+
+        tpc.Timestamp(basename, mf, 0, 0.0, {});
+
+        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+        if (ParallelContext::IOProcessorSub()) {
+            Long nlines = 0;
+            for (int i = 0; i < nfiles; ++i) {
+                std::ifstream ifs(amrex::Concatenate(basename + '_', i, 2));
+                std::string line;
+                while (std::getline(ifs, line)) { ++nlines; }
+            }
+            AMREX_ALWAYS_ASSERT(nlines == icount);
+        }
+    }
+}
+
 void testParallelContext ()
 {
     BL_PROFILE("testParallelContext");
@@ -458,6 +528,8 @@ void testParallelContext ()
                 AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
             }
         }
+
+        testSubCommInitAndCount(geom, dm, ba, task_me);
     }
 
     ParallelContext::pop();

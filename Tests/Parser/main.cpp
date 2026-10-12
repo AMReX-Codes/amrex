@@ -1,10 +1,12 @@
 #include <AMReX.H>
 #include <AMReX_Parser.H>
 #include <AMReX_IParser.H>
+#include <AMReX_Math.H>
 #include <cmath>
 #include <map>
 #include <numbers>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 using namespace amrex;
@@ -234,6 +236,65 @@ int test_concurrent_parser_construction ()
     }
 }
 
+template <typename T>
+int test_elliptic_integral_endpoints ()
+{
+    int nfail = 0;
+    T const tol = 64 * std::numeric_limits<T>::epsilon();
+    auto close = [tol] (T value, T expected) {
+        return amrex::Math::isfinite(value) &&
+            std::abs(value - expected) <= tol * std::abs(expected);
+    };
+    for (T k : {T(-1), T(1)}) {
+        T const first = amrex::Math::comp_ellint_1(k);
+        nfail += !(amrex::Math::isinf(first) && first > T(0));
+        nfail += amrex::Math::comp_ellint_2(k) != T(1);
+        T const inside = std::nextafter(k, T(0));
+        nfail += !amrex::Math::isfinite(amrex::Math::comp_ellint_1(inside));
+        nfail += !close(amrex::Math::comp_ellint_2(inside), T(1));
+    }
+    // Values away from the singular endpoint must remain unchanged.
+    nfail += !close(amrex::Math::comp_ellint_1(T(0)), amrex::Math::pi<T>() / 2);
+    nfail += !close(amrex::Math::comp_ellint_2(T(0)), amrex::Math::pi<T>() / 2);
+    nfail += !close(amrex::Math::comp_ellint_1(T(0.5)), T(1.6857503548125961));
+    nfail += !close(amrex::Math::comp_ellint_2(T(0.5)), T(1.4674622093394272));
+    // 100-digit references at exactly representable points near the endpoints.
+    T near_one;
+    T expected;
+    if constexpr (std::is_same_v<T,float>) {
+        near_one = T(1) - std::ldexp(T(1), -13);
+        expected = T(5.5454854002371954278);
+    } else {
+        near_one = T(1) - std::ldexp(T(1), -27);
+        expected = T(10.397207745269151667);
+    }
+    for (T k : {-near_one, near_one}) {
+        T const value = amrex::Math::comp_ellint_1(k);
+        nfail += !(amrex::Math::isfinite(value) &&
+            std::abs(value - expected) <= T(4) * std::numeric_limits<T>::epsilon() * expected);
+    }
+    amrex::Print() << "Elliptic-integral endpoints (" << sizeof(T)
+                   << " bytes): " << nfail << " failures\n";
+    return nfail;
+}
+
+int test_parser_elliptic_integral_endpoints ()
+{
+    int nfail = 0;
+    Parser parser("comp_ellint_2(k)");
+    parser.registerVariables({"k"});
+    auto const exe = parser.compile<1>();
+    for (double k : {-1., 1.}) {
+        nfail += exe(k) != 1.;
+    }
+    for (auto const* expression : {"comp_ellint_2(-1)", "comp_ellint_2(1)"}) {
+        Parser constant_parser(expression);
+        nfail += constant_parser.compile<0>()() != 1.;
+    }
+    amrex::Print() << "Parser elliptic-integral endpoints: " << nfail << " failures\n";
+    return nfail;
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -241,6 +302,9 @@ int main (int argc, char* argv[])
     {
         amrex::Print() << "\n";
         int nerror = 0;
+        nerror += test_elliptic_integral_endpoints<float>();
+        nerror += test_elliptic_integral_endpoints<double>();
+        nerror += test_parser_elliptic_integral_endpoints();
         nerror += test3("if( ((z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc))^(0.5) < (r_star-dR), 0.0, if(((z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc))^(0.5) <= r_star, dens, 0.0))",
                         {{"xc", 0.1}, {"yc", -1.0}, {"zc", 0.2}, {"r_star", 0.73}, {"dR", 0.57}, {"dens", 12.}},
                         {"x","y","z"},
@@ -284,6 +348,60 @@ int main (int argc, char* argv[])
                             }
                         },
                         {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 100,
+                        1.e-12, 1.e-15);
+
+        // Local variables read right after assignment, including by fused
+        // instructions, and a local assigned from an if().
+        nerror += test3("r=x*x+y*y+z*z; r=sqrt(r); r",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x*x+y*y+z*z; r = std::sqrt(r); return r;
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("r=x+y; r*r+sin(r)-r^3+z*r+(r<0.5)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x+y;
+                            return r*r+std::sin(r)-r*r*r+z*r+((r<0.5)?1.0:0.0);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("r=x*2; s=if(x>y, 3, 4); t=z*3; (r>=1)*(r+s+t*s)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            double r = x*2, s = (x>y) ? 3.0 : 4.0, t = z*3;
+                            return ((r>=1) ? 1.0 : 0.0)*(r+s+t*s);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("x^3+sin(y)-sqrt(abs(z))+x^0.5+pow(y,z)+max(x,2)+atan2(3,y)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double y, double z) -> double {
+                            return x*x*x+std::sin(y)-std::sqrt(std::abs(z))+std::sqrt(x)
+                                +std::pow(y,z)+std::max(x,2.0)+std::atan2(3.0,y);
+                        },
+                        {0.1, 0.1, -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        // Separate tests, since (x-sin(x))+(sin(x)-x) folds to 0.
+        nerror += test3("x-sin(x)",
+                        {}, {"x","y","z"},
+                        [=] (double x, double, double) -> double {
+                            return x-std::sin(x);
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("sin(x)-x",
+                        {}, {"x","y","z"},
+                        [=] (double x, double, double) -> double {
+                            return std::sin(x)-x;
+                        },
+                        {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 20,
                         1.e-12, 1.e-15);
 
         nerror += test3("( ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))<=r_star) * ((( (z-zc)*(z-zc) + (y-yc)*(y-yc) + (x-xc)*(x-xc) )^(0.5))>=(r_star-dR)) )*dens",
@@ -615,6 +733,22 @@ int main (int argc, char* argv[])
             }
         }
 
+        {   // All statements but the last must be assignments.
+            amrex::Print() << test_number++ << ". Testing Parser statement lists\n";
+            for (std::string const s : {"b=x", "b=x;", "x; b=x", "x; 1"}) {
+                try {
+                    Parser p(s);
+                    ++nerror;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                }
+            }
+            Parser p("b=2*x; b+1;");
+            p.registerVariables({"x"});
+            auto exe = p.compileHost<1>();
+            if (exe(3.0) != 7.0) { ++nerror; }
+        }
+
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {
             amrex::Print() << nerror << " tests failed\n";
@@ -791,6 +925,24 @@ int main (int argc, char* argv[])
                 iparser.registerVariables({"y","x"});
                 auto exe = iparser.compileHost<2>();
                 AMREX_ALWAYS_ASSERT(exe(3,10) == 7); // y=3, x=10
+            }
+
+            {   // All statements but the last must be assignments.
+                amrex::Print() << count++ << ". Testing IParser statement lists\n";
+                for (std::string const s : {"b=x", "b=x;", "x; b=x", "x; 1"}) {
+                    bool caught = false;
+                    try {
+                        IParser iparser(s);
+                    } catch (std::runtime_error const& e) {
+                        amrex::Print() << "    Expected error: " << e.what() << '\n';
+                        caught = true;
+                    }
+                    AMREX_ALWAYS_ASSERT(caught);
+                }
+                IParser iparser("b=2*x; b+1;");
+                iparser.registerVariables({"x"});
+                auto exe = iparser.compileHost<1>();
+                AMREX_ALWAYS_ASSERT(exe(3) == 7);
             }
 
             AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));

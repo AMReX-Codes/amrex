@@ -1,7 +1,39 @@
 #include <AMReX_Parser_Exe.H>
 #include <utility>
 
+// Threaded dispatch is used when the bytecode is longer than this (bytes).
+#ifndef AMREX_PARSER_THREADED_MIN_SIZE
+#define AMREX_PARSER_THREADED_MIN_SIZE 48
+#endif
+
 namespace amrex {
+
+bool parser_exe_use_threaded (int exe_size, int max_stack_size)
+{
+    return AMREX_PARSER_THREADED_DISPATCH
+        && exe_size > AMREX_PARSER_THREADED_MIN_SIZE
+        && max_stack_size <= AMREX_PARSER_STACK_SIZE;
+}
+
+#if AMREX_PARSER_THREADED_DISPATCH
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+double parser_exe_eval_threaded (const char* p, double const* x)
+{
+    if (p == nullptr) { return std::numeric_limits<double>::max(); }
+#define AMREX_PARSER_THREADED_BODY 1
+#include "AMReX_Parser_Exe_Body.H"
+#undef AMREX_PARSER_THREADED_BODY
+#undef AMREX_PARSER_CASE
+#undef AMREX_PARSER_NEXT
+}
+#pragma GCC diagnostic pop
+#else
+double parser_exe_eval_threaded (const char* p, double const* x)
+{
+    return parser_exe_eval(p, x);
+}
+#endif
 
 void
 parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
@@ -173,7 +205,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 auto *t = new(p) ParserExeSUB_PN;
                 p      += sizeof(ParserExeSUB_PN);
                 t->i = parser_symbol_idx(node->l);
-                t->sign = 1.0;
+                t->reverse = false;
             }
             exe_size += sizeof(ParserExeSUB_PN);
         }
@@ -199,7 +231,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 auto *t = new(p) ParserExeSUB_PN;
                 p      += sizeof(ParserExeSUB_PN);
                 t->i = parser_symbol_idx(node->l->r);
-                t->sign = -1.0;
+                t->reverse = true;
             }
             exe_size += sizeof(ParserExeSUB_PN);
         }
@@ -214,7 +246,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 auto *t = new(p) ParserExeSUB_PN;
                 p      += sizeof(ParserExeSUB_PN);
                 t->i = parser_symbol_idx(node->r->r);
-                t->sign = -1.0;
+                t->reverse = true;
             }
             exe_size += sizeof(ParserExeSUB_PN);
         }
@@ -478,84 +510,169 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
     }
     case PARSER_F1:
     {
-        parser_compile_exe_size(((struct parser_f1*)node)->l, p, exe_size,
-                                max_stack_size, stack_size, local_variables, ufs);
-        if (p) {
-            auto *t = new(p) ParserExeF1;
-            p      += sizeof(ParserExeF1);
-            t->ftype = ((struct parser_f1*)node)->ftype;
-        }
-        exe_size += sizeof(ParserExeF1);
-        break;
-    }
-    case PARSER_F2:
-    {
-        if (((struct parser_f2*)node)->ftype == PARSER_POW &&
-            ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
-            parser_get_number(((struct parser_f2*)node)->r) == 2.0)
-        {
-            parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
-                                    max_stack_size, stack_size, local_variables, ufs);
+        if (((struct parser_f1*)node)->l->type == PARSER_SYMBOL)
+        { // f(x)
             if (p) {
-                new(p)      ParserExeSquare;
-                p += sizeof(ParserExeSquare);
+                auto *t = new(p) ParserExeF1_P;
+                p      += sizeof(ParserExeF1_P);
+                t->ftype = ((struct parser_f1*)node)->ftype;
+                t->i = parser_symbol_idx(((struct parser_f1*)node)->l);
             }
-            exe_size += sizeof(ParserExeSquare);
+            exe_size += sizeof(ParserExeF1_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
         }
-        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
-            ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
-            parser_get_number(((struct parser_f2*)node)->r)
-            == std::floor(parser_get_number(((struct parser_f2*)node)->r)) &&
-            std::abs(parser_get_number(((struct parser_f2*)node)->r))
-            <= double(std::numeric_limits<int>::max()))
+        else
         {
-            parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
-                                    max_stack_size, stack_size, local_variables, ufs);
-            if (p) {
-                auto *t = new(p) ParserExePOWI;
-                p      += sizeof(ParserExePOWI);
-                t->i = int(std::floor(parser_get_number
-                                      (((struct parser_f2*)node)->r)));
-            }
-            exe_size += sizeof(ParserExePOWI);
-        }
-        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
-                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
-                 parser_get_number(((struct parser_f2*)node)->r) == 0.5)
-        {
-            parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
+            parser_compile_exe_size(((struct parser_f1*)node)->l, p, exe_size,
                                     max_stack_size, stack_size, local_variables, ufs);
             if (p) {
                 auto *t = new(p) ParserExeF1;
                 p      += sizeof(ParserExeF1);
-                t->ftype = PARSER_SQRT;
+                t->ftype = ((struct parser_f1*)node)->ftype;
             }
             exe_size += sizeof(ParserExeF1);
         }
+        break;
+    }
+    case PARSER_F2:
+    {
+        auto* f2 = (struct parser_f2*)node;
+        bool l_is_symbol = (f2->l->type == PARSER_SYMBOL);
+        bool r_is_number = (f2->r->type == PARSER_NUMBER);
+        double rv = r_is_number ? parser_get_number(f2->r) : 0.0;
+        if (f2->ftype == PARSER_POW && r_is_number && rv == 2.0)
+        {
+            if (l_is_symbol) { // x^2
+                if (p) {
+                    auto *t = new(p) ParserExeSquare_P;
+                    p      += sizeof(ParserExeSquare_P);
+                    t->i = parser_symbol_idx(f2->l);
+                }
+                exe_size += sizeof(ParserExeSquare_P);
+                ++stack_size;
+                max_stack_size = std::max(max_stack_size, stack_size);
+            } else {
+                parser_compile_exe_size(f2->l, p, exe_size,
+                                        max_stack_size, stack_size, local_variables, ufs);
+                if (p) {
+                    new(p)      ParserExeSquare;
+                    p += sizeof(ParserExeSquare);
+                }
+                exe_size += sizeof(ParserExeSquare);
+            }
+        }
+        else if (f2->ftype == PARSER_POW && r_is_number &&
+                 rv == std::floor(rv) &&
+                 std::abs(rv) <= double(std::numeric_limits<int>::max()))
+        {
+            if (l_is_symbol) { // x^n
+                if (p) {
+                    auto *t = new(p) ParserExePOWI_P;
+                    p      += sizeof(ParserExePOWI_P);
+                    t->i = parser_symbol_idx(f2->l);
+                    t->n = int(std::floor(rv));
+                }
+                exe_size += sizeof(ParserExePOWI_P);
+                ++stack_size;
+                max_stack_size = std::max(max_stack_size, stack_size);
+            } else {
+                parser_compile_exe_size(f2->l, p, exe_size,
+                                        max_stack_size, stack_size, local_variables, ufs);
+                if (p) {
+                    auto *t = new(p) ParserExePOWI;
+                    p      += sizeof(ParserExePOWI);
+                    t->i = int(std::floor(rv));
+                }
+                exe_size += sizeof(ParserExePOWI);
+            }
+        }
+        else if (f2->ftype == PARSER_POW && r_is_number && rv == 0.5)
+        {
+            if (l_is_symbol) { // sqrt(x)
+                if (p) {
+                    auto *t = new(p) ParserExeF1_P;
+                    p      += sizeof(ParserExeF1_P);
+                    t->ftype = PARSER_SQRT;
+                    t->i = parser_symbol_idx(f2->l);
+                }
+                exe_size += sizeof(ParserExeF1_P);
+                ++stack_size;
+                max_stack_size = std::max(max_stack_size, stack_size);
+            } else {
+                parser_compile_exe_size(f2->l, p, exe_size,
+                                        max_stack_size, stack_size, local_variables, ufs);
+                if (p) {
+                    auto *t = new(p) ParserExeF1;
+                    p      += sizeof(ParserExeF1);
+                    t->ftype = PARSER_SQRT;
+                }
+                exe_size += sizeof(ParserExeF1);
+            }
+        }
+        else if (l_is_symbol && f2->r->type == PARSER_SYMBOL)
+        { // f(x,y)
+            if (p) {
+                auto *t = new(p) ParserExeF2_PP;
+                p      += sizeof(ParserExeF2_PP);
+                t->ftype = f2->ftype;
+                t->i1 = parser_symbol_idx(f2->l);
+                t->i2 = parser_symbol_idx(f2->r);
+            }
+            exe_size += sizeof(ParserExeF2_PP);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (l_is_symbol && r_is_number)
+        { // f(x,3)
+            if (p) {
+                auto *t = new(p) ParserExeF2_PV;
+                p      += sizeof(ParserExeF2_PV);
+                t->ftype = f2->ftype;
+                t->i = parser_symbol_idx(f2->l);
+                t->v = rv;
+            }
+            exe_size += sizeof(ParserExeF2_PV);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (f2->l->type == PARSER_NUMBER && f2->r->type == PARSER_SYMBOL)
+        { // f(3,x)
+            if (p) {
+                auto *t = new(p) ParserExeF2_VP;
+                p      += sizeof(ParserExeF2_VP);
+                t->ftype = f2->ftype;
+                t->i = parser_symbol_idx(f2->r);
+                t->v = parser_get_number(f2->l);
+            }
+            exe_size += sizeof(ParserExeF2_VP);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
         else
         {
-            int d1 = parser_ast_depth(((struct parser_f2*)node)->l);
-            int d2 = parser_ast_depth(((struct parser_f2*)node)->r);
+            int d1 = parser_ast_depth(f2->l);
+            int d2 = parser_ast_depth(f2->r);
             if (d1 < d2) {
-                parser_compile_exe_size(((struct parser_f2*)node)->r, p, exe_size,
+                parser_compile_exe_size(f2->r, p, exe_size,
                                         max_stack_size, stack_size, local_variables, ufs);
-                parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
+                parser_compile_exe_size(f2->l, p, exe_size,
                                         max_stack_size, stack_size, local_variables, ufs);
                 if (p) {
                     auto *t = new(p) ParserExeF2_B;
                     p      += sizeof(ParserExeF2_B);
-                    t->ftype = ((struct parser_f2*)node)->ftype;
+                    t->ftype = f2->ftype;
                 }
                 exe_size += sizeof(ParserExeF2_B);
             } else {
-                parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
+                parser_compile_exe_size(f2->l, p, exe_size,
                                         max_stack_size, stack_size, local_variables, ufs);
-                parser_compile_exe_size(((struct parser_f2*)node)->r, p, exe_size,
+                parser_compile_exe_size(f2->r, p, exe_size,
                                         max_stack_size, stack_size, local_variables, ufs);
                 if (p) {
                     auto *t = new(p) ParserExeF2_F;
                     p      += sizeof(ParserExeF2_F);
-                    t->ftype = ((struct parser_f2*)node)->ftype;
+                    t->ftype = f2->ftype;
                 }
                 exe_size += sizeof(ParserExeF2_F);
             }
@@ -1095,9 +1212,8 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_SUB_PN:
         {
             int i = ((ParserExeSUB_PN*)p)->i;
-            auto sign = ((ParserExeSUB_PN*)p)->sign;
             std::string op;
-            if (sign > 0.0) {
+            if (!((ParserExeSUB_PN*)p)->reverse) {
                 pstack.back() = make_op_string(get_sym(i), {"-",paren_t::plusminus}, pstack.back());
             } else {
                 pstack.back() = make_op_string(pstack.back(), {"-",paren_t::plusminus}, get_sym(i));
@@ -1180,6 +1296,82 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExeFMA_VPV);
+            break;
+        }
+        case PARSER_EXE_F1_P:
+        {
+            auto* t = (ParserExeF1_P*)p;
+            pstack.emplace_back(make_f1_string(parser_f1_s[t->ftype], get_sym(t->i).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << std::string(parser_f1_s[t->ftype]) + "p"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeF1_P);
+            break;
+        }
+        case PARSER_EXE_SQUARE_P:
+        {
+            auto* t = (ParserExeSquare_P*)p;
+            pstack.emplace_back(make_op_string(get_sym(t->i), {"^",paren_t::pow}, get_val(2.0)));
+            os << std::setw(3) << count++
+               << std::setw(16) << "squarep"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeSquare_P);
+            break;
+        }
+        case PARSER_EXE_POWI_P:
+        {
+            auto* t = (ParserExePOWI_P*)p;
+            pstack.emplace_back(make_op_string(get_sym(t->i), {"^",paren_t::pow},
+                                               {std::to_string(t->n),paren_t::atom}));
+            os << std::setw(3) << count++
+               << std::setw(16) << "powip"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExePOWI_P);
+            break;
+        }
+        case PARSER_EXE_F2_PP:
+        {
+            auto* t = (ParserExeF2_PP*)p;
+            pstack.emplace_back(make_f2_string(parser_f2_s[t->ftype], get_sym(t->i1).first,
+                                               get_sym(t->i2).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << std::string(parser_f2_s[t->ftype]) + "pp"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeF2_PP);
+            break;
+        }
+        case PARSER_EXE_F2_PV:
+        {
+            auto* t = (ParserExeF2_PV*)p;
+            pstack.emplace_back(make_f2_string(parser_f2_s[t->ftype], get_sym(t->i).first,
+                                               get_val(t->v).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << std::string(parser_f2_s[t->ftype]) + "pv"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeF2_PV);
+            break;
+        }
+        case PARSER_EXE_F2_VP:
+        {
+            auto* t = (ParserExeF2_VP*)p;
+            pstack.emplace_back(make_f2_string(parser_f2_s[t->ftype], get_val(t->v).first,
+                                               get_sym(t->i).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << std::string(parser_f2_s[t->ftype]) + "vp"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeF2_VP);
             break;
         }
         case PARSER_EXE_IF:

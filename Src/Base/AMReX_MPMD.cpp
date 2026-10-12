@@ -104,7 +104,11 @@ MPI_Comm Initialize (int argc, char* argv[])
 
 void Finalize ()
 {
-    MPI_Comm_free(&app_comm);
+    // app_comm is MPI_COMM_NULL after Initialize_without_split.
+    if (app_comm != MPI_COMM_NULL) {
+        MPI_Comm_free(&app_comm);
+        app_comm = MPI_COMM_NULL;
+    }
     if (mpi_initialized_by_us) {
         MPI_Finalize();
         mpi_initialized_by_us = false;

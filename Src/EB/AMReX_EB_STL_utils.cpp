@@ -417,7 +417,7 @@ STLtools::read_ascii_stl_file (std::string const& fname, Real scale,
 {
     if (ParallelDescriptor::IOProcessor()) {
         if (amrex::Verbose()) {
-            Print() << "Reading binary STL file "<< fname << "\n";
+            Print() << "Reading ASCII STL file "<< fname << "\n";
         }
 
         std::ifstream is(fname, std::istringstream::in);

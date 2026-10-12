@@ -921,8 +921,11 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-    static constexpr int mg_box_min_width = 2;
+    int mg_box_min_width = 2;
     int mg_domain_min_width = 2;
+    int mg_agg_no_split_direction = -1; // keep agglomerated grids whole in it
+    bool mg_odd_coarsening = false; // coarsen by 3 or 5 where 2 does not fit
+    bool mg_independent_coarsening = false; // coarsen directions on their own
 
     LPInfo info;
 
@@ -1376,7 +1379,9 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
     bool coned = false;
     int agg_lev = 0, con_lev = 0;
 
-    AMREX_ALWAYS_ASSERT( ! (info.do_semicoarsening && info.hasHiddenDimension())
+    AMREX_ALWAYS_ASSERT( ! (info.do_semicoarsening && info.hasHiddenDimension()
+                            && (info.semicoarsening_direction == -1 ||
+                                info.semicoarsening_direction == info.hidden_direction))
                          && info.semicoarsening_direction >= -1
                          && info.semicoarsening_direction < AMREX_SPACEDIM );
 
@@ -1429,13 +1434,45 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 IntVect rr_dir(1);
                 rr_dir[idim] = rr_level[idim];
+                // With odd ratios, the first ratio must also fit the original boxes.
+                bool const fit_ba0 = mg_odd_coarsening && lev == 0;
                 is_coarsenable[idim] = dbx.coarsenable(rr_dir, mg_domain_min_width_v)
-                    && bbx.coarsenable(rr_dir, mg_box_min_width_v);
+                    && bbx.coarsenable(rr_dir, mg_box_min_width_v)
+                    && (!fit_ba0 || ba0.coarsenable(rr_dir, mg_box_min_width_v));
+                for (int r : {3, 5}) {
+                    if (is_coarsenable[idim] || !mg_odd_coarsening || rr_level[idim] != 2) {
+                        break;
+                    }
+                    rr_dir[idim] = r;
+                    if (dbx.coarsenable(rr_dir, mg_domain_min_width_v)
+                        && bbx.coarsenable(rr_dir, mg_box_min_width_v)
+                        && (!fit_ba0 || ba0.coarsenable(rr_dir, mg_box_min_width_v)))
+                    {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = r;
+                    }
+                }
                 if (!is_coarsenable[idim] && do_semicoarsening_level
                     && info.semicoarsening_direction == -1)
                 {
                     is_coarsenable[idim] = true;
                     rr_level[idim] = 1;
+                }
+            }
+            if (mg_independent_coarsening) {
+                // A direction that cannot be coarsened gets ratio 1, and one whose
+                // cells are 1.5 times longer than the shortest coarsenable waits.
+                Real hmin = std::numeric_limits<Real>::max();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (is_coarsenable[idim] && rr_level[idim] > 1) {
+                        hmin = std::min(hmin, dx0[idim]*Real(accum_coarsen_ratio.back()[idim]));
+                    }
+                }
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (!is_coarsenable[idim] || dx0[idim]*Real(accum_coarsen_ratio.back()[idim]) >= Real(1.5)*hmin) {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = 1;
+                    }
                 }
             }
             if (is_coarsenable != IntVect(1) || rr_level == IntVect(1)) {
@@ -1448,7 +1485,11 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                                           + static_cast<int>(rr_level[2] == 1));
                 if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != rr_base) {
+            bool semi_level = false; // odd ratios do not count
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                semi_level = semi_level || (rr_level[idim] == 1 && rr_base[idim] != 1);
+            }
+            if (semi_level) {
                 ++numsclevs;
             }
 
@@ -1468,6 +1509,15 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                 m_dmap[0].push_back(dm0);
             } else {
                 IntVect cr = domainboxes[lev-1].length() / domainboxes[lev].length();
+                if (!agged && lev > 1 && !m_grids[0].back().coarsenable(cr)) {
+                    // The boxes of level lev-1 cannot be coarsened further,
+                    // so agglomerate from that level instead.
+                    m_grids[0].pop_back();
+                    m_dmap[0].pop_back();
+                    m_geom[0].pop_back();
+                    --lev;
+                    cr = domainboxes[lev-1].length() / domainboxes[lev].length();
+                }
                 if (!m_grids[0].back().coarsenable(cr)) {
                     break; // average_down would fail if fine boxarray is not coarsenable.
                 }
@@ -1485,7 +1535,20 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                         max_grid_size[info.semicoarsening_direction]
                             *= AMREX_D_TERM(mgs_0, *mgs_1, *mgs_2);
                     }
-                    m_grids[0].back().maxSize(max_grid_size);
+                    if (mg_agg_no_split_direction >= 0 &&
+                        mg_agg_no_split_direction < AMREX_SPACEDIM)
+                    {
+                        int const d = mg_agg_no_split_direction;
+                        max_grid_size[d] = std::max(max_grid_size[d], cell_box.length(d));
+                    }
+                    // Chop in units of the next coarsening ratio, so that
+                    // the boxes can be coarsened.
+                    IntVect const rn = (lev+1 < nlevs)
+                        ? domainboxes[lev].length() / domainboxes[lev+1].length() : IntVect(1);
+                    BoxArray& cba = m_grids[0].back();
+                    cba.coarsen(rn);
+                    cba.maxSize((max_grid_size+rn-1)/rn);
+                    cba.refine(rn);
                 }
                 m_dmap[0].push_back(DistributionMapping());
                 if (!agged) {
@@ -1527,11 +1590,39 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                 rr_dir[idim] = rr_vec[idim] * rr_level[idim];
                 is_coarsenable[idim] = dom0.coarsenable(rr_dir, mg_domain_min_width_v)
                     && ba0.coarsenable(rr_dir, mg_box_min_width_v);
+                for (int r : {3, 5}) {
+                    if (is_coarsenable[idim] || !mg_odd_coarsening || rr_level[idim] != 2) {
+                        break;
+                    }
+                    rr_dir[idim] = rr_vec[idim] * r;
+                    if (dom0.coarsenable(rr_dir, mg_domain_min_width_v)
+                        && ba0.coarsenable(rr_dir, mg_box_min_width_v))
+                    {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = r;
+                    }
+                }
                 if (!is_coarsenable[idim] && do_semicoarsening_level
                     && info.semicoarsening_direction == -1)
                 {
                     is_coarsenable[idim] = true;
                     rr_level[idim] = 1;
+                }
+            }
+            if (mg_independent_coarsening) {
+                // A direction that cannot be coarsened gets ratio 1, and one whose
+                // cells are 1.5 times longer than the shortest coarsenable waits.
+                Real hmin = std::numeric_limits<Real>::max();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (is_coarsenable[idim] && rr_level[idim] > 1) {
+                        hmin = std::min(hmin, dx0[idim]*Real(rr_vec[idim]));
+                    }
+                }
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (!is_coarsenable[idim] || dx0[idim]*Real(rr_vec[idim]) >= Real(1.5)*hmin) {
+                        is_coarsenable[idim] = true;
+                        rr_level[idim] = 1;
+                    }
                 }
             }
             if (is_coarsenable != IntVect(1) || rr_level == IntVect(1)) {
@@ -1544,7 +1635,11 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
                                           + static_cast<int>(rr_level[2] == 1));
                 if (n_ones > 1 && !aniso_coarsening) { break; }
             }
-            if (rr_level != rr_base) {
+            bool semi_level = false; // odd ratios do not count
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                semi_level = semi_level || (rr_level[idim] == 1 && rr_base[idim] != 1);
+            }
+            if (semi_level) {
                 ++numsclevs;
             }
             rr_vec *= rr_level;

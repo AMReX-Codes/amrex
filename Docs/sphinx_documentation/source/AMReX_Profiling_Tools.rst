@@ -434,6 +434,46 @@ is isolated in its own group.
 Any timers inside :cpp:`MyFunc_0` and :cpp:`MyFunc_1` are not included in the
 region groupings.
 
+.. _sec:tiny:gpu_sync:
+
+GPU-synchronized TinyProfiler timers
+------------------------------------
+
+GPU kernels normally launch asynchronously, so a host timer does not necessarily
+measure the work launched inside its scope. On GPU builds, TinyProfiler provides
+opt-in variants that synchronize the current AMReX GPU stream immediately before
+recording both the start and stop timestamps. Work on other GPU streams is not
+waited for:
+
+* :cpp:`BL_PROFILE_GPU_SYNC(name)`
+* :cpp:`BL_PROFILE_VAR_GPU_SYNC(name, variable)`
+* :cpp:`BL_PROFILE_VAR_NS_GPU_SYNC(name, variable)`
+* :cpp:`BL_PROFILE_REGION_GPU_SYNC(name)`
+
+Variables created with :cpp:`BL_PROFILE_VAR_NS_GPU_SYNC` are started and stopped
+with the ordinary :cpp:`BL_PROFILE_VAR_START` and :cpp:`BL_PROFILE_VAR_STOP`
+macros. On CPU builds these four macros are aliases for their ordinary variants.
+They are also ordinary aliases when the full profiler is selected, and are no-ops
+when profiling is disabled.
+
+After any GPU-synchronized timer starts, TinyProfiler uses a focused report for
+the remainder of that AMReX initialization cycle. The focused report contains
+every timer that ran at the top level since :cpp:`amrex::Initialize`, including
+those that finished before the first synchronized timer, timers created by the
+GPU-synchronized macros, and tables created by
+:cpp:`BL_PROFILE_REGION_GPU_SYNC`. A synchronized timer that shares its name
+with an ordinary timer in the same table is shown with a ``[sync]`` suffix.
+Ordinary nested timers and
+ordinary region tables are omitted from the timer tables of focused flushes and
+the final report; memory profiler tables are not filtered. Activation is combined
+across all MPI processes, so every process uses the same report even if only one
+process executes a synchronized timer. Percentages remain relative to the total
+application run time.
+
+The runtime parameter ``tiny_profiler.device_synchronize_around_region``
+synchronizes all TinyProfiler timer boundaries. When it is enabled, the complete
+report is kept, even if GPU-synchronized macros are used.
+
 Instrumenting Fortran90 Code
 ============================
 

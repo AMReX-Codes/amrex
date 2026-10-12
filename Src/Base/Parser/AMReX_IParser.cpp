@@ -34,13 +34,13 @@ IParser::define (std::string const& func_body)
         YY_BUFFER_STATE buffer = amrex_iparser_scan_string(f.c_str());
         try {
             amrex_iparserparse();
+            m_data->m_iparser = amrex_iparser_new();
         } catch (const std::runtime_error& e) {
             amrex_iparser_delete_buffer(buffer); // delete buffer allocated by bison
             amrex_iparser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
                                      + m_data->m_expression + "\"");
         }
-        m_data->m_iparser = amrex_iparser_new();
         amrex_iparser_delete_buffer(buffer);
     }
 }

@@ -364,6 +364,7 @@ struct TestParams
 
 void testRedistribute();
 void testNeighborProcsCoarseToFine();
+void testAnisotropicRefRatioCtor();
 
 int main (int argc, char* argv[])
 {
@@ -371,6 +372,7 @@ int main (int argc, char* argv[])
 
     amrex::Print() << "Running redistribute test \n";
     testNeighborProcsCoarseToFine();
+    testAnisotropicRefRatioCtor();
     testRedistribute();
 
     amrex::Finalize();
@@ -458,6 +460,40 @@ void testNeighborProcsCoarseToFine ()
     ParallelDescriptor::Barrier();
 
     amrex::Print() << "testNeighborProcsCoarseToFine: pass\n";
+}
+
+// Regression test for GH-5787: the ParticleContainer constructor taking a
+// Vector<IntVect> of refinement ratios must preserve per-direction
+// (anisotropic) ratios rather than collapsing them to the first component.
+void testAnisotropicRefRatioCtor ()
+{
+    BL_PROFILE("testAnisotropicRefRatioCtor");
+
+    const IntVect rr0(AMREX_D_DECL(4,2,1));
+    const Box domain0(IntVect(0), IntVect(AMREX_D_DECL(15,15,15)));
+    const Box domain1 = amrex::refine(domain0, rr0);
+
+    RealBox real_box(AMREX_D_DECL(0.0, 0.0, 0.0),
+                     AMREX_D_DECL(1.0, 1.0, 1.0));
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
+
+    Vector<Geometry> geom(2);
+    geom[0].define(domain0, &real_box, CoordSys::cartesian, is_per);
+    geom[1].define(domain1, &real_box, CoordSys::cartesian, is_per);
+
+    Vector<BoxArray> ba{BoxArray(domain0), BoxArray(domain1)};
+    Vector<DistributionMapping> dmap{DistributionMapping(ba[0]),
+                                     DistributionMapping(ba[1])};
+    Vector<IntVect> rr{rr0};
+
+    amrex::ParticleContainer<NSR, NSI, NAR, NAI> pc(geom, dmap, ba, rr);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc.GetParGDB()->refRatio(0) == rr0,
+        "ParticleContainer(geom, dmap, ba, Vector<IntVect>) did not preserve "
+        "the anisotropic refinement ratio (GH-5787).");
+    AMREX_ALWAYS_ASSERT(pc.GetParGDB()->refRatio(0) == pc.GetParGDB()->refRatio()[0]);
+
+    amrex::Print() << "testAnisotropicRefRatioCtor: pass\n";
 }
 
 void get_test_params(TestParams& params, const std::string& prefix)

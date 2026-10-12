@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 void
@@ -34,6 +35,21 @@ namespace {
 void
 iparser_defexpr (struct iparser_node* body)
 {
+    // Statements are a left-nested list. All but the last must be assignments.
+    bool last = true;
+    for (auto* node = body; node != nullptr; last = false) {
+        struct iparser_node* stmt = node;
+        node = nullptr;
+        if (stmt->type == IPARSER_LIST) {
+            node = stmt->l;
+            stmt = stmt->r;
+        }
+        if (last && stmt->type == IPARSER_ASSIGN) {
+            throw std::runtime_error("expression has no value, last statement is an assignment");
+        } else if (!last && stmt->type != IPARSER_ASSIGN) {
+            throw std::runtime_error("statement other than the last is not an assignment");
+        }
+    }
     iparser_workspace.root = body;
 }
 
@@ -198,20 +214,26 @@ struct amrex_iparser*
 amrex_iparser_new ()
 {
     auto *my_iparser = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
+    my_iparser->p_root = nullptr;
 
-    my_iparser->sz_mempool = iparser_ast_size(iparser_workspace.root);
-    my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
-    my_iparser->p_free = my_iparser->p_root;
+    try {
+        my_iparser->sz_mempool = iparser_ast_size(iparser_workspace.root);
+        my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
+        my_iparser->p_free = my_iparser->p_root;
 
-    my_iparser->ast = iparser_ast_dup(my_iparser, iparser_workspace.root);
+        my_iparser->ast = iparser_ast_dup(my_iparser, iparser_workspace.root);
 
-    amrex_iparser_delete_ptrs();
+        amrex_iparser_delete_ptrs();
 
-    if ((char*)my_iparser->p_root + my_iparser->sz_mempool != (char*)my_iparser->p_free) {
-        amrex::Abort("amrex_iparser_new: error in memory size");
+        if ((char*)my_iparser->p_root + my_iparser->sz_mempool != (char*)my_iparser->p_free) {
+            amrex::Abort("amrex_iparser_new: error in memory size");
+        }
+
+        iparser_ast_optimize(my_iparser->ast);
+    } catch (...) { // amrex::Abort throws with amrex.throw_exception=1
+        amrex_iparser_delete(my_iparser);
+        throw;
     }
-
-    iparser_ast_optimize(my_iparser->ast);
 
     return my_iparser;
 }

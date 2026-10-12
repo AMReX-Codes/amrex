@@ -160,11 +160,9 @@ MemoryHelper::MemoryHelper(MemoryHelper&& rhs) noexcept
 
 void MemoryHelper::Initialize(int nthreads)
 {
-    if (initialized.empty()) {
-        initialized.resize(nthreads);
-        std::ranges::fill(initialized, 0);
-        the_sunmemory_helper.resize(nthreads);
-        std::ranges::fill(the_sunmemory_helper, nullptr);
+    if (initialized.size() < nthreads) {
+        initialized.resize(nthreads, 0);
+        the_sunmemory_helper.resize(nthreads, nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
         if (initialized[i]) { continue; }

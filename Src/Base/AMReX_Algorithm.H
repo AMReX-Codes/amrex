@@ -216,19 +216,19 @@ namespace amrex
      * for the first element which is not less than `v`.
      *
      * \tparam T value type.
-     * \tparam I integral index type.
+     * \tparam Index integral index type.
      * \param d pointer to a sorted array of values.
      * \param lo inclusive lower bound of the search range.
      * \param hi exclusive upper bound of the search range.
      * \param v value to be located.
      * \return an index `i` such that `d[i] <= v < d[i+1]`, with `lo <= i < hi`.
      */
-    template <typename T, std::integral I>
+    template <typename T, std::integral Index>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    I bisect (T const* d, I lo, I hi, T const& v)
+    Index bisect (T const* d, Index lo, Index hi, T const& v)
     {
         while (hi - lo > 1) {
-            I mid = lo + (hi - lo) / 2;
+            Index mid = lo + (hi - lo) / 2;
             if (v < d[mid]) {
                 hi = mid;
             } else {

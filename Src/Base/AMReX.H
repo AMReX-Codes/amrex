@@ -150,6 +150,19 @@ namespace amrex
                        ErrorHandler a_errhandler = nullptr,
                        int a_device_id = -1);
 
+    //! Same as above for a plain function pointer, which would otherwise
+    //! bind to the \c bool overload below.
+    inline AMReX* Initialize (int& argc, char**& argv,
+                              void (*func_parm_parse) (),
+                              std::ostream& a_osout = std::cout,
+                              std::ostream& a_oserr = std::cerr,
+                              ErrorHandler a_errhandler = nullptr,
+                              int a_device_id = -1)
+    {
+        return Initialize(argc, argv, std::function<void()>(func_parm_parse),
+                          a_osout, a_oserr, a_errhandler, a_device_id);
+    }
+
     /**
      * \brief Initialize AMReX from argc/argv, optionally constructing ParmParse.
      *

@@ -984,8 +984,8 @@ InitRandom (Long                    icount,
     AMREX_ASSERT(m_gdb != nullptr);
 
     const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       NProcs   = ParallelDescriptor::NProcs();
-    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const int       NProcs   = ParallelContext::NProcsSub();
+    const int       IOProc   = ParallelContext::IOProcessorNumberSub();
     const auto      strttime = amrex::second();
     const Geometry& geom     = Geom(0);
 
@@ -1034,7 +1034,7 @@ InitRandom (Long                    icount,
         //
         Vector<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelContext::IOProcessorSub())
         {
             for (Long j = 0; j < icount; j++)
             {
@@ -1052,7 +1052,8 @@ InitRandom (Long                    icount,
             }
         }
 
-        ParallelDescriptor::Bcast(pos.dataPtr(), icount*AMREX_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(pos.dataPtr(), icount*AMREX_SPACEDIM, IOProc,
+                                  ParallelContext::CommunicatorSub());
 
         ParticleLocData pld;
 
@@ -1199,7 +1200,7 @@ InitRandom (Long                    icount,
         // Each CPU will key off the given seed to get independent streams of random numbers.
         Long M = icount / NProcs;
         // Processor 0 will get the slop.
-        if (MyProc == 0) {
+        if (ParallelContext::MyProcSub() == 0) {
             M += (icount % NProcs);
         }
 
@@ -1353,7 +1354,7 @@ InitRandom (Long                    icount,
     {
         auto stoptime = amrex::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelReduce::Max(stoptime, IOProc, ParallelContext::CommunicatorSub());
 
         amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
     }
