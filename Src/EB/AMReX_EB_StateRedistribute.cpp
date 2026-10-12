@@ -123,10 +123,12 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     // Raw slopes, limiting, and redistribution updates use separate kernels so
     // their live values do not contribute to one another's register pressure.
     // The limiter overwrites the raw slopes in place before the scatter kernel.
-    // The final component records which cells satisfy the limiter predicate so
-    // the limiter kernel does not need to capture vfrac and itracker.
-    FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM+1,The_Async_Arena());
+    FArrayBox slopes_eb_fab (bxg1,AMREX_SPACEDIM,The_Async_Arena());
     Array4<Real> slopes_eb_arr = slopes_eb_fab.array();
+
+    // Classification stored as integer: bits 0-4 = code, bits 5-10 = boundary_mask
+    IArrayBox classify_fab (bxg1,1,The_Async_Arena());
+    Array4<int> classify_arr = classify_fab.array();
 
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
@@ -204,7 +206,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             bool const has_redist_nbors = vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0;
 
             if (!has_redist_nbors) {
-                slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = 0.0_rt;
+                classify_arr(i,j,k) = 0;
                 return;
             }
 
@@ -215,6 +217,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                          Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
 
             constexpr Real slope_stencil_min_width = Real(0.5);
+            auto const cell_flag = flag(i,j,k);
 #if (AMREX_SPACEDIM == 2)
             int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
@@ -232,7 +235,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #pragma unroll 1
 #endif
             for(int iii(-1); iii<=1; iii++) {
-                if (flag(i,j,k).isConnected(iii,jjj,kkk))
+                if (cell_flag.isConnected(iii,jjj,kkk))
                 {
                     int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
 
@@ -284,7 +287,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
             int code = mask + 1;
             if (boundary_mask != 0) { code += 10; }
-            slopes_eb_arr(i,j,k,AMREX_SPACEDIM) = Real((boundary_mask << 5) | code);
+            classify_arr(i,j,k) = (boundary_mask << 5) | code;
         });
         amrex::Gpu::streamSynchronize();
         } // Kernel2-classify
@@ -296,8 +299,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int const packed_code =
-                static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code < 1 || code > 8) { return; }
 
@@ -337,8 +339,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int const packed_code =
-                static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code == 0) { return; }
 
@@ -399,7 +400,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (slopes_eb_arr(i,j,k,AMREX_SPACEDIM) != 0.0_rt)
+            if (classify_arr(i,j,k) != 0)
             {
                 AMREX_D_TERM(Real slope_x = slopes_eb_arr(i,j,k,0);,
                              Real slope_y = slopes_eb_arr(i,j,k,1);,
