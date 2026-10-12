@@ -318,6 +318,14 @@ ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
     p[rangedir] = b;
     Real const fb = IF_f(f, p);
     Real const h = std::abs(b - a);
+    // Within roundoff of the node, the surface just passes through it.
+    // Roundoff here is where f drops below -tol at the slope along the edge.
+    Real const node_tol = (fb != 0.0_rt) ? Real(2.0)*tol*h/std::abs(fb) : 0.0_rt;
+    // The usual case: f is already below -tol at node_tol, where the
+    // bisection would end.
+    if (node_tol >= h) { return x0; }
+    p[rangedir] = x0 + Real(side)*node_tol;
+    if (IF_f(f, p) < -tol) { return x0; }
     for (int iter = 0; iter < 200 && std::abs(b-a) > xtol; ++iter) {
         p[rangedir] = Real(0.5)*(a+b);
         if (IF_f(f, p) >= -tol) {
@@ -326,9 +334,6 @@ ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
             b = p[rangedir];
         }
     }
-    // Within roundoff of the node, the surface just passes through it.
-    // Roundoff here is where f drops below -tol at the slope along the edge.
-    Real const node_tol = (fb != 0.0_rt) ? Real(2.0)*tol*h/std::abs(fb) : 0.0_rt;
     return (std::abs(a - x0) <= node_tol) ? x0 : a;
 }
 
