@@ -206,6 +206,16 @@ Real IF_size (GpuArray<Real,AMREX_SPACEDIM> const& problo,
     return size;
 }
 
+// Upper bound of IF_roundoff over a fab whose values lie in [vmin,vmax]
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real IF_tolmax (Real vmin, Real vmax, GpuArray<Real,8> const& invd2, Real size)
+{
+    Real const dv = vmax - vmin;
+    Real invd2max = invd2[1];
+    for (int m = 2; m < 8; ++m) { invd2max = amrex::max(invd2max, invd2[m]); }
+    return Real(16.0) * std::numeric_limits<Real>::epsilon() * std::sqrt(dv*dv*invd2max) * size;
+}
+
 // Tolerance below which f at node iv is roundoff: 16 epsilon times the
 // largest slope of f to a neighboring node, diagonals included so that a
 // kink of the surface at the node does not hide the slope, times size (see
@@ -231,15 +241,26 @@ IF_roundoff (F const& f, IntVect const& iv, Real fv, Array4<Real const> const& f
     IntVect const ivlo = ivc - 1;
     IntVect const ivhi = ivc + 1;
     if (ivlo.allGE(blo) && ivhi.allLE(bhi) && fab.contains(ivlo) && fab.contains(ivhi)) {
-        for (int kk = -kmax; kk <= kmax; ++kk) {
-        for (int jj = -1; jj <= 1; ++jj) {
-        for (int ii = -1; ii <= 1; ++ii) {
-            int const m = int(ii != 0) | (int(jj != 0) << 1) | (int(kk != 0) << 2);
-            if (m != 0) {
-                Real const df = fab(ic+ii, jc+jj, kc+kk) - fv;
-                slope2 = amrex::max(slope2, df*df*invd2[m]);
-            }
-        }}}
+        // Same result as the loop below, grouped by invd2.
+        Real const* q = fab.ptr(ic,jc,kc);
+        Long const js = fab.template get_stride<1>();
+        auto sq = [=] (Real a) { return (a-fv)*(a-fv); };
+        slope2 = amrex::max(sq(q[-1]), sq(q[1])) * invd2[1];
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-js]), sq(q[js])) * invd2[2]);
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-1-js]), sq(q[1-js]),
+                                               sq(q[-1+js]), sq(q[1+js])) * invd2[3]);
+#if (AMREX_SPACEDIM == 3)
+        Long const ks = fab.template get_stride<2>();
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-ks]), sq(q[ks])) * invd2[4]);
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-1-ks]), sq(q[1-ks]),
+                                               sq(q[-1+ks]), sq(q[1+ks])) * invd2[5]);
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-js-ks]), sq(q[js-ks]),
+                                               sq(q[-js+ks]), sq(q[js+ks])) * invd2[6]);
+        slope2 = amrex::max(slope2, amrex::max(sq(q[-1-js-ks]), sq(q[1-js-ks]),
+                                               sq(q[-1+js-ks]), sq(q[1+js-ks]),
+                                               sq(q[-1-js+ks]), sq(q[1-js+ks]),
+                                               sq(q[-1+js+ks]), sq(q[1+js+ks])) * invd2[7]);
+#endif
     } else {
         for (int kk = -kmax; kk <= kmax; ++kk) {
         for (int jj = -1; jj <= 1; ++jj) {
