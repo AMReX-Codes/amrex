@@ -321,6 +321,9 @@ inline constexpr Real on_surface_fluid = -std::numeric_limits<Real>::min();
 // Of two diagonal nodes of a face whose other corners are body, only one
 // moves, or the face would be cut twice.
 // The decision needs the snapped level set one layer beyond the levelset box.
+// Only in 3D: in 2D the two edges from such a node get aperture 1, so the
+// cell is cut once anyway.
+#if (AMREX_SPACEDIM == 3)
 inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& levelset,
                                 RunOn run_on)
 {
@@ -343,7 +346,6 @@ inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& lev
             for (int d = 0; d < 3; ++d) { // face normal
                 int const u = (d+1)%3;
                 int const w = (d+2)%3;
-                if (u >= AMREX_SPACEDIM || w >= AMREX_SPACEDIM) { continue; }
                 for (int su = -1; su <= 1; su += 2) {
                     for (int sw = -1; sw <= 1; sw += 2) {
                         IntVect ib = iv;
@@ -374,7 +376,6 @@ inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& lev
             for (int d = 0; d < 3; ++d) {
                 int const u = (d+1)%3;
                 int const w = (d+2)%3;
-                if (u >= AMREX_SPACEDIM || w >= AMREX_SPACEDIM) { continue; }
                 for (int su = -1; su <= 1; su += 2) {
                     for (int sw = -1; sw <= 1; sw += 2) {
                         IntVect ib = iv;
@@ -397,6 +398,7 @@ inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& lev
         a(i,j,k) = v;
     });
 }
+#endif
 
 /**
  * \brief Samples an implicit function on boxes and fills EB data.
@@ -590,11 +592,16 @@ public:
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        // One more node layer, so that ResolveZeroSaddles gives the nodes of
-        // the cells built from this fab the same values as in neighboring
-        // fabs, and another one for the neighbors in the roundoff tolerance.
+        // In 3D one more node layer, so that ResolveZeroSaddles gives the
+        // nodes of the cells built from this fab the same values as in
+        // neighboring fabs, and another one for the neighbors in the
+        // roundoff tolerance.
+#if (AMREX_SPACEDIM == 3)
         const Box gbx = amrex::grow(bx, 1);
-        const Box gbx2 = amrex::grow(bx, 2);
+#else
+        const Box& gbx = bx;
+#endif
+        const Box gbx2 = amrex::grow(gbx, 1);
         // Nodes outside the bounding box take the values of the nearest node in it.
         const Box ibx = gbx & bounding_box;
         const Box ibx2 = gbx2 & bounding_box;
@@ -629,8 +636,12 @@ public:
         }
 
         // Nodes on the surface within roundoff get a zero level set.
+#if (AMREX_SPACEDIM == 3)
         BaseFab<Real> sfab(gbx, 1, arena);
         auto const& s = sfab.array();
+#else
+        auto const& s = levelset.array();
+#endif
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
         AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx, i, j, k,
@@ -656,7 +667,9 @@ public:
                 }
             });
         }
+#if (AMREX_SPACEDIM == 3)
         ResolveZeroSaddles(sfab, levelset, run_on);
+#endif
     }
 
     //! CPU-only overload of fillFab().
@@ -688,8 +701,12 @@ public:
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         // See the GPU version.
+#if (AMREX_SPACEDIM == 3)
         const Box gbx = amrex::grow(bx, 1);
-        const Box gbx2 = amrex::grow(bx, 2);
+#else
+        const Box& gbx = bx;
+#endif
+        const Box gbx2 = amrex::grow(gbx, 1);
         const Box ibx = gbx & bounding_box;
         const Box ibx2 = gbx2 & bounding_box;
         IntVect const bloiv = bounding_box.smallEnd();
@@ -721,8 +738,12 @@ public:
         }
 
         // Nodes on the surface within roundoff get a zero level set.
+#if (AMREX_SPACEDIM == 3)
         BaseFab<Real> sfab(gbx, 1, The_Cpu_Arena());
         auto const& s = sfab.array();
+#else
+        auto const& s = levelset.array();
+#endif
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
         amrex::LoopOnCpu(ibx, [&] (int i, int j, int k) noexcept
@@ -748,7 +769,9 @@ public:
                 }
             });
         }
+#if (AMREX_SPACEDIM == 3)
         ResolveZeroSaddles(sfab, levelset, RunOn::Cpu);
+#endif
     }
 
 

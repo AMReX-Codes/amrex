@@ -1154,10 +1154,15 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
 
     auto const* bvh_root = m_bvh_nodes.data();
 
+#if (AMREX_SPACEDIM == 3)
     // One more node layer, see GeometryShop::fillFab.
     const Box bx = amrex::grow(levelset.box(), 1);
     BaseFab<Real> gfab(bx, 1, Gpu::inLaunchRegion() ? The_Async_Arena() : The_Cpu_Arena());
     auto const& a = gfab.array();
+#else
+    const Box& bx = levelset.box();
+    auto const& a = levelset.array();
+#endif
 
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
@@ -1186,7 +1191,9 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
         a(i,j,k) = (parity == 2) ? 0.0_rt
                  : ((parity == 0) ? reference_value : other_value);
     });
+#if (AMREX_SPACEDIM == 3)
     EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
+#endif
     Gpu::streamSynchronize();
 }
 
