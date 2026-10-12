@@ -1293,8 +1293,8 @@ class BoxConverter { // NOLINT
 public:
     virtual Box doit (const Box& fine) const = 0; // NOLINT
     virtual BoxConverter* clone () const = 0; // NOLINT
-    //! Equal only if both produce the same box for every input; false by default.
-    [[nodiscard]] virtual bool equals (const BoxConverter& /*other*/) const { return false; }
+    //! Equal only if both produce the same box for every input.
+    [[nodiscard]] virtual bool equals (const BoxConverter& other) const = 0;
     virtual ~BoxConverter () = default;
 };
 
