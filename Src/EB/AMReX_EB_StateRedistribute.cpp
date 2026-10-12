@@ -288,49 +288,59 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::Gpu::streamSynchronize();
         } // Kernel2-classify
 
-        // Step 2b: Interior slope computation kernel (no boundary logic)
+        // Step 2b: Standard-stencil interior slope computation kernel
         {
         amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-slope-interior");
+        BL_PROFILE("SK:Kernel2-slope-interior-standard");
         amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int const packed_code =
                 static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
             int const code = packed_code & 0x1f;
-            if (code == 0) { return; }
+            if (code != 1) { return; }
 
-            bool const boundary = code >= 11;
-            if (boundary) { return; }
-
-            int const mask = code - 1;
-
-            // Interior path: call the boundary-free slope functions directly
-            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
-            if (mask == 0) {
-                // Standard 3x3x3 stencil (nx=ny=nz=1)
-                slopes_eb = amrex_calc_slopes_eb(i,j,k,n,Qhat,cent_hat,vfrac,flag,max_order);
-            } else {
-                // Grown stencil path
-                int const nx = (mask & 1) ? 2 : 1;
-                int const ny = (mask & 2) ? 2 : 1;
-#if (AMREX_SPACEDIM == 3)
-                int const nz = (mask & 4) ? 2 : 1;
-#else
-                int const nz = 1;
-#endif
-                slopes_eb = amrex_calc_slopes_eb_grown(i,j,k,n,AMREX_D_DECL(nx,ny,nz),
-                                                       Qhat,cent_hat,vfrac,flag,max_order);
-            }
+            auto const slopes_eb =
+                amrex_calc_slopes_eb(i,j,k,n,Qhat,cent_hat,vfrac,flag,max_order);
 
             AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
                          slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
                          slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
         });
         amrex::Gpu::streamSynchronize();
-        } // Kernel2-slope-interior
+        } // Kernel2-slope-interior-standard
 
-        // Step 2c: Boundary slope computation kernel (with boundary logic)
+        // Step 2c: Grown-stencil interior slope computation kernel
+        {
+        amrex::Gpu::streamSynchronize();
+        BL_PROFILE("SK:Kernel2-slope-interior-grown");
+        amrex::ParallelFor(bxg1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int const packed_code =
+                static_cast<int>(slopes_eb_arr(i,j,k,AMREX_SPACEDIM));
+            int const code = packed_code & 0x1f;
+            if (code < 2 || code > 8) { return; }
+
+            int const mask = code - 1;
+            int const nx = (mask & 1) ? 2 : 1;
+            int const ny = (mask & 2) ? 2 : 1;
+#if (AMREX_SPACEDIM == 3)
+            int const nz = (mask & 4) ? 2 : 1;
+#else
+            int const nz = 1;
+#endif
+            auto const slopes_eb = amrex_calc_slopes_eb_grown(
+                i,j,k,n,AMREX_D_DECL(nx,ny,nz),Qhat,cent_hat,vfrac,flag,max_order);
+
+            AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slopes_eb[0];,
+                         slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
+                         slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
+        });
+        amrex::Gpu::streamSynchronize();
+        } // Kernel2-slope-interior-grown
+
+        // Step 2d: Boundary slope computation kernel (with boundary logic)
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-slope-boundary");
