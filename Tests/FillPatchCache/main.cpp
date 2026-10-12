@@ -34,7 +34,7 @@ Real run (IntVect const& ratio, int nghost, bool periodic, InterpBase* first, In
 
     Box const cdom(IntVect(0), IntVect(ncell-1));
     Box const fdom = amrex::refine(cdom, ratio);
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Array<int,AMREX_SPACEDIM> isper{AMREX_D_DECL(periodic,periodic,periodic)};
     Geometry const cgeom(cdom, rb, CoordSys::cartesian, isper);
     Geometry const fgeom(fdom, rb, CoordSys::cartesian, isper);
