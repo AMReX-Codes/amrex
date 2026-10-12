@@ -98,64 +98,107 @@ amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
     //
 
+    if (max_order == 0) {
+        xslope = 0.;
+        yslope = 0.;
+        zslope = 0.;
+        return;
+    }
+
+    if (vfrac(i,j,k) != 1.) { return; }
+
     // We have enough cells in the x-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
-            vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
-                                  vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
+            vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
+            vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
     {
         int order = 4;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
     }
     // We have enough cells in the x-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
-    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
+    else if (vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
         int order = 2;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
-    } else if (max_order == 0) {
-        xslope = 0.;
     }
 
     // We have enough cells in the y-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
-            vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
-                                  vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
+            vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
+            vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
     {
         int order = 4;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
     }
     // We have enough cells in the y-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
-    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
+    else if (vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
     {
         int order = 2;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
-    } else if (max_order == 0) {
-        yslope = 0.;
     }
 
 #if (AMREX_SPACEDIM == 3)
     // We have enough cells in the z-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
-            vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
-                                  vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
+            vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
+            vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
     {
         int order = 4;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
     }
     // We have enough cells in the z-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
-    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
+    else if (vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
         int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
-    } else if (max_order == 0) {
-        zslope = 0.;
     }
 #endif
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+bool
+amrex_has_all_regular_slope_stencils (
+    int i, int j, int k,
+    amrex::Array4<amrex::Real const> const& vfrac) noexcept
+{
+    return vfrac(i,j,k) == 1. &&
+           vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1. &&
+           vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1. &&
+           vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.;
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_regular_slopes (int i, int j, int k, int n,
+                           amrex::Array4<amrex::Real const> const& state,
+                           amrex::Array4<amrex::Real const> const& vfrac,
+                           int max_order) noexcept
+{
+    int order = 2;
+    if (max_order == 4 && vfrac(i-2,j,k) == 1. && vfrac(i+2,j,k) == 1.) {
+        order = 4;
+    }
+    amrex::Real const xslope = amrex_calc_xslope(i,j,k,n,order,state);
+
+    order = 2;
+    if (max_order == 4 && vfrac(i,j-2,k) == 1. && vfrac(i,j+2,k) == 1.) {
+        order = 4;
+    }
+    amrex::Real const yslope = amrex_calc_yslope(i,j,k,n,order,state);
+
+    order = 2;
+    if (max_order == 4 && vfrac(i,j,k-2) == 1. && vfrac(i,j,k+2) == 1.) {
+        order = 4;
+    }
+    amrex::Real const zslope = amrex_calc_zslope(i,j,k,n,order,state);
+
+    return {xslope,yslope,zslope};
 }
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
@@ -176,6 +219,12 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
                       amrex::Array4<amrex::EBCellFlag const> const& flag,
                       int max_order) noexcept
 {
+    if (max_order == 0) { return {0.,0.,0.}; }
+
+    if (amrex_has_all_regular_slope_stencils(i,j,k,vfrac)) {
+        return amrex_calc_regular_slopes(i,j,k,n,state,vfrac,max_order);
+    }
+
     amrex::EBSlopeNormalEquation normal_eq;
 
     // Prevent loop unrolling to reduce register pressure
@@ -241,6 +290,12 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
     AMREX_ASSERT(nx == 1 || nx == 2);
     AMREX_ASSERT(ny == 1 || ny == 2);
     AMREX_ASSERT(nz == 1 || nz == 2);
+
+    if (max_order == 0) { return {0.,0.,0.}; }
+
+    if (amrex_has_all_regular_slope_stencils(i,j,k,vfrac)) {
+        return amrex_calc_regular_slopes(i,j,k,n,state,vfrac,max_order);
+    }
 
     amrex::EBSlopeNormalEquation normal_eq;
 
