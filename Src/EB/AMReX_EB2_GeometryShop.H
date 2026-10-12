@@ -656,13 +656,44 @@ public:
         BaseFab<Real> ffab(gbx2, 1, arena);
         auto const& fv = ffab.array();
         auto const& fc = ffab.const_array();
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx2, i, j, k,
+        // Range of the sampled values, for IF_tolmax, without a host sync.
+        auto* const pmm = static_cast<Real*>(arena->alloc(2*sizeof(Real)));
+#ifdef AMREX_USE_GPU
+        if (on_gpu) {
+            amrex::single_task([=] AMREX_GPU_DEVICE () noexcept
+            {
+                pmm[0] = std::numeric_limits<Real>::max();
+                pmm[1] = std::numeric_limits<Real>::lowest();
+            });
+            amrex::ParallelFor(Gpu::KernelInfo().setReduction(true), ibx2,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& h) noexcept
+            {
+                amrex::ignore_unused(j,k);
+                Real const v = f(AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
+                                              node_coord(problo[1], j, dx[1]),
+                                              node_coord(problo[2], k, dx[2])));
+                fv(i,j,k) = v;
+                Gpu::deviceReduceMin(pmm, v, h);
+                Gpu::deviceReduceMax(pmm+1, v, h);
+            });
+        } else
+#endif
         {
-            amrex::ignore_unused(j,k);
-            fv(i,j,k) = f(AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
-                                       node_coord(problo[1], j, dx[1]),
-                                       node_coord(problo[2], k, dx[2])));
-        });
+            Real vmin = std::numeric_limits<Real>::max();
+            Real vmax = std::numeric_limits<Real>::lowest();
+            amrex::LoopOnCpu(ibx2, [&] (int i, int j, int k) noexcept
+            {
+                amrex::ignore_unused(j,k);
+                Real const v = f(AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
+                                              node_coord(problo[1], j, dx[1]),
+                                              node_coord(problo[2], k, dx[2])));
+                fv(i,j,k) = v;
+                vmin = amrex::min(vmin, v);
+                vmax = amrex::max(vmax, v);
+            });
+            pmm[0] = vmin;
+            pmm[1] = vmax;
+        }
         if (ibx2 != gbx2) {
             AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx2, i, j, k,
             {
@@ -691,11 +722,13 @@ public:
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
-            s(i,j,k) = (v != 0.0_rt &&
+            Real const tolmax = IF_tolmax(pmm[0], pmm[1], invd2, size);
+            s(i,j,k) = (v != 0.0_rt && std::abs(v) <= tolmax &&
                         std::abs(v) <= IF_roundoff(f, iv, v, fc, problo, dx, invd2, size,
                                                    bloiv, bhiiv))
                 ? 0.0_rt : v;
         });
+        arena->free(pmm);
         if (ibx != gbx) {
             AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
             {
@@ -758,12 +791,17 @@ public:
         BaseFab<Real> ffab(gbx2, 1, The_Cpu_Arena());
         const auto& fv = ffab.array();
         const auto& fc = ffab.const_array();
+        Real vmin = std::numeric_limits<Real>::max();
+        Real vmax = std::numeric_limits<Real>::lowest();
         amrex::LoopOnCpu(ibx2, [&] (int i, int j, int k) noexcept
         {
             amrex::ignore_unused(j,k);
-            fv(i,j,k) = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
-                                                   node_coord(problo[1], j, dx[1]),
-                                                   node_coord(problo[2], k, dx[2]))});
+            Real const v = m_f(RealArray{AMREX_D_DECL(node_coord(problo[0], i, dx[0]),
+                                                      node_coord(problo[1], j, dx[1]),
+                                                      node_coord(problo[2], k, dx[2]))});
+            fv(i,j,k) = v;
+            vmin = amrex::min(vmin, v);
+            vmax = amrex::max(vmax, v);
         });
         if (ibx2 != gbx2) {
             amrex::LoopOnCpu(gbx2, [&] (int i, int j, int k) noexcept
@@ -789,14 +827,17 @@ public:
 #endif
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
+        Real const tolmax = IF_tolmax(vmin, vmax, invd2, size);
+        Long nzero = 0;
         amrex::LoopOnCpu(ibx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
             Real const v = fc(i,j,k);
-            s(i,j,k) = (v != 0.0_rt &&
+            s(i,j,k) = (v != 0.0_rt && std::abs(v) <= tolmax &&
                         std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, size,
                                                    bloiv, bhiiv))
                 ? 0.0_rt : v;
+            if (s(i,j,k) == 0.0_rt) { ++nzero; }
         });
         if (ibx != gbx) {
             amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
@@ -813,7 +854,13 @@ public:
             });
         }
 #if (AMREX_SPACEDIM == 3)
-        ResolveZeroSaddles(sfab, levelset, RunOn::Cpu);
+        if (nzero > 0) {
+            ResolveZeroSaddles(sfab, levelset, RunOn::Cpu);
+        } else {
+            levelset.copy<RunOn::Cpu>(sfab, bx); // no zero node to move
+        }
+#else
+        amrex::ignore_unused(nzero);
 #endif
     }
 
