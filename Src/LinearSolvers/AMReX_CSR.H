@@ -10,6 +10,12 @@
 #include <cub/cub.cuh> // for Clang
 #endif
 
+#ifdef AMREX_USE_SYCL
+#  include <AMReX_Reduce.H>
+#  include <mkl_version.h>
+#  include <oneapi/mkl/spblas.hpp>
+#endif
+
 #include <algorithm>
 #include <concepts>
 #include <climits>
@@ -149,10 +155,10 @@ void CSR<T,V,Index>::sort ()
 
 #ifdef AMREX_USE_GPU
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-
     // The function is synchronous. If that is no longer the case, we might
     // need to update SpMatrix::define.
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     constexpr int nthreads = 256;
     constexpr int nwarps_per_block = nthreads / Gpu::Device::warp_size;
@@ -163,13 +169,21 @@ void CSR<T,V,Index>::sort ()
     int nblocks = (nr + nwarps_per_block-1) / nwarps_per_block;
     auto const& stream = Gpu::gpuStream();
 
+#else
+
+    AMREX_ALWAYS_ASSERT(nrows() < Long(std::numeric_limits<int>::max()));
+
+    auto nr = int(nrows());
+
+#endif
+
     auto* pmat = mat.data();
     auto* pcol = col_index.data();
     auto* prow = row_offset.data();
 
     // Short rows (the common case on fine AMG levels): one thread per row,
-    // insertion sort in registers. Longer rows are left to the warp kernel
-    // below. Both kernels skip rows that are already sorted.
+    // insertion sort in registers. Longer rows are left to the backend-specific
+    // code below. All kernels skip rows that are already sorted.
     // The cap keeps the per-thread arrays at ~256 bytes for wide value types.
     constexpr int SHORT_ROW = std::clamp(int(256/(sizeof(Index)+sizeof(T))), 4, 16);
     ParallelFor(nr, [=] AMREX_GPU_DEVICE (int r) noexcept
@@ -205,6 +219,8 @@ void CSR<T,V,Index>::sort ()
             pmat[b+i] = vals[i];
         }
     });
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     Gpu::Buffer<int> needs_fallback({0});
     auto* d_needs_fallback = needs_fallback.data();
@@ -325,12 +341,42 @@ void CSR<T,V,Index>::sort ()
 
 #elif defined(AMREX_USE_SYCL)
 
-    // xxxxx TODO SYCL: Let's not worry about performance for now.
-    CSR<T,Gpu::PinnedVector,Index> h_csr;
-    duplicateCSR(Gpu::deviceToHost, h_csr, *this);
-    Gpu::streamSynchronize();
-    h_csr.sort_on_host();
-    duplicateCSR(Gpu::hostToDevice, *this, h_csr);
+    Gpu::Buffer<int> needs_fallback({0});
+    auto* d_needs_fallback = needs_fallback.data();
+
+    ParallelFor(nr, [=] AMREX_GPU_DEVICE (int r) noexcept
+    {
+        Long const b = prow[r];
+        Long const e = prow[r+1];
+        if (e - b <= SHORT_ROW) { return; }
+        for (Long i = b+1; i < e; ++i) {
+            if (pcol[i-1] > pcol[i]) {
+                Gpu::Atomic::AddNoRet(d_needs_fallback, 1);
+                return;
+            }
+        }
+    });
+
+    auto* h_needs_fallback = needs_fallback.copyToHost();
+
+    if (*h_needs_fallback)
+    {
+        // Longer unsorted rows: let oneMKL sort the whole matrix on the device.
+        Long const ncols = 1 + Long(Reduce::Max<Index>(nnz, pcol));
+        auto& q = Gpu::Device::streamQueue();
+        oneapi::mkl::sparse::matrix_handle_t handle{};
+        oneapi::mkl::sparse::init_matrix_handle(&handle);
+#if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
+        oneapi::mkl::sparse::set_csr_data(q, handle, Index(nr), Index(ncols),
+                                          oneapi::mkl::index_base::zero, prow, pcol, pmat);
+#else
+        oneapi::mkl::sparse::set_csr_data(q, handle, Index(nr), Index(ncols), Index(nnz),
+                                          oneapi::mkl::index_base::zero, prow, pcol, pmat);
+#endif
+        oneapi::mkl::sparse::sort_matrix(q, handle, {}).wait();
+        oneapi::mkl::sparse::release_matrix_handle(q, &handle).wait();
+    }
+
     Gpu::streamSynchronize();
 
 #endif

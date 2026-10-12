@@ -830,9 +830,6 @@ CSR<T,V,Index> spgemm_local_onemkl (Long nrows, Long ncols,
 
     CSR<T,V,Index> C;
     C.row_offset.resize(nrows+1);
-    // oneMKL wants valid pointers for C before the nnz is known.
-    V<Index> dummy_col(1);
-    V<T> dummy_mat(1);
 
     // Releases everything, also when an OutOfMemoryError is thrown.
     struct Resources {
@@ -867,6 +864,9 @@ CSR<T,V,Index> spgemm_local_onemkl (Long nrows, Long ncols,
                               (Index*)A.row_offset, (Index*)A.col_index, (T*)A.mat);
     mkl::sparse::set_csr_data(q, r.hB, Index(B.nrows), Index(ncols), mkl::index_base::zero,
                               (Index*)B.row_offset, (Index*)B.col_index, (T*)B.mat);
+    // Old oneMKL wants valid pointers here; new oneMKL rejects them with nnz 0.
+    V<Index> dummy_col(1);
+    V<T> dummy_mat(1);
     mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), mkl::index_base::zero,
                               C.row_offset.data(), dummy_col.data(), dummy_mat.data());
 #else
@@ -875,7 +875,7 @@ CSR<T,V,Index> spgemm_local_onemkl (Long nrows, Long ncols,
     mkl::sparse::set_csr_data(q, r.hB, Index(B.nrows), Index(ncols), Index(B.nnz), mkl::index_base::zero,
                               (Index*)B.row_offset, (Index*)B.col_index, (T*)B.mat);
     mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), Index(0), mkl::index_base::zero,
-                              C.row_offset.data(), dummy_col.data(), dummy_mat.data());
+                              C.row_offset.data(), (Index*)nullptr, (T*)nullptr);
 #endif
 
     mkl::sparse::init_matmat_descr(&r.descr);
@@ -915,19 +915,23 @@ CSR<T,V,Index> spgemm_local_onemkl (Long nrows, Long ncols,
                               C.row_offset.data(), C.col_index.data(), C.mat.data());
 #else
     mkl::sparse::set_csr_data(q, r.hC, Index(nrows), Index(ncols), Index(c_nnz), mkl::index_base::zero,
-                              C.row_offset.data(), C.col_index.data(), C.mat.data());
+                              C.row_offset.data(),
+                              (c_nnz > 0) ? C.col_index.data() : (Index*)nullptr,
+                              (c_nnz > 0) ? C.mat.data() : (T*)nullptr);
 #endif
 
     mkl::sparse::matmat(q, r.hA, r.hB, r.hC, req::finalize, r.descr,
                         size_buf, nullptr, {}).wait();
+
+    if (c_nnz > 0) { // oneMKL does not sort the output.
+        mkl::sparse::sort_matrix(q, r.hC, {}).wait();
+    }
 
     Gpu::streamSynchronize();
     The_Arena()->free(r.buffer1);
     The_Arena()->free(r.buffer2);
     r.buffer1 = nullptr;
     r.buffer2 = nullptr;
-
-    C.sort(); // oneMKL does not sort the output.
 
     return C;
 }
