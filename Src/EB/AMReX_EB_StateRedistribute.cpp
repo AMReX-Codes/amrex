@@ -260,29 +260,38 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
             // Encode only boundary faces close enough to affect this cell's slope.
             auto const& bc = d_bcrec_ptr[n];
-            bool const extdir_ilo = (bc.lo(0) == amrex::BCType::ext_dir ||
-                                     bc.lo(0) == amrex::BCType::hoextrap);
-            bool const extdir_ihi = (bc.hi(0) == amrex::BCType::ext_dir ||
-                                     bc.hi(0) == amrex::BCType::hoextrap);
-            bool const extdir_jlo = (bc.lo(1) == amrex::BCType::ext_dir ||
-                                     bc.lo(1) == amrex::BCType::hoextrap);
-            bool const extdir_jhi = (bc.hi(1) == amrex::BCType::ext_dir ||
-                                     bc.hi(1) == amrex::BCType::hoextrap);
-#if (AMREX_SPACEDIM == 3)
-            bool const extdir_klo = (bc.lo(2) == amrex::BCType::ext_dir ||
-                                     bc.lo(2) == amrex::BCType::hoextrap);
-            bool const extdir_khi = (bc.hi(2) == amrex::BCType::ext_dir ||
-                                     bc.hi(2) == amrex::BCType::hoextrap);
-#endif
-
             int boundary_mask = 0;
-            if (extdir_ilo && i <= domain_ilo+1) { boundary_mask |= 1 << 0; }
-            if (extdir_ihi && i >= domain_ihi-1) { boundary_mask |= 1 << 1; }
-            if (extdir_jlo && j <= domain_jlo+1) { boundary_mask |= 1 << 2; }
-            if (extdir_jhi && j >= domain_jhi-1) { boundary_mask |= 1 << 3; }
+            if (i <= domain_ilo+1 &&
+                (bc.lo(0) == amrex::BCType::ext_dir ||
+                 bc.lo(0) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 0;
+            }
+            if (i >= domain_ihi-1 &&
+                (bc.hi(0) == amrex::BCType::ext_dir ||
+                 bc.hi(0) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 1;
+            }
+            if (j <= domain_jlo+1 &&
+                (bc.lo(1) == amrex::BCType::ext_dir ||
+                 bc.lo(1) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 2;
+            }
+            if (j >= domain_jhi-1 &&
+                (bc.hi(1) == amrex::BCType::ext_dir ||
+                 bc.hi(1) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 3;
+            }
 #if (AMREX_SPACEDIM == 3)
-            if (extdir_klo && k <= domain_klo+1) { boundary_mask |= 1 << 4; }
-            if (extdir_khi && k >= domain_khi-1) { boundary_mask |= 1 << 5; }
+            if (k <= domain_klo+1 &&
+                (bc.lo(2) == amrex::BCType::ext_dir ||
+                 bc.lo(2) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 4;
+            }
+            if (k >= domain_khi-1 &&
+                (bc.hi(2) == amrex::BCType::ext_dir ||
+                 bc.hi(2) == amrex::BCType::hoextrap)) {
+                boundary_mask |= 1 << 5;
+            }
 #endif
 
             int code = mask + 1;
