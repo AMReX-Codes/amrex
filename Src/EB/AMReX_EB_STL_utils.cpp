@@ -196,6 +196,17 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool pt_on_tri (Real const pt[3], STLtools::Triangle const& tri, Real tol)
     {
+        // Cheap reject. The accepted region fits in this box unless a vertex
+        // angle is below ~2 degrees; parity classifies the rest of that ear.
+        Real const m = Real(64) * tol;
+        if (pt[0] < amrex::min(tri.v1.x, tri.v2.x, tri.v3.x) - m ||
+            pt[0] > amrex::max(tri.v1.x, tri.v2.x, tri.v3.x) + m ||
+            pt[1] < amrex::min(tri.v1.y, tri.v2.y, tri.v3.y) - m ||
+            pt[1] > amrex::max(tri.v1.y, tri.v2.y, tri.v3.y) + m ||
+            pt[2] < amrex::min(tri.v1.z, tri.v2.z, tri.v3.z) - m ||
+            pt[2] > amrex::max(tri.v1.z, tri.v2.z, tri.v3.z) + m) {
+            return false;
+        }
         Real const v[3][3] = {{tri.v1.x, tri.v1.y, tri.v1.z},
                               {tri.v2.x, tri.v2.y, tri.v2.z},
                               {tri.v3.x, tri.v3.y, tri.v3.z}};
@@ -1154,22 +1165,33 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
 
     auto const* bvh_root = m_bvh_nodes.data();
 
-#if (AMREX_SPACEDIM == 3)
-    // One more node layer, see GeometryShop::fillFab.
-    const Box bx = amrex::grow(levelset.box(), 1);
-    BaseFab<Real> gfab(bx, 1, Gpu::inLaunchRegion() ? The_Async_Arena() : The_Cpu_Arena());
-    auto const& a = gfab.array();
-#else
     const Box& bx = levelset.box();
     auto const& a = levelset.array();
+
+#if (AMREX_SPACEDIM == 3)
+    // Number of nodes on the surface. Without any, no saddles to resolve.
+    bool const on_gpu = Gpu::inLaunchRegion();
+    Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
+    auto* const nzero = static_cast<int*>(arena->alloc(sizeof(int)));
+#ifdef AMREX_USE_GPU
+    if (on_gpu) {
+        amrex::single_task([=] AMREX_GPU_DEVICE () noexcept { *nzero = 0; });
+    } else
+#endif
+    {
+        *nzero = 0;
+    }
 #endif
 
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
 
-    ParallelFor(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
-                {bvh_opt_runtime_option},
-                bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
+    AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+           {bvh_opt_runtime_option},
+           [&] (auto cto_func) {
+               ParallelFor(Gpu::KernelInfo().setReduction(AMREX_SPACEDIM == 3), bx, cto_func);
+           },
+           [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& h, auto control) noexcept
     {
         Real coords[3];
         coords[0]=node_coord(plo[0], i, dx[0]);
@@ -1190,9 +1212,52 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
         // a node on the surface belongs to the body, like a zero level set
         a(i,j,k) = (parity == 2) ? 0.0_rt
                  : ((parity == 0) ? reference_value : other_value);
-    });
 #if (AMREX_SPACEDIM == 3)
-    EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
+        Gpu::deviceReduceSum(nzero, int(parity == 2), h);
+#else
+        amrex::ignore_unused(h);
+#endif
+    });
+
+#if (AMREX_SPACEDIM == 3)
+    int nz = 0;
+    if (on_gpu) {
+        Gpu::dtoh_memcpy(&nz, nzero, sizeof(int));
+    } else {
+        nz = *nzero;
+    }
+    if (nz > 0) {
+        // One more node layer, see GeometryShop::fillFab.
+        const Box gbx = amrex::grow(bx, 1);
+        BaseFab<Real> gfab(gbx, 1, arena);
+        auto const& g = gfab.array();
+        AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+               {bvh_opt_runtime_option},
+               [&] (auto cto_func) { ParallelFor(gbx, cto_func); },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
+        {
+            if (bx.contains(IntVect(i,j,k))) {
+                g(i,j,k) = a(i,j,k);
+                return;
+            }
+            Real coords[3];
+            coords[0]=node_coord(plo[0], i, dx[0]);
+            coords[1]=node_coord(plo[1], j, dx[1]);
+            coords[2]=node_coord(plo[2], k, dx[2]);
+            int parity = 0;
+            if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
+                coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
+                coords[2] >= ptmin.z && coords[2] <= ptmax.z)
+            {
+                parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                             tri_pts, num_triangles, bbmin, bbmax);
+            }
+            g(i,j,k) = (parity == 2) ? 0.0_rt
+                     : ((parity == 0) ? reference_value : other_value);
+        });
+        EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
+    }
+    arena->free(nzero);
 #endif
     Gpu::streamSynchronize();
 }
