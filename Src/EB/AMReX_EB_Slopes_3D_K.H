@@ -97,7 +97,6 @@ amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
     //
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
     //
-    AMREX_ALWAYS_ASSERT( max_order == 0 || max_order == 2 || max_order == 4);
 
     // We have enough cells in the x-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
