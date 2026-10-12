@@ -42,6 +42,18 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
     constexpr Real epsilon = 1.e-12;
 #endif
 
+    // Early exit optimization: Skip limiting for zero slopes
+    // Zero slopes mean constant reconstruction, which never needs limiting
+#if (AMREX_SPACEDIM == 2)
+    if (slope_x == 0.0 && slope_y == 0.0) {
+        return;
+    }
+#elif (AMREX_SPACEDIM == 3)
+    if (slope_x == 0.0 && slope_y == 0.0 && slope_z == 0.0) {
+        return;
+    }
+#endif
+
     AMREX_D_TERM(amrex::Real xalpha = 1.0;,
                  amrex::Real yalpha = 1.0;,
                  amrex::Real zalpha = 1.0;);
@@ -91,6 +103,21 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
                 if (amrex::Math::abs(delta_z) > epsilon) { zalpha = amrex::min(zalpha,new_lim); }
 #endif
             }
+        }
+
+        // Early exit optimization: If no limiting has been applied so far,
+        // skip remaining stencil iterations. This helps when slopes are already
+        // within monotonicity bounds for well-behaved regions.
+        if (ii == 0 && jj == 0 && kk == 0) {
+#if (AMREX_SPACEDIM == 2)
+            if (xalpha == 1.0 && yalpha == 1.0) {
+                return;
+            }
+#elif (AMREX_SPACEDIM == 3)
+            if (xalpha == 1.0 && yalpha == 1.0 && zalpha == 1.0) {
+                return;
+            }
+#endif
         }
       }
      }
