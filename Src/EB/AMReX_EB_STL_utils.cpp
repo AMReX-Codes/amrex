@@ -228,8 +228,8 @@ namespace {
     // reference point to pt.  The later reference points are tried only if
     // the ray from the first one passes within roundoff of an edge or a
     // vertex, where a crossing may be counted twice or not at all.  If all
-    // rays are ambiguous, the first ray is used.  Returns 2 if pt is on the
-    // surface within roundoff.
+    // rays are ambiguous, the majority wins and a tie goes to the first
+    // ray.  Returns 2 if pt is on the surface within roundoff.
     template <bool UseBVH, typename BVHNode>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int crossing_parity (Real const pt[3], GpuArray<XDim3,STLtools::m_num_ref> const& ptref,
@@ -247,6 +247,7 @@ namespace {
             * amrex::max(std::abs(pt[0]), std::abs(pt[1]), std::abs(pt[2]),
                          std::abs(ptref[0].x), std::abs(ptref[0].y), std::abs(ptref[0].z));
         int parity0 = 0;
+        int votes = 0; // +1 per ambiguous ray with odd parity, -1 with even
         for (int n = 0; n < STLtools::m_num_ref; ++n) {
             Real const pr[] = {ptref[n].x, ptref[n].y, ptref[n].z};
             int num_intersects = 0;
@@ -279,10 +280,12 @@ namespace {
             }
             if (on_surface) { return 2; }
             if (outside_bb) { return 0; }
-            if (!ambiguous) { return num_intersects % 2; }
-            if (n == 0) { parity0 = num_intersects % 2; }
+            int const parity = num_intersects % 2;
+            if (!ambiguous) { return parity; }
+            if (n == 0) { parity0 = parity; }
+            votes += parity ? 1 : -1;
         }
-        return parity0;
+        return (votes > 0) ? 1 : ((votes < 0) ? 0 : parity0);
     }
 
 #if (AMREX_SPACEDIM == 3)
@@ -791,8 +794,11 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
 
     // We now need to figure out if the boundary and the reference is
     // outside or inside the object.  A ray that grazes an edge or a vertex
-    // is ambiguous; then the next reference point is tried.
+    // is ambiguous; then the next reference point is tried.  If all rays
+    // are ambiguous, the majority wins and a tie goes to the first ray.
     XDim3 const norm0 = triangle_norm(tri0);
+    bool outside0 = true;
+    int votes = 0; // +1 per ambiguous ray saying outside, -1 inside
     for (int n = 0; n < m_num_ref; ++n) {
         XDim3 const ptref = m_ptref[n];
         bool const ref_positive = (ptref.x-cent0.x)*norm0.x + (ptref.y-cent0.y)*norm0.y
@@ -811,9 +817,15 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         });
         IsectTuple const isect = isect_data.value(isect_op);
         int const num_isects = amrex::get<0>(isect) + (ref_positive ? 0 : 1);
-        m_boundry_is_outside = num_isects % 2 == 0;
-        if (amrex::get<1>(isect) == 0) { break; }
+        bool const outside = num_isects % 2 == 0;
+        if (amrex::get<1>(isect) == 0) {
+            m_boundry_is_outside = outside;
+            return;
+        }
+        if (n == 0) { outside0 = outside; }
+        votes += outside ? 1 : -1;
     }
+    m_boundry_is_outside = (votes > 0) ? true : ((votes < 0) ? false : outside0);
 }
 
 void
