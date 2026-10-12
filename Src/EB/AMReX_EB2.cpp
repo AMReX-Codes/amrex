@@ -16,6 +16,7 @@
 #  include <AMReX_MarchingCubes.H>
 #endif
 #include <AMReX_ParmParse.H>
+#include <AMReX_FabArrayBase.H>
 #include <AMReX.H>
 #include <algorithm>
 
@@ -58,6 +59,11 @@ bool ExtendDomainFace ()
 int NumCoarsenOpt ()
 {
     return num_coarsen_opt;
+}
+
+IndexSpace::~IndexSpace ()
+{
+    FabArrayBase::flushFPinfo(this);
 }
 
 void
