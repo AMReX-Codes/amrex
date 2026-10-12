@@ -2105,6 +2105,15 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
             it->second->m_index_space == index_space &&
             it->second->m_coarsener->equals(coarsener))
         {
+#ifdef AMREX_DEBUG
+            // Catch an interpolater whose CoarseBox depends on instance state.
+            auto const& fpc = *(it->second);
+            for (int i = 0, N = static_cast<int>(fpc.ba_fine_patch.size()); i < N; ++i) {
+                if (coarsener.doit(fpc.ba_fine_patch[i]) != fpc.ba_crse_patch[i]) {
+                    amrex::Abort("FabArrayBase::TheFPinfo: CoarseBox must depend only on the interpolater class and ratio");
+                }
+            }
+#endif
             ++(it->second->m_nuse);
             m_FPinfo_stats.recordUse();
             return *(it->second);
