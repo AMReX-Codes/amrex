@@ -54,6 +54,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                       int max_order)
 {
     BL_PROFILE_VAR("MLStateRedist", MLStateRedist);
+    AMREX_ALWAYS_ASSERT( max_order == 0 || max_order == 2 || max_order == 4);
     // Note that itracker has {4 in 2D, 8 in 3D} components and all are initialized to zero
     // We will add to the first component every time this cell is included in a merged neighborhood,
     //    either by merging or being merged
@@ -566,6 +567,7 @@ StateRedistribute ( Box const& bx, int ncomp,
                     Geometry const& lev_geom,
                     int max_order)
 {
+    AMREX_ALWAYS_ASSERT( max_order == 0 || max_order == 2 || max_order == 4);
     // Note that itracker has {4 in 2D, 8 in 3D} components and all are initialized to zero
     // We will add to the first component every time this cell is included in a merged neighborhood,
     //    either by merging or being merged
