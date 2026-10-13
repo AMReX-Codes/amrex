@@ -135,7 +135,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     // All expensive redistribution kernels use the same activity predicate.
     // Compact it once per tile and reuse the list for every component instead
     // of launching mostly inactive warps in each kernel.
-    BL_PROFILE_VAR("SK:Kernel2-active-list", active_list_prof);
     Long const num_candidates = bxg1.numPts();
     Gpu::DeviceVector<Dim3> active_cells_v(num_candidates);
     Dim3* const active_cells = active_cells_v.data();
@@ -156,7 +155,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             }
         },
         Scan::Type::exclusive, Scan::retSum);
-    BL_PROFILE_VAR_STOP(active_list_prof);
 
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
