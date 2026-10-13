@@ -2151,6 +2151,67 @@ instead synchronizes every TinyProfiler timer boundary and keeps the complete
 report. For detailed kernel information, use a backend profiling tool.
 
 
+Assigning GPUs to MPI Ranks
+===========================
+
+.. _sec:gpu:device_selection:
+
+If each MPI rank sees only one GPU, AMReX uses it. If multiple GPUs are
+visible, AMReX picks one for each rank based on the rank's position within
+the node and, on some machines such as Perlmutter and Frontier, the machine's
+CPU/GPU affinity.
+
+Some GPU-aware MPI libraries, such as Cray MPICH and Open MPI, set up GPU
+communication on the current GPU during MPI initialization. A process that switches to another
+GPU afterwards may get much slower GPU-aware MPI communication. Recent Cray
+MPICH versions report this as "This process is not using the same device it
+did during gtl_init". To avoid it, the GPU must be selected before MPI is
+initialized.
+
+* If AMReX initializes MPI, it selects the GPU first, using the node-local
+  rank provided by the job launcher (e.g., ``SLURM_LOCALID`` for ``srun`` and
+  ``OMPI_COMM_WORLD_LOCAL_RANK`` for Open MPI's ``mpirun``). Nothing needs to
+  be done.
+
+* If the application initializes MPI itself, it should call
+  :cpp:`amrex::Gpu::SelectDeviceBeforeMPIInit()` before ``MPI_Init``.
+  :cpp:`amrex::Initialize` then uses the selected GPU.
+
+.. highlight:: c++
+
+::
+
+    int main (int argc, char* argv[])
+    {
+        amrex::Gpu::SelectDeviceBeforeMPIInit();
+        MPI_Init(&argc, &argv);
+        amrex::Initialize(argc, argv, true, MPI_COMM_WORLD);
+        ...
+    }
+
+* Alternatively, make only one GPU visible to each rank before the program
+  starts, with ``CUDA_VISIBLE_DEVICES`` (CUDA) or ``ROCR_VISIBLE_DEVICES``
+  (HIP). On Perlmutter, with four ranks per node, the following wrapper
+  script gives each rank the GPU closest to its CPU cores.
+
+.. highlight:: bash
+
+::
+
+    #!/bin/bash
+    # Usage: srun ... --cpu-bind=cores --gpu-bind=none ./wrapper.sh ./main3d.ex inputs
+    export CUDA_VISIBLE_DEVICES=$((3-SLURM_LOCALID))
+    exec "$@"
+
+Slurm's own GPU binding options (e.g., ``--gpus-per-task=1`` and
+``--gpu-bind=map_gpu``) also make one GPU visible to each rank. However, on
+systems where Slurm restricts device access with cgroups, they can prevent
+GPU-aware MPI from transferring data directly between GPUs on the same node. On
+Perlmutter, this makes GPU-aware MPI hang, or run very slowly if the direct
+transfers are disabled. On such systems, use ``--gpu-bind=none`` together
+with one of the approaches above.
+
+
 Performance Tips
 ================
 
@@ -2195,7 +2256,8 @@ AMReX for GPUs:
   AMReX will attempt to do the best job it can assigning MPI ranks to GPUs by
   doing round robin assignment. This may be suboptimal because this assignment
   scheme would not be aware of locality benefits that come from having an MPI
-  rank be on the same socket as the GPU it is managing.
+  rank be on the same socket as the GPU it is managing. See
+  :ref:`sec:gpu:device_selection` for how this interacts with GPU-aware MPI.
 
 
 .. ===================================================================

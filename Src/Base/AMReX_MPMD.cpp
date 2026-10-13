@@ -1,3 +1,4 @@
+#include <AMReX_GpuDevice.H>
 #include <AMReX_MPMD.H>
 #include <AMReX_ParallelDescriptor.H>
 
@@ -47,6 +48,7 @@ void Initialize_without_split (int argc, char* argv[])
     int flag;
     MPI_Initialized(&flag);
     if (!flag) {
+        Gpu::SelectDeviceBeforeMPIInit();
         MPI_Init(&argc, &argv);
         mpi_initialized_by_us = true;
     }
