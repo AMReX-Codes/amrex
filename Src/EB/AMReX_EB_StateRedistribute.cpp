@@ -5,6 +5,8 @@
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EB_StateRedistSlopeLimiter_K.H>
 #include <AMReX_EB_Slopes_K.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_Scan.H>
 #include <AMReX_YAFluxRegister_K.H>
 
 // Neighbor index lookup tables in constant memory for efficient GPU access
@@ -130,6 +132,30 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     IArrayBox classify_fab (bxg1,1,The_Async_Arena());
     Array4<int> classify_arr = classify_fab.array();
 
+    // All of the expensive redistribution kernels use the same activity
+    // predicate.  Compact it once per tile and reuse the list for every
+    // component instead of launching mostly inactive warps in each kernel.
+    Long const num_candidates = bxg1.numPts();
+    Gpu::DeviceVector<Dim3> active_cells_v(num_candidates);
+    Dim3* const active_cells = active_cells_v.data();
+    int const num_active_cells = Scan::PrefixSum<int>(
+        num_candidates,
+        [=] AMREX_GPU_DEVICE (Long offset) noexcept -> int
+        {
+            Dim3 const cell = bxg1.atOffset(offset).dim3();
+            return vfrac(cell.x,cell.y,cell.z) > 0.0 &&
+                   itracker(cell.x,cell.y,cell.z,0) > 0;
+        },
+        [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
+        {
+            Dim3 const cell = bxg1.atOffset(offset).dim3();
+            if (vfrac(cell.x,cell.y,cell.z) > 0.0 &&
+                itracker(cell.x,cell.y,cell.z,0) > 0) {
+                active_cells[active_offset] = cell;
+            }
+        },
+        Scan::Type::exclusive, Scan::retSum);
+
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
     // caller's responsibility.
@@ -200,15 +226,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-classify");
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
-            bool const has_redist_nbors = vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0;
-
-            if (!has_redist_nbors) {
-                classify_arr(i,j,k) = 0;
-                return;
-            }
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
 
             // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
             //    or do we need to enlarge it?
@@ -305,9 +329,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-slope-interior");
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
             int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code < 1 || code > 8) { return; }
@@ -345,9 +373,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-slope-boundary");
 
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
             int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code == 0) { return; }
@@ -406,26 +438,27 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-limiter");
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
-            if (classify_arr(i,j,k) != 0)
-            {
-                AMREX_D_TERM(Real slope_x = slopes_eb_arr(i,j,k,0);,
-                             Real slope_y = slopes_eb_arr(i,j,k,1);,
-                             Real slope_z = slopes_eb_arr(i,j,k,2););
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
+            AMREX_D_TERM(Real slope_x = slopes_eb_arr(i,j,k,0);,
+                         Real slope_y = slopes_eb_arr(i,j,k,1);,
+                         Real slope_z = slopes_eb_arr(i,j,k,2););
 
-                // We do the limiting separately because this limiter limits the slope based on the values
-                //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
-                //    which bases the limiting on values extrapolated to the face centroids.
-                amrex_apply_centroid_limiter(i,j,k,n,Qhat,flag,
-                                             AMREX_D_DECL(slope_x,slope_y,slope_z),
-                                             cent_hat);
+            // We do the limiting separately because this limiter limits the slope based on the values
+            //    extrapolated to the cell centroid (cent_hat) locations - unlike the limiter in amrex
+            //    which bases the limiting on values extrapolated to the face centroids.
+            amrex_apply_centroid_limiter(i,j,k,n,Qhat,flag,
+                                         AMREX_D_DECL(slope_x,slope_y,slope_z),
+                                         cent_hat);
 
-                AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slope_x;,
-                             slopes_eb_arr(i,j,k,1) = slope_y;,
-                             slopes_eb_arr(i,j,k,2) = slope_z;);
-            } // activity marker
+            AMREX_D_TERM(slopes_eb_arr(i,j,k,0) = slope_x;,
+                         slopes_eb_arr(i,j,k,1) = slope_y;,
+                         slopes_eb_arr(i,j,k,2) = slope_z;);
         });
         amrex::Gpu::streamSynchronize();
         } // Kernel2-limiter
@@ -434,19 +467,21 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-scatter");        
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
-            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
-            {
-                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
-                    AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
-                                 slopes_eb_arr(i,j,k,1),
-                                 slopes_eb_arr(i,j,k,2))};
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
+            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
+                AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
+                             slopes_eb_arr(i,j,k,1),
+                             slopes_eb_arr(i,j,k,2))};
 
-                // Now loop over neighbors using the precomputed slopes
-                for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
-                {
+            // Now loop over neighbors using the precomputed slopes
+            for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
+            {
                     int r = i; int s = j; int t = k;
                     Real fac = alpha(i,j,k,0) * nrs(i,j,k);
                     if (i_nbor > 0) {
@@ -540,8 +575,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                         } // r_nbor
                     } // bx contains
-                } // i_nbor
-            } // vfrac > 0 && itracker > 0
+            } // i_nbor
 
         });
         amrex::Gpu::streamSynchronize();
