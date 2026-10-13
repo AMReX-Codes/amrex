@@ -10,6 +10,9 @@
 // A second part reduces tuples of mixed integer types whose results are
 // known exactly, for sizes around the GPU warp and block sizes.
 //
+// The reductions are local: with MPI, every process reduces the whole index
+// range and the cells of the MultiFab that it owns.
+//
 // Run with the default inputs, or override on the command line, e.g.
 //   ./main3d.gnu.CUDA.ex inputs tests="sum1 moments46" nitems="100000 10000000"
 //   ./main3d.gnu.CUDA.ex inputs nitems="" ncell="64 128 256"
@@ -190,11 +193,13 @@ std::array<double, sizeof...(Ts)> toArray (GpuTuple<Ts...> const& t)
     }(std::index_sequence_for<Ts...>{});
 }
 
-// Serial host reference for a test over nitems items, compared with result.
+// Serial host reference for a test, compared with result. for_each_item
+// calls its argument with the index of every item that this process reduces.
 // Minima and maxima must match exactly. Sums are accumulated in double
-// precision and may differ by the rounding of a sum of nitems terms.
-template <typename Test>
-bool verify (Long nitems, std::array<double, Test::nvalues> const& result)
+// precision and may differ by the rounding of a sum of that many terms.
+template <typename Test, typename ForEachItem>
+bool verify (ForEachItem const& for_each_item,
+             std::array<double, Test::nvalues> const& result)
 {
     constexpr auto kinds = kindsOf(typename Test::Ops{});
     constexpr int nvalues = Test::nvalues;
@@ -202,13 +207,16 @@ bool verify (Long nitems, std::array<double, Test::nvalues> const& result)
     std::array<double, nvalues> mag{};
     for (int n = 0; n < nvalues; ++n) {
         if (kinds[n] == Kind::min) {
-            ref[n] = std::numeric_limits<double>::max();
+            ref[n] = static_cast<double>(std::numeric_limits<Real>::max());
         } else if (kinds[n] == Kind::max) {
-            ref[n] = std::numeric_limits<double>::lowest();
+            ref[n] = static_cast<double>(std::numeric_limits<Real>::lowest());
         }
     }
 
-    for (Long i = 0; i < nitems; ++i) {
+    Long nitems = 0;
+    for_each_item([&] (Long i)
+    {
+        ++nitems;
         const auto v = toArray(Test::eval(HashGetter{i}));
         for (int n = 0; n < nvalues; ++n) {
             if (kinds[n] == Kind::min) {
@@ -220,7 +228,7 @@ bool verify (Long nitems, std::array<double, Test::nvalues> const& result)
                 mag[n] += std::abs(v[n]);
             }
         }
-    }
+    });
 
     const double tol = 32.0 * static_cast<double>(std::numeric_limits<Real>::epsilon())
         * std::sqrt(static_cast<double>(nitems));
@@ -233,6 +241,22 @@ bool verify (Long nitems, std::array<double, Test::nvalues> const& result)
         }
     }
     return correct;
+}
+
+// Call f with the index of every cell of mf that this process owns. With
+// MPI, these are not all cells of the domain.
+template <typename F>
+void forEachLocalCell (MultiFab const& mf, Box const& domain, F const& f)
+{
+    const auto len = domain.length3d();
+    const Long nx = len[0];
+    const Long ny = len[1];
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k)
+        {
+            f(i + nx*(j + ny*k));
+        });
+    }
 }
 
 struct Timing
@@ -271,7 +295,8 @@ void report (std::string const& name, int nvalues, std::string const& layout, Lo
                    << std::setw(11) << timing.tmin * 1.e3
                    << std::setw(11) << timing.tavg * 1.e3
                    << std::setprecision(3)
-                   << std::setw(10) << timing.tmin * 1.e9 / static_cast<double>(nitems)
+                   << std::setw(10)
+                   << (nitems > 0 ? timing.tmin * 1.e9 / static_cast<double>(nitems) : 0.0)
                    << std::setw(8) << (timing.correct ? "ok" : "WRONG") << "\n";
 }
 
@@ -305,7 +330,10 @@ bool benchmarkRange (std::string const& name, int nitems, int nwarmup, int nrepe
 
     auto result = reduce();
     Timing timing = timeIt(nwarmup, nrepeat, [&] () { result = reduce(); });
-    timing.correct = verify<Test>(nitems, toArray(result));
+    timing.correct = verify<Test>([=] (auto const& item)
+                                  {
+                                      for (Long i = 0; i < nitems; ++i) { item(i); }
+                                  }, toArray(result));
     report(name, Test::nvalues, "range", nitems, timing);
     return timing.correct;
 }
@@ -347,8 +375,16 @@ bool benchmarkMultiFab (std::string const& name, int ncell, int max_grid_size,
 
     auto result = reduce();
     Timing timing = timeIt(nwarmup, nrepeat, [&] () { result = reduce(); });
-    timing.correct = verify<Test>(domain.numPts(), toArray(result));
-    report(name, Test::nvalues, "cells", domain.numPts(), timing);
+    Long ncells = 0;
+    timing.correct = verify<Test>([&] (auto const& item)
+                                  {
+                                      forEachLocalCell(mf, domain, [&] (Long cell)
+                                      {
+                                          ++ncells;
+                                          item(cell);
+                                      });
+                                  }, toArray(result));
+    report(name, Test::nvalues, "cells", ncells, timing);
     return timing.correct;
 }
 
@@ -466,13 +502,21 @@ bool checkMixedMultiFab (int ncell, int max_grid_size)
     });
     const auto result = reducer.getResult();
 
-    const Long ncells = domain.numPts();
+    Long ncells = 0;
     Long sum7 = 0;
-    for (Long cell = 0; cell < ncells; ++cell) { sum7 += cell % 7; }
+    int cmin = std::numeric_limits<int>::max();
+    int cmax = std::numeric_limits<int>::lowest();
+    forEachLocalCell(mf, domain, [&] (Long cell)
+    {
+        ++ncells;
+        sum7 += cell % 7;
+        cmin = std::min(cmin, static_cast<int>(cell));
+        cmax = std::max(cmax, static_cast<int>(cell));
+    });
     return (amrex::get<0>(result) == ncells)
         && (amrex::get<1>(result) == sum7)
-        && (amrex::get<2>(result) == 0)
-        && (amrex::get<3>(result) == static_cast<int>(ncells-1));
+        && (amrex::get<2>(result) == cmin)
+        && (amrex::get<3>(result) == cmax);
 }
 
 }
