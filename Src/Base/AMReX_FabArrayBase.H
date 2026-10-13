@@ -342,6 +342,7 @@ public:
         Box                 m_dstdomain;
         IntVect             m_dstng;
         std::unique_ptr<BoxConverter> m_coarsener;
+        const EB2::IndexSpace* m_index_space = nullptr;
         //
         Long                m_nuse{0};
     };
@@ -362,6 +363,9 @@ public:
                                     const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false) const;
+
+    //! Erase all FillPatch cache entries built with the given EB index space.
+    static void flushFPinfo (const EB2::IndexSpace* ispace);
 
     //
     //! coarse/fine boundary
