@@ -132,11 +132,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     IArrayBox classify_fab (bxg1,1,The_Async_Arena());
     Array4<int> classify_arr = classify_fab.array();
 
-    // Classification, slope construction, and limiting use the same activity
-    // predicate.  Compact it once per tile and reuse the list for every
-    // component instead of launching mostly inactive warps in each kernel.
-    // Scatter retains its box launch because changing the participating warp
-    // layout can change the order of its floating-point atomic additions.
+    // All expensive redistribution kernels use the same activity predicate.
+    // Compact it once per tile and reuse the list for every component instead
+    // of launching mostly inactive warps in each kernel.
     BL_PROFILE_VAR("SK:Kernel2-active-list", active_list_prof);
     Long const num_candidates = bxg1.numPts();
     Gpu::DeviceVector<Dim3> active_cells_v(num_candidates);
@@ -471,19 +469,21 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
         amrex::Gpu::streamSynchronize();
         BL_PROFILE("SK:Kernel2-scatter");        
-        amrex::ParallelFor(bxg1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(num_active_cells,
+        [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
-            if (vfrac(i,j,k) > 0.0 && itracker(i,j,k,0) > 0)
-            {
-                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
-                    AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
-                                 slopes_eb_arr(i,j,k,1),
-                                 slopes_eb_arr(i,j,k,2))};
+            Dim3 const cell = active_cells[active_index];
+            int const i = cell.x;
+            int const j = cell.y;
+            int const k = cell.z;
+            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
+                AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
+                             slopes_eb_arr(i,j,k,1),
+                             slopes_eb_arr(i,j,k,2))};
 
-                // Now loop over neighbors using the precomputed slopes
-                for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
-                {
+            // Now loop over neighbors using the precomputed slopes
+            for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
+            {
                     int r = i; int s = j; int t = k;
                     Real fac = alpha(i,j,k,0) * nrs(i,j,k);
                     if (i_nbor > 0) {
@@ -577,8 +577,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                         } // r_nbor
                     } // bx contains
-                } // i_nbor
-            } // vfrac > 0 && itracker > 0
+            } // i_nbor
 
         });
         amrex::Gpu::streamSynchronize();
