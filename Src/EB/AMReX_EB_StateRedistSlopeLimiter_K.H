@@ -104,21 +104,6 @@ amrex_apply_centroid_limiter(int i, int j, int k, int n,
 #endif
             }
         }
-
-        // Early exit optimization: If no limiting has been applied so far,
-        // skip remaining stencil iterations. This helps when slopes are already
-        // within monotonicity bounds for well-behaved regions.
-        if (ii == 0 && jj == 0 && kk == 0) {
-#if (AMREX_SPACEDIM == 2)
-            if (xalpha == 1.0 && yalpha == 1.0) {
-                return;
-            }
-#elif (AMREX_SPACEDIM == 3)
-            if (xalpha == 1.0 && yalpha == 1.0 && zalpha == 1.0) {
-                return;
-            }
-#endif
-        }
       }
      }
     }
