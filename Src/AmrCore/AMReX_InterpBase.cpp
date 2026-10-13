@@ -1,9 +1,11 @@
 #include <AMReX_InterpBase.H>
 
+#include <typeinfo>
+
 namespace amrex {
 
 InterpolaterBoxCoarsener::InterpolaterBoxCoarsener (InterpBase* mapper_, const IntVect& ratio_)
-    : mapper(mapper_), ratio(ratio_)
+    : mapper(mapper_), ratio(ratio_), m_type(typeid(*mapper_))
 {}
 
 Box
@@ -15,7 +17,14 @@ InterpolaterBoxCoarsener::doit (const Box& fine) const
 BoxConverter*
 InterpolaterBoxCoarsener::clone () const
 {
-    return new InterpolaterBoxCoarsener(mapper, ratio);
+    return new InterpolaterBoxCoarsener(*this);
+}
+
+bool
+InterpolaterBoxCoarsener::equals (const BoxConverter& other) const
+{
+    const auto* o = dynamic_cast<const InterpolaterBoxCoarsener*>(&other);
+    return o != nullptr && m_type == o->m_type && ratio == o->ratio;
 }
 
 InterpolaterBoxCoarsener

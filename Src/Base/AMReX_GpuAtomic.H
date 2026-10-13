@@ -26,7 +26,7 @@ namespace detail {
 
 #ifdef AMREX_USE_SYCL
 
-    template <typename R, typename I, typename F>
+    template <typename R, typename Int, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     R atomic_op (R* const address, R const val, F const f) noexcept
     {
@@ -34,13 +34,13 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* const add_as_I = reinterpret_cast<I*>(address);
-        sycl::atomic_ref<I,mo,ms,as> a{*add_as_I};
-        I old_I = a.load(), new_I;
+        static_assert(sizeof(R) == sizeof(Int), "sizeof R != sizeof Int");
+        Int* const add_as_I = reinterpret_cast<Int*>(address);
+        sycl::atomic_ref<Int,mo,ms,as> a{*add_as_I};
+        Int old_I = a.load(), new_I;
         do {
             R const new_R = f(*(reinterpret_cast<R const*>(&old_I)), val);
-            new_I = *(reinterpret_cast<I const*>(&new_R));
+            new_I = *(reinterpret_cast<Int const*>(&new_R));
         } while (! a.compare_exchange_strong(old_I, new_I));
         return *(reinterpret_cast<R const*>(&old_I));
 #else
@@ -50,7 +50,7 @@ namespace detail {
 #endif
     }
 
-    template <typename R, typename I, typename Op, typename Cond>
+    template <typename R, typename Int, typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
     {
@@ -58,14 +58,14 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* const add_as_I = reinterpret_cast<I*>(address);
-        sycl::atomic_ref<I,mo,ms,as> a{*add_as_I};
-        I old_I = a.load(), new_I;
+        static_assert(sizeof(R) == sizeof(Int), "sizeof R != sizeof Int");
+        Int* const add_as_I = reinterpret_cast<Int*>(address);
+        sycl::atomic_ref<Int,mo,ms,as> a{*add_as_I};
+        Int old_I = a.load(), new_I;
         bool test_success;
         do {
             R const tmp = op(*(reinterpret_cast<R const*>(&old_I)), val);
-            new_I = *(reinterpret_cast<I const*>(&tmp));
+            new_I = *(reinterpret_cast<Int const*>(&tmp));
             test_success = cond(tmp);
         } while (test_success && ! a.compare_exchange_strong(old_I, new_I));
         return test_success;
@@ -83,35 +83,35 @@ namespace detail {
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    template <typename R, typename I, typename F>
+    template <typename R, typename Int, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     R atomic_op (R* const address, R const val, F const f) noexcept
     {
-        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* const add_as_I = reinterpret_cast<I*>(address);
-        I old_I = *add_as_I, assumed_I;
+        static_assert(sizeof(R) == sizeof(Int), "sizeof R != sizeof Int");
+        Int* const add_as_I = reinterpret_cast<Int*>(address);
+        Int old_I = *add_as_I, assumed_I;
         do {
             assumed_I = old_I;
             R const new_R = f(*(reinterpret_cast<R const*>(&assumed_I)), val);
-            old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<I const*>(&new_R)));
+            old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<Int const*>(&new_R)));
         } while (assumed_I != old_I);
         return *(reinterpret_cast<R const*>(&old_I));
     }
 
-    template <typename R, typename I, typename Op, typename Cond>
+    template <typename R, typename Int, typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
     {
-        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* const add_as_I = reinterpret_cast<I*>(address);
-        I old_I = *add_as_I, assumed_I;
+        static_assert(sizeof(R) == sizeof(Int), "sizeof R != sizeof Int");
+        Int* const add_as_I = reinterpret_cast<Int*>(address);
+        Int old_I = *add_as_I, assumed_I;
         bool test_success;
         do {
             assumed_I = old_I;
             R const new_R = op(*(reinterpret_cast<R const*>(&assumed_I)), val);
             test_success = cond(new_R);
             if (test_success) {
-                old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<I const*>(&new_R)));
+                old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<Int const*>(&new_R)));
             }
         } while (test_success && assumed_I != old_I);
         return test_success;

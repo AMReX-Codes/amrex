@@ -156,6 +156,11 @@ public:
     void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                    MultiFab& sol, Location loc) const override;
 
+    //! Compute the flux, the negative of the terrain-following gradient.
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                    const Vector<MultiFab*>& a_sol, Location a_loc) const override;
+    using MLCellLinOpT<MultiFab>::getFluxes;
+
     struct BCTag {
         Box bx;
         int local_index;

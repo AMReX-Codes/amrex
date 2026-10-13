@@ -27,7 +27,7 @@ void Finalize ();
 class IndexSpace
 {
 public:
-    virtual ~IndexSpace() = default;
+    virtual ~IndexSpace ();
 
     IndexSpace () noexcept = default;
     IndexSpace (IndexSpace const&) = delete;

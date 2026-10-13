@@ -1111,6 +1111,15 @@ the smoother as the bottom solver.
     MLMG mlmg(linop);
     mlmg.solve({&phi}, {&rhs}, reltol, abstol);
 
+:cpp:`MLMG::getFluxes` returns the fluxes without the area factors
+:math:`A`: :math:`-\partial \phi / \partial x` and
+:math:`-\partial \phi / \partial y` on the x- and y-faces, and
+:math:`-(\partial \phi / \partial z - z_\xi \, \partial \phi / \partial x
+- z_\eta \, \partial \phi / \partial y)` on the z-faces, where
+:math:`z_\xi` and :math:`z_\eta` are the slopes of the coordinate
+surfaces.  :cpp:`MLMG::getGradSolution` returns the same with the opposite
+sign.
+
 Open Boundary Poisson Solver
 ============================
 
@@ -1163,6 +1172,11 @@ overwrites the solution vector passed in. Call
 the initial guess instead. The relative tolerance is relative to the initial
 residual norm, which is the norm of the right-hand side only for a zero
 initial guess. BiCGStab and PCG below behave the same way.
+
+GMRES is right-preconditioned and assumes the preconditioner is the same
+linear operator in every iteration. If it is not, for example an inner
+iterative solve stopped by a tolerance, call :cpp:`setFlexible(true)` to use
+flexible GMRES (FGMRES). It stores one more vector per iteration.
 
 An example of using GMRES combined with a Jacobi preconditioner to solve
 Poisson's equation can be found at

@@ -218,7 +218,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     const auto      plo      = geom.ProbLoArray();
     const auto      dxi      = geom.InvCellSizeArray();
 
-    const int   MyProc    = ParallelDescriptor::MyProc();
+    const int   MyProc    = ParallelContext::MyProcSub();
     const int   NProcs    = ParallelContext::NProcsSub();
     // We'll spread the output over this many files.
     int nOutFiles(64);
@@ -341,7 +341,8 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const int tag       = (MyProc % nOutFiles);
 
             if (wakeUpPID < NProcs) {
-                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag,
+                                         ParallelContext::CommunicatorSub());
             }
         }
         if (mySet == (iSet + 1))
@@ -353,7 +354,8 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const int waitForPID = (MyProc - nOutFiles);
             const int tag        = (MyProc % nOutFiles);
 
-            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag,
+                                     ParallelContext::CommunicatorSub());
         }
     }
 
@@ -364,7 +366,8 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 #ifdef AMREX_LAZY
         Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+        ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
+                            ParallelContext::CommunicatorSub());
         amrex::Print() << "TracerParticleContainer::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
 #ifdef AMREX_LAZY
         });
