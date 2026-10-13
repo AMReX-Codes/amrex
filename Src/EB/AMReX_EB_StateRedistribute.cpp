@@ -225,9 +225,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         // Step 1: Combined stencil and boundary classification kernel.
         // Bit layout: 0-4 = classification code (1-8 interior, 11-18 boundary)
         // and 5-10 = nearby physical-boundary faces (xlo,xhi,ylo,yhi,zlo,zhi).
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-classify");
         amrex::ParallelFor(num_active_cells,
         [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
@@ -324,13 +321,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             if (boundary_mask != 0) { code += 10; }
             classify_arr(i,j,k) = (boundary_mask << 5) | code;
         });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-classify
 
-        // Step 2b: Interior slope computation kernel
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-slope-interior");
+        // Step 2a: Interior slope computation kernel
         amrex::ParallelFor(num_active_cells,
         [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
@@ -367,14 +359,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                          slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
                          slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
         });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-slope-interior
 
-        // Step 2c: Boundary slope computation kernel (with boundary logic)
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-slope-boundary");
-
+        // Step 2b: Boundary slope computation kernel
         amrex::ParallelFor(num_active_cells,
         [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
@@ -434,12 +420,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                          slopes_eb_arr(i,j,k,1) = slopes_eb[1];,
                          slopes_eb_arr(i,j,k,2) = slopes_eb[2];);
         });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-slope-boundary
 
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-limiter");
+        // STEP 3: Apply limiter
         amrex::ParallelFor(num_active_cells,
         [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
@@ -462,13 +444,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                          slopes_eb_arr(i,j,k,1) = slope_y;,
                          slopes_eb_arr(i,j,k,2) = slope_z;);
         });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-limiter
 
-
-        {
-        amrex::Gpu::streamSynchronize();
-        BL_PROFILE("SK:Kernel2-scatter");        
+        // STEP 4: Scatter
         amrex::ParallelFor(num_active_cells,
         [=] AMREX_GPU_DEVICE (int active_index) noexcept
         {
@@ -580,8 +557,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             } // i_nbor
 
         });
-        amrex::Gpu::streamSynchronize();
-        } // Kernel2-scatter
     } // loop over n = 0, ncomp-1
 
     amrex::ParallelFor(bx,ncomp,
