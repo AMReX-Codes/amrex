@@ -44,8 +44,8 @@ struct IntegratorOps<T>
     static void Saxpy (T& Y, const amrex::Real a, T& X)
     {
         // Calculate Y += a * X using a particle-level saxpy function supplied by the particle container T
-        using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
-        using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
+        using TParIter = typename T::ParIterType;
+        using ParticleType = typename T::ParticleType;
 
         int lev = 0;
         TParIter pty(Y, lev);
@@ -69,16 +69,33 @@ struct IntegratorOps<T>
             const int npx  = ptx.numParticles();
             AMREX_ALWAYS_ASSERT(npy == npx);
 
-            ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
-            ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
-
             auto particle_apply_rhs = T::particle_apply_rhs;
 
-            amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
-                ParticleType& py = psy[i];
-                const ParticleType& px = psx[i];
-                particle_apply_rhs(py, a, px);
-            });
+            // Hand particle_apply_rhs an array-of-structs particle when the
+            // container has one and the supplied function accepts it.
+            if constexpr ( ! ParticleType::is_soa_particle &&
+                           IsCallable<decltype(particle_apply_rhs),
+                                      ParticleType&, amrex::Real,
+                                      ParticleType&>::value) {
+                ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
+                ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
+
+                amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
+                    ParticleType& py = psy[i];
+                    const ParticleType& px = psx[i];
+                    particle_apply_rhs(py, a, px);
+                });
+
+            // Otherwise pass the particle tile data and an index, which is the only form
+            // available once the real components live in struct-of-arrays storage
+            } else {
+                auto ytd = pty.GetParticleTile().getParticleTileData();
+                auto xtd = ptx.GetParticleTile().getParticleTileData();
+
+                amrex::ParallelFor ( npy, [=] AMREX_GPU_DEVICE (int i) {
+                    particle_apply_rhs(ytd, i, a, xtd);
+                });
+            }
         }
     }
 
