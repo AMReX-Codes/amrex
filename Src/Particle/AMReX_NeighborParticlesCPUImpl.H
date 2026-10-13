@@ -306,9 +306,11 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
-        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        // Use MFIter, not ParIter, so that neighbors stored on tiles without
+        // real particles are also summed back.
+        for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            PairIndex src_index(pti.index(), pti.LocalTileIndex());
+            PairIndex src_index(mfi.index(), mfi.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
             const auto& neighb_tile = neighbors[lev][src_index];
             const auto neighbs = neighb_tile.getConstParticleTileData();
@@ -632,7 +634,8 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             int src_grid = mfi.index();
             int src_tile = mfi.LocalTileIndex();
             auto index = std::make_pair(src_grid, src_tile);
-            auto& ptile = this->GetParticles(lev)[index];
+            // define the tile, which may not exist yet if it has no real particles
+            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi);
             ptile.setNumNeighbors(neighbors[lev][index].size());
             amrex::copyParticles(ptile, neighbors[lev][index], 0,
                                  ptile.numRealParticles(), ptile.numNeighborParticles());
@@ -657,10 +660,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
 
         for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            int src_grid = mfi.index();
-            int src_tile = mfi.LocalTileIndex();
-            auto index = std::make_pair(src_grid, src_tile);
-            auto& ptile = this->GetParticles(lev)[index];
+            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi);
             ptile.setNumNeighbors(0);
         }
     }
