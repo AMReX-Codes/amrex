@@ -11,7 +11,6 @@
 #include <AMReX_ValLocPair.H>
 
 #include <algorithm>
-#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -298,6 +297,17 @@ namespace Reduce::detail {
         alignas(T) unsigned char data[sizeof(T)];
     };
 
+    // The smallest power of two that is not smaller than n. This is not
+    // std::bit_ceil, because some standard libraries assert in it, which
+    // Clang rejects in device code.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr int block_reduce_pow2_ceil (int n) noexcept
+    {
+        int p = 1;
+        while (p < n) { p *= 2; }
+        return p;
+    }
+
     // Upper bound for the shared memory that block_reduce uses per block
     inline constexpr std::size_t block_reduce_max_shared_bytes = 16384;
 
@@ -363,7 +373,7 @@ namespace Reduce::detail {
             T r = s;
             for_each_warp_reduce<warp_size,0,T,Ps...>(r);
             if constexpr (nwarps > 1) {
-                constexpr int nwarps_pow2 = static_cast<int>(std::bit_ceil(unsigned(nwarps)));
+                constexpr int nwarps_pow2 = block_reduce_pow2_ceil(nwarps);
                 __shared__ BlockReduceStorage<T> shared[nwarps];
                 const int lane = static_cast<int>(threadIdx.x) % warp_size;
                 const int warp = static_cast<int>(threadIdx.x) / warp_size;
