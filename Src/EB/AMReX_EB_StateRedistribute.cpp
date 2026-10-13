@@ -139,47 +139,25 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     // layout can change the order of its floating-point atomic additions.
     BL_PROFILE_VAR("SK:Kernel2-active-list", active_list_prof);
     Long const num_candidates = bxg1.numPts();
-    Gpu::DeviceVector<int> active_mask_v(num_candidates);
-    Gpu::DeviceVector<int> active_offsets_v(num_candidates);
     Gpu::DeviceVector<Dim3> active_cells_v(num_candidates);
-    int* const active_mask = active_mask_v.data();
-    int* const active_offsets = active_offsets_v.data();
     Dim3* const active_cells = active_cells_v.data();
-
-    int last_mask = 0;
-    int last_offset = 0;
-    if (num_candidates > 0) {
-        amrex::ParallelFor(num_candidates,
-        [=] AMREX_GPU_DEVICE (Long offset) noexcept
+    int const num_active_cells = Scan::PrefixSum<int>(
+        num_candidates,
+        [=] AMREX_GPU_DEVICE (Long offset) noexcept -> int
         {
             Dim3 const cell = bxg1.atOffset(offset).dim3();
-            active_mask[offset] =
-                vfrac(cell.x,cell.y,cell.z) > 0.0 &&
-                itracker(cell.x,cell.y,cell.z,0) > 0;
-        });
-
-        Gpu::exclusive_scan(active_mask, active_mask + num_candidates,
-                            active_offsets_v.begin());
-
-        Gpu::copyAsync(Gpu::deviceToHost,
-                       active_mask + num_candidates - 1,
-                       active_mask + num_candidates, &last_mask);
-        Gpu::copyAsync(Gpu::deviceToHost,
-                       active_offsets + num_candidates - 1,
-                       active_offsets + num_candidates, &last_offset);
-
-        amrex::ParallelFor(num_candidates,
-        [=] AMREX_GPU_DEVICE (Long offset) noexcept
+            return vfrac(cell.x,cell.y,cell.z) > 0.0 &&
+                   itracker(cell.x,cell.y,cell.z,0) > 0;
+        },
+        [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
         {
-            if (active_mask[offset] != 0) {
-                Dim3 const cell = bxg1.atOffset(offset).dim3();
-                active_cells[active_offsets[offset]] = cell;
+            Dim3 const cell = bxg1.atOffset(offset).dim3();
+            if (vfrac(cell.x,cell.y,cell.z) > 0.0 &&
+                itracker(cell.x,cell.y,cell.z,0) > 0) {
+                active_cells[active_offset] = cell;
             }
-        });
-
-        Gpu::streamSynchronize();
-    }
-    int const num_active_cells = last_offset + last_mask;
+        },
+        Scan::Type::exclusive, Scan::retSum);
     BL_PROFILE_VAR_STOP(active_list_prof);
 
     // We do not initialize dm_as_fine here because we also add to cells outside
