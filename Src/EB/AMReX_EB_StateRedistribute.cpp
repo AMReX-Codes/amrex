@@ -349,8 +349,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const ny = (mask & 2) ? 2 : 1;
 #if (AMREX_SPACEDIM == 3)
             int const nz = (mask & 4) ? 2 : 1;
-#else
-            int const nz = 1;
 #endif
             auto const slopes_eb = amrex_calc_slopes_eb_grown(
                 i,j,k,n,AMREX_D_DECL(nx,ny,nz),Qhat,cent_hat,vfrac,flag,max_order);
@@ -405,8 +403,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const ny = (mask & 2) ? 2 : 1;
 #if (AMREX_SPACEDIM == 3)
             int const nz = (mask & 4) ? 2 : 1;
-#else
-            int const nz = 1;
 #endif
             auto const slopes_eb = amrex_calc_slopes_extdir_eb_grown<true>(
                 i,j,k,n,AMREX_D_DECL(nx,ny,nz),Qhat,cent_hat,vfrac,
