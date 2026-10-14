@@ -191,6 +191,12 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
+        # Composite nodal solve (HypreMLNodeLap) with both backends against MLMG
+        cd ${{github.workspace}}/Tests/LinearSolvers/NodalPoisson
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=algmg
+
         ccache -s
         du -hs ~/.cache/ccache
     - name: Clang-tidy
