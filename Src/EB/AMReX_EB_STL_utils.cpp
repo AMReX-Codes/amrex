@@ -1546,41 +1546,24 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             if (type(i,j,k) == EB2::Type::irregular) {
-                bool no_inter = (inter(i,j,k) == EB2::no_intercept);
-                if (idim == 0) {
-                    if (no_inter && lst(i,j,k) >= Real(0.0))
-                    {
-                        // Only edges without an intercept are updated: they
-                        // became irregular because small cell fixing set lst
-                        // to zero, or lst changed in FillBoundary at periodic
-                        // boundaries.  A node that was zero from the start
-                        // keeps the intercept from getIntercept.  Other
-                        // edges are reset, so an edge that is irregular
-                        // again gets a new intercept.
-                        inter(i,j,k) = node_coord(problo[0], i, dx[0]);
-                    }
-                    else if (no_inter && lst(i+1,j,k) >= Real(0.0))
-                    {
-                        inter(i,j,k) = node_coord(problo[0], i+1, dx[0]);
-                    }
-                } else if (idim == 1) {
-                    if (no_inter && lst(i,j,k) >= Real(0.0))
-                    {
-                        inter(i,j,k) = node_coord(problo[1], j, dx[1]);
-                    }
-                    else if (no_inter && lst(i,j+1,k) >= Real(0.0))
-                    {
-                        inter(i,j,k) = node_coord(problo[1], j+1, dx[1]);
-                    }
-                } else {
-                    if (no_inter && lst(i,j,k) >= Real(0.0))
-                    {
-                        inter(i,j,k) = node_coord(problo[2], k, dx[2]);
-                    }
-                    else if (no_inter && lst(i,j,k+1) >= Real(0.0))
-                    {
-                        inter(i,j,k) = node_coord(problo[2], k+1, dx[2]);
-                    }
+                if (inter(i,j,k) == EB2::no_intercept) {
+                    // Only edges without an intercept are updated: they
+                    // became irregular because small cell fixing set lst
+                    // to zero, or lst changed in FillBoundary at periodic
+                    // boundaries.  A node that was zero from the start
+                    // keeps the intercept from getIntercept.  Other
+                    // edges are reset, so an edge that is irregular
+                    // again gets a new intercept.
+                    IntVect ivlo(AMREX_D_DECL(i,j,k));
+                    IntVect ivhi = ivlo;
+                    ivhi[idim] += 1;
+                    // An irregular edge has one end below zero and one at or
+                    // above.  As in getIntercept, an on_surface_fluid end takes
+                    // the intercept, else the body end.
+                    bool const at_lo = (lst(ivlo) == EB2::on_surface_fluid) ||
+                                       (lst(ivhi) != EB2::on_surface_fluid && lst(ivlo) >= Real(0.0));
+                    int const inode = at_lo ? ivlo[idim] : ivhi[idim];
+                    inter(i,j,k) = node_coord(problo[idim], inode, dx[idim]);
                 }
             } else {
                 inter(i,j,k) = EB2::no_intercept;
