@@ -399,7 +399,7 @@ Device::Initialize (bool minimal, int a_device_id)
     if (! minimal) {
         use_preinit = use_preinit_device() && a_device_id < 0;
         if (! use_preinit && preinit_device_id >= 0 && a_device_id < 0 &&
-            amrex::Verbose() && ParallelDescriptor::IOProcessor())
+            gpu_device_count > 1 && amrex::Verbose() && ParallelDescriptor::IOProcessor())
         {
             amrex::Warning("Ignoring the GPU selected before MPI initialization, because the launcher's local ranks are not unique within a node.");
         }

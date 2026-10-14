@@ -2151,10 +2151,10 @@ instead synchronizes every TinyProfiler timer boundary and keeps the complete
 report. For detailed kernel information, use a backend profiling tool.
 
 
+.. _sec:gpu:device_selection:
+
 Assigning GPUs to MPI Ranks
 ===========================
-
-.. _sec:gpu:device_selection:
 
 If each MPI rank sees only one GPU, AMReX uses it. If multiple GPUs are
 visible, AMReX picks one for each rank based on the rank's position within
