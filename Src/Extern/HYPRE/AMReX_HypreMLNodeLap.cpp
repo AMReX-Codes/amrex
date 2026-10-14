@@ -13,9 +13,7 @@
 #include <limits>
 #include <cmath>
 #include <array>
-#include <cstring>
 #include <numeric>
-#include <unordered_map>
 
 namespace amrex {
 
@@ -246,18 +244,16 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
 
     static_assert(std::is_same_v<Real, HYPRE_Real>, "amrex::Real != HYPRE_Real");
 
-    // RAP is MLNodeLaplacian's strategy in EB builds; its fine-level operator
-    // is the same element sum (cut cells integrated over the fluid part).
-    // It does not double the Neumann boundary rows but halves the right-hand
-    // side there instead (unimposeNeumannBC), so the map from the given
-    // right-hand side to the finite-element one is the same as for Sigma.
+    // RAP (EB builds): the same element sum; it halves the Neumann
+    // right-hand side instead of doubling those rows, so the right-hand side
+    // map is as for Sigma.
     const bool rap = (m_linop->m_coarsening_strategy == MLNodeLaplacian::CoarseningStrategy::RAP);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!rap || !m_linop->m_use_mapped,
         "HypreMLNodeLap: mesh mapping requires the Sigma coarsening strategy");
 
     m_comm = m_linop->Communicator();
-    MPI_Comm_size(m_comm, &m_nprocs);
-    MPI_Comm_rank(m_comm, &m_myproc);
+    m_nprocs = ParallelDescriptor::NProcs(m_comm);
+    m_myproc = ParallelDescriptor::MyProc(m_comm);
 
     m_nlevels = m_linop->NAMRLevels();
     for (int lev = 0; lev < m_nlevels; ++lev) {
@@ -266,6 +262,12 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
         m_dmap.push_back(m_linop->m_dmap[lev][0]);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_geom[lev].IsRZ(),
                                          "HypreMLNodeLap: RZ is not supported");
+    }
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (!m_geom[0].isPeriodic(d) && (m_linop->m_lobc[0][d] == LinOpBCType::Dirichlet ||
+                                         m_linop->m_hibc[0][d] == LinOpBCType::Dirichlet)) {
+            m_has_dirichlet = true;
+        }
     }
     for (int lev = 0; lev < m_nlevels-1; ++lev) {
         const int rr = m_linop->AMRRefRatio(lev);
@@ -293,14 +295,18 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
 
     numberUnknowns();
 
+    // Row ids are HYPRE_BigInt on the device, and HypreIJIface takes the row
+    // bounds as HYPRE_Int; both are 32-bit by default.
+    using IJInt = HypreIJIface::HypreIntType;
+    Long nrows_max = Long(std::numeric_limits<BigInt>::max());
     if (m_backend == Backend::hypre) {
-        // The hypre IJ interface takes the row bounds as HYPRE_Int, which is
-        // 32-bit unless hypre is built with --enable-bigint
-        using IJInt = HypreIJIface::HypreIntType;
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            m_nglobal <= BigInt(std::numeric_limits<IJInt>::max()),
-            "HypreMLNodeLap: the composite system has more unknowns than HYPRE_Int can "
-            "index; build hypre with --enable-bigint or use backend = algmg");
+        nrows_max = std::min(nrows_max, Long(std::numeric_limits<IJInt>::max()));
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Long(m_nglobal) <= nrows_max,
+        "HypreMLNodeLap: too many unknowns for this hypre build's integer type; "
+        "build hypre with --enable-bigint");
+
+    if (m_backend == Backend::hypre) {
         m_ij = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ilower), IJInt(m_iupper), m_verbose);
         m_ij->parse_inputs(m_prefix);
         m_A = m_ij->A();
@@ -347,13 +353,6 @@ int HypreMLNodeLap::neumannScale (int lev, IntVect const& iv) const
     return ns;
 }
 
-int HypreMLNodeLap::ownerRank (Long gid) const
-{
-    // m_rank_offset is non-decreasing with m_nprocs+1 entries
-    auto it = std::upper_bound(m_rank_offset.begin(), m_rank_offset.end(), gid);
-    return static_cast<int>(it - m_rank_offset.begin()) - 1;
-}
-
 void HypreMLNodeLap::numberUnknowns ()
 {
     BL_PROFILE("HypreMLNodeLap::numberUnknowns()");
@@ -364,12 +363,10 @@ void HypreMLNodeLap::numberUnknowns ()
     m_owner.resize(m_nlevels);
     m_dmsk.resize(m_nlevels);
     m_ndfine.resize(m_nlevels);
-    m_ccfine.resize(m_nlevels);
     m_cgid_on_f.resize(m_nlevels);
     m_cndfine_on_f.resize(m_nlevels);
 
     // Local numbering per level: count the unknowns this rank owns
-    Vector<Vector<Long>> box_offset(m_nlevels);
     Long nlocal = 0;
     m_ndvol.resize(m_nlevels);
     m_scale.resize(m_nlevels);
@@ -384,7 +381,6 @@ void HypreMLNodeLap::numberUnknowns ()
         m_dmsk[lev] = host_copy(*m_linop->m_dirichlet_mask[lev][0]);
         if (lev < finest) {
             m_ndfine[lev] = host_copy(*m_linop->m_nd_fine_mask[lev]);
-            m_ccfine[lev] = host_copy(*m_linop->m_cc_fine_mask[lev]);
         }
 #ifdef AMREX_USE_EB
         // Fluid volume fraction of each node's control volume (the weights
@@ -461,7 +457,6 @@ void HypreMLNodeLap::numberUnknowns ()
         }
         // Non-owners: take the owner's id (all copies of a node agree afterwards)
         auto tmp = std::make_unique<IdFabArray>(m_nd_grids[lev], m_dmap[lev], 1, 0, host_info());
-        tmp->setVal(0);
         for (MFIter mfi(*m_gid[lev]); mfi.isValid(); ++mfi) {
             auto const& gid = m_gid[lev]->array(mfi);
             auto const& t = tmp->array(mfi);
@@ -506,6 +501,7 @@ void HypreMLNodeLap::numberUnknowns ()
         }
         Gpu::streamSynchronize();
     }
+    m_ndfine.clear();   // only needed for the numbering
 
     if (m_verbose > 0) {
         amrex::Print() << "HypreMLNodeLap: " << m_nglobal << " composite unknowns on "
@@ -513,68 +509,70 @@ void HypreMLNodeLap::numberUnknowns ()
     }
 }
 
-auto HypreMLNodeLap::exchange (Vector<Entry>&& entries) const -> Vector<Entry>
-{
-    BL_PROFILE("HypreMLNodeLap::exchange()");
-    if (m_nprocs == 1) { return std::move(entries); }
-
-#ifdef AMREX_USE_MPI
-    Vector<Vector<Entry>> sendbuf(m_nprocs);
-    Vector<Entry> local;
-    for (auto const& e : entries) {
-        const int p = ownerRank(e.row);
-        if (p == m_myproc) { local.push_back(e); }
-        else { sendbuf[p].push_back(e); }
-    }
-    Vector<int> sendcnt(m_nprocs), recvcnt(m_nprocs), sdispl(m_nprocs), rdispl(m_nprocs);
-    for (int p = 0; p < m_nprocs; ++p) {
-        sendcnt[p] = static_cast<int>(sendbuf[p].size() * sizeof(Entry));
-    }
-    MPI_Alltoall(sendcnt.data(), 1, MPI_INT, recvcnt.data(), 1, MPI_INT, m_comm);
-    Vector<char> sbuf, rbuf;
-    int stot = 0, rtot = 0;
-    for (int p = 0; p < m_nprocs; ++p) {
-        sdispl[p] = stot; stot += sendcnt[p];
-        rdispl[p] = rtot; rtot += recvcnt[p];
-    }
-    sbuf.resize(stot);
-    rbuf.resize(rtot);
-    for (int p = 0; p < m_nprocs; ++p) {
-        if (sendcnt[p] > 0) {
-            std::memcpy(sbuf.data()+sdispl[p], sendbuf[p].data(), sendcnt[p]);
-        }
-    }
-    MPI_Alltoallv(sbuf.data(), sendcnt.data(), sdispl.data(), MPI_CHAR,
-                  rbuf.data(), recvcnt.data(), rdispl.data(), MPI_CHAR, m_comm);
-    const std::size_t nrecv = rtot / sizeof(Entry);
-    const std::size_t nlocal = local.size();
-    local.resize(nlocal + nrecv);
-    if (nrecv > 0) {
-        std::memcpy(local.data()+nlocal, rbuf.data(), rtot);
-    }
-    return local;
-#else
-    return std::move(entries);
-#endif
-}
-
 void HypreMLNodeLap::buildMatrix ()
 {
     BL_PROFILE("HypreMLNodeLap::buildMatrix()");
 
     // Every cell emits the (row, column, value) triplets of its element
-    // matrix mapped through the hanging-node constraints, on the device;
-    // hypre sums duplicates and sends rows owned by other ranks.
+    // matrix mapped through the hanging-node constraints, on the device.
+    // They go to hypre (which sums duplicates and routes off-rank rows) or,
+    // for AlgMG and dumps, to an owned-row CSR, one AMR level at a time.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_dbc.empty(), "HypreMLNodeLap::buildMatrix called twice");
     const int finest = m_nlevels-1;
     m_pin_gid = (m_linop->isBottomSingular() && m_nglobal > 0) ? 0 : -1;
     Long const pin = m_pin_gid;
+    const bool need_csr = (m_backend == Backend::algmg) ||
+                          composite::dump_pending(m_dump_prefix, m_dump_max);
 
-    // Triplets of all boxes, passed to hypre in a single call
     struct Triplets {
         Gpu::DeviceVector<BigInt> rows, cols;
         Gpu::DeviceVector<Real> vals;
     };
     Vector<Triplets> chunks;
+    Vector<composite::Triplet> host_trips;
+    auto flush = [&] ()
+    {
+        Long ntot = 0;
+        for (auto const& t : chunks) { ntot += Long(t.rows.size()); }
+        Gpu::DeviceVector<BigInt> rows(ntot), cols(ntot);
+        Gpu::DeviceVector<Real> vals(ntot);
+        Long off = 0;
+        for (auto const& t : chunks) {
+            Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
+            Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
+            Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
+            off += Long(t.rows.size());
+        }
+        Gpu::streamSynchronize();
+        chunks.clear();
+        if (m_backend == Backend::hypre && ntot > 0) {
+            Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
+            // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
+            constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
+            for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
+                auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
+                HYPRE_IJMatrixAddToValues(m_A, n, ones.data()+n0, rows.data()+n0,
+                                          cols.data()+n0, vals.data()+n0);
+                Gpu::hypreSynchronize();
+            }
+        }
+        if (need_csr && ntot > 0) {
+            Vector<BigInt> hr(ntot), hc(ntot);
+            Vector<Real> hv(ntot);
+            Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
+            Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
+            Gpu::copyAsync(Gpu::deviceToHost, vals.begin(), vals.end(), hv.begin());
+            Gpu::streamSynchronize();
+            const Long n0 = host_trips.size();
+            host_trips.resize(n0 + ntot);
+            for (Long n = 0; n < ntot; ++n) {
+                auto& t = host_trips[n0+n];
+                t.row = hr[n];
+                t.col = hc[n];
+                t.val = hv[n];
+            }
+        }
+    };
 
     for (int lev = 0; lev < m_nlevels; ++lev) {
         // Device copies of the ids
@@ -669,20 +667,25 @@ void HypreMLNodeLap::buildMatrix ()
             };
 #endif
 
+            auto on_dirichlet = [=] AMREX_GPU_DEVICE (IntVect const& n) -> bool
+            {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    if ((dlo[d] && n[d] == domain.smallEnd(d)) ||
+                        (dhi[d] && n[d] == domain.bigEnd(d)+1)) { return true; }
+                }
+                return false;
+            };
+
             // Composite unknowns (id, weight) of a corner node
             auto qmap = [=] AMREX_GPU_DEVICE (IntVect const& n, Long* g, Real* w,
-                                              bool scaled = true) -> int
+                                              bool scaled) -> int
             {
                 if (gid(n) >= 0) {
                     g[0] = gid(n);
                     w[0] = (sc && scaled) ? sc(n) : Real(1.0);
                     return 1;
                 }
-                if (rr == 1 || !dm(n)) { return 0; }
-                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                    if ((dlo[d] && n[d] == domain.smallEnd(d)) ||
-                        (dhi[d] && n[d] == domain.bigEnd(d)+1)) { return 0; }
-                }
+                if (rr == 1 || !dm(n) || on_dirichlet(n)) { return 0; }
                 IntVect cn[nnodes_cell];
                 Real cw[nnodes_cell];
                 const int m = interp_stencil(n, rr, cn, cw);
@@ -715,7 +718,7 @@ void HypreMLNodeLap::buildMatrix ()
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) { n[d] += (a >> d) & 1; }
                     Long g[nnodes_cell];
                     Real w[nnodes_cell];
-                    ntot += qmap(n, g, w);
+                    ntot += qmap(n, g, w, true);
                 }
                 pcount[idx] = Long(ntot)*ntot;
             });
@@ -747,7 +750,7 @@ void HypreMLNodeLap::buildMatrix ()
                 for (int a = 0; a < nnodes_cell; ++a) {
                     IntVect n = cell;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) { n[d] += (a >> d) & 1; }
-                    nq[a] = qmap(n, g[a], w[a]);
+                    nq[a] = qmap(n, g[a], w[a], true);
                 }
                 Long e = poff[idx];
                 for (int a = 0; a < nnodes_cell; ++a) {
@@ -756,8 +759,9 @@ void HypreMLNodeLap::buildMatrix ()
                             for (int qb = 0; qb < nq[b]; ++qb) {
                                 prow[e] = BigInt(g[a][qa]);
                                 pcol[e] = BigInt(g[b][qb]);
-                                // pinned row: identity (added below)
-                                pval[e] = (g[a][qa] == pin) ? Real(0.0)
+                                // pinned unknown: identity row (added below),
+                                // zero column (x_pin = 0 keeps S symmetric)
+                                pval[e] = (g[a][qa] == pin || g[b][qb] == pin) ? Real(0.0)
                                         : w[a][qa]*w[b][qb]*K[a][b];
                                 ++e;
                             }
@@ -765,7 +769,7 @@ void HypreMLNodeLap::buildMatrix ()
                     }
                 }
             });
-            // count/offset are freed at the end of this iteration
+            // sync: the 'continue's below free count/offset
             Gpu::streamSynchronize();
 
             // Couplings of the unknowns to Dirichlet domain nodes, whose values
@@ -780,14 +784,6 @@ void HypreMLNodeLap::buildMatrix ()
                 }
             }
             if (!touches_dirichlet) { continue; }
-            auto on_dirichlet = [=] AMREX_GPU_DEVICE (IntVect const& n) -> bool
-            {
-                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                    if ((dlo[d] && n[d] == domain.smallEnd(d)) ||
-                        (dhi[d] && n[d] == domain.bigEnd(d)+1)) { return true; }
-                }
-                return false;
-            };
             amrex::ParallelFor(ccbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 const Long idx = (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x);
@@ -866,37 +862,11 @@ void HypreMLNodeLap::buildMatrix ()
         }
         // gid_d/cgid_d are freed at the end of this iteration
         Gpu::streamSynchronize();
+        flush();
     }
 
-    Long ntot = 0;
-    for (auto const& t : chunks) { ntot += Long(t.rows.size()); }
-    Gpu::DeviceVector<BigInt> rows(ntot), cols(ntot);
-    Gpu::DeviceVector<Real> vals(ntot);
-    {
-        Long off = 0;
-        for (auto const& t : chunks) {
-            Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
-            off += Long(t.rows.size());
-        }
-        Gpu::streamSynchronize();
-        chunks.clear();
-    }
     const bool pin_here = (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper);
-
     if (m_backend == Backend::hypre) {
-        if (ntot > 0) {
-            Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
-            // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
-            constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
-            for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
-                auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
-                HYPRE_IJMatrixAddToValues(m_A, n, ones.data()+n0, rows.data()+n0,
-                                          cols.data()+n0, vals.data()+n0);
-                Gpu::hypreSynchronize();
-            }
-        }
         if (pin_here) {
             Gpu::DeviceVector<BigInt> r(1, BigInt(m_pin_gid));
             Gpu::DeviceVector<Real> v(1, Real(1.0));
@@ -907,28 +877,16 @@ void HypreMLNodeLap::buildMatrix ()
         HYPRE_IJMatrixAssemble(m_A);
     }
 
-    if (m_backend == Backend::algmg || m_dump_max > 0) {
-        // Owned-row CSR: triplets to the host, rows to their owners, then
-        // sorted with duplicates summed.
+    if (need_csr) {
         BL_PROFILE("HypreMLNodeLap::buildCSR()");
-        Vector<BigInt> h_rows(ntot), h_cols(ntot);
-        Vector<Real> h_vals(ntot);
-        Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), h_rows.begin());
-        Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), h_cols.begin());
-        Gpu::copyAsync(Gpu::deviceToHost, vals.begin(), vals.end(), h_vals.begin());
-        Gpu::streamSynchronize();
-        Vector<Entry> entries(ntot);
-        for (Long n = 0; n < ntot; ++n) {
-            entries[n] = Entry{.row = Long(h_rows[n]), .col = Long(h_cols[n]), .val = h_vals[n]};
+        if (pin_here) {
+            auto& t = host_trips.emplace_back();
+            t.row = m_pin_gid;
+            t.col = m_pin_gid;
+            t.val = Real(1.0);
         }
-        if (pin_here) { entries.push_back(Entry{.row = m_pin_gid, .col = m_pin_gid, .val = Real(1.0)}); }
-        entries = exchange(std::move(entries));
-        Vector<composite::Triplet> trips(entries.size());
-        for (Long n = 0; n < entries.size(); ++n) {
-            trips[n] = composite::Triplet{.row = entries[n].row, .col = entries[n].col,
-                                          .val = entries[n].val};
-        }
-        m_csr.define(m_ilower, m_iupper - m_ilower + 1, std::move(trips));
+        host_trips = composite::exchange_triplets(std::move(host_trips), m_rank_offset, m_comm);
+        m_csr.define(m_ilower, m_iupper - m_ilower + 1, std::move(host_trips));
     }
 
     if (m_backend == Backend::algmg) {
@@ -936,9 +894,10 @@ void HypreMLNodeLap::buildMatrix ()
         m_csr.toSpMatrix(*m_spA, m_rank_offset);
         m_algmg = std::make_unique<AlgMG<Real>>(*m_spA);
         m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
-        composite::algmg_parse_options(*m_algmg, m_prefix);
-        if (m_dump_max <= 0) { m_csr = composite::OwnedCSR{}; }
+        // V-cycles alone can stall on composite AMR systems; S is symmetric
+        composite::algmg_parse_options(*m_algmg, m_prefix, AlgMGKrylovSolver::pcg);
     }
+    if (!composite::dump_pending(m_dump_prefix, m_dump_max)) { m_csr = composite::OwnedCSR{}; }
 }
 
 void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
@@ -946,11 +905,24 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
 {
     BL_PROFILE("HypreMLNodeLap::loadRHS()");
 
-    const int finest = m_nlevels-1;
-    Vector<Entry> entries;   // col unused: (row, 0, value) contributions to b
-    Real local_bsum = 0.0, local_msum = 0.0;
-    std::unordered_map<Long,Real> mass; // lumped mass of local unknowns
-    std::unordered_map<Long,Real> scale; // scaling of local unknowns
+    // Owned unknowns are exactly this rank's rows; contributions to rows of
+    // other ranks (coarse/fine and Dirichlet couplings) are sent to them.
+    const Long nrows = m_iupper - m_ilower + 1;
+    Vector<Real> bvec(nrows, Real(0.0));
+    Vector<Real> mvec(nrows, Real(0.0));   // solvability weights
+    Vector<Real> svec(nrows, Real(1.0));   // unknown scaling
+    Vector<composite::Triplet> remote;     // (row, unused, value)
+    auto add = [&] (Long row, Real v)
+    {
+        if (row >= m_ilower && row <= m_iupper) {
+            bvec[row - m_ilower] += v;
+        } else {
+            auto& t = remote.emplace_back();
+            t.row = row;
+            t.col = 0;
+            t.val = v;
+        }
+    };
 
     for (int lev = 0; lev < m_nlevels; ++lev) {
         const auto dx = m_geom[lev].CellSizeArray();
@@ -975,12 +947,12 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
             {
                 const IntVect n(AMREX_D_DECL(i,j,k));
                 if (!own(n) || gid(n) < 0) { return; }
-                if (sc) { scale[gid(n)] = sc(n); }
+                const Long r = gid(n) - m_ilower;
                 const Real M = hd / Real(neumannScale(lev, n));
                 // MLMG row p times -M_p is the finite-element row
-                entries.push_back({gid(n), 0, -M*b(n)});
-                // Solvability weights: fluid volume with EB
-                mass[gid(n)] = ndv ? hd*ndv(n) : M;
+                bvec[r] -= M*b(n);
+                mvec[r] = ndv ? hd*ndv(n) : M;   // fluid volume with EB
+                if (sc) { svec[r] = sc(n); }
                 if (lev > 0) {
                     // Undo the fine equations that MLMG adds into the coarse/fine
                     // rows: add P_nI M_n b_n to each coarse/fine unknown I with
@@ -998,14 +970,11 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
                         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                             P *= Real(1.0) - Real(std::abs(n[d] - I[d]*rr))/Real(rr);
                         }
-                        if (P > Real(0.0)) {
-                            entries.push_back({cgid(I), 0, P*M*b(n)});
-                        }
+                        if (P > Real(0.0)) { add(cgid(I), P*M*b(n)); }
                     });
                 }
             });
         }
-        amrex::ignore_unused(finest);
     }
 
     // Dirichlet domain values (from the initial guess): K_UD x_D to the
@@ -1015,25 +984,21 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
         for (auto const& c : m_dbc) {
             if (!hsol[c.lev]) { hsol[c.lev] = host_copy(*a_sol[c.lev], 0); }
             auto const& x = hsol[c.lev]->atLocalIdx(c.li).const_array();
-            entries.push_back({c.row, 0, -c.coef * x(c.node)});
+            add(c.row, -c.coef * x(c.node));
         }
     }
 
-    entries = exchange(std::move(entries));
-    const Long nrows = m_iupper - m_ilower + 1;
-    Vector<Real> bvec(nrows, Real(0.0));
-    for (auto const& e : entries) { bvec[e.row - m_ilower] += e.val; }
-
-    // Masses of this rank's rows (owned unknowns are exactly the local rows)
-    Vector<Real> mvec(nrows, Real(0.0));
-    for (auto const& [g, M] : mass) { mvec[g - m_ilower] = M; }
+    for (auto const& t : composite::exchange_triplets(std::move(remote), m_rank_offset, m_comm)) {
+        bvec[t.row - m_ilower] += t.val;
+    }
 
     // Singular problems: make the right-hand side exactly consistent
     if (m_linop->isBottomSingular()) {
-        for (Long r = 0; r < nrows; ++r) { local_bsum += bvec[r]; local_msum += mvec[r]; }
-        ParallelAllReduce::Sum(local_bsum, m_comm);
-        ParallelAllReduce::Sum(local_msum, m_comm);
-        const Real shift = local_bsum / local_msum;
+        Real bsum = 0.0, msum = 0.0;
+        for (Long r = 0; r < nrows; ++r) { bsum += bvec[r]; msum += mvec[r]; }
+        ParallelAllReduce::Sum(bsum, m_comm);
+        ParallelAllReduce::Sum(msum, m_comm);
+        const Real shift = bsum / msum;
         for (Long r = 0; r < nrows; ++r) { bvec[r] -= shift*mvec[r]; }
         if (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper) {
             bvec[m_pin_gid - m_ilower] = 0.0;
@@ -1041,10 +1006,11 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
     }
 
     // Scaled system: b' = s b
-    for (auto const& [g, sg] : scale) { bvec[g - m_ilower] *= sg; }
-
     Real bnorm2 = 0.0;
-    for (Long r = 0; r < nrows; ++r) { bnorm2 += bvec[r]*bvec[r]; }
+    for (Long r = 0; r < nrows; ++r) {
+        bvec[r] *= svec[r];
+        bnorm2 += bvec[r]*bvec[r];
+    }
     ParallelAllReduce::Sum(bnorm2, m_comm);
     m_bnorm = std::sqrt(bnorm2);
 
@@ -1084,7 +1050,7 @@ void HypreMLNodeLap::getSolution (Vector<MultiFab*> const& a_sol)
         Gpu::streamSynchronize();
 
         // Dirichlet domain nodes keep their given values
-        if (!m_dbc.empty()) {
+        if (m_has_dirichlet) {
             auto orig = host_copy(*a_sol[lev], 0);
             for (MFIter mfi(*hsol[lev]); mfi.isValid(); ++mfi) {
                 auto const& s = hsol[lev]->array(mfi);
@@ -1125,14 +1091,17 @@ void HypreMLNodeLap::getSolution (Vector<MultiFab*> const& a_sol)
         }
     }
 
-    // Covered coarse nodes: inject the finer solution (finest to coarsest)
-    for (int lev = m_nlevels-1; lev > 0; --lev) {
-        amrex::average_down_nodal(*hsol[lev], *hsol[lev-1], IntVect(m_ref_ratio[lev-1]));
-    }
-
     for (int lev = 0; lev < m_nlevels; ++lev) {
         a_sol[lev]->setVal(0.0);
         MultiFab::Copy(*a_sol[lev], *hsol[lev], 0, 0, 1, 0);
+    }
+    Gpu::streamSynchronize();   // hsol is freed on return
+
+    // Covered coarse nodes: inject the finer solution (finest to coarsest)
+    for (int lev = m_nlevels-1; lev > 0; --lev) {
+        amrex::average_down_nodal(*a_sol[lev], *a_sol[lev-1], IntVect(m_ref_ratio[lev-1]));
+    }
+    for (int lev = 0; lev < m_nlevels; ++lev) {
         a_sol[lev]->FillBoundary(m_geom[lev].periodicity());
     }
 }
@@ -1149,10 +1118,8 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     const int dump_k = (m_dump_max > 0) ? composite::next_dump_index(m_dump_prefix, m_dump_max) : -1;
     if (dump_k >= 0) { dumpSystem(dump_k, false); }
 
-    // a_abstol bounds MLMG's residual, whose rows are the finite-element rows
-    // divided by the (Neumann-reduced) nodal volume; a 2-norm of the
-    // finite-element residual below a_abstol times the smallest such volume
-    // bounds every MLMG row (the scaling s >= 1 only enlarges rows).
+    // MLMG rows = FE rows / (Neumann-reduced) nodal volume >= h^D/2^D, and
+    // the scaling s >= 1 only enlarges rows: this bounds every MLMG row.
     const Real fine_vol = AMREX_D_TERM(m_geom.back().CellSize(0),
                                        *m_geom.back().CellSize(1),
                                        *m_geom.back().CellSize(2));
@@ -1160,7 +1127,6 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) : Real(0.0);
 
     if (m_backend == Backend::hypre) {
-        AMREX_ALWAYS_ASSERT(nrows <= Long(std::numeric_limits<HYPRE_Int>::max()));
         HYPRE_IJVectorInitialize(m_b);
         HYPRE_IJVectorInitialize(m_x);
         if (nrows > 0) {

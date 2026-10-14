@@ -31,7 +31,9 @@ class MLNodeLaplacian;
  * element matrices of all cells not covered by a finer level and Q maps
  * coarse/fine fine-level nodes to the coarse unknowns by multilinear
  * interpolation.  The right-hand side is transformed so that the solution
- * equals MLMG's composite solution (up to a constant for singular problems).
+ * equals MLMG's composite solution (up to a constant for singular problems,
+ * which are made consistent with nodal-volume weights; with an inconsistent
+ * composite right-hand side this differs slightly from MLMG's correction).
  *
  * Supports the Sigma coarsening strategy with scalar, constant or mapped
  * (per-direction) sigma, Cartesian coordinates, and refinement ratios 2
@@ -58,6 +60,9 @@ class MLNodeLaplacian;
  *   Files with more than `<prefix>.dump_gather_max` values (matrix
  *   entries, or vector and row-map values; default 5e7) are written one
  *   per rank, as `<file>.<rank>`.
+ * - `<prefix>.eb_scaling` (default 1): in EB builds, scale the unknowns by
+ *   1/sqrt(nodal fluid fraction) so that rows next to small cut cells count
+ *   in the residual norm.
  */
 class HypreMLNodeLap
 {
@@ -106,31 +111,23 @@ public:
     //! Number of composite unknowns
     [[nodiscard]] BigInt numUnknowns () const { return m_nglobal; }
 
-    //! Assemble the matrix on the device (public for cuda)
+    //! Internal: called by the constructor (public only for CUDA extended lambdas)
     void buildMatrix ();
 
 private:
     using IdFab = BaseFab<Long>;
     using IdFabArray = FabArray<IdFab>;
 
-    struct Entry { Long row; Long col; Real val; };
-
     void numberUnknowns ();
     void loadRHS (Vector<MultiFab const*> const& a_rhs, Vector<MultiFab*> const& a_sol);
-
-    //! Coupling of an unknown to a Dirichlet domain node with a value
-    struct DirichletCoupling { Long row; Real coef; int lev; int li; IntVect node; };
-    Vector<DirichletCoupling> m_dbc;
     void getSolution (Vector<MultiFab*> const& a_sol);
+    void dumpSystem (int k, bool solution);
 
     //! Neumann scale (2 per Neumann/inflow domain face) of node iv on level lev
     [[nodiscard]] int neumannScale (int lev, IntVect const& iv) const;
     //! Is node iv on a Dirichlet domain face of level lev?
     [[nodiscard]] bool onDirichletFace (int lev, IntVect const& iv) const;
 
-    //! Send (row,col,val) entries owned by other ranks, return the local ones
-    Vector<Entry> exchange (Vector<Entry>&& entries) const;
-    [[nodiscard]] int ownerRank (Long gid) const;
     [[nodiscard]] FabFactory<FArrayBox> const* factory (int lev) const;
 
     MLNodeLaplacian const* m_linop;
@@ -150,14 +147,18 @@ private:
     Vector<std::unique_ptr<IdFabArray>> m_gid;         // global id or -1
     Vector<std::unique_ptr<iMultiFab>> m_owner;        // node ownership
     Vector<std::unique_ptr<iMultiFab>> m_dmsk;         // Dirichlet (incl. c/f on fine levels)
-    Vector<std::unique_ptr<iMultiFab>> m_ndfine;       // nodal fine mask (lev < finest)
-    Vector<std::unique_ptr<iMultiFab>> m_ccfine;       // covered cells (lev < finest)
+    Vector<std::unique_ptr<iMultiFab>> m_ndfine;       // nodal fine mask (numbering only)
     Vector<std::unique_ptr<IdFabArray>> m_cgid_on_f;   // level lev-1 gid on coarsened level lev nodes
     Vector<std::unique_ptr<iMultiFab>> m_cndfine_on_f; // level lev-1 nodal fine mask, same layout
     Vector<std::unique_ptr<MultiFab>> m_ndvol;         // EB: nodal fluid volume fraction (or null)
     Vector<std::unique_ptr<MultiFab>> m_scale;         // EB: unknown scaling 1/sqrt(ndvol) (or null)
     Vector<std::unique_ptr<MultiFab>> m_cscale_on_f;   // level lev-1 scaling on coarsened level lev nodes
     bool m_eb_scaling = true;     // <prefix>.eb_scaling
+    bool m_has_dirichlet = false; // any non-periodic Dirichlet domain face
+
+    //! Coupling of an unknown to a Dirichlet domain node with a value
+    struct DirichletCoupling { Long row; Real coef; int lev; int li; IntVect node; };
+    Vector<DirichletCoupling> m_dbc;
 
     Vector<Long> m_rank_offset;   // first gid of each rank, plus total at the end
     BigInt m_ilower = 0;
@@ -172,7 +173,6 @@ private:
     int m_dump_max = 0;
     std::string m_dump_prefix;
     Long m_dump_gather_max = 50000000;
-    void dumpSystem (int k, bool solution);
 
     // Owned rows of the assembled matrix (AlgMG backend and dumps)
     composite::OwnedCSR m_csr;
