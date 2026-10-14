@@ -60,6 +60,8 @@ private:
     bool use_hypre = false;
     bool use_mlhypre = false;  // composite solve with HypreMLNodeLap, compared with MLMG
     std::string mlhypre_prefix = "hypre_mlnodelap";
+    // if positive: abort if max |HypreMLNodeLap - MLMG| exceeds it relative to max |MLMG|
+    amrex::Real mlhypre_max_diff = -1.0;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the

@@ -104,9 +104,14 @@ MyTest::solve ()
                 MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
                 MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
                 MultiFab::Subtract(diff, sol_mlmg[ilev], 0, 0, 1, 0);
+                const Real dmax = diff.norm0();
+                const Real smax = sol_mlmg[ilev].norm0();
                 amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - MLMG| = "
-                               << diff.norm0() << " (max |MLMG| = " << sol_mlmg[ilev].norm0()
-                               << ")\n";
+                               << dmax << " (max |MLMG| = " << smax << ")\n";
+                if (mlhypre_max_diff > Real(0.0) && !(dmax <= mlhypre_max_diff*smax)) {
+                    amrex::Abort("HypreMLNodeLap differs from MLMG by more than "
+                                 "mlhypre_max_diff on level " + std::to_string(ilev));
+                }
             }
 #else
             amrex::Abort("use_mlhypre requires USE_HYPRE=TRUE");
@@ -242,6 +247,7 @@ MyTest::readParameters ()
     pp.query("use_hypre", use_hypre);
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("mlhypre_prefix", mlhypre_prefix);
+    pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("hypre_interface", hypre_interface_i);
     if (hypre_interface_i == 1) {
         hypre_interface = Hypre::Interface::structed;

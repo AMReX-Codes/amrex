@@ -10,6 +10,7 @@
 #endif
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <array>
 #include <cstring>
@@ -293,7 +294,14 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
     numberUnknowns();
 
     if (m_backend == Backend::hypre) {
-        m_ij = std::make_unique<HypreIJIface>(m_comm, m_ilower, m_iupper, m_verbose);
+        // The hypre IJ interface takes the row bounds as HYPRE_Int, which is
+        // 32-bit unless hypre is built with --enable-bigint
+        using IJInt = HypreIJIface::HypreIntType;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            m_nglobal <= BigInt(std::numeric_limits<IJInt>::max()),
+            "HypreMLNodeLap: the composite system has more unknowns than HYPRE_Int can "
+            "index; build hypre with --enable-bigint or use backend = algmg");
+        m_ij = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ilower), IJInt(m_iupper), m_verbose);
         m_ij->parse_inputs(m_prefix);
         m_A = m_ij->A();
         m_b = m_ij->b();
@@ -880,9 +888,14 @@ void HypreMLNodeLap::buildMatrix ()
     if (m_backend == Backend::hypre) {
         if (ntot > 0) {
             Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
-            HYPRE_IJMatrixAddToValues(m_A, HYPRE_Int(ntot), ones.data(), rows.data(),
-                                      cols.data(), vals.data());
-            Gpu::hypreSynchronize();
+            // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
+            constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
+            for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
+                auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
+                HYPRE_IJMatrixAddToValues(m_A, n, ones.data()+n0, rows.data()+n0,
+                                          cols.data()+n0, vals.data()+n0);
+                Gpu::hypreSynchronize();
+            }
         }
         if (pin_here) {
             Gpu::DeviceVector<BigInt> r(1, BigInt(m_pin_gid));
@@ -1147,6 +1160,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) : Real(0.0);
 
     if (m_backend == Backend::hypre) {
+        AMREX_ALWAYS_ASSERT(nrows <= Long(std::numeric_limits<HYPRE_Int>::max()));
         HYPRE_IJVectorInitialize(m_b);
         HYPRE_IJVectorInitialize(m_x);
         if (nrows > 0) {
@@ -1221,11 +1235,13 @@ void HypreMLNodeLap::dumpSystem (int k, bool solution)
     BL_PROFILE("HypreMLNodeLap::dumpSystem()");
     const std::string f = m_dump_prefix + "_" + std::to_string(k);
     if (solution) {
-        composite::write_vector_market(f + "_x.mtx", m_xvec, m_nglobal, m_comm);
+        composite::write_vector_market(f + "_x.mtx", m_xvec, m_nglobal, m_ilower, m_comm,
+                                       m_dump_gather_max);
         return;
     }
     composite::write_matrix_market(f + "_A.mtx", m_csr, m_nglobal, m_comm, m_dump_gather_max);
-    composite::write_vector_market(f + "_b.mtx", m_bvec, m_nglobal, m_comm);
+    composite::write_vector_market(f + "_b.mtx", m_bvec, m_nglobal, m_ilower, m_comm,
+                                   m_dump_gather_max);
 
     // Row map: level and node index of each row, and its scaling
     const Long nrows = m_iupper - m_ilower + 1;
@@ -1250,7 +1266,7 @@ void HypreMLNodeLap::dumpSystem (int k, bool solution)
                              "HypreMLNodeLap composite system: " + std::to_string(m_nglobal) +
                              " rows on " + std::to_string(m_nlevels) + " level(s), " +
                              std::to_string(AMREX_SPACEDIM) + "D nodal",
-                             info, scl, m_comm);
+                             info, scl, m_ilower, m_comm, m_dump_gather_max);
 }
 
 }

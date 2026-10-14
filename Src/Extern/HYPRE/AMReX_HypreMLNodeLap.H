@@ -54,9 +54,10 @@ class MLNodeLaplacian;
  *   `<dump_prefix>_<k>_A.mtx`, `_b.mtx`, `_x.mtx` (matrix, right-hand
  *   side, solution) and `_rows.txt` (per row: level, node index, scaling).
  *   The dumped system is the one solved, S' x' = b' with S' = s S s, b' = s b,
- *   x = s x'.  `<prefix>.dump_prefix` defaults to the ParmParse prefix;
- *   matrices with more than `<prefix>.dump_gather_max` entries (default
- *   5e7) are written as one file per rank.
+ *   x = s x'.  `<prefix>.dump_prefix` defaults to the ParmParse prefix.
+ *   Files with more than `<prefix>.dump_gather_max` values (matrix
+ *   entries, or vector and row-map values; default 5e7) are written one
+ *   per rank, as `<file>.<rank>`.
  */
 class HypreMLNodeLap
 {
