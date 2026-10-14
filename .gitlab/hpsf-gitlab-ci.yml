@@ -1,5 +1,24 @@
 workflow:
   name: '$GITHUB_PIPELINE_NAME'
+  rules:
+    # Scheduled and PR-comment triggered pipelines always run. Push
+    # pipelines (mirror pulls) run only if the pushed range touches code
+    # or this CI config, so dependabot bumps and docs-only changes do not
+    # occupy the GPU runners.
+    - if: $CI_PIPELINE_SOURCE != "push"
+      when: always
+    - changes:
+        paths:
+          - Src/**/*
+          - Tests/**/*
+          - Tools/**/*
+          - CMakeLists.txt
+          - CTestConfig.cmake
+          - GNUmakefile.in
+          - configure
+          - .gitlab/**/*
+      when: always
+    - when: never
 
 .dependency-n-fetch-pr:
   stage: test
