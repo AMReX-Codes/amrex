@@ -2,6 +2,9 @@
 
 #include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreMLNodeLap.H>
+#endif
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
@@ -82,6 +85,32 @@ MyTest::solve ()
             GMRESMLMG gmsolver(mlmg);
             gmsolver.setVerbose(verbose);
             gmsolver.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        } else if (use_mlhypre) {
+#ifdef AMREX_USE_HYPRE
+            // Composite solve of all AMR levels with HypreMLNodeLap (hypre or
+            // AlgMG backend, <mlhypre_prefix>.backend), compared with MLMG
+            // from the same initial guess and boundary values.
+            Vector<MultiFab> sol_mlmg(max_level+1);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                sol_mlmg[ilev].define(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1,
+                                      solution[ilev].nGrowVect());
+                MultiFab::Copy(sol_mlmg[ilev], solution[ilev], 0, 0, 1, solution[ilev].nGrowVect());
+            }
+            mlmg.solve(GetVecOfPtrs(sol_mlmg), GetVecOfConstPtrs(rhs), reltol, 0.0);
+
+            HypreMLNodeLap hyp(linop, mlhypre_prefix, verbose);
+            hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0, max_iter);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
+                MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
+                MultiFab::Subtract(diff, sol_mlmg[ilev], 0, 0, 1, 0);
+                amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - MLMG| = "
+                               << diff.norm0() << " (max |MLMG| = " << sol_mlmg[ilev].norm0()
+                               << ")\n";
+            }
+#else
+            amrex::Abort("use_mlhypre requires USE_HYPRE=TRUE");
+#endif
         } else {
             mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
         }
@@ -211,6 +240,8 @@ MyTest::readParameters ()
 
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
+    pp.query("use_mlhypre", use_mlhypre);
+    pp.query("mlhypre_prefix", mlhypre_prefix);
     pp.query("hypre_interface", hypre_interface_i);
     if (hypre_interface_i == 1) {
         hypre_interface = Hypre::Interface::structed;

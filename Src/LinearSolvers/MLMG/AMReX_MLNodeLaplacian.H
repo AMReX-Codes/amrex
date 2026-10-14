@@ -33,6 +33,8 @@ class MLNodeLaplacian
 {
 public :
 
+    friend class HypreMLNodeLap;
+
     //! Construct an empty operator; call define() before solving.
     MLNodeLaplacian () = default;
     /**
