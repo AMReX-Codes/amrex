@@ -91,6 +91,59 @@ struct OwnedCSR
     }
 };
 
+/**
+ * \brief Send each triplet to the rank owning its row (rank p owns rows
+ * [rank_offset[p], rank_offset[p+1])) and return the triplets received by
+ * this rank, including its own.
+ */
+inline Vector<Triplet> exchange_triplets (Vector<Triplet>&& trips, Vector<Long> const& rank_offset,
+                                          MPI_Comm comm)
+{
+    const int nprocs = ParallelDescriptor::NProcs(comm);
+    if (nprocs == 1) { return std::move(trips); }
+#ifdef AMREX_USE_MPI
+    const int myproc = ParallelDescriptor::MyProc(comm);
+    Vector<Vector<Triplet>> sendbuf(nprocs);
+    Vector<Triplet> local;
+    for (auto const& t : trips) {
+        auto it = std::upper_bound(rank_offset.begin(), rank_offset.end(), t.row);
+        const int p = static_cast<int>(it - rank_offset.begin()) - 1;
+        if (p == myproc) { local.push_back(t); } else { sendbuf[p].push_back(t); }
+    }
+    trips.clear();
+    // Counts in triplets (one MPI element per triplet), checked against int
+    constexpr Long int_max = std::numeric_limits<int>::max();
+    Vector<int> sendcnt(nprocs), recvcnt(nprocs), sdispl(nprocs), rdispl(nprocs);
+    for (int p = 0; p < nprocs; ++p) {
+        AMREX_ALWAYS_ASSERT(sendbuf[p].size() <= int_max);
+        sendcnt[p] = static_cast<int>(sendbuf[p].size());
+    }
+    MPI_Alltoall(sendcnt.data(), 1, MPI_INT, recvcnt.data(), 1, MPI_INT, comm);
+    Long stot = 0, rtot = 0;
+    for (int p = 0; p < nprocs; ++p) {
+        sdispl[p] = static_cast<int>(stot); stot += sendcnt[p];
+        rdispl[p] = static_cast<int>(rtot); rtot += recvcnt[p];
+    }
+    AMREX_ALWAYS_ASSERT(stot <= int_max && rtot <= int_max);
+    Vector<Triplet> sbuf;
+    sbuf.reserve(stot);
+    for (auto const& b : sendbuf) { sbuf.insert(sbuf.end(), b.begin(), b.end()); }
+    sendbuf.clear();
+    const Long nlocal = local.size();
+    local.resize(nlocal + rtot);
+    MPI_Datatype ttype;
+    MPI_Type_contiguous(int(sizeof(Triplet)), MPI_BYTE, &ttype);
+    MPI_Type_commit(&ttype);
+    MPI_Alltoallv(sbuf.data(), sendcnt.data(), sdispl.data(), ttype,
+                  local.data()+nlocal, recvcnt.data(), rdispl.data(), ttype, comm);
+    MPI_Type_free(&ttype);
+    return local;
+#else
+    amrex::ignore_unused(rank_offset);
+    return std::move(trips);
+#endif
+}
+
 //! Dumps written so far per dump prefix, over all solver objects of the run
 inline std::map<std::string,int>& dump_counters ()
 {

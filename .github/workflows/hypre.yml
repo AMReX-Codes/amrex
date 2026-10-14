@@ -179,6 +179,16 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=algmg
+        # singular: the manufactured right-hand side is consistent only to O(h^2)
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre periodic=1 mlhypre_max_diff=1.e-5
+        # EB projection
+        cd ${{github.workspace}}/Tests/LinearSolvers/Nodal_Projection_EB
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE USE_EB=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
+            use_mlhypre=1 mlhypre_max_diff=1.e-7 \
+            hypre_mlnodelap.hypre_solver=FlexGMRES hypre_mlnodelap.hypre_preconditioner=BoomerAMG
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
+            use_mlhypre=1 mlhypre_max_diff=1.e-7 hypre_mlnodelap.backend=algmg
 
         ccache -s
         du -hs ~/.cache/ccache

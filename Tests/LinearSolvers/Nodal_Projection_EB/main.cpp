@@ -47,6 +47,7 @@ int main (int argc, char* argv[])
         int max_grid_size = 32;
         int use_hypre  = 0;
         int use_mlhypre = 0;  // also solve with HypreMLNodeLap and compare with MLMG
+        Real mlhypre_max_diff = -1.0;  // if positive: abort if the velocity correction differs more (relative)
         Vector<std::string> multigrid_types{"geometric"};
 
         Real obstacle_radius = Real(0.10);
@@ -60,6 +61,7 @@ int main (int argc, char* argv[])
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
             pp.query("use_mlhypre", use_mlhypre);
+            pp.query("mlhypre_max_diff", mlhypre_max_diff);
             pp.queryarr("multigrid_types", multigrid_types);
         }
 
@@ -323,6 +325,9 @@ int main (int argc, char* argv[])
             amrex::Print() << "HypreMLNodeLap vs MLMG: max |dphi| = " << dphi.norm0()
                            << " (max |phi| = " << phi.norm0() << "), max |d(sigma grad phi)| = "
                            << dfmax << " (max " << fmax << ")\n";
+            if (mlhypre_max_diff > Real(0.0) && !(dfmax <= mlhypre_max_diff*fmax)) {
+                amrex::Abort("HypreMLNodeLap differs from MLMG by more than mlhypre_max_diff");
+            }
         }
 #endif
 

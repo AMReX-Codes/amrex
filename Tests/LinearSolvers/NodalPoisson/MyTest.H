@@ -59,6 +59,7 @@ private:
 
     bool use_hypre = false;
     bool use_mlhypre = false;  // composite solve with HypreMLNodeLap, compared with MLMG
+    int periodic = 0;          // periodic domain (singular problem); composite solve only
     std::string mlhypre_prefix = "hypre_mlnodelap";
     // if positive: abort if max |HypreMLNodeLap - MLMG| exceeds it relative to max |MLMG|
     amrex::Real mlhypre_max_diff = -1.0;

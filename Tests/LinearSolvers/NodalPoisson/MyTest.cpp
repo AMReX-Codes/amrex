@@ -50,12 +50,9 @@ MyTest::solve ()
         MLNodeLaplacian linop(geom, grids, dmap, info);
         //linop.setSmoothNumSweeps(smooth_num_sweeps);
 
-        linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet)},
-                          {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet)});
+        // periodic: singular problem (the exact solution is periodic)
+        const auto bct = periodic ? LinOpBCType::Periodic : LinOpBCType::Dirichlet;
+        linop.setDomainBC({AMREX_D_DECL(bct, bct, bct)}, {AMREX_D_DECL(bct, bct, bct)});
 
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             linop.setSigma(ilev, sigma[ilev]);
@@ -104,7 +101,8 @@ MyTest::solve ()
                 MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
                 MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
                 MultiFab::Subtract(diff, sol_mlmg[ilev], 0, 0, 1, 0);
-                const Real dmax = diff.norm0();
+                // Singular (periodic) problems: solutions differ by a constant
+                const Real dmax = periodic ? Real(0.5)*(diff.max(0) - diff.min(0)) : diff.norm0();
                 const Real smax = sol_mlmg[ilev].norm0();
                 amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - MLMG| = "
                                << dmax << " (max |MLMG| = " << smax << ")\n";
@@ -246,6 +244,9 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
     pp.query("use_mlhypre", use_mlhypre);
+    pp.query("periodic", periodic);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic || (composite_solve && domain_ratio == 1.0),
+                                     "periodic requires composite_solve = 1 and domain_ratio = 1");
     pp.query("mlhypre_prefix", mlhypre_prefix);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("hypre_interface", hypre_interface_i);
@@ -273,7 +274,7 @@ MyTest::initData ()
     sigma.resize(nlevels);
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,domain_ratio,1.)});
-    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(periodic,periodic,periodic)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
