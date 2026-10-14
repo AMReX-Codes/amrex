@@ -142,6 +142,14 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
             if (p == myproc) { m_ij_upper = off-1; }
         }
         m_rank_offset[nprocs] = off;
+        // The hypre IJ interface takes the row bounds as HYPRE_Int, which is
+        // 32-bit unless hypre is built with --enable-bigint
+        if (m_backend == Backend::hypre) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                off <= Long(std::numeric_limits<HypreIJIface::HypreIntType>::max()),
+                "HypreMLABecLap: the composite system has more rows than HYPRE_Int can "
+                "index; build hypre with --enable-bigint or use backend = algmg");
+        }
     }
 
     static_assert(std::is_same_v<HYPRE_Real,Real>,
@@ -683,8 +691,9 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             HYPRE_IJMatrixSetConstantValues(m_ij_solver->A(), Real(0.0));
             HYPRE_IJMatrixInitialize(m_ij_solver->A());
         } else {
-            m_ij_solver = std::make_unique<HypreIJIface>(m_comm, HYPRE_BigInt(m_ij_lower),
-                                                         HYPRE_BigInt(m_ij_upper), m_verbose);
+            using IJInt = HypreIJIface::HypreIntType; // range checked in the constructor
+            m_ij_solver = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ij_lower),
+                                                         IJInt(m_ij_upper), m_verbose);
             m_ij_solver->parse_inputs(m_parmparse_prefix);
         }
         ij_A = m_ij_solver->A();
@@ -1054,9 +1063,14 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             ij_chunks.clear();
             Gpu::streamSynchronize();
             if (m_backend == Backend::hypre) {
-                HYPRE_IJMatrixAddToValues(ij_A, HYPRE_Int(ntot), ones.data(), rows.data(),
-                                          cols.data(), vals.data());
-                Gpu::hypreSynchronize();
+                // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
+                constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
+                for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
+                    auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
+                    HYPRE_IJMatrixAddToValues(ij_A, n, ones.data()+n0, rows.data()+n0,
+                                              cols.data()+n0, vals.data()+n0);
+                    Gpu::hypreSynchronize();
+                }
             }
             if (m_backend == Backend::algmg || m_dump_max > 0) {
                 // Owned-row CSR: triplets to the host, rows to their owners,
@@ -1508,6 +1522,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     int num_iterations = 0;
     Real final_res = 0.0;
     if (m_backend == Backend::hypre) {
+        AMREX_ALWAYS_ASSERT(nrows <= Long(std::numeric_limits<HYPRE_Int>::max()));
         HYPRE_IJVectorInitialize(b);
         HYPRE_IJVectorInitialize(x);
         if (nrows > 0) {
@@ -1624,11 +1639,13 @@ void HypreMLABecLap::dumpSystem (int k, Gpu::DeviceVector<Real> const& v, bool s
     Gpu::copyAsync(Gpu::deviceToHost, v.begin(), v.end(), hv.begin());
     Gpu::streamSynchronize();
     if (solution) {
-        composite::write_vector_market(f + "_x.mtx", hv, nglobal, m_comm);
+        composite::write_vector_market(f + "_x.mtx", hv, nglobal, m_ij_lower, m_comm,
+                                       m_dump_gather_max);
         return;
     }
     composite::write_matrix_market(f + "_A.mtx", m_csr, nglobal, m_comm, m_dump_gather_max);
-    composite::write_vector_market(f + "_b.mtx", hv, nglobal, m_comm);
+    composite::write_vector_market(f + "_b.mtx", hv, nglobal, m_ij_lower, m_comm,
+                                   m_dump_gather_max);
 
     // Row map: the local rows are this rank's boxes, level by level, cells in
     // memory order
@@ -1647,7 +1664,8 @@ void HypreMLABecLap::dumpSystem (int k, Gpu::DeviceVector<Real> const& v, bool s
                              "HypreMLABecLap composite system (" + m_parmparse_prefix + "): " +
                              std::to_string(nglobal) + " rows on " + std::to_string(m_nlevels) +
                              " level(s), " + std::to_string(AMREX_SPACEDIM) + "D cell-centered",
-                             info, Vector<Real>(info.size(), Real(1.0)), m_comm);
+                             info, Vector<Real>(info.size(), Real(1.0)), m_ij_lower,
+                             m_comm, m_dump_gather_max);
 }
 
 void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs)

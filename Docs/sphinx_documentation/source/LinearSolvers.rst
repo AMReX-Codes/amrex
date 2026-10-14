@@ -849,6 +849,52 @@ To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
 reader to the tutorial, `ABecLaplacian`_.
 
+Composite multi-level solves with HypreMLABecLap
+------------------------------------------------
+
+:cpp:`HypreMLABecLap` solves a cell-centered ABecLaplacian on all AMR levels
+at once as a single composite system, rather than as an MLMG bottom solver
+(for example AMReX-Hydro's MAC projection with ``mac_proj.use_mlhypre``).  By
+default it assembles a semi-structured hypre matrix and solves it with
+BoomerAMG.  The following parameters, under the ParmParse prefix given to the
+constructor (default ``hypre_mlabeclap``), select and control the IJ mode, in
+which the composite matrix is assembled on the device into one distributed
+sparse matrix:
+
+- :cpp:`hypre_mlabeclap.hypre_solver`: if given, use the IJ mode and solve with
+  :cpp:`HypreIJIface` configured from the same keys as above (e.g.
+  ``hypre_solver = FlexGMRES``, ``hypre_preconditioner = BoomerAMG``,
+  ``bamg_*``), with the prefix ``hypre_mlabeclap``.
+
+- :cpp:`hypre_mlabeclap.backend`: ``hypre`` (default) or ``algmg``.  With
+  ``algmg`` the assembled IJ system is solved by AMReX's AlgMG
+  (:ref:`sec:linearsolver:algmg`), which implies the IJ mode and does not need
+  ``hypre_solver``.  AlgMG is configured with
+  ``hypre_mlabeclap.algmg.krylov`` (``none``, ``bicgstab``, ``gmres``,
+  ``pcg``), ``.smoother``, ``.interp_type``, ``.bottom_solver``,
+  ``.strong_threshold``, ``.max_levels``, ``.max_coarse_size``,
+  ``.agg_num_levels``, ``.pmax_elmts``, ``.trunc_factor``, ``.pre_smooth``,
+  ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
+
+- :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: with the hypre backend, a
+  repeated :cpp:`setup` with new coefficients updates the matrix values in
+  place and keeps the solver setup until :cpp:`resetSolverSetup()`.  The AlgMG
+  backend sets up a new hierarchy for every matrix.
+
+- :cpp:`hypre_mlabeclap.dump_matrix`: default 0.  Write the systems of the
+  first N solves with the same dump prefix, counted over all
+  :cpp:`HypreMLABecLap` objects of the run, in Matrix Market format for
+  analysis outside AMReX: for solve ``k``, ``<dump_prefix>_<k>_A.mtx``
+  (matrix), ``_b.mtx`` (right-hand side), ``_x.mtx`` (solution) and
+  ``_rows.txt`` (AMR level and cell of each row).
+  :cpp:`hypre_mlabeclap.dump_prefix` defaults to the ParmParse prefix.  Files
+  with more than :cpp:`hypre_mlabeclap.dump_gather_max` values (default
+  ``5e7``) are written one per rank, as ``<file>.<rank>``.
+
+With the hypre backend, the number of rows of the composite system must fit
+in ``HYPRE_Int``, so systems with more than about :math:`2^{31}` cells need
+HYPRE built with ``--enable-bigint`` (or the AlgMG backend).
+
 Tensor Solve
 ============
 

@@ -244,8 +244,9 @@ private:
     //! with this dump prefix, counted over all objects of the run: for solve
     //! k, `<dump_prefix>_<k>_A.mtx`, `_b.mtx`, `_x.mtx` and `_rows.txt`
     //! (level and cell of each row).  `<prefix>.dump_prefix` (default: the
-    //! ParmParse prefix); matrices with more than `<prefix>.dump_gather_max`
-    //! entries (default 5e7) are written one file per rank.
+    //! ParmParse prefix).  Files with more than `<prefix>.dump_gather_max`
+    //! values (matrix entries, or vector and row-map values; default 5e7)
+    //! are written one per rank, as `<file>.<rank>`.
     int m_dump_max = 0;
     std::string m_dump_prefix;
     Long m_dump_gather_max = 50000000;
