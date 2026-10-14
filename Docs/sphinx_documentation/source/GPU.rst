@@ -2223,10 +2223,10 @@ ranks per node:
     export ROCR_VISIBLE_DEVICES=${gpu_order[$SLURM_LOCALID]}
     exec "$@"
 
-On AMD GPUs, making only one GPU visible to each rank is the preferred setup,
-whether or not AMReX initializes MPI. Even when the GPU is selected before MPI
-initialization, GPU-aware MPI communication is slower if a rank can see more
-than one GPU.
+GPU-aware MPI communication is slower if a rank can see more than one AMD
+GPU, even when the GPU is selected before MPI initialization. On AMD systems,
+making only one GPU visible to each rank is therefore the preferred setup,
+whether or not AMReX initializes MPI.
 
 
 Performance Tips
