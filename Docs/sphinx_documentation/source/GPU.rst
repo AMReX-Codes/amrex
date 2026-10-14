@@ -2190,9 +2190,17 @@ initialized.
     }
 
 * Alternatively, make only one GPU visible to each rank before the program
-  starts, with ``CUDA_VISIBLE_DEVICES`` (CUDA) or ``ROCR_VISIBLE_DEVICES``
-  (HIP). On Perlmutter, with four ranks per node, the following wrapper
-  script gives each rank the GPU closest to its CPU cores.
+  starts. Slurm's GPU binding options (e.g., ``--gpus-per-task=1`` and
+  ``--gpu-bind=closest``) do this and give each rank the GPU closest to its
+  CPU cores. This is the recommended way to launch jobs on Frontier, for
+  example. However, on systems where Slurm restricts device access with
+  cgroups, these options can prevent GPU-aware MPI from transferring data
+  directly between GPUs on the same node. On Perlmutter, this makes GPU-aware
+  MPI hang, or run very slowly if the direct transfers are disabled. On such
+  systems, use ``--gpu-bind=none`` and set ``CUDA_VISIBLE_DEVICES`` (CUDA) or
+  ``ROCR_VISIBLE_DEVICES`` (HIP) in a wrapper script instead. On Perlmutter,
+  with four ranks per node, the following wrapper script gives each rank the
+  GPU closest to its CPU cores.
 
 .. highlight:: bash
 
@@ -2203,13 +2211,22 @@ initialized.
     export CUDA_VISIBLE_DEVICES=$((3-SLURM_LOCALID))
     exec "$@"
 
-Slurm's own GPU binding options (e.g., ``--gpus-per-task=1`` and
-``--gpu-bind=map_gpu``) also make one GPU visible to each rank. However, on
-systems where Slurm restricts device access with cgroups, they can prevent
-GPU-aware MPI from transferring data directly between GPUs on the same node. On
-Perlmutter, this makes GPU-aware MPI hang, or run very slowly if the direct
-transfers are disabled. On such systems, use ``--gpu-bind=none`` together
-with one of the approaches above.
+For HIP, set ``ROCR_VISIBLE_DEVICES`` instead. The order of the GPUs is
+machine dependent; check the system's documentation. For example, with eight
+ranks per node:
+
+::
+
+    #!/bin/bash
+    # Usage: srun ... --gpu-bind=none ./wrapper.sh ./main3d.ex inputs
+    gpu_order=(4 5 2 3 6 7 0 1)  # machine dependent
+    export ROCR_VISIBLE_DEVICES=${gpu_order[$SLURM_LOCALID]}
+    exec "$@"
+
+On AMD GPUs, making only one GPU visible to each rank is the preferred setup,
+whether or not AMReX initializes MPI. Even when the GPU is selected before MPI
+initialization, GPU-aware MPI communication is slower if a rank can see more
+than one GPU.
 
 
 Performance Tips
