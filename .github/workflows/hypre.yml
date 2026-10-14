@@ -113,6 +113,11 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-algmg
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij composite_solve=0
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij hypre_mlabeclap.dump_matrix=1 \
+            hypre_mlabeclap.dump_gather_max=100
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \

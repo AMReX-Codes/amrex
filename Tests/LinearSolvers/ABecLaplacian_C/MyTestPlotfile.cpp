@@ -19,6 +19,9 @@ MyTest::writePlotfile () const
             MultiFab::Subtract(errmf, exact_solution[ilev], 0, 0, 1, 0);
             auto error = errmf.norminf();
             amrex::Print() << "Level " << ilev << " max-norm error: " << error << '\n';
+            if (max_error > Real(0.0) && !(error <= max_error)) {
+                amrex::Abort("Level " + std::to_string(ilev) + " max-norm error exceeds max_error");
+            }
         }
         return;
     }
@@ -79,8 +82,14 @@ MyTest::writePlotfile () const
             }
             const auto* dx = geom[ilev].CellSize();
             Real dvol = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
+            const Real maxerr = plotmf[ilev].norminf(3);
+            if (max_error > Real(0.0) && !(maxerr <= max_error)) {
+                amrex::Abort("Level " + std::to_string(ilev) + " max-norm error " +
+                             std::to_string(maxerr) + " exceeds max_error " +
+                             std::to_string(max_error));
+            }
             amrex::Print() << "Level " << ilev
-                           << " max-norm error: " << plotmf[ilev].norminf(3)
+                           << " max-norm error: " << maxerr
                            << " 1-norm error: " << plotmf[ilev].norm1(3)*dvol
                            << " 2-norm error: " << plotmf[ilev].norm2(3)*std::sqrt(dvol) << '\n';
         }
