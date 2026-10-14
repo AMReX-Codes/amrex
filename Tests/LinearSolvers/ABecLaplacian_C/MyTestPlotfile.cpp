@@ -19,6 +19,9 @@ MyTest::writePlotfile () const
             MultiFab::Subtract(errmf, exact_solution[ilev], 0, 0, 1, 0);
             auto error = errmf.norminf();
             amrex::Print() << "Level " << ilev << " max-norm error: " << error << '\n';
+            if (max_error > Real(0.0) && !(error <= max_error)) {
+                amrex::Abort("Level " + std::to_string(ilev) + " max-norm error exceeds max_error");
+            }
         }
         return;
     }

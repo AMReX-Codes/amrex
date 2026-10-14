@@ -11,12 +11,10 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdio>
-#include <cstring>
-#include <map>
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <string>
 
 /**
@@ -45,7 +43,7 @@ struct OwnedCSR
     Vector<Long> col_index;      //!< global column indices
     Vector<Real> values;
 
-    [[nodiscard]] Long nnz () const { return static_cast<Long>(values.size()); }
+    [[nodiscard]] Long nnz () const { return values.size(); }
 
     //! Build from the triplets of this rank's rows (rows outside
     //! [row_begin, row_begin+nrows) are an error).
@@ -80,79 +78,37 @@ struct OwnedCSR
     //! Define an SpMatrix (device memory in GPU builds) with this CSR
     void toSpMatrix (SpMatrix<Real>& mat, Vector<Long> const& rank_offset) const
     {
-        Gpu::DeviceVector<Real> d_val(values.size());
-        Gpu::DeviceVector<Long> d_col(col_index.size());
-        Gpu::DeviceVector<Long> d_off(row_offset.size());
-        Gpu::copyAsync(Gpu::hostToDevice, values.begin(), values.end(), d_val.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, col_index.begin(), col_index.end(), d_col.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, row_offset.begin(), row_offset.end(), d_off.begin());
+        SpMatrix<Real>::csr_type csr;
+        csr.mat.resize(values.size());
+        csr.col_index.resize(col_index.size());
+        csr.row_offset.resize(row_offset.size());
+        csr.nnz = nnz();
+        Gpu::copyAsync(Gpu::hostToDevice, values.begin(), values.end(), csr.mat.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, col_index.begin(), col_index.end(), csr.col_index.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, row_offset.begin(), row_offset.end(), csr.row_offset.begin());
         Gpu::streamSynchronize();
-        mat.define(AlgPartition(rank_offset), d_val.data(), d_col.data(), nnz(),
-                   d_off.data(), CsrSorted{true}, CsrValid{true});
+        mat.define(AlgPartition(rank_offset), std::move(csr), CsrSorted{true});
     }
 };
 
-/**
- * \brief Send each triplet to the rank owning its row (rank p owns rows
- * [rank_offset[p], rank_offset[p+1])) and return this rank's triplets.
- */
-inline Vector<Triplet> exchange_triplets (Vector<Triplet>&& trips, Vector<Long> const& rank_offset,
-                                          MPI_Comm comm)
-{
-    int nprocs = 1, myproc = 0;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(comm, &nprocs);
-    MPI_Comm_rank(comm, &myproc);
-#else
-    amrex::ignore_unused(comm);
-#endif
-    if (nprocs == 1) { return std::move(trips); }
-#ifdef AMREX_USE_MPI
-    auto owner = [&] (Long row) {
-        auto it = std::upper_bound(rank_offset.begin(), rank_offset.end(), row);
-        return static_cast<int>(it - rank_offset.begin()) - 1;
-    };
-    Vector<Vector<Triplet>> sendbuf(nprocs);
-    Vector<Triplet> local;
-    for (auto const& t : trips) {
-        const int p = owner(t.row);
-        if (p == myproc) { local.push_back(t); } else { sendbuf[p].push_back(t); }
-    }
-    Vector<int> sendcnt(nprocs), recvcnt(nprocs), sdispl(nprocs), rdispl(nprocs);
-    for (int p = 0; p < nprocs; ++p) {
-        sendcnt[p] = static_cast<int>(sendbuf[p].size() * Long(sizeof(Triplet)));
-    }
-    MPI_Alltoall(sendcnt.data(), 1, MPI_INT, recvcnt.data(), 1, MPI_INT, comm);
-    int stot = 0, rtot = 0;
-    for (int p = 0; p < nprocs; ++p) {
-        sdispl[p] = stot; stot += sendcnt[p];
-        rdispl[p] = rtot; rtot += recvcnt[p];
-    }
-    Vector<char> sbuf(stot), rbuf(rtot);
-    for (int p = 0; p < nprocs; ++p) {
-        if (sendcnt[p] > 0) { std::memcpy(sbuf.data()+sdispl[p], sendbuf[p].data(), sendcnt[p]); }
-    }
-    MPI_Alltoallv(sbuf.data(), sendcnt.data(), sdispl.data(), MPI_CHAR,
-                  rbuf.data(), recvcnt.data(), rdispl.data(), MPI_CHAR, comm);
-    const Long nrecv = rtot / Long(sizeof(Triplet));
-    const Long nlocal = local.size();
-    local.resize(nlocal + nrecv);
-    if (nrecv > 0) { std::memcpy(local.data()+nlocal, rbuf.data(), rtot); }
-    return local;
-#endif
-}
-
-/**
- * \brief Index of the next dump for this file prefix, counted over all
- * solver objects of the run (objects are often rebuilt between solves), or
- * -1 once \p max dumps have been written.
- */
-inline int next_dump_index (std::string const& prefix, int max)
+//! Dumps written so far per dump prefix, over all solver objects of the run
+inline std::map<std::string,int>& dump_counters ()
 {
     static std::map<std::string,int> counter;
-    int& n = counter[prefix];
-    if (n >= max) { return -1; }
-    return n++;
+    return counter;
+}
+
+//! Whether a dump with this prefix is still pending (fewer than \p max written)
+inline bool dump_pending (std::string const& prefix, int max)
+{
+    return max > 0 && dump_counters()[prefix] < max;
+}
+
+//! Index of the next dump for this prefix, or -1 once \p max have been written
+inline int next_dump_index (std::string const& prefix, int max)
+{
+    if (!dump_pending(prefix, max)) { return -1; }
+    return dump_counters()[prefix]++;
 }
 
 /**
@@ -162,15 +118,14 @@ inline int next_dump_index (std::string const& prefix, int max)
 template <typename T>
 Vector<T> gather_on_root (Vector<T> const& v, MPI_Comm comm)
 {
+    const int nprocs = ParallelDescriptor::NProcs(comm);
+    if (nprocs == 1) { return v; }
 #ifdef AMREX_USE_MPI
-    int nprocs = 1, myproc = 0;
-    MPI_Comm_size(comm, &nprocs);
-    MPI_Comm_rank(comm, &myproc);
     int nloc = static_cast<int>(v.size());
     Vector<int> counts(nprocs), displs(nprocs, 0);
     MPI_Gather(&nloc, 1, MPI_INT, counts.data(), 1, MPI_INT, 0, comm);
     Vector<T> g;
-    if (myproc == 0) {
+    if (ParallelDescriptor::MyProc(comm) == 0) {
         int ntot = 0;
         for (int p = 0; p < nprocs; ++p) { displs[p] = ntot; ntot += counts[p]; }
         g.resize(ntot);
@@ -179,46 +134,49 @@ Vector<T> gather_on_root (Vector<T> const& v, MPI_Comm comm)
     MPI_Gatherv(v.data(), nloc, mt, g.data(), counts.data(), displs.data(), mt, 0, comm);
     return g;
 #else
-    amrex::ignore_unused(comm);
     return v;
 #endif
 }
 
 /**
- * \brief Whether a dump of \p total items (matrix entries, or vector or
- * row-map values) goes to one file written by rank 0.  Above \p gather_max
- * (and above what MPI's int counts can address) every rank writes its own
- * part to `<file>.<rank>` instead.
+ * \brief Whether a dump of \p total values goes to one file written by rank
+ * 0 (always on one rank).  Above \p gather_max, or above what MPI's int
+ * counts can address, every rank writes its own part to `<file>.<rank>`.
  */
 inline bool dump_single_file (Long total, Long gather_max, MPI_Comm comm)
 {
-    int nprocs = 1;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(comm, &nprocs);
-#else
-    amrex::ignore_unused(comm);
-#endif
-    return (nprocs == 1) ||
+    return (ParallelDescriptor::NProcs(comm) == 1) ||
         (total <= std::min(gather_max, Long(std::numeric_limits<int>::max())));
+}
+
+//! Open a dump file for writing, aborting on failure
+inline std::ofstream open_dump (std::string const& name)
+{
+    std::ofstream ofs(name);
+    if (!ofs) { amrex::Abort("Cannot open dump file " + name); }
+    ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
+    return ofs;
+}
+
+//! Abort if writing a dump file failed
+inline void check_dump (std::ofstream const& ofs, std::string const& name)
+{
+    if (!ofs) { amrex::Abort("Failed to write dump file " + name); }
 }
 
 /**
  * \brief Write the row map of a composite system: one line per row with the
- * 1-based row, AMR level, cell or node index (i j k), and the unknown's
- * scaling (x = scaling * x').  \p info holds (level,i,j,k) of this rank's
- * rows, which start at the global row \p row_begin; ranks own consecutive
- * row ranges in rank order.  Gathered on rank 0 or one file per rank, see
+ * 1-based row, AMR level, index (i j k) and the unknown's scaling.  \p info
+ * holds (level,i,j,k) of this rank's rows, which start at the global row
+ * \p row_begin.  Gathered on rank 0 or one file per rank, see
  * dump_single_file.
  */
 inline void write_row_map (std::string const& file, std::string const& title,
                            Vector<std::array<Long,4>> const& info, Vector<Real> const& scaling,
                            Long row_begin, MPI_Comm comm, Long gather_max)
 {
-    int nprocs = 1, myproc = 0;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(comm, &nprocs);
-    MPI_Comm_rank(comm, &myproc);
-#endif
+    const int nprocs = ParallelDescriptor::NProcs(comm);
+    const int myproc = ParallelDescriptor::MyProc(comm);
     Long nglobal = info.size();
     ParallelAllReduce::Sum(nglobal, comm);
 
@@ -229,14 +187,13 @@ inline void write_row_map (std::string const& file, std::string const& title,
     auto write = [&] (std::string const& name, std::string const& note, Long first_row,
                       Vector<Long> const& fl, Vector<Real> const& sc)
     {
-        std::ofstream ofs(name);
-        ofs << "# " << title << "\n" << note
-            << "# row level i j k scaling   (row is 1-based; x = scaling * x')\n";
-        ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
+        auto ofs = open_dump(name);
+        ofs << "# " << title << "\n" << note << "# row level i j k scaling\n";
         for (Long r = 0; r < sc.size(); ++r) {
             ofs << first_row+r+1 << ' ' << fl[r*4] << ' ' << fl[r*4+1] << ' '
                 << fl[r*4+2] << ' ' << fl[r*4+3] << ' ' << sc[r] << '\n';
         }
+        check_dump(ofs, name);
     };
     if (dump_single_file(4*nglobal, gather_max, comm)) {
         auto gflat = gather_on_root(flat, comm);
@@ -251,21 +208,22 @@ inline void write_row_map (std::string const& file, std::string const& title,
 
 /**
  * \brief Configure an AlgMG solver from `<prefix>.algmg.*`: verbose,
- * krylov (none|bicgstab|gmres|pcg), smoother
+ * krylov (none|bicgstab|gmres|pcg; default \p krylov), smoother
  * (jacobi|l1_jacobi|chebyshev|l1_gauss_seidel), interp_type
  * (direct|mm_ext|mm_ext_i), bottom_solver (jacobi|bicgstab|gmres|direct),
  * strong_threshold, max_levels, max_coarse_size, agg_num_levels,
  * pmax_elmts, trunc_factor, pre_smooth, post_smooth, cheby_degree.
  */
-inline void algmg_parse_options (AlgMG<Real>& mg, std::string const& prefix)
+inline void algmg_parse_options (AlgMG<Real>& mg, std::string const& prefix,
+                                 AlgMGKrylovSolver krylov)
 {
     ParmParse pp(prefix + ".algmg");
     int iv = 0;
     Real rv = 0;
     Long lv = 0;
     if (pp.query("verbose", iv)) { mg.setVerbose(iv); }
-    AlgMGKrylovSolver krylov{};
-    if (pp.query_enum_case_insensitive("krylov", krylov)) { mg.setKrylovSolver(krylov); }
+    pp.query_enum_case_insensitive("krylov", krylov);
+    mg.setKrylovSolver(krylov);
     AlgMGSmoother sm{};
     if (pp.query_enum_case_insensitive("smoother", sm)) { mg.setSmoother(sm); }
     AlgMGInterpType it{};
@@ -286,18 +244,14 @@ inline void algmg_parse_options (AlgMG<Real>& mg, std::string const& prefix)
 /**
  * \brief Write a distributed matrix in Matrix Market coordinate format
  * (1-based indices, "general"), gathered on rank 0 or one file per rank
- * (see dump_single_file).  Each per-rank file is a complete Matrix Market
- * file with the global dimensions and this rank's rows; concatenating
- * their entry lines gives the whole matrix.
+ * (see dump_single_file).  A per-rank file holds this rank's rows with the
+ * global dimensions; concatenating the entry lines gives the matrix.
  */
 inline void write_matrix_market (std::string const& file, OwnedCSR const& csr,
                                  Long nglobal, MPI_Comm comm, Long gather_max)
 {
-    int nprocs = 1, myproc = 0;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(comm, &nprocs);
-    MPI_Comm_rank(comm, &myproc);
-#endif
+    const int nprocs = ParallelDescriptor::NProcs(comm);
+    const int myproc = ParallelDescriptor::MyProc(comm);
     Long nnz_global = csr.nnz();
     ParallelAllReduce::Sum(nnz_global, comm);
 
@@ -308,13 +262,13 @@ inline void write_matrix_market (std::string const& file, OwnedCSR const& csr,
     auto write = [&] (std::string const& name, std::string const& note, Vector<Long> const& rr,
                       Vector<Long> const& cc, Vector<Real> const& vv)
     {
-        std::ofstream ofs(name);
+        auto ofs = open_dump(name);
         ofs << "%%MatrixMarket matrix coordinate real general\n" << note;
         ofs << nglobal << ' ' << nglobal << ' ' << vv.size() << '\n';
-        ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
         for (Long n = 0; n < vv.size(); ++n) {
             ofs << rr[n]+1 << ' ' << cc[n]+1 << ' ' << vv[n] << '\n';
         }
+        check_dump(ofs, name);
     };
     if (dump_single_file(nnz_global, gather_max, comm)) {
         auto grows = gather_on_root(rows, comm);
@@ -330,26 +284,22 @@ inline void write_matrix_market (std::string const& file, OwnedCSR const& csr,
 
 /**
  * \brief Write a distributed vector (this rank's rows start at the global
- * row \p row_begin; ranks in row order) as a Matrix Market dense array,
- * gathered on rank 0 or one file per rank (see dump_single_file).  A
- * per-rank file holds this rank's rows; its comment line gives their
- * global range.
+ * row \p row_begin) as a Matrix Market dense array, gathered on rank 0 or
+ * one file per rank (see dump_single_file); a per-rank file gives its
+ * global row range in a comment.
  */
 inline void write_vector_market (std::string const& file, Vector<Real> const& v,
                                  Long nglobal, Long row_begin, MPI_Comm comm, Long gather_max)
 {
-    int nprocs = 1, myproc = 0;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(comm, &nprocs);
-    MPI_Comm_rank(comm, &myproc);
-#endif
+    const int nprocs = ParallelDescriptor::NProcs(comm);
+    const int myproc = ParallelDescriptor::MyProc(comm);
     auto write = [&] (std::string const& name, std::string const& note, Vector<Real> const& x)
     {
-        std::ofstream ofs(name);
+        auto ofs = open_dump(name);
         ofs << "%%MatrixMarket matrix array real general\n" << note;
         ofs << x.size() << " 1\n";
-        ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
         for (auto const& xi : x) { ofs << xi << '\n'; }
+        check_dump(ofs, name);
     };
     if (dump_single_file(nglobal, gather_max, comm)) {
         auto g = gather_on_root(v, comm);

@@ -871,7 +871,8 @@ sparse matrix:
   (:ref:`sec:linearsolver:algmg`), which implies the IJ mode and does not need
   ``hypre_solver``.  AlgMG is configured with
   ``hypre_mlabeclap.algmg.krylov`` (``none``, ``bicgstab``, ``gmres``,
-  ``pcg``), ``.smoother``, ``.interp_type``, ``.bottom_solver``,
+  ``pcg``; default ``gmres``, since V-cycles alone can stall on composite
+  systems), ``.smoother``, ``.interp_type``, ``.bottom_solver``,
   ``.strong_threshold``, ``.max_levels``, ``.max_coarse_size``,
   ``.agg_num_levels``, ``.pmax_elmts``, ``.trunc_factor``, ``.pre_smooth``,
   ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
@@ -881,6 +882,11 @@ sparse matrix:
   place and keeps the solver setup until :cpp:`resetSolverSetup()`.  The AlgMG
   backend sets up a new hierarchy for every matrix.
 
+- :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()` report the last solve;
+  with :cpp:`setThrowException(true)` a solve that does not converge throws
+  :cpp:`std::runtime_error` instead of aborting.  The absolute tolerance of
+  :cpp:`solve` must be 0.
+
 - :cpp:`hypre_mlabeclap.dump_matrix`: default 0.  Write the systems of the
   first N solves with the same dump prefix, counted over all
   :cpp:`HypreMLABecLap` objects of the run, in Matrix Market format for
@@ -889,11 +895,12 @@ sparse matrix:
   ``_rows.txt`` (AMR level and cell of each row).
   :cpp:`hypre_mlabeclap.dump_prefix` defaults to the ParmParse prefix.  Files
   with more than :cpp:`hypre_mlabeclap.dump_gather_max` values (default
-  ``5e7``) are written one per rank, as ``<file>.<rank>``.
+  ``5e7``) are written one per rank, as ``<file>.<rank>`` (on one rank, always
+  one file).
 
-With the hypre backend, the number of rows of the composite system must fit
-in ``HYPRE_Int``, so systems with more than about :math:`2^{31}` cells need
-HYPRE built with ``--enable-bigint`` (or the AlgMG backend).
+The number of rows of the composite system must fit in ``HYPRE_Int``, so
+systems with more than about :math:`2^{31}` cells need HYPRE built with
+``--enable-bigint``.
 
 Tensor Solve
 ============

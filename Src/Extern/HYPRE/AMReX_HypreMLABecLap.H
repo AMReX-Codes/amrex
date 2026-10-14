@@ -75,6 +75,12 @@ public:
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
+    //! IJ mode only: throw std::runtime_error instead of aborting when the
+    //! solve does not converge
+    void setThrowException (bool t) noexcept { m_throw_exception = t; }
+    //! IJ mode only: iterations and final relative residual of the last solve
+    [[nodiscard]] int getNumIters () const noexcept { return m_num_iters; }
+    [[nodiscard]] Real getFinalResidualNorm () const noexcept { return m_final_res; }
 
     /**
      * \brief Assemble the HYPRE operators/storage for the provided coefficients.
@@ -211,15 +217,15 @@ private:
     //! `<prefix>.hypre_solver` is given; otherwise the built-in BoomerAMG
     std::unique_ptr<HypreIJIface> m_ij_solver;
 
-    //! With `<prefix>.hypre_solver` given, the composite matrix is assembled
-    //! directly into an IJ matrix (no SStruct matrix or vectors).  Cells are
-    //! numbered rank by rank, level by level, box by box, in memory order.
+    //! IJ mode (`<prefix>.hypre_solver` given or `backend = algmg`): one
+    //! assembled matrix, no SStruct matrix or vectors
     bool m_use_ij = false;
     bool m_reuse_setup = false;
+    bool m_throw_exception = false;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;
-    //! Targets of the non-stencil entries of each local row, in graph order
+    //! Targets of the non-stencil entries of each local row (until buildIJMaps)
     std::unordered_map<Long,Vector<Long>> m_ns_targets;
     //! Device maps for the IJ assembly: row id of each cell (ghost cells:
     //! same-level neighbours, -1 off the grids), and the targets of the
@@ -235,6 +241,8 @@ private:
     //! (`<prefix>.algmg.*`).  `backend = algmg` implies IJ mode.
     enum class Backend { hypre, algmg };
     Backend m_backend = Backend::hypre;
+    int m_num_iters = 0;                     // last solve (IJ mode)
+    Real m_final_res = 0.0;
     Vector<Long> m_rank_offset;              // first row of each rank, plus the total
     composite::OwnedCSR m_csr;               // owned rows (AlgMG backend, dumps)
     std::unique_ptr<SpMatrix<Real>> m_spA;
