@@ -374,6 +374,20 @@ int main(int argc, char* argv[])
         int n = pp.countname("string-for-testing-addfile");
         AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
     }
+    { // addargs: as the arguments after the inputs file on a command line
+        ParmParse::addargs({"max_steps=50", "addargs.v", "=", "-1.5", "2.5",
+                            "addargs.s=", "\"a b\""});
+        ParmParse pp;
+        int max_steps = -1;
+        pp.get("max_steps", max_steps);
+        AMREX_ALWAYS_ASSERT(max_steps == 50);
+        std::vector<double> v;
+        pp.getarr("addargs.v", v);
+        AMREX_ALWAYS_ASSERT(v.size() == 2 && v[0] == -1.5 && v[1] == 2.5);
+        std::string s;
+        pp.get("addargs.s", s);
+        AMREX_ALWAYS_ASSERT(s == "a b");
+    }
 
     { // UNSET directive
         ParmParse pp;

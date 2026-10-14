@@ -20,6 +20,7 @@
 #include <numeric>
 #include <unordered_map>
 #include <regex>
+#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <typeinfo>
@@ -1471,6 +1472,35 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     entry.m_typehint = static_cast<T_ptr>(nullptr);
 }
 
+// Parse command-line arguments and append their definitions to the table.
+// The arguments are joined by blanks first, so that a value can span several.
+template <class Args>
+void
+append_args (Args const& args, ParmParse::Table& table)
+{
+    std::string argstr;
+    const char SPACE = ' ';
+    for (auto const& arg : args)
+    {
+        argstr += arg;
+        argstr += SPACE;
+    }
+    ParmParse::Table arg_table;
+    const char* b = argstr.c_str();
+    bldTable(b, arg_table);
+    //
+    // Append arg_table to end of existing table.
+    //
+    for (auto& [name, arg_entry] : arg_table) {
+        auto& src = arg_entry.m_vals;
+        auto& dst = table[name].m_vals;
+        std::ranges::move(src, std::back_inserter(dst));
+        auto& src_quotes = arg_entry.m_quotes;
+        auto& dst_quotes = table[name].m_quotes;
+        std::ranges::move(src_quotes, std::back_inserter(dst_quotes));
+    }
+}
+
 // Initialize ParmParse.
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
@@ -1495,27 +1525,7 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
 
     if ( argc > 0 )
     {
-        std::string argstr;
-        const char SPACE = ' ';
-        for ( int i = 0; i < argc; i++ )
-        {
-            argstr += argv[i];
-            argstr += SPACE;
-        }
-        ParmParse::Table arg_table;
-        const char* b = argstr.c_str();
-        bldTable(b, arg_table);
-        //
-        // Append arg_table to end of existing table.
-        //
-        for (auto& [name, arg_entry] : arg_table) {
-            auto& src = arg_entry.m_vals;
-            auto& dst = table[name].m_vals;
-            std::ranges::move(src, std::back_inserter(dst));
-            auto& src_quotes = arg_entry.m_quotes;
-            auto& dst_quotes = table[name].m_quotes;
-            std::ranges::move(src_quotes, std::back_inserter(dst_quotes));
-        }
+        append_args(std::span<char* const>(argv, argc), table);
     }
     initialized = true;
 }
@@ -1703,6 +1713,16 @@ ParmParse::addfile (std::string const& filename) {
     std::vector<std::string> val(1, filename);
     std::vector<ParmParse::QuoteType> val_quotes(1, ParmParse::QuoteType::None);
     addDefn(file, val, val_quotes, g_table);
+
+    g_toml_table_key.clear();
+}
+
+void
+ParmParse::addargs (std::vector<std::string> const& args)
+{
+    g_toml_table_key.clear();
+
+    append_args(args, g_table);
 
     g_toml_table_key.clear();
 }

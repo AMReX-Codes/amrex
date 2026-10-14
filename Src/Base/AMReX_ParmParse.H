@@ -1765,6 +1765,14 @@ public:
     //! call to MPI_Bcast.
     static void addfile (std::string const& filename);
 
+    //! Add keys and values from command-line arguments to the end of the PP
+    //! table, parsed as the arguments after the inputs file on the command
+    //! line of an application, e.g., {"amr.n_cell=64", "64", "64"}: the
+    //! arguments are joined by blanks, so a value can span several of them.
+    //! An inputs file that the arguments include with FILE is read as in
+    //! addfile, so this has to be called on all MPI processes then.
+    static void addargs (std::vector<std::string> const& args);
+
     static bool QueryUnusedInputs ();
 
     //! Any unused [prefix.]* parameters?
