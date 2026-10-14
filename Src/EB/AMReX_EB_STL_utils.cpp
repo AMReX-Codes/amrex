@@ -1381,7 +1381,15 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                          .z = node_coord(plo[2], k, dx[2])
 #endif
                 };
-                if (idim == 0) {
+                IntVect ivlo(AMREX_D_DECL(i,j,k));
+                IntVect ivhi = ivlo;
+                ivhi[idim] += 1;
+                // An end on the surface takes the intercept; no search needed.
+                if (lst(ivlo) == EB2::on_surface_fluid) {
+                    r = node_coord(plo[idim], ivlo[idim], dx[idim]);
+                } else if (lst(ivhi) == EB2::on_surface_fluid) {
+                    r = node_coord(plo[idim], ivhi[idim], dx[idim]);
+                } else if (idim == 0) {
                     Real x2 = node_coord(plo[0], i+1, dx[0]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
@@ -1417,11 +1425,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             return 0;
                         }, tol);
                     }
-                    if (lst(i,j,k) == EB2::on_surface_fluid) {
-                        r = p1.x;
-                    } else if (lst(i+1,j,k) == EB2::on_surface_fluid) {
-                        r = x2;
-                    } else if (!found) {
+                    if (!found) {
                         r = (lst(i,j,k) >= 0._rt) ? p1.x : x2;
                     }
                 } else if (idim == 1) {
@@ -1466,11 +1470,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             return 0;
                         }, tol);
                     }
-                    if (lst(i,j,k) == EB2::on_surface_fluid) {
-                        r = p1.y;
-                    } else if (lst(i,j+1,k) == EB2::on_surface_fluid) {
-                        r = y2;
-                    } else if (!found) {
+                    if (!found) {
                         r = (lst(i,j,k) >= 0._rt) ? p1.y : y2;
                     }
                 }
@@ -1517,11 +1517,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             return 0;
                         }, tol);
                     }
-                    if (lst(i,j,k) == EB2::on_surface_fluid) {
-                        r = p1.z;
-                    } else if (lst(i,j,k+1) == EB2::on_surface_fluid) {
-                        r = z2;
-                    } else if (!found) {
+                    if (!found) {
                         r = (lst(i,j,k) >= 0._rt) ? p1.z : z2;
                     }
                 }
