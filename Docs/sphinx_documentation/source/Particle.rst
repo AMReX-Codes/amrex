@@ -351,6 +351,17 @@ outside their parent grid).
    `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
    Electromagnetic Particle-in-Cell tutorial
 
+The :cpp:`ParticleTile::push_back_real` and :cpp:`ParticleTile::push_back_int`
+overloads taking an :cpp:`amrex::Vector` or its constant iterators accept values
+in host memory. They append those values to the selected component, transferring
+them to device memory when needed. Any device transfer completes before the
+call returns, so the source vector may then be changed or destroyed. Empty
+iterator ranges and empty vectors append no values.
+
+The raw-pointer range overloads instead require the source range to be in the
+same memory space as the tile's component data. A host pointer is not a valid
+source for these overloads when the destination resides in device memory.
+
 .. _sec:Particles:Runtime:
 
 Adding particle components at runtime
