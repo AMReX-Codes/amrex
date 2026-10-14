@@ -6,6 +6,7 @@
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
@@ -40,6 +41,22 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
+
+#ifdef AMREX_USE_EB
+    // The RAP coarse/fine synchronization path is not EB-aware yet.  Keep RAP
+    // available for explicit opt-in, but use the EB-compatible Sigma path by
+    // default for multi-level AMR hierarchies.
+    if (m_num_amr_levels > 1 && m_coarsening_strategy == CoarseningStrategy::RAP) {
+        bool has_eb = false;
+        for (auto const* base_factory : a_factory) {
+            auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(base_factory);
+            has_eb = has_eb || factory != nullptr;
+        }
+        if (has_eb) {
+            m_coarsening_strategy = CoarseningStrategy::Sigma;
+        }
+    }
+#endif
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
                                      "Nodal solver cannot have any hidden dimensions");

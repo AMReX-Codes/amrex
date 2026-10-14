@@ -1,0 +1,15 @@
+
+n_cell = 64
+
+max_level = 1
+max_grid_size = 32
+
+verbose = 2
+bottom_verbose = 0
+
+# The fine grid occupies the middle of the coarse domain.  The EB sphere
+# crosses its high-x coarse/fine boundary.
+eb2.geom_type = sphere
+eb2.sphere_center = 0.7006 0.5521 0.0
+eb2.sphere_radius = 0.125
+eb2.sphere_has_fluid_inside = 0
