@@ -67,7 +67,7 @@ public:
 
     //! Access the EBCellFlag data (always available at least for EBSupport::basic).
     [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
-    //! Level set field of the EB (basic support and above).
+    //! Level set field of the EB (basic support and above; cell-centered only).
     [[nodiscard]] const MultiFab& getLevelSet () const;
     //! Volume fraction (EBSupport::volume/full).
     [[nodiscard]] const MultiFab& getVolFrac () const;

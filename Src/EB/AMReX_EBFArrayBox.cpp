@@ -40,7 +40,7 @@ EBFArrayBox::~EBFArrayBox () = default;
 const FArrayBox*
 EBFArrayBox::getLevelSetData () const
 {
-    if (m_factory && m_box_index >= 0) {
+    if (m_factory && m_box_index >= 0 && m_factory->faceDir() < 0) {
         MultiFab const& mf = m_factory->getLevelSet();
         return &(mf[m_box_index]);
     } else {

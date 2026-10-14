@@ -88,8 +88,8 @@ public:
     [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept
         { return m_ebdc->getMultiEBCellFlagFab(); }
 
-    //! Level set field.
-    [[nodiscard]] const MultiFab& getLevelSet () const noexcept { return m_ebdc->getLevelSet(); }
+    //! Level set field. Not available for a face-centered factory.
+    [[nodiscard]] const MultiFab& getLevelSet () const { return m_ebdc->getLevelSet(); }
 
     //! Volume fraction.
     [[nodiscard]] const MultiFab& getVolFrac () const noexcept { return m_ebdc->getVolFrac(); }
