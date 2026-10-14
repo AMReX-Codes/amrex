@@ -946,33 +946,40 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
         centmax.max(cent);
     }
     int max_dir = (centmax-centmin).maxDir(false);
-    // Sort stored keys.  Recomputing the centroid in the comparator is not
-    // a strict weak ordering under -ffast-math and std::sort runs off the
-    // array.  Ties are broken by index so the order is deterministic.
-    Vector<std::pair<Real,int>> keys(ntri);
-    for (int i = 0; i < ntri; ++i) { keys[i] = {begin[i].cent(max_dir), i}; }
-    std::sort(keys.begin(), keys.end());
-    Vector<Triangle> sorted(ntri);
-    for (int i = 0; i < ntri; ++i) { sorted[i] = begin[keys[i].second]; }
-    std::copy(sorted.begin(), sorted.end(), begin);
 
     int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
     int tsize = ntri / nsplits;
     int nleft = ntri - tsize*nsplits;
+    auto split_begin = [=] (int isplit) {
+        return (isplit < nleft) ? isplit * (tsize+1) : isplit * tsize + nleft;
+    };
+
+    // Partition stored keys at the split points.  Recomputing the centroid
+    // in the comparator is not a strict weak ordering under -ffast-math and
+    // the algorithm runs off the array.  Ties are broken by index so the
+    // result is deterministic.  Each child reorders its own triangles, so a
+    // full sort is not needed.
+    {
+        Vector<std::pair<Real,int>> keys(ntri);
+        for (int i = 0; i < ntri; ++i) { keys[i] = {begin[i].cent(max_dir), i}; }
+        auto kfirst = keys.begin();
+        for (int isplit = 1; isplit < nsplits; ++isplit) {
+            auto knth = keys.begin() + split_begin(isplit);
+            std::nth_element(kfirst, knth, keys.end());
+            kfirst = knth;
+        }
+        Vector<Triangle> sorted(ntri);
+        for (int i = 0; i < ntri; ++i) { sorted[i] = begin[keys[i].second]; }
+        std::copy(sorted.begin(), sorted.end(), begin);
+    } // free the temporaries before recursing
 
     bvh_nodes.push_back(Node());
     bvh_nodes.back().nchildren = std::int8_t(nsplits);
     auto this_node = bvh_nodes.size()-1;
 
     for (int isplit = 0; isplit < nsplits; ++isplit) {
-        int tbegin, tend;
-        if (isplit < nleft) {
-            tbegin = isplit * (tsize+1);
-            tend = tbegin + tsize + 1;
-        } else {
-            tbegin = isplit * tsize + nleft;
-            tend = tbegin + tsize;
-        }
+        int tbegin = split_begin(isplit);
+        int tend = split_begin(isplit+1);
         bvh_nodes[this_node].children[isplit] = int(bvh_nodes.size());
         build_bvh(begin+tbegin, begin+tend, bvh_nodes);
     }
