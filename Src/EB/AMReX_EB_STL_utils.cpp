@@ -224,13 +224,18 @@ namespace {
         return true;
     }
 
+    // Bounding-box margin of the on-surface test.  The region pt_on_tri
+    // accepts fits in the triangle's box grown by this unless a vertex angle
+    // is below ~2 degrees; parity classifies the rest of that ear.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real on_tri_margin (Real tol) { return Real(64) * tol; }
+
     // Is pt on the triangle within the roundoff tolerance tol?
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool pt_on_tri (Real const pt[3], STLtools::Triangle const& tri, Real tol)
     {
-        // Cheap reject. The accepted region fits in this box unless a vertex
-        // angle is below ~2 degrees; parity classifies the rest of that ear.
-        Real const m = Real(64) * tol;
+        // Cheap reject
+        Real const m = on_tri_margin(tol);
         if (pt[0] < amrex::min(tri.v1.x, tri.v2.x, tri.v3.x) - m ||
             pt[0] > amrex::max(tri.v1.x, tri.v2.x, tri.v3.x) + m ||
             pt[1] < amrex::min(tri.v1.y, tri.v2.y, tri.v3.y) - m ||
@@ -252,9 +257,8 @@ namespace {
         Real const t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
         Real const t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
         Real const t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
-        // m as in pt_on_tri
         bool const test_on = (tol >= 0.0_rt);
-        Real const m = test_on ? Real(64) * tol : 0.0_rt;
+        Real const m = test_on ? on_tri_margin(tol) : 0.0_rt;
         Real lo[3], hi[3];
         for (int d = 0; d < 3; ++d) {
             lo[d] = amrex::min(t1[d], t2[d], t3[d]);
@@ -278,8 +282,10 @@ namespace {
     }
 
     // Number of triangles crossed by the segment pr->pt, found with the BVH.
-    // The on-surface test runs if test_on.  Not inlined, which lets the
-    // compiler inline the leaf visitor here.
+    // The on-surface test runs if test_on; the boxes are then grown by its
+    // margin so that every triangle it can accept is visited, as in the
+    // brute force search.  Not inlined, which lets the compiler inline the
+    // leaf visitor here.
     template <typename BVHNode>
     AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     int bvh_crossings (Real const pr[3], Real const pt[3], BVHNode const* bvh_root,
@@ -298,7 +304,7 @@ namespace {
                 num_intersects += int(line_tri_intersects(pr, pt, tri[tr], &ambiguous));
             }
             return 0;
-        }, test_on ? tol : 0.0_rt);
+        }, test_on ? on_tri_margin(tol) : 0.0_rt);
         return num_intersects;
     }
 
