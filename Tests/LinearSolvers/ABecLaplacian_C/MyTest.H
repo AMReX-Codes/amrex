@@ -55,6 +55,8 @@ private:
     int prob_type = 1;
 
     bool use_mlhypre = false; // use multi-level hypre solver
+    int mlhypre_num_setups = 1; // repeated setups with use_mlhypre (composite)
+    amrex::Real max_error = -1.0; // if positive: abort if a level's max-norm error exceeds it
     bool use_hypre_ssamg = false; // this option is for mlhypre only
 
     // For MLMG solver

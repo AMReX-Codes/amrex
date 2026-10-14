@@ -849,6 +849,100 @@ To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
 reader to the tutorial, `ABecLaplacian`_.
 
+Composite multi-level solves with HypreMLABecLap
+------------------------------------------------
+
+:cpp:`HypreMLABecLap` solves a cell-centered ABecLaplacian on all AMR levels
+at once as a single composite system, rather than as an MLMG bottom solver
+(for example AMReX-Hydro's MAC projection with ``mac_proj.use_mlhypre``).  By
+default it assembles a semi-structured hypre matrix and solves it with
+BoomerAMG.  The following parameters, under the ParmParse prefix given to the
+constructor (default ``hypre_mlabeclap``), select and control the IJ mode, in
+which the composite matrix is assembled on the device into one distributed
+sparse matrix:
+
+- :cpp:`hypre_mlabeclap.hypre_solver`: if given, use the IJ mode and solve with
+  :cpp:`HypreIJIface` configured from the same keys as above (e.g.
+  ``hypre_solver = FlexGMRES``, ``hypre_preconditioner = BoomerAMG``,
+  ``bamg_*``), with the prefix ``hypre_mlabeclap``.
+
+- :cpp:`hypre_mlabeclap.backend`: ``hypre`` (default) or ``algmg``.  With
+  ``algmg`` the assembled IJ system is solved by AMReX's AlgMG
+  (:ref:`sec:linearsolver:algmg`), which implies the IJ mode and does not need
+  ``hypre_solver``.  AlgMG is configured with
+  ``hypre_mlabeclap.algmg.krylov`` (``none``, ``bicgstab``, ``gmres``,
+  ``pcg``; default ``gmres``, since V-cycles alone can stall on composite
+  systems), ``.smoother``, ``.interp_type``, ``.bottom_solver``,
+  ``.strong_threshold``, ``.max_levels``, ``.max_coarse_size``,
+  ``.agg_num_levels``, ``.pmax_elmts``, ``.trunc_factor``, ``.pre_smooth``,
+  ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
+
+- :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: with the hypre backend, a
+  repeated :cpp:`setup` with new coefficients updates the matrix values in
+  place and keeps the solver setup until :cpp:`resetSolverSetup()`.  The AlgMG
+  backend sets up a new hierarchy for every matrix.
+
+- :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()` report the last solve;
+  with :cpp:`setThrowException(true)` a solve that does not converge throws
+  :cpp:`std::runtime_error` instead of aborting.  The absolute tolerance of
+  :cpp:`solve` must be 0.
+
+- :cpp:`hypre_mlabeclap.dump_matrix`: default 0.  Write the systems of the
+  first N solves with the same dump prefix, counted over all
+  :cpp:`HypreMLABecLap` objects of the run, in Matrix Market format for
+  analysis outside AMReX: for solve ``k``, ``<dump_prefix>_<k>_A.mtx``
+  (matrix), ``_b.mtx`` (right-hand side), ``_x.mtx`` (solution) and
+  ``_rows.txt`` (AMR level and cell of each row).
+  :cpp:`hypre_mlabeclap.dump_prefix` defaults to the ParmParse prefix.  Files
+  with more than :cpp:`hypre_mlabeclap.dump_gather_max` values (default
+  ``5e7``) are written one per rank, as ``<file>.<rank>`` (on one rank, always
+  one file).
+
+The number of rows of the composite system must fit in ``HYPRE_Int``, so
+systems with more than about :math:`2^{31}` cells need HYPRE built with
+``--enable-bigint``.
+
+Composite multi-level nodal solves with HypreMLNodeLap
+------------------------------------------------------
+
+:cpp:`HypreMLNodeLap` is the nodal counterpart: it assembles the composite
+system of a prepared :cpp:`MLNodeLaplacian` (all AMR levels) into one
+distributed sparse matrix and solves it with hypre or AlgMG.  It is meant for
+problems where MLMG's geometric coarsening fails, such as strongly stretched
+mapped meshes or EB geometries with very small cut cells.  The solution equals
+MLMG's composite solution up to the solver tolerance, except at coarse/fine
+nodes next to cut cells (where MLMG's coarse/fine treatment ignores the cut
+cells) and, for singular problems whose composite right-hand side is not
+exactly consistent, by the effect of a different consistency correction.
+Singular problems are made consistent by subtracting the nodal-volume
+weighted mean of the right-hand side, and one unknown is pinned.
+
+.. highlight:: c++
+
+::
+
+    // linop: MLNodeLaplacian with sigma set and masks built
+    // (after MLMG::prepareForSolve, or a solve)
+    HypreMLNodeLap hyp(linop, "hypre_mlnodelap", verbose);
+    hyp.solve(GetVecOfPtrs(phi), GetVecOfConstPtrs(rhs), reltol, abstol, maxiter);
+    mlmg.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(phi));
+
+As with MLMG, the values of :cpp:`phi` on Dirichlet domain boundaries are the
+boundary values.  It supports scalar, constant and anisotropic (mapped) sigma,
+refinement ratios 2 and 4, and in EB builds the cut cells; RZ is not
+supported.  The parameters, under the prefix given to the constructor
+(default ``hypre_mlnodelap``), are the :cpp:`HypreIJIface` keys above, and
+``backend``, ``algmg.*`` (with ``algmg.krylov`` defaulting to ``pcg``, as the
+assembled system is symmetric), ``dump_matrix``, ``dump_prefix`` and
+``dump_gather_max`` as for :cpp:`HypreMLABecLap`.  The dumped system is the
+one solved, :math:`S' x' = b'` with :math:`S' = s S s` and :math:`x = s x'`,
+where the scaling :math:`s` of each unknown is listed in the row map (it is 1
+except next to small cut cells, see ``eb_scaling``).
+
+- :cpp:`hypre_mlnodelap.eb_scaling`: default true.  In EB builds, scale the
+  unknowns by :math:`1/\sqrt{\text{nodal fluid fraction}}` so that the rows
+  of nodes next to small cut cells count in the residual norm.
+
 Tensor Solve
 ============
 
