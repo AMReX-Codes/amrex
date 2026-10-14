@@ -195,7 +195,7 @@ struct Case
 // Grid node coordinate, computed as the EB generation does; 0 for z in 2D
 Real node (Geometry const& geom, int d, int i)
 {
-    return (d < AMREX_SPACEDIM) ? geom.ProbLo(d) + static_cast<Real>(i)*geom.CellSize(d)
+    return (d < AMREX_SPACEDIM) ? amrex::node_coord(geom.ProbLo(d), i, geom.CellSize(d))
                                 : 0.0_rt;
 }
 

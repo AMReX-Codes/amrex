@@ -907,11 +907,11 @@ public:
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
                     ivhi[idim] += 1;
                     if (lst(ivlo) == on_surface_fluid) {
-                        inter(i,j,k) = problo[idim]
-                            + Real(amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
+                        inter(i,j,k) = node_coord(problo[idim],
+                            amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
                     } else if (lst(ivhi) == on_surface_fluid) {
-                        inter(i,j,k) = problo[idim]
-                            + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
+                        inter(i,j,k) = node_coord(problo[idim],
+                            amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
                     } else if (lst(ivlo) == 0.0_rt) {
                         inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, lst, problo, dx, size,
                                                         bloiv, bhiiv);
@@ -1005,11 +1005,11 @@ public:
                 IntVect ivhi(AMREX_D_DECL(i,j,k));
                 ivhi[idim] += 1;
                 if (lst(ivlo) == on_surface_fluid) {
-                    inter(i,j,k) = problo[idim]
-                        + Real(amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
+                    inter(i,j,k) = node_coord(problo[idim],
+                        amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
                 } else if (lst(ivhi) == on_surface_fluid) {
-                    inter(i,j,k) = problo[idim]
-                        + Real(amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]))*dx[idim];
+                    inter(i,j,k) = node_coord(problo[idim],
+                        amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
                 } else if (lst(ivlo) == 0.0_rt) {
                     inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, lst, problo, dx, size,
                                                     bloiv, bhiiv);
