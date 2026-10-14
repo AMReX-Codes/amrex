@@ -23,6 +23,8 @@ class MLNodeLinOp
 {
 public:
 
+    friend class HypreMLNodeLap;
+
     enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLinOp ();

@@ -135,6 +135,8 @@ template <typename T> class GMRESMLMGT;
  * Specializations expose domain/AMR metadata, boundary-condition wiring,
  * and hooks for applying the operator and its coarse/fine helpers.
  */
+class HypreMLNodeLap;
+
 template <typename MF>
 class MLLinOpT
 {
@@ -145,6 +147,7 @@ public:
     template <typename T> friend class MLPoissonT;
     template <typename T> friend class MLABecLaplacianT;
     template <typename T> friend class GMRESMLMGT;
+    friend class HypreMLNodeLap;
 
     using MFType = MF;
     using FAB = typename FabDataType<MF>::fab_type;

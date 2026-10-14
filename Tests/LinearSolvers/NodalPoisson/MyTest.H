@@ -58,6 +58,8 @@ private:
     //int smooth_num_sweeps = 4;
 
     bool use_hypre = false;
+    bool use_mlhypre = false;  // composite solve with HypreMLNodeLap, compared with MLMG
+    std::string mlhypre_prefix = "hypre_mlnodelap";
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the
