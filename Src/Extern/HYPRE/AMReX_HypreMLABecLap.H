@@ -2,7 +2,9 @@
 #define AMREX_HYPRE_ML_ABECLAP_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_CompositeSystemUtil.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_HypreIJIface.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_MultiFab.H>
@@ -11,6 +13,7 @@
 #include <HYPRE_sstruct_ls.h>
 
 #include <limits>
+#include <unordered_map>
 #include <utility>
 
 /**
@@ -64,6 +67,16 @@ public:
     void setIsSingular (bool v) { m_is_singular = v; }
 
     /**
+     * \brief IJ mode only: let setup() be called again with new coefficients
+     * (same grids), updating the matrix values in place and keeping the
+     * solver/preconditioner setup, which then only approximates the new
+     * operator (see resetSolverSetup()).
+     */
+    void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    //! IJ mode only: redo the solver/preconditioner setup at the next solve
+    void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
+
+    /**
      * \brief Assemble the HYPRE operators/storage for the provided coefficients.
      *
      * \param a_ascalar   Scalar applied to the diagonal term.
@@ -115,9 +128,20 @@ public:
     void commBCoefs_local (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs,
                            Vector<FabArrayBase::CopyComTag> const& tags);
 
+    //! Build the device maps of the IJ assembly; public for cuda
+    void buildIJMaps ();
+
+    //! Solve with the IJ system (see m_use_ij); public for cuda
+    void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
+                  Real a_reltol, Real a_abstol);
+
 private:
 
     void addNonStencilEntriesToGraph ();
+
+    //! Global row id of cell iv on level lev in the IJ system (-1 if the
+    //! cell is not on the level's grids); periodic images are wrapped.
+    [[nodiscard]] Long cellId (int lev, IntVect const& iv) const;
 
     int m_verbose = 0;
     int m_maxiter = 200;
@@ -182,6 +206,50 @@ private:
     HYPRE_SStructVector  m_ss_b = nullptr;
 
     HYPRE_Solver m_solver = nullptr;
+
+    //! Configurable ParCSR solver (e.g. FlexGMRES + BoomerAMG), used when
+    //! `<prefix>.hypre_solver` is given; otherwise the built-in BoomerAMG
+    std::unique_ptr<HypreIJIface> m_ij_solver;
+
+    //! With `<prefix>.hypre_solver` given, the composite matrix is assembled
+    //! directly into an IJ matrix (no SStruct matrix or vectors).  Cells are
+    //! numbered rank by rank, level by level, box by box, in memory order.
+    bool m_use_ij = false;
+    bool m_reuse_setup = false;
+    Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
+    Long m_ij_lower = 0;
+    Long m_ij_upper = -1;
+    //! Targets of the non-stencil entries of each local row, in graph order
+    std::unordered_map<Long,Vector<Long>> m_ns_targets;
+    //! Device maps for the IJ assembly: row id of each cell (ghost cells:
+    //! same-level neighbours, -1 off the grids), and the targets of the
+    //! coarse-to-fine and fine-to-coarse entries aligned with their values
+    Vector<std::unique_ptr<FabArray<BaseFab<Long>>>> m_cell_id;
+    Vector<LayoutData<Gpu::DeviceVector<HYPRE_BigInt>>> m_c2f_targets;
+    Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_rows;
+    Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
+    Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
+
+    //! `<prefix>.backend = hypre` (default) or `algmg`: in IJ mode, solve the
+    //! assembled composite system with hypre or with AMReX's AlgMG
+    //! (`<prefix>.algmg.*`).  `backend = algmg` implies IJ mode.
+    enum class Backend { hypre, algmg };
+    Backend m_backend = Backend::hypre;
+    Vector<Long> m_rank_offset;              // first row of each rank, plus the total
+    composite::OwnedCSR m_csr;               // owned rows (AlgMG backend, dumps)
+    std::unique_ptr<SpMatrix<Real>> m_spA;
+    std::unique_ptr<AlgMG<Real>> m_algmg;
+
+    //! `<prefix>.dump_matrix = N`: Matrix Market dumps of the first N solves
+    //! with this dump prefix, counted over all objects of the run: for solve
+    //! k, `<dump_prefix>_<k>_A.mtx`, `_b.mtx`, `_x.mtx` and `_rows.txt`
+    //! (level and cell of each row).  `<prefix>.dump_prefix` (default: the
+    //! ParmParse prefix); matrices with more than `<prefix>.dump_gather_max`
+    //! entries (default 5e7) are written one file per rank.
+    int m_dump_max = 0;
+    std::string m_dump_prefix;
+    Long m_dump_gather_max = 50000000;
+    void dumpSystem (int k, Gpu::DeviceVector<Real> const& v, bool solution);
 
     HypreSolverID m_hypre_solver_id = HypreSolverID::BoomerAMG;
     HYPRE_Int m_hypre_object_type = HYPRE_PARCSR;

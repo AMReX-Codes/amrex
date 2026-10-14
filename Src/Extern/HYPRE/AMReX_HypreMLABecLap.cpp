@@ -3,7 +3,9 @@
 #include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
+#include <AMReX_ParmParse.H>
 
+#include <algorithm>
 #include <functional>
 #include <numeric>
 #include <tuple>
@@ -93,6 +95,55 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     m_offset_cf_bcoefs.resize(m_nlevels-1);
     m_cf_bcoefs.resize(m_nlevels-1);
 
+    // IJ mode: row numbering is rank by rank, level by level, box by box,
+    // with the cells of a box in memory order, so every rank can compute the
+    // id of any cell and the rows of a rank are contiguous.
+    {
+        ParmParse pp(m_parmparse_prefix);
+        std::string backend = "hypre";
+        pp.query("backend", backend);
+        if (backend == "algmg") {
+            m_backend = Backend::algmg;
+        } else if (backend != "hypre") {
+            amrex::Abort("HypreMLABecLap: unknown " + m_parmparse_prefix + ".backend = " +
+                         backend + " (hypre or algmg)");
+        }
+        pp.query("dump_matrix", m_dump_max);
+        m_dump_prefix = m_parmparse_prefix;
+        pp.query("dump_prefix", m_dump_prefix);
+        pp.query("dump_gather_max", m_dump_gather_max);
+        m_use_ij = pp.contains("hypre_solver") || (m_backend == Backend::algmg);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij || m_dump_max == 0,
+            "HypreMLABecLap: dump_matrix requires IJ mode (hypre_solver or backend = algmg)");
+    }
+    if (m_use_ij) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ParallelContext::NProcsSub() == ParallelDescriptor::NProcs(),
+            "HypreMLABecLap: IJ mode requires the full communicator");
+        const int nprocs = ParallelDescriptor::NProcs();
+        const int myproc = ParallelDescriptor::MyProc();
+        m_box_offset.resize(m_nlevels);
+        for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+            m_box_offset[ilev].resize(m_grids[ilev].size());
+        }
+        Long off = 0;
+        m_rank_offset.assign(nprocs+1, 0);
+        for (int p = 0; p < nprocs; ++p) {
+            m_rank_offset[p] = off;
+            if (p == myproc) { m_ij_lower = off; }
+            for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+                for (int b = 0; b < int(m_grids[ilev].size()); ++b) {
+                    if (m_dmap[ilev][b] == p) {
+                        m_box_offset[ilev][b] = off;
+                        off += m_grids[ilev][b].numPts();
+                    }
+                }
+            }
+            if (p == myproc) { m_ij_upper = off-1; }
+        }
+        m_rank_offset[nprocs] = off;
+    }
+
     static_assert(std::is_same_v<HYPRE_Real,Real>,
                   "HYPRE_Real and amrex::Real must be the same type");
 
@@ -164,12 +215,15 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     }
 
     addNonStencilEntriesToGraph();
+    if (m_use_ij) { buildIJMaps(); }
 
     HYPRE_SStructGraphAssemble(m_ss_graph);
 
-    HYPRE_SStructMatrixCreate(m_comm, m_ss_graph, &m_ss_A);
-    HYPRE_SStructMatrixSetObjectType(m_ss_A, m_hypre_object_type);
-    HYPRE_SStructMatrixInitialize(m_ss_A);
+    if (!m_use_ij) {
+        HYPRE_SStructMatrixCreate(m_comm, m_ss_graph, &m_ss_A);
+        HYPRE_SStructMatrixSetObjectType(m_ss_A, m_hypre_object_type);
+        HYPRE_SStructMatrixInitialize(m_ss_A);
+    }
 
 #endif
 }
@@ -190,7 +244,9 @@ HypreMLABecLap::~HypreMLABecLap ()
         HYPRE_SStructSolverDestroy(m_ss_precond);
     }
 #endif
-    HYPRE_SStructMatrixDestroy(m_ss_A);
+    if (m_ss_A) {
+        HYPRE_SStructMatrixDestroy(m_ss_A);
+    }
     if (m_ss_x) {
         HYPRE_SStructVectorDestroy(m_ss_x);
     }
@@ -469,9 +525,15 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             }
         }
         constexpr int ivar = 0;
-        HYPRE_SStructGraphAddEntries(m_ss_graph,
-                                     from_level, from_index.data(), ivar,
-                                       to_level,   to_index.data(), ivar);
+        if (m_use_ij) {
+            // Same order as the graph entries: the k-th non-stencil value of
+            // a cell couples it to the k-th target recorded here.
+            m_ns_targets[cellId(from_level, from_iv)].push_back(cellId(to_level, to_iv));
+        } else {
+            HYPRE_SStructGraphAddEntries(m_ss_graph,
+                                         from_level, from_index.data(), ivar,
+                                           to_level,   to_index.data(), ivar);
+        }
 
         if (from_level == to_level + 1) {
             auto const bno = std::get<1>(entry);
@@ -598,6 +660,35 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     std::iota(nonstencil_indices.begin(), nonstencil_indices.end(), stencil_size);
 
     BaseFab<GpuArray<Real,stencil_size>> matfab;
+    HYPRE_IJMatrix ij_A = nullptr;
+    // Triplets of all boxes, passed to hypre in a single call
+    struct Triplets {
+        Gpu::DeviceVector<HYPRE_BigInt> rows, cols;
+        Gpu::DeviceVector<Real> vals;
+    };
+    Vector<Triplets> ij_chunks;
+    auto add_chunk = [&] (Long n, HYPRE_BigInt const* r, HYPRE_BigInt const* c, Real const* v)
+    {
+        if (n == 0) { return; }
+        Triplets& t = ij_chunks.emplace_back();
+        t.rows.resize(n); t.cols.resize(n); t.vals.resize(n);
+        Gpu::copyAsync(Gpu::deviceToDevice, r, r+n, t.rows.begin());
+        Gpu::copyAsync(Gpu::deviceToDevice, c, c+n, t.cols.begin());
+        Gpu::copyAsync(Gpu::deviceToDevice, v, v+n, t.vals.begin());
+    };
+    if (m_use_ij && m_backend == Backend::hypre) {
+        // Entries are added on the device as (row, column, value) triplets
+        if (m_reuse_setup && m_ij_solver) {
+            // Same pattern, new values: zero, then add; the solver setup is kept
+            HYPRE_IJMatrixSetConstantValues(m_ij_solver->A(), Real(0.0));
+            HYPRE_IJMatrixInitialize(m_ij_solver->A());
+        } else {
+            m_ij_solver = std::make_unique<HypreIJIface>(m_comm, HYPRE_BigInt(m_ij_lower),
+                                                         HYPRE_BigInt(m_ij_upper), m_verbose);
+            m_ij_solver->parse_inputs(m_parmparse_prefix);
+        }
+        ij_A = m_ij_solver->A();
+    }
     for (int ilev = m_nlevels-1; ilev >= 0; --ilev) {
         auto dx = m_geom[ilev].CellSizeArray();
 
@@ -725,7 +816,25 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                      AMREX_D_DECL(p_bx, p_by, p_bz),
                                      fine_mask,rr, crse_mask);
                 });
-                if (c2f_total_from > 0) {
+                if (m_use_ij) {
+                    if (c2f_total_to > 0) {
+                        auto const& cid = m_cell_id[ilev]->const_array(mfi);
+                        Gpu::DeviceVector<HYPRE_BigInt> rows(c2f_total_to);
+                        auto* prows = rows.data();
+                        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                        {
+                            int const n = c2f_nentries_a(i,j,k);
+                            int const foff = c2f_offset_to_a(i,j,k);
+                            for (int e = 0; e < n; ++e) {
+                                prows[foff+e] = HYPRE_BigInt(cid(i,j,k));
+                            }
+                        });
+                        add_chunk(c2f_total_to, rows.data(), m_c2f_targets[ilev][mfi].data(),
+                                  entry_values.data());
+                        Gpu::streamSynchronize();
+                        need_sync = false;
+                    }
+                } else if (c2f_total_from > 0) {
 #ifdef AMREX_USE_GPU
                     Gpu::PinnedVector<Real> h_entry_values(entry_values.size());
                     Gpu::PinnedVector<int> h_entry_offset(entry_offset.size());
@@ -773,6 +882,40 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 Gpu::streamSynchronize();
             }
 
+            if (m_use_ij) {
+                // Stencil entries.  A coupling to a cell off the level's grids
+                // (as the SStruct grid drops it) becomes a zero diagonal entry,
+                // so that the pattern does not depend on the coefficients.
+                auto const& cid = m_cell_id[ilev]->const_array(mfi);
+                auto const& mat_s = matfab.const_array();
+                Long const npts = vbx.numPts();
+                Long const nent = npts*stencil_size;
+                Gpu::DeviceVector<HYPRE_BigInt> rows(nent), cols(nent);
+                Gpu::DeviceVector<Real> vals(nent);
+                auto* prows = rows.data();
+                auto* pcols = cols.data();
+                auto* pvals = vals.data();
+                const auto lo = amrex::lbound(vbx);
+                const auto len = amrex::length(vbx);
+                amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    Long const idx = (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x);
+                    Long const row = cid(i,j,k);
+                    for (int m = 0; m < stencil_size; ++m) {
+                        IntVect nb(AMREX_D_DECL(i,j,k));
+                        if (m > 0) { nb[(m-1)/2] += ((m-1)%2 == 0) ? -1 : 1; }
+                        Long const col = (m == 0) ? row : cid(nb);
+                        Long const e = idx*stencil_size + m;
+                        prows[e] = HYPRE_BigInt(row);
+                        pcols[e] = HYPRE_BigInt(col >= 0 ? col : row);
+                        pvals[e] = (col >= 0) ? mat_s(i,j,k)[m] : Real(0.0);
+                    }
+                });
+                add_chunk(nent, rows.data(), cols.data(), vals.data());
+                Gpu::streamSynchronize();
+                continue;
+            }
+
             HYPRE_Int vbxlo[] = {AMREX_D_DECL(vbx.smallEnd(0), vbx.smallEnd(1), vbx.smallEnd(2))};
             HYPRE_Int vbxhi[] = {AMREX_D_DECL(vbx.bigEnd(0), vbx.bigEnd(1), vbx.bigEnd(2))};
             {
@@ -793,6 +936,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             // Update m_f2c_values
             auto const num_f2c_cell = int(m_f2c_cell[clev].size());
             if (num_f2c_cell > 0) {
+                // The kernel accumulates; start from zero (setup may be repeated)
+                std::fill(m_f2c_values[clev].begin(), m_f2c_values[clev].end(), Real(0.0));
 #ifdef AMREX_USE_GPU
                 Gpu::DeviceVector<int> d_f2c_bno(m_f2c_bno[clev].size());
                 Gpu::DeviceVector<IntVect> d_f2c_cell(m_f2c_cell[clev].size());
@@ -856,17 +1001,24 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                        bmasks[AMREX_SPACEDIM+2][bno])},
                          rr, not_covered);
                 });
+                if (m_use_ij) {
+                    add_chunk(Long(m_f2c_values[clev].size()), m_f2c_rows[clev].data(),
+                              m_f2c_cols[clev].data(), p_f2c_values);
+                    Gpu::streamSynchronize();
+                }
 #ifdef AMREX_USE_GPU
+                else {
                 Gpu::copyAsync(Gpu::deviceToHost,
                                d_f2c_values.begin(),
                                d_f2c_values.end(),
                                m_f2c_values[clev].begin());
                 Gpu::streamSynchronize();
+                }
 #endif
 
                 // This sets non-stencil part for fine cells adjacent to
                 // coarse/fine interface.
-                for (int i = 0; i < num_f2c_cell; ++i) {
+                for (int i = 0; i < num_f2c_cell && !m_use_ij; ++i) {
                     auto const& iv = m_f2c_cell[clev][i];
                     HYPRE_Int index[] = {AMREX_D_DECL(iv[0],iv[1],iv[2])};
                     auto const nentries = m_f2c_nentries[clev][i];
@@ -881,6 +1033,62 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 commBCoefs(ilev, a_bcoefs[ilev]);
             }
         }
+    }
+
+    if (m_use_ij)
+    {
+        BL_PROFILE("HypreMLABecLap::ij_assemble");
+        Long ntot = 0;
+        for (auto const& t : ij_chunks) { ntot += Long(t.rows.size()); }
+        if (ntot > 0) {
+            Gpu::DeviceVector<HYPRE_BigInt> rows(ntot), cols(ntot);
+            Gpu::DeviceVector<Real> vals(ntot);
+            Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
+            Long off = 0;
+            for (auto const& t : ij_chunks) {
+                Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
+                Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
+                Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
+                off += Long(t.rows.size());
+            }
+            ij_chunks.clear();
+            Gpu::streamSynchronize();
+            if (m_backend == Backend::hypre) {
+                HYPRE_IJMatrixAddToValues(ij_A, HYPRE_Int(ntot), ones.data(), rows.data(),
+                                          cols.data(), vals.data());
+                Gpu::hypreSynchronize();
+            }
+            if (m_backend == Backend::algmg || m_dump_max > 0) {
+                // Owned-row CSR: triplets to the host, rows to their owners,
+                // sorted with duplicates summed
+                Vector<HYPRE_BigInt> hr(ntot), hc(ntot);
+                Vector<Real> hv(ntot);
+                Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
+                Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
+                Gpu::copyAsync(Gpu::deviceToHost, vals.begin(), vals.end(), hv.begin());
+                Gpu::streamSynchronize();
+                Vector<composite::Triplet> trips(ntot);
+                for (Long n = 0; n < ntot; ++n) {
+                    trips[n] = composite::Triplet{.row = Long(hr[n]), .col = Long(hc[n]), .val = hv[n]};
+                }
+                trips = composite::exchange_triplets(std::move(trips), m_rank_offset, m_comm);
+                m_csr.define(m_ij_lower, m_ij_upper - m_ij_lower + 1, std::move(trips));
+            }
+        } else if (m_backend == Backend::algmg || m_dump_max > 0) {
+            m_csr.define(m_ij_lower, m_ij_upper - m_ij_lower + 1, Vector<composite::Triplet>{});
+        }
+        if (m_backend == Backend::hypre) {
+            HYPRE_IJMatrixAssemble(ij_A);
+        } else {
+            // A new hierarchy for the new matrix (no setup reuse with AlgMG)
+            m_algmg.reset();
+            m_spA = std::make_unique<SpMatrix<Real>>();
+            m_csr.toSpMatrix(*m_spA, m_rank_offset);
+            m_algmg = std::make_unique<AlgMG<Real>>(*m_spA);
+            m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
+            composite::algmg_parse_options(*m_algmg, m_parmparse_prefix);
+        }
+        return;
     }
 
     {
@@ -955,6 +1163,11 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 #else
 
     BL_PROFILE("HypreMLABecLap::solve()");
+
+    if (m_use_ij) {
+        solveIJ(a_sol, a_rhs, a_reltol, a_abstol);
+        return;
+    }
 
     constexpr int ncomp = 1;
     constexpr HYPRE_Int ivar = 0;
@@ -1131,6 +1344,234 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 #endif
 }
 
+Long HypreMLABecLap::cellId (int lev, IntVect const& iv) const
+{
+    IntVect v = iv;
+    Box const& domain = m_geom[lev].Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_geom[lev].isPeriodic(idim)) {
+            int const len = domain.length(idim);
+            if (v[idim] < domain.smallEnd(idim)) { v[idim] += len; }
+            else if (v[idim] > domain.bigEnd(idim)) { v[idim] -= len; }
+        }
+    }
+    auto const isects = m_grids[lev].intersections(Box(v,v), true, 0);
+    if (isects.empty()) { return Long(-1); }
+    int const b = isects[0].first;
+    Box const& bx = m_grids[lev][b];
+    return m_box_offset[lev][b] + bx.index(v);
+}
+
+void HypreMLABecLap::buildIJMaps ()
+{
+#if (AMREX_SPACEDIM > 1)
+    BL_PROFILE("HypreMLABecLap::buildIJMaps()");
+
+    {
+        Long const nrows = m_ij_upper - m_ij_lower + 1;
+        m_ij_rowids.resize(nrows);
+        auto* p = m_ij_rowids.data();
+        auto const lower = HYPRE_BigInt(m_ij_lower);
+        amrex::ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
+        {
+            p[i] = lower + HYPRE_BigInt(i);
+        });
+    }
+
+    // Row id of every cell on the device, with the ids of same-level
+    // neighbours (including periodic images) in the ghost cells and -1 for
+    // cells off the level's grids.
+    m_cell_id.resize(m_nlevels);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        m_cell_id[ilev] = std::make_unique<FabArray<BaseFab<Long>>>(m_grids[ilev], m_dmap[ilev], 1, 1);
+        m_cell_id[ilev]->setVal(Long(-1));
+        for (MFIter mfi(*m_cell_id[ilev]); mfi.isValid(); ++mfi) {
+            Box const& vbx = mfi.validbox();
+            auto const& cid = m_cell_id[ilev]->array(mfi);
+            Long const off = m_box_offset[ilev][mfi.index()];
+            const auto lo = amrex::lbound(vbx);
+            const auto len = amrex::length(vbx);
+            amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                cid(i,j,k) = off + (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x);
+            });
+        }
+        m_cell_id[ilev]->FillBoundary(m_geom[ilev].periodicity());
+    }
+
+    // Coarse-to-fine targets, aligned with the values of hypmlabeclap_c2f
+    m_c2f_targets.resize(m_nlevels-1);
+    for (int clev = 0; clev < m_nlevels-1; ++clev) {
+        m_c2f_targets[clev].define(m_grids[clev], m_dmap[clev]);
+        for (MFIter mfi(m_c2f_offset_to[clev]); mfi.isValid(); ++mfi) {
+            int const total = m_c2f_total_to[clev][mfi];
+            if (total == 0) { continue; }
+            Box const& vbx = mfi.validbox();
+            IArrayBox h_off(vbx, 1, The_Pinned_Arena());
+            IArrayBox h_n(vbx, 1, The_Pinned_Arena());
+            h_off.copy<RunOn::Device>(m_c2f_offset_to[clev][mfi], vbx);
+            h_n.copy<RunOn::Device>(m_c2f_nentries[clev][mfi], vbx);
+            Gpu::streamSynchronize();
+            Vector<HYPRE_BigInt> tgt(total);
+            auto const& off = h_off.const_array();
+            auto const& nn = h_n.const_array();
+            amrex::LoopOnCpu(vbx, [&] (int i, int j, int k)
+            {
+                int const n = nn(i,j,k);
+                if (n == 0) { return; }
+                auto const& t = m_ns_targets.at(cellId(clev, IntVect(AMREX_D_DECL(i,j,k))));
+                AMREX_ALWAYS_ASSERT(int(t.size()) >= n);
+                for (int e = 0; e < n; ++e) { tgt[off(i,j,k)+e] = HYPRE_BigInt(t[e]); }
+            });
+            auto& d = m_c2f_targets[clev][mfi];
+            d.resize(total);
+            Gpu::copyAsync(Gpu::hostToDevice, tgt.begin(), tgt.end(), d.begin());
+            Gpu::streamSynchronize();
+        }
+    }
+
+    // Fine-to-coarse rows and targets, aligned with m_f2c_values
+    m_f2c_rows.resize(m_nlevels-1);
+    m_f2c_cols.resize(m_nlevels-1);
+    for (int clev = 0; clev < m_nlevels-1; ++clev) {
+        int const flev = clev+1;
+        auto const nvalues = m_f2c_values[clev].size();
+        Vector<HYPRE_BigInt> rows(nvalues), cols(nvalues);
+        for (int i = 0; i < int(m_f2c_cell[clev].size()); ++i) {
+            Long const row = cellId(flev, m_f2c_cell[clev][i]);
+            auto const& t = m_ns_targets.at(row);
+            auto const n = m_f2c_nentries[clev][i];
+            auto const off = m_f2c_offset[clev][i];
+            AMREX_ALWAYS_ASSERT(int(t.size()) >= n);
+            for (int e = 0; e < n; ++e) {
+                rows[off+e] = HYPRE_BigInt(row);
+                cols[off+e] = HYPRE_BigInt(t[e]);
+            }
+        }
+        m_f2c_rows[clev].resize(nvalues);
+        m_f2c_cols[clev].resize(nvalues);
+        Gpu::copyAsync(Gpu::hostToDevice, rows.begin(), rows.end(), m_f2c_rows[clev].begin());
+        Gpu::copyAsync(Gpu::hostToDevice, cols.begin(), cols.end(), m_f2c_cols[clev].begin());
+        Gpu::streamSynchronize();
+    }
+#endif
+}
+
+void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
+                              Real a_reltol, Real a_abstol)
+{
+#if (AMREX_SPACEDIM > 1)
+    BL_PROFILE("HypreMLABecLap::solveIJ()");
+
+    constexpr int ncomp = 1;
+    HYPRE_IJVector b = (m_backend == Backend::hypre) ? m_ij_solver->b() : nullptr;
+    HYPRE_IJVector x = (m_backend == Backend::hypre) ? m_ij_solver->x() : nullptr;
+
+    // The local rows are contiguous and each box's rows are consecutive, in
+    // memory order: fill whole local vectors and pass them in one call.
+    Long const nrows = m_ij_upper - m_ij_lower + 1;
+    Gpu::DeviceVector<Real> bvec(nrows), xvec(nrows);
+
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        AMREX_ALWAYS_ASSERT(a_rhs[ilev]->nGrowVect() == 0);
+        for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
+            Box const& vbx = mfi.validbox();
+            Long const off = m_box_offset[ilev][mfi.index()] - m_ij_lower;
+            (*a_sol[ilev])[mfi].template copyToMem<RunOn::Device>(vbx, 0, ncomp, xvec.data()+off);
+
+            Array4<Real> const rhs1(bvec.data()+off, amrex::begin(vbx), amrex::end(vbx), ncomp);
+            auto const& rhs0 = a_rhs[ilev]->const_array(mfi);
+            GpuArray<Array4<int const>, AMREX_SPACEDIM*2> bcmsk;
+            GpuArray<Array4<Real const>, AMREX_SPACEDIM*2> bcrhs;
+            for (OrientationIter oit; oit; oit++) {
+                Orientation ori = oit();
+                int cdir(ori);
+                bcmsk[cdir] = m_bndry[ilev]->bndryMasks(ori)[mfi].const_array();
+                bcrhs[cdir] = (*m_bndry_rhs[ilev])[ori][mfi].const_array();
+            }
+            const auto boxlo = amrex::lbound(vbx);
+            const auto boxhi = amrex::ubound(vbx);
+            amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
+            });
+        }
+    }
+    Gpu::streamSynchronize();
+
+    if (a_abstol > Real(0.0)) {
+        amrex::Abort("HypreMLABecLap::solve: TODO abstol > 0");
+    }
+    const int dump_k = (m_dump_max > 0) ? composite::next_dump_index(m_dump_prefix, m_dump_max) : -1;
+    if (dump_k >= 0) { dumpSystem(dump_k, bvec, false); }
+
+    int num_iterations = 0;
+    Real final_res = 0.0;
+    if (m_backend == Backend::hypre) {
+        HYPRE_IJVectorInitialize(b);
+        HYPRE_IJVectorInitialize(x);
+        if (nrows > 0) {
+            HYPRE_IJVectorSetValues(b, HYPRE_Int(nrows), m_ij_rowids.data(), bvec.data());
+            HYPRE_IJVectorSetValues(x, HYPRE_Int(nrows), m_ij_rowids.data(), xvec.data());
+            Gpu::hypreSynchronize();
+        }
+        HYPRE_IJVectorAssemble(b);
+        HYPRE_IJVectorAssemble(x);
+
+        m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+        num_iterations = static_cast<int>(m_ij_solver->getNumIters());
+        final_res = m_ij_solver->getFinalResidualNorm();
+
+        if (nrows > 0) {
+            HYPRE_IJVectorGetValues(x, HYPRE_Int(nrows), m_ij_rowids.data(), xvec.data());
+            Gpu::hypreSynchronize();
+        }
+    } else {
+        BL_PROFILE("HypreMLABecLap::solve_algmg");
+        AlgPartition part(m_rank_offset);
+        AlgVector<Real> ab(part), ax(part);
+        Gpu::copyAsync(Gpu::deviceToDevice, bvec.begin(), bvec.end(), ab.data());
+        Gpu::copyAsync(Gpu::deviceToDevice, xvec.begin(), xvec.end(), ax.data());
+        Gpu::streamSynchronize();
+        m_algmg->setRelTol(a_reltol);
+        m_algmg->setAbsTol(Real(0.0));
+        m_algmg->setMaxIter(m_maxiter);
+        m_algmg->solve(ax, ab);
+        num_iterations = m_algmg->getNumIters();
+        const Real bnorm = ab.norm2();
+        final_res = (bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / bnorm : Real(0.0);
+        Gpu::copyAsync(Gpu::deviceToDevice, ax.data(), ax.data()+nrows, xvec.begin());
+        Gpu::streamSynchronize();
+    }
+    if (m_verbose) {
+        amrex::Print() << "\n" << num_iterations
+                       << ((m_backend == Backend::hypre) ? " Hypre IJ " : " AlgMG ")
+                       << m_parmparse_prefix
+                       << " Iterations, Relative Residual " << final_res << '\n';
+    }
+    if (final_res > a_reltol) {
+        amrex::Abort(std::string((m_backend == Backend::hypre) ? "Hypre" : "AlgMG") +
+                     " failed to converge after "+std::to_string(num_iterations)+
+                     " iterations. Final relative residual is "+std::to_string(final_res));
+    }
+    if (dump_k >= 0) { dumpSystem(dump_k, xvec, true); }
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
+            Box const& vbx = mfi.validbox();
+            Long const off = m_box_offset[ilev][mfi.index()] - m_ij_lower;
+            (*a_sol[ilev])[mfi].template copyFromMem<RunOn::Device>(vbx, 0, ncomp, xvec.data()+off);
+        }
+    }
+    Gpu::streamSynchronize(); // xvec is freed on return
+
+    for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
+        amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
+    }
+#else
+    amrex::ignore_unused(a_sol, a_rhs, a_reltol, a_abstol);
+#endif
+}
+
 #if defined(AMREX_USE_GPU) && (AMREX_SPACEDIM > 1)
 namespace {
     struct BCCommTag
@@ -1174,6 +1615,41 @@ namespace {
 }
 #endif
 
+void HypreMLABecLap::dumpSystem (int k, Gpu::DeviceVector<Real> const& v, bool solution)
+{
+    BL_PROFILE("HypreMLABecLap::dumpSystem()");
+    const std::string f = m_dump_prefix + "_" + std::to_string(k);
+    const Long nglobal = m_rank_offset.back();
+    Vector<Real> hv(v.size());
+    Gpu::copyAsync(Gpu::deviceToHost, v.begin(), v.end(), hv.begin());
+    Gpu::streamSynchronize();
+    if (solution) {
+        composite::write_vector_market(f + "_x.mtx", hv, nglobal, m_comm);
+        return;
+    }
+    composite::write_matrix_market(f + "_A.mtx", m_csr, nglobal, m_comm, m_dump_gather_max);
+    composite::write_vector_market(f + "_b.mtx", hv, nglobal, m_comm);
+
+    // Row map: the local rows are this rank's boxes, level by level, cells in
+    // memory order
+    Vector<std::array<Long,4>> info(m_ij_upper - m_ij_lower + 1);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        for (int b = 0; b < int(m_grids[ilev].size()); ++b) {
+            if (m_dmap[ilev][b] != ParallelDescriptor::MyProc()) { continue; }
+            Long r = m_box_offset[ilev][b] - m_ij_lower;
+            amrex::LoopOnCpu(m_grids[ilev][b], [&] (int i, int j, int kk)
+            {
+                info[r++] = std::array<Long,4>{ilev, i, j, kk};
+            });
+        }
+    }
+    composite::write_row_map(f + "_rows.txt",
+                             "HypreMLABecLap composite system (" + m_parmparse_prefix + "): " +
+                             std::to_string(nglobal) + " rows on " + std::to_string(m_nlevels) +
+                             " level(s), " + std::to_string(AMREX_SPACEDIM) + "D cell-centered",
+                             info, Vector<Real>(info.size(), Real(1.0)), m_comm);
+}
+
 void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs)
 {
 #if (AMREX_SPACEDIM == 1)
@@ -1199,8 +1675,9 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
     auto & cf_bcoefs = m_cf_bcoefs[clev];
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         auto const& ba = amrex::convert(ba_dst,IntVect::TheDimensionVector(idim));
-        offset_bcoefs[idim].define(ba, dm_dst, 1, 0);
-        cf_bcoefs[idim].define(ba, dm_dst);
+        // (re)define: setup may be called again with new coefficients
+        offset_bcoefs[idim] = iMultiFab(ba, dm_dst, 1, 0);
+        cf_bcoefs[idim] = LayoutData<std::unique_ptr<Gpu::DeviceVector<Real>>>(ba, dm_dst);
 
         IntVect rrface = rr;
         rrface[idim] = 1;
