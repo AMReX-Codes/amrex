@@ -136,7 +136,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     // Compact it once per tile and reuse the list for every component instead
     // of launching mostly inactive warps in each kernel.
     Long const num_candidates = bxg1.numPts();
-    Gpu::DeviceVector<Dim3> active_cells_v(num_candidates);
+    Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
     Dim3* const active_cells = active_cells_v.data();
     int const num_active_cells = Scan::PrefixSum<int>(
         num_candidates,
