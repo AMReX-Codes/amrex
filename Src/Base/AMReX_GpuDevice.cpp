@@ -448,7 +448,9 @@ Device::Initialize (bool minimal, int a_device_id)
             }
         }
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-        if (ParallelDescriptor::NProcs() > 1 && amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
+        if (preinit_device_id < 0 && ParallelDescriptor::NProcs() > 1 &&
+            amrex::Verbose() && ParallelDescriptor::IOProcessor())
+        {
             amrex::Warning("The GPU was selected after MPI initialization, which may slow down GPU-aware MPI. If the application initializes MPI, it should call amrex::Gpu::SelectDeviceBeforeMPIInit() before MPI_Init. Otherwise, make only one GPU visible to each MPI rank.");
         }
 #endif
