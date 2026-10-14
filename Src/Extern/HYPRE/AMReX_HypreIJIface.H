@@ -177,6 +177,9 @@ private:
     //! Should singular matrix be adjusted to fix solution on a node/cell?
     bool m_adjust_singular_matrix{false};
 
+    //! Abort (rather than warn) when hypre flags an error other than non-convergence
+    bool m_abort_on_hypre_error{true};
+
     //! Flag indicating whether to dump matrix files
     bool m_write_files{false};
 
