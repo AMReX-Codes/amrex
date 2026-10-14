@@ -1,5 +1,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_EB_STL_utils.H>
+#include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB_triGeomOps_K.H>
 #include <AMReX_IntConv.H>
 #include <AMReX_Math.H>
@@ -29,7 +30,8 @@ namespace {
 
     // Does line ab intersect with the triangle?
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool line_tri_intersects (Real const a[3], Real const b[3], STLtools::Triangle const& tri)
+    bool line_tri_intersects (Real const a[3], Real const b[3], STLtools::Triangle const& tri,
+                              bool* ambiguous = nullptr)
     {
         if (amrex::max(a[0],b[0]) < amrex::min(tri.v1.x,tri.v2.x,tri.v3.x) ||
             amrex::min(a[0],b[0]) > amrex::max(tri.v1.x,tri.v2.x,tri.v3.x) ||
@@ -45,44 +47,38 @@ namespace {
             Real t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
             Real t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
             Real t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
-            return 1-tri_geom_ops::lineseg_tri_intersect(a,b,t1,t2,t3);
+            return 1-tri_geom_ops::lineseg_tri_intersect(a,b,t1,t2,t3,ambiguous);
         }
     }
 
-    // Sign for 3 points on a plane.  This computes the sign of
-    // (p2-p1)x(p3-2).  It is used to determine if a point is inside a
-    // triangle in 2d.
+    // Signed distance in 2d from p3 to the line through p1 and p2.  It is
+    // used to determine if a point is inside a triangle in 2d.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real sign (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
+    Real line_dist (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
     {
-        Real a = (x2-x1)*(y3-y2);
-        Real b = (x3-x2)*(y2-y1);
-        Real cp = a - b;
-        // the tolerance must follow the magnitude of the two products
-        if (std::abs(cp) <= std::numeric_limits<Real>::epsilon()*amrex::max(std::abs(a),std::abs(b))) {
-            return 0._rt;
-        } else {
-            return std::copysign(1.0_rt, cp);
-        }
+        Real const cp = (x2-x1)*(y3-y2) - (x3-x2)*(y2-y1);
+        Real const len = std::sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+        return (len > 0._rt) ? cp/len : 0._rt;
     }
 
-    // Does line (x1,y,z)->(x2,y,z) intersect triangle (v1,v2,v3)?
+    // Does line (x1,y,z)->(x2,y,z) intersect triangle (v1,v2,v3)?  Points
+    // within tol of the triangle count as on it.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::pair<bool,Real> edge_tri_intersects (Real x1, Real x2, Real y, Real z,
                                               XDim3 const& v1, XDim3 const& v2,
                                               XDim3 const& v3, XDim3 const& norm,
-                                              Real dlevset)
+                                              Real dlevset, Real tol)
     {
         if ((dlevset > 0._rt && norm.x > 0._rt) || (dlevset < 0._rt && norm.x < 0._rt))
         { // This triangle has the wrong direction
             return std::make_pair(false,0.0_rt);
         }
-        else if (x1 > amrex::max(v1.x,v2.x,v3.x) ||
-                 x2 < amrex::min(v1.x,v2.x,v3.x) ||
-                 y  > amrex::max(v1.y,v2.y,v3.y) ||
-                 y  < amrex::min(v1.y,v2.y,v3.y) ||
-                 z  > amrex::max(v1.z,v2.z,v3.z) ||
-                 z  < amrex::min(v1.z,v2.z,v3.z))
+        else if (x1 > amrex::max(v1.x,v2.x,v3.x)+tol ||
+                 x2 < amrex::min(v1.x,v2.x,v3.x)-tol ||
+                 y  > amrex::max(v1.y,v2.y,v3.y)+tol ||
+                 y  < amrex::min(v1.y,v2.y,v3.y)-tol ||
+                 z  > amrex::max(v1.z,v2.z,v3.z)+tol ||
+                 z  < amrex::min(v1.z,v2.z,v3.z)-tol)
         {
             return std::make_pair(false,0.0_rt);
         }
@@ -97,13 +93,14 @@ namespace {
             Real y0 = (v1.y+v2.y+v3.y) * (1._rt/3._rt);
             Real z0 = (v1.z+v2.z+v3.z) * (1._rt/3._rt);
             Real x = ((norm.x*x0+norm.y*y0+norm.z*z0) - (norm.y*y+norm.z*z)) / norm.x;
-            Real s1 = sign(v1.y, v1.z, v2.y, v2.z, y, z);
-            Real s2 = sign(v2.y, v2.z, v3.y, v3.z, y, z);
-            Real s3 = sign(v3.y, v3.z, v1.y, v1.z, y, z);
-            if (s1 == 0._rt || s2 == 0._rt || s3 == 0._rt || (s1 == s2 && s2 == s3)) {
-                if (std::abs(x1-x) < std::numeric_limits<Real>::epsilon()) {
+            Real d1 = line_dist(v1.y, v1.z, v2.y, v2.z, y, z);
+            Real d2 = line_dist(v2.y, v2.z, v3.y, v3.z, y, z);
+            Real d3 = line_dist(v3.y, v3.z, v1.y, v1.z, y, z);
+            if ((d1 >= -tol && d2 >= -tol && d3 >= -tol) ||
+                (d1 <=  tol && d2 <=  tol && d3 <=  tol)) {
+                if (std::abs(x1-x) < tol) {
                     return std::make_pair(true,x1);
-                } else if (std::abs(x2-x) < std::numeric_limits<Real>::epsilon()) {
+                } else if (std::abs(x2-x) < tol) {
                     return std::make_pair(true,x2);
                 } else if (x>x1 && x<x2) {
                     return std::make_pair(true,x);
@@ -115,7 +112,7 @@ namespace {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool line_box_intersects (Real const a[3], Real const inv_direction[3],
-                              RealBox const& box)
+                              RealBox const& box, Real box_tol = 0.0_rt)
     {
         // Multiplying by the reciprocal loses the exactness that dividing by
         // the direction gives when the segment ends exactly on a face plane,
@@ -127,13 +124,15 @@ namespace {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             // A zero reciprocal marks a direction parallel to this pair of
             // faces. 1/direction is never zero for a finite direction.
+            Real const blo = box.lo(idim) - box_tol;
+            Real const bhi = box.hi(idim) + box_tol;
             if (inv_direction[idim] == 0.0_rt) {
-                if (a[idim] < box.lo(idim) || a[idim] > box.hi(idim)) {
+                if (a[idim] < blo || a[idim] > bhi) {
                     return false;
                 }
             } else {
-                Real const t1 = (box.lo(idim)-a[idim]) * inv_direction[idim];
-                Real const t2 = (box.hi(idim)-a[idim]) * inv_direction[idim];
+                Real const t1 = (blo-a[idim]) * inv_direction[idim];
+                Real const t2 = (bhi-a[idim]) * inv_direction[idim];
                 tmin = amrex::max(tmin, amrex::min(t1,t2));
                 tmax = amrex::min(tmax, amrex::max(t1,t2));
                 if (tmin > tmax*(1.0_rt+ulps) + ulps) {
@@ -148,7 +147,7 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void bvh_line_tri_intersects (Real const a[3], Real const b[3],
                                   STLtools::BVHNodeT<M,N> const* root,
-                                  F const& f)
+                                  F const& f, Real box_tol = 0.0_rt)
     {
         // Reuse these reciprocals for every bounding box visited by this ray.
         Real inv_direction[3];
@@ -161,7 +160,7 @@ namespace {
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
         Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
 
-        if (line_box_intersects(a, inv_direction, root->boundingbox)) {
+        if (line_box_intersects(a, inv_direction, root->boundingbox, box_tol)) {
             nodes_to_do.push(0);
             nchildren_done.push(0);
         }
@@ -179,7 +178,7 @@ namespace {
                     for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
                         ++ndone;
                         int inode = node.children[ichild];
-                        if (line_box_intersects(a, inv_direction, root[inode].boundingbox)) {
+                        if (line_box_intersects(a, inv_direction, root[inode].boundingbox, box_tol)) {
                             nodes_to_do.push(inode);
                             nchildren_done.push(0);
                             break;
@@ -191,6 +190,181 @@ namespace {
                 }
             }
         }
+    }
+
+    // pt_on_tri without its bounding box reject
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool pt_on_tri_nobox (Real const pt[3], STLtools::Triangle const& tri, Real tol)
+    {
+        Real const v[3][3] = {{tri.v1.x, tri.v1.y, tri.v1.z},
+                              {tri.v2.x, tri.v2.y, tri.v2.z},
+                              {tri.v3.x, tri.v3.y, tri.v3.z}};
+        Real const e1[3] = {v[1][0]-v[0][0], v[1][1]-v[0][1], v[1][2]-v[0][2]};
+        Real const e2[3] = {v[2][0]-v[0][0], v[2][1]-v[0][1], v[2][2]-v[0][2]};
+        Real const n[3] = {e1[1]*e2[2]-e1[2]*e2[1],
+                           e1[2]*e2[0]-e1[0]*e2[2],
+                           e1[0]*e2[1]-e1[1]*e2[0]};
+        Real const nn = std::sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+        if (nn == 0.0_rt) { return false; }
+        // distance to the plane
+        Real const d = (pt[0]-v[0][0])*n[0] + (pt[1]-v[0][1])*n[1] + (pt[2]-v[0][2])*n[2];
+        if (std::abs(d) > tol*nn) { return false; }
+        // signed distance to each edge line, positive inside
+        for (int e = 0; e < 3; ++e) {
+            Real const* a = v[e];
+            Real const* b = v[(e+1)%3];
+            Real const ab[3] = {b[0]-a[0], b[1]-a[1], b[2]-a[2]};
+            Real const ap[3] = {pt[0]-a[0], pt[1]-a[1], pt[2]-a[2]};
+            Real const c[3] = {ab[1]*ap[2]-ab[2]*ap[1],
+                               ab[2]*ap[0]-ab[0]*ap[2],
+                               ab[0]*ap[1]-ab[1]*ap[0]};
+            Real const lab = std::sqrt(ab[0]*ab[0] + ab[1]*ab[1] + ab[2]*ab[2]);
+            if (c[0]*n[0] + c[1]*n[1] + c[2]*n[2] < -tol*lab*nn) { return false; }
+        }
+        return true;
+    }
+
+    // Bounding-box margin of the on-surface test.  The region pt_on_tri
+    // accepts fits in the triangle's box grown by this unless a vertex angle
+    // is below ~2 degrees; parity classifies the rest of that ear.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real on_tri_margin (Real tol) { return Real(64) * tol; }
+
+    // Is pt on the triangle within the roundoff tolerance tol?
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool pt_on_tri (Real const pt[3], STLtools::Triangle const& tri, Real tol)
+    {
+        // Cheap reject
+        Real const m = on_tri_margin(tol);
+        if (pt[0] < amrex::min(tri.v1.x, tri.v2.x, tri.v3.x) - m ||
+            pt[0] > amrex::max(tri.v1.x, tri.v2.x, tri.v3.x) + m ||
+            pt[1] < amrex::min(tri.v1.y, tri.v2.y, tri.v3.y) - m ||
+            pt[1] > amrex::max(tri.v1.y, tri.v2.y, tri.v3.y) + m ||
+            pt[2] < amrex::min(tri.v1.z, tri.v2.z, tri.v3.z) - m ||
+            pt[2] > amrex::max(tri.v1.z, tri.v2.z, tri.v3.z) + m) {
+            return false;
+        }
+        return pt_on_tri_nobox(pt, tri, tol);
+    }
+
+    // pt_on_tri (if tol >= 0) and line_tri_intersects in one pass for the
+    // brute force search.  Returns 2 if pt is on the triangle, else 1 if the
+    // segment pr->pt with bounding box [smin,smax] crosses it, else 0.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int tri_tests (Real const pr[3], Real const pt[3], Real const smin[3], Real const smax[3],
+                   STLtools::Triangle const& tri, Real tol, bool& ambiguous)
+    {
+        Real const t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
+        Real const t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
+        Real const t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
+        bool const test_on = (tol >= 0.0_rt);
+        Real const m = test_on ? on_tri_margin(tol) : 0.0_rt;
+        Real lo[3], hi[3];
+        for (int d = 0; d < 3; ++d) {
+            lo[d] = amrex::min(t1[d], t2[d], t3[d]);
+            hi[d] = amrex::max(t1[d], t2[d], t3[d]);
+            // pt is in the segment box, so this rejects for both tests.
+            if (smax[d] < lo[d] - m || smin[d] > hi[d] + m) { return 0; }
+        }
+        if (test_on &&
+            pt[0] >= lo[0] - m && pt[0] <= hi[0] + m &&
+            pt[1] >= lo[1] - m && pt[1] <= hi[1] + m &&
+            pt[2] >= lo[2] - m && pt[2] <= hi[2] + m &&
+            pt_on_tri_nobox(pt, tri, tol)) {
+            return 2;
+        }
+        if (smax[0] < lo[0] || smin[0] > hi[0] ||
+            smax[1] < lo[1] || smin[1] > hi[1] ||
+            smax[2] < lo[2] || smin[2] > hi[2]) {
+            return 0;
+        }
+        return int(1-tri_geom_ops::lineseg_tri_intersect(pr,pt,t1,t2,t3,&ambiguous));
+    }
+
+    // Number of triangles crossed by the segment pr->pt, found with the BVH.
+    // The on-surface test runs if test_on; the boxes are then grown by its
+    // margin so that every triangle it can accept is visited, as in the
+    // brute force search.  Not inlined, which lets the compiler inline the
+    // leaf visitor here.
+    template <typename BVHNode>
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    int bvh_crossings (Real const pr[3], Real const pt[3], BVHNode const* bvh_root,
+                       Real tol, bool test_on, bool& ambiguous, bool& on_surface)
+    {
+        int num_intersects = 0;
+        bvh_line_tri_intersects(pr, pt, bvh_root,
+                                [&] (int ntri, STLtools::Triangle const* tri,
+                                     XDim3 const*) -> int
+        {
+            for (int tr = 0; tr < ntri; ++tr) {
+                if (test_on && pt_on_tri(pt, tri[tr], tol)) {
+                    on_surface = true;
+                    return 1;
+                }
+                num_intersects += int(line_tri_intersects(pr, pt, tri[tr], &ambiguous));
+            }
+            return 0;
+        }, test_on ? on_tri_margin(tol) : 0.0_rt);
+        return num_intersects;
+    }
+
+    // Parity of the number of triangles crossed by the segment from a
+    // reference point to pt.  The later reference points are tried only if
+    // the ray from the first one passes within roundoff of an edge or a
+    // vertex, where a crossing may be counted twice or not at all.  If all
+    // rays are ambiguous, the majority wins and a tie goes to the first
+    // ray.  Returns 2 if pt is on the surface within roundoff.
+    template <bool UseBVH, typename BVHNode>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int crossing_parity (Real const pt[3], GpuArray<XDim3,STLtools::m_num_ref> const& ptref,
+                         BVHNode const* bvh_root, STLtools::Triangle const* tri_pts,
+                         int num_triangles, XDim3 const& bbmin, XDim3 const& bbmax)
+    {
+        // Outside the bounding box of the triangles, a point is either on
+        // the surface or outside.  A ray from the reference point there may
+        // run nearly parallel to a face.
+        bool const outside_bb = pt[0] < bbmin.x || pt[0] > bbmax.x ||
+                                pt[1] < bbmin.y || pt[1] > bbmax.y ||
+                                pt[2] < bbmin.z || pt[2] > bbmax.z;
+        // roundoff in the node and triangle coordinates
+        Real const tol = Real(16) * std::numeric_limits<Real>::epsilon()
+            * amrex::max(std::abs(pt[0]), std::abs(pt[1]), std::abs(pt[2]),
+                         std::abs(ptref[0].x), std::abs(ptref[0].y), std::abs(ptref[0].z));
+        int parity0 = 0;
+        int votes = 0; // +1 per ambiguous ray with odd parity, -1 with even
+        for (int n = 0; n < STLtools::m_num_ref; ++n) {
+            Real const pr[] = {ptref[n].x, ptref[n].y, ptref[n].z};
+            int num_intersects = 0;
+            bool ambiguous = false;
+            bool on_surface = false;
+            if constexpr (UseBVH) {
+                amrex::ignore_unused(tri_pts, num_triangles);
+                num_intersects = bvh_crossings(pr, pt, bvh_root, tol, n == 0,
+                                               ambiguous, on_surface);
+            } else {
+                amrex::ignore_unused(bvh_root);
+                Real const smin[] = {amrex::min(pr[0],pt[0]), amrex::min(pr[1],pt[1]),
+                                     amrex::min(pr[2],pt[2])};
+                Real const smax[] = {amrex::max(pr[0],pt[0]), amrex::max(pr[1],pt[1]),
+                                     amrex::max(pr[2],pt[2])};
+                Real const tol_n = (n == 0) ? tol : -1.0_rt; // on-surface test for ray 0 only
+                for (int tr = 0; tr < num_triangles; ++tr) {
+                    int const r = tri_tests(pr, pt, smin, smax, tri_pts[tr], tol_n, ambiguous);
+                    if (r == 2) {
+                        on_surface = true;
+                        break;
+                    }
+                    num_intersects += r;
+                }
+            }
+            if (on_surface) { return 2; }
+            if (outside_bb) { return 0; }
+            int const parity = num_intersects % 2;
+            if (!ambiguous) { return parity; }
+            if (n == 0) { parity0 = parity; }
+            votes += parity ? 1 : -1;
+        }
+        return (votes > 0) ? 1 : ((votes < 0) ? 0 : parity0);
     }
 
 #if (AMREX_SPACEDIM == 3)
@@ -479,6 +653,10 @@ STLtools::read_ascii_stl_file (std::string const& fname, Real scale,
                 std::swap(a_tri_pts[i].v1, a_tri_pts[i].v2);
             }
         }
+
+        if (!is) {
+            amrex::Abort("STLtools::read_ascii_stl_file: failed to parse " + fname);
+        }
     }
 }
 
@@ -575,10 +753,20 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << '\n';
     }
 
+    // Grow the box by roundoff so that nodes on its faces are still tested.
+    m_bbmin = m_ptmin;
+    m_bbmax = m_ptmax;
+    {
+        Real const tol = Real(64) * std::numeric_limits<Real>::epsilon()
+            * amrex::max(std::abs(m_ptmin.x), std::abs(m_ptmin.y), std::abs(m_ptmin.z),
+                         std::abs(m_ptmax.x), std::abs(m_ptmax.y), std::abs(m_ptmax.z));
+        m_ptmin.x -= tol; m_ptmin.y -= tol; m_ptmin.z -= tol;
+        m_ptmax.x += tol; m_ptmax.y += tol; m_ptmax.z += tol;
+    }
+
     // Choose a reference point by extending the normal vector of the first
     // triangle until it's slightly outside the bounding box.
     XDim3 cent0{.x = tri0.cent(0), .y = tri0.cent(1), .z = tri0.cent(2)};
-    int is_ref_positive;
     {
         // We are computing the normal ourselves in case the stl file does
         // not have valid data on normal.
@@ -642,33 +830,81 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
         Real Lm = std::max({Lx,Ly,Lz});
         Real Leps = std::max(Lp,-Lm) * Real(0.009);
         if (Lp < -Lm) {
-            m_ptref.x = cent0.x + (Lp+Leps) * norm.x;
-            m_ptref.y = cent0.y + (Lp+Leps) * norm.y;
-            m_ptref.z = cent0.z + (Lp+Leps) * norm.z;
-            is_ref_positive = true;
+            m_ptref[0].x = cent0.x + (Lp+Leps) * norm.x;
+            m_ptref[0].y = cent0.y + (Lp+Leps) * norm.y;
+            m_ptref[0].z = cent0.z + (Lp+Leps) * norm.z;
         } else {
-            m_ptref.x = cent0.x + (Lm-Leps) * norm.x;
-            m_ptref.y = cent0.y + (Lm-Leps) * norm.y;
-            m_ptref.z = cent0.z + (Lm-Leps) * norm.z;
-            is_ref_positive = false;
+            m_ptref[0].x = cent0.x + (Lm-Leps) * norm.x;
+            m_ptref[0].y = cent0.y + (Lm-Leps) * norm.y;
+            m_ptref[0].z = cent0.z + (Lm-Leps) * norm.z;
+        }
+    }
+
+    // The other reference points are shifted from the first one along the
+    // bounding box face it is outside of, and away from the box, so that a
+    // ray to a node near a face on the box does not run nearly in that face.
+    {
+        Real const pmin[] = {m_ptmin.x, m_ptmin.y, m_ptmin.z};
+        Real const pmax[] = {m_ptmax.x, m_ptmax.y, m_ptmax.z};
+        Real const p0[] = {m_ptref[0].x, m_ptref[0].y, m_ptref[0].z};
+        int dir_out = 0;
+        Real hmax = 0;
+        for (int d = 0; d < 3; ++d) {
+            Real const outside = amrex::max(pmin[d]-p0[d], p0[d]-pmax[d]);
+            Real const outside_max = amrex::max(pmin[dir_out]-p0[dir_out], p0[dir_out]-pmax[dir_out]);
+            if (outside > outside_max) { dir_out = d; }
+            hmax = amrex::max(hmax, pmax[d]-pmin[d]);
+        }
+        constexpr Real shift[STLtools::m_num_ref-1][2] = {{Real( 0.0137), Real( 0.0291)},
+                                                          {Real(-0.0241), Real( 0.0173)},
+                                                          {Real( 0.0313), Real(-0.0119)}};
+        constexpr Real shift_out[STLtools::m_num_ref-1] = {Real(0.17), Real(0.29), Real(0.41)};
+        Real const out = (p0[dir_out] > pmax[dir_out]) ? Real(1.0) : Real(-1.0);
+        for (int n = 1; n < m_num_ref; ++n) {
+            Real p[] = {p0[0], p0[1], p0[2]};
+            int m = 0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                if (d != dir_out) { p[d] += shift[n-1][m++] * hmax; }
+            }
+            p[dir_out] += out * shift_out[n-1] * hmax;
+            m_ptref[n] = XDim3{.x = p[0], .y = p[1], .z = p[2]};
         }
     }
 
     // We now need to figure out if the boundary and the reference is
-    // outside or inside the object.
-    XDim3 ptref = m_ptref;
-    int num_isects = Reduce::Sum<int>(m_num_tri, [=] AMREX_GPU_DEVICE (int i) -> int
+    // outside or inside the object.  A ray that grazes an edge or a vertex
+    // is ambiguous; then the next reference point is tried.  If all rays
+    // are ambiguous, the majority wins and a tie goes to the first ray.
+    XDim3 const norm0 = triangle_norm(tri0);
+    bool outside0 = true;
+    int votes = 0; // +1 per ambiguous ray saying outside, -1 inside
+    for (int n = 0; n < m_num_ref; ++n) {
+        XDim3 const ptref = m_ptref[n];
+        bool const ref_positive = (ptref.x-cent0.x)*norm0.x + (ptref.y-cent0.y)*norm0.y
+                                + (ptref.z-cent0.z)*norm0.z > Real(0.0);
+        ReduceOps<ReduceOpSum,ReduceOpMax> isect_op;
+        ReduceData<int,int> isect_data(isect_op);
+        using IsectTuple = typename decltype(isect_data)::Type;
+        isect_op.eval(m_num_tri, isect_data, [=] AMREX_GPU_DEVICE (int i) -> IsectTuple
         {
-            if (i == 0) {
-                return 1-is_ref_positive;
-            } else {
-                Real p1[] = {ptref.x, ptref.y, ptref.z};
-                Real p2[] = {cent0.x, cent0.y, cent0.z};
-                return static_cast<int>(line_tri_intersects(p1, p2, tri_pts[i]));
-            }
+            if (i == 0) { return {0, 0}; }
+            Real const p1[] = {ptref.x, ptref.y, ptref.z};
+            Real const p2[] = {cent0.x, cent0.y, cent0.z};
+            bool ambiguous = false;
+            int const hit = static_cast<int>(line_tri_intersects(p1, p2, tri_pts[i], &ambiguous));
+            return {hit, static_cast<int>(ambiguous)};
         });
-
-    m_boundry_is_outside = num_isects % 2 == 0;
+        IsectTuple const isect = isect_data.value(isect_op);
+        int const num_isects = amrex::get<0>(isect) + (ref_positive ? 0 : 1);
+        bool const outside = num_isects % 2 == 0;
+        if (amrex::get<1>(isect) == 0) {
+            m_boundry_is_outside = outside;
+            return;
+        }
+        if (n == 0) { outside0 = outside; }
+        votes += outside ? 1 : -1;
+    }
+    m_boundry_is_outside = (votes > 0) ? true : ((votes < 0) ? false : outside0);
 }
 
 void
@@ -716,26 +952,40 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
         centmax.max(cent);
     }
     int max_dir = (centmax-centmin).maxDir(false);
-    std::sort(begin, end, [max_dir] (Triangle const& a, Triangle const& b) -> bool
-                              { return a.cent(max_dir) < b.cent(max_dir); });
 
     int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
     int tsize = ntri / nsplits;
     int nleft = ntri - tsize*nsplits;
+    auto split_begin = [=] (int isplit) {
+        return (isplit < nleft) ? isplit * (tsize+1) : isplit * tsize + nleft;
+    };
+
+    // Partition stored keys at the split points.  Recomputing the centroid
+    // in the comparator is not a strict weak ordering under -ffast-math and
+    // the algorithm runs off the array.  Ties are broken by index so the
+    // result is deterministic.  Each child reorders its own triangles, so a
+    // full sort is not needed.
+    {
+        Vector<std::pair<Real,int>> keys(ntri);
+        for (int i = 0; i < ntri; ++i) { keys[i] = {begin[i].cent(max_dir), i}; }
+        auto kfirst = keys.begin();
+        for (int isplit = 1; isplit < nsplits; ++isplit) {
+            auto knth = keys.begin() + split_begin(isplit);
+            std::nth_element(kfirst, knth, keys.end());
+            kfirst = knth;
+        }
+        Vector<Triangle> sorted(ntri);
+        for (int i = 0; i < ntri; ++i) { sorted[i] = begin[keys[i].second]; }
+        std::copy(sorted.begin(), sorted.end(), begin);
+    } // free the temporaries before recursing
 
     bvh_nodes.push_back(Node());
     bvh_nodes.back().nchildren = std::int8_t(nsplits);
     auto this_node = bvh_nodes.size()-1;
 
     for (int isplit = 0; isplit < nsplits; ++isplit) {
-        int tbegin, tend;
-        if (isplit < nleft) {
-            tbegin = isplit * (tsize+1);
-            tend = tbegin + tsize + 1;
-        } else {
-            tbegin = isplit * tsize + nleft;
-            tend = tbegin + tsize;
-        }
+        int tbegin = split_begin(isplit);
+        int tend = split_begin(isplit+1);
         bvh_nodes[this_node].children[isplit] = int(bvh_nodes.size());
         build_bvh(begin+tbegin, begin+tend, bvh_nodes);
     }
@@ -791,7 +1041,9 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
     const Triangle* tri_pts = m_tri_pts_d.data();
     XDim3 ptmin = m_ptmin;
     XDim3 ptmax = m_ptmax;
-    XDim3 ptref = m_ptref;
+    auto const ptref = m_ptref;
+    XDim3 const bbmin = m_bbmin;
+    XDim3 const bbmax = m_bbmax;
     Real reference_value = m_boundry_is_outside ? outside_value :  inside_value;
     Real other_value     = m_boundry_is_outside ?  inside_value : outside_value;
 
@@ -814,63 +1066,43 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
 #else
         coords[2]=plo[2]+(static_cast<Real>(k)+offset[2])*dx[2];
 #endif
-        int num_intersects=0;
+        int parity = 0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
             coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
             coords[2] >= ptmin.z && coords[2] <= ptmax.z)
         {
-            Real pr[]={ptref.x, ptref.y, ptref.z};
-#ifdef AMREX_USE_CUDA
-            amrex::ignore_unused(bvh_root, num_triangles, tri_pts);
-#endif
-            if constexpr (control == yes_bvh) {
-                bvh_line_tri_intersects(pr, coords, bvh_root,
-                                        [&] (int ntri, Triangle const* tri,
-                                             XDim3 const*) -> int
-                {
-                    for (int tr=0; tr < ntri; ++tr) {
-                        if (line_tri_intersects(pr, coords, tri[tr])) {
-                            ++num_intersects;
-                        }
-                    }
-                    return 0;
-                });
-            } else {
-                for (int tr=0; tr < num_triangles; ++tr) {
-                    if (line_tri_intersects(pr, coords, tri_pts[tr])) {
-                        ++num_intersects;
-                    }
-                }
-            }
+            parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                         tri_pts, num_triangles, bbmin, bbmax);
         }
-        ma[box_no](i,j,k) = (num_intersects % 2 == 0) ? reference_value : other_value;
+        ma[box_no](i,j,k) = (parity == 2) ? inside_value
+                          : ((parity == 0) ? reference_value : other_value);
     });
     Gpu::streamSynchronize();
 }
 
 int
-STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
+STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const
 {
     BL_PROFILE("STLtools::getBoxType");
 
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
 
-    XDim3 blo{.x = plo[0] + static_cast<Real>(box.smallEnd(0))*dx[0],
-              .y = plo[1] + static_cast<Real>(box.smallEnd(1))*dx[1],
+    XDim3 blo{.x = node_coord(plo[0], box.smallEnd(0), dx[0]),
+              .y = node_coord(plo[1], box.smallEnd(1), dx[1]),
 #if (AMREX_SPACEDIM == 2)
               .z = 0._rt
 #else
-              .z = plo[2] + static_cast<Real>(box.smallEnd(2))*dx[2]
+              .z = node_coord(plo[2], box.smallEnd(2), dx[2])
 #endif
     };
 
-    XDim3 bhi{.x = plo[0] + static_cast<Real>(box.bigEnd(0))*dx[0],
-              .y = plo[1] + static_cast<Real>(box.bigEnd(1))*dx[1],
+    XDim3 bhi{.x = node_coord(plo[0], box.bigEnd(0), dx[0]),
+              .y = node_coord(plo[1], box.bigEnd(1), dx[1]),
 #if (AMREX_SPACEDIM == 2)
               .z = 0._rt
 #else
-              .z = plo[2] + static_cast<Real>(box.bigEnd(2))*dx[2]
+              .z = node_coord(plo[2], box.bigEnd(2), dx[2])
 #endif
     };
 
@@ -885,7 +1117,9 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         const Triangle* tri_pts = m_tri_pts_d.data();
         XDim3 ptmin = m_ptmin;
         XDim3 ptmax = m_ptmax;
-        XDim3 ptref = m_ptref;
+        auto const ptref = m_ptref;
+        XDim3 const bbmin = m_bbmin;
+        XDim3 const bbmax = m_bbmax;
         int ref_value = m_boundry_is_outside ? 1 : 0;
 
         auto const* bvh_root = m_bvh_nodes.data();
@@ -908,13 +1142,13 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
             for (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real coords[3];
-                coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-                coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+                coords[0]=node_coord(plo[0], i, dx[0]);
+                coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
                 coords[2]=Real(0.);
 #else
-                coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+                coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
                 if (coords[0] < ptmin.x || coords[0] > ptmax.x ||
                     coords[1] < ptmin.y || coords[1] > ptmax.y ||
@@ -923,25 +1157,9 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
                     continue;
                 }
 
-                Real pr[] = {ptref.x, ptref.y, ptref.z};
-                int num_intersects = 0;
-                if constexpr (decltype(use_bvh)::value) {
-                    bvh_line_tri_intersects(pr, coords, bvh_root,
-                                            [&] (int ntri, Triangle const* tri,
-                                                    XDim3 const*) -> int
-                    {
-                        for (int tr = 0; tr < ntri; ++tr) {
-                            num_intersects += line_tri_intersects(pr, coords, tri[tr]);
-                        }
-                        return 0;
-                    });
-                } else {
-                    for (int tr = 0; tr < num_triangles; ++tr) {
-                        num_intersects += line_tri_intersects(pr, coords, tri_pts[tr]);
-                    }
-                }
-
-                int const value = (num_intersects % 2 == 0) ? ref_value : 1-ref_value;
+                int const parity = crossing_parity<decltype(use_bvh)::value>(
+                    coords, ptref, bvh_root, tri_pts, num_triangles, bbmin, bbmax);
+                int const value = (parity == 2) ? 0 : ((parity == 0) ? ref_value : 1-ref_value);
                 if (first_value < 0) {
                     first_value = value;
                 } else if (value != first_value) {
@@ -970,45 +1188,24 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
                [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) -> ReduceTuple
         {
             Real coords[3];
-            coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-            coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+            coords[0]=node_coord(plo[0], i, dx[0]);
+            coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
             amrex::ignore_unused(k);
             coords[2]=Real(0.);
 #else
-            coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+            coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
-            int num_intersects=0;
+            int parity = 0;
             if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
                 coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
                 coords[2] >= ptmin.z && coords[2] <= ptmax.z)
             {
-                Real pr[]={ptref.x, ptref.y, ptref.z};
-#ifdef AMREX_USE_CUDA
-                amrex::ignore_unused(bvh_root,num_triangles,tri_pts);
-#endif
-                if constexpr (control == yes_bvh) {
-                    bvh_line_tri_intersects(pr, coords, bvh_root,
-                                            [&] (int ntri, Triangle const* tri,
-                                                 XDim3 const*) -> int
-                    {
-                        for (int tr=0; tr < ntri; ++tr) {
-                            if (line_tri_intersects(pr, coords, tri[tr])) {
-                                ++num_intersects;
-                            }
-                        }
-                        return 0;
-                    });
-                } else {
-                    for (int tr=0; tr < num_triangles; ++tr) {
-                        if (line_tri_intersects(pr, coords, tri_pts[tr])) {
-                            ++num_intersects;
-                        }
-                    }
-                }
+                parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                             tri_pts, num_triangles, bbmin, bbmax);
             }
 
-            return (num_intersects % 2 == 0) ? ref_value : 1-ref_value;
+            return (parity == 2) ? 0 : ((parity == 0) ? ref_value : 1-ref_value);
         });
         ReduceTuple hv = reduce_data.value(reduce_op);
         Long nfluid = static_cast<Long>(amrex::get<0>(hv));
@@ -1035,61 +1232,109 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
     const Triangle* tri_pts = m_tri_pts_d.data();
     XDim3 ptmin = m_ptmin;
     XDim3 ptmax = m_ptmax;
-    XDim3 ptref = m_ptref;
+    auto const ptref = m_ptref;
+    XDim3 const bbmin = m_bbmin;
+    XDim3 const bbmax = m_bbmax;
     Real reference_value = m_boundry_is_outside ? -1.0_rt :  1.0_rt;
     Real other_value     = m_boundry_is_outside ?  1.0_rt : -1.0_rt;
 
     auto const* bvh_root = m_bvh_nodes.data();
 
-    auto const& a = levelset.array();
     const Box& bx = levelset.box();
+    auto const& a = levelset.array();
+
+#if (AMREX_SPACEDIM == 3)
+    // Number of nodes on the surface. Without any, no saddles to resolve.
+    bool const on_gpu = Gpu::inLaunchRegion();
+    Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
+    auto* const nzero = static_cast<int*>(arena->alloc(sizeof(int)));
+#ifdef AMREX_USE_GPU
+    if (on_gpu) {
+        amrex::single_task([=] AMREX_GPU_DEVICE () noexcept { *nzero = 0; });
+    } else
+#endif
+    {
+        *nzero = 0;
+    }
+#endif
 
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
 
-    ParallelFor(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
-                {bvh_opt_runtime_option},
-                bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
+    AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+           {bvh_opt_runtime_option},
+           [&] (auto cto_func) {
+               ParallelFor(Gpu::KernelInfo().setReduction(AMREX_SPACEDIM == 3), bx, cto_func);
+           },
+           [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& h, auto control) noexcept
     {
         Real coords[3];
-        coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
-        coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+        coords[0]=node_coord(plo[0], i, dx[0]);
+        coords[1]=node_coord(plo[1], j, dx[1]);
 #if (AMREX_SPACEDIM == 2)
         coords[2]=Real(0.);
 #else
-        coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+        coords[2]=node_coord(plo[2], k, dx[2]);
 #endif
-        int num_intersects=0;
+        int parity = 0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
             coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
             coords[2] >= ptmin.z && coords[2] <= ptmax.z)
         {
-            Real pr[]={ptref.x, ptref.y, ptref.z};
-#ifdef AMREX_USE_CUDA
-            amrex::ignore_unused(bvh_root,num_triangles,tri_pts);
-#endif
-            if constexpr (control == yes_bvh) {
-                bvh_line_tri_intersects(pr, coords, bvh_root,
-                                        [&] (int ntri, Triangle const* tri,
-                                             XDim3 const*) -> int
-                {
-                    for (int tr=0; tr < ntri; ++tr) {
-                        if (line_tri_intersects(pr, coords, tri[tr])) {
-                            ++num_intersects;
-                        }
-                    }
-                    return 0;
-                });
-            } else {
-                for (int tr=0; tr < num_triangles; ++tr) {
-                    if (line_tri_intersects(pr, coords, tri_pts[tr])) {
-                        ++num_intersects;
-                    }
-                }
-            }
+            parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                         tri_pts, num_triangles, bbmin, bbmax);
         }
-        a(i,j,k) = (num_intersects % 2 == 0) ? reference_value : other_value;
+        // a node on the surface belongs to the body, like a zero level set
+        a(i,j,k) = (parity == 2) ? 0.0_rt
+                 : ((parity == 0) ? reference_value : other_value);
+#if (AMREX_SPACEDIM == 3)
+        Gpu::deviceReduceSum(nzero, int(parity == 2), h);
+#else
+        amrex::ignore_unused(h);
+#endif
     });
+
+#if (AMREX_SPACEDIM == 3)
+    int nz = 0;
+    if (on_gpu) {
+        Gpu::dtoh_memcpy(&nz, nzero, sizeof(int));
+    } else {
+        nz = *nzero;
+    }
+    if (nz > 0) {
+        // One more node layer, see GeometryShop::fillFab.
+        const Box gbx = amrex::grow(bx, 1);
+        BaseFab<Real> gfab(gbx, 1, arena);
+        auto const& g = gfab.array();
+        AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+               {bvh_opt_runtime_option},
+               [&] (auto cto_func) { ParallelFor(gbx, cto_func); },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
+        {
+            if (bx.contains(IntVect(i,j,k))) {
+                g(i,j,k) = a(i,j,k);
+                return;
+            }
+            Real coords[3];
+            coords[0]=node_coord(plo[0], i, dx[0]);
+            coords[1]=node_coord(plo[1], j, dx[1]);
+            coords[2]=node_coord(plo[2], k, dx[2]);
+            int parity = 0;
+            if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
+                coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
+                coords[2] >= ptmin.z && coords[2] <= ptmax.z)
+            {
+                parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                             tri_pts, num_triangles, bbmin, bbmax);
+            }
+            g(i,j,k) = (parity == 2) ? 0.0_rt
+                     : ((parity == 0) ? reference_value : other_value);
+        });
+        EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
+    }
+    arena->free(nzero);
+#endif
+    Gpu::streamSynchronize();
 }
 
 void
@@ -1107,6 +1352,11 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
     const XDim3* tri_norm = m_tri_normals_d.data();
     const Node* bvh_root = m_bvh_nodes.data();
 
+    // roundoff in the node and triangle coordinates
+    Real const tol = Real(16) * std::numeric_limits<Real>::epsilon()
+        * amrex::max(std::abs(m_ptmin.x), std::abs(m_ptmin.y), std::abs(m_ptmin.z),
+                     std::abs(m_ptmax.x), std::abs(m_ptmax.y), std::abs(m_ptmax.z));
+
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
 
@@ -1119,20 +1369,28 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
             bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto bvh_control) noexcept
         {
 #ifdef AMREX_USE_CUDA
-            amrex::ignore_unused(num_triangles,tri_pts,tri_norm,lst,bvh_root);
+            amrex::ignore_unused(num_triangles,tri_pts,tri_norm,lst,bvh_root,tol);
 #endif
             Real r = EB2::no_intercept;
             if (type(i,j,k) == EB2::Type::irregular) {
-                XDim3 p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
-                         .y = plo[1]+static_cast<Real>(j)*dx[1],
+                XDim3 p1{.x = node_coord(plo[0], i, dx[0]),
+                         .y = node_coord(plo[1], j, dx[1]),
 #if (AMREX_SPACEDIM == 2)
                          .z = Real(0.)
 #else
-                         .z = plo[2]+static_cast<Real>(k)*dx[2]
+                         .z = node_coord(plo[2], k, dx[2])
 #endif
                 };
-                if (idim == 0) {
-                    Real x2 = plo[0]+static_cast<Real>(i+1)*dx[0];
+                IntVect ivlo(AMREX_D_DECL(i,j,k));
+                IntVect ivhi = ivlo;
+                ivhi[idim] += 1;
+                // An end on the surface takes the intercept; no search needed.
+                if (lst(ivlo) == EB2::on_surface_fluid) {
+                    r = node_coord(plo[idim], ivlo[idim], dx[idim]);
+                } else if (lst(ivhi) == EB2::on_surface_fluid) {
+                    r = node_coord(plo[idim], ivhi[idim], dx[idim]);
+                } else if (idim == 0) {
+                    Real x2 = node_coord(plo[0], i+1, dx[0]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1140,7 +1398,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             auto tmp = edge_tri_intersects(p1.x, x2, p1.y, p1.z,
                                                            tri.v1, tri.v2, tri.v3,
                                                            tri_norm[it],
-                                                           lst(i+1,j,k)-lst(i,j,k));
+                                                           lst(i+1,j,k)-lst(i,j,k), tol);
                             if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
@@ -1158,20 +1416,20 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                 auto tmp = edge_tri_intersects(p1.x, x2, p1.y, p1.z,
                                                                tri.v1, tri.v2, tri.v3,
                                                                ptrinorm[it],
-                                                               lst(i+1,j,k)-lst(i,j,k));
+                                                               lst(i+1,j,k)-lst(i,j,k), tol);
                                 if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
                                 }
                             }
                             return 0;
-                        });
+                        }, tol);
                     }
                     if (!found) {
-                        r = (lst(i,j,k) > 0._rt) ? p1.x : x2;
+                        r = (lst(i,j,k) >= 0._rt) ? p1.x : x2;
                     }
                 } else if (idim == 1) {
-                    Real y2 = plo[1]+static_cast<Real>(j+1)*dx[1];
+                    Real y2 = node_coord(plo[1], j+1, dx[1]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1182,7 +1440,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                            XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
                                                            XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
                                                            XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
-                                                           lst(i,j+1,k)-lst(i,j,k));
+                                                           lst(i,j+1,k)-lst(i,j,k), tol);
                             if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
@@ -1203,22 +1461,22 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                                XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
                                                                XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
                                                                XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
-                                                               lst(i,j+1,k)-lst(i,j,k));
+                                                               lst(i,j+1,k)-lst(i,j,k), tol);
                                 if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
                                 }
                             }
                             return 0;
-                        });
+                        }, tol);
                     }
                     if (!found) {
-                        r = (lst(i,j,k) > 0._rt) ? p1.y : y2;
+                        r = (lst(i,j,k) >= 0._rt) ? p1.y : y2;
                     }
                 }
 #if (AMREX_SPACEDIM == 3)
                 else {
-                    Real z2 = plo[2]+static_cast<Real>(k+1)*dx[2];
+                    Real z2 = node_coord(plo[2], k+1, dx[2]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1229,7 +1487,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                            XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
                                                            XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
                                                            XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
-                                                           lst(i,j,k+1)-lst(i,j,k));
+                                                           lst(i,j,k+1)-lst(i,j,k), tol);
                             if (tmp.first && (!found || tmp.second < r)) {
                                 r = tmp.second;
                                 found = true;
@@ -1250,17 +1508,17 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                                                XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
                                                                XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
                                                                XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
-                                                               lst(i,j,k+1)-lst(i,j,k));
+                                                               lst(i,j,k+1)-lst(i,j,k), tol);
                                 if (tmp.first && (!found || tmp.second < r)) {
                                     r = tmp.second;
                                     found = true;
                                 }
                             }
                             return 0;
-                        });
+                        }, tol);
                     }
                     if (!found) {
-                        r = (lst(i,j,k) > 0._rt) ? p1.z : z2;
+                        r = (lst(i,j,k) >= 0._rt) ? p1.z : z2;
                     }
                 }
 #endif
@@ -1284,44 +1542,27 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             if (type(i,j,k) == EB2::Type::irregular) {
-                bool no_inter = (inter(i,j,k) == EB2::no_intercept);
-                if (idim == 0) {
-                    if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && no_inter))
-                    {
-                        // The edge can still be without an intercept because
-                        // lst that was set to zero has been changed by
-                        // FillBoundary at periodic boundaries.
-                        inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
-                    }
-                    else if (lst(i+1,j,k) == Real(0.0) ||
-                             (lst(i+1,j,k) > Real(0.0) && no_inter))
-                    {
-                        inter(i,j,k) = problo[0] + static_cast<Real>(i+1)*dx[0];
-                    }
-                } else if (idim == 1) {
-                    if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && no_inter))
-                    {
-                        inter(i,j,k) = problo[1] + static_cast<Real>(j)*dx[1];
-                    }
-                    else if (lst(i,j+1,k) == Real(0.0) ||
-                             (lst(i,j+1,k) > Real(0.0) && no_inter))
-                    {
-                        inter(i,j,k) = problo[1] + static_cast<Real>(j+1)*dx[1];
-                    }
-                } else {
-                    if (lst(i,j,k) == Real(0.0) ||
-                        (lst(i,j,k) > Real(0.0) && no_inter))
-                    {
-                        inter(i,j,k) = problo[2] + static_cast<Real>(k)*dx[2];
-                    }
-                    else if (lst(i,j,k+1) == Real(0.0) ||
-                             (lst(i,j,k+1) > Real(0.0) && no_inter))
-                    {
-                        inter(i,j,k) = problo[2] + static_cast<Real>(k+1)*dx[2];
-                    }
+                if (inter(i,j,k) == EB2::no_intercept) {
+                    // Only edges without an intercept are updated: they
+                    // became irregular because small cell fixing set lst
+                    // to zero, or lst changed in FillBoundary at periodic
+                    // boundaries.  A node that was zero from the start
+                    // keeps the intercept from getIntercept.  Other
+                    // edges are reset, so an edge that is irregular
+                    // again gets a new intercept.
+                    IntVect ivlo(AMREX_D_DECL(i,j,k));
+                    IntVect ivhi = ivlo;
+                    ivhi[idim] += 1;
+                    // An irregular edge has one end below zero and one at or
+                    // above.  As in getIntercept, an on_surface_fluid end takes
+                    // the intercept, else the body end.
+                    bool const at_lo = (lst(ivlo) == EB2::on_surface_fluid) ||
+                                       (lst(ivhi) != EB2::on_surface_fluid && lst(ivlo) >= Real(0.0));
+                    int const inode = at_lo ? ivlo[idim] : ivhi[idim];
+                    inter(i,j,k) = node_coord(problo[idim], inode, dx[idim]);
                 }
+            } else {
+                inter(i,j,k) = EB2::no_intercept;
             }
         });
     }

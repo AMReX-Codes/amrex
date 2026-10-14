@@ -198,8 +198,13 @@ namespace amrex::tri_geom_ops
             return(all_ok);
         }
         //================================================================================
+        //returns 0 if the segment intersects the triangle and 1 otherwise.  if
+        //ambiguous is given, it is set to true when the answer may be wrong
+        //due to roundoff: the segment reaches the triangle's plane where the
+        //line passes within roundoff of an edge or a vertex, or the segment
+        //lies in the plane.  it is left unchanged otherwise.
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int lineseg_tri_intersect(const Real p1[3], const Real p2[3],
-                const Real q1[3], const Real q2[3], const Real q3[3])
+                const Real q1[3], const Real q2[3], const Real q3[3], bool* ambiguous = nullptr)
         {
             //see plucker coordinates based method
             //https://members.loria.fr/SLazard/ARC-Visi3D/Pant-project/files/Line_Triangle.html
@@ -314,6 +319,32 @@ namespace amrex::tri_geom_ops
                 if(ls_s1*ls_s2 > 0)
                 {
                     no_intersections=0;
+                }
+            }
+
+            if(ambiguous)
+            {
+                const Real tol = Real(64.0)*eps;
+                const bool z1 = std::abs(S1) < tol;
+                const bool z2 = std::abs(S2) < tol;
+                const bool z3 = std::abs(S3) < tol;
+                const int nz = int(z1) + int(z2) + int(z3);
+                //near an edge only counts if the line crosses within the edge's span
+                const bool near_edge_or_vertex = (nz >= 2) ||
+                    (z1 && S2*S3 > Real(0.0)) ||
+                    (z2 && S3*S1 > Real(0.0)) ||
+                    (z3 && S1*S2 > Real(0.0));
+                if(near_edge_or_vertex)
+                {
+                    const Real n[3] = {t2[1]*t3[2]-t2[2]*t3[1],
+                                       t2[2]*t3[0]-t2[0]*t3[2],
+                                       t2[0]*t3[1]-t2[1]*t3[0]};
+                    const Real d1 = n[0]*v1[0] + n[1]*v1[1] + n[2]*v1[2];
+                    const Real d2 = n[0]*v2[0] + n[1]*v2[1] + n[2]*v2[2];
+                    const Real tol_d = Real(64.0)*eps_r*len_t*len_t*len;
+                    //both ends strictly on the same side: the segment misses the plane
+                    const bool misses = (d1 > tol_d && d2 > tol_d) || (d1 < -tol_d && d2 < -tol_d);
+                    if(!misses) { *ambiguous = true; }
                 }
             }
 
