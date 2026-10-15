@@ -1245,7 +1245,7 @@ void AlgMG<T>::direct_bottom_solve ()
 
     // Gather the residual.
     PODVector<double> rhs(n); // uninitialized; every entry is written below
-    Vector<T> loc(nl);
+    Gpu::PinnedVector<T> loc(nl);
     if (nl > 0) {
         Gpu::copy(Gpu::deviceToHost, r.data(), r.data()+nl, loc.begin());
         for (Long i = 0; i < nl; ++i) { rhs[b0+i] = double(loc[i]); }
