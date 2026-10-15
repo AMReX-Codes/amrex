@@ -1244,7 +1244,7 @@ void AlgMG<T>::direct_bottom_solve ()
     Long const b0 = r.globalBegin();
 
     // Gather the residual.
-    Vector<double> rhs(n, 0.0);
+    PODVector<double> rhs(n); // uninitialized; every entry is written below
     Vector<T> loc(nl);
     if (nl > 0) {
         Gpu::copy(Gpu::deviceToHost, r.data(), r.data()+nl, loc.begin());
