@@ -12,8 +12,10 @@
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <limits>
+#include <type_traits>
 
 namespace amrex {
 
@@ -269,6 +271,161 @@ namespace Reduce::detail {
         P().init(amrex::get<Idx>(t));
         for_each_init<Idx+1,T,P1,Ps...>(t);
     }
+
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
+
+    // Whether values of type T can be passed between the threads of a warp
+    // with shuffles.
+    template <typename T>
+    inline constexpr bool is_warp_shuffleable_v =
+        std::is_trivially_copyable_v<T> &&
+        (sizeof(T) % sizeof(unsigned int) == 0) &&
+        !std::is_same_v<std::remove_cv_t<T>, long double>;
+
+    template <typename T>
+    struct is_warp_shuffleable_tuple : std::false_type {};
+
+    template <typename... Ts>
+    struct is_warp_shuffleable_tuple<GpuTuple<Ts...>>
+        : std::bool_constant<(is_warp_shuffleable_v<Ts> && ...)> {};
+
+    // Raw storage for a tuple in shared memory, which cannot hold objects
+    // with non-trivial constructors.
+    template <typename T>
+    struct BlockReduceStorage
+    {
+        alignas(T) unsigned char data[sizeof(T)];
+    };
+
+    // The smallest power of two that is not smaller than n. This is not
+    // std::bit_ceil, because some standard libraries assert in it, which
+    // Clang rejects in device code.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr int block_reduce_pow2_ceil (int n) noexcept
+    {
+        int p = 1;
+        while (p < n) { p *= 2; }
+        return p;
+    }
+
+    // Upper bound for the shared memory that block_reduce uses per block
+    inline constexpr std::size_t block_reduce_max_shared_bytes = 16384;
+
+    // Whether block_reduce reduces all components of the tuple T together.
+    // For that, the block must consist of full warps, at most as many as
+    // there are threads in a warp, and their tuples must fit in the shared
+    // memory budget.
+    template <typename T>
+    inline constexpr bool is_block_reduce_fused_v =
+        is_warp_shuffleable_tuple<T>::value &&
+        (AMREX_GPU_MAX_THREADS % Gpu::Device::warp_size == 0) &&
+        (AMREX_GPU_MAX_THREADS / Gpu::Device::warp_size <= Gpu::Device::warp_size) &&
+        (sizeof(BlockReduceStorage<T>) * (AMREX_GPU_MAX_THREADS / Gpu::Device::warp_size)
+         <= block_reduce_max_shared_bytes);
+
+    template <typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T warp_shuffle_down (T const& x, int offset) noexcept
+    {
+        // The shuffle intrinsics take the arithmetic types of 4 and 8 bytes.
+        // Everything else is passed in words.
+        if constexpr (std::is_arithmetic_v<T> && (sizeof(T) <= sizeof(unsigned long long))) {
+            return Gpu::detail::shuffle_down(x, offset);
+        } else {
+            return Gpu::detail::multi_shuffle_down(x, offset);
+        }
+    }
+
+    // Reduce each component of the tuples of the first N threads of a warp,
+    // for N a power of two. The result is in the first thread of the warp.
+    template <int N, std::size_t Idx, typename T, typename P, typename... Ps>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void for_each_warp_reduce (T& t) noexcept
+    {
+        auto& x = amrex::get<Idx>(t);
+        for (int offset = N/2; offset > 0; offset /= 2) {
+            P().local_update(x, warp_shuffle_down(x, offset));
+        }
+        if constexpr (sizeof...(Ps) > 0) {
+            for_each_warp_reduce<N,Idx+1,T,Ps...>(t);
+        }
+    }
+
+    // Reduce the tuples s of all threads of a block and store the result in
+    // d, in the first thread of the block.
+    //
+    // This must be called by all threads of a block of AMREX_GPU_MAX_THREADS
+    // threads, and at most once in a kernel.
+    //
+    // The components of the tuple are reduced together: within each warp
+    // with shuffles, and then the first warp does the same with the results
+    // of all warps, which are passed through shared memory with a single
+    // barrier. Reducing the components one after another instead takes a
+    // block reduction with its own barriers per component, which costs as
+    // much as evaluating several items for tuples with many components.
+    template <typename T, typename... Ps>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_reduce (T& d, T const& s) noexcept
+    {
+        if constexpr (is_block_reduce_fused_v<T>) {
+            constexpr int warp_size = Gpu::Device::warp_size;
+            constexpr int nwarps = AMREX_GPU_MAX_THREADS / warp_size;
+            T r = s;
+            for_each_warp_reduce<warp_size,0,T,Ps...>(r);
+            if constexpr (nwarps > 1) {
+                constexpr int nwarps_pow2 = block_reduce_pow2_ceil(nwarps);
+                __shared__ BlockReduceStorage<T> shared[nwarps];
+                const int lane = static_cast<int>(threadIdx.x) % warp_size;
+                const int warp = static_cast<int>(threadIdx.x) / warp_size;
+                if (lane == 0) {
+                    Gpu::memcpy(shared[warp].data, &r, sizeof(T));
+                }
+                __syncthreads();
+                // The stores to d are in the same branch as the reduction on
+                // purpose: this keeps the number of registers per thread, and
+                // with it the number of blocks that fit on the device, close
+                // to what the items need.
+                if (warp == 0) {
+                    // Thread i of the first warp takes over the result of
+                    // warp i. The other threads do not contribute.
+                    Gpu::memcpy(&r, shared[(lane < nwarps) ? lane : 0].data, sizeof(T));
+                    if constexpr (nwarps != nwarps_pow2) {
+                        if (lane >= nwarps) { for_each_init<0,T,Ps...>(r); }
+                    }
+                    for_each_warp_reduce<nwarps_pow2,0,T,Ps...>(r);
+                    if (lane == 0) { d = r; }
+                }
+            } else {
+                if (threadIdx.x == 0) { d = r; }
+            }
+        } else {
+            if (threadIdx.x == 0) { for_each_init<0,T,Ps...>(d); }
+            for_each_parallel<0,T,Ps...>(d, s);
+        }
+    }
+
+#endif
+
+#ifdef AMREX_USE_GPU
+    // Start the reduction of a block: initialize the tuple r that this thread
+    // reduces its items into. d is the result of the block, which holds the
+    // result of an earlier reduction to continue if d_has_value is true.
+    template <typename T, typename... Ps>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_reduce_init (T& r, T& d, bool is_first_thread, bool d_has_value) noexcept
+    {
+        for_each_init<0,T,Ps...>(r);
+#ifdef AMREX_USE_SYCL
+        // d is updated with the result of the block at the end
+        if (is_first_thread && !d_has_value) { d = r; }
+#else
+        // block_reduce stores the result of the block in d at the end. The
+        // first thread continues from the previous value here, instead of
+        // updating d there, where the result of the block is in registers.
+        if (is_first_thread && d_has_value) { r = d; }
+#endif
+    }
+#endif
 }
 /// \endcond
 
@@ -637,11 +794,9 @@ public:
             {
 #endif
                 ReduceTuple r;
-                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
                 ReduceTuple& dst = pdst[blockIdx.x];
-                if (threadIdx.x == 0 && blockIdx.x >= old_nblocks) {
-                    dst = r;
-                }
+                Reduce::detail::block_reduce_init<ReduceTuple, Ps...>
+                    (r, dst, threadIdx.x == 0, blockIdx.x < old_nblocks);
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
                     int ibox = iblock / nblocks_per_box;
                     auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
@@ -656,7 +811,7 @@ public:
 #ifdef AMREX_USE_SYCL
                 Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+                Reduce::detail::block_reduce<ReduceTuple, Ps...>(dst, r);
 #endif
             });
         }
@@ -694,11 +849,9 @@ public:
         {
 #endif
             ReduceTuple r;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
-            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
-                dst = r;
-            }
+            Reduce::detail::block_reduce_init<ReduceTuple, Ps...>
+                (r, dst, threadIdx.x == 0, static_cast<int>(blockIdx.x) < nblocks);
             for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
                  stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
                  icell < indexer.numPts();
@@ -719,7 +872,7 @@ public:
 #ifdef AMREX_USE_SYCL
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+            Reduce::detail::block_reduce<ReduceTuple, Ps...>(dst, r);
 #endif
         });
         nblocks = std::max(nblocks, static_cast<int>(nblocks_ec));
@@ -823,11 +976,9 @@ public:
         {
 #endif
             ReduceTuple r;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
-            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
-                dst = r;
-            }
+            Reduce::detail::block_reduce_init<ReduceTuple, Ps...>
+                (r, dst, threadIdx.x == 0, static_cast<int>(blockIdx.x) < nblocks);
             for (Long i = Long(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
                  stride = Long(AMREX_GPU_MAX_THREADS)*gridDim.x;
                  i < Long(n);
@@ -839,7 +990,7 @@ public:
 #ifdef AMREX_USE_SYCL
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+            Reduce::detail::block_reduce<ReduceTuple, Ps...>(dst, r);
 #endif
         });
         nblocks = amrex::max(nblocks, nblocks_ec);
@@ -921,7 +1072,7 @@ public:
                         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
                     }
                 }
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+                Reduce::detail::block_reduce<ReduceTuple, Ps...>(dst, r);
                 if (threadIdx.x == 0) { *hp = dst; }
             });
 #endif

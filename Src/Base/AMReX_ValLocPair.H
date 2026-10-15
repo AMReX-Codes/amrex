@@ -12,9 +12,9 @@ struct ValLocPair
     TI index;
 
     constexpr TV&       first  ()       { return value; }
-    constexpr TV const& first  () const { return value; }
+    [[nodiscard]] constexpr TV const& first  () const { return value; }
     constexpr TI&       second ()       { return index; }
-    constexpr TI const& second () const { return index; }
+    [[nodiscard]] constexpr TI const& second () const { return index; }
 
     static constexpr ValLocPair<TV,TI> max () {
         return ValLocPair<TV,TI>{std::numeric_limits<TV>::max(), TI()};

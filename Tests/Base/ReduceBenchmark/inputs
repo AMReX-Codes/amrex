@@ -1,0 +1,14 @@
+# Number of items of the reductions over an index range
+nitems = 1000 100000 1000000
+
+# Reductions over the cells of a MultiFab: cells per direction of the cubic
+# domain, which is chopped into boxes of at most max_grid_size cells per
+# direction
+ncell = 32 64
+max_grid_size = 32
+
+nwarmup = 2
+nrepeat = 20
+
+# tests to run (default: all)
+#tests = sum1 minmax2 sum8 moments46
