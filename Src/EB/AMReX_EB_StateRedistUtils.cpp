@@ -181,7 +181,7 @@ MakeStateRedistUtils ( Box const& bx,
     {
         if (!flag(i,j,k).isCovered())
         {
-            nbhd_vol(i,j,k)  = alpha(i,j,k,0) * vfrac(i,j,k);
+            Real local_nbhd_vol = alpha(i,j,k,0) * vfrac(i,j,k);
 
             // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
@@ -189,8 +189,10 @@ MakeStateRedistUtils ( Box const& bx,
                 int r = i+imap[itracker(i,j,k,i_nbor)];
                 int s = j+jmap[itracker(i,j,k,i_nbor)];
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
-                amrex::Gpu::Atomic::Add(&nbhd_vol(i,j,k),alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t));
+                local_nbhd_vol += alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
             }
+
+            nbhd_vol(i,j,k) = local_nbhd_vol;
         } else {
             nbhd_vol(i,j,k) = 0.;
         }
