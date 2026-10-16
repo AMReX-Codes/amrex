@@ -1243,30 +1243,12 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
     const Box& bx = levelset.box();
     auto const& a = levelset.array();
 
-#if (AMREX_SPACEDIM == 3)
-    // Number of nodes on the surface. Without any, no saddles to resolve.
-    bool const on_gpu = Gpu::inLaunchRegion();
-    Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
-    auto* const nzero = static_cast<int*>(arena->alloc(sizeof(int)));
-#ifdef AMREX_USE_GPU
-    if (on_gpu) {
-        amrex::single_task([=] AMREX_GPU_DEVICE () noexcept { *nzero = 0; });
-    } else
-#endif
-    {
-        *nzero = 0;
-    }
-#endif
-
     enum bvh_opt_options : int { no_bvh, yes_bvh };
     int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
 
-    AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
-           {bvh_opt_runtime_option},
-           [&] (auto cto_func) {
-               ParallelFor(Gpu::KernelInfo().setReduction(AMREX_SPACEDIM == 3), bx, cto_func);
-           },
-           [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& h, auto control) noexcept
+    ParallelFor(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+                {bvh_opt_runtime_option},
+                bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
     {
         Real coords[3];
         coords[0]=node_coord(plo[0], i, dx[0]);
@@ -1287,53 +1269,7 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
         // a node on the surface belongs to the body, like a zero level set
         a(i,j,k) = (parity == 2) ? 0.0_rt
                  : ((parity == 0) ? reference_value : other_value);
-#if (AMREX_SPACEDIM == 3)
-        Gpu::deviceReduceSum(nzero, int(parity == 2), h);
-#else
-        amrex::ignore_unused(h);
-#endif
     });
-
-#if (AMREX_SPACEDIM == 3)
-    int nz = 0;
-    if (on_gpu) {
-        Gpu::dtoh_memcpy(&nz, nzero, sizeof(int));
-    } else {
-        nz = *nzero;
-    }
-    if (nz > 0) {
-        // One more node layer, see GeometryShop::fillFab.
-        const Box gbx = amrex::grow(bx, 1);
-        BaseFab<Real> gfab(gbx, 1, arena);
-        auto const& g = gfab.array();
-        AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
-               {bvh_opt_runtime_option},
-               [&] (auto cto_func) { ParallelFor(gbx, cto_func); },
-               [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
-        {
-            if (bx.contains(IntVect(i,j,k))) {
-                g(i,j,k) = a(i,j,k);
-                return;
-            }
-            Real coords[3];
-            coords[0]=node_coord(plo[0], i, dx[0]);
-            coords[1]=node_coord(plo[1], j, dx[1]);
-            coords[2]=node_coord(plo[2], k, dx[2]);
-            int parity = 0;
-            if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
-                coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
-                coords[2] >= ptmin.z && coords[2] <= ptmax.z)
-            {
-                parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
-                                                             tri_pts, num_triangles, bbmin, bbmax);
-            }
-            g(i,j,k) = (parity == 2) ? 0.0_rt
-                     : ((parity == 0) ? reference_value : other_value);
-        });
-        EB2::ResolveZeroSaddles(gfab, levelset, RunOn::Gpu);
-    }
-    arena->free(nzero);
-#endif
     Gpu::streamSynchronize();
 }
 
@@ -1381,15 +1317,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                          .z = node_coord(plo[2], k, dx[2])
 #endif
                 };
-                IntVect ivlo(AMREX_D_DECL(i,j,k));
-                IntVect ivhi = ivlo;
-                ivhi[idim] += 1;
-                // An end on the surface takes the intercept; no search needed.
-                if (lst(ivlo) == EB2::on_surface_fluid) {
-                    r = node_coord(plo[idim], ivlo[idim], dx[idim]);
-                } else if (lst(ivhi) == EB2::on_surface_fluid) {
-                    r = node_coord(plo[idim], ivhi[idim], dx[idim]);
-                } else if (idim == 0) {
+                if (idim == 0) {
                     Real x2 = node_coord(plo[0], i+1, dx[0]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
@@ -1554,10 +1482,8 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                     IntVect ivhi = ivlo;
                     ivhi[idim] += 1;
                     // An irregular edge has one end below zero and one at or
-                    // above.  As in getIntercept, an on_surface_fluid end takes
-                    // the intercept, else the body end.
-                    bool const at_lo = (lst(ivlo) == EB2::on_surface_fluid) ||
-                                       (lst(ivhi) != EB2::on_surface_fluid && lst(ivlo) >= Real(0.0));
+                    // above.  The intercept is at the body end.
+                    bool const at_lo = lst(ivlo) >= Real(0.0);
                     int const inode = at_lo ? ivlo[idim] : ivhi[idim];
                     inter(i,j,k) = node_coord(problo[idim], inode, dx[idim]);
                 }

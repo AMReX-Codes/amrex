@@ -337,95 +337,6 @@ ZeroEndIntercept (F const& f, IntVect const& ivz, int rangedir, int side,
     return (std::abs(a - x0) <= node_tol) ? x0 : a;
 }
 
-//! Level set of a node on the surface that is placed on the fluid side
-inline constexpr Real on_surface_fluid = -std::numeric_limits<Real>::min();
-
-// A node on the surface (zero level set) whose diagonal neighbor on a face is
-// body while the other two corners are fluid makes the face look cut twice,
-// although the body only touches the face along a line.  Such a node is put
-// on the fluid side, unless that makes the opposite pattern on another face.
-// Of two diagonal nodes of a face whose other corners are body, only one
-// moves, or the face would be cut twice.
-// The decision needs the snapped level set one layer beyond the levelset box.
-// Only in 3D: in 2D the two edges from such a node get aperture 1, so the
-// cell is cut once anyway.
-#if (AMREX_SPACEDIM == 3)
-inline void ResolveZeroSaddles (BaseFab<Real> const& snapped, BaseFab<Real>& levelset,
-                                RunOn run_on)
-{
-    const Box& bx = levelset.box();
-    const Box gbx = amrex::grow(bx, 1);
-    bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
-    BaseFab<Real> tmp(gbx, 1, on_gpu ? The_Async_Arena() : The_Cpu_Arena());
-    auto const& t = tmp.array();
-    auto const& tc = tmp.const_array();
-    auto const& s = snapped.const_array();
-    auto const& a = levelset.array();
-    // Candidates get on_surface_fluid in t, which is the snapped level set otherwise.
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
-    {
-        Real v = s(i,j,k);
-        if (v == 0.0_rt) {
-            IntVect const iv(AMREX_D_DECL(i,j,k));
-            bool body_saddle = false;
-            bool fluid_saddle = false;
-            for (int d = 0; d < 3; ++d) { // face normal
-                int const u = (d+1)%3;
-                int const w = (d+2)%3;
-                for (int su = -1; su <= 1; su += 2) {
-                    for (int sw = -1; sw <= 1; sw += 2) {
-                        IntVect ib = iv;
-                        IntVect ie = iv;
-                        ib[u] += su;
-                        ie[w] += sw;
-                        IntVect ic = ib;
-                        ic[w] += sw;
-                        if (s.contains(ib) && s.contains(ie) && s.contains(ic)) {
-                            bool const cb = s(ic) >= 0.0_rt;
-                            bool const bb = s(ib) >= 0.0_rt;
-                            bool const eb = s(ie) >= 0.0_rt;
-                            body_saddle = body_saddle || (cb && !bb && !eb);
-                            fluid_saddle = fluid_saddle || (!cb && bb && eb);
-                        }
-                    }
-                }
-            }
-            if (body_saddle && !fluid_saddle) { v = on_surface_fluid; }
-        }
-        t(i,j,k) = v;
-    });
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
-    {
-        Real v = tc(i,j,k);
-        if (v == on_surface_fluid) {
-            IntVect const iv(AMREX_D_DECL(i,j,k));
-            for (int d = 0; d < 3; ++d) {
-                int const u = (d+1)%3;
-                int const w = (d+2)%3;
-                for (int su = -1; su <= 1; su += 2) {
-                    for (int sw = -1; sw <= 1; sw += 2) {
-                        IntVect ib = iv;
-                        IntVect ie = iv;
-                        ib[u] += su;
-                        ie[w] += sw;
-                        IntVect ic = ib;
-                        ic[w] += sw;
-                        bool const bb = tc(ib) >= 0.0_rt || tc(ib) == on_surface_fluid;
-                        bool const eb = tc(ie) >= 0.0_rt || tc(ie) == on_surface_fluid;
-                        // The one with the lower index moves.
-                        if (tc(ic) == on_surface_fluid && bb && eb &&
-                            ic[amrex::max(u,w)] < iv[amrex::max(u,w)]) {
-                            v = 0.0_rt;
-                        }
-                    }
-                }
-            }
-        }
-        a(i,j,k) = v;
-    });
-}
-#endif
-
 /**
  * \brief Samples an implicit function on boxes and fills EB data.
  *
@@ -640,25 +551,17 @@ public:
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        // In 3D one more node layer, so that ResolveZeroSaddles gives the
-        // nodes of the cells built from this fab the same values as in
-        // neighboring fabs, and another one for the neighbors in the
-        // roundoff tolerance.
-#if (AMREX_SPACEDIM == 3)
+        // One more node layer for the neighbors in the roundoff tolerance.
         const Box gbx = amrex::grow(bx, 1);
-#else
-        const Box& gbx = bx;
-#endif
-        const Box gbx2 = amrex::grow(gbx, 1);
         // Nodes outside the bounding box take the values of the nearest node in it.
-        const Box ibx = gbx & bounding_box;
-        const Box ibx2 = gbx2 & bounding_box;
+        const Box ibx = bx & bounding_box;
+        const Box ibx2 = gbx & bounding_box;
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
         const auto& f = m_f;
         bool const on_gpu = (run_on == RunOn::Gpu) && Gpu::inLaunchRegion();
         Arena* const arena = on_gpu ? The_Async_Arena() : The_Cpu_Arena();
-        BaseFab<Real> ffab(gbx2, 1, arena);
+        BaseFab<Real> ffab(gbx, 1, arena);
         auto const& fv = ffab.array();
         auto const& fc = ffab.const_array();
         // Range of the sampled values, for IF_tolmax, without a host sync.
@@ -699,8 +602,8 @@ public:
             pmm[0] = vmin;
             pmm[1] = vmax;
         }
-        if (ibx2 != gbx2) {
-            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx2, i, j, k,
+        if (ibx2 != gbx) {
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
             {
                 amrex::ignore_unused(k);
                 IntVect const iv(AMREX_D_DECL(i,j,k));
@@ -715,12 +618,7 @@ public:
         }
 
         // Nodes on the surface within roundoff get a zero level set.
-#if (AMREX_SPACEDIM == 3)
-        BaseFab<Real> sfab(gbx, 1, arena);
-        auto const& s = sfab.array();
-#else
         auto const& s = levelset.array();
-#endif
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
         AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, ibx, i, j, k,
@@ -734,8 +632,8 @@ public:
                 ? 0.0_rt : v;
         });
         arena->free(pmm);
-        if (ibx != gbx) {
-            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, gbx, i, j, k,
+        if (ibx != bx) {
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
             {
                 amrex::ignore_unused(k);
                 IntVect const iv(AMREX_D_DECL(i,j,k));
@@ -748,9 +646,6 @@ public:
                 }
             });
         }
-#if (AMREX_SPACEDIM == 3)
-        ResolveZeroSaddles(sfab, levelset, run_on);
-#endif
     }
 
     //! CPU-only overload of fillFab().
@@ -782,18 +677,13 @@ public:
         const auto& dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         // See the GPU version.
-#if (AMREX_SPACEDIM == 3)
         const Box gbx = amrex::grow(bx, 1);
-#else
-        const Box& gbx = bx;
-#endif
-        const Box gbx2 = amrex::grow(gbx, 1);
-        const Box ibx = gbx & bounding_box;
-        const Box ibx2 = gbx2 & bounding_box;
+        const Box ibx = bx & bounding_box;
+        const Box ibx2 = gbx & bounding_box;
         IntVect const bloiv = bounding_box.smallEnd();
         IntVect const bhiiv = bounding_box.bigEnd();
 
-        BaseFab<Real> ffab(gbx2, 1, The_Cpu_Arena());
+        BaseFab<Real> ffab(gbx, 1, The_Cpu_Arena());
         const auto& fv = ffab.array();
         const auto& fc = ffab.const_array();
         Real vmin = std::numeric_limits<Real>::max();
@@ -808,8 +698,8 @@ public:
             vmin = amrex::min(vmin, v);
             vmax = amrex::max(vmax, v);
         });
-        if (ibx2 != gbx2) {
-            amrex::LoopOnCpu(gbx2, [&] (int i, int j, int k) noexcept
+        if (ibx2 != gbx) {
+            amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(k);
                 IntVect const iv(AMREX_D_DECL(i,j,k));
@@ -824,16 +714,10 @@ public:
         }
 
         // Nodes on the surface within roundoff get a zero level set.
-#if (AMREX_SPACEDIM == 3)
-        BaseFab<Real> sfab(gbx, 1, The_Cpu_Arena());
-        auto const& s = sfab.array();
-#else
         auto const& s = levelset.array();
-#endif
         auto const invd2 = IF_invdist2(dx);
         auto const size = IF_size(problo, geom.ProbHiArray());
         Real const tolmax = IF_tolmax(vmin, vmax, invd2, size);
-        Long nzero = 0;
         amrex::LoopOnCpu(ibx, [&] (int i, int j, int k) noexcept
         {
             IntVect const iv(AMREX_D_DECL(i,j,k));
@@ -842,10 +726,9 @@ public:
                         std::abs(v) <= IF_roundoff(m_f, iv, v, fc, problo, dx, invd2, size,
                                                    bloiv, bhiiv))
                 ? 0.0_rt : v;
-            if (s(i,j,k) == 0.0_rt) { ++nzero; }
         });
-        if (ibx != gbx) {
-            amrex::LoopOnCpu(gbx, [&] (int i, int j, int k) noexcept
+        if (ibx != bx) {
+            amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(k);
                 IntVect const iv(AMREX_D_DECL(i,j,k));
@@ -858,15 +741,6 @@ public:
                 }
             });
         }
-#if (AMREX_SPACEDIM == 3)
-        if (nzero > 0) {
-            ResolveZeroSaddles(sfab, levelset, RunOn::Cpu);
-        } else {
-            levelset.copy<RunOn::Cpu>(sfab, bx); // no zero node to move
-        }
-#else
-        amrex::ignore_unused(nzero);
-#endif
     }
 
 
@@ -906,13 +780,7 @@ public:
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
                     ivhi[idim] += 1;
-                    if (lst(ivlo) == on_surface_fluid) {
-                        inter(i,j,k) = node_coord(problo[idim],
-                            amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
-                    } else if (lst(ivhi) == on_surface_fluid) {
-                        inter(i,j,k) = node_coord(problo[idim],
-                            amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
-                    } else if (lst(ivlo) == 0.0_rt) {
+                    if (lst(ivlo) == 0.0_rt) {
                         inter(i,j,k) = ZeroEndIntercept(f, ivlo, idim, 1, lst, problo, dx, size,
                                                         bloiv, bhiiv);
                     } else if (lst(ivhi) == 0.0_rt) {
@@ -1004,13 +872,7 @@ public:
                 IntVect ivlo(AMREX_D_DECL(i,j,k));
                 IntVect ivhi(AMREX_D_DECL(i,j,k));
                 ivhi[idim] += 1;
-                if (lst(ivlo) == on_surface_fluid) {
-                    inter(i,j,k) = node_coord(problo[idim],
-                        amrex::Clamp(ivlo[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
-                } else if (lst(ivhi) == on_surface_fluid) {
-                    inter(i,j,k) = node_coord(problo[idim],
-                        amrex::Clamp(ivhi[idim],bloiv[idim],bhiiv[idim]), dx[idim]);
-                } else if (lst(ivlo) == 0.0_rt) {
+                if (lst(ivlo) == 0.0_rt) {
                     inter(i,j,k) = ZeroEndIntercept(m_f, ivlo, idim, 1, lst, problo, dx, size,
                                                     bloiv, bhiiv);
                 } else if (lst(ivhi) == 0.0_rt) {
@@ -1065,10 +927,8 @@ public:
                         IntVect ivhi = ivlo;
                         ivhi[idim] += 1;
                         // An irregular edge has one end below zero and one at or
-                        // above.  As in getIntercept, an on_surface_fluid end takes
-                        // the intercept, else the body end.
-                        bool const at_lo = (lst(ivlo) == on_surface_fluid) ||
-                                           (lst(ivhi) != on_surface_fluid && lst(ivlo) >= Real(0.0));
+                        // above.  The intercept is at the body end.
+                        bool const at_lo = lst(ivlo) >= Real(0.0);
                         int const inode = at_lo ? ivlo[idim] : ivhi[idim];
                         inter(i,j,k) = node_coord(problo[idim], inode, dx[idim]);
                     }
