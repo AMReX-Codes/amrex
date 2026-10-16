@@ -1,0 +1,4 @@
+WEXE_headers += WMLES_divop_K.H
+WEXE_headers += WMLES_hydro_K.H
+WEXE_headers += WMLES_hydro_eb_K.H
+
