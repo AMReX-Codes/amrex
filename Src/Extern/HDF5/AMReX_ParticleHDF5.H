@@ -442,54 +442,8 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CheckpointPreHDF5 ()
 {
-    if( ! usePrePost) {
-        return;
-    }
-
-    BL_PROFILE("ParticleContainer::CheckpointPre()");
-
-    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    Long nparticles = 0;
-    Long  maxnextid  = ParticleType::NextID();
-
-    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
-        const auto& pmap = m_particles[lev];
-        for (const auto& kv : pmap) {
-            const auto& aos = kv.second.GetArrayOfStructs();
-            for (int k = 0; k < aos.numParticles(); ++k) {
-                const ParticleType& p = aos[k];
-                if (p.id().is_valid()) {
-                    //
-                    // Only count (and checkpoint) valid particles.
-                    //
-                    nparticles++;
-                }
-            }
-        }
-    }
-    ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
-
-    ParticleType::NextID(maxnextid);
-    ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
-
-    nparticlesPrePost = nparticles;
-    maxnextidPrePost  = maxnextid;
-
-    nParticlesAtLevelPrePost.clear();
-    nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
-    for(int lev(0); lev <= finestLevel(); ++lev) {
-        nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
-    }
-
-    whichPrePost.clear();
-    whichPrePost.resize(finestLevel() + 1);
-    countPrePost.clear();
-    countPrePost.resize(finestLevel() + 1);
-    wherePrePost.clear();
-    wherePrePost.resize(finestLevel() + 1);
-
-    filePrefixPrePost.clear();
-    filePrefixPrePost.resize(finestLevel() + 1);
+    // The pre-checkpoint bookkeeping does not depend on the file format.
+    CheckpointPre();
 }
 
 
