@@ -78,9 +78,9 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     // if this reduction call is occurring multiple times in a kernel,
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
-    h.item->barrier(sycl::access::fence_space::local_space);
+    h.syncThreads();
     if (lane == 0) { shared[wid] = x; }
-    h.item->barrier(sycl::access::fence_space::local_space);
+    h.syncThreads();
     x = x0;
     if (wid == 0) {
         // numwarps can be greater than warpSize. So warp 0 folds the
