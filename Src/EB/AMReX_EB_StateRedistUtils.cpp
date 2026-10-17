@@ -80,7 +80,9 @@ MakeStateRedistUtils ( Box const& bx,
 
     // Cells with a nonempty tracker are sparse for the usual EB workload. Build
     // their coordinates once and reuse them in every variable-length neighbor loop.
+    // Initialize nrs and alpha in the scan output pass to avoid another dense launch.
     Long const num_candidates = bxg5.numPts();
+    Long const num_alpha_candidates = bxg4.numPts();
     Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
     Dim3* const active_cells = active_cells_v.data();
     int const num_active_cells = Scan::PrefixSum<int>(
@@ -93,37 +95,27 @@ MakeStateRedistUtils ( Box const& bx,
         [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
         {
             Dim3 const cell = bxg5.atOffset(offset).dim3();
+
+            nrs(cell.x,cell.y,cell.z) = 1.0_rt;
+
+            if (offset < num_alpha_candidates) {
+                Dim3 const acell = bxg4.atOffset(offset).dim3();
+                Real const value = flag(acell.x,acell.y,acell.z).isCovered()
+                    ? 0.0_rt : 1.0_rt;
+                alpha(acell.x,acell.y,acell.z,0) = value;
+                alpha(acell.x,acell.y,acell.z,1) = value;
+            }
+
             if (itracker(cell.x,cell.y,cell.z,0) > 0) {
                 active_cells[active_offset] = cell;
             }
         },
         Scan::Type::exclusive, Scan::retSum);
 
-    // ****************************************************************************************
-    // INITIALIZING NRS AND ALPHA
-    // ****************************************************************************************
-    //
     // Need nrs in bxg5 in order to compute alpha in bxg4
     // nrs captures how many neighborhoods (r,s,t) is in
     // Need alpha in bxg4 in order to define cent_hat in bxg3
     // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
-    //
-    amrex::ParallelFor(bxg5, bxg4,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        // Everyone is in their own neighborhood at least
-        nrs(i,j,k) = 1.;
-    },
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        if (flag(i,j,k).isCovered()) {
-            alpha(i,j,k,0) = 0.;
-            alpha(i,j,k,1) = 0.;
-        } else {
-            alpha(i,j,k,0) = 1.;
-            alpha(i,j,k,1) = 1.;
-        }
-    });
 
     // Scatter neighborhood counts and construct local alpha only for active cells.
     amrex::ParallelFor(num_active_cells,
