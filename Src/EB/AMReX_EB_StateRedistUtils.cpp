@@ -200,17 +200,24 @@ MakeStateRedistUtils ( Box const& bx,
     amrex::ParallelFor(bxg3,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        Real const cell_vfrac = vfrac(i,j,k);
-        nbhd_vol(i,j,k) = flag(i,j,k).isCovered() ? 0.0 : alpha(i,j,k,0) * cell_vfrac;
+        auto const cell_flag = flag(i,j,k);
 
-        if (cell_vfrac > 0.0) {
-            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
-                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
-                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
-        } else {
+        if (cell_flag.isRegular()) {
+            nbhd_vol(i,j,k) = alpha(i,j,k,0);
+            AMREX_D_TERM(cent_hat(i,j,k,0) = 0.0_rt;,
+                         cent_hat(i,j,k,1) = 0.0_rt;,
+                         cent_hat(i,j,k,2) = 0.0_rt;);
+        } else if (cell_flag.isCovered()) {
+            nbhd_vol(i,j,k) = 0.0_rt;
             AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
                          cent_hat(i,j,k,1) = eb_covered_val;,
                          cent_hat(i,j,k,2) = eb_covered_val;);
+        } else {
+            Real const cell_vfrac = vfrac(i,j,k);
+            nbhd_vol(i,j,k) = alpha(i,j,k,0) * cell_vfrac;
+            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
+                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
+                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
         }
     });
 
