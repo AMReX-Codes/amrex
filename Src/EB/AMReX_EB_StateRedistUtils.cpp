@@ -95,7 +95,6 @@ MakeStateRedistUtils ( Box const& bx,
             auto const cell_flag = flag(i,j,k);
             Real const value = cell_flag.isCovered() ? 0.0_rt : 1.0_rt;
             alpha(i,j,k,0) = value;
-            alpha(i,j,k,1) = value;
 
             if (bxg3.contains(i,j,k)) {
                 if (cell_flag.isRegular()) {
