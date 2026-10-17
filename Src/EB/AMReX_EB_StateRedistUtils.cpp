@@ -3,6 +3,8 @@
  */
 
 #include <AMReX_EB_Redistribution.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_Scan.H>
 
 // Neighbor index lookup tables in constant memory for efficient GPU access
 // These map neighbor indices to (i,j,k) offsets
@@ -76,8 +78,29 @@ MakeStateRedistUtils ( Box const& bx,
     if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
 
+    // Cells with a nonempty tracker are sparse for the usual EB workload. Build
+    // their coordinates once and reuse them in every variable-length neighbor loop.
+    Long const num_candidates = bxg5.numPts();
+    Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
+    Dim3* const active_cells = active_cells_v.data();
+    int const num_active_cells = Scan::PrefixSum<int>(
+        num_candidates,
+        [=] AMREX_GPU_DEVICE (Long offset) noexcept -> int
+        {
+            Dim3 const cell = bxg5.atOffset(offset).dim3();
+            return itracker(cell.x,cell.y,cell.z,0) > 0;
+        },
+        [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
+        {
+            Dim3 const cell = bxg5.atOffset(offset).dim3();
+            if (itracker(cell.x,cell.y,cell.z,0) > 0) {
+                active_cells[active_offset] = cell;
+            }
+        },
+        Scan::Type::exclusive, Scan::retSum);
+
     // ****************************************************************************************
-    // INITIALIZING NRS AND DEFINING LOCAL ALPHA
+    // INITIALIZING NRS AND ALPHA
     // ****************************************************************************************
     //
     // Need nrs in bxg5 in order to compute alpha in bxg4
@@ -98,42 +121,45 @@ MakeStateRedistUtils ( Box const& bx,
             alpha(i,j,k,1) = 0.;
         } else {
             alpha(i,j,k,0) = 1.;
-
-            int const num_neighbors = itracker(i,j,k,0);
-            if (num_neighbors > 0) {
-                Real vol_of_nbors = 0.;
-
-                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-                for (int i_nbor = 1; i_nbor <= num_neighbors; i_nbor++)
-                {
-                    int const r = i+imap[itracker(i,j,k,i_nbor)];
-                    int const s = j+jmap[itracker(i,j,k,i_nbor)];
-                    int const t = k+kmap[itracker(i,j,k,i_nbor)];
-                    vol_of_nbors += vfrac(r,s,t);
-                }
-
-                alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
-            } else {
-                alpha(i,j,k,1) = 1.;
-            }
+            alpha(i,j,k,1) = 1.;
         }
     });
 
-    // Scatter neighborhood counts after initializing all of nrs.
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    // Scatter neighborhood counts and construct local alpha only for active cells.
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
+
         // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
         for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
         {
-            int r = i+imap[itracker(i,j,k,i_nbor)];
-            int s = j+jmap[itracker(i,j,k,i_nbor)];
-            int t = k+kmap[itracker(i,j,k,i_nbor)];
-            if ( domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
-                 bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))) )
+            int const r = i+imap[itracker(i,j,k,i_nbor)];
+            int const s = j+jmap[itracker(i,j,k,i_nbor)];
+            int const t = k+kmap[itracker(i,j,k,i_nbor)];
+            if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
+                bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))))
             {
                 amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.0_rt);
             }
+        }
+
+        if (bxg4.contains(IntVect(AMREX_D_DECL(i,j,k))) &&
+            !flag(i,j,k).isCovered())
+        {
+            Real vol_of_nbors = 0.;
+            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+            for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
+            {
+                int const r = i+imap[itracker(i,j,k,i_nbor)];
+                int const s = j+jmap[itracker(i,j,k,i_nbor)];
+                int const t = k+kmap[itracker(i,j,k,i_nbor)];
+                vol_of_nbors += vfrac(r,s,t);
+            }
+            alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
         }
     });
     //
@@ -144,9 +170,14 @@ MakeStateRedistUtils ( Box const& bx,
     //
     // Must loop over (i,j,k) in bxg5 in order to define alpha(r,s,t) in bxg4
     //
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
+
         if (!flag(i,j,k).isCovered())
         {
             // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
@@ -172,67 +203,85 @@ MakeStateRedistUtils ( Box const& bx,
     //    and vfrac and nrs in bxg4
     // Need cent_hat(xhat,yhat,zhat) in bxg3 to compute slopes in bxg1
     //
+    // Initialize values required by downstream stencils for every cell. The
+    // sparse kernel below only applies the neighbor corrections.
     amrex::ParallelFor(bxg3,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        bool const is_uncovered = !flag(i,j,k).isCovered();
         Real const cell_vfrac = vfrac(i,j,k);
-        int const num_neighbors = itracker(i,j,k,0);
-        bool const weight_centroid = cell_vfrac > 0.0 && num_neighbors > 0 &&
-            domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)));
-
-        Real local_nbhd_vol = is_uncovered
-            ? alpha(i,j,k,0) * cell_vfrac
-            : 0.0;
-
-        AMREX_D_TERM(Real local_cent_hat_x = eb_covered_val;,
-                     Real local_cent_hat_y = eb_covered_val;,
-                     Real local_cent_hat_z = eb_covered_val;);
+        nbhd_vol(i,j,k) = flag(i,j,k).isCovered() ? 0.0 : alpha(i,j,k,0) * cell_vfrac;
 
         if (cell_vfrac > 0.0) {
-            AMREX_D_TERM(local_cent_hat_x = ccent(i,j,k,0);,
-                         local_cent_hat_y = ccent(i,j,k,1);,
-                         local_cent_hat_z = ccent(i,j,k,2););
+            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
+                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
+                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
+        } else {
+            AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
+                         cent_hat(i,j,k,1) = eb_covered_val;,
+                         cent_hat(i,j,k,2) = eb_covered_val;);
+        }
+    });
+
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
+    {
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
+
+        if (bxg3.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+            bool const is_uncovered = !flag(i,j,k).isCovered();
+            Real const cell_vfrac = vfrac(i,j,k);
+            bool const weight_centroid = cell_vfrac > 0.0 &&
+                domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)));
+
+            Real local_nbhd_vol = is_uncovered
+                ? alpha(i,j,k,0) * cell_vfrac
+                : 0.0;
+
+            AMREX_D_TERM(Real local_cent_hat_x = 0.0;,
+                         Real local_cent_hat_y = 0.0;,
+                         Real local_cent_hat_z = 0.0;);
 
             if (weight_centroid) {
                 Real const self_weight = alpha(i,j,k,0) * cell_vfrac;
-                AMREX_D_TERM(local_cent_hat_x *= self_weight;,
-                             local_cent_hat_y *= self_weight;,
-                             local_cent_hat_z *= self_weight;);
+                AMREX_D_TERM(local_cent_hat_x = ccent(i,j,k,0) * self_weight;,
+                             local_cent_hat_y = ccent(i,j,k,1) * self_weight;,
+                             local_cent_hat_z = ccent(i,j,k,2) * self_weight;);
+            }
+
+            if (is_uncovered || weight_centroid) {
+                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+                for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
+                {
+                    int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;
+                    int const jj = jmap[itracker(i,j,k,i_nbor)]; int const s = j+jj;
+                    int const kk = kmap[itracker(i,j,k,i_nbor)]; int const t = k+kk;
+                    Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
+
+                    if (is_uncovered) {
+                        local_nbhd_vol += weight;
+                    }
+
+                    if (weight_centroid) {
+                        AMREX_D_TERM(local_cent_hat_x += (ccent(r,s,t,0) + Real(ii)) * weight;,
+                                     local_cent_hat_y += (ccent(r,s,t,1) + Real(jj)) * weight;,
+                                     local_cent_hat_z += (ccent(r,s,t,2) + Real(kk)) * weight;);
+                    }
+                }
+            }
+
+            if (is_uncovered) {
+                nbhd_vol(i,j,k) = local_nbhd_vol;
+            }
+
+            if (weight_centroid) {
+                AMREX_D_TERM(cent_hat(i,j,k,0) = local_cent_hat_x / local_nbhd_vol;,
+                             cent_hat(i,j,k,1) = local_cent_hat_y / local_nbhd_vol;,
+                             cent_hat(i,j,k,2) = local_cent_hat_z / local_nbhd_vol;);
             }
         }
-
-        if (is_uncovered || weight_centroid) {
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-            for (int i_nbor = 1; i_nbor <= num_neighbors; i_nbor++)
-            {
-                int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;
-                int const jj = jmap[itracker(i,j,k,i_nbor)]; int const s = j+jj;
-                int const kk = kmap[itracker(i,j,k,i_nbor)]; int const t = k+kk;
-                Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
-
-                if (is_uncovered) {
-                    local_nbhd_vol += weight;
-                }
-
-                if (weight_centroid) {
-                    AMREX_D_TERM(local_cent_hat_x += (ccent(r,s,t,0) + Real(ii)) * weight;,
-                                 local_cent_hat_y += (ccent(r,s,t,1) + Real(jj)) * weight;,
-                                 local_cent_hat_z += (ccent(r,s,t,2) + Real(kk)) * weight;);
-                }
-            }
-        }
-
-        if (weight_centroid) {
-            AMREX_D_TERM(local_cent_hat_x /= local_nbhd_vol;,
-                         local_cent_hat_y /= local_nbhd_vol;,
-                         local_cent_hat_z /= local_nbhd_vol;);
-        }
-
-        nbhd_vol(i,j,k) = local_nbhd_vol;
-        AMREX_D_TERM(cent_hat(i,j,k,0) = local_cent_hat_x;,
-                     cent_hat(i,j,k,1) = local_cent_hat_y;,
-                     cent_hat(i,j,k,2) = local_cent_hat_z;);
     });
 }
 
