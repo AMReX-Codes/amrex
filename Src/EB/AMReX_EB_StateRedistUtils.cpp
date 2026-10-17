@@ -92,9 +92,26 @@ MakeStateRedistUtils ( Box const& bx,
         nrs(i,j,k) = 1.0_rt;
 
         if (bxg4.contains(i,j,k)) {
-            Real const value = flag(i,j,k).isCovered() ? 0.0_rt : 1.0_rt;
+            auto const cell_flag = flag(i,j,k);
+            Real const value = cell_flag.isCovered() ? 0.0_rt : 1.0_rt;
             alpha(i,j,k,0) = value;
             alpha(i,j,k,1) = value;
+
+            if (bxg3.contains(i,j,k)) {
+                if (cell_flag.isRegular()) {
+                    AMREX_D_TERM(cent_hat(i,j,k,0) = 0.0_rt;,
+                                 cent_hat(i,j,k,1) = 0.0_rt;,
+                                 cent_hat(i,j,k,2) = 0.0_rt;);
+                } else if (cell_flag.isCovered()) {
+                    AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
+                                 cent_hat(i,j,k,1) = eb_covered_val;,
+                                 cent_hat(i,j,k,2) = eb_covered_val;);
+                } else {
+                    AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
+                                 cent_hat(i,j,k,1) = ccent(i,j,k,1);,
+                                 cent_hat(i,j,k,2) = ccent(i,j,k,2););
+                }
+            }
         }
 
         if (itracker(i,j,k,0) > 0) {
@@ -178,42 +195,9 @@ MakeStateRedistUtils ( Box const& bx,
         }
     });
 
-    // ****************************************************************************************
-    // DEFINING NBHD_VOL AND CENT_HAT
-    // ****************************************************************************************
-    //
-    // Redefine nbhd_vol in bxg3 in order to use it to define cent_hat in bxg3
-    // (which allows us to compute slopes in bxg1)
-    // To define nbhd_vol in bxg3 we also need alpha(i,j,k,0/1) in bxg3,
-    //    and vfrac and nrs in bxg4
-    // Need cent_hat(xhat,yhat,zhat) in bxg3 to compute slopes in bxg1
-    //
-    // Initialize values required by downstream stencils for every cell. The
-    // sparse kernel below only applies the neighbor corrections.
-    amrex::ParallelFor(bxg3,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        auto const cell_flag = flag(i,j,k);
-
-        if (cell_flag.isRegular()) {
-            nbhd_vol(i,j,k) = alpha(i,j,k,0);
-            AMREX_D_TERM(cent_hat(i,j,k,0) = 0.0_rt;,
-                         cent_hat(i,j,k,1) = 0.0_rt;,
-                         cent_hat(i,j,k,2) = 0.0_rt;);
-        } else if (cell_flag.isCovered()) {
-            nbhd_vol(i,j,k) = 0.0_rt;
-            AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
-                         cent_hat(i,j,k,1) = eb_covered_val;,
-                         cent_hat(i,j,k,2) = eb_covered_val;);
-        } else {
-            Real const cell_vfrac = vfrac(i,j,k);
-            nbhd_vol(i,j,k) = alpha(i,j,k,0) * cell_vfrac;
-            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
-                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
-                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
-        }
-    });
-
+    // Tracker-zero cells do not need nbhd_vol: their normalized neighborhood
+    // state reduces to U_in. Compute volumes and centroid corrections only for
+    // active cells.
     amrex::ParallelFor(num_active_cells,
     [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
@@ -228,9 +212,7 @@ MakeStateRedistUtils ( Box const& bx,
             bool const weight_centroid = cell_vfrac > 0.0 &&
                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)));
 
-            Real local_nbhd_vol = is_uncovered
-                ? alpha(i,j,k,0) * cell_vfrac
-                : 0.0;
+            Real local_nbhd_vol = is_uncovered ? alpha(i,j,k,0) * cell_vfrac : 0.0;
 
             AMREX_D_TERM(Real local_cent_hat_x = 0.0;,
                          Real local_cent_hat_y = 0.0;,
