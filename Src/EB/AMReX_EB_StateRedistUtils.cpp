@@ -4,7 +4,7 @@
 
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_GpuContainers.H>
-#include <AMReX_Scan.H>
+#include <AMReX_GpuMemory.H>
 
 // Neighbor index lookup tables in constant memory for efficient GPU access
 // These map neighbor indices to (i,j,k) offsets
@@ -78,38 +78,32 @@ MakeStateRedistUtils ( Box const& bx,
     if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
 
-    // Cells with a nonempty tracker are sparse for the usual EB workload. Build
-    // their coordinates once and reuse them in every variable-length neighbor loop.
-    // Initialize nrs and alpha in the scan output pass to avoid another dense launch.
+    // Cells with a nonempty tracker are sparse for the usual EB workload. Append
+    // their coordinates to a compact list while initializing nrs and alpha.
     Long const num_candidates = bxg5.numPts();
     Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
     Dim3* const active_cells = active_cells_v.data();
-    int const num_active_cells = Scan::PrefixSum<int>(
-        num_candidates,
-        [=] AMREX_GPU_DEVICE (Long offset) noexcept -> int
-        {
-            Dim3 const cell = bxg5.atOffset(offset).dim3();
-            return itracker(cell.x,cell.y,cell.z,0) > 0;
-        },
-        [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
-        {
-            IntVect const iv = bxg5.atOffset(offset);
-            Dim3 const cell = iv.dim3();
+    Gpu::DeviceScalar<int> active_count_v(0);
+    int* const active_count = active_count_v.dataPtr();
 
-            nrs(cell.x,cell.y,cell.z) = 1.0_rt;
+    amrex::ParallelFor(bxg5,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        nrs(i,j,k) = 1.0_rt;
 
-            if (bxg4.contains(iv)) {
-                Real const value = flag(cell.x,cell.y,cell.z).isCovered()
-                    ? 0.0_rt : 1.0_rt;
-                alpha(cell.x,cell.y,cell.z,0) = value;
-                alpha(cell.x,cell.y,cell.z,1) = value;
-            }
+        if (bxg4.contains(i,j,k)) {
+            Real const value = flag(i,j,k).isCovered() ? 0.0_rt : 1.0_rt;
+            alpha(i,j,k,0) = value;
+            alpha(i,j,k,1) = value;
+        }
 
-            if (itracker(cell.x,cell.y,cell.z,0) > 0) {
-                active_cells[active_offset] = cell;
-            }
-        },
-        Scan::Type::exclusive, Scan::retSum);
+        if (itracker(i,j,k,0) > 0) {
+            int const active_index = Gpu::Atomic::Add(active_count, 1);
+            active_cells[active_index] = Dim3{i,j,k};
+        }
+    });
+
+    int const num_active_cells = active_count_v.dataValue();
 
     // Need nrs in bxg5 in order to compute alpha in bxg4
     // nrs captures how many neighborhoods (r,s,t) is in
