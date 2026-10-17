@@ -22,56 +22,6 @@ namespace {
 }
 #endif
 
-namespace {
-
-// Reserve one contiguous list segment per warp and order active cells by lane.
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int warp_aggregated_append_index (int* count, bool active) noexcept
-{
-#if defined(AMREX_USE_CUDA)
-    unsigned int const participating_mask = __activemask();
-    unsigned int const active_mask = __ballot_sync(participating_mask, active);
-    int index = -1;
-
-    if (active_mask != 0) {
-        int const lane = static_cast<int>(threadIdx.x) % warpSize;
-        int const leader = __ffs(static_cast<int>(active_mask)) - 1;
-        int base = 0;
-        if (lane == leader) {
-            base = amrex::Gpu::Atomic::Add(count, __popc(active_mask));
-        }
-        base = __shfl_sync(participating_mask, base, leader);
-        if (active) {
-            unsigned int const lower_lanes = (1u << lane) - 1u;
-            index = base + __popc(active_mask & lower_lanes);
-        }
-    }
-    return index;
-#elif defined(AMREX_USE_HIP)
-    unsigned long long const active_mask = __ballot(active);
-    int index = -1;
-
-    if (active_mask != 0) {
-        int const lane = static_cast<int>(__lane_id());
-        int const leader = __ffsll(static_cast<long long>(active_mask)) - 1;
-        int base = 0;
-        if (lane == leader) {
-            base = amrex::Gpu::Atomic::Add(count, __popcll(active_mask));
-        }
-        base = __shfl(base, leader);
-        if (active) {
-            unsigned long long const lower_lanes = (1ull << lane) - 1ull;
-            index = base + __popcll(active_mask & lower_lanes);
-        }
-    }
-    return index;
-#else
-    return active ? amrex::Gpu::Atomic::Add(count, 1) : -1;
-#endif
-}
-
-}
-
 namespace amrex {
 
 void
@@ -147,9 +97,8 @@ MakeStateRedistUtils ( Box const& bx,
             alpha(i,j,k,1) = value;
         }
 
-        bool const active = itracker(i,j,k,0) > 0;
-        int const active_index = warp_aggregated_append_index(active_count, active);
-        if (active) {
+        if (itracker(i,j,k,0) > 0) {
+            int const active_index = Gpu::Atomic::Add(active_count, 1);
             active_cells[active_index] = Dim3{i,j,k};
         }
     });
