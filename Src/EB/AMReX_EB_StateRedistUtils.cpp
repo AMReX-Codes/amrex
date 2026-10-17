@@ -77,18 +77,49 @@ MakeStateRedistUtils ( Box const& bx,
 #endif
 
     // ****************************************************************************************
-    // DEFINING NRS
+    // INITIALIZING NRS AND DEFINING LOCAL ALPHA
     // ****************************************************************************************
     //
     // Need nrs in bxg5 in order to compute alpha in bxg4
     // nrs captures how many neighborhoods (r,s,t) is in
+    // Need alpha in bxg4 in order to define cent_hat in bxg3
+    // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
     //
-    amrex::ParallelFor(bxg5,
+    amrex::ParallelFor(bxg5, bxg4,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         // Everyone is in their own neighborhood at least
         nrs(i,j,k) = 1.;
+    },
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        if (flag(i,j,k).isCovered()) {
+            alpha(i,j,k,0) = 0.;
+            alpha(i,j,k,1) = 0.;
+        } else {
+            alpha(i,j,k,0) = 1.;
+
+            int const num_neighbors = itracker(i,j,k,0);
+            if (num_neighbors > 0) {
+                Real vol_of_nbors = 0.;
+
+                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+                for (int i_nbor = 1; i_nbor <= num_neighbors; i_nbor++)
+                {
+                    int const r = i+imap[itracker(i,j,k,i_nbor)];
+                    int const s = j+jmap[itracker(i,j,k,i_nbor)];
+                    int const t = k+kmap[itracker(i,j,k,i_nbor)];
+                    vol_of_nbors += vfrac(r,s,t);
+                }
+
+                alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
+            } else {
+                alpha(i,j,k,1) = 1.;
+            }
+        }
     });
+
+    // Scatter neighborhood counts after initializing all of nrs.
     amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
@@ -110,42 +141,6 @@ MakeStateRedistUtils ( Box const& bx,
     // ****************************************************************************************
     // DEFINING ALPHA
     // ****************************************************************************************
-    //
-    // Need alpha in bxg4 in order to define cent_hat in bxg3
-    // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
-    //
-    amrex::ParallelFor(bxg4,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        alpha(i,j,k,0) = 1.;
-        alpha(i,j,k,1) = 1.;
-    });
-    amrex::ParallelFor(bxg4,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        if (!flag(i,j,k).isCovered())
-        {
-            Real vol_of_nbors = 0.;
-
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-            for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
-            {
-                int r = i+imap[itracker(i,j,k,i_nbor)];
-                int s = j+jmap[itracker(i,j,k,i_nbor)];
-                int t = k+kmap[itracker(i,j,k,i_nbor)];
-                vol_of_nbors += vfrac(r,s,t);
-            }
-
-            if (itracker(i,j,k,0) > 0) {
-                alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
-            }
-
-        } else {
-            alpha(i,j,k,0) = 0.;
-            alpha(i,j,k,1) = 0.;
-        }
-    });
-
     //
     // Must loop over (i,j,k) in bxg5 in order to define alpha(r,s,t) in bxg4
     //
