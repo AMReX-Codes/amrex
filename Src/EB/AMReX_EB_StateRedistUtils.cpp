@@ -82,7 +82,6 @@ MakeStateRedistUtils ( Box const& bx,
     // their coordinates once and reuse them in every variable-length neighbor loop.
     // Initialize nrs and alpha in the scan output pass to avoid another dense launch.
     Long const num_candidates = bxg5.numPts();
-    Long const num_alpha_candidates = bxg4.numPts();
     Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
     Dim3* const active_cells = active_cells_v.data();
     int const num_active_cells = Scan::PrefixSum<int>(
@@ -94,16 +93,16 @@ MakeStateRedistUtils ( Box const& bx,
         },
         [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
         {
-            Dim3 const cell = bxg5.atOffset(offset).dim3();
+            IntVect const iv = bxg5.atOffset(offset);
+            Dim3 const cell = iv.dim3();
 
             nrs(cell.x,cell.y,cell.z) = 1.0_rt;
 
-            if (offset < num_alpha_candidates) {
-                Dim3 const acell = bxg4.atOffset(offset).dim3();
-                Real const value = flag(acell.x,acell.y,acell.z).isCovered()
+            if (bxg4.contains(iv)) {
+                Real const value = flag(cell.x,cell.y,cell.z).isCovered()
                     ? 0.0_rt : 1.0_rt;
-                alpha(acell.x,acell.y,acell.z,0) = value;
-                alpha(acell.x,acell.y,acell.z,1) = value;
+                alpha(cell.x,cell.y,cell.z,0) = value;
+                alpha(cell.x,cell.y,cell.z,1) = value;
             }
 
             if (itracker(cell.x,cell.y,cell.z,0) > 0) {
