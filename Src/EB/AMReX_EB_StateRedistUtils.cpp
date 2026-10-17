@@ -111,11 +111,11 @@ MakeStateRedistUtils ( Box const& bx,
                                  cent_hat(i,j,k,2) = ccent(i,j,k,2););
                 }
             }
-        }
 
-        if (itracker(i,j,k,0) > 0) {
-            int const active_index = Gpu::Atomic::Add(active_count, 1);
-            active_cells[active_index] = Dim3{i,j,k};
+            if (itracker(i,j,k,0) > 0) {
+                int const active_index = Gpu::Atomic::Add(active_count, 1);
+                active_cells[active_index] = Dim3{i,j,k};
+            }
         }
     });
 
