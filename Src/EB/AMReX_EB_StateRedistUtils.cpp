@@ -168,80 +168,76 @@ MakeStateRedistUtils ( Box const& bx,
     });
 
     // ****************************************************************************************
-    // DEFINING NBHD_VOL
+    // DEFINING NBHD_VOL AND CENT_HAT
     // ****************************************************************************************
     //
     // Redefine nbhd_vol in bxg3 in order to use it to define cent_hat in bxg3
     // (which allows us to compute slopes in bxg1)
     // To define nbhd_vol in bxg3 we also need alpha(i,j,k,0/1) in bxg3,
     //    and vfrac and nrs in bxg4
-    //
-    amrex::ParallelFor(bxg3,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        if (!flag(i,j,k).isCovered())
-        {
-            Real local_nbhd_vol = alpha(i,j,k,0) * vfrac(i,j,k);
-
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-            for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
-            {
-                int r = i+imap[itracker(i,j,k,i_nbor)];
-                int s = j+jmap[itracker(i,j,k,i_nbor)];
-                int t = k+kmap[itracker(i,j,k,i_nbor)];
-                local_nbhd_vol += alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
-            }
-
-            nbhd_vol(i,j,k) = local_nbhd_vol;
-        } else {
-            nbhd_vol(i,j,k) = 0.;
-        }
-    });
-
-    // ****************************************************************************************
-    // DEFINING CENT_HAT
-    // ****************************************************************************************
-    //
     // Need cent_hat(xhat,yhat,zhat) in bxg3 to compute slopes in bxg1
     //
     amrex::ParallelFor(bxg3,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        if (vfrac(i,j,k) > 0.0)
-        {
-            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
-                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
-                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
+        bool const is_uncovered = !flag(i,j,k).isCovered();
+        Real const cell_vfrac = vfrac(i,j,k);
+        int const num_neighbors = itracker(i,j,k,0);
+        bool const weight_centroid = cell_vfrac > 0.0 && num_neighbors > 0 &&
+            domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)));
 
-            if ( itracker(i,j,k,0) > 0 &&
-                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))) )
+        Real local_nbhd_vol = is_uncovered
+            ? alpha(i,j,k,0) * cell_vfrac
+            : 0.0;
+
+        AMREX_D_TERM(Real local_cent_hat_x = eb_covered_val;,
+                     Real local_cent_hat_y = eb_covered_val;,
+                     Real local_cent_hat_z = eb_covered_val;);
+
+        if (cell_vfrac > 0.0) {
+            AMREX_D_TERM(local_cent_hat_x = ccent(i,j,k,0);,
+                         local_cent_hat_y = ccent(i,j,k,1);,
+                         local_cent_hat_z = ccent(i,j,k,2););
+
+            if (weight_centroid) {
+                Real const self_weight = alpha(i,j,k,0) * cell_vfrac;
+                AMREX_D_TERM(local_cent_hat_x *= self_weight;,
+                             local_cent_hat_y *= self_weight;,
+                             local_cent_hat_z *= self_weight;);
+            }
+        }
+
+        if (is_uncovered || weight_centroid) {
+            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+            for (int i_nbor = 1; i_nbor <= num_neighbors; i_nbor++)
             {
-                AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0) * alpha(i,j,k,0) *vfrac(i,j,k);,
-                             cent_hat(i,j,k,1) = ccent(i,j,k,1) * alpha(i,j,k,0) *vfrac(i,j,k);,
-                             cent_hat(i,j,k,2) = ccent(i,j,k,2) * alpha(i,j,k,0) *vfrac(i,j,k););
+                int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;
+                int const jj = jmap[itracker(i,j,k,i_nbor)]; int const s = j+jj;
+                int const kk = kmap[itracker(i,j,k,i_nbor)]; int const t = k+kk;
+                Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
 
-                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-                for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
-                {
-                    int ii = imap[itracker(i,j,k,i_nbor)]; int r = i+ii;
-                    int jj = jmap[itracker(i,j,k,i_nbor)]; int s = j+jj;
-                    int kk = kmap[itracker(i,j,k,i_nbor)]; int t = k+kk;
-
-                    AMREX_D_TERM(cent_hat(i,j,k,0) += (ccent(r,s,t,0) + Real(ii)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,1) += (ccent(r,s,t,1) + Real(jj)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,2) += (ccent(r,s,t,2) + Real(kk)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t););
+                if (is_uncovered) {
+                    local_nbhd_vol += weight;
                 }
 
-                AMREX_D_TERM(cent_hat(i,j,k,0) /= nbhd_vol(i,j,k);,
-                             cent_hat(i,j,k,1) /= nbhd_vol(i,j,k);,
-                             cent_hat(i,j,k,2) /= nbhd_vol(i,j,k););
+                if (weight_centroid) {
+                    AMREX_D_TERM(local_cent_hat_x += (ccent(r,s,t,0) + Real(ii)) * weight;,
+                                 local_cent_hat_y += (ccent(r,s,t,1) + Real(jj)) * weight;,
+                                 local_cent_hat_z += (ccent(r,s,t,2) + Real(kk)) * weight;);
+                }
             }
-        } else {
-
-                AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
-                             cent_hat(i,j,k,1) = eb_covered_val;,
-                             cent_hat(i,j,k,2) = eb_covered_val;);
         }
+
+        if (weight_centroid) {
+            AMREX_D_TERM(local_cent_hat_x /= local_nbhd_vol;,
+                         local_cent_hat_y /= local_nbhd_vol;,
+                         local_cent_hat_z /= local_nbhd_vol;);
+        }
+
+        nbhd_vol(i,j,k) = local_nbhd_vol;
+        AMREX_D_TERM(cent_hat(i,j,k,0) = local_cent_hat_x;,
+                     cent_hat(i,j,k,1) = local_cent_hat_y;,
+                     cent_hat(i,j,k,2) = local_cent_hat_z;);
     });
 }
 
