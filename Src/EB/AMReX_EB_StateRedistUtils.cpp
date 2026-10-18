@@ -4,8 +4,7 @@
 
 #include <AMReX_EB_Redistribution.H>
 
-// Neighbor index lookup tables in constant memory for efficient GPU access
-// These map neighbor indices to (i,j,k) offsets
+// Map tracker entries to neighbor offsets.
 #if (AMREX_SPACEDIM == 2)
 namespace {
     AMREX_GPU_CONSTANT int const imap[9] = {0,-1, 0, 1,-1, 1,-1, 0, 1};
@@ -58,7 +57,6 @@ MakeStateRedistUtils ( Box const& bx,
     //   i --->
     //
     // Note the first component of each of these arrays should never be used
-    // imap, jmap, kmap are now in constant memory (see file scope declarations above)
     //
 
     AMREX_D_TERM(const auto& is_periodic_x = lev_geom.isPeriodic(0);,
@@ -78,10 +76,7 @@ MakeStateRedistUtils ( Box const& bx,
     if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
 
-    // Need nrs in bxg5 in order to compute alpha in bxg4
-    // nrs captures how many neighborhoods (r,s,t) is in
-    // Need alpha in bxg4 in order to define cent_hat in bxg3
-    // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
+    // Ghost extents propagate nrs through alpha and cent_hat to slopes in bxg1.
 
     // Scatter neighborhood counts and construct local alpha only for active cells.
     amrex::ParallelFor(num_active_cells,
@@ -92,7 +87,6 @@ MakeStateRedistUtils ( Box const& bx,
         int const j = cell.y;
         int const k = cell.z;
 
-        // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
         for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
         {
             int const r = i+imap[itracker(i,j,k,i_nbor)];
@@ -109,7 +103,6 @@ MakeStateRedistUtils ( Box const& bx,
             !flag(i,j,k).isCovered())
         {
             Real vol_of_nbors = 0.;
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
                 int const r = i+imap[itracker(i,j,k,i_nbor)];
@@ -120,14 +113,8 @@ MakeStateRedistUtils ( Box const& bx,
             alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
         }
     });
-    //
 
-    // ****************************************************************************************
-    // DEFINING ALPHA
-    // ****************************************************************************************
-    //
-    // Must loop over (i,j,k) in bxg5 in order to define alpha(r,s,t) in bxg4
-    //
+    // Accumulate active-cell alpha corrections in neighboring cells.
     amrex::ParallelFor(num_active_cells,
     [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
@@ -138,7 +125,6 @@ MakeStateRedistUtils ( Box const& bx,
 
         if (!flag(i,j,k).isCovered())
         {
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
                 int r = i+imap[itracker(i,j,k,i_nbor)];
@@ -151,9 +137,7 @@ MakeStateRedistUtils ( Box const& bx,
         }
     });
 
-    // Tracker-zero cells do not need nbhd_vol: their normalized neighborhood
-    // state reduces to U_in. Compute volumes and centroid corrections only for
-    // active cells.
+    // Only active cells need neighborhood volumes and centroid corrections.
     amrex::ParallelFor(num_active_cells,
     [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
@@ -182,7 +166,6 @@ MakeStateRedistUtils ( Box const& bx,
             }
 
             if (is_uncovered || weight_centroid) {
-                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
                 for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
                 {
                     int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;

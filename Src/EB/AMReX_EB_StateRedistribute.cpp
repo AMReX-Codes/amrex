@@ -175,8 +175,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             {
                 if (itracker(i,j,k,0) == 0)
                 {
-                    // nbhd_vol = alpha * vfrac in this case, so the normalized
-                    // neighborhood state reduces to U_in.
+                    // A tracker-zero neighborhood normalizes to U_in.
                     qt(i,j,k,0  ) = U_in(i,j,k,n);
                     Qhat(i,j,k,n) = qt(i,j,k,0);
                 }
