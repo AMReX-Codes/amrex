@@ -99,6 +99,7 @@ make_itracker ( Box const& bx,
     amrex::ParallelFor(Box(itracker),
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
+        amrex::ignore_unused(bxg3, bxg4, flag, ccent, nrs, alpha, cent_hat);
         itracker(i,j,k,0) = 0;
 
         if constexpr (initialize_state) {
@@ -116,6 +117,7 @@ make_itracker ( Box const& bx,
     amrex::ParallelFor(bx_per_g4,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
+       amrex::ignore_unused(active_cells, active_count);
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
            Real apnorm, apnorm_inv;
@@ -417,6 +419,7 @@ make_itracker ( Box const& bx,
     amrex::ParallelFor(Box(itracker),
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
+        amrex::ignore_unused(bxg3, bxg4, flag, ccent, nrs, alpha, cent_hat);
         itracker(i,j,k,0) = 0;
 
         if constexpr (initialize_state) {
@@ -437,6 +440,7 @@ make_itracker ( Box const& bx,
     amrex::ParallelFor(bx_per_g4,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
+       amrex::ignore_unused(active_cells, active_count);
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
            Real apnorm, apnorm_inv;
