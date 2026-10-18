@@ -8,8 +8,10 @@
 
 namespace amrex {
 
+namespace {
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-static void
+void
 initialize_state_data (int i, int j, int k,
                        Box const& bxg3, Box const& bxg4,
                        Array4<EBCellFlag const> const& flag,
@@ -45,7 +47,7 @@ initialize_state_data (int i, int j, int k,
 #if (AMREX_SPACEDIM == 2)
 
 template <bool initialize_state>
-static void
+void
 make_itracker ( Box const& bx,
                Array4<Real const> const& apx,
                Array4<Real const> const& apy,
@@ -348,7 +350,7 @@ make_itracker ( Box const& bx,
            if constexpr (initialize_state) {
                if (itracker(i,j,k,0) > 0) {
                    int const active_index = Gpu::Atomic::Add(active_count, 1);
-                   active_cells[active_index] = Dim3{i,j,k};
+                   active_cells[active_index] = Dim3{.x = i, .y = j, .z = k};
                }
            }
        }
@@ -358,7 +360,7 @@ make_itracker ( Box const& bx,
 #elif (AMREX_SPACEDIM == 3)
 
 template <bool initialize_state>
-static void
+void
 make_itracker ( Box const& bx,
                Array4<Real const> const& apx,
                Array4<Real const> const& apy,
@@ -1036,7 +1038,7 @@ make_itracker ( Box const& bx,
            if constexpr (initialize_state) {
                if (itracker(i,j,k,0) > 0) {
                    int const active_index = Gpu::Atomic::Add(active_count, 1);
-                   active_cells[active_index] = Dim3{i,j,k};
+                   active_cells[active_index] = Dim3{.x = i, .y = j, .z = k};
                }
            }
        }
@@ -1044,6 +1046,8 @@ make_itracker ( Box const& bx,
 }
 
 #endif
+
+}
 
 void
 MakeITracker ( Box const& bx,
