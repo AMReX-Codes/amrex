@@ -125,7 +125,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
         IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-        FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+        IArrayBox nrs_fab(bxg5,1,The_Async_Arena());
         FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
         // Total volume of all cells in my nbhd
@@ -137,8 +137,8 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         Array4<int> itr = itracker.array();
         Array4<int const> itr_const = itracker.const_array();
 
-        Array4<Real      > nrs       = nrs_fab.array();
-        Array4<Real const> nrs_const = nrs_fab.const_array();
+        Array4<int      > nrs       = nrs_fab.array();
+        Array4<int const> nrs_const = nrs_fab.const_array();
 
         Array4<Real      > alpha       = alpha_fab.array();
         Array4<Real const> alpha_const = alpha_fab.const_array();
@@ -201,7 +201,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                 // neighborhood of another cell -- if either of those is true the
                 // value may have changed
 
-                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1.)
+                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1)
                 {
                    const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
 
@@ -271,7 +271,7 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
         IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-    FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+    IArrayBox nrs_fab(bxg5,1,The_Async_Arena());
     FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
     // Total volume of all cells in my nbhd
@@ -283,8 +283,8 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
     Array4<int> itr = itracker.array();
     Array4<int const> itr_const = itracker.const_array();
 
-    Array4<Real      > nrs       = nrs_fab.array();
-    Array4<Real const> nrs_const = nrs_fab.const_array();
+    Array4<int      > nrs       = nrs_fab.array();
+    Array4<int const> nrs_const = nrs_fab.const_array();
 
     Array4<Real      > alpha       = alpha_fab.array();
     Array4<Real const> alpha_const = alpha_fab.const_array();

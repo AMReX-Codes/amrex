@@ -30,7 +30,7 @@ MakeStateRedistUtils ( Box const& bx,
                        Array4<Real const> const& vfrac,
                        Array4<Real const> const& ccent,
                        Array4<int  const> const& itracker,
-                       Array4<Real      > const& nrs,
+                       Array4<int       > const& nrs,
                        Array4<Real      > const& alpha,
                        Array4<Real      > const& nbhd_vol,
                        Array4<Real      > const& cent_hat,
@@ -89,7 +89,7 @@ MakeStateRedistUtils ( Box const& bx,
     amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        nrs(i,j,k) = 1.0_rt;
+        nrs(i,j,k) = 1;
 
         if (bxg4.contains(i,j,k)) {
             auto const cell_flag = flag(i,j,k);
@@ -144,7 +144,7 @@ MakeStateRedistUtils ( Box const& bx,
             if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
                 bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))))
             {
-                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.0_rt);
+                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1);
             }
         }
 
