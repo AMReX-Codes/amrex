@@ -87,7 +87,7 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
                 auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
-            handler.sharedBarrier();
+            handler.syncThreads();
             for (std::uint64_t m = threadIdxx,
                      mend = amrex::min<std::uint64_t>(blockDimx, indexer.numPts()-blockDimx*blockIdxx) * STRUCTSIZE;
                  m < mend; m += blockDimx) {
@@ -241,7 +241,7 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
                 }
             }
 
-            item.barrier(sycl::access::fence_space::local_space);
+            sycl::group_barrier(group);
 
             i = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
             k = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction

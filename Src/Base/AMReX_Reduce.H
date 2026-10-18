@@ -1054,7 +1054,7 @@ bool AnyOf (N n, T const* v, P const& pred)
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
-        gh.sharedBarrier();
+        gh.syncThreads();
 
         if (!(*has_any))
         {
@@ -1113,7 +1113,7 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
-        gh.sharedBarrier();
+        gh.syncThreads();
 
         if (!(*has_any))
         {
