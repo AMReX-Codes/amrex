@@ -345,6 +345,10 @@ protected:
 
     mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 
+    // Index space (cell-centered boxes coarsened by 2, not allocated) of the
+    // colored GPU Gauss-Seidel in deterministic mode, per AMR and MG level.
+    mutable Vector<Vector<std::unique_ptr<iMultiFab>>> m_gsrb_cindex;
+
 private:
 
     bool m_needs_update = true;

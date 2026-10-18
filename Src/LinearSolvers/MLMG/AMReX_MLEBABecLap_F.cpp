@@ -239,21 +239,15 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 #define EB_GSRB_LAUNCH(...) AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n, __VA_ARGS__)
 #endif
 
-// On cut cells, the face-centroid flux interpolation and the EB Dirichlet
-// gradient of mlebabeclap_gsrb read diagonal neighbors such as (i-1,j+1,k) and
-// (i,j+1,k+1), which have the same red/black color as (i,j,k). On GPU, where
-// all cells of one color are updated concurrently, this is a read/write race.
-// Therefore, on GPU the red (black) sweep is done as 2^(AMREX_SPACEDIM-1)
-// launches over the colors (i%2,j%2,k%2) of that parity. Two distinct cells
-// in a 3x3(x3) neighborhood never share such a color. Regular cells only read
-// face neighbors, which have the other parity, so their update is unchanged.
+// At cut cells, mlebabeclap_gsrb also reads same-parity diagonal neighbors such
+// as (i-1,j+1,k), so a GPU red (black) launch reads cells that other threads of
+// the same launch write. By default this benign race is allowed for performance.
+// With LPInfo::setDeterministic(true), each GPU half-sweep is instead done as the
+// 2^(AMREX_SPACEDIM-1) colors (i%2,j%2,k%2) of that parity, one launch each, with
+// one thread per cell of the color: (ii,jj,kk) on the box coarsened by 2 maps to
+// (2*ii+ci,2*jj+cj,2*kk+ck). Two distinct cells in a 3x3(x3) neighborhood never
+// share such a color.
 namespace {
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int eb_gsrb_color (int i, int j, int k) noexcept
-    {
-        return (i & 1) | ((j & 1) << 1) | ((k & 1) << 2);
-    }
-
     constexpr int eb_gsrb_color_parity (int color) noexcept
     {
         return (color ^ (color >> 1) ^ (color >> 2)) & 1;
@@ -358,12 +352,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
         if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-        for (int color = 0; color < (1 << AMREX_SPACEDIM); ++color) {
-            if (eb_gsrb_color_parity(color) != redblack) { continue; }
+        if (!info.deterministic) {
             ParallelForRedBlack(sol, nc, redblack,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                if (eb_gsrb_color(i,j,k) != color) { return; }
                 Box vbx(rhsma[box_no]);
                 mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
                                  AMREX_D_DECL(dhx, dhy, dhz),
@@ -377,6 +369,43 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack);
             });
+        } else {
+            auto& cindex = m_gsrb_cindex;
+            if (int(cindex.size()) <= amrlev) { cindex.resize(amrlev+1); }
+            if (int(cindex[amrlev].size()) <= mglev) { cindex[amrlev].resize(mglev+1); }
+            auto& cmf = cindex[amrlev][mglev];
+            if (!cmf || cmf->DistributionMap() != sol.DistributionMap()) {
+                cmf = std::make_unique<iMultiFab>(amrex::coarsen(sol.boxArray(),2),
+                                                  sol.DistributionMap(), 1, 0,
+                                                  MFInfo().SetAlloc(false));
+            }
+            for (int color = 0; color < (1 << AMREX_SPACEDIM); ++color) {
+                if (eb_gsrb_color_parity(color) != redblack) { continue; }
+                const int ci = color & 1;
+                const int cj = (color >> 1) & 1;
+                const int ck = (color >> 2) & 1;
+                ParallelFor(*cmf, IntVect(0), nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int ii, int jj, int kk, int n) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    const int i = 2*ii + ci;
+                    const int j = 2*jj + cj;
+                    const int k = 2*kk + ck;
+                    if (vbx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
+                                         AMREX_D_DECL(dhx, dhy, dhz),
+                                         AMREX_2D_ONLY_ARGS(dh) h,
+                                         AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                         AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                         AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                         AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                         AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                         ccmma[box_no], bebma[box_no], ebdata_ma.get(box_no),
+                                         is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                         vbx, redblack);
+                    }
+                });
+            }
         }
         if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
     }
@@ -481,28 +510,50 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                 if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
 #ifdef AMREX_USE_GPU
-                const int ncolors = Gpu::inLaunchRegion() ? (1 << AMREX_SPACEDIM) : 1;
-#else
-                const int ncolors = 1;
+                if (info.deterministic && Gpu::inLaunchRegion()) {
+                    const Box cbx = amrex::coarsen(vbx, 2);
+                    for (int color = 0; color < (1 << AMREX_SPACEDIM); ++color) {
+                        if (eb_gsrb_color_parity(color) != redblack) { continue; }
+                        const int ci = color & 1;
+                        const int cj = (color >> 1) & 1;
+                        const int ck = (color >> 2) & 1;
+                        amrex::ParallelFor(cbx, nc,
+                        [=] AMREX_GPU_DEVICE (int ii, int jj, int kk, int n) noexcept
+                        {
+                            const int i = 2*ii + ci;
+                            const int j = 2*jj + cj;
+                            const int k = 2*kk + ck;
+                            if (vbx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
+                                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                                 AMREX_2D_ONLY_ARGS(dh) h,
+                                                 AMREX_D_DECL(bxfab,byfab,bzfab),
+                                                 AMREX_D_DECL(m0,m2,m4),
+                                                 AMREX_D_DECL(m1,m3,m5),
+                                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                                 ccmfab, bebfab, ebdata,
+                                                 is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                                 vbx, redblack);
+                            }
+                        });
+                    }
+                } else
 #endif
-                for (int ic = 0; ic < ncolors; ++ic) {
-                    const int color = (ncolors > 1) ? ic : -1;
-                    if (color >= 0 && eb_gsrb_color_parity(color) != redblack) { continue; }
+                {
                     EB_GSRB_LAUNCH(
                     {
-                        if (color < 0 || eb_gsrb_color(i,j,k) == color) {
-                            mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
-                                             AMREX_D_DECL(dhx, dhy, dhz),
-                                             AMREX_2D_ONLY_ARGS(dh) h,
-                                             AMREX_D_DECL(bxfab,byfab,bzfab),
-                                             AMREX_D_DECL(m0,m2,m4),
-                                             AMREX_D_DECL(m1,m3,m5),
-                                             AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                             AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                             ccmfab, bebfab, ebdata,
-                                             is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                                             vbx, redblack);
-                        }
+                        mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
+                                         AMREX_D_DECL(dhx, dhy, dhz),
+                                         AMREX_2D_ONLY_ARGS(dh) h,
+                                         AMREX_D_DECL(bxfab,byfab,bzfab),
+                                         AMREX_D_DECL(m0,m2,m4),
+                                         AMREX_D_DECL(m1,m3,m5),
+                                         AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                         AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                         ccmfab, bebfab, ebdata,
+                                         is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                         vbx, redblack);
                     });
                 }
                 if (has_overset) {
