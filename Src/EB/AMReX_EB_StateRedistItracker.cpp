@@ -8,14 +8,56 @@
 
 namespace amrex {
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+static void
+initialize_state_data (int i, int j, int k,
+                       Box const& bxg3, Box const& bxg4,
+                       Array4<EBCellFlag const> const& flag,
+                       Array4<Real const> const& ccent,
+                       Array4<int> const& nrs,
+                       Array4<Real> const& alpha,
+                       Array4<Real> const& cent_hat) noexcept
+{
+    nrs(i,j,k) = 1;
+
+    if (bxg4.contains(i,j,k)) {
+        auto const cell_flag = flag(i,j,k);
+        alpha(i,j,k,0) = cell_flag.isCovered() ? 0.0_rt : 1.0_rt;
+
+        if (bxg3.contains(i,j,k)) {
+            if (cell_flag.isRegular()) {
+                AMREX_D_TERM(cent_hat(i,j,k,0) = 0.0_rt;,
+                             cent_hat(i,j,k,1) = 0.0_rt;,
+                             cent_hat(i,j,k,2) = 0.0_rt;);
+            } else if (cell_flag.isCovered()) {
+                AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
+                             cent_hat(i,j,k,1) = eb_covered_val;,
+                             cent_hat(i,j,k,2) = eb_covered_val;);
+            } else {
+                AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
+                             cent_hat(i,j,k,1) = ccent(i,j,k,1);,
+                             cent_hat(i,j,k,2) = ccent(i,j,k,2););
+            }
+        }
+    }
+}
+
 #if (AMREX_SPACEDIM == 2)
 
-void
-MakeITracker ( Box const& bx,
+template <bool initialize_state>
+static void
+make_itracker ( Box const& bx,
                Array4<Real const> const& apx,
                Array4<Real const> const& apy,
                Array4<Real const> const& vfrac,
                Array4<int> const& itracker,
+               Array4<EBCellFlag const> const& flag,
+               Array4<Real const> const& ccent,
+               Array4<int> const& nrs,
+               Array4<Real> const& alpha,
+               Array4<Real> const& cent_hat,
+               Dim3* active_cells,
+               int* active_count,
                Geometry const& lev_geom,
                Real target_volfrac)
 {
@@ -51,17 +93,24 @@ MakeITracker ( Box const& bx,
 //  if (debug_verbose > 0)
 //      amrex::Print() << " IN MAKE_ITRACKER DOING BOX " << bx << '\n';
 
+    Box const& bxg3 = amrex::grow(bx,3);
+    Box const& bxg4 = amrex::grow(bx,4);
+
     amrex::ParallelFor(Box(itracker),
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         itracker(i,j,k,0) = 0;
+
+        if constexpr (initialize_state) {
+            initialize_state_data(i, j, k, bxg3, bxg4, flag, ccent,
+                                  nrs, alpha, cent_hat);
+        }
     });
 
     Box domain_per_grown = domain;
     if (is_periodic_x) { domain_per_grown.grow(0,4); }
     if (is_periodic_y) { domain_per_grown.grow(1,4); }
 
-    Box const& bxg4 = amrex::grow(bx,4);
     Box bx_per_g4= domain_per_grown & bxg4;
 
     amrex::ParallelFor(bx_per_g4,
@@ -293,19 +342,34 @@ MakeITracker ( Box const& bx,
 #endif
              amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
            }
+
+           if constexpr (initialize_state) {
+               if (itracker(i,j,k,0) > 0) {
+                   int const active_index = Gpu::Atomic::Add(active_count, 1);
+                   active_cells[active_index] = Dim3{i,j,k};
+               }
+           }
        }
     });
 }
 
 #elif (AMREX_SPACEDIM == 3)
 
-void
-MakeITracker ( Box const& bx,
+template <bool initialize_state>
+static void
+make_itracker ( Box const& bx,
                Array4<Real const> const& apx,
                Array4<Real const> const& apy,
                Array4<Real const> const& apz,
                Array4<Real const> const& vfrac,
                Array4<int> const& itracker,
+               Array4<EBCellFlag const> const& flag,
+               Array4<Real const> const& ccent,
+               Array4<int> const& nrs,
+               Array4<Real> const& alpha,
+               Array4<Real> const& cent_hat,
+               Dim3* active_cells,
+               int* active_count,
                Geometry const& lev_geom,
                Real target_volfrac)
 {
@@ -347,10 +411,18 @@ MakeITracker ( Box const& bx,
         amrex::Print() << " IN MERGE_REDISTRIBUTE DOING BOX " << bx << '\n';
 #endif
 
+    Box const& bxg3 = amrex::grow(bx,3);
+    Box const& bxg4 = amrex::grow(bx,4);
+
     amrex::ParallelFor(Box(itracker),
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         itracker(i,j,k,0) = 0;
+
+        if constexpr (initialize_state) {
+            initialize_state_data(i, j, k, bxg3, bxg4, flag, ccent,
+                                  nrs, alpha, cent_hat);
+        }
     });
 
     Box domain_per_grown = domain;
@@ -360,7 +432,6 @@ MakeITracker ( Box const& bx,
     if (is_periodic_z) { domain_per_grown.grow(2,4); }
 #endif
 
-    Box const& bxg4 = amrex::grow(bx,4);
     Box bx_per_g4= domain_per_grown & bxg4;
 
     amrex::ParallelFor(bx_per_g4,
@@ -957,11 +1028,55 @@ MakeITracker ( Box const& bx,
 #endif
              amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
            }
+
+           if constexpr (initialize_state) {
+               if (itracker(i,j,k,0) > 0) {
+                   int const active_index = Gpu::Atomic::Add(active_count, 1);
+                   active_cells[active_index] = Dim3{i,j,k};
+               }
+           }
        }
     });
 }
 
 #endif
+
+void
+MakeITracker ( Box const& bx,
+               AMREX_D_DECL(Array4<Real const> const& apx,
+                            Array4<Real const> const& apy,
+                            Array4<Real const> const& apz),
+               Array4<Real const> const& vfrac,
+               Array4<int> const& itracker,
+               Geometry const& lev_geom,
+               Real target_volfrac)
+{
+    make_itracker<false>(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itracker,
+                         {}, {}, {}, {}, {}, nullptr, nullptr, lev_geom,
+                         target_volfrac);
+}
+
+void
+MakeITracker ( Box const& bx,
+               AMREX_D_DECL(Array4<Real const> const& apx,
+                            Array4<Real const> const& apy,
+                            Array4<Real const> const& apz),
+               Array4<Real const> const& vfrac,
+               Array4<int> const& itracker,
+               Array4<EBCellFlag const> const& flag,
+               Array4<Real const> const& ccent,
+               Array4<int> const& nrs,
+               Array4<Real> const& alpha,
+               Array4<Real> const& cent_hat,
+               Dim3* active_cells,
+               int* active_count,
+               Geometry const& lev_geom,
+               Real target_volfrac)
+{
+    make_itracker<true>(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itracker,
+                        flag, ccent, nrs, alpha, cent_hat, active_cells,
+                        active_count, lev_geom, target_volfrac);
+}
 
 }
 

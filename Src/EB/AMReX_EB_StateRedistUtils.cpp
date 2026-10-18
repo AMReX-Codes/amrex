@@ -3,8 +3,6 @@
  */
 
 #include <AMReX_EB_Redistribution.H>
-#include <AMReX_GpuContainers.H>
-#include <AMReX_GpuMemory.H>
 
 // Neighbor index lookup tables in constant memory for efficient GPU access
 // These map neighbor indices to (i,j,k) offsets
@@ -29,11 +27,13 @@ MakeStateRedistUtils ( Box const& bx,
                        Array4<EBCellFlag const> const& flag,
                        Array4<Real const> const& vfrac,
                        Array4<Real const> const& ccent,
-                       Array4<int  const> const& itracker,
+                       Array4<int const  > const& itracker,
                        Array4<int       > const& nrs,
                        Array4<Real      > const& alpha,
                        Array4<Real      > const& nbhd_vol,
                        Array4<Real      > const& cent_hat,
+                       Dim3 const* active_cells,
+                       int num_active_cells,
                        Geometry const& lev_geom,
                        Real target_vol)
 {
@@ -77,49 +77,6 @@ MakeStateRedistUtils ( Box const& bx,
 #if (AMREX_SPACEDIM == 3)
     if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
-
-    // Cells with a nonempty tracker are sparse for the usual EB workload. Append
-    // their coordinates to a compact list while initializing nrs and alpha.
-    Long const num_candidates = bxg5.numPts();
-    Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
-    Dim3* const active_cells = active_cells_v.data();
-    Gpu::DeviceScalar<int> active_count_v(0);
-    int* const active_count = active_count_v.dataPtr();
-
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        nrs(i,j,k) = 1;
-
-        if (bxg4.contains(i,j,k)) {
-            auto const cell_flag = flag(i,j,k);
-            Real const value = cell_flag.isCovered() ? 0.0_rt : 1.0_rt;
-            alpha(i,j,k,0) = value;
-
-            if (bxg3.contains(i,j,k)) {
-                if (cell_flag.isRegular()) {
-                    AMREX_D_TERM(cent_hat(i,j,k,0) = 0.0_rt;,
-                                 cent_hat(i,j,k,1) = 0.0_rt;,
-                                 cent_hat(i,j,k,2) = 0.0_rt;);
-                } else if (cell_flag.isCovered()) {
-                    AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
-                                 cent_hat(i,j,k,1) = eb_covered_val;,
-                                 cent_hat(i,j,k,2) = eb_covered_val;);
-                } else {
-                    AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
-                                 cent_hat(i,j,k,1) = ccent(i,j,k,1);,
-                                 cent_hat(i,j,k,2) = ccent(i,j,k,2););
-                }
-            }
-
-            if (itracker(i,j,k,0) > 0) {
-                int const active_index = Gpu::Atomic::Add(active_count, 1);
-                active_cells[active_index] = Dim3{i,j,k};
-            }
-        }
-    });
-
-    int const num_active_cells = active_count_v.dataValue();
 
     // Need nrs in bxg5 in order to compute alpha in bxg4
     // nrs captures how many neighborhoods (r,s,t) is in
