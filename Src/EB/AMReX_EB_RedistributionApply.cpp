@@ -7,6 +7,8 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EB_utils.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_GpuMemory.H>
 
 namespace amrex {
 
@@ -176,9 +178,17 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
             }
         );
 
-        MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, target_volfrac);
+        Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
+        Dim3* const active_cells = active_cells_v.data();
+        Gpu::DeviceScalar<int> active_count_v(0);
+        MakeITracker(
+            bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
+            nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
+            lev_geom, target_volfrac);
+        int const num_active_cells = active_count_v.dataValue();
 
-        MakeStateRedistUtils(bx, flag, vfrac, ccc, itr, nrs, alpha, nbhd_vol, cent_hat,
+        MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
+                             nbhd_vol, cent_hat, active_cells, num_active_cells,
                              lev_geom, target_volfrac);
 
         MLStateRedistribute(bx, ncomp, dUdt_out, scratch, flag, vfrac,
@@ -301,10 +311,18 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         U_out(i,j,k,n) = 0.;
     });
 
-    MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, target_volfrac);
+    Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
+    Dim3* const active_cells = active_cells_v.data();
+    Gpu::DeviceScalar<int> active_count_v(0);
+    MakeITracker(
+        bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
+        nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
+        lev_geom, target_volfrac);
+    int const num_active_cells = active_count_v.dataValue();
 
-    MakeStateRedistUtils(bx, flag, vfrac, ccc, itr, nrs, alpha, nbhd_vol, cent_hat,
-                            lev_geom, target_volfrac);
+    MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
+                         nbhd_vol, cent_hat, active_cells, num_active_cells,
+                         lev_geom, target_volfrac);
 
     StateRedistribute(bx, ncomp, U_out, U_in, flag, vfrac,
                          AMREX_D_DECL(fcx, fcy, fcz), ccc,  d_bcrec_ptr,
