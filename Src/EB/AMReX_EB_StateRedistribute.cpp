@@ -192,7 +192,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                             r = i+imap[itracker(i,j,k,i_nbor)];
                             s = j+jmap[itracker(i,j,k,i_nbor)];
                             t = k+kmap[itracker(i,j,k,i_nbor)];
-                            fac = alpha(i,j,k,1) / nrs(r,s,t);
+                            fac = alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t));
                         }
 
                         if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
@@ -457,7 +457,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
                     int r = i; int s = j; int t = k;
-                    Real fac = alpha(i,j,k,0) * nrs(i,j,k);
+                    Real fac = alpha(i,j,k,0) * static_cast<Real>(nrs(i,j,k));
                     if (i_nbor > 0) {
                         r += imap[itracker(i,j,k,i_nbor)];
                         s += jmap[itracker(i,j,k,i_nbor)];
@@ -479,7 +479,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                 ii += imap[itracker(i,j,k,r_nbor)];
                                 jj += jmap[itracker(i,j,k,r_nbor)];
                                 kk += kmap[itracker(i,j,k,r_nbor)];
-                                fac2 = alpha(i,j,k,1) / nrs(ii,jj,kk);
+                                fac2 = alpha(i,j,k,1) / static_cast<Real>(nrs(ii,jj,kk));
                             }
 
                             //
@@ -505,7 +505,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                             // Update U_out(r,s,t) with qt(i,j,k,r_nbor)
                             //
                             if (bx.contains(IntVect(AMREX_D_DECL(r,s,t)))) {
-                                amrex::HostDevice::Atomic::Add(&U_out(r,s,t,n),fac*update/nrs(r,s,t));
+                                amrex::HostDevice::Atomic::Add(
+                                    &U_out(r,s,t,n), fac*update/static_cast<Real>(nrs(r,s,t)));
                             }
 
                             if (as_crse) {
@@ -516,7 +517,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                     flag_as_crse(ii,jj,kk) == amrex_yafluxreg_fine_cell )
                                {
                                    amrex::HostDevice::Atomic::Add(&drho_as_crse(r,s,t,n),
-                                                                  -fac*update/nrs(r,s,t) * fac_for_deltaR);
+                                                                  -fac*update/
+                                                                  static_cast<Real>(nrs(r,s,t)) * fac_for_deltaR);
                                }
 
                                // Uncovered (by fine) to covered (by fine)
@@ -525,7 +527,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                     flag_as_crse(ii,jj,kk) == amrex_yafluxreg_crse_fine_boundary_cell )
                                {
                                    amrex::HostDevice::Atomic::Add(&drho_as_crse(ii,jj,kk,n),
-                                                                  fac * update / nrs(r,s,t) *
+                                                                  fac * update / static_cast<Real>(nrs(r,s,t)) *
                                                                   (vfrac(r,s,t) / vfrac(ii,jj,kk)) * fac_for_deltaR);
                                }
                             } // as_crse
@@ -536,14 +538,18 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                if (levmsk(ii,jj,kk) == is_ghost_cell && bx.contains(IntVect(AMREX_D_DECL(r,s,t)))) {
 
                                    amrex::HostDevice::Atomic::Add(&dm_as_fine(ii,jj,kk,n),
-                                                                  -fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR);
+                                                                  -fac*update/
+                                                                  static_cast<Real>(nrs(r,s,t)) *
+                                                                  vfrac(r,s,t) * fac_for_deltaR);
                                }
 
                                // Valid (ii,jj,kk) to ghost (r,s,t)
                                if (bx.contains(IntVect(AMREX_D_DECL(ii,jj,kk))) && levmsk(r,s,t) == is_ghost_cell) {
 
                                    amrex::HostDevice::Atomic::Add(&dm_as_fine(r,s,t,n),
-                                                                  fac*update/nrs(r,s,t) * vfrac(r,s,t) * fac_for_deltaR);
+                                                                  fac*update/
+                                                                  static_cast<Real>(nrs(r,s,t)) *
+                                                                  vfrac(r,s,t) * fac_for_deltaR);
                                }
                             } // as_fine
 
@@ -673,7 +679,8 @@ StateRedistribute ( Box const& bx, int ncomp,
                 if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                 {
                     for (int n = 0; n < ncomp; n++) {
-                        Qhat(i,j,k,n) += U_in(r,s,t,n) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
+                        Qhat(i,j,k,n) += U_in(r,s,t,n) * alpha(i,j,k,1) * vfrac(r,s,t) /
+                            static_cast<Real>(nrs(r,s,t));
                     }
                 }
             }
@@ -695,7 +702,8 @@ StateRedistribute ( Box const& bx, int ncomp,
                 if (bx.contains(IntVect(AMREX_D_DECL(i,j,k))))
                 {
                     for (int n = 0; n < ncomp; n++) {
-                        amrex::Gpu::Atomic::Add(&U_out(i,j,k,n),alpha(i,j,k,0)*nrs(i,j,k)*Qhat(i,j,k,n));
+                        amrex::Gpu::Atomic::Add(&U_out(i,j,k,n), alpha(i,j,k,0) *
+                                               static_cast<Real>(nrs(i,j,k)) * Qhat(i,j,k,n));
                     }
                 }
 
@@ -799,7 +807,8 @@ StateRedistribute ( Box const& bx, int ncomp,
                         AMREX_D_TERM(update += lim_slope[0] * (ccent(i,j,k,0)-cent_hat(i,j,k,0));,
                                      update += lim_slope[1] * (ccent(i,j,k,1)-cent_hat(i,j,k,1));,
                                      update += lim_slope[2] * (ccent(i,j,k,2)-cent_hat(i,j,k,2)););
-                        amrex::Gpu::Atomic::Add(&U_out(i,j,k,n),alpha(i,j,k,0)*nrs(i,j,k)*update);
+                        amrex::Gpu::Atomic::Add(&U_out(i,j,k,n), alpha(i,j,k,0) *
+                                               static_cast<Real>(nrs(i,j,k)) * update);
                     } // if bx contains
 
                     // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
@@ -829,7 +838,7 @@ StateRedistribute ( Box const& bx, int ncomp,
         if (!flag(i,j,k).isCovered())
         {
             // This seems to help with a compiler issue ...
-            auto denom = Real(1.) / (nrs(i,j,k) + Real(1.e-30));
+            auto denom = Real(1.) / (static_cast<Real>(nrs(i,j,k)) + Real(1.e-30));
             U_out(i,j,k,n) *= denom;
         }
         else

@@ -131,7 +131,8 @@ MakeStateRedistUtils ( Box const& bx,
                 int s = j+jmap[itracker(i,j,k,i_nbor)];
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
                 if ( bxg4.contains(IntVect(AMREX_D_DECL(r,s,t))) ) {
-                    amrex::Gpu::Atomic::Add(&alpha(r,s,t,0),-(alpha(i,j,k,1)/nrs(r,s,t)));
+                    amrex::Gpu::Atomic::Add(&alpha(r,s,t,0),
+                                           -(alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t))));
                 }
             }
         }
@@ -152,7 +153,7 @@ MakeStateRedistUtils ( Box const& bx,
             bool const weight_centroid = cell_vfrac > 0.0 &&
                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)));
 
-            Real local_nbhd_vol = is_uncovered ? alpha(i,j,k,0) * cell_vfrac : 0.0;
+            Real local_nbhd_vol = is_uncovered ? alpha(i,j,k,0) * cell_vfrac : 0.0_rt;
 
             AMREX_D_TERM(Real local_cent_hat_x = 0.0;,
                          Real local_cent_hat_y = 0.0;,
@@ -171,7 +172,8 @@ MakeStateRedistUtils ( Box const& bx,
                     int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;
                     int const jj = jmap[itracker(i,j,k,i_nbor)]; int const s = j+jj;
                     int const kk = kmap[itracker(i,j,k,i_nbor)]; int const t = k+kk;
-                    Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
+                    Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) /
+                        static_cast<Real>(nrs(r,s,t));
 
                     if (is_uncovered) {
                         local_nbhd_vol += weight;
