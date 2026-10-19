@@ -223,25 +223,29 @@ namespace {
         return r;
     }
 
-    // Is p in a non-PIE executable, where an absolute address is also an
-    // address in the file?
-    bool in_non_pie_executable (void* p)
+    // If p is in the executable, return true and set offset to the address
+    // that addr2line -e exe expects. Return false for shared libraries.
+    bool exe_offset (void* p, std::uintptr_t& offset)
     {
-        auto addr = reinterpret_cast<std::uintptr_t>(p);
+        std::uintptr_t a[2] = {reinterpret_cast<std::uintptr_t>(p), 0};
         // The first object dl_iterate_phdr visits is the main program.
         auto f = [] (dl_phdr_info* info, std::size_t, void* data) -> int {
-            const auto a = *static_cast<std::uintptr_t*>(data);
-            if (info->dlpi_addr == 0) {
-                for (decltype(info->dlpi_phnum) j = 0; j < info->dlpi_phnum; ++j) {
-                    auto const& ph = info->dlpi_phdr[j];
-                    if (ph.p_type == PT_LOAD && a >= ph.p_vaddr && a < ph.p_vaddr + ph.p_memsz) {
-                        return 1;
-                    }
+            auto* q = static_cast<std::uintptr_t*>(data);
+            for (decltype(info->dlpi_phnum) j = 0; j < info->dlpi_phnum; ++j) {
+                auto const& ph = info->dlpi_phdr[j];
+                const std::uintptr_t lo = info->dlpi_addr + ph.p_vaddr;
+                if (ph.p_type == PT_LOAD && q[0] >= lo && q[0] < lo + ph.p_memsz) {
+                    q[1] = q[0] - info->dlpi_addr;
+                    return 1;
                 }
             }
             return -1;
         };
-        return dl_iterate_phdr(f, &addr) == 1;
+        if (p != nullptr && dl_iterate_phdr(f, a) == 1) {
+            offset = a[1];
+            return true;
+        }
+        return false;
     }
 #endif
 }
@@ -334,68 +338,37 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 return std::string(print_buff);
             };
 
-            auto complete = [] (std::string const& s) {
-                return !s.empty() && s.find('?') == std::string::npos;
+            // 0: nothing useful, 1: function only (has '?'), 2: complete
+            auto rank = [] (std::string const& s) {
+                if (s.empty() || s.starts_with("??")) { return 0; }
+                return (s.find('?') == std::string::npos) ? 2 : 1;
             };
 
-            // A partial result (with '?') is kept until a complete one replaces it.
-            Vector<int> todo; // frames for addr2line
+            // addr2line -e exe is used only for frames in the executable,
+            // looked up by their offset there. Frames in shared libraries
+            // are left to eu-addr2line.
+            Vector<int> frames;
+            Vector<std::string> addrs;
             for (int i = 0; i < nentries; ++i) {
-                const bool can_try_addr2line = have_addr2line && !amrex::system::exename.empty()
-                    && std::strstr(strings[i], "libc.so") == nullptr;
                 if (have_eu_addr2line && bt_buffer[i] != nullptr) {
                     results[i] = run_command(eu_cmd + " " + abs_addr(i));
                 }
-                if (can_try_addr2line && !complete(results[i]) &&
-                    (!have_eu_addr2line || bt_buffer[i] != nullptr))
+                std::uintptr_t offset = 0;
+                if (have_addr2line && !amrex::system::exename.empty() && rank(results[i]) < 2
+                    && exe_offset(bt_buffer[i], offset))
                 {
-                    todo.push_back(i);
-                }
-            }
-
-            // First try the offsets within the executable, "(+0x...)" in
-            // the backtrace_symbols output.
-            Vector<int> frames;
-            Vector<std::string> addrs;
-            for (int i : todo) {
-                const std::string line = strings[i];
-                std::size_t found1 = line.rfind('(');
-                std::size_t found2 = line.rfind(')');
-                std::size_t found3 = line.rfind('+');
-                if (found1 != std::string::npos && found2 != std::string::npos && found3 != std::string::npos
-                    && found1 < found3 && found3 < found2)
-                {
+                    char print_buff[32];
+                    std::snprintf(print_buff, sizeof(print_buff), "0x%llx",
+                                  static_cast<unsigned long long>(offset));
                     frames.push_back(i);
-                    addrs.push_back(line.substr(found3+1, found2-found3-1));
+                    addrs.push_back(print_buff);
                 }
             }
             auto res = batch_addr2line(cmd, addrs);
             for (Long k = 0; k < frames.size(); ++k) {
                 auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
                 auto& r = results[frames[k]];
-                if (it != res.end() && (r.empty() || complete(it->second))) {
-                    r = it->second;
-                }
-            }
-
-            // Then try the absolute addresses for the rest. A partial result
-            // is used only for a non-PIE executable, because elsewhere the
-            // address is not in the file and the symbol is bogus (e.g., "_end").
-            frames.clear();
-            addrs.clear();
-            for (int i : todo) {
-                if (!complete(results[i]) && bt_buffer[i] != nullptr) {
-                    frames.push_back(i);
-                    addrs.push_back(abs_addr(i));
-                }
-            }
-            res = batch_addr2line(cmd, addrs);
-            for (Long k = 0; k < frames.size(); ++k) {
-                auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
-                auto& r = results[frames[k]];
-                if (it != res.end() && (complete(it->second) ||
-                    (r.empty() && in_non_pie_executable(bt_buffer[frames[k]]))))
-                {
+                if (it != res.end() && rank(it->second) > rank(r)) {
                     r = it->second;
                 }
             }
