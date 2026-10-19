@@ -2,15 +2,25 @@
 # ref: https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/configuration-options-for-dependency-updates
 version: 2
 updates:
+  # One grouped PR per week for all GitHub Actions bumps. Patch-level
+  # updates are ignored.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "development"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   # Hash-pinned pip requirements of the CI workflows. Dependabot recompiles
   # the *.txt lock files from the *.in sources, so all of them are bumped in
-  # a single grouped PR instead of one per package.
+  # a single grouped PR instead of one per package. Patch-level updates are
+  # ignored.
   - package-ecosystem: "pip"
     directory: "/.github/workflows/requirements"
     schedule:
@@ -20,3 +30,6 @@ updates:
       ci-requirements:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
