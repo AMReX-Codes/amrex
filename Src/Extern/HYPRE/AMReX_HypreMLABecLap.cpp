@@ -1114,6 +1114,8 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
+                    // hypre writes sol for the next box on its own stream
+                    Gpu::streamSynchronize();
                 }
             }
         }
