@@ -1119,6 +1119,14 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     BL_PROFILE("HypreMLNodeLap::solve()");
     AMREX_ALWAYS_ASSERT(static_cast<int>(a_sol.size()) == m_nlevels &&
                         static_cast<int>(a_rhs.size()) == m_nlevels);
+    // The unknowns of a box are found by its index
+    for (int lev = 0; lev < m_nlevels; ++lev) {
+        for (auto const* mf : {a_rhs[lev], static_cast<MultiFab const*>(a_sol[lev])}) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf->boxArray() == m_nd_grids[lev] &&
+                                             mf->DistributionMap() == m_dmap[lev],
+                "HypreMLNodeLap: rhs and solution must have the grids of the operator");
+        }
+    }
 
     // BoomerAMG can report convergence with non-finite data
     for (auto const* rhs : a_rhs) {

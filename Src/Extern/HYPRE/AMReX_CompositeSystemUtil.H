@@ -108,6 +108,7 @@ inline Vector<Triplet> exchange_triplets (Vector<Triplet>&& trips, Vector<Long> 
     for (auto const& t : trips) {
         auto it = std::upper_bound(rank_offset.begin(), rank_offset.end(), t.row);
         const int p = static_cast<int>(it - rank_offset.begin()) - 1;
+        AMREX_ALWAYS_ASSERT(p >= 0 && p < nprocs); // row in [0, total)
         if (p == myproc) { local.push_back(t); } else { sendbuf[p].push_back(t); }
     }
     trips.clear();
