@@ -1,5 +1,36 @@
+# Paths that make a push pipeline worth running on the GPU runners.
+.code-paths: &code-paths
+  - Src/**/*
+  - Tests/**/*
+  - Tools/**/*
+  - CMakeLists.txt
+  - CTestConfig.cmake
+  - GNUmakefile.in
+  - configure
+  - .gitlab/**/*
+
 workflow:
   name: '$GITHUB_PIPELINE_NAME'
+  rules:
+    # Scheduled and PR-comment triggered pipelines always run.
+    - if: $CI_PIPELINE_SOURCE != "push"
+      when: always
+    # Dependabot branches mirrored from GitHub never touch code.
+    - if: $CI_COMMIT_BRANCH =~ /^dependabot\//
+      when: never
+    # On the default branch, compare against the previous commit.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        paths: *code-paths
+      when: always
+    # A newly pushed branch has no previous commit, and GitLab then treats
+    # `changes` as always true. Compare against development instead.
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        paths: *code-paths
+        compare_to: 'refs/heads/development'
+      when: always
+    - when: never
 
 .dependency-n-fetch-pr:
   stage: test
@@ -106,7 +137,7 @@ AMD-MI300A:
 Intel-PVC:
   extends: .dependency-n-fetch-pr
   tags: [intel-data-center-max-1100]
-  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+  image: intel/oneapi:2026.1.0-devel-ubuntu24.04
   script:
     - sycl-ls
     - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu

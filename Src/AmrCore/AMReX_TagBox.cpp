@@ -607,7 +607,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 if (tid == 0) {
                     *shared_counter = 0;
                 }
-                h.item->barrier(sycl::access::fence_space::local_space);
+                h.syncThreads();
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
                     unsigned int itag = Gpu::Atomic::Add<unsigned int,

@@ -941,9 +941,9 @@ public:
      * \param mem LayoutData whose local entries are incremented by the number
      *            of bytes owned by the corresponding FAB.
      */
-    template <std::integral I>
-    requires (BaseFabType<FAB> && (sizeof(I) >= sizeof(Long)))
-    void capacityOfFabs (LayoutData<I>& mem) const;
+    template <std::integral Int>
+    requires (BaseFabType<FAB> && (sizeof(Int) >= sizeof(Long)))
+    void capacityOfFabs (LayoutData<Int>& mem) const;
 
     /**
     * \brief Returns the sum of component "comp"
@@ -2915,14 +2915,14 @@ FabArray<FAB>::setDomainBndry (value_type val,
 }
 
 template <class FAB>
-template <std::integral I>
-requires (BaseFabType<FAB> && (sizeof(I) >= sizeof(Long)))
+template <std::integral Int>
+requires (BaseFabType<FAB> && (sizeof(Int) >= sizeof(Long)))
 void
-FabArray<FAB>::capacityOfFabs (LayoutData<I>& mem) const
+FabArray<FAB>::capacityOfFabs (LayoutData<Int>& mem) const
 {
     AMREX_ASSERT(amrex::isMFIterSafe(*this, mem));
     for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
-        mem[mfi] += static_cast<I>((*this)[mfi].nBytesOwned());
+        mem[mfi] += static_cast<Int>((*this)[mfi].nBytesOwned());
     }
 }
 

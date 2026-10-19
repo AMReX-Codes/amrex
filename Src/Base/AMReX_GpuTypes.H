@@ -73,9 +73,7 @@ struct Handler
 
     void* sharedMemory () const { return local; }
 
-    void sharedBarrier () const { item->barrier(sycl::access::fence_space::local_space); }
-    void globalBarrier () const { item->barrier(sycl::access::fence_space::global_space); }
-    void syncThreads () const { item->barrier(sycl::access::fence_space::global_and_local); }
+    void syncThreads () const { sycl::group_barrier(item->get_group()); }
 
     sycl::nd_item<1> const* item;
     void* local; // SYCL shared local memory

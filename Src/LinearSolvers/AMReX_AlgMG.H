@@ -32,9 +32,9 @@ namespace detail {
 //! True if row `row` of `csr` has an undecided neighbor with a larger PMIS
 //! weight than `wi`. Ties go to the larger global index. `gmap` maps the
 //! column index to the global index, or, if null, `goff` is added.
-template <typename TC, typename I, typename T>
+template <typename TC, typename Index, typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool pmis_blocked (CsrView<TC const,I> const& csr, Long row, T wi, Long ig,
+bool pmis_blocked (CsrView<TC const,Index> const& csr, Long row, T wi, Long ig,
                    T const* AMREX_RESTRICT w, int const* AMREX_RESTRICT state,
                    Long const* AMREX_RESTRICT gmap, Long goff, int undecided)
 {
@@ -65,9 +65,9 @@ T pmis_tiebreak (Long ig)
 }
 
 //! True if row `row` of `csr` has a neighbor with state `c`.
-template <typename T, typename I>
+template <typename T, typename Index>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool csr_row_has_state (CsrView<T const,I> const& csr, Long row,
+bool csr_row_has_state (CsrView<T const,Index> const& csr, Long row,
                         int const* AMREX_RESTRICT state, int c)
 {
     for (Long idx = csr.row_offset[row]; idx < csr.row_offset[row+1]; ++idx) {
@@ -487,6 +487,9 @@ private:
     //! Gather the coarsest matrix to every process and factor it.
     void build_direct_bottom ();
     void direct_bottom_solve ();
+    // In-place all-gather of a row-distributed dense array (stride doubles
+    // per row): each rank's rows already sit at their global offset in buf.
+    static void allgather_rows (double* buf, AlgPartition const& part, Long stride);
     //! Runs the setup if needed, or rebuilds only the smoothers.
     void prepare ()
     {
@@ -1124,7 +1127,7 @@ void AlgMG<T>::build_direct_bottom ()
         return;
     }
 
-    // Dense copy of the local rows; summed over the processes below.
+    // Dense copy of the local rows at their global offsets; gathered below.
     Vector<double> dense(n*n, 0.0);
     auto const pc = A.const_parcsr();
     auto to_host = [] (auto const* dptr, Long cnt) {
@@ -1162,7 +1165,7 @@ void AlgMG<T>::build_direct_bottom ()
             }
         }
     }
-    ParallelAllReduce::Sum(dense.data(), int(n*n), ParallelContext::CommunicatorSub());
+    allgather_rows(dense.data(), A.partition(), n);
 
     // Singular: the constant vector is in the null space. Adding (1/n) 1 1^T
     // makes the matrix regular; the coarsest residual and correction have
@@ -1212,6 +1215,25 @@ void AlgMG<T>::build_direct_bottom ()
 }
 
 template <typename T>
+void AlgMG<T>::allgather_rows (double* buf, AlgPartition const& part, Long stride)
+{
+#ifdef AMREX_USE_MPI
+    int const nprocs = ParallelContext::NProcsSub();
+    if (nprocs == 1) { return; }
+    Vector<int> counts(nprocs), displs(nprocs);
+    for (int p = 0; p < nprocs; ++p) {
+        displs[p] = int(part[p]*stride);
+        counts[p] = int((part[p+1]-part[p])*stride);
+    }
+    BL_MPI_REQUIRE(MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                                  buf, counts.data(), displs.data(), MPI_DOUBLE,
+                                  ParallelContext::CommunicatorSub()));
+#else
+    amrex::ignore_unused(buf, part, stride);
+#endif
+}
+
+template <typename T>
 void AlgMG<T>::direct_bottom_solve ()
 {
     int const lev = numLevels()-1;
@@ -1221,14 +1243,14 @@ void AlgMG<T>::direct_bottom_solve ()
     Long const nl = r.numLocalRows();
     Long const b0 = r.globalBegin();
 
-    // Gather the residual (sum of the zero-padded local parts).
-    Vector<double> rhs(n, 0.0);
-    Vector<T> loc(nl);
+    // Gather the residual.
+    PODVector<double> rhs(n); // uninitialized; every entry is written below
+    Gpu::PinnedVector<T> loc(nl);
     if (nl > 0) {
         Gpu::copy(Gpu::deviceToHost, r.data(), r.data()+nl, loc.begin());
         for (Long i = 0; i < nl; ++i) { rhs[b0+i] = double(loc[i]); }
     }
-    ParallelAllReduce::Sum(rhs.data(), int(n), ParallelContext::CommunicatorSub());
+    allgather_rows(rhs.data(), r.partition(), 1);
 
     // P A = L U: forward substitution with the unit lower part, then back.
     Vector<double> y(n);

@@ -1354,10 +1354,10 @@ IntVectResize (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
     return iv.template resize<new_dim>(fill_extra);
 }
 
-//! Get I'th element of IntVectND<dim>
-template <std::size_t I, int dim>
+//! Get the Idx-th element of IntVectND<dim>
+template <std::size_t Idx, int dim>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-constexpr int get (IntVectND<dim> const& iv) noexcept { return iv.vect[I]; }
+constexpr int get (IntVectND<dim> const& iv) noexcept { return iv.vect[Idx]; }
 
 namespace detail {
     template <typename F, int dim, std::size_t... N>

@@ -74,20 +74,7 @@ public:
                            const Vector<BoxArray>            & ba,
                            const Vector<IntVect>             & rr)
         :
-        m_gdb_object
-        (std::make_unique<ParGDB>(geom,dmap,ba, [&]() -> Vector<int> {
-                Vector<int> ref_ratio;
-                for (auto const& iv : rr)
-                {
-#if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(iv[0] == iv[1]);
-#endif
-#if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(iv[0] == iv[2]);
-#endif
-                    ref_ratio.push_back(iv[0]);
-                }
-                return ref_ratio;  }() )),
+        m_gdb_object(std::make_unique<ParGDB>(geom,dmap,ba,rr)),
         m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))
     {
     }

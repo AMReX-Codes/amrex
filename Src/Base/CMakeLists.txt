@@ -265,6 +265,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/AMReX_Parser.H
        Parser/AMReX_Parser_Exe.cpp
        Parser/AMReX_Parser_Exe.H
+       Parser/AMReX_Parser_Exe_Body.H
        Parser/AMReX_Parser_Y.cpp
        Parser/AMReX_Parser_Y.H
        Parser/amrex_parser.lex.cpp

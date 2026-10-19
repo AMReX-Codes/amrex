@@ -3,7 +3,7 @@
 import sys
 import re
 import subprocess
-import shlex
+import shutil
 
 if len(sys.argv) < 3:
   print("Usage: %s [exe-file] [backtrace-file]" % sys.argv[0])
@@ -14,6 +14,8 @@ bt_file = sys.argv[2]
 
 with open(bt_file, 'rt') as f:
   lines = f.readlines()
+
+frames = []  # (frame, addr)
 
 for l in lines:
 
@@ -39,6 +41,28 @@ for l in lines:
       addr = m.group(2)
 
   if matched:
-    cmd = "addr2line -Cpfie %s %s" % (exe_file, addr)
-    info = subprocess.check_output(shlex.split(cmd)).decode("utf-8")
-    print("%s: %s" % (frame, info))
+    frames.append((frame, addr))
+
+if not frames:
+  sys.exit(0)
+
+# GNU addr2line misreads clang's line-tables-only DWARF 5 output.
+# llvm-addr2line handles both gcc and clang output.
+tool = shutil.which("llvm-addr2line") or "addr2line"
+
+# One call for all addresses; -a tags each result with its address.
+cmd = [tool, "-aCpfie", exe_file] + [addr for _, addr in frames]
+out = subprocess.check_output(cmd).decode("utf-8")
+
+results = {}
+cur = None
+for l in out.splitlines(True):
+  m = re.match(r"(0x[\dabcdef]+): (.*\n)", l)
+  if m:
+    cur = int(m.group(1), 16)
+    results[cur] = m.group(2)
+  elif cur is not None:
+    results[cur] += l
+
+for frame, addr in frames:
+  print("%s: %s" % (frame, results.get(int(addr, 16), "")))

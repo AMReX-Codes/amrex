@@ -41,13 +41,13 @@ Parser::define (std::string const& func_body)
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
         try {
             amrex_parserparse();
+            m_data->m_parser = amrex_parser_new();
         } catch (const std::runtime_error& e) {
             amrex_parser_delete_buffer(buffer); // delete buffer allocated by bison
             amrex_parser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                      + m_data->m_expression + "\"");
         }
-        m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
         m_ufs = parser_get_user_functions(m_data->m_parser);
     }

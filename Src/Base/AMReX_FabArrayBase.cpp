@@ -23,6 +23,7 @@
 #endif
 
 #include <algorithm>
+#include <set>
 #include <utility>
 
 namespace amrex {
@@ -1896,9 +1897,10 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
       m_dstng    (dstng),
-      m_coarsener(coarsener.clone())
+      m_coarsener(coarsener.clone()),
+      m_index_space(index_space)
 {
-    amrex::ignore_unused(fdomain,cdomain,index_space);
+    amrex::ignore_unused(fdomain,cdomain);
     BL_PROFILE("FPinfo::FPinfo()");
 
     const BoxArray& srcba = srcfa.boxArray();
@@ -2100,9 +2102,18 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
             it->second->m_dstbdk    == dstkey    &&
             it->second->m_dstdomain == dstdomain &&
             it->second->m_dstng     == dstng     &&
-            it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
-            it->second->m_coarsener->doit(it->second->m_dstdomain) == coarsener.doit(dstdomain))
+            it->second->m_index_space == index_space &&
+            it->second->m_coarsener->equals(coarsener))
         {
+#ifdef AMREX_DEBUG
+            // Catch an interpolater whose CoarseBox depends on instance state.
+            auto const& fpc = *(it->second);
+            for (int i = 0, N = static_cast<int>(fpc.ba_fine_patch.size()); i < N; ++i) {
+                if (coarsener.doit(fpc.ba_fine_patch[i]) != fpc.ba_crse_patch[i]) {
+                    amrex::Abort("FabArrayBase::TheFPinfo: CoarseBox must depend only on the interpolater class and ratio");
+                }
+            }
+#endif
             ++(it->second->m_nuse);
             m_FPinfo_stats.recordUse();
             return *(it->second);
@@ -2171,6 +2182,30 @@ FabArrayBase::flushFPinfo (bool no_assertion) const
 
     for (auto const& it : others) {
         m_TheFillPatchCache.erase(it);
+    }
+}
+
+void
+FabArrayBase::flushFPinfo (const EB2::IndexSpace* ispace)
+{
+    // Trivially destructible flag: safe during static destruction after Finalize.
+    if (!initialized) { return; }
+
+    std::set<FPinfo*> dead;
+    for (auto it = m_TheFillPatchCache.begin(); it != m_TheFillPatchCache.end(); ) {
+        if (it->second->m_index_space == ispace) {
+            dead.insert(it->second);
+            it = m_TheFillPatchCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (auto* p : dead) {
+#ifdef AMREX_MEM_PROFILING
+        m_FPinfo_stats.bytes -= p->bytes();
+#endif
+        m_FPinfo_stats.recordErase(p->m_nuse);
+        delete p;
     }
 }
 

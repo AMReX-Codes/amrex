@@ -246,7 +246,7 @@ These Interpolaters can be executed on CPU or GPU, with certain limitations:
 
 -  :cpp:`CellConservativeProtected` only works in 2D and 3D.
 
--  :cpp:`CellQuadratic` only works in 2D and 3D.
+-  :cpp:`CellQuadratic` does not support spherical coordinates in 2D.
 
 -  :cpp:`CellConservativeQuartic` only works with a refinement ratio of 2.
 

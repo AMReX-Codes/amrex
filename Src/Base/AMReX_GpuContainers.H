@@ -462,7 +462,7 @@ namespace amrex::Gpu {
                     auto ga = new(shared_T+threadIdxx) T;
                     f(*ga, i);
                 }
-                handler.sharedBarrier();
+                handler.syncThreads();
                 for (Long m = threadIdxx,
                          mend = nU * amrex::min(blockDimx, N-blockDimx*blockIdxx);
                      m < mend; m += blockDimx) {

@@ -7,6 +7,8 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EB_utils.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_GpuMemory.H>
 
 namespace amrex {
 
@@ -125,7 +127,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
         IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-        FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+        IArrayBox nrs_fab(bxg5,1,The_Async_Arena());
         FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
         // Total volume of all cells in my nbhd
@@ -137,8 +139,8 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         Array4<int> itr = itracker.array();
         Array4<int const> itr_const = itracker.const_array();
 
-        Array4<Real      > nrs       = nrs_fab.array();
-        Array4<Real const> nrs_const = nrs_fab.const_array();
+        Array4<int      > nrs       = nrs_fab.array();
+        Array4<int const> nrs_const = nrs_fab.const_array();
 
         Array4<Real      > alpha       = alpha_fab.array();
         Array4<Real const> alpha_const = alpha_fab.const_array();
@@ -176,15 +178,23 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
             }
         );
 
-        MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, target_volfrac);
+        Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
+        Dim3* const active_cells = active_cells_v.data();
+        Gpu::DeviceScalar<int> active_count_v(0);
+        MakeITracker(
+            bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
+            nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
+            lev_geom, target_volfrac);
+        int const num_active_cells = active_count_v.dataValue();
 
-        MakeStateRedistUtils(bx, flag, vfrac, ccc, itr, nrs, alpha, nbhd_vol, cent_hat,
+        MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
+                             nbhd_vol, cent_hat, active_cells, num_active_cells,
                              lev_geom, target_volfrac);
 
         MLStateRedistribute(bx, ncomp, dUdt_out, scratch, flag, vfrac,
                             AMREX_D_DECL(fcx, fcy, fcz), ccc,  d_bcrec_ptr,
                             itr_const, nrs_const, alpha_const, nbhd_vol_const,
-                            cent_hat_const, lev_geom,
+                            cent_hat_const, active_cells, num_active_cells, lev_geom,
                             as_crse, rr_drho_crse, rr_flag_crse,
                             as_fine, dm_as_fine, levmsk,
                             level_mask_not_covered, fac_for_deltaR, srd_max_order);
@@ -201,7 +211,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                 // neighborhood of another cell -- if either of those is true the
                 // value may have changed
 
-                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1.)
+                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1)
                 {
                    const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
 
@@ -271,7 +281,7 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
         IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-    FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+    IArrayBox nrs_fab(bxg5,1,The_Async_Arena());
     FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
     // Total volume of all cells in my nbhd
@@ -283,8 +293,8 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
     Array4<int> itr = itracker.array();
     Array4<int const> itr_const = itracker.const_array();
 
-    Array4<Real      > nrs       = nrs_fab.array();
-    Array4<Real const> nrs_const = nrs_fab.const_array();
+    Array4<int      > nrs       = nrs_fab.array();
+    Array4<int const> nrs_const = nrs_fab.const_array();
 
     Array4<Real      > alpha       = alpha_fab.array();
     Array4<Real const> alpha_const = alpha_fab.const_array();
@@ -301,10 +311,18 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         U_out(i,j,k,n) = 0.;
     });
 
-    MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, target_volfrac);
+    Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
+    Dim3* const active_cells = active_cells_v.data();
+    Gpu::DeviceScalar<int> active_count_v(0);
+    MakeITracker(
+        bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
+        nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
+        lev_geom, target_volfrac);
+    int const num_active_cells = active_count_v.dataValue();
 
-    MakeStateRedistUtils(bx, flag, vfrac, ccc, itr, nrs, alpha, nbhd_vol, cent_hat,
-                            lev_geom, target_volfrac);
+    MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
+                         nbhd_vol, cent_hat, active_cells, num_active_cells,
+                         lev_geom, target_volfrac);
 
     StateRedistribute(bx, ncomp, U_out, U_in, flag, vfrac,
                          AMREX_D_DECL(fcx, fcy, fcz), ccc,  d_bcrec_ptr,

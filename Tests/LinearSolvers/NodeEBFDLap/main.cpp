@@ -121,6 +121,11 @@ void test_bottom_solvers (Geometry const& geom, BoxArray const& grids,
         pp.query("plot", plot);
         pp.query("max_rel_diff", max_rel_diff);
     }
+    // Agreement to max_rel_diff needs a residual well below the default
+    // reltol, which a solve may just barely meet.
+    if constexpr (std::is_same_v<Real,double>) {
+        reltol = std::min(reltol, Real(1.e-13));
+    }
 
     BoxArray const& nba = amrex::convert(grids, IntVect(1));
 

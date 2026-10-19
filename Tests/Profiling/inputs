@@ -1,0 +1,5 @@
+amrex.signal_handling = 0
+amrex.throw_exception = 1
+amrex.verbose = 0
+tiny_profiler.output_file = tiny_profiler_test.out
+tiny_profiler.print_threshold = 0

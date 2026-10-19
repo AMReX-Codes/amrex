@@ -353,6 +353,11 @@ by default returns the last one. The difference between :cpp:`query` and
 get the value, whereas :cpp:`query` returns an error code without generating a
 runtime error that will abort the run.
 
+The ``*arr`` functions grow the vector if it is too small, but they never
+shrink it. If ``xr`` above held defaults ``{-1.0, 0.0, 1.0}`` and the inputs
+had ``xrange = 2.0 3.0``, ``xr`` would become ``{2.0, 3.0, 1.0}``. Pass an
+empty vector to get exactly the values in the inputs.
+
 Math Expressions
 ----------------
 
@@ -907,6 +912,11 @@ elliptic integrals of the first and second kind).  In SYCL builds without the
 Intel math extension, ``jn`` and ``yn`` are host-only, so :cpp:`compile` aborts
 for expressions using them; use :cpp:`compileHost` instead.
 
+The elliptic-integral argument ``k`` is the modulus, rather than the parameter
+``m = k*k``. At ``k = -1`` and ``k = 1``, ``comp_ellint_2(k)`` returns ``1``.
+For direct C++ calls, :cpp:`amrex::Math::comp_ellint_1` returns positive infinity
+at these singular endpoints, and :cpp:`amrex::Math::comp_ellint_2` returns ``1``.
+
 **Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
 ``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
 
@@ -973,7 +983,8 @@ Local automatic variables can be defined in the expression. For example,
    auto f = parser.compile<2>();  // 2 because there are two variables.
 
 An assignment to a local variable must be terminated with ``;``. The final
-expression in the string (without a trailing ``;``) is the return value.
+expression in the string is the return value, and a trailing ``;`` after it
+is optional.
 One should avoid name conflicts between local variables and the constants set
 by :cpp:`setConstant` or the variables registered by :cpp:`registerVariables`.
 
@@ -1115,7 +1126,8 @@ has already been initialized and assigned processes to specific devices, you
 may need AMReX to use a particular GPU. In that case, you can pass the
 desired device ID to :cpp:`amrex::Initialize`. Conversely, if you want
 another library to use the device selected by AMReX, you can obtain the
-device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`.
+device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`. If the
+application initializes MPI itself, see :ref:`sec:gpu:device_selection`.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after

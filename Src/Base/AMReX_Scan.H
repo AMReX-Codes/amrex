@@ -260,7 +260,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
                 shared[warp] = x;
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // The first warp will do scan on the warp sums for the
             // whole block.
@@ -274,7 +274,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
                 if (lane < nwarps) { shared2[lane] = y; }
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
 
@@ -327,7 +327,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
                 shared[warp] = x;
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // The first warp will do scan on the warp sums for the
             // whole block.
@@ -341,7 +341,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
                 if (lane < nwarps) { shared2[lane] = y; }
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
 
@@ -469,7 +469,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                 unsigned int bid = Gpu::Atomic::Add(virtual_block_id_p, 1u);
                 virtual_block_id_shared = bid;
             }
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
             virtual_block_id = virtual_block_id_shared;
         }
 
@@ -512,7 +512,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                 shared[warp] = x;
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // The first warp will do scan on the warp sums for the
             // whole block.
@@ -526,7 +526,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                 if (lane < nwarps) { shared2[lane] = y; }
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
 
@@ -606,7 +606,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                 }
             }
 
-            gh.item->barrier(sycl::access::fence_space::local_space);
+            gh.syncThreads();
 
             T exclusive_prefix = shared[0];
 
