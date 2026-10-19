@@ -75,10 +75,9 @@ public:
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
-    //! IJ mode only: throw std::runtime_error instead of aborting when the
-    //! solve does not converge
+    //! Throw std::runtime_error instead of aborting when the solve fails
     void setThrowException (bool t) noexcept { m_throw_exception = t; }
-    //! IJ mode only: iterations and final relative residual of the last solve
+    //! Iterations and final relative residual of the last solve
     [[nodiscard]] int getNumIters () const noexcept { return m_num_iters; }
     [[nodiscard]] Real getFinalResidualNorm () const noexcept { return m_final_res; }
 
@@ -259,6 +258,8 @@ private:
     std::string m_dump_prefix;
     Long m_dump_gather_max = 50000000;
     void dumpSystem (int k, Gpu::DeviceVector<Real> const& v, bool solution);
+    //! Throw (setThrowException) or abort with \p msg
+    void fail (std::string const& msg) const;
 
     HypreSolverID m_hypre_solver_id = HypreSolverID::BoomerAMG;
     HYPRE_Int m_hypre_object_type = HYPRE_PARCSR;

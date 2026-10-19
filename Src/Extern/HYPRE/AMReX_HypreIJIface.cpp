@@ -5,6 +5,7 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include <cmath>
+#include <stdexcept>
 
 namespace amrex {
 
@@ -152,27 +153,26 @@ void boomeramg_common_options (HypreOptParse& hpp, std::string& euclid_file)
     }
 }
 
-//! Report (and optionally abort on) hypre errors other than non-convergence,
-//! which the caller detects from the returned residual.
-void check_hypre_error (const std::string& where, bool abort_on_error)
+} // namespace
+
+std::string hypreErrorMessage (const std::string& where)
 {
     const HYPRE_Int ierr = HYPRE_GetError();
-    if (ierr == 0) { return; }
+    if (ierr == 0) { return {}; }
     HYPRE_ClearAllErrors();
-    if (ierr == HYPRE_ERROR_CONV) { return; }
+    if (ierr == HYPRE_ERROR_CONV) { return {}; }
 
-    char descr[256] = {};
-    HYPRE_DescribeError(ierr, descr);
-    const std::string msg = "HYPRE error " + std::to_string(ierr) + " in " + where +
-                            ": " + std::string(descr);
-    if (abort_on_error) {
-        amrex::Abort(msg);
-    } else {
-        amrex::Warning(msg);
+    // Decoded here: HYPRE_DescribeError writes to a buffer of unspecified
+    // length and reports only one of the error bits
+    std::string descr;
+    if (ierr & HYPRE_ERROR_GENERIC) { descr += " [Generic error]"; }
+    if (ierr & HYPRE_ERROR_MEMORY) { descr += " [Memory error]"; }
+    if (ierr & HYPRE_ERROR_ARG) {
+        descr += " [Error in argument " + std::to_string(HYPRE_GetErrorArg()) + "]";
     }
+    if (ierr & HYPRE_ERROR_CONV) { descr += " [Method did not converge]"; }
+    return "HYPRE error " + std::to_string(ierr) + " in " + where + ":" + descr;
 }
-
-} // namespace
 
 HypreIJIface::HypreIJIface (
     MPI_Comm comm, HypreIntType ilower, HypreIntType iupper, int verbose)
@@ -223,7 +223,7 @@ void HypreIJIface::run_hypre_setup ()
 
         m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
         m_need_setup = false;
-        check_hypre_error(m_solver_name + " setup", m_abort_on_hypre_error);
+        report_failure(hypreErrorMessage(m_solver_name + " setup"));
     }
 }
 
@@ -231,7 +231,19 @@ void HypreIJIface::run_hypre_solve ()
 {
     BL_PROFILE("HypreIJIface::run_hypre_solve()");
     m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
-    check_hypre_error(m_solver_name + " solve", m_abort_on_hypre_error);
+    report_failure(hypreErrorMessage(m_solver_name + " solve"));
+}
+
+void HypreIJIface::report_failure (const std::string& msg) const
+{
+    if (msg.empty()) { return; }
+    if (!m_abort_on_hypre_error) {
+        amrex::Warning(msg);
+    } else if (m_throw_exception) {
+        throw std::runtime_error(msg);
+    } else {
+        amrex::Abort(msg);
+    }
 }
 
 void HypreIJIface::solve (
@@ -274,11 +286,7 @@ void HypreIJIface::solve (
         const std::string msg = "HYPRE " + m_solver_name +
             ": non-finite residual after " + std::to_string(m_num_iterations) +
             " iterations (check the smoother, e.g. bamg_relax_order = 0 with l1-Jacobi)";
-        if (m_abort_on_hypre_error) {
-            amrex::Abort(msg);
-        } else {
-            amrex::Warning(msg);
-        }
+        report_failure(msg);
     }
 
     if (m_write_files) {

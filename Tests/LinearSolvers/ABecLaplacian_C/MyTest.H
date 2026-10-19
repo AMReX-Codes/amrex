@@ -56,6 +56,9 @@ private:
 
     bool use_mlhypre = false; // use multi-level hypre solver
     int mlhypre_num_setups = 1; // repeated setups with use_mlhypre (composite)
+    // Composite mlhypre: the solve must throw with a NaN rhs (1) or, with
+    // prob_type = 2, NaN coefficients, i.e. a failing solver (2)
+    int mlhypre_test_throw = 0;
     amrex::Real max_error = -1.0; // if positive: abort if a level's max-norm error exceeds it
     bool use_hypre_ssamg = false; // this option is for mlhypre only
 

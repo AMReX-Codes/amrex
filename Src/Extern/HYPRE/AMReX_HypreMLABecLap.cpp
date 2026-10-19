@@ -118,17 +118,19 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
             "HypreMLABecLap: dump_matrix requires IJ mode (hypre_solver or backend = algmg)");
     }
     if (m_use_ij) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ParallelContext::NProcsSub() == ParallelDescriptor::NProcs(),
-            "HypreMLABecLap: IJ mode requires the full communicator");
-        const int nprocs = ParallelDescriptor::NProcs();
-        const int myproc = ParallelDescriptor::MyProc();
+        // Ranks of m_comm (the sub-communicator); the DistributionMappings
+        // hold global ranks
+        const int nprocs = ParallelContext::NProcsSub();
+        const int myproc = ParallelContext::MyProcSub();
+        auto owner = [&] (int ilev, int b) {
+            return ParallelContext::global_to_local_rank(m_dmap[ilev][b]);
+        };
         // Rows per rank, then each box's first row (per-rank cursors in
         // level and box order)
         m_rank_offset.assign(nprocs+1, 0);
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
             for (int b = 0; b < int(m_grids[ilev].size()); ++b) {
-                m_rank_offset[m_dmap[ilev][b]+1] += m_grids[ilev][b].numPts();
+                m_rank_offset[owner(ilev,b)+1] += m_grids[ilev][b].numPts();
             }
         }
         std::partial_sum(m_rank_offset.begin(), m_rank_offset.end(), m_rank_offset.begin());
@@ -137,8 +139,8 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
             m_box_offset[ilev].resize(m_grids[ilev].size());
             for (int b = 0; b < int(m_grids[ilev].size()); ++b) {
-                m_box_offset[ilev][b] = cursor[m_dmap[ilev][b]];
-                cursor[m_dmap[ilev][b]] += m_grids[ilev][b].numPts();
+                m_box_offset[ilev][b] = cursor[owner(ilev,b)];
+                cursor[owner(ilev,b)] += m_grids[ilev][b].numPts();
             }
         }
         m_ij_lower = m_rank_offset[myproc];
@@ -688,7 +690,9 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     };
     if (m_use_ij && m_backend == Backend::hypre) {
         if (m_reuse_setup && m_ij_solver) {
-            // Same pattern, new values: zero, then add; the solver setup is kept
+            // Same pattern, new values: zero, then add; the solver setup is
+            // kept (also if reuse was turned on after the first setup)
+            m_ij_solver->setRecomputePreconditioner(false);
             HYPRE_IJMatrixSetConstantValues(m_ij_solver->A(), Real(0.0));
             HYPRE_IJMatrixInitialize(m_ij_solver->A());
         } else {
@@ -1162,13 +1166,21 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
 
         HYPRE_ParCSRMatrix par_A;
         HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
+        HYPRE_ClearAllErrors();
         HYPRE_BoomerAMGSetup(m_solver, par_A, nullptr, nullptr);
+        if (auto msg = hypreErrorMessage("BoomerAMG setup"); !msg.empty()) { fail(msg); }
 
         HYPRE_BoomerAMGSetMinIter(m_solver, 1);
         HYPRE_BoomerAMGSetMaxIter(m_solver, m_maxiter);
     }
 
 #endif
+}
+
+void HypreMLABecLap::fail (std::string const& msg) const
+{
+    if (m_throw_exception) { throw std::runtime_error(msg); }
+    amrex::Abort(msg);
 }
 
 void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
@@ -1182,6 +1194,18 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 #else
 
     BL_PROFILE("HypreMLABecLap::solve()");
+
+    // BoomerAMG can report convergence with non-finite data
+    auto check_finite = [&] (Vector<MultiFab const*> const& mfs, std::string const& what)
+    {
+        for (auto const* mf : mfs) {
+            if (mf->contains_nan(0, 1, 0) || mf->contains_inf(0, 1, 0)) {
+                fail("HypreMLABecLap: " + what + " is not finite");
+            }
+        }
+    };
+    check_finite(a_rhs, "right-hand side");
+    check_finite(GetVecOfConstPtrs(a_sol), "initial guess");
 
     if (m_use_ij) {
         solveIJ(a_sol, a_rhs, a_reltol, a_abstol);
@@ -1270,6 +1294,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
         HYPRE_Int num_iterations;
         Real final_res;
+        HYPRE_ClearAllErrors();
 
 #ifdef AMREX_FEATURE_HYPRE_SSAMG
         if (m_hypre_solver_id == HypreSolverID::SSAMG)
@@ -1313,9 +1338,12 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
             }
         }
 
-        if (final_res > reltol) {
-            amrex::Abort("Hypre failed to converge after "+std::to_string(num_iterations)+
-                         " iterations. Final relative residual is "+std::to_string(final_res));
+        m_num_iters = static_cast<int>(num_iterations);
+        m_final_res = final_res;
+        if (auto msg = hypreErrorMessage("HypreMLABecLap solve"); !msg.empty()) { fail(msg); }
+        if (!(final_res <= reltol)) { // also catches NaN
+            fail("Hypre failed to converge after " + std::to_string(num_iterations) +
+                 " iterations. Final relative residual is " + std::to_string(final_res));
         }
     }
 
@@ -1355,6 +1383,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         m_ss_x = nullptr;
         m_ss_b = nullptr;
     }
+    check_finite(GetVecOfConstPtrs(a_sol), "solution");
 
     for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
         amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
@@ -1538,6 +1567,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         HYPRE_IJVectorAssemble(b);
         HYPRE_IJVectorAssemble(x);
 
+        m_ij_solver->setThrowException(m_throw_exception);
         m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
         num_iterations = static_cast<int>(m_ij_solver->getNumIters());
         final_res = m_ij_solver->getFinalResidualNorm();
@@ -1553,6 +1583,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         Gpu::copyAsync(Gpu::deviceToDevice, bvec.begin(), bvec.end(), ab.data());
         Gpu::copyAsync(Gpu::deviceToDevice, xvec.begin(), xvec.end(), ax.data());
         Gpu::streamSynchronize();
+        m_algmg->setThrowException(m_throw_exception);
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(Real(0.0));
         m_algmg->setMaxIter(m_maxiter);
@@ -1572,11 +1603,9 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     m_num_iters = num_iterations;
     m_final_res = final_res;
     if (!(final_res <= a_reltol)) {
-        std::string const msg = std::string((m_backend == Backend::hypre) ? "Hypre" : "AlgMG") +
-            " failed to converge after " + std::to_string(num_iterations) +
-            " iterations. Final relative residual is " + std::to_string(final_res);
-        if (m_throw_exception) { throw std::runtime_error(msg); }
-        amrex::Abort(msg);
+        fail(std::string((m_backend == Backend::hypre) ? "Hypre" : "AlgMG") +
+             " failed to converge after " + std::to_string(num_iterations) +
+             " iterations. Final relative residual is " + std::to_string(final_res));
     }
     if (dump_k >= 0) { dumpSystem(dump_k, xvec, true); }
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {

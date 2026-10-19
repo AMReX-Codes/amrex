@@ -458,7 +458,8 @@ consolidation strategy for multigrid coarsening.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
-application. The application code must catch the exception:
+application. This includes failures of the hypre IJ and AlgMG bottom solvers. The
+application code must catch the exception:
 
 .. highlight:: c++
 
@@ -878,14 +879,16 @@ sparse matrix:
   ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
 
 - :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: with the hypre backend, a
-  repeated :cpp:`setup` with new coefficients updates the matrix values in
-  place and keeps the solver setup until :cpp:`resetSolverSetup()`.  The AlgMG
-  backend sets up a new hierarchy for every matrix.
+  repeated :cpp:`setup` with new coefficients (on the same grids) updates the
+  matrix values in place and keeps the solver setup until
+  :cpp:`resetSolverSetup()`.  It can be turned on before or after the first
+  :cpp:`setup`.  The AlgMG backend sets up a new hierarchy for every matrix.
 
-- :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()` report the last solve;
-  with :cpp:`setThrowException(true)` a solve that does not converge throws
-  :cpp:`std::runtime_error` instead of aborting.  The absolute tolerance of
-  :cpp:`solve` must be 0.
+- In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
+  report the last solve, and with :cpp:`setThrowException(true)` a solve that
+  does not converge, or whose solver fails (a hypre error, a non-finite
+  residual, AlgMG diverging), throws :cpp:`std::runtime_error` instead of
+  aborting.  The absolute tolerance of :cpp:`solve` must be 0.
 
 - :cpp:`hypre_mlabeclap.dump_matrix`: default 0.  Write the systems of the
   first N solves with the same dump prefix, counted over all
@@ -900,7 +903,9 @@ sparse matrix:
 
 The number of rows of the composite system must fit in ``HYPRE_Int``, so
 systems with more than about :math:`2^{31}` cells need HYPRE built with
-``--enable-bigint``.
+``--enable-bigint``.  Like the default mode, the IJ mode runs on the
+communicator of the current :cpp:`ParallelContext` frame, which must be the
+same for the construction, :cpp:`setup` and :cpp:`solve`.
 
 Tensor Solve
 ============
