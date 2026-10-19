@@ -194,7 +194,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         MLStateRedistribute(bx, ncomp, dUdt_out, scratch, flag, vfrac,
                             AMREX_D_DECL(fcx, fcy, fcz), ccc,  d_bcrec_ptr,
                             itr_const, nrs_const, alpha_const, nbhd_vol_const,
-                            cent_hat_const, lev_geom,
+                            cent_hat_const, active_cells, num_active_cells, lev_geom,
                             as_crse, rr_drho_crse, rr_flag_crse,
                             as_fine, dm_as_fine, levmsk,
                             level_mask_not_covered, fac_for_deltaR, srd_max_order);

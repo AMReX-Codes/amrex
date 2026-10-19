@@ -228,6 +228,8 @@ namespace amrex {
                                amrex::Array4<amrex::Real const> const& alpha,
                                amrex::Array4<amrex::Real const> const& nbhd_vol,
                                amrex::Array4<amrex::Real const> const& cent_hat,
+                               amrex::Dim3 const* active_cells,
+                               int num_active_cells,
                                amrex::Geometry const& geom,
                                int as_crse,
                                Array4<Real            > const& drho_as_crse,

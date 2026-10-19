@@ -6,8 +6,6 @@
 #include <AMReX_EB_StateRedistSlopeLimiter_K.H>
 #include <AMReX_EB_StateRedistTracker_K.H>
 #include <AMReX_EB_Slopes_K.H>
-#include <AMReX_GpuContainers.H>
-#include <AMReX_Scan.H>
 #include <AMReX_YAFluxRegister_K.H>
 
 namespace amrex {
@@ -28,6 +26,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                       Array4<Real const> const& alpha,
                       Array4<Real const> const& nbhd_vol,
                       Array4<Real const> const& cent_hat,
+                      Dim3 const* active_cells,
+                      int num_active_cells,
                       Geometry const& lev_geom,
                       // Starting ML stuff
                       int as_crse,
@@ -117,29 +117,8 @@ MLStateRedistribute ( Box const& bx, int ncomp,
     IArrayBox classify_fab (bxg1,1,The_Async_Arena());
     Array4<int> classify_arr = classify_fab.array();
 
-    // All expensive redistribution kernels use the same activity predicate.
-    // Compact it once per tile and reuse the list for every component instead
-    // of launching mostly inactive warps in each kernel.
-    Long const num_candidates = bxg1.numPts();
-    Gpu::AsyncVector<Dim3> active_cells_v(num_candidates);
-    Dim3* const active_cells = active_cells_v.data();
-    int const num_active_cells = Scan::PrefixSum<int>(
-        num_candidates,
-        [=] AMREX_GPU_DEVICE (Long offset) noexcept -> int
-        {
-            Dim3 const cell = bxg1.atOffset(offset).dim3();
-            return vfrac(cell.x,cell.y,cell.z) > 0.0 &&
-                   itracker(cell.x,cell.y,cell.z,0) > 0;
-        },
-        [=] AMREX_GPU_DEVICE (Long offset, int active_offset) noexcept
-        {
-            Dim3 const cell = bxg1.atOffset(offset).dim3();
-            if (vfrac(cell.x,cell.y,cell.z) > 0.0 &&
-                itracker(cell.x,cell.y,cell.z,0) > 0) {
-                active_cells[active_offset] = cell;
-            }
-        },
-        Scan::Type::exclusive, Scan::retSum);
+    // MakeITracker builds the list on bxg4 for utility construction.  Reuse
+    // that superset here and discard entries outside bxg1 in the sparse kernels.
 
     // We do not initialize dm_as_fine here because we also add to cells outside
     // bx, which for a tiled MFIter belong to another tile. Zeroing it is the
@@ -216,6 +195,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const i = cell.x;
             int const j = cell.y;
             int const k = cell.z;
+            if (!bxg1.contains(i,j,k)) { return; }
 
             // Do we have enough extent in each coordinate direction to use the 3x3x3 stencil
             //    or do we need to enlarge it?
@@ -314,6 +294,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const i = cell.x;
             int const j = cell.y;
             int const k = cell.z;
+            if (!bxg1.contains(i,j,k)) { return; }
             int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code < 1 || code > 8) { return; }
@@ -350,6 +331,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const i = cell.x;
             int const j = cell.y;
             int const k = cell.z;
+            if (!bxg1.contains(i,j,k)) { return; }
             int const packed_code = classify_arr(i,j,k);
             int const code = packed_code & 0x1f;
             if (code == 0) { return; }
@@ -409,6 +391,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const i = cell.x;
             int const j = cell.y;
             int const k = cell.z;
+            if (!bxg1.contains(i,j,k)) { return; }
             AMREX_D_TERM(Real slope_x = slopes_eb_arr(i,j,k,0);,
                          Real slope_y = slopes_eb_arr(i,j,k,1);,
                          Real slope_z = slopes_eb_arr(i,j,k,2););
@@ -433,6 +416,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
             int const i = cell.x;
             int const j = cell.y;
             int const k = cell.z;
+            if (!bxg1.contains(i,j,k)) { return; }
             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> lim_slope{
                 AMREX_D_DECL(slopes_eb_arr(i,j,k,0),
                              slopes_eb_arr(i,j,k,1),
