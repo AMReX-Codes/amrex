@@ -14,6 +14,7 @@
 #endif
 
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -33,6 +34,7 @@
 #include <dlfcn.h>
 #define AMREX_BACKTRACE_SUPPORTED 1
 #elif defined(__linux__) && defined(__GLIBC__)
+#include <link.h>
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
@@ -220,6 +222,27 @@ namespace {
         }
         return r;
     }
+
+    // Is p in a non-PIE executable, where an absolute address is also an
+    // address in the file?
+    bool in_non_pie_executable (void* p)
+    {
+        auto addr = reinterpret_cast<std::uintptr_t>(p);
+        // The first object dl_iterate_phdr visits is the main program.
+        auto f = [] (dl_phdr_info* info, std::size_t, void* data) -> int {
+            const auto a = *static_cast<std::uintptr_t*>(data);
+            if (info->dlpi_addr == 0) {
+                for (decltype(info->dlpi_phnum) j = 0; j < info->dlpi_phnum; ++j) {
+                    auto const& ph = info->dlpi_phdr[j];
+                    if (ph.p_type == PT_LOAD && a >= ph.p_vaddr && a < ph.p_vaddr + ph.p_memsz) {
+                        return 1;
+                    }
+                }
+            }
+            return -1;
+        };
+        return dl_iterate_phdr(f, &addr) == 1;
+    }
 #endif
 }
 #endif
@@ -311,20 +334,21 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 return std::string(print_buff);
             };
 
+            auto complete = [] (std::string const& s) {
+                return !s.empty() && s.find('?') == std::string::npos;
+            };
+
+            // A partial result (with '?') is kept until a complete one replaces it.
             Vector<int> todo; // frames for addr2line
             for (int i = 0; i < nentries; ++i) {
                 const bool can_try_addr2line = have_addr2line && !amrex::system::exename.empty()
                     && std::strstr(strings[i], "libc.so") == nullptr;
-                if (have_eu_addr2line) {
-                    if (bt_buffer[i] != nullptr) {
-                        results[i] = run_command(eu_cmd + " " + abs_addr(i));
-                        // Keep a partial eu-addr2line result unless addr2line will be tried.
-                        if (can_try_addr2line && results[i].find("??:") != std::string::npos) {
-                            results[i].clear();
-                            todo.push_back(i);
-                        }
-                    }
-                } else if (can_try_addr2line) {
+                if (have_eu_addr2line && bt_buffer[i] != nullptr) {
+                    results[i] = run_command(eu_cmd + " " + abs_addr(i));
+                }
+                if (can_try_addr2line && !complete(results[i]) &&
+                    (!have_eu_addr2line || bt_buffer[i] != nullptr))
+                {
                     todo.push_back(i);
                 }
             }
@@ -348,16 +372,19 @@ BLBackTrace::print_backtrace_info (FILE* f)
             auto res = batch_addr2line(cmd, addrs);
             for (Long k = 0; k < frames.size(); ++k) {
                 auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
-                if (it != res.end() && it->second.find('?') == std::string::npos) {
-                    results[frames[k]] = it->second;
+                auto& r = results[frames[k]];
+                if (it != res.end() && (r.empty() || complete(it->second))) {
+                    r = it->second;
                 }
             }
 
-            // Then try the absolute addresses for the rest.
+            // Then try the absolute addresses for the rest. A partial result
+            // is used only for a non-PIE executable, because elsewhere the
+            // address is not in the file and the symbol is bogus (e.g., "_end").
             frames.clear();
             addrs.clear();
             for (int i : todo) {
-                if (results[i].empty() && bt_buffer[i] != nullptr) {
+                if (!complete(results[i]) && bt_buffer[i] != nullptr) {
                     frames.push_back(i);
                     addrs.push_back(abs_addr(i));
                 }
@@ -365,8 +392,11 @@ BLBackTrace::print_backtrace_info (FILE* f)
             res = batch_addr2line(cmd, addrs);
             for (Long k = 0; k < frames.size(); ++k) {
                 auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
-                if (it != res.end()) {
-                    results[frames[k]] = it->second;
+                auto& r = results[frames[k]];
+                if (it != res.end() && (complete(it->second) ||
+                    (r.empty() && in_non_pie_executable(bt_buffer[frames[k]]))))
+                {
+                    r = it->second;
                 }
             }
         }
