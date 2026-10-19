@@ -89,6 +89,10 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
 {
     BL_PROFILE("FFT::CrossProj::solve");
 
+    AMREX_ALWAYS_ASSERT(a_soln.is_cell_centered() && a_rhs.is_cell_centered() &&
+                        a_soln.nComp() >= AMREX_SPACEDIM &&
+                        a_rhs.nComp() >= AMREX_SPACEDIM);
+
     MF* soln = &a_soln;
     MF const* rhs = &a_rhs;
     MF solntmp, rhstmp;
@@ -98,23 +102,16 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
         rhs = &rhstmp;
     }
 
-    AMREX_ASSERT(soln->is_cell_centered() && rhs->is_cell_centered());
-
     using T = typename MF::value_type;
 
     GpuArray<T,AMREX_SPACEDIM> fac
         {AMREX_D_DECL(Math::pi<T>()/(T(m_geom.Domain().length(0))),
                       Math::pi<T>()/(T(m_geom.Domain().length(1))),
                       Math::pi<T>()/(T(m_geom.Domain().length(2))))};
-    GpuArray<T,AMREX_SPACEDIM> dxfac
+    GpuArray<T,AMREX_SPACEDIM> const dxfac
         {AMREX_D_DECL(T(1)/T(m_geom.CellSize(0)),
                       T(1)/T(m_geom.CellSize(1)),
                       T(1)/T(m_geom.CellSize(2)))};
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (m_geom.Domain().length(idim) == 1) {
-            dxfac[idim] = 0;
-        }
-    }
     auto scale = m_r2c->scalingFactor();
 
     GpuArray<int,AMREX_SPACEDIM> len{AMREX_D_DECL(m_geom.Domain().length(0),
@@ -127,20 +124,16 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
         AMREX_D_TERM(T a = fac[0]*T(i);,
                      T b = fac[1]*T(j);,
                      T c = fac[2]*T(k));
+        // Use exact cos(pi/2) = 0 so that null modes get a zero symbol.
+        AMREX_D_TERM(T ca = (2*i == len[0]) ? T(0) : std::cos(a);,
+                     T cb = (2*j == len[1]) ? T(0) : std::cos(b);,
+                     T cc = (2*k == len[2]) ? T(0) : std::cos(c));
 
         // Fourier symbol of the node-centered cross-stencil divergence, up
-        // to a common factor that cancels in the projection.  The half
-        // angles a, b, c make the symbol only change sign (as a whole
-        // vector) for the unshifted high wavenumbers stored by R2C.
-        // The symbol vanishes at the zero mode and where at least two half
-        // angles are pi/2. Detect these by index, since roundoff in cos(pi/2)
-        // makes the computed symbol nonzero.
+        // to a common factor that cancels in the projection.
 #if (AMREX_SPACEDIM == 2)
-        bool const null_mode = (i == 0 && j == 0)
-            || (2*i == len[0] && 2*j == len[1]);
-        T sx = std::sin(a)*std::cos(b)*dxfac[0];
-        T sy = std::cos(a)*std::sin(b)*dxfac[1];
-        if (null_mode) { sx = T(0); sy = T(0); }
+        T const sx = std::sin(a)*cb*dxfac[0];
+        T const sy = ca*std::sin(b)*dxfac[1];
 
         T const s2 = sx*sx + sy*sy;
         // Select the denominator instead of guarding the division (see Poisson).
@@ -149,12 +142,9 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
         spectral_data[0] -= sx * cdiv;
         spectral_data[1] -= sy * cdiv;
 #else
-        int const nhalf = int(2*i == len[0]) + int(2*j == len[1]) + int(2*k == len[2]);
-        bool const null_mode = (i == 0 && j == 0 && k == 0) || (nhalf >= 2);
-        T sx = std::sin(a)*std::cos(b)*std::cos(c)*dxfac[0];
-        T sy = std::cos(a)*std::sin(b)*std::cos(c)*dxfac[1];
-        T sz = std::cos(a)*std::cos(b)*std::sin(c)*dxfac[2];
-        if (null_mode) { sx = T(0); sy = T(0); sz = T(0); }
+        T const sx = std::sin(a)*cb*cc*dxfac[0];
+        T const sy = ca*std::sin(b)*cc*dxfac[1];
+        T const sz = ca*cb*std::sin(c)*dxfac[2];
 
         T const s2 = sx*sx + sy*sy + sz*sz;
         // Select the denominator instead of guarding the division (see Poisson).
