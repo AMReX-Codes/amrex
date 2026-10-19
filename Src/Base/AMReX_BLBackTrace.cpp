@@ -269,13 +269,9 @@ BLBackTrace::print_backtrace_info (FILE* f)
         }
         std::string cmd;
         {
-            // GNU addr2line misreads clang's line-tables-only DWARF 5 output,
-            // so prefer llvm-addr2line for clang-built executables.
-#ifdef __clang__
+            // GNU addr2line misreads clang's line-tables-only DWARF 5 output.
+            // llvm-addr2line handles both gcc and clang output.
             const char* tools[] = {"llvm-addr2line", "addr2line"};
-#else
-            const char* tools[] = {"addr2line", "llvm-addr2line"};
-#endif
             for (auto const* tool : tools) {
                 if (command_exists(tool)) {
                     have_addr2line = 1;
@@ -295,8 +291,8 @@ BLBackTrace::print_backtrace_info (FILE* f)
         }
 
         std::fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
-        std::fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
-        std::fprintf(f, "    (or llvm-addr2line for executables built with clang)\n");
+        std::fprintf(f, "            llvm-addr2line -Cpfie my_exefile my_line_address\n");
+        std::fprintf(f, "    (or addr2line, which may fail for executables built with clang)\n");
         std::fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
         std::fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
 
@@ -317,20 +313,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
             Vector<int> todo; // frames for addr2line
             for (int i = 0; i < nentries; ++i) {
-                bool try_addr2line = true;
+                const bool can_try_addr2line = have_addr2line && !amrex::system::exename.empty()
+                    && std::strstr(strings[i], "libc.so") == nullptr;
                 if (have_eu_addr2line) {
-                    try_addr2line = false;
                     if (bt_buffer[i] != nullptr) {
                         results[i] = run_command(eu_cmd + " " + abs_addr(i));
-                        if (results[i].find("??:") != std::string::npos) {
+                        // Keep a partial eu-addr2line result unless addr2line will be tried.
+                        if (can_try_addr2line && results[i].find("??:") != std::string::npos) {
                             results[i].clear();
-                            try_addr2line = true;
+                            todo.push_back(i);
                         }
                     }
-                }
-                if (try_addr2line && have_addr2line && !amrex::system::exename.empty()
-                    && std::strstr(strings[i], "libc.so") == nullptr)
-                {
+                } else if (can_try_addr2line) {
                     todo.push_back(i);
                 }
             }
