@@ -21,7 +21,8 @@ namespace amrex::FFT
  *
  * The divergence at each node is computed from the 4 (2D) or 8 (3D) cells
  * surrounding it. Currently only all-periodic boundaries are supported, in
- * 2D and 3D. The velocity MF must have AMREX_SPACEDIM components.
+ * 2D and 3D, with at least 2 cells in each direction. The first
+ * AMREX_SPACEDIM components of the MFs are the velocity.
  */
 template <typename MF = MultiFab>
 class CrossProj
@@ -41,6 +42,9 @@ public:
     {
         if (!m_geom.isAllPeriodic()) {
             amrex::Abort("FFT::CrossProj: only supports periodic BC");
+        }
+        if (m_geom.Domain().shortside() < 2) {
+            amrex::Abort("FFT::CrossProj: domain must have at least 2 cells in each direction");
         }
         Info info{};
         info.setBatchSize(AMREX_SPACEDIM);

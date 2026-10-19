@@ -297,9 +297,10 @@ the divergence at the node shared by cells :math:`(i,j)`, :math:`(i+1,j)`,
 In 3D, it is computed similarly from the 8 cells surrounding the node. The
 projected velocity has zero divergence at every node, and projecting it
 again leaves it unchanged. The class is available in 2D and 3D, and it
-currently only supports periodic boundary conditions. The velocity
-:cpp:`MultiFab` must have :cpp:`AMREX_SPACEDIM` components. If the output
-has ghost cells, one layer of them is filled. Below is an example of using
+currently only supports periodic boundary conditions. The domain must have
+at least 2 cells in each direction. The first :cpp:`AMREX_SPACEDIM`
+components of the :cpp:`MultiFab` are the velocity. If the output has ghost
+cells, one layer of them is filled. Below is an example of using
 it.
 
 .. highlight:: c++
