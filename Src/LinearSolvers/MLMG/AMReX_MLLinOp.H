@@ -90,6 +90,7 @@ struct LPInfo
     //! Specify a dimension \p n that should be treated as “hidden” (e.g., for thin domains).
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
     //! Enable deterministic reductions even on GPUs (slower but reproducible) by toggling \p x.
+    //! This also makes the GPU Gauss-Seidel smoother of MLEBABecLap race-free at cut cells.
     LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
 
     //! True if a hidden dimension was configured via setHiddenDirection().

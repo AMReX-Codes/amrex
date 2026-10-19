@@ -239,6 +239,13 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 #define EB_GSRB_LAUNCH(...) AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n, __VA_ARGS__)
 #endif
 
+// At cut cells, mlebabeclap_gsrb also reads same-parity diagonal neighbors such
+// as (i-1,j+1,k), so a GPU red (black) launch reads cells that other threads of
+// the same launch write. By default this benign race is allowed for performance.
+// With LPInfo::setDeterministic(true), each GPU half-sweep is instead done as the
+// 2^(AMREX_SPACEDIM-1) colors (multicolor_offset) of that parity, one strided
+// launch each. Two distinct cells in a 3x3(x3) neighborhood never share a color.
+
 void
 MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
@@ -296,9 +303,9 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     Array4<Real const> foo;
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate() && factory && !has_overset)
+    if (Gpu::inLaunchRegion() && factory &&
+        ((sol.isFusingCandidate() && !has_overset) || info.deterministic))
     {
-        AMREX_ALWAYS_ASSERT(rhs.nGrowVect() == 0);
 
         MultiArray4<Real const> fooma;
         auto const& m0ma = mm0.const_arrays();
@@ -337,22 +344,54 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
         if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-        ParallelForRedBlack(sol, nc, redblack,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            Box vbx(rhsma[box_no]);
-            mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_2D_ONLY_ARGS(dh) h,
-                             AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
-                             AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
-                             AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
-                             AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
-                             AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
-                             ccmma[box_no], bebma[box_no], ebdata_ma.get(box_no),
-                             is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                             vbx, redblack);
-        });
+        if (!info.deterministic) {
+            AMREX_ALWAYS_ASSERT(rhs.nGrowVect() == 0);
+            ParallelForRedBlack(sol, nc, redblack,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                Box vbx(rhsma[box_no]);
+                mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
+                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                 AMREX_2D_ONLY_ARGS(dh) h,
+                                 AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                 AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                 AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                 AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                 AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                 ccmma[box_no], bebma[box_no], ebdata_ma.get(box_no),
+                                 is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                 vbx, redblack);
+            });
+        } else {
+            const IntVect rhs_ng = rhs.nGrowVect();
+            MultiArray4<int const> osmma;
+            if (has_overset) { osmma = m_overset_mask[amrlev][mglev]->const_arrays(); }
+            for (int color = 0; color < (1 << AMREX_SPACEDIM); ++color) {
+                if (multicolor_offset(color).sum() % 2 != redblack) { continue; }
+                ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx = amrex::grow(Box(rhsma[box_no]), -rhs_ng);
+                    for (int n = 0; n < nc; ++n) {
+                        if (has_overset && osmma[box_no](i,j,k) == 0) {
+                            solma[box_no](i,j,k,n) = Real(0.0);
+                        } else {
+                            mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
+                                             AMREX_D_DECL(dhx, dhy, dhz),
+                                             AMREX_2D_ONLY_ARGS(dh) h,
+                                             AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                             AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                             AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                             AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                             AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                             ccmma[box_no], bebma[box_no], ebdata_ma.get(box_no),
+                                             is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                             vbx, redblack);
+                        }
+                    }
+                });
+            }
+        }
         if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
     }
     else
