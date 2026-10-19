@@ -108,6 +108,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           MLMG/AMReX_MLNodeLaplacian_matrix.cpp
           MLMG/AMReX_MLNodeLap_K.H
           MLMG/AMReX_MLNodeLap_${D}D_K.H
+          MLMG/AMReX_MLNodeCrossLaplacian.H
+          MLMG/AMReX_MLNodeCrossLaplacian.cpp
+          MLMG/AMReX_MLNodeCrossLap_K.H
           MLMG/AMReX_MLTensorOp.H
           MLMG/AMReX_MLTensorOp.cpp
           MLMG/AMReX_MLTensorOp_grad.cpp

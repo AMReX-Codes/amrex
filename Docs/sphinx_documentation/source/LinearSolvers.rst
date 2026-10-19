@@ -28,6 +28,9 @@ linear operators include
 - :cpp:`MLTerrainPoisson` for cell-centered Poisson's equation on a
   terrain-following mesh (section :ref:`sec:linearsolver:terrain`).
 
+- :cpp:`MLNodeCrossLaplacian` for an exact nodal projection in 2D
+  (section :ref:`sec:linearsolver:nodecross`).
+
 The constructors of these linear operator classes are in the form like
 below
 
@@ -1119,6 +1122,44 @@ the smoother as the bottom solver.
 :math:`z_\xi` and :math:`z_\eta` are the slopes of the coordinate
 surfaces.  :cpp:`MLMG::getGradSolution` returns the same with the opposite
 sign.
+
+.. _sec:linearsolver:nodecross:
+
+Exact Nodal Projection
+======================
+
+:cpp:`MLNodeCrossLaplacian` solves :math:`D \sigma G \phi = D u` for a
+nodal :math:`\phi`, where :math:`u` is a cell-centered velocity, :math:`D`
+is the nodal divergence and :math:`G` the cell-centered gradient, the same
+:math:`D` and :math:`G` as in the right-hand side and velocity update of
+:cpp:`MLNodeLaplacian`, and :math:`\sigma` is a constant.  The updated
+velocity :math:`u - \sigma G \phi` has zero discrete divergence, and
+projecting it again leaves it unchanged.  This differs from
+:cpp:`MLNodeLaplacian`, whose projection is approximate.
+
+The operator is available in 2D for a single AMR level, with periodic,
+Neumann, inflow and Dirichlet domain boundaries.  It must be solved with the
+algebraic multigrid type (section :ref:`sec:linearsolver:algmg`); when the
+cells are not square, use it with :cpp:`GMRESMLMG`.
+
+.. highlight:: c++
+
+::
+
+    MLNodeCrossLaplacian linop({geom}, {grids}, {dmap}, LPInfo(), sigma);
+    linop.setDomainBC(lobc, hibc);
+    linop.compRHS({&rhs}, {&vel});   // vel needs one ghost cell
+
+    MLMG mlmg(linop);
+    mlmg.setMultigridType(MultigridType::algebraic);
+    mlmg.solve({&phi}, {&rhs}, reltol, abstol);
+
+    linop.updateVelocity({&vel}, {&phi});   // vel -= sigma G phi
+
+:cpp:`MLNodeCrossLaplacian::compGradPhi` returns :math:`G \phi`.  Without a
+Dirichlet boundary, :math:`\phi` is determined up to a constant and, when
+every periodic direction has an even number of cells, a checkerboard mode
+:math:`(-1)^{i+j}`; the solver removes the checkerboard mode.
 
 Open Boundary Poisson Solver
 ============================
