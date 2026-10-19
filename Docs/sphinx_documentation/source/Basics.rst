@@ -1126,7 +1126,8 @@ has already been initialized and assigned processes to specific devices, you
 may need AMReX to use a particular GPU. In that case, you can pass the
 desired device ID to :cpp:`amrex::Initialize`. Conversely, if you want
 another library to use the device selected by AMReX, you can obtain the
-device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`.
+device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`. If the
+application initializes MPI itself, see :ref:`sec:gpu:device_selection`.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after
