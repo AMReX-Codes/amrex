@@ -1078,6 +1078,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     if (m_has_sigma_mf) {
         update_sigma();
     }
+
+    m_needs_update = false;
 }
 
 #ifdef AMREX_USE_EB
