@@ -1,5 +1,8 @@
 #ifndef AMREX_MF_INTERP_1D_C_H_
 #define AMREX_MF_INTERP_1D_C_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_Geometry.H>
 
 namespace amrex {
 
@@ -112,11 +115,18 @@ void mf_cell_cons_lin_interp (int i, int /*j*/, int /*k*/, int ns,
         + xoff * slope(ic,0,0,ns);
 }
 
+// Volume coordinate of radius r: r^2 for cylindrical, r^3 for spherical.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slope,
-                                          Array4<Real const> const& u, int scomp, int /*ncomp*/,
-                                          Box const& domain, IntVect const& ratio,
-                                          BCRec const* bc, Real drf, Real rlo) noexcept
+Real mf_cell_vol_coord_1d (Real r, int coord) noexcept
+{
+    return (coord == CoordSys::SPHERICAL) ? r*r*r : r*r;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_cons_lin_interp_mcslope_curv (int i, int ns, Array4<Real> const& slope,
+                                           Array4<Real const> const& u, int scomp, int /*ncomp*/,
+                                           Box const& domain, IntVect const& ratio,
+                                           BCRec const* bc, Real drf, Real rlo, int coord) noexcept
 {
     int nu = ns + scomp;
 
@@ -129,20 +139,14 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
 
     Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
-        const Real drc = drf * ratio[0];
-        const Real rcm =  i    * drc + rlo;
-        const Real rcp = (i+1) * drc + rlo;
-        const Real vcm = rcm*rcm*rcm;
-        const Real vcp = rcp*rcp*rcp;
-        Real rfm =  i*ratio[0]      * drf + rlo;
-        Real rfp = (i*ratio[0] + 1) * drf + rlo;
-        Real vfm = rfm*rfm*rfm;
-        Real vfp = rfp*rfp*rfp;
+        const Real drc = drf * Real(ratio[0]);
+        const Real vcm = mf_cell_vol_coord_1d(Real(i)   * drc + rlo, coord);
+        const Real vcp = mf_cell_vol_coord_1d(Real(i+1) * drc + rlo, coord);
+        Real vfm = mf_cell_vol_coord_1d(Real(i*ratio[0])     * drf + rlo, coord);
+        Real vfp = mf_cell_vol_coord_1d(Real(i*ratio[0] + 1) * drf + rlo, coord);
         Real xlo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-        rfm = ((i+1)*ratio[0] - 1) * drf + rlo;
-        rfp =  (i+1)*ratio[0]      * drf + rlo;
-        vfm = rfm*rfm*rfm;
-        vfp = rfp*rfp*rfp;
+        vfm = mf_cell_vol_coord_1d(Real((i+1)*ratio[0] - 1) * drf + rlo, coord);
+        vfp = mf_cell_vol_coord_1d(Real((i+1)*ratio[0])     * drf + rlo, coord);
         Real xhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
         Real dumax =  amrex::max(sx*xlo, sx*xhi);
         Real dumin = -amrex::min(sx*xlo, sx*xhi);
@@ -167,20 +171,17 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_sph (int i, int ns, Array4<Real> const& fine, int fcomp,
-                                  Array4<Real const> const& slope, Array4<Real const> const& crse,
-                                  int ccomp, int /*ncomp*/, IntVect const& ratio, Real drf, Real rlo) noexcept
+void mf_cell_cons_lin_interp_curv (int i, int ns, Array4<Real> const& fine, int fcomp,
+                                   Array4<Real const> const& slope, Array4<Real const> const& crse,
+                                   int ccomp, int /*ncomp*/, IntVect const& ratio,
+                                   Real drf, Real rlo, int coord) noexcept
 {
     const int ic = amrex::coarsen(i, ratio[0]);
-    const Real drc =  drf * ratio[0];
-    const Real rcm =  ic    * drc + rlo;
-    const Real rcp = (ic+1) * drc + rlo;
-    const Real rfm =  i     * drf + rlo;
-    const Real rfp = (i +1) * drf + rlo;
-    const Real vcm = rcm*rcm*rcm;
-    const Real vcp = rcp*rcp*rcp;
-    const Real vfm = rfm*rfm*rfm;
-    const Real vfp = rfp*rfp*rfp;
+    const Real drc = drf * Real(ratio[0]);
+    const Real vcm = mf_cell_vol_coord_1d(Real(ic)   * drc + rlo, coord);
+    const Real vcp = mf_cell_vol_coord_1d(Real(ic+1) * drc + rlo, coord);
+    const Real vfm = mf_cell_vol_coord_1d(Real(i)    * drf + rlo, coord);
+    const Real vfp = mf_cell_vol_coord_1d(Real(i+1)  * drf + rlo, coord);
     const Real xoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
     fine(i,0,0,fcomp+ns) = crse(ic,0,0,ccomp+ns)
         + xoff * slope(ic,0,0,ns);
@@ -220,6 +221,68 @@ void mf_nodebilin_interp (int i, int, int, int n, Array4<Real> const& fine, int 
     } else {
         fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp);
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_calcslope (int i, int /*j*/, int /*k*/, int n,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real>       const& slope,
+                                  Box const& domain,
+                                  BCRec const* bc) noexcept
+{
+    int nu = ccomp + n;
+    Real sx  = mf_compute_slopes_x(i, 0, 0, crse, nu, domain, bc[n]);
+    Real sxx = mf_cell_quadratic_compute_slopes_xx (i, 0, 0, crse, nu, domain, bc[n]);
+
+    slope(i,0,0,2*n  ) = sx;  // x
+    slope(i,0,0,2*n+1) = sxx; // x^2
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp (int i, int /*j*/, int /*k*/, int n,
+                               Array4<Real>       const& fine,  int fcomp,
+                               Array4<Real const> const& crse,  int ccomp,
+                               Array4<Real const> const& slope,
+                               IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int irx = i - ic*ratio[0]; // = abs(i % ratio[0])
+
+    // Compute offsets.
+    Real xoff = ( Real(irx) + 0.5_rt ) / Real(ratio[0]) - 0.5_rt;
+
+    fine(i,0,0,fcomp+n) = crse(ic,0,0,ccomp+n)
+                          +          xoff        * slope(ic,0,0,2*n  )  // x
+                          + 0.5_rt * xoff * xoff * slope(ic,0,0,2*n+1); // x^2
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp_curv (int i, int /*j*/, int /*k*/, int n,
+                                    Array4<Real>       const& fine,  int fcomp,
+                                    Array4<Real const> const& crse,  int ccomp,
+                                    Array4<Real const> const& slope,
+                                    IntVect const& ratio,
+                                    GeometryData const& cs_geomdata,
+                                    GeometryData const& fn_geomdata) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int coord = cs_geomdata.Coord();
+
+    Real fn_dr  = fn_geomdata.CellSize(0);
+    Real fn_rlo = fn_geomdata.ProbLo(0);
+    Real cs_dr  = cs_geomdata.CellSize(0);
+    Real cs_rlo = cs_geomdata.ProbLo(0);
+
+    // Offset in the volume coordinate, as in the 2D RZ kernel.
+    Real fn_vm = mf_cell_vol_coord_1d(fn_rlo + Real(i)    * fn_dr, coord);
+    Real fn_vp = mf_cell_vol_coord_1d(fn_rlo + Real(i+1)  * fn_dr, coord);
+    Real cs_vm = mf_cell_vol_coord_1d(cs_rlo + Real(ic)   * cs_dr, coord);
+    Real cs_vp = mf_cell_vol_coord_1d(cs_rlo + Real(ic+1) * cs_dr, coord);
+    Real xoff = 0.5_rt * ( (fn_vm + fn_vp) - (cs_vm + cs_vp) ) / ( cs_vp - cs_vm );
+
+    fine(i,0,0,fcomp+n) = crse(ic,0,0,ccomp+n)
+                          +          xoff        * slope(ic,0,0,2*n  )  // x
+                          + 0.5_rt * xoff * xoff * slope(ic,0,0,2*n+1); // x^2
 }
 
 }

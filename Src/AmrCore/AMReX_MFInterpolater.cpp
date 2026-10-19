@@ -119,9 +119,10 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
         Gpu::copyAsync(Gpu::hostToDevice, bcs.begin()+bcomp, bcs.begin()+bcomp+nc, d_bc.begin());
 
 #if (AMREX_SPACEDIM == 1)
-        if (cgeom.IsSPHERICAL()) {
+        if (! cgeom.IsCartesian()) {
             Real drf = fgeom.CellSize(0);
             Real rlo = fgeom.Offset(0);
+            int coord = cgeom.Coord();
             if (do_linear_limiting) {
                 ParallelFor(crsemf, ngtmp,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int, int) noexcept
@@ -133,8 +134,8 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 ParallelFor(crsemf, ngtmp, nc,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int, int, int n) noexcept
                 {
-                    mf_cell_cons_lin_interp_mcslope_sph(i, n, tmp[box_no], crse[box_no], ccomp, nc,
-                                                        cdomain, ratio, pbc, drf, rlo);
+                    mf_cell_cons_lin_interp_mcslope_curv(i, n, tmp[box_no], crse[box_no], ccomp, nc,
+                                                         cdomain, ratio, pbc, drf, rlo, coord);
                 });
             }
 
@@ -142,8 +143,8 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             [=] AMREX_GPU_DEVICE (int box_no, int i, int, int, int n) noexcept
             {
                 if (dest_domain.contains(i,0,0)) {
-                    mf_cell_cons_lin_interp_sph(i, n, fine[box_no], fcomp, ctmp[box_no],
-                                                crse[box_no], ccomp, nc, ratio, drf, rlo);
+                    mf_cell_cons_lin_interp_curv(i, n, fine[box_no], fcomp, ctmp[box_no],
+                                                 crse[box_no], ccomp, nc, ratio, drf, rlo, coord);
                 }
             });
         } else
@@ -258,9 +259,10 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 Box const& fbox = amrex::grow(mfi.validbox(), ng) & dest_domain;
 
 #if (AMREX_SPACEDIM == 1)
-                if (cgeom.IsSPHERICAL()) {
+                if (! cgeom.IsCartesian()) {
                     Real drf = fgeom.CellSize(0);
                     Real rlo = fgeom.Offset(0);
+                    int coord = cgeom.Coord();
                     if (do_linear_limiting) {
                         amrex::LoopConcurrentOnCpu(cbox,
                         [&] (int i, int, int) noexcept
@@ -272,16 +274,16 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                         amrex::LoopConcurrentOnCpu(cbox, nc,
                         [&] (int i, int, int, int n) noexcept
                         {
-                            mf_cell_cons_lin_interp_mcslope_sph(i, n, tmp, crse, ccomp, nc,
-                                                                cdomain, ratio, pbc, drf, rlo);
+                            mf_cell_cons_lin_interp_mcslope_curv(i, n, tmp, crse, ccomp, nc,
+                                                                 cdomain, ratio, pbc, drf, rlo, coord);
                         });
                     }
 
                     amrex::LoopConcurrentOnCpu(fbox, nc,
                     [&] (int i, int, int, int n) noexcept
                     {
-                        mf_cell_cons_lin_interp_sph(i, n, fine, fcomp, ctmp,
-                                                    crse, ccomp, nc, ratio, drf, rlo);
+                        mf_cell_cons_lin_interp_curv(i, n, fine, fcomp, ctmp,
+                                                     crse, ccomp, nc, ratio, drf, rlo, coord);
                     });
                 } else
 #elif (AMREX_SPACEDIM == 2)
