@@ -208,7 +208,7 @@ namespace {
         std::string line;
         std::string* cur = nullptr;
         while (std::getline(iss, line)) {
-            if (line.compare(0, 2, "0x") == 0) {
+            if (line.starts_with("0x")) {
                 auto pos = line.find(": ");
                 if (pos != std::string::npos) {
                     cur = &r[std::strtoull(line.c_str(), nullptr, 16)];
@@ -346,7 +346,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 }
             }
             auto res = batch_addr2line(cmd, addrs);
-            for (std::size_t k = 0; k < frames.size(); ++k) {
+            for (Long k = 0; k < frames.size(); ++k) {
                 auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
                 if (it != res.end() && it->second.find('?') == std::string::npos) {
                     results[frames[k]] = it->second;
@@ -363,7 +363,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 }
             }
             res = batch_addr2line(cmd, addrs);
-            for (std::size_t k = 0; k < frames.size(); ++k) {
+            for (Long k = 0; k < frames.size(); ++k) {
                 auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
                 if (it != res.end()) {
                     results[frames[k]] = it->second;
