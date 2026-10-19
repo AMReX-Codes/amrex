@@ -9,6 +9,10 @@
 
 namespace amrex {
 
+using state_redist_detail::imap;
+using state_redist_detail::jmap;
+using state_redist_detail::kmap;
+
 namespace {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

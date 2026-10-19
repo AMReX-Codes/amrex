@@ -7,6 +7,10 @@
 
 namespace amrex {
 
+using state_redist_detail::imap;
+using state_redist_detail::jmap;
+using state_redist_detail::kmap;
+
 void
 MakeStateRedistUtils ( Box const& bx,
                        Array4<EBCellFlag const> const& flag,

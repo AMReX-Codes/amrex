@@ -10,6 +10,10 @@
 
 namespace amrex {
 
+using state_redist_detail::imap;
+using state_redist_detail::jmap;
+using state_redist_detail::kmap;
+
 void
 MLStateRedistribute ( Box const& bx, int ncomp,
                       Array4<Real> const& U_out,
