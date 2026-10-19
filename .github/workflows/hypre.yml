@@ -198,6 +198,14 @@ jobs:
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=algmg
         # singular: the manufactured right-hand side is consistent only to O(h^2)
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre periodic=1 mlhypre_max_diff=1.e-5
+        # sub-communicators, and failures that must throw (NaN rhs or initial guess)
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b split_comm=1
+            for m in 1 2; do
+                mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                    mlhypre_test_throw=$m do_plots=0
+            done
+        done
         # EB projection
         cd ${{github.workspace}}/Tests/LinearSolvers/Nodal_Projection_EB
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE USE_EB=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20

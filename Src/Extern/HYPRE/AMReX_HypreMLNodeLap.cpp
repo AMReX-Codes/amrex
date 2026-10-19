@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
+#include <stdexcept>
 #include <array>
 #include <numeric>
 
@@ -1106,12 +1107,25 @@ void HypreMLNodeLap::getSolution (Vector<MultiFab*> const& a_sol)
     }
 }
 
+void HypreMLNodeLap::fail (std::string const& msg) const
+{
+    if (m_throw_exception) { throw std::runtime_error(msg); }
+    amrex::Abort(msg);
+}
+
 void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                             Real a_reltol, Real a_abstol, int a_maxiter)
 {
     BL_PROFILE("HypreMLNodeLap::solve()");
     AMREX_ALWAYS_ASSERT(static_cast<int>(a_sol.size()) == m_nlevels &&
                         static_cast<int>(a_rhs.size()) == m_nlevels);
+
+    // BoomerAMG can report convergence with non-finite data
+    for (auto const* rhs : a_rhs) {
+        if (rhs->contains_nan(0, 1, 0) || rhs->contains_inf(0, 1, 0)) {
+            fail("HypreMLNodeLap: right-hand side is not finite");
+        }
+    }
 
     loadRHS(a_rhs, a_sol);
     const Long nrows = m_iupper - m_ilower + 1;
@@ -1145,6 +1159,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         HYPRE_IJVectorAssemble(m_b);
         HYPRE_IJVectorAssemble(m_x);
 
+        m_ij->setThrowException(m_throw_exception);
         m_ij->solve(a_reltol, abstol, a_maxiter);
         m_num_iters = static_cast<int>(m_ij->getNumIters());
         m_final_res = m_ij->getFinalResidualNorm();
@@ -1168,6 +1183,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         Gpu::copyAsync(Gpu::hostToDevice, m_bvec.begin(), m_bvec.end(), b.data());
         Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), x.data());
         Gpu::streamSynchronize();
+        m_algmg->setThrowException(m_throw_exception);
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(abstol);
         m_algmg->setMaxIter(a_maxiter);
@@ -1187,8 +1203,8 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     const bool converged = (m_final_res <= a_reltol) ||
         (abstol > Real(0.0) && m_final_res*m_bnorm <= abstol);
     if (!converged) {
-        amrex::Abort("HypreMLNodeLap: failed to converge after " + std::to_string(m_num_iters) +
-                     " iterations; final relative residual " + std::to_string(m_final_res));
+        fail("HypreMLNodeLap: failed to converge after " + std::to_string(m_num_iters) +
+             " iterations; final relative residual " + std::to_string(m_final_res));
     }
 
     if (dump_k >= 0) { dumpSystem(dump_k, true); }

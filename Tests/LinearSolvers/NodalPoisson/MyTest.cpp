@@ -11,6 +11,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 #include <numbers>
 
 using namespace amrex;
@@ -96,6 +98,24 @@ MyTest::solve ()
             mlmg.solve(GetVecOfPtrs(sol_mlmg), GetVecOfConstPtrs(rhs), reltol, 0.0);
 
             HypreMLNodeLap hyp(linop, mlhypre_prefix, verbose);
+            if (mlhypre_test_throw > 0) {
+                Vector<MultiFab> nan_rhs(max_level+1);
+                for (int ilev = 0; ilev <= max_level; ++ilev) {
+                    nan_rhs[ilev].define(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+                    MultiFab::Copy(nan_rhs[ilev], rhs[ilev], 0, 0, 1, 0);
+                    auto& mf = (mlhypre_test_throw == 1) ? nan_rhs[ilev] : solution[ilev];
+                    mf.setVal(std::numeric_limits<Real>::quiet_NaN(), 0, 1, 0);
+                }
+                hyp.setThrowException(true);
+                try {
+                    hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(nan_rhs), reltol, 0.0,
+                              max_iter);
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "mlhypre_test_throw: caught \"" << e.what() << "\"\n";
+                    return;
+                }
+                amrex::Abort("mlhypre_test_throw: the solve did not throw");
+            }
             hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0, max_iter);
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
@@ -249,6 +269,7 @@ MyTest::readParameters ()
                                      "periodic requires composite_solve = 1 and domain_ratio = 1");
     pp.query("mlhypre_prefix", mlhypre_prefix);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
+    pp.query("mlhypre_test_throw", mlhypre_test_throw);
     pp.query("hypre_interface", hypre_interface_i);
     if (hypre_interface_i == 1) {
         hypre_interface = Hypre::Interface::structed;

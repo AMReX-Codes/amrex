@@ -948,6 +948,10 @@ except next to small cut cells, see ``eb_scaling``).
   unknowns by :math:`1/\sqrt{\text{nodal fluid fraction}}` so that the rows
   of nodes next to small cut cells count in the residual norm.
 
+:cpp:`getNumIters()`, :cpp:`getFinalResidualNorm()` and
+:cpp:`setThrowException()` work as for :cpp:`HypreMLABecLap`, and so does the
+use on a sub-communicator (the communicator of the :cpp:`MLNodeLaplacian`).
+
 Tensor Solve
 ============
 

@@ -63,6 +63,9 @@ private:
     std::string mlhypre_prefix = "hypre_mlnodelap";
     // if positive: abort if max |HypreMLNodeLap - MLMG| exceeds it relative to max |MLMG|
     amrex::Real mlhypre_max_diff = -1.0;
+    // mlhypre: the solve must throw with a NaN rhs (1) or a NaN initial
+    // guess, i.e. a failing solver (2)
+    int mlhypre_test_throw = 0;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the

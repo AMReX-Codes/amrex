@@ -104,6 +104,10 @@ public:
     void solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                 Real a_reltol, Real a_abstol, int a_maxiter);
 
+    //! Throw std::runtime_error instead of aborting when the solve fails
+    //! (no convergence, a hypre error, a non-finite residual, AlgMG diverging)
+    void setThrowException (bool t) noexcept { m_throw_exception = t; }
+
     //! Iterations and final relative residual of the last solve
     [[nodiscard]] int getNumIters () const { return m_num_iters; }
     [[nodiscard]] Real getFinalResidualNorm () const { return m_final_res; }
@@ -122,6 +126,8 @@ private:
     void loadRHS (Vector<MultiFab const*> const& a_rhs, Vector<MultiFab*> const& a_sol);
     void getSolution (Vector<MultiFab*> const& a_sol);
     void dumpSystem (int k, bool solution);
+    //! Throw (setThrowException) or abort with \p msg
+    void fail (std::string const& msg) const;
 
     //! Neumann scale (2 per Neumann/inflow domain face) of node iv on level lev
     [[nodiscard]] int neumannScale (int lev, IntVect const& iv) const;
@@ -155,6 +161,7 @@ private:
     Vector<std::unique_ptr<MultiFab>> m_cscale_on_f;   // level lev-1 scaling on coarsened level lev nodes
     bool m_eb_scaling = true;     // <prefix>.eb_scaling
     bool m_has_dirichlet = false; // any non-periodic Dirichlet domain face
+    bool m_throw_exception = false;
 
     //! Coupling of an unknown to a Dirichlet domain node with a value
     struct DirichletCoupling { Long row; Real coef; int lev; int li; IntVect node; };
