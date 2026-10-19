@@ -245,12 +245,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 // With LPInfo::setDeterministic(true), each GPU half-sweep is instead done as the
 // 2^(AMREX_SPACEDIM-1) colors (multicolor_offset) of that parity, one strided
 // launch each. Two distinct cells in a 3x3(x3) neighborhood never share a color.
-namespace {
-    constexpr int eb_gsrb_color_parity (int color) noexcept
-    {
-        return (color ^ (color >> 1) ^ (color >> 2)) & 1;
-    }
-}
 
 void
 MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
@@ -373,7 +367,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             MultiArray4<int const> osmma;
             if (has_overset) { osmma = m_overset_mask[amrlev][mglev]->const_arrays(); }
             for (int color = 0; color < (1 << AMREX_SPACEDIM); ++color) {
-                if (eb_gsrb_color_parity(color) != redblack) { continue; }
+                if (multicolor_offset(color).sum() % 2 != redblack) { continue; }
                 ParallelForStrided(sol, IntVect(2), multicolor_offset(color),
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
