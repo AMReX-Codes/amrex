@@ -19,6 +19,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 #if !(defined(_MSC_VER) && defined(__CUDACC__))
@@ -191,6 +192,34 @@ namespace {
         // decoded using WEXITSTATUS but it should be 0 on success
         return r == 0;
     }
+
+    // Run addr2line once for all addresses. cmd must contain -a so that
+    // each entry starts with "0x...: ". Results are keyed by address value.
+    std::map<unsigned long long, std::string>
+    batch_addr2line (std::string const& cmd, Vector<std::string> const& addrs)
+    {
+        std::map<unsigned long long, std::string> r;
+        if (addrs.empty()) { return r; }
+        std::string full_cmd = cmd;
+        for (auto const& a : addrs) {
+            full_cmd.append(" ").append(a);
+        }
+        std::istringstream iss(run_command(full_cmd));
+        std::string line;
+        std::string* cur = nullptr;
+        while (std::getline(iss, line)) {
+            if (line.compare(0, 2, "0x") == 0) {
+                auto pos = line.find(": ");
+                if (pos != std::string::npos) {
+                    cur = &r[std::strtoull(line.c_str(), nullptr, 16)];
+                    *cur = line.substr(pos+2) + '\n';
+                    continue;
+                }
+            }
+            if (cur) { *cur += line + '\n'; }
+        }
+        return r;
+    }
 #endif
 }
 #endif
@@ -240,21 +269,34 @@ BLBackTrace::print_backtrace_info (FILE* f)
         }
         std::string cmd;
         {
-            if (command_exists("addr2line")) {
-                have_addr2line = 1;
-                cmd = "addr2line";
-            } else {
-                std::string fallback_path = "/usr/bin/addr2line";
-                have_addr2line = file_exists(fallback_path.c_str());
-                cmd = std::move(fallback_path);
+            // GNU addr2line misreads clang's line-tables-only DWARF 5 output,
+            // so prefer llvm-addr2line for clang-built executables.
+#ifdef __clang__
+            const char* tools[] = {"llvm-addr2line", "addr2line"};
+#else
+            const char* tools[] = {"addr2line", "llvm-addr2line"};
+#endif
+            for (auto const* tool : tools) {
+                if (command_exists(tool)) {
+                    have_addr2line = 1;
+                    cmd = tool;
+                    break;
+                }
+                std::string fallback_path = std::string("/usr/bin/") + tool;
+                if (file_exists(fallback_path.c_str())) {
+                    have_addr2line = 1;
+                    cmd = std::move(fallback_path);
+                    break;
+                }
             }
             if (have_addr2line) {
-                cmd += " -Cpfie " + amrex::system::exename;
+                cmd += " -aCpfie " + amrex::system::exename;
             }
         }
 
         std::fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
         std::fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
+        std::fprintf(f, "    (or llvm-addr2line for executables built with clang)\n");
         std::fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
         std::fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
 
@@ -263,68 +305,85 @@ BLBackTrace::print_backtrace_info (FILE* f)
         std::fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
         std::fprintf(f, "    to find out the offset for that line.\n\n");
 
+        Vector<std::string> results(nentries);
+
+#if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
+        if (amrex::system::call_addr2line) {
+            auto abs_addr = [&] (int i) {
+                char print_buff[32];
+                std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                return std::string(print_buff);
+            };
+
+            Vector<int> todo; // frames for addr2line
+            for (int i = 0; i < nentries; ++i) {
+                bool try_addr2line = true;
+                if (have_eu_addr2line) {
+                    try_addr2line = false;
+                    if (bt_buffer[i] != nullptr) {
+                        results[i] = run_command(eu_cmd + " " + abs_addr(i));
+                        if (results[i].find("??:") != std::string::npos) {
+                            results[i].clear();
+                            try_addr2line = true;
+                        }
+                    }
+                }
+                if (try_addr2line && have_addr2line && !amrex::system::exename.empty()
+                    && std::strstr(strings[i], "libc.so") == nullptr)
+                {
+                    todo.push_back(i);
+                }
+            }
+
+            // First try the offsets within the executable, "(+0x...)" in
+            // the backtrace_symbols output.
+            Vector<int> frames;
+            Vector<std::string> addrs;
+            for (int i : todo) {
+                const std::string line = strings[i];
+                std::size_t found1 = line.rfind('(');
+                std::size_t found2 = line.rfind(')');
+                std::size_t found3 = line.rfind('+');
+                if (found1 != std::string::npos && found2 != std::string::npos && found3 != std::string::npos
+                    && found1 < found3 && found3 < found2)
+                {
+                    frames.push_back(i);
+                    addrs.push_back(line.substr(found3+1, found2-found3-1));
+                }
+            }
+            auto res = batch_addr2line(cmd, addrs);
+            for (std::size_t k = 0; k < frames.size(); ++k) {
+                auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
+                if (it != res.end() && it->second.find('?') == std::string::npos) {
+                    results[frames[k]] = it->second;
+                }
+            }
+
+            // Then try the absolute addresses for the rest.
+            frames.clear();
+            addrs.clear();
+            for (int i : todo) {
+                if (results[i].empty() && bt_buffer[i] != nullptr) {
+                    frames.push_back(i);
+                    addrs.push_back(abs_addr(i));
+                }
+            }
+            res = batch_addr2line(cmd, addrs);
+            for (std::size_t k = 0; k < frames.size(); ++k) {
+                auto it = res.find(std::strtoull(addrs[k].c_str(), nullptr, 16));
+                if (it != res.end()) {
+                    results[frames[k]] = it->second;
+                }
+            }
+        }
+#endif
+
         for (int i = 0; i < nentries; ++i)
         {
             std::fprintf(f, "%2d: %s\n", i, strings[i]);
-
-#if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
-            const bool stack_ptr_not_null = (bt_buffer[i] != nullptr);
-
-            std::string addr2line_result;
-            bool try_addr2line = false;
-            if (amrex::system::call_addr2line && have_eu_addr2line) {
-                if (stack_ptr_not_null) {
-                    char print_buff[32];
-                    std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                    const std::string full_cmd = eu_cmd + " " + print_buff;
-                    addr2line_result = run_command(full_cmd);
-                    if (addr2line_result.find("??:") != std::string::npos) { // found ??:
-                        try_addr2line = true;
-                    }
-                }
-            } else {
-                try_addr2line = true;
+            if (!results[i].empty()) {
+                std::fprintf(f, "    %s", results[i].c_str());
             }
-            if (try_addr2line && amrex::system::call_addr2line && have_addr2line &&
-                !amrex::system::exename.empty())
-            {
-                addr2line_result.clear();
-                const std::string line = strings[i];
-                std::size_t found_libc = line.find("libc.so");
-                if (found_libc == std::string::npos) {
-                    std::string addr;
-                    {
-                        std::size_t found1 = line.rfind('(');
-                        std::size_t found2 = line.rfind(')');
-                        std::size_t found3 = line.rfind('+');
-                        if (found1 != std::string::npos && found2 != std::string::npos && found3 != std::string::npos) {
-                            if (found1 < found3 && found3 < found2) {
-                                addr = line.substr(found3+1, found2-found3-1);
-                            }
-                        }
-                    }
-                    if (!addr.empty()) {
-                        std::string full_cmd = cmd;
-                        full_cmd.append(" ").append(addr);
-                        addr2line_result = run_command(full_cmd);
-                        if (addr2line_result.find('?') != std::string::npos) {
-                            addr2line_result.clear();
-                        }
-                    }
-                    if (addr2line_result.empty() && stack_ptr_not_null) {
-                        char print_buff[32];
-                        std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                        std::string full_cmd = cmd;
-                        full_cmd.append(" ").append(print_buff);
-                        addr2line_result = run_command(full_cmd);
-                    }
-                }
-            }
-
-            if (!addr2line_result.empty()) {
-                std::fprintf(f, "    %s", addr2line_result.c_str());
-            }
-#endif
             std::fprintf(f, "\n");
         }
         std::free(strings);
