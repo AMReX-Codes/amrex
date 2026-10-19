@@ -11,7 +11,9 @@ namespace amrex {
 
 using state_redist_detail::imap;
 using state_redist_detail::jmap;
+#if (AMREX_SPACEDIM == 3)
 using state_redist_detail::kmap;
+#endif
 
 namespace {
 
