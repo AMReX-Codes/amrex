@@ -327,7 +327,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 }
             }
             if (have_addr2line) {
-                cmd += " -aCpfie " + exe_file;
+                cmd += " -aCpfie '" + exe_file + "'";
             }
         }
 
