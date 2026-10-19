@@ -203,7 +203,7 @@ namespace amrex {
                              amrex::Array4<amrex::Real const> const& ccent,
                              amrex::BCRec  const* d_bcrec_ptr,
                              amrex::Array4<int const> const& itracker,
-                             amrex::Array4<amrex::Real const> const& nrs,
+                             amrex::Array4<int const> const& nrs,
                              amrex::Array4<amrex::Real const> const& alpha,
                              amrex::Array4<amrex::Real const> const& nbhd_vol,
                              amrex::Array4<amrex::Real const> const& cent_hat,
@@ -224,10 +224,12 @@ namespace amrex {
                                amrex::Array4<amrex::Real const> const& ccent,
                                amrex::BCRec  const* d_bcrec_ptr,
                                amrex::Array4<int const> const& itracker,
-                               amrex::Array4<amrex::Real const> const& nrs,
+                               amrex::Array4<int const> const& nrs,
                                amrex::Array4<amrex::Real const> const& alpha,
                                amrex::Array4<amrex::Real const> const& nbhd_vol,
                                amrex::Array4<amrex::Real const> const& cent_hat,
+                               amrex::Dim3 const* active_cells,
+                               int num_active_cells,
                                amrex::Geometry const& geom,
                                int as_crse,
                                Array4<Real            > const& drho_as_crse,
@@ -251,6 +253,22 @@ namespace amrex {
                         amrex::Geometry const& geom,
                         amrex::Real target_volfrac);
 
+    void MakeITracker ( amrex::Box const& bx,
+                        AMREX_D_DECL(amrex::Array4<amrex::Real const> const& apx,
+                                     amrex::Array4<amrex::Real const> const& apy,
+                                     amrex::Array4<amrex::Real const> const& apz),
+                        amrex::Array4<amrex::Real const> const& vfrac,
+                        amrex::Array4<int> const& itracker,
+                        amrex::Array4<amrex::EBCellFlag const> const& flag,
+                        amrex::Array4<amrex::Real const> const& ccent,
+                        amrex::Array4<int> const& nrs,
+                        amrex::Array4<amrex::Real> const& alpha,
+                        amrex::Array4<amrex::Real> const& cent_hat,
+                        amrex::Dim3* active_cells,
+                        int* active_count,
+                        amrex::Geometry const& geom,
+                        amrex::Real target_volfrac);
+
     /**
      * \brief Construct helper arrays (normals, neighbor volumes, etc.) for SRD.
      */
@@ -258,11 +276,13 @@ namespace amrex {
                                 amrex::Array4<amrex::EBCellFlag const> const& flag,
                                 amrex::Array4<amrex::Real const> const& vfrac,
                                 amrex::Array4<amrex::Real const> const& ccent,
-                                amrex::Array4<        int const> const& itracker,
-                                amrex::Array4<amrex::Real> const& nrs,
+                                amrex::Array4<int const> const& itracker,
+                                amrex::Array4<int> const& nrs,
                                 amrex::Array4<amrex::Real> const& alpha,
                                 amrex::Array4<amrex::Real> const& nbhd_vol,
                                 amrex::Array4<amrex::Real> const& cent_hat,
+                                amrex::Dim3 const* active_cells,
+                                int num_active_cells,
                                 amrex::Geometry const& geom,
                                 amrex::Real target_volfrac);
 
