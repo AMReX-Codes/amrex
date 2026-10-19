@@ -174,13 +174,15 @@ void hypmlabeclap_c2f (int i, int j, int k,
             stencil(i,j,k)[m] = Real(0.0);
         }
     } else if (nentries_to(i,j,k) > 0) {
-        int const fromoff = offset_from(i,j,k);
-        civ[fromoff][0] = i;
-        civ[fromoff][1] = j;
-        civ[fromoff][2] = k;
-        nentries[fromoff] = nentries_to(i,j,k);
         int const tooff = offset_to(i,j,k);
-        entry_offset[fromoff] = tooff;
+        if (civ) { // only the SStruct mode needs these
+            int const fromoff = offset_from(i,j,k);
+            civ[fromoff][0] = i;
+            civ[fromoff][1] = j;
+            civ[fromoff][2] = k;
+            nentries[fromoff] = nentries_to(i,j,k);
+            entry_offset[fromoff] = tooff;
+        }
 
         // Fist, we need to figure out how many corner coarse cells are
         // involved. The coarse cell entries must be stored ahead of fine

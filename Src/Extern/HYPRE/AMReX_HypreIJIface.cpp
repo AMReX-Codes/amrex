@@ -222,8 +222,9 @@ void HypreIJIface::run_hypre_setup ()
         }
 
         m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
-        m_need_setup = false;
+        // If this throws, the setup is redone at the next solve
         report_failure(hypreErrorMessage(m_solver_name + " setup"));
+        m_need_setup = false;
     }
 }
 

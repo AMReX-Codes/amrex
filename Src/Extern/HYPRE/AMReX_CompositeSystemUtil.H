@@ -121,13 +121,16 @@ Vector<T> gather_on_root (Vector<T> const& v, MPI_Comm comm)
     const int nprocs = ParallelDescriptor::NProcs(comm);
     if (nprocs == 1) { return v; }
 #ifdef AMREX_USE_MPI
+    // MPI counts are int (callers check the total with dump_single_file)
+    AMREX_ALWAYS_ASSERT(Long(v.size()) <= Long(std::numeric_limits<int>::max()));
     int nloc = static_cast<int>(v.size());
     Vector<int> counts(nprocs), displs(nprocs, 0);
     MPI_Gather(&nloc, 1, MPI_INT, counts.data(), 1, MPI_INT, 0, comm);
     Vector<T> g;
     if (ParallelDescriptor::MyProc(comm) == 0) {
-        int ntot = 0;
-        for (int p = 0; p < nprocs; ++p) { displs[p] = ntot; ntot += counts[p]; }
+        Long ntot = 0;
+        for (int p = 0; p < nprocs; ++p) { displs[p] = int(ntot); ntot += counts[p]; }
+        AMREX_ALWAYS_ASSERT(ntot <= Long(std::numeric_limits<int>::max()));
         g.resize(ntot);
     }
     auto const mt = ParallelDescriptor::Mpi_typemap<T>::type();

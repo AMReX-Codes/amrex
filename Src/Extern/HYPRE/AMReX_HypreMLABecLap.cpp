@@ -9,6 +9,7 @@
 #include <functional>
 #include <numeric>
 #include <stdexcept>
+#include <type_traits>
 #include <tuple>
 
 namespace amrex {
@@ -123,7 +124,10 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         const int nprocs = ParallelContext::NProcsSub();
         const int myproc = ParallelContext::MyProcSub();
         auto owner = [&] (int ilev, int b) {
-            return ParallelContext::global_to_local_rank(m_dmap[ilev][b]);
+            int const r = ParallelContext::global_to_local_rank(m_dmap[ilev][b]);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(r >= 0,
+                "HypreMLABecLap: a box is owned by a rank outside the communicator");
+            return r;
         };
         // Rows per rank, then each box's first row (per-rank cursors in
         // level and box order)
@@ -540,7 +544,10 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
         constexpr int ivar = 0;
         if (m_use_ij) {
             // The k-th non-stencil value of a cell couples it to its k-th target
-            m_ns_targets[cellId(from_level, from_iv)].push_back(cellId(to_level, to_iv));
+            Long const from_id = cellId(from_level, from_iv);
+            Long const to_id = cellId(to_level, to_iv);
+            AMREX_ALWAYS_ASSERT(from_id >= 0 && to_id >= 0); // needs proper nesting
+            m_ns_targets[from_id].push_back(to_id);
         } else {
             HYPRE_SStructGraphAddEntries(m_ss_graph,
                                          from_level, from_index.data(), ivar,
@@ -671,19 +678,25 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     Vector<HYPRE_Int> nonstencil_indices(4*4*3+3);
     std::iota(nonstencil_indices.begin(), nonstencil_indices.end(), stencil_size);
 
-    BaseFab<GpuArray<Real,stencil_size>> matfab;
     HYPRE_IJMatrix ij_A = nullptr;
     // Per-box (row, column, value) triplets, concatenated after the level loop
     struct Triplets {
         Gpu::DeviceVector<HYPRE_BigInt> rows, cols;
         Gpu::DeviceVector<Real> vals;
     };
+    // Kernels may still write into the chunks when ij_chunks grows
+    static_assert(std::is_nothrow_move_constructible_v<Triplets>);
     Vector<Triplets> ij_chunks;
+    auto new_chunk = [&] (Long n) -> Triplets&
+    {
+        Triplets& t = ij_chunks.emplace_back();
+        t.rows.resize(n); t.cols.resize(n); t.vals.resize(n);
+        return t;
+    };
     auto add_chunk = [&] (Long n, HYPRE_BigInt const* r, HYPRE_BigInt const* c, Real const* v)
     {
         if (n == 0) { return; }
-        Triplets& t = ij_chunks.emplace_back();
-        t.rows.resize(n); t.cols.resize(n); t.vals.resize(n);
+        Triplets& t = new_chunk(n);
         Gpu::copyAsync(Gpu::deviceToDevice, r, r+n, t.rows.begin());
         Gpu::copyAsync(Gpu::deviceToDevice, c, c+n, t.cols.begin());
         Gpu::copyAsync(Gpu::deviceToDevice, v, v+n, t.vals.begin());
@@ -711,7 +724,12 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
 
         for (MFIter mfi(m_grids[ilev], m_dmap[ilev]); mfi.isValid(); ++mfi) {
             Box const& vbx = mfi.validbox();
-            matfab.resize(vbx);
+            // Per box: in IJ mode the kernels of consecutive boxes (on
+            // different streams) are not synchronized, so the IJ path needs a
+            // stream-ordered arena. The SStruct path syncs before its host
+            // API reads matfab.
+            BaseFab<GpuArray<Real,stencil_size>> matfab(
+                vbx, 1, m_use_ij ? The_Async_Arena() : The_Arena());
 
             Array4<Real const> afab;
             if (ilev < a_acoefs.size() && a_acoefs[ilev]) {
@@ -789,11 +807,16 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
 
                 int c2f_total_from = m_c2f_total_from[ilev][mfi];
                 int c2f_total_to = m_c2f_total_to[ilev][mfi];
-                Gpu::DeviceVector<GpuArray<HYPRE_Int,AMREX_SPACEDIM>> civ(c2f_total_from);
-                Gpu::DeviceVector<HYPRE_Int> nentries(c2f_total_from);
-                Gpu::DeviceVector<int> entry_offset(c2f_total_from);
-                Gpu::DeviceVector<Real> entry_values(c2f_total_to,Real(0.0));
-                auto* p_civ = civ.data();
+                // Stream ordered: the IJ path does not synchronize per box.
+                // Only the SStruct mode uses civ, nentries and entry_offset.
+                int const nfrom = m_use_ij ? 0 : c2f_total_from;
+                Gpu::AsyncVector<GpuArray<HYPRE_Int,AMREX_SPACEDIM>> civ(nfrom);
+                Gpu::AsyncVector<HYPRE_Int> nentries(nfrom);
+                Gpu::AsyncVector<int> entry_offset(nfrom);
+                Gpu::AsyncVector<Real> entry_values(c2f_total_to);
+                Gpu::fillAsync(entry_values.begin(), entry_values.end(),
+                               [] AMREX_GPU_DEVICE (Real& v, Long) { v = Real(0.0); });
+                auto* p_civ = m_use_ij ? nullptr : civ.data();
                 auto* p_nentries = nentries.data();
                 auto* p_entry_offset = entry_offset.data();
                 auto* p_entry_values = entry_values.data();
@@ -836,8 +859,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 if (m_use_ij) {
                     if (c2f_total_to > 0) {
                         auto const& cid = m_cell_id[ilev]->const_array(mfi);
-                        Gpu::DeviceVector<HYPRE_BigInt> rows(c2f_total_to);
-                        auto* prows = rows.data();
+                        Triplets& t = new_chunk(c2f_total_to);
+                        auto* prows = t.rows.data();
                         amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
                         {
                             int const n = c2f_nentries_a(i,j,k);
@@ -846,10 +869,11 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                 prows[foff+e] = HYPRE_BigInt(cid(i,j,k));
                             }
                         });
-                        add_chunk(c2f_total_to, rows.data(), m_c2f_targets[ilev][mfi].data(),
-                                  entry_values.data());
-                        Gpu::streamSynchronize();
-                        need_sync = false;
+                        auto const& targets = m_c2f_targets[ilev][mfi];
+                        Gpu::copyAsync(Gpu::deviceToDevice, targets.begin(), targets.end(),
+                                       t.cols.begin());
+                        Gpu::copyAsync(Gpu::deviceToDevice, entry_values.begin(),
+                                       entry_values.end(), t.vals.begin());
                     }
                 } else if (c2f_total_from > 0) {
 #ifdef AMREX_USE_GPU
@@ -894,7 +918,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 }
             }
 
-            if (need_sync) {
+            if (need_sync && !m_use_ij) {
                 // Sync required: matfab.dataPtr() is passed to HYPRE host API below
                 Gpu::streamSynchronize();
             }
@@ -905,13 +929,10 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 // so that the pattern does not depend on the coefficients.
                 auto const& cid = m_cell_id[ilev]->const_array(mfi);
                 auto const& mat_s = matfab.const_array();
-                Long const npts = vbx.numPts();
-                Long const nent = npts*stencil_size;
-                Gpu::DeviceVector<HYPRE_BigInt> rows(nent), cols(nent);
-                Gpu::DeviceVector<Real> vals(nent);
-                auto* prows = rows.data();
-                auto* pcols = cols.data();
-                auto* pvals = vals.data();
+                Triplets& t = new_chunk(vbx.numPts()*stencil_size);
+                auto* prows = t.rows.data();
+                auto* pcols = t.cols.data();
+                auto* pvals = t.vals.data();
                 const auto lo = amrex::lbound(vbx);
                 const auto len = amrex::length(vbx);
                 amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -928,8 +949,6 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                         pvals[e] = (col >= 0) ? mat_s(i,j,k)[m] : Real(0.0);
                     }
                 });
-                ij_chunks.push_back(Triplets{.rows = std::move(rows), .cols = std::move(cols),
-                                             .vals = std::move(vals)});
                 continue;
             }
 
@@ -953,8 +972,6 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             // Update m_f2c_values
             auto const num_f2c_cell = int(m_f2c_cell[clev].size());
             if (num_f2c_cell > 0) {
-                // The kernel accumulates; start from zero (setup may be repeated)
-                std::fill(m_f2c_values[clev].begin(), m_f2c_values[clev].end(), Real(0.0));
 #ifdef AMREX_USE_GPU
                 Gpu::DeviceVector<int> d_f2c_bno(m_f2c_bno[clev].size());
                 Gpu::DeviceVector<IntVect> d_f2c_cell(m_f2c_cell[clev].size());
@@ -979,6 +996,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 auto const* p_f2c_offset = d_f2c_offset.data();
                 auto* p_f2c_values = d_f2c_values.data();
 #else
+                // The kernel accumulates; start from zero (setup may be repeated)
+                std::fill(m_f2c_values[clev].begin(), m_f2c_values[clev].end(), Real(0.0));
                 auto const* p_f2c_bno = m_f2c_bno[clev].data();
                 auto const* p_f2c_cell = m_f2c_cell[clev].data();
                 auto const* p_f2c_offset = m_f2c_offset[clev].data();
@@ -1168,7 +1187,11 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
         HYPRE_ClearAllErrors();
         HYPRE_BoomerAMGSetup(m_solver, par_A, nullptr, nullptr);
-        if (auto msg = hypreErrorMessage("BoomerAMG setup"); !msg.empty()) { fail(msg); }
+        if (auto msg = hypreErrorMessage("BoomerAMG setup"); !msg.empty()) {
+            HYPRE_BoomerAMGDestroy(m_solver);
+            m_solver = nullptr;
+            fail(msg);
+        }
 
         HYPRE_BoomerAMGSetMinIter(m_solver, 1);
         HYPRE_BoomerAMGSetMaxIter(m_solver, m_maxiter);
@@ -1340,10 +1363,17 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
         m_num_iters = static_cast<int>(num_iterations);
         m_final_res = final_res;
-        if (auto msg = hypreErrorMessage("HypreMLABecLap solve"); !msg.empty()) { fail(msg); }
-        if (!(final_res <= reltol)) { // also catches NaN
-            fail("Hypre failed to converge after " + std::to_string(num_iterations) +
-                 " iterations. Final relative residual is " + std::to_string(final_res));
+        std::string msg = hypreErrorMessage("HypreMLABecLap solve");
+        if (msg.empty() && !(final_res <= reltol)) { // also catches NaN
+            msg = "Hypre failed to converge after " + std::to_string(num_iterations) +
+                  " iterations. Final relative residual is " + std::to_string(final_res);
+        }
+        if (!msg.empty()) {
+            HYPRE_SStructVectorDestroy(m_ss_x);
+            HYPRE_SStructVectorDestroy(m_ss_b);
+            m_ss_x = nullptr;
+            m_ss_b = nullptr;
+            fail(msg);
         }
     }
 
@@ -1424,6 +1454,7 @@ void HypreMLABecLap::buildIJMaps ()
         {
             p[i] = lower + HYPRE_BigInt(i);
         });
+        Gpu::streamSynchronize(); // hypre reads it on its own stream
     }
 
     // Row id of every cell on the device, with the ids of same-level
@@ -1468,7 +1499,8 @@ void HypreMLABecLap::buildIJMaps ()
                 int const n = nn(i,j,k);
                 if (n == 0) { return; }
                 auto const& t = m_ns_targets.at(cellId(clev, IntVect(AMREX_D_DECL(i,j,k))));
-                AMREX_ALWAYS_ASSERT(int(t.size()) >= n);
+                // With proper nesting a cell has coarse or fine targets, not both
+                AMREX_ALWAYS_ASSERT(int(t.size()) == n);
                 for (int e = 0; e < n; ++e) { tgt[off(i,j,k)+e] = HYPRE_BigInt(t[e]); }
             });
             auto& d = m_c2f_targets[clev][mfi];
@@ -1490,7 +1522,7 @@ void HypreMLABecLap::buildIJMaps ()
             auto const& t = m_ns_targets.at(row);
             auto const n = m_f2c_nentries[clev][i];
             auto const off = m_f2c_offset[clev][i];
-            AMREX_ALWAYS_ASSERT(int(t.size()) >= n);
+            AMREX_ALWAYS_ASSERT(int(t.size()) == n);
             for (int e = 0; e < n; ++e) {
                 rows[off+e] = HYPRE_BigInt(row);
                 cols[off+e] = HYPRE_BigInt(t[e]);
@@ -1523,6 +1555,15 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     // memory order: fill whole local vectors and pass them in one call.
     Long const nrows = m_ij_upper - m_ij_lower + 1;
     Gpu::DeviceVector<Real> bvec(nrows), xvec(nrows);
+
+    // The rows of a box are found by its index
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        for (auto const* mf : {a_rhs[ilev], static_cast<MultiFab const*>(a_sol[ilev])}) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf->boxArray() == m_grids[ilev] &&
+                                             mf->DistributionMap() == m_dmap[ilev],
+                "HypreMLABecLap: rhs and solution must have the grids of the constructor");
+        }
+    }
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         AMREX_ALWAYS_ASSERT(a_rhs[ilev]->nGrowVect() == 0);
