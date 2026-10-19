@@ -895,7 +895,15 @@ mesh data I/O. For example:
     pc.Checkpoint("plt00000", "particle0");
 
 
-will create a plotfile called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
+will create a plotfile called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0".
+
+You can pass component names to :cpp:`WritePlotFile` and :cpp:`Checkpoint`. If you do not,
+pure SoA particle containers (e.g., :cpp:`ParticleContainerPureSoA`) write the names stored in
+the container, i.e. those set with :cpp:`SetSoACompileTimeNames`, :cpp:`AddRealComp(name)`, and
+:cpp:`AddIntComp(name)`. Other particle containers use the default names ``real_comp0``,
+``real_comp1``, ..., and ``int_comp0``, ``int_comp1``, ....
+
+There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
 The binary file format is readable by either :cpp:`yt` or :cpp:`ParaView`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
