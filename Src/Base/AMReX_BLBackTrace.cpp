@@ -223,11 +223,11 @@ namespace {
         return r;
     }
 
-    // If p is in the executable, return true and set offset to the address
+    // If addr is in the executable, return true and set offset to the address
     // that addr2line -e exe expects. Return false for shared libraries.
-    bool exe_offset (void* p, std::uintptr_t& offset)
+    bool exe_offset (std::uintptr_t addr, std::uintptr_t& offset)
     {
-        std::uintptr_t a[2] = {reinterpret_cast<std::uintptr_t>(p), 0};
+        std::uintptr_t a[2] = {addr, 0};
         // The first object dl_iterate_phdr visits is the main program.
         auto f = [] (dl_phdr_info* info, std::size_t, void* data) -> int {
             auto* q = static_cast<std::uintptr_t*>(data);
@@ -241,11 +241,24 @@ namespace {
             }
             return -1;
         };
-        if (p != nullptr && dl_iterate_phdr(f, a) == 1) {
+        if (addr != 0 && dl_iterate_phdr(f, a) == 1) {
             offset = a[1];
             return true;
         }
         return false;
+    }
+
+    // Path of the running executable. amrex::system::exename is built from
+    // argv[0] and is wrong if the program was found through PATH.
+    std::string exe_path ()
+    {
+        char buf[4096];
+        const ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
+        if (len > 0) {
+            buf[len] = '\0';
+            return std::string(buf);
+        }
+        return amrex::system::exename;
     }
 #endif
 }
@@ -294,6 +307,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 eu_cmd += " -C -f -i -p " + std::to_string(pid);
             }
         }
+        const std::string exe_file = exe_path();
         std::string cmd;
         {
             // GNU addr2line misreads clang's line-tables-only DWARF 5 output.
@@ -313,7 +327,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 }
             }
             if (have_addr2line) {
-                cmd += " -aCpfie " + amrex::system::exename;
+                cmd += " -aCpfie " + exe_file;
             }
         }
 
@@ -332,9 +346,16 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
         if (amrex::system::call_addr2line) {
-            auto abs_addr = [&] (int i) {
+            // A return address can be past the end of the calling function
+            // (e.g., after a noreturn call), so look up the address before it.
+            auto call_site = [&] (int i) -> std::uintptr_t {
+                auto a = reinterpret_cast<std::uintptr_t>(bt_buffer[i]);
+                return (a != 0) ? a-1 : 0;
+            };
+            auto hex = [] (std::uintptr_t a) {
                 char print_buff[32];
-                std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                std::snprintf(print_buff, sizeof(print_buff), "0x%llx",
+                              static_cast<unsigned long long>(a));
                 return std::string(print_buff);
             };
 
@@ -351,17 +372,14 @@ BLBackTrace::print_backtrace_info (FILE* f)
             Vector<std::string> addrs;
             for (int i = 0; i < nentries; ++i) {
                 if (have_eu_addr2line && bt_buffer[i] != nullptr) {
-                    results[i] = run_command(eu_cmd + " " + abs_addr(i));
+                    results[i] = run_command(eu_cmd + " " + hex(call_site(i)));
                 }
                 std::uintptr_t offset = 0;
-                if (have_addr2line && !amrex::system::exename.empty() && rank(results[i]) < 2
-                    && exe_offset(bt_buffer[i], offset))
+                if (have_addr2line && !exe_file.empty() && rank(results[i]) < 2
+                    && exe_offset(call_site(i), offset))
                 {
-                    char print_buff[32];
-                    std::snprintf(print_buff, sizeof(print_buff), "0x%llx",
-                                  static_cast<unsigned long long>(offset));
                     frames.push_back(i);
-                    addrs.push_back(print_buff);
+                    addrs.push_back(hex(offset));
                 }
             }
             auto res = batch_addr2line(cmd, addrs);
