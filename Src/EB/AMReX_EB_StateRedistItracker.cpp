@@ -5,6 +5,7 @@
  */
 
 #include <AMReX_EB_Redistribution.H>
+#include <AMReX_EB_StateRedistTracker_K.H>
 
 namespace amrex {
 
@@ -84,10 +85,6 @@ make_itracker ( Box const& bx,
     // |  4   5
     // j  1 2 3
     //   i --->
-
-    // Note the first component of imap/jmap should never be used
-    Array<int,9> imap{0,-1,0,1,-1,1,-1,0,1};
-    Array<int,9> jmap{0,-1,-1,-1,0,0,1,1,1};
 
     const auto& is_periodic_x = lev_geom.isPeriodic(0);
     const auto& is_periodic_y = lev_geom.isPeriodic(1);
@@ -401,11 +398,6 @@ make_itracker ( Box const& bx,
     // j  9  10 11 |  1 2 3  |  18 19 20
     //   i --->
     //
-    // Note the first component of imap/jmap/kmap should never be used
-    Array<int,27>    imap{0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    Array<int,27>    jmap{0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    Array<int,27>    kmap{0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
     const auto& is_periodic_x = lev_geom.isPeriodic(0);
     const auto& is_periodic_y = lev_geom.isPeriodic(1);
     const auto& is_periodic_z = lev_geom.isPeriodic(2);
