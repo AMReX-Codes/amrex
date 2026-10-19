@@ -89,14 +89,13 @@ public:
     }
 
     /**
-     * \brief Solve del dot grad soln = rhs.
+     * \brief Project the velocity in \p a_rhs and store the result in \p a_soln.
      *
-     * If \p soln has ghost cells, one layer of ghost cells will be filled
-     * except for the corners of the physical domain where they are not used
-     * in the cross stencil of the operator. The two MFs could be the same MF.
+     * If \p soln has ghost cells, one layer of ghost cells will be filled.
+     * The two MFs could be the same MF.
      *
-     * \param a_soln Solution MultiFab (updated in place).
-     * \param a_rhs  Right-hand side MultiFab.
+     * \param a_soln Projected velocity.
+     * \param a_rhs  Velocity to be projected.
      */
     void solve (MF& a_soln, MF const& a_rhs);
 
@@ -160,41 +159,50 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
         }
     }
 
+    GpuArray<int,AMREX_SPACEDIM> len{AMREX_D_DECL(m_geom.Domain().length(0),
+                                                  m_geom.Domain().length(1),
+                                                  m_geom.Domain().length(2))};
+
     auto f = [=] AMREX_GPU_DEVICE (int i, int j, int k, CellData < GpuComplex < T >> spectral_data)
     {
         amrex::ignore_unused(j,k);
-        AMREX_D_TERM(T a = fac[0]*(i+offset[0]);,
-                     T b = fac[1]*(j+offset[1]);,
-                     T c = fac[2]*(k+offset[2]));
+        AMREX_D_TERM(T a = fac[0]*(T(i)+offset[0]);,
+                     T b = fac[1]*(T(j)+offset[1]);,
+                     T c = fac[2]*(T(k)+offset[2]));
 
         // Fourier symbol of the node-centered cross-stencil divergence, up
         // to a common factor that cancels in the projection.  The half
         // angles a, b, c make the symbol only change sign (as a whole
         // vector) for the unshifted high wavenumbers stored by R2C.
+        // The symbol vanishes at the zero mode and where at least two half
+        // angles are pi/2. Detect these by index, since roundoff in cos(pi/2)
+        // makes the computed symbol nonzero.
 #if (AMREX_SPACEDIM == 2)
+        bool const null_mode = (i == 0 && j == 0)
+            || (2*i == len[0] && 2*j == len[1]);
         T sx = std::sin(a)*std::cos(b)*dxfac[0];
         T sy = std::cos(a)*std::sin(b)*dxfac[1];
+        if (null_mode) { sx = T(0); sy = T(0); }
 
-        auto cdiv = sx * spectral_data[0] + sy * spectral_data[1];
-
-        T dginv = sx*sx + sy*sy;
-        if (std::abs(dginv) > T(1.e-10)) {
-            cdiv /= dginv;
-        }
+        T const s2 = sx*sx + sy*sy;
+        // Select the denominator instead of guarding the division (see Poisson).
+        T const s2d = (s2 != T(0)) ? s2 : T(1);
+        auto cdiv = (sx * spectral_data[0] + sy * spectral_data[1]) / s2d;
         spectral_data[0] -= sx * cdiv;
         spectral_data[1] -= sy * cdiv;
 #else
+        int const nhalf = int(2*i == len[0]) + int(2*j == len[1]) + int(2*k == len[2]);
+        bool const null_mode = (i == 0 && j == 0 && k == 0) || (nhalf >= 2);
         T sx = std::sin(a)*std::cos(b)*std::cos(c)*dxfac[0];
         T sy = std::cos(a)*std::sin(b)*std::cos(c)*dxfac[1];
         T sz = std::cos(a)*std::cos(b)*std::sin(c)*dxfac[2];
+        if (null_mode) { sx = T(0); sy = T(0); sz = T(0); }
 
-        auto cdiv = sx * spectral_data[0] + sy * spectral_data[1]
-            +       sz * spectral_data[2];
-
-        T dginv = sx*sx + sy*sy + sz*sz;
-        if (std::abs(dginv) > T(1.e-10)) {
-            cdiv /= dginv;
-        }
+        T const s2 = sx*sx + sy*sy + sz*sz;
+        // Select the denominator instead of guarding the division (see Poisson).
+        T const s2d = (s2 != T(0)) ? s2 : T(1);
+        auto cdiv = (sx * spectral_data[0] + sy * spectral_data[1]
+                     + sz * spectral_data[2]) / s2d;
         spectral_data[0] -= sx * cdiv;
         spectral_data[1] -= sy * cdiv;
         spectral_data[2] -= sz * cdiv;
@@ -206,10 +214,9 @@ void CrossProj<MF>::solve (MF& a_soln, MF const& a_rhs)
 
     IntVect const& ng = amrex::elemwiseMin(soln->nGrowVect(), IntVect(1));
 
-        m_r2c->forwardThenBackward(*rhs, *soln, f);
-//        m_r2c->forward(*rhs);
-//        m_r2c->post_forward_doit_0(f);
-//        m_r2c->backward_doit(*soln, ng, m_geom.periodicity());
+    m_r2c->forward(*rhs);
+    m_r2c->post_forward_doit_0(f);
+    m_r2c->backward_doit(*soln, ng, m_geom.periodicity());
 }
 
 

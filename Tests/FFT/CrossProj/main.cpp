@@ -69,11 +69,11 @@ int main (int argc, char* argv[])
                          Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
 #if (AMREX_SPACEDIM == 2)
             u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y);
-            u[b](i,j,k,1) = std::cos(tpi*x+.2) + std::cos(tpi*y+.7);
+            u[b](i,j,k,1) = std::cos(tpi*x+0.2_rt) + std::cos(tpi*y+0.7_rt);
 #else
-            u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y) + std::cos(tpi*z+.3);
-            u[b](i,j,k,1) = std::cos(tpi*x+.2) + std::cos(tpi*y+.7) + std::sin(tpi*z);
-            u[b](i,j,k,2) = std::sin(tpi*x+.4) + std::cos(tpi*y+.1) + std::cos(tpi*z+.5);
+            u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y) + std::cos(tpi*z+0.3_rt);
+            u[b](i,j,k,1) = std::cos(tpi*x+0.2_rt) + std::cos(tpi*y+0.7_rt) + std::sin(tpi*z);
+            u[b](i,j,k,2) = std::sin(tpi*x+0.4_rt) + std::cos(tpi*y+0.1_rt) + std::cos(tpi*z+0.5_rt);
 #endif
         });
 
@@ -83,9 +83,7 @@ int main (int argc, char* argv[])
 
         {
             FFT::CrossProj crossproj(geom, fft_bc);
-            crossproj.solve(vel_return,  vel );
-
-            vel_return.FillBoundary(geom.periodicity());
+            crossproj.solve(vel_return,  vel ); // also fills ghost cells
 
             MultiFab div_orig(ba, dm, 1, 0);
             MultiFab div_err(ba, dm, 1, 0);
@@ -124,6 +122,18 @@ int main (int argc, char* argv[])
             Real div_error = div_err.norminf();
             amrex::Print() << "  original divergence " << div_initial << "\n";
             amrex::Print() << "  divergence expected to be close to zero: " << div_error << "\n";
+
+            // A second projection should not change the result.
+            MultiFab vel_twice(ba,dm,AMREX_SPACEDIM,0);
+            crossproj.solve(vel_twice, vel_return);
+            MultiFab::Subtract(vel_twice, vel_return, 0, 0, AMREX_SPACEDIM, 0);
+            Real idem_error = vel_twice.norminf(0, AMREX_SPACEDIM, IntVect(0));
+            Real vel_max = vel_return.norminf(0, AMREX_SPACEDIM, IntVect(0));
+            amrex::Print() << "  idempotency error: " << idem_error << "\n";
+
+            Real const tol = std::is_same_v<Real,float> ? 1.e-4_rt : 1.e-12_rt;
+            AMREX_ALWAYS_ASSERT(div_error <= tol*div_initial);
+            AMREX_ALWAYS_ASSERT(idem_error <= tol*vel_max);
         }
     }
     amrex::Finalize();
