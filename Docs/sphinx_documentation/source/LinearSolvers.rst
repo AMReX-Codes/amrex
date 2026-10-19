@@ -1161,6 +1161,10 @@ Dirichlet boundary, :math:`\phi` is determined up to a constant and, when
 every periodic direction has an even number of cells, a checkerboard mode
 :math:`(-1)^{i+j}`; the solver removes the checkerboard mode.
 
+For performance, cache the :cpp:`MLNodeCrossLaplacian` and :cpp:`MLMG`
+objects and reuse them for repeated projections on the same grids, because
+building them is expensive.
+
 Open Boundary Poisson Solver
 ============================
 
