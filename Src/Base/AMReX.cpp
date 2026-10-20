@@ -154,13 +154,6 @@ namespace {
     std::streamsize  prev_out_precision;
     std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
-    using SignalHandler = void (*)(int);
-    SignalHandler prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-    SignalHandler prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-    SignalHandler prev_handler_sigint  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-    SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-    SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-    SignalHandler prev_handler_sigill  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__) && defined(__GLIBC__)
     int           prev_fpe_excepts = 0;
     int           curr_fpe_excepts = 0;
@@ -612,45 +605,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.queryAdd("handle_sigill" , system::handle_sigill );
 
             // We save the signal handlers and restore them in Finalize.
-            if (system::handle_sigsegv) {
-                prev_handler_sigsegv = std::signal(SIGSEGV, BLBackTrace::handler);
-            } else {
-                prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
-
-            if (system::handle_sigterm) {
-                prev_handler_sigterm = std::signal(SIGTERM,  BLBackTrace::handler);
-            } else {
-                prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
-
-            if (system::handle_sigint) {
-                prev_handler_sigint = std::signal(SIGINT,  BLBackTrace::handler);
-            } else {
-                prev_handler_sigint = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
-
-            if (system::handle_sigabrt) {
-                prev_handler_sigabrt = std::signal(SIGABRT, BLBackTrace::handler);
-                if (prev_handler_sigabrt != SIG_ERR && system::handle_crt_reports) {
-                    // abort() raises SIGABRT for this handler without a CRT report
-                    detail::CrtReportSkipAbortReport(true);
-                }
-            } else {
-                prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
-
-            if (system::handle_sigfpe) {
-                prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
-            } else {
-                prev_handler_sigfpe = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
-
-            if (system::handle_sigill) {
-                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
-            } else {
-                prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-            }
+            BLBackTrace::install_signal_handlers(true);
 
             if (system::handle_sigfpe)
             {
@@ -699,6 +654,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 // SIGILL ref: https://developer.apple.com/forums/thread/689159
             }
 #endif
+        }
+        else
+        {
+            BLBackTrace::install_signal_handlers(false);
         }
 
 #ifdef AMREX_USE_HYPRE
@@ -932,18 +891,9 @@ amrex::Finalize (amrex::AMReX* pamrex)
     Arena::Finalize();
 
 #ifndef BL_AMRPROF
+    BLBackTrace::restore_signal_handlers();
     if (system::signal_handling)
     {
-        if (prev_handler_sigsegv != SIG_ERR) { std::signal(SIGSEGV, prev_handler_sigsegv); } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigterm != SIG_ERR) { std::signal(SIGTERM, prev_handler_sigterm); } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigint  != SIG_ERR) { std::signal(SIGINT , prev_handler_sigint);  } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigabrt != SIG_ERR) {
-            // restore the CRT report of abort() together with the previous handler
-            detail::CrtReportSkipAbortReport(false);
-            std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
-        }
-        if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__) && defined(__GLIBC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {

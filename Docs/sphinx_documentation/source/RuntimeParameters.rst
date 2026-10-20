@@ -838,7 +838,9 @@ Error Handling
 By default AMReX installs a signal handler that will be run when a signal
 such as segfault is received. You can also enable floating point exception
 trapping. The signal handler will print out backtraces that can be useful
-for debugging.
+for debugging. AMReX replaces signal handlers that were installed before
+(e.g., by the MPI library) until ``amrex::Finalize``. Signals that AMReX does
+not handle keep their previous action, e.g., a core dump.
 
 .. note:: Floating point exception trapping is not enabled by default,
    because compilers might generate optimized SIMD code that raises the

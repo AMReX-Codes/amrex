@@ -1,4 +1,5 @@
 #include <AMReX_BLBackTrace.H>
+#include <AMReX_CrtReport.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
@@ -49,37 +50,64 @@ namespace amrex {
 
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 
-void
-BLBackTrace::handler(int s)
+namespace {
+// A signal handler that was in place before install_signal_handlers.
+struct PrevSignalHandler
 {
+    bool saved = false;
+#ifdef _WIN32
+    void (*handler)(int) = SIG_DFL;
+#else
+    struct sigaction action{};
+#endif
+};
 
+// The signals that AMReX handles if their flag is true.
+struct HandledSignal
+{
+    int sig;
+    bool* handle;
+    char const* message;
+    PrevSignalHandler prev;
+};
+
+HandledSignal g_signals[] = {
+    {.sig = SIGSEGV, .handle = &amrex::system::handle_sigsegv, .message = "Segfault", .prev = {}},
+    {.sig = SIGFPE , .handle = &amrex::system::handle_sigfpe , .message = "Erroneous arithmetic operation", .prev = {}},
+    {.sig = SIGILL , .handle = &amrex::system::handle_sigill , .message = "SIGILL Invalid, privileged, or ill-formed instruction", .prev = {}},
+    {.sig = SIGTERM, .handle = &amrex::system::handle_sigterm, .message = "SIGTERM", .prev = {}},
+    {.sig = SIGINT , .handle = &amrex::system::handle_sigint , .message = "SIGINT", .prev = {}},
+    {.sig = SIGABRT, .handle = &amrex::system::handle_sigabrt, .message = "SIGABRT", .prev = {}},
+};
+
+// How often install_signal_handlers was called without
+// restore_signal_handlers (e.g., by nested amrex::Initialize), and at which
+// of these depths it installed the handlers, or 0.
+int g_install_depth = 0;
+int g_installed_depth = 0;
+
+HandledSignal const* find_signal (int s)
+{
+    for (auto const& h : g_signals) {
+        if (h.sig == s) { return &h; }
+    }
+    return nullptr;
+}
+
+void
+handle_signal (int s)
+{
     std::signal(s, SIG_DFL);
 
     AsyncOut::Finalize();
 
-    switch (s) {
-    case SIGSEGV:
-        amrex::ErrorStream() << "Segfault\n";
-        break;
-    case SIGFPE:
-        amrex::ErrorStream() << "Erroneous arithmetic operation\n";
-        break;
-    case SIGILL:
-        amrex::ErrorStream() << "SIGILL Invalid, privileged, or ill-formed instruction\n";
-        break;
-    case SIGTERM:
-        amrex::ErrorStream() << "SIGTERM\n";
-        break;
-    case SIGINT:
-        amrex::ErrorStream() << "SIGINT\n";
-        break;
-    case SIGABRT:
-        amrex::ErrorStream() << "SIGABRT\n";
-        break;
-    default: break;
+    if (HandledSignal const* h = find_signal(s)) {
+        amrex::ErrorStream() << h->message << '\n';
     }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
+
+    auto& bt_stack = BLBackTrace::bt_stack;
 
     std::string errfilename;
     {
@@ -141,6 +169,76 @@ BLBackTrace::handler(int s)
 #endif
 
     ParallelDescriptor::Abort(s, false);
+}
+
+#ifdef _WIN32
+void signal_handler (int s)
+{
+    handle_signal(s);
+}
+#else
+void signal_handler (int s, siginfo_t* /*info*/, void* /*uctx*/)
+{
+    handle_signal(s);
+}
+#endif
+}
+
+void
+BLBackTrace::handler (int s)
+{
+    handle_signal(s);
+}
+
+void
+BLBackTrace::install_signal_handlers (bool install)
+{
+    ++g_install_depth;
+    if (!install || g_installed_depth != 0) { return; }
+    g_installed_depth = g_install_depth;
+
+    for (auto& h : g_signals) {
+        if (!*h.handle) { continue; }
+#ifdef _WIN32
+        auto* prev = std::signal(h.sig, signal_handler);
+        h.prev.saved = (prev != SIG_ERR); // NOLINT(performance-no-int-to-ptr)
+        h.prev.handler = prev;
+#else
+        struct sigaction sa{};
+        sa.sa_sigaction = signal_handler;
+        sa.sa_flags = SA_SIGINFO | SA_RESTART;
+        sigemptyset(&sa.sa_mask);
+        h.prev.saved = (sigaction(h.sig, &sa, &h.prev.action) == 0);
+#endif
+        if (h.sig == SIGABRT && h.prev.saved && amrex::system::handle_crt_reports) {
+            // abort() raises SIGABRT for this handler without a CRT report
+            detail::CrtReportSkipAbortReport(true);
+        }
+    }
+}
+
+void
+BLBackTrace::restore_signal_handlers ()
+{
+    if (g_install_depth == 0) { return; }
+    const bool installed = (g_installed_depth == g_install_depth);
+    --g_install_depth;
+    if (!installed) { return; }
+    g_installed_depth = 0;
+
+    for (auto& h : g_signals) {
+        if (!h.prev.saved) { continue; }
+        if (h.sig == SIGABRT) {
+            // restore the CRT report of abort() together with the previous handler
+            detail::CrtReportSkipAbortReport(false);
+        }
+#ifdef _WIN32
+        std::signal(h.sig, h.prev.handler);
+#else
+        sigaction(h.sig, &h.prev.action, nullptr);
+#endif
+        h.prev.saved = false;
+    }
 }
 
 void
