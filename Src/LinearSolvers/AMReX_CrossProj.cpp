@@ -42,7 +42,7 @@ struct CrossProj::Level
 {
     Box domain;
     Periodicity period;
-    IntVect modulate{0};   // first near-null level: P has (-1)^(sum of these indices)
+    bool modulate = false; // first checkerboard level: P has a factor (-1)^(i+j)
     int ncomp = 1;
     int cheby_degree = 3;  // 2 on the reduced hierarchy
     BoxArray ba;
@@ -278,20 +278,19 @@ void set_stencil (CrossProj::Level& L)
 }
 
 // Transfer weights of a level from its parent: linear interpolation times
-// (-1)^(modulate . fine index).
+// (-1)^(i+j) on the first checkerboard level.
 void set_transfer_weights (CrossProj::Level& C)
 {
-    int const md[2] = {C.modulate[0], C.modulate[1]};
     for (int b = -1; b <= 1; ++b) {
     for (int a = -1; a <= 1; ++a) {
         Real w = ((a == 0) ? Real(1.0) : Real(0.5)) * ((b == 0) ? Real(1.0) : Real(0.5));
-        if ((md[0]*a + md[1]*b) & 1) { w = -w; }
+        if (C.modulate && ((a + b) & 1)) { w = -w; }
         C.rw[(b+1)*3+(a+1)] = w;
     }}
     for (int b = 0; b < 2; ++b) {
     for (int a = 0; a < 2; ++a) {
         Real w = Real(1.0) / Real((a+1)*(b+1));
-        if ((md[0]*a + md[1]*b) & 1) { w = -w; }
+        if (C.modulate && ((a + b) & 1)) { w = -w; }
         C.pw[b*2+a] = w;
     }}
 }
@@ -482,7 +481,7 @@ void alloc_level (CrossProj::Level& L)
 // Coarse level of P by 2; regrids when the coarsened boxes are too small
 // to be coarsened again.
 std::unique_ptr<CrossProj::Level>
-make_coarse (CrossProj::Level const& P, IntVect const& modulate)
+make_coarse (CrossProj::Level const& P, bool modulate)
 {
     auto C = std::make_unique<CrossProj::Level>();
     C->domain = amrex::coarsen(P.domain, 2);
@@ -517,8 +516,8 @@ make_coarse (CrossProj::Level const& P, IntVect const& modulate)
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        C->K[idim] = galerkin1d(P.K[idim], modulate[idim]);
-        C->M[idim] = galerkin1d(P.M[idim], modulate[idim]);
+        C->K[idim] = galerkin1d(P.K[idim], modulate);
+        C->M[idim] = galerkin1d(P.M[idim], modulate);
     }
     alloc_level(*C);
     if (!bottom) { estimate_lmax(*C); }
@@ -803,7 +802,9 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         T.M[idim] = {Real(0.25), Real(0.5), Real(0.25)};
     }
 
-    for (auto& h : m_hier) { h.clear(); }
+    for (auto& h : m_hier) {
+        h.clear();
+    }
 
     {
         Real const rdx = m_geom.CellSize(0) / m_geom.CellSize(1);
@@ -844,7 +845,7 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         Level const* parent = m_hier[h].empty() ? &T : m_hier[h].back().get();
         bool more = m_hier[h].empty() || coarsenable(parent->domain);
         while (more) {
-            m_hier[h].push_back(make_coarse(*parent, IntVect(m_hier[h].empty() ? h : 0)));
+            m_hier[h].push_back(make_coarse(*parent, h == 1 && m_hier[h].empty()));
             parent = m_hier[h].back().get();
             more = coarsenable(parent->domain);
         }
