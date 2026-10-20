@@ -1185,6 +1185,11 @@ filled. The header is :cpp:`AMReX_CrossProj.H`.
 The object should be cached for reuse, since it sets up the multigrid
 hierarchy on the first solve and whenever the grids change.
 
+.. warning::
+
+   Although the solver works in 3D, its performance there is much worse
+   than :cpp:`FFT::CrossProj`. Use the FFT solver in 3D.
+
 .. _sec:linearsolver:gmres:
 
 GMRES

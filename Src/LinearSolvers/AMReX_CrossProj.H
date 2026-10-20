@@ -31,6 +31,9 @@ namespace amrex::GMG
  * (at least 4) of cells in each direction starting at index 0, and even box
  * lengths. The first
  * AMREX_SPACEDIM components of the MFs are the velocity.
+ *
+ * \warning Although it works in 3D, its performance there is much worse
+ * than FFT::CrossProj. Use the FFT solver in 3D.
  */
 class CrossProj
 {
