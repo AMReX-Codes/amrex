@@ -47,8 +47,9 @@ public:
     /**
      * \brief Project the velocity in \p a_rhs and store the result in \p a_soln.
      *
-     * If \p a_soln has ghost cells, one layer of ghost cells will be filled.
-     * The two MFs could be the same MF.
+     * The two MFs must have the same BoxArray and DistributionMapping, and
+     * they could be the same MF. If \p a_soln has ghost cells, one layer of
+     * ghost cells will be filled.
      *
      * \param a_soln Projected velocity.
      * \param a_rhs  Velocity to be projected.

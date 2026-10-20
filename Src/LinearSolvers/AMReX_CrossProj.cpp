@@ -66,7 +66,9 @@ struct CrossProj::Level
     Gpu::DeviceVector<Real> bdev;
     Vector<Real> bg;
 #ifdef AMREX_USE_FFT
-    std::unique_ptr<FFT::LocalR2C<Real>> bfft; // real-to-complex, half spectrum along x
+    // real-to-complex, half spectrum along x; one per component so that
+    // the plans are never rebuilt for a different pointer
+    Vector<std::unique_ptr<FFT::LocalR2C<Real>>> bfft;
     Gpu::DeviceVector<GpuComplex<Real>> bspec;
     Gpu::DeviceVector<Real> binv;
 #else
@@ -358,7 +360,8 @@ void estimate_lmax (CrossProj::Level& L)
     auto const& va = L.x.arrays();
     ParallelFor(L.x, IntVect(0), L.ncomp, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
     {
-        auto h = static_cast<unsigned int>(i*73856093 ^ j*19349663 ^ k*83492791 ^ n*2654435761U);
+        auto h = static_cast<unsigned int>(i)*73856093U ^ static_cast<unsigned int>(j)*19349663U
+               ^ static_cast<unsigned int>(k)*83492791U ^ static_cast<unsigned int>(n)*2654435761U;
         h ^= h >> 13; h *= 0x5bd1e995U; h ^= h >> 15;
         va[bno](i,j,k,n) = Real(h % 1000U) / Real(1000.0) - Real(0.5);
     });
@@ -614,8 +617,10 @@ void bottom_solve (CrossProj::Level& L)
         L.bg.resize(N*nc);
         Vector<Real> hinv;
 #ifdef AMREX_USE_FFT
-        L.bfft = std::make_unique<FFT::LocalR2C<Real>>(L.domain.length());
-        IntVect const ss = L.bfft->spectralSize();
+        for (int n = 0; n < nc; ++n) {
+            L.bfft.push_back(std::make_unique<FFT::LocalR2C<Real>>(L.domain.length()));
+        }
+        IntVect const ss = L.bfft[0]->spectralSize();
         int const sx = ss[0];
         Long const NS = Long(sx)*ny*nz;
         hinv.resize(NS);
@@ -624,7 +629,7 @@ void bottom_solve (CrossProj::Level& L)
         for (int i = 0; i < sx; ++i) {
             hinv[(Long(k)*ny + j)*sx + i] = Real(symbol(i,j,k));
         }}}
-        invert(hinv, L.bfft->scalingFactor());
+        invert(hinv, L.bfft[0]->scalingFactor());
         L.bspec.resize(NS);
 #else
         for (int d = 0; d < 3; ++d) {
@@ -679,9 +684,9 @@ void bottom_solve (CrossProj::Level& L)
         GpuComplex<Real>* const ps = L.bspec.data();
         Long const NS = Long(L.bspec.size());
         for (int n = 0; n < nc; ++n) {
-            L.bfft->forward(pd + n*N, ps);
+            L.bfft[n]->forward(pd + n*N, ps);
             ParallelFor(NS, [=] AMREX_GPU_DEVICE (Long m) noexcept { ps[m] *= pinv[m]; });
-            L.bfft->backward(ps, pd + n*N);
+            L.bfft[n]->backward(ps, pd + n*N);
         }
     }
 #else
@@ -1220,6 +1225,8 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
     if (!m_top || m_grids != a_rhs.boxArray() || m_dmap != a_rhs.DistributionMap()) {
         setup(a_rhs.boxArray(), a_rhs.DistributionMap());
     }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_soln.boxArray() == m_grids && a_soln.DistributionMap() == m_dmap,
+        "GMG::CrossProj: a_soln and a_rhs must have the same BoxArray and DistributionMapping");
     Level& T = *m_top;
     Level& P = m_reduced ? *m_hier[0][0] : T; // PCG level: P.b is r, P.x is z
     int const nc = P.ncomp;
