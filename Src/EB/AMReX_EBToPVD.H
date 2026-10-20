@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <iosfwd>
+#include <string>
 
 /**
  * \file AMReX_EBToPVD.H
@@ -40,6 +41,8 @@ public:
 
    //! Write the accumulated EB polygons for rank \p myID into a VTP file.
    void WriteEBVTP(int myID) const;
+   //! Triangulate and write the accumulated planar EB polygons to one ASCII STL file.
+   void WriteSTL(std::string const& filename) const;
    //! Write a PVD file referencing per-rank outputs.
    static void WritePVTP(int nProcs) ;
 
