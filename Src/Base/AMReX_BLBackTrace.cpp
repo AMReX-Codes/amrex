@@ -43,6 +43,7 @@
 #  if defined(__GLIBC__) || defined(__APPLE__)
 #    include <execinfo.h>
 #  endif
+#include <sys/mman.h>
 #include <unistd.h>
 #endif
 
@@ -78,6 +79,12 @@ HandledSignal g_signals[] = {
     {.sig = SIGTERM, .handle = &amrex::system::handle_sigterm, .message = "SIGTERM", .prev = {}},
     {.sig = SIGINT , .handle = &amrex::system::handle_sigint , .message = "SIGINT", .prev = {}},
     {.sig = SIGABRT, .handle = &amrex::system::handle_sigabrt, .message = "SIGABRT", .prev = {}},
+#if defined(SIGBUS) && !defined(_WIN32)
+    {.sig = SIGBUS , .handle = &amrex::system::handle_sigbus , .message = "SIGBUS Bus error", .prev = {}},
+#endif
+#if defined(SIGTRAP) && !defined(_WIN32)
+    {.sig = SIGTRAP, .handle = &amrex::system::handle_sigtrap, .message = "SIGTRAP Trace or breakpoint trap", .prev = {}},
+#endif
 };
 
 // How often install_signal_handlers was called without
@@ -85,6 +92,59 @@ HandledSignal g_signals[] = {
 // of these depths it installed the handlers, or 0.
 int g_install_depth = 0;
 int g_installed_depth = 0;
+
+#ifndef _WIN32
+constexpr std::size_t g_alt_stack_size = std::size_t(1) << 20;
+
+// Disables the alternate stack sp of this thread unless it is in use.
+// Returns whether this thread does not use sp (anymore).
+bool give_back_alt_stack (void* sp)
+{
+    stack_t cur{};
+    if (sigaltstack(nullptr, &cur) != 0) { return false; }
+    if ((cur.ss_flags & SS_DISABLE) != 0 || cur.ss_sp != sp) { return true; }
+    if ((cur.ss_flags & SS_ONSTACK) != 0) { return false; }
+    // macOS rejects SS_DISABLE with a size below MINSIGSTKSZ.
+    stack_t ss{};
+    ss.ss_sp = sp;
+    ss.ss_size = g_alt_stack_size;
+    ss.ss_flags = SS_DISABLE;
+    return sigaltstack(&ss, nullptr) == 0;
+}
+
+// An alternate stack for the signal handler on a thread that installs it and
+// has none, so that the handler can run after a stack overflow there. It is
+// mapped below a guard page, and unmapped when the thread exits.
+struct AltStack
+{
+    void* sp = nullptr;
+    AltStack () = default;
+    AltStack (AltStack const&) = delete;
+    AltStack (AltStack&&) = delete;
+    AltStack& operator= (AltStack const&) = delete;
+    AltStack& operator= (AltStack&&) = delete;
+    ~AltStack ()
+    {
+        if (sp != nullptr && give_back_alt_stack(sp)) {
+            const auto page = static_cast<std::size_t>(sysconf(_SC_PAGESIZE));
+            munmap(static_cast<char*>(sp) - page, g_alt_stack_size + page);
+        }
+    }
+};
+thread_local AltStack t_alt_stack;
+
+// The stack left if this runs on an alternate signal stack, which can be
+// small (e.g., one of another component on its own thread), else SIZE_MAX.
+std::size_t alt_stack_left ()
+{
+    stack_t st{};
+    if (sigaltstack(nullptr, &st) != 0 || (st.ss_flags & SS_ONSTACK) == 0) { return SIZE_MAX; }
+    const char here = 0;
+    const auto sp = reinterpret_cast<std::uintptr_t>(&here);
+    const auto lo = reinterpret_cast<std::uintptr_t>(st.ss_sp);
+    return (sp > lo) ? sp - lo : 0;
+}
+#endif
 
 HandledSignal const* find_signal (int s)
 {
@@ -98,6 +158,20 @@ void
 handle_signal (int s)
 {
     std::signal(s, SIG_DFL);
+
+#ifndef _WIN32
+    // Writing the Backtrace file could overflow a small alternate stack. It
+    // needs about 12 KiB on macOS, more on Linux (e.g., for backtrace()).
+#ifdef __APPLE__
+    constexpr std::size_t stack_needed = std::size_t(1) << 14;
+#else
+    constexpr std::size_t stack_needed = std::size_t(1) << 16;
+#endif
+    if (alt_stack_left() < stack_needed) {
+        std::raise(s); // with the default action once this handler returns
+        return;
+    }
+#endif
 
     AsyncOut::Finalize();
 
@@ -197,6 +271,50 @@ BLBackTrace::install_signal_handlers (bool install)
     if (!install || g_installed_depth != 0) { return; }
     g_installed_depth = g_install_depth;
 
+#if defined(__linux__) && defined(AMREX_BACKTRACE_SUPPORTED)
+    // glibc loads libgcc_s on the first call of backtrace(), which should not
+    // happen in the signal handler, e.g., with little stack left.
+    {
+        void* frame = nullptr;
+        backtrace(&frame, 1);
+    }
+#endif
+
+#ifndef _WIN32
+    // Use the alternate stack only if the thread has none of its own (e.g.,
+    // of Python's faulthandler, or a sanitizer), which may be too small, and
+    // only if SIGSEGV or SIGBUS is handled, which a stack overflow raises.
+    // These then always run on it on this thread. Other threads (e.g., of
+    // OpenMP) do not get one.
+    bool use_alt_stack = false;
+    if (amrex::system::handle_sigsegv || amrex::system::handle_sigbus)
+    {
+        stack_t cur{};
+        if (sigaltstack(nullptr, &cur) == 0) {
+            auto& alt = t_alt_stack.sp;
+            if ((cur.ss_flags & SS_DISABLE) == 0) {
+                use_alt_stack = (alt != nullptr && cur.ss_sp == alt);
+            } else {
+                if (alt == nullptr) {
+                    const auto page = static_cast<std::size_t>(sysconf(_SC_PAGESIZE));
+                    void* p = mmap(nullptr, g_alt_stack_size + page, PROT_READ | PROT_WRITE,
+                                   MAP_PRIVATE | MAP_ANON, -1, 0);
+                    if (p != MAP_FAILED) {
+                        mprotect(p, page, PROT_NONE); // guard page below the stack
+                        alt = static_cast<char*>(p) + page;
+                    }
+                }
+                if (alt != nullptr) {
+                    stack_t ss{};
+                    ss.ss_sp = alt;
+                    ss.ss_size = g_alt_stack_size;
+                    use_alt_stack = (sigaltstack(&ss, nullptr) == 0);
+                }
+            }
+        }
+    }
+#endif
+
     for (auto& h : g_signals) {
         if (!*h.handle) { continue; }
 #ifdef _WIN32
@@ -207,6 +325,16 @@ BLBackTrace::install_signal_handlers (bool install)
         struct sigaction sa{};
         sa.sa_sigaction = signal_handler;
         sa.sa_flags = SA_SIGINFO | SA_RESTART;
+#ifdef SIGBUS
+        // A stack overflow raises SIGSEGV or SIGBUS. Other signals do not use
+        // the alternate stack. On other threads, these use the alternate stack
+        // of the thread if it has one, which can be small (e.g., of another
+        // component), so the handler ends the process right away if little
+        // of it is left.
+        if (use_alt_stack && (h.sig == SIGSEGV || h.sig == SIGBUS)) {
+            sa.sa_flags |= SA_ONSTACK;
+        }
+#endif
         sigemptyset(&sa.sa_mask);
         h.prev.saved = (sigaction(h.sig, &sa, &h.prev.action) == 0);
 #endif
@@ -239,6 +367,11 @@ BLBackTrace::restore_signal_handlers ()
 #endif
         h.prev.saved = false;
     }
+
+#ifndef _WIN32
+    // Other threads keep theirs until they exit.
+    if (t_alt_stack.sp != nullptr) { give_back_alt_stack(t_alt_stack.sp); }
+#endif
 }
 
 void

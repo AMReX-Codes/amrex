@@ -10,11 +10,11 @@ offer a few tips we have found to be useful.
 To aid debugging, AMReX handles various signals in the C standard
 library that are raised during runs. This gives us a chance to print more
 information using Linux/Unix backtrace capability.  The signals
-include segmentation fault (or "segfault"), interruption by the user (control-c), assertion
-errors, and floating-point exceptions (NaNs, division by zero, and
-overflow).  The handling of segfault, assertion errors and
-interruption by control-C are enabled by default.  Note that
-``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
+include segmentation fault (or "segfault"), bus error, trap, interruption by
+the user (control-c), assertion errors, and floating-point exceptions (NaNs,
+division by zero, and overflow).  The handling of segfault, bus error, trap,
+assertion errors and interruption by control-C are enabled by default.
+Note that ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
 ``USE_ASSERTION=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` or
 ``-DAMReX_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
