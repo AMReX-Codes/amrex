@@ -72,6 +72,18 @@ constexpr int nhier = (AMREX_SPACEDIM == 3) ? 4 : 2;
 
 constexpr int bottom_max_nodes = 1024; // exact bottom solve at or below this size
 
+// Whether a level with this domain gets a coarser level (by `rr`), or is
+// the bottom: small enough for the exact solve, or not coarsenable.
+bool coarsenable (Box const& domain, IntVect const& rr)
+{
+    if (domain.numPts() <= bottom_max_nodes) { return false; }
+    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
+        int const len = domain.length(e);
+        if (rr[e] == 2 && (len % 2 != 0 || len < 8)) { return false; }
+    }
+    return true;
+}
+
 // Galerkin P^T A P of a periodic 1D three-point stencil for linear
 // interpolation by a factor of 2, optionally with P modulated by (-1)^m.
 Array<Real,3> galerkin1d (Array<Real,3> const& a, bool modulate)
@@ -595,6 +607,11 @@ void bottom_solve (CrossProj::Level& L)
         L.bim.resize(N);
     }
 
+    // One box: only its rank works, without communication. Otherwise every
+    // rank gathers the right-hand side by an allreduce and solves it.
+    bool const local = (L.cba.size() == 1);
+    if (local && L.b.local_size() == 0) { return; }
+
     // gather the right-hand side: device kernel into a global array, one copy
     int const dlo0 = dlo[0], dlo1 = dlo[1], dlo2 = (AMREX_SPACEDIM == 3) ? dlo[AMREX_SPACEDIM-1] : 0;
     L.bdev.resize(N*nc);
@@ -608,7 +625,7 @@ void bottom_solve (CrossProj::Level& L)
         });
         Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
     }
-    ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc));
+    if (!local) { ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc)); }
 
     // DFT along direction d of (re, im), in place; inverse divides by n
     auto dft = [&] (int d, bool inverse) {
@@ -696,6 +713,10 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
     C->ncomp = P.ncomp;
     C->cheby_degree = P.cheby_degree;
 
+    // The bottom level is one box on one rank, so that its exact solve is
+    // local and the transfers reach only that rank. Other levels keep the
+    // parent's boxes unless they got too small to coarsen again.
+    bool const bottom = !coarsenable(C->domain, ratio);
     BoxArray const aligned = amrex::coarsen(P.cba, ratio);
     bool ok = true;
     for (int i = 0, N = int(aligned.size()); i < N && ok; ++i) {
@@ -704,12 +725,13 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
             if (ratio[e] == 2 && (len % 2 != 0 || len < 4)) { ok = false; }
         }
     }
+    if (bottom && aligned.size() > 1) { ok = false; }
     if (ok) {
         C->cba = aligned;
         C->dm = P.dm;
     } else {
         C->cba = BoxArray(C->domain);
-        C->cba.maxSize(regrid_max_size);
+        if (!bottom) { C->cba.maxSize(regrid_max_size); }
         C->dm = DistributionMapping(C->cba);
         C->aligned = aligned;
         C->talign.define(C->aligned, P.dm, C->ncomp, 1);
@@ -726,7 +748,7 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
         }
     }
     alloc_level(*C);
-    estimate_lmax(*C);
+    if (!bottom) { estimate_lmax(*C); }
     return C;
 }
 
@@ -1061,21 +1083,13 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         }
         // Coarsen while possible, until the level is small enough for the
         // exact bottom solve. The fine grid always gets a coarse level.
-        auto coarsenable = [&] (Level const& L) {
-            if (L.domain.numPts() <= bottom_max_nodes) { return false; }
-            for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-                int const len = L.domain.length(e);
-                if (rr[e] == 2 && (len % 2 != 0 || len < 8)) { return false; }
-            }
-            return true;
-        };
         Level const* parent = m_hier[h].empty() ? &T : m_hier[h].back().get();
-        bool more = m_hier[h].empty() || coarsenable(*parent);
+        bool more = m_hier[h].empty() || coarsenable(parent->domain, rr);
         while (more) {
             m_hier[h].push_back(make_coarse(*parent, rr, free,
                                             m_hier[h].empty() ? mod : IntVect(0)));
             parent = m_hier[h].back().get();
-            more = coarsenable(*parent);
+            more = coarsenable(parent->domain, rr);
         }
     }
 
