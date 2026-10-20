@@ -55,9 +55,11 @@ struct CrossProj::Level
     GpuArray<Real,27> rw{};    // restriction weights from the parent, same layout
     GpuArray<Real,8> pw{};     // prolongation weights [c*4+b*2+a] for fine offset (a,b,c)
     Gpu::DeviceVector<Real> tcp, tdi; // Thomas factors of the line solver by position
+    Gpu::DeviceVector<int> lines;     // GPU line solver: (box, i, j, k) of every line's first node
     MultiFab x, x2, b, r, y, talign;
     // bottom level: inverse symbol, DFT tables and host work space
     Vector<Real> binv, bg, bre, bim;
+    Gpu::DeviceVector<Real> bdev;
     Array<Vector<Real>,3> bcos, bsin;
     Real lmax = Real(0.0); // Chebyshev upper bound
 };
@@ -167,6 +169,34 @@ void apply_prec (CrossProj::Level& L, MultiFab& y, MultiFab const& r)
     Real const tlo = L.sten[13-stride]; // line part of the stencil: (tlo, tdiag, tlo)
     Real const* AMREX_RESTRICT cp = L.tcp.data();
     Real const* AMREX_RESTRICT di = L.tdi.data();
+#ifdef AMREX_USE_GPU
+    // one launch for all lines of all boxes
+    int const* AMREX_RESTRICT ln = L.lines.data();
+    int const nlines = int(L.lines.size() / 4);
+    auto const& ya4 = y.arrays();
+    auto const& ra4 = r.const_arrays();
+    ParallelFor(nlines, [=] AMREX_GPU_DEVICE (int l) noexcept
+    {
+        int const bno = ln[4*l];
+        IntVect iv(AMREX_D_DECL(ln[4*l+1], ln[4*l+2], ln[4*l+3]));
+        auto const& ya = ya4[bno];
+        auto const& ra = ra4[bno];
+        int const mlo = iv[f];
+        int const mhi = mlo + ya.end[f] - ya.begin[f] - 1; // y has no ghost nodes
+        Real dprev = Real(0.0);
+        for (int m = mlo; m <= mhi; ++m) {
+            iv[f] = m;
+            dprev = (ra(iv) - tlo*dprev) * di[m-mlo];
+            ya(iv) = dprev;
+        }
+        for (int m = mhi-1; m >= mlo; --m) {
+            IntVect jv = iv;
+            iv[f] = m;
+            jv[f] = m+1;
+            ya(iv) -= cp[m-mlo] * ya(jv);
+        }
+    });
+#else
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -176,27 +206,6 @@ void apply_prec (CrossProj::Level& L, MultiFab& y, MultiFab const& r)
         int const mhi = vbx.bigEnd(f);
         auto const& ya = y.array(mfi);
         auto const& ra = r.const_array(mfi);
-#ifdef AMREX_USE_GPU
-        Box lbx = vbx;
-        lbx.setBig(f, mlo);
-        ParallelFor(lbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            IntVect iv(AMREX_D_DECL(i,j,k));
-            amrex::ignore_unused(k);
-            Real dprev = Real(0.0);
-            for (int m = mlo; m <= mhi; ++m) {
-                iv[f] = m;
-                dprev = (ra(iv) - tlo*dprev) * di[m-mlo];
-                ya(iv) = dprev;
-            }
-            for (int m = mhi-1; m >= mlo; --m) {
-                IntVect jv = iv;
-                iv[f] = m;
-                jv[f] = m+1;
-                ya(iv) -= cp[m-mlo] * ya(jv);
-            }
-        });
-#else
         // Line index outer, transverse plane inner (vectorizes for y and z lines).
         auto const lo = amrex::lbound(vbx);
         auto const hi = amrex::ubound(vbx);
@@ -229,8 +238,8 @@ void apply_prec (CrossProj::Level& L, MultiFab& y, MultiFab const& r)
                 ya(i,j,k) -= c * ya(i+off.x,j+off.y,k+off.z);
             });
         }
-#endif
     }
+#endif
 }
 
 // One step of the three-term Chebyshev recurrence
@@ -518,6 +527,20 @@ void set_thomas (CrossProj::Level& L)
     L.tdi.resize(maxlen);
     Gpu::copy(Gpu::hostToDevice, cp.begin(), cp.end(), L.tcp.begin());
     Gpu::copy(Gpu::hostToDevice, di.begin(), di.end(), L.tdi.begin());
+#ifdef AMREX_USE_GPU
+    Vector<int> lines;
+    for (MFIter mfi(L.y); mfi.isValid(); ++mfi) {
+        Box lbx = mfi.validbox();
+        lbx.setBig(f, lbx.smallEnd(f));
+        int const bno = mfi.LocalIndex();
+        amrex::LoopOnCpu(lbx, [&] (int i, int j, int k)
+        {
+            lines.push_back(bno); lines.push_back(i); lines.push_back(j); lines.push_back(k);
+        });
+    }
+    L.lines.resize(lines.size());
+    Gpu::copy(Gpu::hostToDevice, lines.begin(), lines.end(), L.lines.begin());
+#endif
     Gpu::streamSynchronize();
 }
 
@@ -572,24 +595,18 @@ void bottom_solve (CrossProj::Level& L)
         L.bim.resize(N);
     }
 
-    // gather the right-hand side
-    std::fill(L.bg.begin(), L.bg.end(), Real(0.0));
-    for (MFIter mfi(L.b); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto const& fab = L.b[mfi];
-#ifdef AMREX_USE_GPU
-        FArrayBox hfab(bx, nc, The_Pinned_Arena());
-        Gpu::dtoh_memcpy(hfab.dataPtr(), fab.dataPtr(), hfab.nBytes());
-        Array4<Real const> const a = hfab.const_array();
-#else
-        Array4<Real const> const a = fab.const_array();
-#endif
-        for (int n = 0; n < nc; ++n) {
-            amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
-            {
-                L.bg[n*N + idx(i-dlo[0], j-dlo[1], (AMREX_SPACEDIM == 3) ? k-dlo[AMREX_SPACEDIM-1] : 0)] = a(i,j,k,n);
-            });
-        }
+    // gather the right-hand side: device kernel into a global array, one copy
+    int const dlo0 = dlo[0], dlo1 = dlo[1], dlo2 = (AMREX_SPACEDIM == 3) ? dlo[AMREX_SPACEDIM-1] : 0;
+    L.bdev.resize(N*nc);
+    Real* const pd = L.bdev.data();
+    {
+        Gpu::fillAsync(L.bdev.begin(), L.bdev.end(), [=] AMREX_GPU_DEVICE (Real& v, Long) noexcept { v = Real(0.0); });
+        auto const& ba = L.b.const_arrays();
+        ParallelFor(L.b, IntVect(0), nc, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
+        {
+            pd[n*N + (Long(k-dlo2)*ny + (j-dlo1))*nx + (i-dlo0)] = ba[bno](i,j,k,n);
+        });
+        Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
     }
     ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc));
 
@@ -638,27 +655,16 @@ void bottom_solve (CrossProj::Level& L)
         std::copy(L.bre.begin(), L.bre.end(), L.bg.begin() + n*N);
     }
 
-    // scatter the solution through y (no ghosts) into x
-    for (MFIter mfi(L.y); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto& fab = L.y[mfi];
-#ifdef AMREX_USE_GPU
-        FArrayBox hfab(bx, nc, The_Pinned_Arena());
-        Array4<Real> const a = hfab.array();
-#else
-        Array4<Real> const a = fab.array();
-#endif
-        for (int n = 0; n < nc; ++n) {
-            amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
-            {
-                a(i,j,k,n) = L.bg[n*N + idx(i-dlo[0], j-dlo[1], (AMREX_SPACEDIM == 3) ? k-dlo[AMREX_SPACEDIM-1] : 0)];
-            });
-        }
-#ifdef AMREX_USE_GPU
-        Gpu::htod_memcpy(fab.dataPtr(), hfab.dataPtr(), hfab.nBytes());
-#endif
+    // scatter the solution into x
+    {
+        Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
+        Real const* const ps = L.bdev.data();
+        auto const& xa = L.x.arrays();
+        ParallelFor(L.x, IntVect(0), nc, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
+        {
+            xa[bno](i,j,k,n) = ps[n*N + (Long(k-dlo2)*ny + (j-dlo1))*nx + (i-dlo0)];
+        });
     }
-    MultiFab::Copy(L.x, L.y, 0, 0, nc, 0);
 }
 
 void alloc_level (CrossProj::Level& L)
