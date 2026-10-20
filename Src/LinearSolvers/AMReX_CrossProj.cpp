@@ -50,9 +50,9 @@ struct CrossProj::Level
     IntVect modulate{0};   // first near-null level: P has (-1)^(sum of these indices)
     int ncomp = 1;
     int cheby_degree = 3;  // 2 on the reduced 2D hierarchy
-    BoxArray cba;
+    BoxArray ba;
     DistributionMapping dm;
-    BoxArray aligned;      // parent BoxArray coarsened, if cba was regridded
+    BoxArray cba;      // parent BoxArray coarsened, if ba was regridded
     Array<Array<Real,3>,AMREX_SPACEDIM> K, M;  // [dir][offset+1]
     GpuArray<Real,27> sten{};  // [(c+1)*9+(b+1)*3+(a+1)] for offset (a,b,c); c = 0 in 2D
     GpuArray<Real,27> rw{};    // restriction weights from the parent, same layout
@@ -91,9 +91,9 @@ constexpr int nhier = (AMREX_SPACEDIM == 3) ? 4 : 2;
 bool coarsenable (Box const& domain, IntVect const& rr)
 {
     if (domain.numPts() <= bottom_max_nodes) { return false; }
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-        int const len = domain.length(e);
-        if (rr[e] == 2 && (len % 2 != 0 || len < 8)) { return false; }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        int const len = domain.length(idim);
+        if (rr[idim] == 2 && (len % 2 != 0 || len < 8)) { return false; }
     }
     return true;
 }
@@ -382,7 +382,7 @@ void estimate_lmax (CrossProj::Level& L)
 template <int RX, int RY, int RZ>
 void restrict_impl (CrossProj::Level& F, CrossProj::Level& C)
 {
-    MultiFab* dst = C.aligned.empty() ? &C.b : &C.talign;
+    MultiFab* dst = C.cba.empty() ? &C.b : &C.talign;
     auto const w = C.rw;
     auto const& fa = F.r.const_arrays();
     auto const& ca = dst->arrays();
@@ -456,7 +456,7 @@ template <int RX, int RY, int RZ>
 void prolong_impl (CrossProj::Level& F, CrossProj::Level& C)
 {
     MultiFab const* src = &C.x;
-    if (C.aligned.empty()) {
+    if (C.cba.empty()) {
         C.x.FillBoundary(C.period);
     } else {
         C.talign.ParallelCopy(C.x, 0, 0, C.ncomp, IntVect(0), IntVect(1), C.period);
@@ -505,18 +505,18 @@ void set_transfer_weights (CrossProj::Level& C)
 {
     int rr[3] = {1,1,1};
     int md[3] = {0,0,0};
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-        rr[e] = C.ratio[e];
-        md[e] = C.modulate[e];
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        rr[idim] = C.ratio[idim];
+        md[idim] = C.modulate[idim];
     }
     for (int c = -1; c <= 1; ++c) {
     for (int b = -1; b <= 1; ++b) {
     for (int a = -1; a <= 1; ++a) {
         int const off[3] = {a, b, c};
         Real w = Real(1.0);
-        for (int e = 0; e < 3; ++e) {
-            if (off[e] == 0) { continue; }
-            w *= (rr[e] == 2) ? Real(0.5) : Real(0.0);
+        for (int idim = 0; idim < 3; ++idim) {
+            if (off[idim] == 0) { continue; }
+            w *= (rr[idim] == 2) ? Real(0.5) : Real(0.0);
         }
         if ((md[0]*a + md[1]*b + md[2]*c) & 1) { w = -w; }
         C.rw[(c+1)*9+(b+1)*3+(a+1)] = w;
@@ -540,8 +540,8 @@ void set_thomas (CrossProj::Level& L)
     Real const tlo = L.sten[13-stride];
     Real const tdiag = L.sten[13];
     int maxlen = 0;
-    for (int i = 0, N = int(L.cba.size()); i < N; ++i) {
-        maxlen = std::max(maxlen, L.cba[i].length(f));
+    for (int i = 0, N = int(L.ba.size()); i < N; ++i) {
+        maxlen = std::max(maxlen, L.ba[i].length(f));
     }
     Vector<Real> cp(maxlen), di(maxlen);
     Real den = tdiag;
@@ -587,7 +587,7 @@ void bottom_solve (CrossProj::Level& L)
     int const nx = nn[0], ny = nn[1], nz = nn[2];
     Long const N = Long(nx)*ny*nz;
     int const nc = L.ncomp;
-    bool const local = (L.cba.size() == 1);
+    bool const local = (L.ba.size() == 1);
     if (local && L.b.local_size() == 0) { return; }
 
     // The stencil symbol at mode (i,j,k), in double so that the null modes
@@ -753,11 +753,11 @@ void bottom_solve (CrossProj::Level& L)
 
 void alloc_level (CrossProj::Level& L)
 {
-    L.x.define(L.cba, L.dm, L.ncomp, 1);
-    L.x2.define(L.cba, L.dm, L.ncomp, 1);
-    L.r.define(L.cba, L.dm, L.ncomp, 1);
-    L.b.define(L.cba, L.dm, L.ncomp, 0);
-    L.y.define(L.cba, L.dm, L.ncomp, 0);
+    L.x.define(L.ba, L.dm, L.ncomp, 1);
+    L.x2.define(L.ba, L.dm, L.ncomp, 1);
+    L.r.define(L.ba, L.dm, L.ncomp, 1);
+    L.b.define(L.ba, L.dm, L.ncomp, 0);
+    L.y.define(L.ba, L.dm, L.ncomp, 0);
     L.x.setVal(Real(0.0));
     L.x2.setVal(Real(0.0));
     L.r.setVal(Real(0.0));
@@ -766,7 +766,7 @@ void alloc_level (CrossProj::Level& L)
     set_thomas(L);
 }
 
-// Coarse level of P by `ratio`; regrids when the aligned boxes are too small
+// Coarse level of P by `ratio`; regrids when the coarsened boxes are too small
 // to be coarsened again.
 std::unique_ptr<CrossProj::Level>
 make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntVect const& modulate)
@@ -787,38 +787,38 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
     // local line solves are a poor smoother once the transverse coupling
     // is weak (256^3 took 10 iterations instead of 7 with 32-cell segments).
     bool const bottom = !coarsenable(C->domain, ratio);
-    BoxArray const aligned = amrex::coarsen(P.cba, ratio);
+    BoxArray const cba = amrex::coarsen(P.ba, ratio);
     bool ok = true;
-    for (int i = 0, N = int(aligned.size()); i < N && ok; ++i) {
-        for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-            int const len = aligned[i].length(e);
-            if (ratio[e] == 2 && (len % 2 != 0 || len < 4)) { ok = false; }
+    for (int i = 0, N = int(cba.size()); i < N && ok; ++i) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const len = cba[i].length(idim);
+            if (ratio[idim] == 2 && (len % 2 != 0 || len < 4)) { ok = false; }
         }
     }
-    if (bottom && aligned.size() > 1) { ok = false; }
+    if (bottom && cba.size() > 1) { ok = false; }
     if (ok) {
-        C->cba = aligned;
+        C->ba = cba;
         C->dm = P.dm;
     } else {
-        C->cba = BoxArray(C->domain);
+        C->ba = BoxArray(C->domain);
         if (!bottom) {
             IntVect ms(regrid_max_size);
             if (line_dir >= 0) { ms[line_dir] = C->domain.length(line_dir); }
-            C->cba.maxSize(ms);
+            C->ba.maxSize(ms);
         }
-        C->dm = DistributionMapping(C->cba);
-        C->aligned = aligned;
-        C->talign.define(C->aligned, P.dm, C->ncomp, 1);
+        C->dm = DistributionMapping(C->ba);
+        C->cba = cba;
+        C->talign.define(C->cba, P.dm, C->ncomp, 1);
         C->talign.setVal(Real(0.0));
     }
 
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-        if (ratio[e] == 1) {
-            C->K[e] = P.K[e];
-            C->M[e] = P.M[e];
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ratio[idim] == 1) {
+            C->K[idim] = P.K[idim];
+            C->M[idim] = P.M[idim];
         } else {
-            C->K[e] = galerkin1d(P.K[e], modulate[e]);
-            C->M[e] = galerkin1d(P.M[e], modulate[e]);
+            C->K[idim] = galerkin1d(P.K[idim], modulate[idim]);
+            C->M[idim] = galerkin1d(P.M[idim], modulate[idim]);
         }
     }
     alloc_level(*C);
@@ -1069,10 +1069,10 @@ CrossProj::CrossProj (Geometry const& geom)
     : m_geom(geom)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(geom.isAllPeriodic(), "GMG::CrossProj: only supports periodic BC");
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(geom.Domain().length(e) % 2 == 0 &&
-                                         geom.Domain().length(e) >= 4 &&
-                                         geom.Domain().smallEnd(e) == 0,
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(geom.Domain().length(idim) % 2 == 0 &&
+                                         geom.Domain().length(idim) >= 4 &&
+                                         geom.Domain().smallEnd(idim) == 0,
             "GMG::CrossProj: the domain needs an even number (>= 4) of cells starting at index 0");
     }
 }
@@ -1086,8 +1086,8 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
 
     for (int i = 0, N = int(ba.size()); i < N; ++i) {
         IntVect const len = ba[i].length();
-        for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(len[e] % 2 == 0, "GMG::CrossProj: box lengths must be even");
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(len[idim] % 2 == 0, "GMG::CrossProj: box lengths must be even");
         }
     }
     m_grids = ba;
@@ -1098,12 +1098,12 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
     Level& T = *m_top;
     T.domain = m_geom.Domain();
     T.period = m_geom.periodicity();
-    T.cba = ba;
+    T.ba = ba;
     T.dm = dm;
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-        Real const hinv2 = Real(1.0) / (m_geom.CellSize(e)*m_geom.CellSize(e));
-        T.K[e] = {-hinv2, Real(2.0)*hinv2, -hinv2};
-        T.M[e] = {Real(0.25), Real(0.5), Real(0.25)};
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        Real const hinv2 = Real(1.0) / (m_geom.CellSize(idim)*m_geom.CellSize(idim));
+        T.K[idim] = {-hinv2, Real(2.0)*hinv2, -hinv2};
+        T.M[idim] = {Real(0.25), Real(0.5), Real(0.25)};
     }
 
     for (auto& h : m_hier) { h.clear(); }
@@ -1128,12 +1128,12 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         R->ratio = IntVect(2);
         R->ncomp = 2;
         R->cheby_degree = 2;
-        R->cba = amrex::coarsen(ba, 2);
+        R->ba = amrex::coarsen(ba, 2);
         R->dm = dm;
         Real const a0 = T.sten[13];
-        for (int e = 0; e < AMREX_SPACEDIM; ++e) {
-            R->K[e] = {-a0/Real(4.0), a0/Real(2.0), -a0/Real(4.0)};
-            R->M[e] = {Real(0.125), Real(0.75), Real(0.125)};
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            R->K[idim] = {-a0/Real(4.0), a0/Real(2.0), -a0/Real(4.0)};
+            R->M[idim] = {Real(0.125), Real(0.75), Real(0.125)};
         }
         alloc_level(*R);
         estimate_lmax(*R);
@@ -1167,11 +1167,11 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         }
     }
 
-    m_x.define(pcglev->cba, pcglev->dm, pcglev->ncomp, 1);
-    m_p.define(pcglev->cba, pcglev->dm, pcglev->ncomp, 1);
-    m_q.define(pcglev->cba, pcglev->dm, pcglev->ncomp, 0);
+    m_x.define(pcglev->ba, pcglev->dm, pcglev->ncomp, 1);
+    m_p.define(pcglev->ba, pcglev->dm, pcglev->ncomp, 1);
+    m_q.define(pcglev->ba, pcglev->dm, pcglev->ncomp, 0);
     if (!m_reduced) {
-        m_rold.define(pcglev->cba, pcglev->dm, pcglev->ncomp, 0);
+        m_rold.define(pcglev->ba, pcglev->dm, pcglev->ncomp, 0);
     }
 }
 
@@ -1240,7 +1240,7 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
     // G averages the differences over the 2^(dim-1) edges of a cell.
     Real const avg = (AMREX_SPACEDIM == 3) ? Real(0.25) : Real(0.5);
     GpuArray<Real,3> fac{};
-    for (int e = 0; e < AMREX_SPACEDIM; ++e) { fac[e] = avg*dxinv[e]; }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { fac[idim] = avg*dxinv[idim]; }
 
     // b = G^T u = -D u at the node (i,j,k), from the cells (i-1..i, ...)
     {
