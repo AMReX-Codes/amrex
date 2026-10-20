@@ -868,14 +868,18 @@ not handle keep their previous action, e.g., a core dump.
    If both this flag and ``amrex.signal_handling`` are true, ``SIGTERM``
    will be handled by AMReX. This flag is false by default because this
    could generate lots of backtrace files on some batch systems that issue
-   ``SIGTERM`` for jobs running out of wall clock time.
+   ``SIGTERM`` for jobs running out of wall clock time. A ``SIGTERM`` while
+   AMReX handles another signal, or more than a second after the first one,
+   ends the process right away.
 
 .. py:data:: amrex.handle_sigint
    :type: bool
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGINT``
-   will be handled by AMReX.
+   will be handled by AMReX. A ``SIGINT`` (e.g., control-c) while AMReX
+   handles another signal, or more than a second after the first one, ends the
+   process right away, e.g., if the handler is stuck.
 
 .. py:data:: amrex.handle_sigabrt
    :type: bool

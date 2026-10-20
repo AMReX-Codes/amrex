@@ -6,6 +6,9 @@
 #include <AMReX_Utility.H>
 #include <AMReX.H>
 
+#include <atomic>
+#include <thread>
+
 namespace amrex::AsyncOut {
 
 namespace {
@@ -15,6 +18,7 @@ int s_noutfiles = 64;
 MPI_Comm s_comm = MPI_COMM_NULL;
 
 std::unique_ptr<BackgroundThread> s_thread;
+std::atomic<std::thread::id> s_thread_id{};
 
 WriteInfo s_info;
 
@@ -50,6 +54,7 @@ void Initialize ()
 
     if (s_asyncout) {
         s_thread = std::make_unique<BackgroundThread>();
+        s_thread_id = s_thread->ThreadId();
     }
 
     ExecOnFinalize(Finalize);
@@ -59,12 +64,18 @@ void Finalize ()
 {
     if (s_thread) {
         s_thread.reset();
+        s_thread_id = std::thread::id{};
     }
 
 #ifdef AMREX_USE_MPI
     if (s_comm != MPI_COMM_NULL) { MPI_Comm_free(&s_comm); }
     s_comm = MPI_COMM_NULL;
 #endif
+}
+
+bool OnOutputThread ()
+{
+    return s_thread_id != std::thread::id{} && std::this_thread::get_id() == s_thread_id;
 }
 
 bool UseAsyncOut () { return s_asyncout; }

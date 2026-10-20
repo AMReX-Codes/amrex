@@ -53,6 +53,11 @@ public:
      */
     void Finish ();
 
+    /**
+     * \brief Id of the background thread.
+     */
+    [[nodiscard]] std::thread::id ThreadId () const;
+
 private:
     void do_job ();
 
