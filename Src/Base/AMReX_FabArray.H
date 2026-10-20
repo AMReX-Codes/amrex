@@ -4286,6 +4286,8 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
 #endif
     }
 
+    nm0 = std::max(nm0, RT(0.0)); // ParReduce returns lowest() if this rank has no boxes
+
     if (!local) {
         ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
     }
@@ -4337,6 +4339,8 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
         }
     }
 #endif
+
+    nm0 = std::max(nm0, RT(0.0)); // ParReduce returns lowest() if this rank has no boxes
 
     if (!local) {
         ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
