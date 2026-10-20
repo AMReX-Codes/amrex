@@ -79,10 +79,10 @@ struct CrossProj::Level
 namespace {
 
 constexpr int regrid_max_size = 32;
+constexpr int bottom_max_nodes = 1024; // exact bottom solve at or below this size
 constexpr int kz = (AMREX_SPACEDIM == 3) ? 1 : 0;
 constexpr int nhier = (AMREX_SPACEDIM == 3) ? 4 : 2;
 
-constexpr int bottom_max_nodes = 1024; // exact bottom solve at or below this size
 
 // Whether a level with this domain gets a coarser level (by `rr`), or is
 // the bottom: small enough for the exact solve, or not coarsenable.
@@ -775,7 +775,10 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
 
     // The bottom level is one box on one rank, so that its exact solve is
     // local and the transfers reach only that rank. Other levels keep the
-    // parent's boxes unless they got too small to coarsen again.
+    // parent's boxes unless they got too small to coarsen again; regridded
+    // family levels get boxes spanning the free direction, since the box
+    // local line solves are a poor smoother once the transverse coupling
+    // is weak (256^3 took 10 iterations instead of 7 with 32-cell segments).
     bool const bottom = !coarsenable(C->domain, ratio);
     BoxArray const aligned = amrex::coarsen(P.cba, ratio);
     bool ok = true;
@@ -791,7 +794,11 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
         C->dm = P.dm;
     } else {
         C->cba = BoxArray(C->domain);
-        if (!bottom) { C->cba.maxSize(regrid_max_size); }
+        if (!bottom) {
+            IntVect ms(regrid_max_size);
+            if (line_dir >= 0) { ms[line_dir] = C->domain.length(line_dir); }
+            C->cba.maxSize(ms);
+        }
         C->dm = DistributionMapping(C->cba);
         C->aligned = aligned;
         C->talign.define(C->aligned, P.dm, C->ncomp, 1);
