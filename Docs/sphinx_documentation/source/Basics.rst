@@ -3571,12 +3571,12 @@ Abort, Assertion and Backtrace
 
 :cpp:`amrex::Abort(const char * message)` is used to terminate a run usually
 when something goes wrong. This function takes a message and writes it to
-stderr. Files named like ``Backtrace.1`` (where 1 means process 1)
-are produced containing backtrace information of the call stack. In Fortran, we
+stderr. Files named like ``Backtrace.1`` (for MPI rank 1) with the call stack
+are written (see :ref:`sec:basics:debugging`). In Fortran, we
 can call :fortran:`amrex_abort` from the :fortran:`amrex_error_module`, which
 takes a Fortran character variable with assumed size (i.e., :fortran:`len=*`)
 as a message.  A ``ParmParse`` runtime boolean parameter
-``amrex.throw_handling`` (which is defaulted to 0, i.e., :cpp:`false`)
+``amrex.throw_exception`` (which is defaulted to 0, i.e., :cpp:`false`)
 can be set to 1 (i.e., :cpp:`true`) so that AMReX will throw an
 exception instead of aborting.
 
@@ -3612,7 +3612,7 @@ message when assertion fails.  For example,
 Backtrace files are produced by AMReX signal handler by default when
 segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
-`amrex.signal_handling=0` can be used to disable it.
+``amrex.signal_handling=0`` can be used to disable it.
 
 See :ref:`sec:gpu:assertion` for considerations on using these functions in
 GPU-enabled code.

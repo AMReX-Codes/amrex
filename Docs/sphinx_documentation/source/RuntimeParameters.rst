@@ -877,7 +877,7 @@ for debugging.
    :type: bool
    :value: true
 
-   If both this flag and ``amrex.signal_handling`` are true, ``SIGABGT``
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGABRT``
    will be handled by AMReX.
 
 .. py:data:: amrex.handle_sigfpe
@@ -897,7 +897,9 @@ for debugging.
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGILL``
-   will be handled by AMReX.
+   will be handled by AMReX. On Apple silicon, trapped floating-point
+   exceptions raise ``SIGILL`` instead of ``SIGFPE``, so this flag instead of
+   :py:data:`amrex.handle_sigfpe` enables their trapping.
 
 .. py:data:: amrex.handle_crt_reports
    :type: bool
