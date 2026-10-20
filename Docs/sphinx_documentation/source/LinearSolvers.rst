@@ -1185,7 +1185,6 @@ filled. The header is :cpp:`AMReX_CrossProj.H`.
 The object should be cached for reuse, since it sets up the multigrid
 hierarchy on the first solve and whenever the grids change.
 
-
 .. _sec:linearsolver:gmres:
 
 GMRES
