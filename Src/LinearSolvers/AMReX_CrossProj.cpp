@@ -75,6 +75,7 @@ namespace {
 
 constexpr int regrid_max_size = 32;
 constexpr int bottom_max_nodes = 1024; // exact bottom solve at or below this size
+constexpr int nhier = 2; // coarse hierarchies: smooth modes and the checkerboard
 
 // Whether a level with this domain gets a coarser level (by 2), or is the
 // bottom: small enough for the exact solve, or not coarsenable.
@@ -837,8 +838,7 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
     }
 
     // Hierarchy 0: smooth modes; 1: the checkerboard.
-    int const nhier = m_reduced ? 1 : int(m_hier.size());
-    for (int h = 0; h < nhier; ++h) {
+    for (int h = 0; h < (m_reduced ? 1 : nhier); ++h) {
         // Coarsen while possible, until the level is small enough for the
         // exact bottom solve. The fine grid always gets a coarse level.
         Level const* parent = m_hier[h].empty() ? &T : m_hier[h].back().get();
@@ -889,7 +889,7 @@ CrossProj::precond ()
     }
     Level& T = *m_top;
     cheby(T, 1, true);
-    for (int h = 0; h < int(m_hier.size()); ++h) {
+    for (int h = 0; h < nhier; ++h) {
         Level& C = *m_hier[h][0];
         residual(T);
         restrict_to(T, C);
