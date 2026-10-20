@@ -857,7 +857,9 @@ not handle keep their previous action, e.g., a core dump.
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGSEGV``
-   will be handled by AMReX.
+   will be handled by AMReX, also for a stack overflow on the thread that
+   called ``amrex::Initialize`` if it has no alternate signal stack of its
+   own (e.g., of a sanitizer).
 
 .. py:data:: amrex.handle_sigterm
    :type: bool
@@ -902,6 +904,25 @@ not handle keep their previous action, e.g., a core dump.
    will be handled by AMReX. On Apple silicon, trapped floating-point
    exceptions raise ``SIGILL`` instead of ``SIGFPE``, so this flag instead of
    :py:data:`amrex.handle_sigfpe` enables their trapping.
+
+.. py:data:: amrex.handle_sigbus
+   :type: bool
+   :value: true
+
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGBUS``
+   will be handled by AMReX. For example, macOS raises ``SIGBUS`` for writes
+   to read-only memory, and Linux raises it for accesses to a memory-mapped
+   file or shared memory segment (e.g., in ``/dev/shm``) that cannot be
+   backed. This has no effect on Windows.
+
+.. py:data:: amrex.handle_sigtrap
+   :type: bool
+   :value: true
+
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGTRAP``
+   will be handled by AMReX. For example, Apple silicon raises ``SIGTRAP`` for
+   ``__builtin_trap()`` and for the overflow checks of ``-ftrapv``. This has no
+   effect on Windows.
 
 .. py:data:: amrex.handle_crt_reports
    :type: bool

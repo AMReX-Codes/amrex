@@ -118,6 +118,8 @@ namespace system
     bool handle_sigabrt;
     bool handle_sigfpe;
     bool handle_sigill;
+    bool handle_sigbus;
+    bool handle_sigtrap;
     bool handle_crt_reports;
     bool call_addr2line;
     bool throw_exception;
@@ -373,6 +375,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = false;
         system::handle_sigfpe  = false;
         system::handle_sigill  = false;
+        system::handle_sigbus  = false;
+        system::handle_sigtrap = false;
         system::handle_crt_reports = false;
         system::call_addr2line = false;
         system::throw_exception = false;
@@ -389,6 +393,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigabrt = true;
         system::handle_sigfpe  = true;
         system::handle_sigill  = true;
+        system::handle_sigbus  = true;
+        system::handle_sigtrap = true;
         system::handle_crt_reports = true;
         system::call_addr2line = true;
         system::throw_exception = false;
@@ -603,6 +609,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.queryAdd("handle_sigabrt", system::handle_sigabrt);
             pp.queryAdd("handle_sigfpe" , system::handle_sigfpe );
             pp.queryAdd("handle_sigill" , system::handle_sigill );
+            pp.queryAdd("handle_sigbus" , system::handle_sigbus );
+            pp.queryAdd("handle_sigtrap", system::handle_sigtrap);
 
             // We save the signal handlers and restore them in Finalize.
             BLBackTrace::install_signal_handlers(true);
