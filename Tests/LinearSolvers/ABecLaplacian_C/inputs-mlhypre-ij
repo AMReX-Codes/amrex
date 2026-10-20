@@ -1,0 +1,27 @@
+# HypreMLABecLap composite solve in IJ mode (hypre backend: FlexGMRES +
+# BoomerAMG), with two setups on the same object (reuse is turned on after
+# the first; the second updates the matrix in place and keeps the setup).  Run by the hypre CI
+# workflow; max_error is for DIM = 3.
+max_level = 1
+ref_ratio = 2
+n_cell = 8
+max_grid_size = 32
+
+linop_maxorder = 3 # mlhypre is hardwired to use maxorder=3
+
+composite_solve = 1
+prob_type = 2
+
+amrex.fpe_trap_invalid = 1
+amrex.fpe_trap_overflow = 1
+amrex.fpe_trap_zero = 1
+
+use_mlhypre = 1
+mlhypre_num_setups = 2
+max_error = 0.16
+do_plots = 0
+
+verbose = 2
+
+hypre_mlabeclap.hypre_solver = FlexGMRES
+hypre_mlabeclap.hypre_preconditioner = BoomerAMG

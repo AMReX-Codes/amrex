@@ -52,6 +52,7 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
     HYPRE_IJVectorAssemble(x);
     HYPRE_IJVectorAssemble(b);
 
+    hypre_ij->setThrowException(throw_exception);
     hypre_ij->solve(rel_tol, abs_tol, max_iter);
 
     getSolution(soln);
