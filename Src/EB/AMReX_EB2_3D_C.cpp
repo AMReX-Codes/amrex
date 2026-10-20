@@ -116,7 +116,8 @@ void set_eb_data (const int i, const int j, const int k,
     Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) * (dx[2]/dx[0])
                       + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) * (dx[2]/dx[1]);
 
-    vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz);
+    // At most 1, which it can exceed when the apertures are not of one plane
+    vfrac(i,j,k) = amrex::min(0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz), 1.0_rt);
 
     // remove small cell
     if (vfrac(i,j,k) < small_volfrac) {
@@ -125,9 +126,13 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    bcent(i,j,k,0) = (Bx + nx*vfrac(i,j,k)) * apnorminv * dx[1] * dx[2];
-    bcent(i,j,k,1) = (By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2];
-    bcent(i,j,k,2) = (Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1];
+    // Clamped because it is ill-conditioned when the EB area is tiny
+    bcent(i,j,k,0) = amrex::Clamp((Bx + nx*vfrac(i,j,k)) * apnorminv * dx[1] * dx[2],
+                                  -0.5_rt, 0.5_rt);
+    bcent(i,j,k,1) = amrex::Clamp((By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2],
+                                  -0.5_rt, 0.5_rt);
+    bcent(i,j,k,2) = amrex::Clamp((Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1],
+                                  -0.5_rt, 0.5_rt);
 
     Real dx1 = dx[0];
     Real dx2 = dx1*dx1;
@@ -426,7 +431,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lym = 0.0_rt;
             } else  {
                 ++ncuts;
-                Real cut = (intery(i,j,k)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                Real cut = intercept_fraction(intery(i,j,k), problo[1], j, dx[1], dyinv);
                 bcy  += cut;
                 lym = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
                 lym = amrex::min(amrex::max(Real(0.0),lym),Real(1.0));
@@ -439,7 +444,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lyp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (intery(i,j,k+1)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                Real cut = intercept_fraction(intery(i,j,k+1), problo[1], j, dx[1], dyinv);
                 bcy += cut;
                 bcz += 1.0_rt;
                 lyp = (levset(i,j,k+1) < 0.0_rt) ? cut : 1.0_rt-cut;
@@ -453,7 +458,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzm = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interz(i,j,k)-(problo[2]+Real(k)*dx[2]))*dzinv;
+                Real cut = intercept_fraction(interz(i,j,k), problo[2], k, dx[2], dzinv);
                 bcz += cut;
                 lzm = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
                 lzm = amrex::min(amrex::max(Real(0.0),lzm),Real(1.0));
@@ -466,7 +471,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interz(i,j+1,k)-(problo[2]+Real(k)*dx[2]))*dzinv;
+                Real cut = intercept_fraction(interz(i,j+1,k), problo[2], k, dx[2], dzinv);
                 bcy += 1.0_rt;
                 bcz += cut;
                 lzp = (levset(i,j+1,k) < 0.0_rt) ? cut : 1.0_rt-cut;
@@ -535,7 +540,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lxm = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interx(i,j,k)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                Real cut = intercept_fraction(interx(i,j,k), problo[0], i, dx[0], dxinv);
                 bcx += cut;
                 lxm = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
                 lxm = amrex::min(amrex::max(Real(0.0),lxm),Real(1.0));
@@ -548,7 +553,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lxp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interx(i,j,k+1)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                Real cut = intercept_fraction(interx(i,j,k+1), problo[0], i, dx[0], dxinv);
                 bcx += cut;
                 bcz += 1.0_rt;
                 lxp = (levset(i,j,k+1) < 0.0_rt) ? cut : 1.0_rt-cut;
@@ -562,7 +567,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzm = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interz(i,j,k)-(problo[2]+Real(k)*dx[2]))*dzinv;
+                Real cut = intercept_fraction(interz(i,j,k), problo[2], k, dx[2], dzinv);
                 bcz += cut;
                 lzm = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
             }
@@ -574,7 +579,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interz(i+1,j,k)-(problo[2]+Real(k)*dx[2]))*dzinv;
+                Real cut = intercept_fraction(interz(i+1,j,k), problo[2], k, dx[2], dzinv);
                 bcx += 1.0_rt;
                 bcz += cut;
                 lzp = (levset(i+1,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
@@ -643,7 +648,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lxm = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interx(i,j,k)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                Real cut = intercept_fraction(interx(i,j,k), problo[0], i, dx[0], dxinv);
                 bcx += cut;
                 lxm = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
                 lxm = amrex::min(amrex::max(Real(0.0),lxm),Real(1.0));
@@ -656,7 +661,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lxp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (interx(i,j+1,k)-(problo[0]+Real(i)*dx[0]))*dxinv;
+                Real cut = intercept_fraction(interx(i,j+1,k), problo[0], i, dx[0], dxinv);
                 bcx += cut;
                 bcy += 1.0_rt;
                 lxp = (levset(i,j+1,k) < 0.0_rt) ? cut : 1.0_rt-cut;
@@ -670,7 +675,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lym = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (intery(i,j,k)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                Real cut = intercept_fraction(intery(i,j,k), problo[1], j, dx[1], dyinv);
                 bcy += cut;
                 lym = (levset(i,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
             }
@@ -682,7 +687,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lyp = 0.0_rt;
             } else {
                 ++ncuts;
-                Real cut = (intery(i+1,j,k)-(problo[1]+Real(j)*dx[1]))*dyinv;
+                Real cut = intercept_fraction(intery(i+1,j,k), problo[1], j, dx[1], dyinv);
                 bcx += 1.0_rt;
                 bcy += cut;
                 lyp = (levset(i+1,j,k) < 0.0_rt) ? cut : 1.0_rt-cut;
