@@ -12,6 +12,8 @@ USE_CUDA  = FALSE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 
+USE_FFT   = TRUE
+
 BL_NO_FORT = TRUE
 
 TINY_PROFILE = FALSE
@@ -20,7 +22,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 
-Pdirs := Base LinearSolvers
+Pdirs := Base LinearSolvers FFT
 Ppack += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
