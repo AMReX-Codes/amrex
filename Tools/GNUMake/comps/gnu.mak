@@ -33,7 +33,6 @@ COMP_VERSION = $(gcc_version)
 GENERIC_GNU_FLAGS =
 
 ifeq ($(EXPORT_DYNAMIC),TRUE)
-  CPPFLAGS += -DAMREX_EXPORT_DYNAMIC
   LIBRARIES += -ldl
   GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
 endif

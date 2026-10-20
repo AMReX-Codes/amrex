@@ -564,8 +564,6 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BOUND_CHECK            |  Enable bound checking in Array4 class          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_EXPORT_DYNAMIC         |  Enable backtrace on macOS                      | NO (unless Darwin)      | YES, NO               |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastructure       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_NO_SENSEI_AMR_INST     |  Disables the instrumentation in amrex::Amr     | NO                      | YES, NO               |
