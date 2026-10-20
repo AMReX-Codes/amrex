@@ -43,7 +43,8 @@ called, AMReX writes the call stack to a file named ``Backtrace.<rank>``
 MPMD runs). Function names, files and line numbers need debug information,
 e.g., ``-g`` or ``-g1`` (the default in optimized GNU Make builds with GCC
 and Clang), or ``-DCMAKE_BUILD_TYPE=RelWithDebInfo`` in CMake. Looking them
-up can be turned off with ``amrex.call_addr2line=0``.
+up can be turned off with ``amrex.call_addr2line=0``. If several threads fail
+at once, one of them writes the file.
 
 On Linux, AMReX uses ``eu-addr2line``, ``llvm-addr2line`` or ``addr2line``.
 If no line numbers are shown, run ``amrex/Tools/Backtrace/parse_bt.py

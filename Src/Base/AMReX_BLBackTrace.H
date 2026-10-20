@@ -52,10 +52,23 @@ namespace amrex {
 struct BLBackTrace
 {
     /**
-     * \brief Print a backtrace to a Backtrace file and abort.
-     * \param s Signal number, or error code (e.g., from ParallelDescriptor::Abort).
+     * \brief Signal handler that prints a backtrace to a Backtrace file and
+     * aborts.
+     *
+     * Prefer install_signal_handlers (called by amrex::Initialize): with this
+     * function as the signal handler, backtraces on macOS miss the function
+     * that raised the signal.
+     *
+     * \param s Signal number.
      */
     static void handler(int s);
+
+    /**
+     * \brief Print a backtrace to a Backtrace file and abort, for an error that
+     * the program found (e.g., ParallelDescriptor::Abort calls it).
+     * \param errorcode Error code, e.g., SIGABRT from amrex::Abort.
+     */
+    static void handle_error (int errorcode);
 
     /**
      * \brief Install the signal handlers of AMReX for the signals enabled in

@@ -14,6 +14,7 @@
 #include <AMReX_TinyProfiler.H>
 #endif
 
+#include <atomic>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
@@ -23,6 +24,7 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <thread>
 
 #if !(defined(_MSC_VER) && defined(__CUDACC__))
 //MSVC can't pre-processor cfenv with `Zc:preprocessor`
@@ -155,6 +157,20 @@ std::size_t alt_stack_left ()
 }
 #endif
 
+// The thread that handles the first signal, the signal, when it started, its
+// progress, and whether it waits for something that can take long (e.g., a
+// lookup or the asynchronous output), see handle_signal.
+std::atomic<std::thread::id> g_handler_thread{};
+std::atomic<int> g_handler_signal{0};
+std::atomic<double> g_handler_start{0.0};
+std::atomic<int> g_handler_progress{0};
+std::atomic<bool> g_handler_busy{false};
+
+// Whether the output thread got a signal too (1), or the first thread waits
+// for it to finish the asynchronous output (2), and whether that finished.
+std::atomic<int> g_output_thread_state{0};
+std::atomic<bool> g_output_finished{false};
+
 HandledSignal const* find_signal (int s)
 {
     for (auto const& h : g_signals) {
@@ -163,10 +179,147 @@ HandledSignal const* find_signal (int s)
     return nullptr;
 }
 
-void
-handle_signal (int s, void* info, void* uctx)
+#ifndef _WIN32
+void unblock_signal (int s)
 {
-    std::signal(s, SIG_DFL);
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, s);
+    pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
+}
+#endif
+
+// MPI_Abort can hang, e.g., on a lock that a stuck thread holds, so SIGALRM
+// ends this process if it does not end in time.
+void limit_mpi_abort ()
+{
+#if defined(AMREX_USE_MPI) && !defined(_WIN32)
+    std::signal(SIGALRM, SIG_DFL);
+    unblock_signal(SIGALRM);
+    alarm(60);
+#endif
+}
+
+#ifndef _WIN32
+// The stream buffer of std::cerr that writes to stderr
+std::streambuf* const g_cerr_buf = std::cerr.rdbuf();
+#endif
+
+// Prints msg to the error stream, with write if it writes to stderr, without
+// the lock of std::cerr, which a waiting thread could hold.
+void print_error (std::string const& msg)
+{
+#ifndef _WIN32
+    if (&amrex::ErrorStream() == &std::cerr && std::cerr.rdbuf() == g_cerr_buf) {
+        auto r = write(STDERR_FILENO, msg.data(), msg.size());
+        amrex::ignore_unused(r);
+        return;
+    }
+#endif
+    amrex::ErrorStream() << msg << std::flush;
+}
+
+// Ends the process: in an MPI job, with MPI_Abort, so that the other
+// processes end too, else with the default action of signal s, or with _Exit
+// if s is not a signal (e.g., an error code from ParallelDescriptor::Abort).
+[[noreturn]] void end_process (int s, bool from_signal)
+{
+#ifdef AMREX_USE_MPI
+    if (ParallelDescriptor::NProcs() > 1) {
+        limit_mpi_abort();
+        ParallelDescriptor::Abort(s, false);
+    }
+#endif
+    if (from_signal) {
+        std::signal(s, SIG_DFL);
+#ifndef _WIN32
+        unblock_signal(s); // e.g., SIGABRT
+#endif
+        std::raise(s);
+    }
+    std::_Exit(EXIT_FAILURE);
+}
+
+// noexcept: an exception must not leave this handler, which would then stay
+// owned by this thread while the program goes on.
+void
+handle_signal (int s, void* info, void* uctx, bool from_signal) noexcept
+{
+    // The first thread that gets here writes the Backtrace file and ends the
+    // process. Other threads that get a signal meanwhile (e.g., faulting in
+    // the same OpenMP loop) wait for that, because resetting the signal to
+    // SIG_DFL here would let them end the process before the file is
+    // written. They stop waiting if the first thread makes no progress for
+    // a minute (ten while it waits for something that can take long), because
+    // it could need something that they hold, e.g., a lock.
+    const auto me = std::this_thread::get_id();
+    std::thread::id none{};
+    if (!g_handler_thread.compare_exchange_strong(none, me)) {
+        if (from_signal && (s == SIGINT || s == SIGTERM)) {
+            // The same signal shortly after the first one is likely the same
+            // request delivered twice (e.g., by the terminal and by mpirun):
+            // the first thread goes on if it got it, other threads wait as for
+            // other signals. Another one ends the process, e.g., because this
+            // handler is stuck. The first thread stores its signal and start
+            // right after it gets here, unless this signal interrupted it
+            // (then it is not the same signal, which is blocked until then).
+            double start = g_handler_start;
+            for (int i = 0; i < 1000 && start == 0.0 && none != me; ++i) {
+                amrex::Sleep(0.001);
+                start = g_handler_start;
+            }
+            const bool same_request = (start == 0.0) ? (none != me)
+                : (s == g_handler_signal && amrex::second() - start < 1.0);
+            if (!same_request) { end_process(s, from_signal); }
+            // The output thread goes on too, with the asynchronous output.
+            if (none == me || AsyncOut::OnOutputThread()) { return; }
+        }
+        if (none != me) {
+            // If this is the output thread and the first thread waits for it
+            // to finish the asynchronous output, which it cannot now, end the
+            // process: the Backtrace file has been written.
+            int state = 0;
+            if (AsyncOut::OnOutputThread() &&
+                !g_output_thread_state.compare_exchange_strong(state, 1)) {
+                end_process(s, from_signal);
+            }
+            int progress = g_handler_progress;
+            for (int idle = 0; idle < (g_handler_busy ? 600 : 60); ++idle) {
+                amrex::Sleep(1.0);
+                if (progress != g_handler_progress) {
+                    progress = g_handler_progress;
+                    idle = 0;
+                }
+            }
+        }
+        end_process(s, from_signal);
+    }
+    g_handler_signal = from_signal ? s : 0;
+    g_handler_start = amrex::second();
+
+#ifndef _WIN32
+    // Make sure that the fault signals and the handled signals are not
+    // blocked, so that one that arrives because this handler is stuck or
+    // faults ends the process. abort() on macOS blocks them before it raises
+    // SIGABRT, and macOS retries a blocked faulting signal forever.
+    {
+        sigset_t set;
+        sigemptyset(&set);
+        for (auto const& h : g_signals) {
+            if (h.prev.saved || (h.sig != SIGINT && h.sig != SIGTERM && h.sig != SIGABRT)) {
+                sigaddset(&set, h.sig);
+            }
+        }
+        pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
+    }
+#endif
+
+    // Error codes from ParallelDescriptor::Abort are no signals, except for
+    // SIGABRT, which amrex::Abort passes.
+    HandledSignal const* h = find_signal(s);
+    if (h != nullptr && (from_signal || s == SIGABRT)) {
+        print_error(std::string(h->message) + '\n');
+    }
 
 #ifndef _WIN32
     // Writing the Backtrace file could overflow a small alternate stack. It
@@ -177,16 +330,10 @@ handle_signal (int s, void* info, void* uctx)
     constexpr std::size_t stack_needed = std::size_t(1) << 16;
 #endif
     if (alt_stack_left() < stack_needed) {
-        std::raise(s); // with the default action once this handler returns
-        return;
+        print_error("No Backtrace file: too little stack left\n");
+        end_process(s, from_signal);
     }
 #endif
-
-    AsyncOut::Finalize();
-
-    if (HandledSignal const* h = find_signal(s)) {
-        amrex::ErrorStream() << h->message << '\n';
-    }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
 
@@ -215,7 +362,7 @@ handle_signal (int s, void* info, void* uctx)
         fclose(p);
     }
 
-    amrex::ErrorStream() << "See " << errfilename << " file for details" << '\n';
+    print_error("See " + errfilename + " file for details\n");
 
     if (!bt_stack.empty()) {
         std::ofstream errfile;
@@ -251,18 +398,43 @@ handle_signal (int s, void* info, void* uctx)
     amrex::ignore_unused(info, uctx);
 #endif
 
+    // Let pending asynchronous output finish, unless the output thread got a
+    // signal too. This comes after writing the Backtrace file, because it
+    // can take long or hang (e.g., waiting for a process that failed), so
+    // it runs on another thread, which this one waits for at most ten
+    // minutes. Meanwhile, it makes progress for waiting threads.
+    int state = 0;
+    if (AsyncOut::UseAsyncOut() && !AsyncOut::OnOutputThread() &&
+        g_output_thread_state.compare_exchange_strong(state, 2))
+    {
+        try {
+            std::thread([] { AsyncOut::Finalize(); g_output_finished = true; }).detach();
+            const double start = amrex::second();
+            while (!g_output_finished && amrex::second() - start < 600.0) {
+                amrex::Sleep(0.1);
+                ++g_handler_progress;
+            }
+        } catch (...) {
+            g_handler_busy = true;
+            AsyncOut::Finalize();
+            g_handler_busy = false;
+        }
+        ++g_handler_progress;
+    }
+
+    limit_mpi_abort();
     ParallelDescriptor::Abort(s, false);
 }
 
 #ifdef _WIN32
 void signal_handler (int s)
 {
-    handle_signal(s, nullptr, nullptr);
+    handle_signal(s, nullptr, nullptr, true);
 }
 #else
 void signal_handler (int s, siginfo_t* info, void* uctx)
 {
-    handle_signal(s, info, uctx);
+    handle_signal(s, info, uctx, true);
 }
 #endif
 }
@@ -270,7 +442,13 @@ void signal_handler (int s, siginfo_t* info, void* uctx)
 void
 BLBackTrace::handler (int s)
 {
-    handle_signal(s, nullptr, nullptr);
+    handle_signal(s, nullptr, nullptr, find_signal(s) != nullptr);
+}
+
+void
+BLBackTrace::handle_error (int errorcode)
+{
+    handle_signal(errorcode, nullptr, nullptr, false);
 }
 
 void
@@ -344,7 +522,12 @@ BLBackTrace::install_signal_handlers (bool install)
             sa.sa_flags |= SA_ONSTACK;
         }
 #endif
+        // Until handle_signal unblocks them, a SIGINT or SIGTERM handled by
+        // AMReX that arrives while it starts waits, so that it does not take
+        // over.
         sigemptyset(&sa.sa_mask);
+        if (amrex::system::handle_sigint) { sigaddset(&sa.sa_mask, SIGINT); }
+        if (amrex::system::handle_sigterm) { sigaddset(&sa.sa_mask, SIGTERM); }
         h.prev.saved = (sigaction(h.sig, &sa, &h.prev.action) == 0);
 #endif
         if (h.sig == SIGABRT && h.prev.saved && amrex::system::handle_crt_reports) {
@@ -403,14 +586,24 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
 namespace {
     std::string run_command (std::string const& cmd)
     {
+        // In the signal handler, tell waiting threads that the command can
+        // take long and how it progresses.
+        const bool in_handler = (g_handler_thread == std::this_thread::get_id());
         std::string r;
         if (FILE * ps = popen(cmd.c_str(), "r")) {
+            if (in_handler) {
+                ++g_handler_progress;
+                g_handler_busy = true;
+            }
             char print_buff[512];
             while (fgets(print_buff, sizeof(print_buff), ps)) {
                 r += print_buff;
+                if (in_handler) { ++g_handler_progress; }
             }
             pclose(ps);
+            if (in_handler) { g_handler_busy = false; }
         }
+        if (in_handler) { ++g_handler_progress; }
         return r;
     }
 

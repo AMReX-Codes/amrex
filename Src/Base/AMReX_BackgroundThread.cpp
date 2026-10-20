@@ -1,5 +1,10 @@
 #include <AMReX_BackgroundThread.H>
 
+#ifndef _WIN32
+#include <csignal>
+#include <pthread.h>
+#endif
+
 namespace amrex {
 
 BackgroundThread::BackgroundThread ()
@@ -16,8 +21,23 @@ BackgroundThread::~BackgroundThread ()
     }
 }
 
+std::thread::id BackgroundThread::ThreadId () const
+{
+    return m_thread ? m_thread->get_id() : std::thread::id{};
+}
+
 void BackgroundThread::do_job ()
 {
+#ifndef _WIN32
+    // SIGINT and SIGTERM go to other threads, so that the signal handler of
+    // AMReX can let the queued jobs finish here.
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &set, nullptr);
+#endif
+
     while (true)
     {
         std::unique_lock<std::mutex> lck(m_mutx);
