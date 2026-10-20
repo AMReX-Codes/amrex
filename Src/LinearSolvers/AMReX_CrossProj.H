@@ -28,7 +28,8 @@ namespace amrex::GMG
  * Same projection and interface as FFT::CrossProj. The divergence at each
  * node is computed from the 4 (2D) or 8 (3D) cells surrounding it.
  * Currently only all-periodic boundaries are supported, with an even number
- * (at least 4) of cells in each direction and even box lengths. The first
+ * (at least 4) of cells in each direction starting at index 0, and even box
+ * lengths. The first
  * AMREX_SPACEDIM components of the MFs are the velocity.
  */
 class CrossProj

@@ -603,11 +603,13 @@ void bottom_solve (CrossProj::Level& L)
         }}}
         return sym;
     };
+    // The null modes cancel only to the roundoff of the Real stencil.
     auto invert = [] (Vector<Real>& v, Real scale) {
+        constexpr Real tol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-10);
         Real smax = Real(0.0);
         for (auto x : v) { smax = std::max(smax, std::abs(x)); }
         for (auto& x : v) {
-            x = (std::abs(x) > Real(1.e-10)*smax) ? scale/x : Real(0.0);
+            x = (std::abs(x) > tol*smax) ? scale/x : Real(0.0);
         }
     };
 
@@ -1070,8 +1072,8 @@ CrossProj::CrossProj (Geometry const& geom)
     for (int e = 0; e < AMREX_SPACEDIM; ++e) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(geom.Domain().length(e) % 2 == 0 &&
                                          geom.Domain().length(e) >= 4 &&
-                                         geom.Domain().smallEnd(e) % 2 == 0,
-            "GMG::CrossProj: the domain needs an even number (>= 4) of cells starting at an even index");
+                                         geom.Domain().smallEnd(e) == 0,
+            "GMG::CrossProj: the domain needs an even number (>= 4) of cells starting at index 0");
     }
 }
 
