@@ -4,6 +4,9 @@
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParReduce.H>
+#ifdef AMREX_USE_FFT
+#include <AMReX_FFT_LocalR2C.H>
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -57,10 +60,19 @@ struct CrossProj::Level
     Gpu::DeviceVector<Real> tcp, tdi; // Thomas factors of the line solver by position
     Gpu::DeviceVector<int> lines;     // GPU line solver: (box, i, j, k) of every line's first node
     MultiFab x, x2, b, r, y, talign;
-    // bottom level: inverse symbol, DFT tables and host work space
-    Vector<Real> binv, bg, bre, bim;
+    // bottom level: gathered data on the device, inverse symbol (including
+    // the normalization) and the transform
+    bool binit = false;
     Gpu::DeviceVector<Real> bdev;
-    Array<Vector<Real>,3> bcos, bsin;
+    Vector<Real> bg;
+#ifdef AMREX_USE_FFT
+    std::unique_ptr<FFT::LocalR2C<Real>> bfft; // real-to-complex, half spectrum along x
+    Gpu::DeviceVector<GpuComplex<Real>> bspec;
+    Gpu::DeviceVector<Real> binv;
+#else
+    Array<Vector<Real>,3> bcos, bsin;           // naive DFT tables
+    Vector<Real> bre, bim, binv;
+#endif
     Real lmax = Real(0.0); // Chebyshev upper bound
 };
 
@@ -556,10 +568,13 @@ void set_thomas (CrossProj::Level& L)
     Gpu::streamSynchronize();
 }
 
-// Exact solve of the bottom level, A x = b: the right-hand side is gathered
-// on every rank (the bottom is small), transformed by DFT in every direction,
-// divided by the stencil symbol (zero for the null modes) and transformed
-// back; each rank keeps its boxes.
+// Exact solve of the bottom level, A x = b, with the periodic constant
+// stencil: transform the right-hand side, divide by the stencil symbol
+// (zero for the null modes), transform back. With AMReX FFT the transform
+// is FFT::LocalR2C on the device; otherwise a naive DFT on the host. The
+// bottom is one box on one rank (no communication), except when the top
+// level itself is the bottom: then the right-hand side is gathered by an
+// allreduce and every rank solves.
 void bottom_solve (CrossProj::Level& L)
 {
     BL_PROFILE("GMG::CrossProj::bottom");
@@ -569,9 +584,49 @@ void bottom_solve (CrossProj::Level& L)
     int const nx = nn[0], ny = nn[1], nz = nn[2];
     Long const N = Long(nx)*ny*nz;
     int const nc = L.ncomp;
-    auto idx = [=] (int i, int j, int k) { return (Long(k)*ny + j)*nx + i; };
+    bool const local = (L.cba.size() == 1);
+    if (local && L.b.local_size() == 0) { return; }
 
-    if (L.binv.empty()) {
+    // The stencil symbol at mode (i,j,k), in double so that the null modes
+    // cancel to roundoff in single precision too.
+    auto symbol = [&] (int i, int j, int k) {
+        double sym = 0.0;
+        for (int c = -kz; c <= kz; ++c) {
+        for (int b = -1; b <= 1; ++b) {
+        for (int a = -1; a <= 1; ++a) {
+            double const arg = 2.0*amrex::Math::pi<double>()
+                * (double(a*i)/nx + double(b*j)/ny + double(c*k)/nz);
+            sym += double(L.sten[(c+1)*9+(b+1)*3+(a+1)]) * std::cos(arg);
+        }}}
+        return sym;
+    };
+    auto invert = [] (Vector<Real>& v, Real scale) {
+        Real smax = Real(0.0);
+        for (auto x : v) { smax = std::max(smax, std::abs(x)); }
+        for (auto& x : v) {
+            x = (std::abs(x) > Real(1.e-10)*smax) ? scale/x : Real(0.0);
+        }
+    };
+
+    if (!L.binit) {
+        L.binit = true;
+        L.bdev.resize(N*nc);
+        L.bg.resize(N*nc);
+        Vector<Real> hinv;
+#ifdef AMREX_USE_FFT
+        L.bfft = std::make_unique<FFT::LocalR2C<Real>>(L.domain.length());
+        IntVect const ss = L.bfft->spectralSize();
+        int const sx = ss[0];
+        Long const NS = Long(sx)*ny*nz;
+        hinv.resize(NS);
+        for (int k = 0; k < nz; ++k) {
+        for (int j = 0; j < ny; ++j) {
+        for (int i = 0; i < sx; ++i) {
+            hinv[(Long(k)*ny + j)*sx + i] = Real(symbol(i,j,k));
+        }}}
+        invert(hinv, L.bfft->scalingFactor());
+        L.bspec.resize(NS);
+#else
         for (int d = 0; d < 3; ++d) {
             int const n = nn[d];
             L.bcos[d].resize(Long(n)*n);
@@ -583,38 +638,26 @@ void bottom_solve (CrossProj::Level& L)
                 L.bsin[d][Long(kk)*n+m] = Real(std::sin(arg));
             }}
         }
-        L.binv.resize(N);
-        Real smax = Real(0.0);
+        hinv.resize(N);
         for (int k = 0; k < nz; ++k) {
         for (int j = 0; j < ny; ++j) {
         for (int i = 0; i < nx; ++i) {
-            double sym = 0.0;
-            for (int c = -kz; c <= kz; ++c) {
-            for (int b = -1; b <= 1; ++b) {
-            for (int a = -1; a <= 1; ++a) {
-                double const arg = 2.0*amrex::Math::pi<double>()
-                    * (double(a*i)/nx + double(b*j)/ny + double(c*k)/nz);
-                sym += double(L.sten[(c+1)*9+(b+1)*3+(a+1)]) * std::cos(arg);
-            }}}
-            L.binv[idx(i,j,k)] = Real(sym);
-            smax = std::max(smax, std::abs(Real(sym)));
+            hinv[(Long(k)*ny + j)*nx + i] = Real(symbol(i,j,k));
         }}}
-        for (auto& v : L.binv) {
-            v = (std::abs(v) > Real(1.e-10)*smax) ? Real(1.0)/v : Real(0.0);
-        }
-        L.bg.resize(N*nc);
+        invert(hinv, Real(1.0)); // the inverse DFT below normalizes
         L.bre.resize(N);
         L.bim.resize(N);
+        L.binv = hinv;
+#endif
+#ifdef AMREX_USE_FFT
+        L.binv.resize(hinv.size());
+        Gpu::copy(Gpu::hostToDevice, hinv.begin(), hinv.end(), L.binv.begin());
+        Gpu::streamSynchronize();
+#endif
     }
 
-    // One box: only its rank works, without communication. Otherwise every
-    // rank gathers the right-hand side by an allreduce and solves it.
-    bool const local = (L.cba.size() == 1);
-    if (local && L.b.local_size() == 0) { return; }
-
-    // gather the right-hand side: device kernel into a global array, one copy
+    // gather the right-hand side into the global array on the device
     int const dlo0 = dlo[0], dlo1 = dlo[1], dlo2 = (AMREX_SPACEDIM == 3) ? dlo[AMREX_SPACEDIM-1] : 0;
-    L.bdev.resize(N*nc);
     Real* const pd = L.bdev.data();
     {
         Gpu::fillAsync(L.bdev.begin(), L.bdev.end(), [=] AMREX_GPU_DEVICE (Real& v, Long) noexcept { v = Real(0.0); });
@@ -623,10 +666,26 @@ void bottom_solve (CrossProj::Level& L)
         {
             pd[n*N + (Long(k-dlo2)*ny + (j-dlo1))*nx + (i-dlo0)] = ba[bno](i,j,k,n);
         });
-        Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
     }
-    if (!local) { ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc)); }
+    if (!local) {
+        Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
+        ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc));
+        Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
+    }
 
+#ifdef AMREX_USE_FFT
+    {
+        Real const* const pinv = L.binv.data();
+        GpuComplex<Real>* const ps = L.bspec.data();
+        Long const NS = Long(L.bspec.size());
+        for (int n = 0; n < nc; ++n) {
+            L.bfft->forward(pd + n*N, ps);
+            ParallelFor(NS, [=] AMREX_GPU_DEVICE (Long m) noexcept { ps[m] *= pinv[m]; });
+            L.bfft->backward(ps, pd + n*N);
+        }
+    }
+#else
+    Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
     // DFT along direction d of (re, im), in place; inverse divides by n
     auto dft = [&] (int d, bool inverse) {
         int const n = nn[d];
@@ -662,19 +721,20 @@ void bottom_solve (CrossProj::Level& L)
             }
         }
     };
-
+    Real const* const hinv = L.binv.data();
     for (int n = 0; n < nc; ++n) {
         std::copy(L.bg.begin() + n*N, L.bg.begin() + (n+1)*N, L.bre.begin());
         std::fill(L.bim.begin(), L.bim.end(), Real(0.0));
         for (int d = 0; d < 3; ++d) { dft(d, false); }
-        for (Long m = 0; m < N; ++m) { L.bre[m] *= L.binv[m]; L.bim[m] *= L.binv[m]; }
+        for (Long m = 0; m < N; ++m) { L.bre[m] *= hinv[m]; L.bim[m] *= hinv[m]; }
         for (int d = 0; d < 3; ++d) { dft(d, true); }
         std::copy(L.bre.begin(), L.bre.end(), L.bg.begin() + n*N);
     }
+    Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
+#endif
 
     // scatter the solution into x
     {
-        Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
         Real const* const ps = L.bdev.data();
         auto const& xa = L.x.arrays();
         ParallelFor(L.x, IntVect(0), nc, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
