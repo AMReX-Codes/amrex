@@ -19,6 +19,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        target_sources(amrex_${D}d
           PRIVATE
           AMReX_FFT_Stokes.H
+          AMReX_FFT_CrossProj.H
           )
     endif()
 
