@@ -1907,23 +1907,19 @@ Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int n
     using T = typename FAB::value_type;
     auto sm = T(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = x.const_arrays();
-        auto const& yma = y.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
-        {
-            auto t = T(0.0);
-            auto const& xfab = xma[box_no];
-            auto const& yfab = yma[box_no];
-            for (int n = 0; n < ncomp; ++n) {
-                t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-            }
-            return t;
-        });
-    } else
+    if (Gpu::inLaunchRegion())
 #endif
     {
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
+        {
+            return xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n);
+        });
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -1938,6 +1934,7 @@ Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int n
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -1966,22 +1963,19 @@ Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool l
     using T = typename FAB::value_type;
     auto sm = T(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = x.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
-        {
-            auto t = T(0.0);
-            auto const& xfab = xma[box_no];
-            for (int n = 0; n < ncomp; ++n) {
-                auto v = xfab(i,j,k,xcomp+n);
-                t += v*v;
-            }
-            return t;
-        });
-    } else
+    if (Gpu::inLaunchRegion())
 #endif
     {
+        auto const& xma = x.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
+        {
+            auto v = xma[box_no](i,j,k,xcomp+n);
+            return v*v;
+        });
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -1996,6 +1990,7 @@ Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool l
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -2039,27 +2034,21 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp,
     using T = typename FAB::value_type;
     auto sm = T(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& mma = mask.const_arrays();
         auto const& xma = x.const_arrays();
         auto const& yma = y.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
         {
-            auto t = T(0.0);
             auto m = T(mma[box_no](i,j,k));
-            if (m != 0) {
-                auto const& xfab = xma[box_no];
-                auto const& yfab = yma[box_no];
-                for (int n = 0; n < ncomp; ++n) {
-                    t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-                }
-            }
-            return t*m;
+            return (m != 0) ? m * xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n) : T(0.0);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -2076,6 +2065,7 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp,
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -2112,26 +2102,21 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
     using T = typename FAB::value_type;
     auto sm = T(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& mma = mask.const_arrays();
-        auto const& xma = x.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
-        {
-            auto t = T(0.0);
-            auto m = T(mma[box_no](i,j,k));
-            if (m != 0) {
-                auto const& xfab = xma[box_no];
-                for (int n = 0; n < ncomp; ++n) {
-                    auto v = xfab(i,j,k,xcomp+n);
-                    t += v*v;
-                }
-            }
-            return t*m;
-        });
-    } else
+    if (Gpu::inLaunchRegion())
 #endif
     {
+        auto const& mma = mask.const_arrays();
+        auto const& xma = x.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
+        {
+            auto m = T(mma[box_no](i,j,k));
+            auto v = xma[box_no](i,j,k,xcomp+n);
+            return (m != 0) ? m*v*v : T(0.0);
+        });
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -2148,6 +2133,7 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());

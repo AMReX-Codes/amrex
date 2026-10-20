@@ -50,21 +50,19 @@ MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = x.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            auto const& xfab = xma[box_no];
-            for (int n = 0; n < numcomp; ++n) {
-                t += xfab(i,j,k,xcomp+n) * xfab(i,j,k,xcomp+n);
-            }
-            return t;
-        });
-    } else
+    if (Gpu::inLaunchRegion())
 #endif
     {
+        auto const& xma = x.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost), numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
+        {
+            Real const v = xma[box_no](i,j,k,xcomp+n);
+            return v*v;
+        });
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -78,6 +76,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -102,26 +101,21 @@ MultiFab::Dot (const iMultiFab& mask,
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& xma = x.const_arrays();
         auto const& yma = y.const_arrays();
         auto const& mma = mask.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost), numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
         {
-            Real t = Real(0.0);
-            if (mma[box_no](i,j,k)) {
-                auto const& xfab = xma[box_no];
-                auto const& yfab = yma[box_no];
-                for (int n = 0; n < numcomp; ++n) {
-                    t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-                }
-            }
-            return t;
+            return mma[box_no](i,j,k) ? xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n)
+                                      : Real(0.0);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -139,6 +133,7 @@ MultiFab::Dot (const iMultiFab& mask,
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -570,16 +565,18 @@ MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) con
 
     bool r = false;
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
         {
             return !amrex::isfinite(ma[box_no](i,j,k,n+scomp));
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(||:r)
 #endif
@@ -593,6 +590,7 @@ MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) con
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
@@ -625,16 +623,18 @@ MultiFab::contains_nan (int scomp, int ncomp, const IntVect& ngrow, bool local) 
 
     bool r = false;
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
         {
             return amrex::isnan(ma[box_no](i,j,k,n+scomp));
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(||:r)
 #endif
@@ -648,6 +648,7 @@ MultiFab::contains_nan (int scomp, int ncomp, const IntVect& ngrow, bool local) 
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
@@ -674,16 +675,18 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
 
     bool r = false;
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
         {
             return amrex::isinf(ma[box_no](i,j,k,n+scomp));
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(||:r)
 #endif
@@ -697,6 +700,7 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
@@ -732,7 +736,9 @@ MultiFab::min (int comp, int nghost, bool local) const
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& flagsma = flags.const_arrays();
             auto const& ma = this->const_arrays();
             mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<Real>{}, *this, IntVect(nghost),
@@ -744,9 +750,9 @@ MultiFab::min (int comp, int nghost, bool local) const
                     return ma[box_no](i,j,k,comp);
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:mn)
 #endif
@@ -764,21 +770,24 @@ MultiFab::min (int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
     else
 #endif
     {
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& ma = this->const_arrays();
             mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
             {
                 return ma[box_no](i,j,k,comp);
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:mn)
 #endif
@@ -791,6 +800,7 @@ MultiFab::min (int comp, int nghost, bool local) const
                 });
             }
         }
+#endif
     }
 
     if (!local) {
@@ -815,7 +825,9 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& flagsma = flags.const_arrays();
             auto const& ma = this->const_arrays();
             mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<Real>{}, *this, IntVect(nghost),
@@ -827,9 +839,9 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
                     return AMREX_REAL_MAX;
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:mn)
 #endif
@@ -847,12 +859,15 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
     else
 #endif
     {
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& ma = this->const_arrays();
             mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
@@ -863,9 +878,9 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
                     return AMREX_REAL_MAX;
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:mn)
 #endif
@@ -880,6 +895,7 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
 
     if (!local) {
@@ -904,7 +920,9 @@ MultiFab::max (int comp, int nghost, bool local) const
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& flagsma = flags.const_arrays();
             auto const& ma = this->const_arrays();
             mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
@@ -916,9 +934,9 @@ MultiFab::max (int comp, int nghost, bool local) const
                     return ma[box_no](i,j,k,comp);
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mx)
 #endif
@@ -936,21 +954,24 @@ MultiFab::max (int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
     else
 #endif
     {
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& ma = this->const_arrays();
             mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
             {
                 return ma[box_no](i,j,k,comp);
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mx)
 #endif
@@ -963,6 +984,7 @@ MultiFab::max (int comp, int nghost, bool local) const
                 });
             }
         }
+#endif
     }
 
     if (!local) {
@@ -985,7 +1007,9 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& flagsma = flags.const_arrays();
             auto const& ma = this->const_arrays();
             mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
@@ -997,9 +1021,9 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
                     return AMREX_REAL_LOWEST;
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mx)
 #endif
@@ -1017,12 +1041,15 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
     else
 #endif
     {
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& ma = this->const_arrays();
             mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
@@ -1033,9 +1060,9 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
                     return AMREX_REAL_LOWEST;
                 }
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mx)
 #endif
@@ -1050,6 +1077,7 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
                 }
             }
         }
+#endif
     }
 
     if (!local) {
@@ -1173,7 +1201,9 @@ MultiFab::norm2 (int comp, const Periodicity& period) const
     auto mask = OverlapMask(period);
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         auto const& maskma = mask->const_arrays();
         nm2 = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this,
@@ -1182,9 +1212,9 @@ MultiFab::norm2 (int comp, const Periodicity& period) const
             Real tmp = ma[box_no](i,j,k,comp);
             return tmp*tmp/maskma[box_no](i,j,k);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:nm2)
 #endif
@@ -1200,6 +1230,7 @@ MultiFab::norm2 (int comp, const Periodicity& period) const
             });
         }
     }
+#endif
 
     ParallelAllReduce::Sum(nm2, ParallelContext::CommunicatorSub());
     return std::sqrt(nm2);
@@ -1251,16 +1282,18 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = Real(0.0);
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         nm1 = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(ngrow),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             return std::abs(ma[box_no](i,j,k,comp));
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nm1)
 #endif
@@ -1273,6 +1306,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(nm1, ParallelContext::CommunicatorSub());
@@ -1315,16 +1349,18 @@ MultiFab::sum (Box const& region, int comp, bool local) const
     auto sm = 0.0_rt;
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             return (region.contains(i,j,k)) ? ma[box_no](i,j,k,comp) : 0.0_rt;
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -1341,6 +1377,7 @@ MultiFab::sum (Box const& region, int comp, bool local) const
             }
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -1366,7 +1403,9 @@ MultiFab::sum_unique (int comp,
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         auto const& msk = owner_mask->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
@@ -1375,9 +1414,9 @@ MultiFab::sum_unique (int comp,
         {
             return msk[box_no](i,j,k) ? ma[box_no](i,j,k,comp) : 0.0_rt;
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -1394,6 +1433,7 @@ MultiFab::sum_unique (int comp,
             sm += tmp; // Do it this way so that it does not break regression tests.
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -1417,7 +1457,9 @@ MultiFab::sum_unique (Box const& region, int comp, bool local) const
 
     auto sm = 0.0_rt;
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         auto const& msk = owner_mask->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
@@ -1427,9 +1469,9 @@ MultiFab::sum_unique (Box const& region, int comp, bool local) const
             return (region.contains(i,j,k) && msk[box_no](i,j,k))
                 ? ma[box_no](i,j,k,comp) : 0.0_rt;
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -1448,6 +1490,7 @@ MultiFab::sum_unique (Box const& region, int comp, bool local) const
             }
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
