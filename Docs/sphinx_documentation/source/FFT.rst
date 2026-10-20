@@ -317,8 +317,8 @@ it.
     proj.solve(vel_proj, vel); // vel_proj and vel can be the same MultiFab
 
 Similar to the other FFT classes, the object should be cached for reuse.
-A multigrid solver with the same interface, :cpp:`GMG::CrossProj`, is
-described in section :ref:`sec:linearsolver:crossproj`.
+In 2D, a multigrid solver with the same interface, :cpp:`GMG::CrossProj`,
+is described in section :ref:`sec:linearsolver:crossproj`.
 
 .. _sec:FFT:rawptr:
 

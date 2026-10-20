@@ -2,7 +2,7 @@ AMREX_HOME = ../../..
 
 DEBUG	= FALSE
 
-DIM	= 3
+DIM	= 2
 
 COMP    = gcc
 

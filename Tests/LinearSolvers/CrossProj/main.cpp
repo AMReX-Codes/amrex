@@ -12,32 +12,26 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main");
 
-        AMREX_D_TERM(int n_cell_x = 64;,
-                     int n_cell_y = 64;,
-                     int n_cell_z = 32);
+        int n_cell_x = 64;
+        int n_cell_y = 64;
         int max_grid_size = 16;
         int max_grid_size_2 = 32; // second layout for the layout check
-        Real prob_hi_y = 1.0;
-        Real prob_hi_z = 0.5;     // square cells by default
+        Real prob_hi_y = 1.0;     // square cells by default
         int verbose = 0;
         {
             ParmParse pp;
-            AMREX_D_TERM(pp.query("n_cell_x", n_cell_x);,
-                         pp.query("n_cell_y", n_cell_y);,
-                         pp.query("n_cell_z", n_cell_z));
+            pp.query("n_cell_x", n_cell_x);
+            pp.query("n_cell_y", n_cell_y);
             pp.query("max_grid_size", max_grid_size);
             pp.query("max_grid_size_2", max_grid_size_2);
             pp.query("prob_hi_y", prob_hi_y);
-            pp.query("prob_hi_z", prob_hi_z);
             pp.query("verbose", verbose);
         }
 
-        Box domain(IntVect(0), IntVect(AMREX_D_DECL(n_cell_x-1, n_cell_y-1, n_cell_z-1)));
-        Geometry geom(domain, RealBox(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,prob_hi_y,prob_hi_z)),
-                      CoordSys::cartesian, {AMREX_D_DECL(1,1,1)});
+        Box domain(IntVect(0), IntVect(n_cell_x-1, n_cell_y-1));
+        Geometry geom(domain, RealBox({0.,0.}, {1.,prob_hi_y}), CoordSys::cartesian, {1,1});
         auto const& dx = geom.CellSizeArray();
-        GpuArray<Real,AMREX_SPACEDIM> const plen{AMREX_D_DECL(geom.ProbLength(0), geom.ProbLength(1),
-                                                              geom.ProbLength(2))};
+        GpuArray<Real,AMREX_SPACEDIM> const plen{geom.ProbLength(0), geom.ProbLength(1)};
 
         BoxArray ba(domain);
         ba.maxSize(max_grid_size);
@@ -48,41 +42,23 @@ int main (int argc, char* argv[])
         ParallelFor(vel, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
             constexpr Real tpi = Real(2.)*Math::pi<Real>();
-            AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] / plen[0] - 0.5_rt;,
-                         Real y = (j+0.5_rt) * dx[1] / plen[1] - 0.5_rt;,
-                         Real z = (k+0.5_rt) * dx[2] / plen[2] - 0.5_rt);
+            Real x = (i+0.5_rt) * dx[0] / plen[0] - 0.5_rt;
+            Real y = (j+0.5_rt) * dx[1] / plen[1] - 0.5_rt;
             // Plus a checkerboard, which the cross stencil barely sees.
             Real const chk = ((i+j) % 2 == 0) ? 0.1_rt : -0.1_rt;
-#if (AMREX_SPACEDIM == 2)
             u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y) + chk;
             u[b](i,j,k,1) = std::cos(tpi*x+0.2_rt) + std::cos(tpi*y+0.7_rt);
-#else
-            u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y) + std::cos(tpi*z+0.3_rt) + chk;
-            u[b](i,j,k,1) = std::cos(tpi*x+0.2_rt) + std::cos(tpi*y+0.7_rt) + std::sin(tpi*z);
-            u[b](i,j,k,2) = std::sin(tpi*x+0.4_rt) + std::cos(tpi*y+0.1_rt) + std::cos(tpi*z+0.5_rt);
-#endif
         });
         vel.FillBoundary(geom.periodicity());
 
-        // Node-centered cross-stencil divergence at (i+1/2,j+1/2,k+1/2)
+        // Node-centered cross-stencil divergence at (i+1/2,j+1/2)
         auto nodediv = [=] AMREX_GPU_DEVICE (Array4<Real const> const& v,
                                              int i, int j, int k) -> Real
         {
-#if (AMREX_SPACEDIM == 2)
             return (v(i+1,j+1,k,0) + v(i+1,j,k,0) - v(i,j+1,k,0) - v(i,j,k,0))
                 * (0.5_rt/dx[0])
                 +  (v(i+1,j+1,k,1) + v(i,j+1,k,1) - v(i+1,j,k,1) - v(i,j,k,1))
                 * (0.5_rt/dx[1]);
-#else
-            Real dvx = 0, dvy = 0, dvz = 0;
-            for (int s = 0; s <= 1; ++s) {
-            for (int t = 0; t <= 1; ++t) {
-                dvx += v(i+1,j+s,k+t,0) - v(i,j+s,k+t,0);
-                dvy += v(i+s,j+1,k+t,1) - v(i+s,j,k+t,1);
-                dvz += v(i+s,j+t,k+1,2) - v(i+s,j+t,k,2);
-            }}
-            return dvx*(0.25_rt/dx[0]) + dvy*(0.25_rt/dx[1]) + dvz*(0.25_rt/dx[2]);
-#endif
         };
 
         GMG::CrossProj crossproj(geom);

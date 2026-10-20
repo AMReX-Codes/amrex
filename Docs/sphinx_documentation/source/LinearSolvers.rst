@@ -1159,15 +1159,15 @@ Cross-Stencil Projection
 :cpp:`FFT::CrossProj` (see section :ref:`sec:FFT:crossproj`), with
 geometric multigrid instead of FFT. It projects a cell-centered velocity
 field onto fields that are divergence free with respect to the
-node-centered divergence computed from the 4 (2D) or 8 (3D) cells around
-each node. The class is available in 2D and 3D, and it currently only
-supports periodic boundary conditions. The domain must start at index 0
-and have an even number of cells (at least 4) in each direction, and the
-boxes must have even lengths. The first :cpp:`AMREX_SPACEDIM` components of the
-:cpp:`MultiFab` are the velocity. The input and output must have the same
-:cpp:`BoxArray` and :cpp:`DistributionMapping`, and they can be the same
-:cpp:`MultiFab`. If the output has ghost cells, one layer of them is
-filled. The header is :cpp:`AMReX_CrossProj.H`.
+node-centered divergence computed from the 4 cells around each node. The
+class is available in 2D only, and it currently only supports periodic
+boundary conditions. The domain must start at index 0 and have an even
+number of cells (at least 4) in each direction, and the boxes must have
+even lengths. The first two components of the :cpp:`MultiFab` are the
+velocity. The input and output must have the same :cpp:`BoxArray` and
+:cpp:`DistributionMapping`, and they can be the same :cpp:`MultiFab`. If
+the output has ghost cells, one layer of them is filled. The header is
+:cpp:`AMReX_CrossProj.H`.
 
 .. highlight:: c++
 
@@ -1184,11 +1184,6 @@ filled. The header is :cpp:`AMReX_CrossProj.H`.
 
 The object should be cached for reuse, since it sets up the multigrid
 hierarchy on the first solve and whenever the grids change.
-
-.. warning::
-
-   Although the solver works in 3D, its performance there is much worse
-   than :cpp:`FFT::CrossProj`. Use the FFT solver in 3D.
 
 .. _sec:linearsolver:gmres:
 

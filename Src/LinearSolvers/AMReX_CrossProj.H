@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#if (AMREX_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM == 2)
 
 namespace amrex::GMG
 {
@@ -25,15 +25,11 @@ namespace amrex::GMG
  * fields that are divergence free with respect to the node-centered
  * cross-stencil divergence.
  *
- * Same projection and interface as FFT::CrossProj. The divergence at each
- * node is computed from the 4 (2D) or 8 (3D) cells surrounding it.
+ * Same projection and interface as FFT::CrossProj, in 2D only. The
+ * divergence at each node is computed from the 4 cells surrounding it.
  * Currently only all-periodic boundaries are supported, with an even number
  * (at least 4) of cells in each direction starting at index 0, and even box
- * lengths. The first
- * AMREX_SPACEDIM components of the MFs are the velocity.
- *
- * \warning Although it works in 3D, its performance there is much worse
- * than FFT::CrossProj. Use the FFT solver in 3D.
+ * lengths. The first two components of the MFs are the velocity.
  */
 class CrossProj
 {
@@ -86,12 +82,11 @@ private:
 
     BoxArray m_grids; // cell-centered
     DistributionMapping m_dmap;
-    bool m_reduced = false; // 2D, dx == dy: PCG on the red/black reduced problem
+    bool m_reduced = false; // dx == dy: PCG on the red/black reduced problem
     MultiFab m_vel, m_x, m_p, m_q, m_rold;
     std::unique_ptr<Level> m_top;
-    // Coarse hierarchies: 0 for smooth modes; 2D: 1 for the checkerboard;
-    // 3D: 1-3 for the families with the free direction x, y, z.
-    Array<Vector<std::unique_ptr<Level>>,4> m_hier;
+    // Coarse hierarchies: 0 for smooth modes, 1 for the checkerboard.
+    Array<Vector<std::unique_ptr<Level>>,2> m_hier;
 };
 
 }

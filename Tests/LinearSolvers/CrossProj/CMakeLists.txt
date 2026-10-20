@@ -1,5 +1,5 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if (D EQUAL 1)
+    if (NOT D EQUAL 2)
         continue()
     endif ()
 

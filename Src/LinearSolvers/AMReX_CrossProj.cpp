@@ -1,6 +1,6 @@
 #include <AMReX_CrossProj.H>
 
-#if (AMREX_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM == 2)
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParReduce.H>
@@ -18,48 +18,41 @@ namespace amrex::GMG {
 // Solves G^T G phi = G^T u (= -D u) by PCG, then u -= G phi. G is the
 // cell-centered gradient of nodal phi.
 //
-// Every operator in the hierarchy is sum_d K_d (x) M_e (x) M_f with 1D
+// Every operator in the hierarchy is K_x (x) M_y + M_x (x) K_y with 1D
 // three-point stencils K and M per direction: the fine one has K = second
 // difference and M = [1/4,1/2,1/4], and Galerkin coarsening with
 // tensor-product interpolation keeps the form. On a periodic grid all of
-// them are constant, so each level is a constant 9- or 27-point stencil.
+// them are constant, so each level is a constant 9-point stencil.
 //
 // Node data are stored on the cell-centered BoxArray: box [lo,hi) holds
 // the nodes it owns (a periodic grid has as many nodes as cells), so no
 // node is duplicated and ghost nodes come from FillBoundary.
 //
-// 2D with dx == dy: the fine stencil couples only diagonal neighbors, so the
-// nodes with i+j even (red) and odd (black) decouple. Eliminating the
-// (odd,odd) nodes of red and the (even,odd) nodes of black is exact and
-// leaves the same 9-point problem for both colors on a grid coarsened by 2
-// (black is red shifted by one in x). PCG runs on that reduced problem,
-// stored as two components of one MultiFab, preconditioned by a V-cycle.
+// dx == dy: the fine stencil couples only diagonal neighbors, so the nodes
+// with i+j even (red) and odd (black) decouple. Eliminating the (odd,odd)
+// nodes of red and the (even,odd) nodes of black is exact and leaves the
+// same 9-point problem for both colors on a grid coarsened by 2 (black is
+// red shifted by one in x). PCG runs on that reduced problem, stored as two
+// components of one MultiFab, preconditioned by a V-cycle.
 //
 // Otherwise PCG runs on the fine grid, preconditioned by a multigrid cycle
-// with a coarse space for the smooth modes (linear interpolation) and
-// coarse spaces for the near-null modes: in 2D the checkerboard (-1)^(i+j)
-// times smooth modes, in 3D the families (-1)^(j+k) f(i), (-1)^(i+k) f(j),
-// (-1)^(i+j) f(k), coarsened only transverse to the free direction and
-// smoothed with line solves along it.
+// with a coarse space for the smooth modes (linear interpolation) and one
+// for the near-null modes, the checkerboard (-1)^(i+j) times smooth modes.
 struct CrossProj::Level
 {
     Box domain;
     Periodicity period;
-    IntVect ratio{1};      // coarsening ratio from the parent level
-    int line_dir = -1;     // family levels: line smoother along this direction
     IntVect modulate{0};   // first near-null level: P has (-1)^(sum of these indices)
     int ncomp = 1;
-    int cheby_degree = 3;  // 2 on the reduced 2D hierarchy
+    int cheby_degree = 3;  // 2 on the reduced hierarchy
     BoxArray ba;
     DistributionMapping dm;
     BoxArray cba;      // parent BoxArray coarsened, if ba was regridded
     Array<Array<Real,3>,AMREX_SPACEDIM> K, M;  // [dir][offset+1]
-    GpuArray<Real,27> sten{};  // [(c+1)*9+(b+1)*3+(a+1)] for offset (a,b,c); c = 0 in 2D
-    GpuArray<Real,27> rw{};    // restriction weights from the parent, same layout
-    GpuArray<Real,8> pw{};     // prolongation weights [c*4+b*2+a] for fine offset (a,b,c)
-    Gpu::DeviceVector<Real> tcp, tdi; // Thomas factors of the line solver by position
-    Gpu::DeviceVector<int> lines;     // GPU line solver: (box, i, j, k) of every line's first node
-    MultiFab x, x2, b, r, y, talign;
+    GpuArray<Real,9> sten{};  // [(b+1)*3+(a+1)] for offset (a,b)
+    GpuArray<Real,9> rw{};    // restriction weights from the parent, same layout
+    GpuArray<Real,4> pw{};    // prolongation weights [b*2+a] for fine offset (a,b)
+    MultiFab x, x2, b, r, talign;
     // bottom level: gathered data on the device, inverse symbol (including
     // the normalization) and the transform
     bool binit = false;
@@ -72,7 +65,7 @@ struct CrossProj::Level
     Gpu::DeviceVector<GpuComplex<Real>> bspec;
     Gpu::DeviceVector<Real> binv;
 #else
-    Array<Vector<Real>,3> bcos, bsin;           // naive DFT tables
+    Array<Vector<Real>,2> bcos, bsin;           // naive DFT tables
     Vector<Real> bre, bim, binv;
 #endif
     Real lmax = Real(0.0); // Chebyshev upper bound
@@ -82,18 +75,15 @@ namespace {
 
 constexpr int regrid_max_size = 32;
 constexpr int bottom_max_nodes = 1024; // exact bottom solve at or below this size
-constexpr int kz = (AMREX_SPACEDIM == 3) ? 1 : 0;
-constexpr int nhier = (AMREX_SPACEDIM == 3) ? 4 : 2;
 
-
-// Whether a level with this domain gets a coarser level (by `rr`), or is
-// the bottom: small enough for the exact solve, or not coarsenable.
-bool coarsenable (Box const& domain, IntVect const& rr)
+// Whether a level with this domain gets a coarser level (by 2), or is the
+// bottom: small enough for the exact solve, or not coarsenable.
+bool coarsenable (Box const& domain)
 {
     if (domain.numPts() <= bottom_max_nodes) { return false; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         int const len = domain.length(idim);
-        if (rr[idim] == 2 && (len % 2 != 0 || len < 8)) { return false; }
+        if (len % 2 != 0 || len < 8) { return false; }
     }
     return true;
 }
@@ -118,42 +108,12 @@ Array<Real,3> galerkin1d (Array<Real,3> const& a, bool modulate)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real stencil_sum (GpuArray<Real,27> const& s, Array4<Real const> const& x,
+Real stencil_sum (GpuArray<Real,9> const& s, Array4<Real const> const& x,
                   int i, int j, int k, int n) noexcept
 {
-#if (AMREX_SPACEDIM == 2)
-    return s[ 9]*x(i-1,j-1,k,n) + s[10]*x(i,j-1,k,n) + s[11]*x(i+1,j-1,k,n)
-         + s[12]*x(i-1,j  ,k,n) + s[13]*x(i,j  ,k,n) + s[14]*x(i+1,j  ,k,n)
-         + s[15]*x(i-1,j+1,k,n) + s[16]*x(i,j+1,k,n) + s[17]*x(i+1,j+1,k,n);
-#else
-    return s[ 0]*x(i-1,j-1,k-1,n)
-         + s[ 1]*x(i,j-1,k-1,n)
-         + s[ 2]*x(i+1,j-1,k-1,n)
-         + s[ 3]*x(i-1,j,k-1,n)
-         + s[ 4]*x(i,j,k-1,n)
-         + s[ 5]*x(i+1,j,k-1,n)
-         + s[ 6]*x(i-1,j+1,k-1,n)
-         + s[ 7]*x(i,j+1,k-1,n)
-         + s[ 8]*x(i+1,j+1,k-1,n)
-         + s[ 9]*x(i-1,j-1,k,n)
-         + s[10]*x(i,j-1,k,n)
-         + s[11]*x(i+1,j-1,k,n)
-         + s[12]*x(i-1,j,k,n)
-         + s[13]*x(i,j,k,n)
-         + s[14]*x(i+1,j,k,n)
-         + s[15]*x(i-1,j+1,k,n)
-         + s[16]*x(i,j+1,k,n)
-         + s[17]*x(i+1,j+1,k,n)
-         + s[18]*x(i-1,j-1,k+1,n)
-         + s[19]*x(i,j-1,k+1,n)
-         + s[20]*x(i+1,j-1,k+1,n)
-         + s[21]*x(i-1,j,k+1,n)
-         + s[22]*x(i,j,k+1,n)
-         + s[23]*x(i+1,j,k+1,n)
-         + s[24]*x(i-1,j+1,k+1,n)
-         + s[25]*x(i,j+1,k+1,n)
-         + s[26]*x(i+1,j+1,k+1,n);
-#endif
+    return s[0]*x(i-1,j-1,k,n) + s[1]*x(i,j-1,k,n) + s[2]*x(i+1,j-1,k,n)
+         + s[3]*x(i-1,j  ,k,n) + s[4]*x(i,j  ,k,n) + s[5]*x(i+1,j  ,k,n)
+         + s[6]*x(i-1,j+1,k,n) + s[7]*x(i,j+1,k,n) + s[8]*x(i+1,j+1,k,n);
 }
 
 // r = b - A x
@@ -171,166 +131,40 @@ void residual (CrossProj::Level& L)
     });
 }
 
-// y = B^-1 r, with B the diagonal of A or, on family levels, the part of A
-// coupling the nodes of a box along the line direction (Thomas algorithm
-// with the factors precomputed by position, since the tridiagonal is
-// constant).
-void apply_prec (CrossProj::Level& L, MultiFab& y, MultiFab const& r)
-{
-    BL_PROFILE("GMG::CrossProj::prec");
-    if (L.line_dir < 0) {
-        Real const dinv = Real(1.0) / L.sten[13];
-        auto const& ya = y.arrays();
-        auto const& ra = r.const_arrays();
-        ParallelFor(y, IntVect(0), L.ncomp, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
-        {
-            ya[bno](i,j,k,n) = ra[bno](i,j,k,n) * dinv;
-        });
-        return;
-    }
-
-    AMREX_ASSERT(L.ncomp == 1);
-    int const f = L.line_dir;
-    int const stride = (f == 0) ? 1 : ((f == 1) ? 3 : 9);
-    Real const tlo = L.sten[13-stride]; // line part of the stencil: (tlo, tdiag, tlo)
-    Real const* AMREX_RESTRICT cp = L.tcp.data();
-    Real const* AMREX_RESTRICT di = L.tdi.data();
-#ifdef AMREX_USE_GPU
-    // one launch for all lines of all boxes
-    int const* AMREX_RESTRICT ln = L.lines.data();
-    int const nlines = int(L.lines.size() / 4);
-    auto const& ya4 = y.arrays();
-    auto const& ra4 = r.const_arrays();
-    ParallelFor(nlines, [=] AMREX_GPU_DEVICE (int l) noexcept
-    {
-        int const bno = ln[4*l];
-        IntVect iv(AMREX_D_DECL(ln[4*l+1], ln[4*l+2], ln[4*l+3]));
-        auto const& ya = ya4[bno];
-        auto const& ra = ra4[bno];
-        int const mlo = iv[f];
-        int const mhi = mlo + ya.end[f] - ya.begin[f] - 1; // y has no ghost nodes
-        Real dprev = Real(0.0);
-        for (int m = mlo; m <= mhi; ++m) {
-            iv[f] = m;
-            dprev = (ra(iv) - tlo*dprev) * di[m-mlo];
-            ya(iv) = dprev;
-        }
-        for (int m = mhi-1; m >= mlo; --m) {
-            IntVect jv = iv;
-            iv[f] = m;
-            jv[f] = m+1;
-            ya(iv) -= cp[m-mlo] * ya(jv);
-        }
-    });
-#else
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(y); mfi.isValid(); ++mfi) {
-        Box const& vbx = mfi.validbox();
-        int const mlo = vbx.smallEnd(f);
-        int const mhi = vbx.bigEnd(f);
-        auto const& ya = y.array(mfi);
-        auto const& ra = r.const_array(mfi);
-        // Line index outer, transverse plane inner (vectorizes for y and z lines).
-        auto const lo = amrex::lbound(vbx);
-        auto const hi = amrex::ubound(vbx);
-        Dim3 const off{.x = (f == 0), .y = (f == 1), .z = (f == 2)};
-        auto plane = [&] (int m) {
-            Dim3 plo = lo, phi = hi;
-            if (f == 0) { plo.x = phi.x = m; } else if (f == 1) { plo.y = phi.y = m; } else { plo.z = phi.z = m; }
-            return std::make_pair(plo, phi);
-        };
-        for (int m = mlo; m <= mhi; ++m) {
-            auto const [plo, phi] = plane(m);
-            Real const d = di[m-mlo];
-            if (m == mlo) {
-                LoopConcurrentOnCpu(plo, phi, [&] (int i, int j, int k) noexcept
-                {
-                    ya(i,j,k) = ra(i,j,k) * d;
-                });
-            } else {
-                LoopConcurrentOnCpu(plo, phi, [&] (int i, int j, int k) noexcept
-                {
-                    ya(i,j,k) = (ra(i,j,k) - tlo*ya(i-off.x,j-off.y,k-off.z)) * d;
-                });
-            }
-        }
-        for (int m = mhi-1; m >= mlo; --m) {
-            auto const [plo, phi] = plane(m);
-            Real const c = cp[m-mlo];
-            LoopConcurrentOnCpu(plo, phi, [&] (int i, int j, int k) noexcept
-            {
-                ya(i,j,k) -= c * ya(i+off.x,j+off.y,k+off.z);
-            });
-        }
-    }
-#endif
-}
-
 // One step of the three-term Chebyshev recurrence
-//   x_new = x + alpha (x - x_prev) + beta B^-1 (b - A x),
+//   x_new = x + alpha (x - x_prev) + beta D^-1 (b - A x),
 // with x in L.x and x_prev in L.x2; x_new overwrites L.x2 and the two are
 // swapped. ZERO_X: x is zero (not read). FIRST: no alpha term. ZERO_PREV:
-// x_prev is zero. Point levels do it in one kernel.
+// x_prev is zero.
 template <bool ZERO_X, bool FIRST, bool ZERO_PREV>
 void cheby_step (CrossProj::Level& L, Real alpha, Real beta)
 {
     BL_PROFILE("GMG::CrossProj::cheby_step");
-    if (L.line_dir < 0) {
-        if (!ZERO_X) { L.x.FillBoundary(L.period); }
-        auto const sten = L.sten;
-        Real const bd = beta / L.sten[13];
-        auto const& xa = L.x.const_arrays();
-        auto const& ba = L.b.const_arrays();
-        auto const& oa = L.x2.arrays();
-        ParallelFor(L.x2, IntVect(0), L.ncomp, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
-        {
-            amrex::ignore_unused(sten, bd, alpha, xa, ba, oa); // nvcc: capture outside if constexpr
-            Real v;
-            if constexpr (ZERO_X) {
-                v = bd * ba[bno](i,j,k,n);
-            } else {
-                Real const xc = xa[bno](i,j,k,n);
-                v = xc + bd * (ba[bno](i,j,k,n) - stencil_sum(sten, xa[bno], i, j, k, n));
-                if constexpr (!FIRST) {
-                    if constexpr (ZERO_PREV) {
-                        v += alpha * xc;
-                    } else {
-                        v += alpha * (xc - oa[bno](i,j,k,n));
-                    }
-                }
-            }
-            oa[bno](i,j,k,n) = v;
-        });
-    } else {
+    if (!ZERO_X) { L.x.FillBoundary(L.period); }
+    auto const sten = L.sten;
+    Real const bd = beta / L.sten[4];
+    auto const& xa = L.x.const_arrays();
+    auto const& ba = L.b.const_arrays();
+    auto const& oa = L.x2.arrays();
+    ParallelFor(L.x2, IntVect(0), L.ncomp, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
+    {
+        amrex::ignore_unused(sten, bd, alpha, xa, ba, oa); // nvcc: capture outside if constexpr
+        Real v;
         if constexpr (ZERO_X) {
-            MultiFab::Copy(L.r, L.b, 0, 0, L.ncomp, 0);
+            v = bd * ba[bno](i,j,k,n);
         } else {
-            residual(L);
-        }
-        apply_prec(L, L.y, L.r);
-        auto const& ya = L.y.const_arrays();
-        auto const& xa = L.x.const_arrays();
-        auto const& oa = L.x2.arrays();
-        ParallelFor(L.x2, IntVect(0), L.ncomp, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
-        {
-            amrex::ignore_unused(alpha, beta, xa, ya, oa);
-            Real v = beta * ya[bno](i,j,k,n);
-            if constexpr (!ZERO_X) {
-                Real const xc = xa[bno](i,j,k,n);
-                v += xc;
-                if constexpr (!FIRST) {
-                    if constexpr (ZERO_PREV) {
-                        v += alpha * xc;
-                    } else {
-                        v += alpha * (xc - oa[bno](i,j,k,n));
-                    }
+            Real const xc = xa[bno](i,j,k,n);
+            v = xc + bd * (ba[bno](i,j,k,n) - stencil_sum(sten, xa[bno], i, j, k, n));
+            if constexpr (!FIRST) {
+                if constexpr (ZERO_PREV) {
+                    v += alpha * xc;
+                } else {
+                    v += alpha * (xc - oa[bno](i,j,k,n));
                 }
             }
-            oa[bno](i,j,k,n) = v;
-        });
-    }
+        }
+        oa[bno](i,j,k,n) = v;
+    });
     std::swap(L.x, L.x2);
 }
 
@@ -354,7 +188,7 @@ void cheby (CrossProj::Level& L, int nsweeps, bool zero_init)
     }
 }
 
-// Upper end of the spectrum of B^-1 A by power iteration, with a margin.
+// Upper end of the spectrum of D^-1 A by power iteration, with a margin.
 void estimate_lmax (CrossProj::Level& L)
 {
     auto const& va = L.x.arrays();
@@ -366,95 +200,47 @@ void estimate_lmax (CrossProj::Level& L)
         va[bno](i,j,k,n) = Real(h % 1000U) / Real(1000.0) - Real(0.5);
     });
     L.b.setVal(Real(0.0));
+    Real const dinv = Real(1.0) / L.sten[4];
     Real lam = Real(0.0);
     for (int it = 0; it < 30; ++it) {
         Real const nrm = std::sqrt(MultiFab::Dot(L.x, 0, L.x, 0, L.ncomp, 0));
         L.x.mult(Real(1.0)/nrm, 0, L.ncomp, 0);
         residual(L); // r = -A x
-        apply_prec(L, L.y, L.r);
-        lam = std::sqrt(MultiFab::Dot(L.y, 0, L.y, 0, L.ncomp, 0));
-        MultiFab::Copy(L.x, L.y, 0, 0, L.ncomp, 0);
+        lam = dinv * std::sqrt(MultiFab::Dot(L.r, 0, L.r, 0, L.ncomp, 0));
+        MultiFab::Copy(L.x, L.r, 0, 0, L.ncomp, 0);
     }
     L.lmax = Real(1.1) * lam;
 }
 
-// C.b = P^T F.r (weights C.rw); F.r needs filled ghosts
-template <int RX, int RY, int RZ>
-void restrict_impl (CrossProj::Level& F, CrossProj::Level& C)
+// C.b = P^T F.r (weights C.rw)
+void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
 {
+    BL_PROFILE("GMG::CrossProj::restrict");
+    F.r.FillBoundary(F.period);
     MultiFab* dst = C.cba.empty() ? &C.b : &C.talign;
     auto const w = C.rw;
     auto const& fa = F.r.const_arrays();
     auto const& ca = dst->arrays();
-    ParallelFor(*dst, IntVect(0), C.ncomp, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int K, int n) noexcept
+    ParallelFor(*dst, IntVect(0), C.ncomp, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int k, int n) noexcept
     {
         auto const& f = fa[bno];
         Real s = Real(0.0);
-        for (int c = -(RZ-1); c <= RZ-1; ++c) {
-        for (int b = -(RY-1); b <= RY-1; ++b) {
-        for (int a = -(RX-1); a <= RX-1; ++a) {
-            s += w[(c+1)*9+(b+1)*3+(a+1)] * f(RX*I+a, RY*J+b, RZ*K+c, n);
-        }}}
-        ca[bno](I,J,K,n) = s;
+        for (int b = -1; b <= 1; ++b) {
+        for (int a = -1; a <= 1; ++a) {
+            s += w[(b+1)*3+(a+1)] * f(2*I+a, 2*J+b, k, n);
+        }}
+        ca[bno](I,J,k,n) = s;
     });
     if (dst != &C.b) {
         C.b.ParallelCopy(C.talign, 0, 0, C.ncomp);
     }
 }
 
-void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
-{
-    BL_PROFILE("GMG::CrossProj::restrict");
-    F.r.FillBoundary(F.period);
-#if (AMREX_SPACEDIM == 2)
-    restrict_impl<2,2,1>(F, C);
-#else
-    if (C.ratio[0] == 1)      { restrict_impl<1,2,2>(F, C); }
-    else if (C.ratio[1] == 1) { restrict_impl<2,1,2>(F, C); }
-    else if (C.ratio[2] == 1) { restrict_impl<2,2,1>(F, C); }
-    else                      { restrict_impl<2,2,2>(F, C); }
-#endif
-}
-
 // F.x += P C.x (weights C.pw). Each coarse node writes the fine nodes
-// (RX I + a, ...), a < RX, from the coarse nodes I and I+1.
-template <int RX, int RY, int RZ>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void prolong_node (Array4<Real const> const& cx, Array4<Real> const& fx,
-                   GpuArray<Real,8> const& w, int I, int J, int K, int n) noexcept
+// (2I+a, 2J+b), a,b < 2, from the coarse nodes I..I+1, J..J+1.
+void prolong_add (CrossProj::Level& F, CrossProj::Level& C)
 {
-    Real const c000 = cx(I,J,K,n);
-    Real c100 = Real(0.0), c010 = Real(0.0), c110 = Real(0.0);
-    Real c001 = Real(0.0), c101 = Real(0.0), c011 = Real(0.0), c111 = Real(0.0);
-    if constexpr (RX == 2) { c100 = cx(I+1,J,K,n); }
-    if constexpr (RY == 2) { c010 = cx(I,J+1,K,n); }
-    if constexpr (RX == 2 && RY == 2) { c110 = cx(I+1,J+1,K,n); }
-    if constexpr (RZ == 2) {
-        c001 = cx(I,J,K+1,n);
-        if constexpr (RX == 2) { c101 = cx(I+1,J,K+1,n); }
-        if constexpr (RY == 2) { c011 = cx(I,J+1,K+1,n); }
-        if constexpr (RX == 2 && RY == 2) { c111 = cx(I+1,J+1,K+1,n); }
-    }
-    int const i = RX*I;
-    int const j = RY*J;
-    int const k = RZ*K;
-    fx(i,j,k,n) += w[0]*c000;
-    if constexpr (RX == 2) { fx(i+1,j,k,n) += w[1]*(c000+c100); }
-    if constexpr (RY == 2) { fx(i,j+1,k,n) += w[2]*(c000+c010); }
-    if constexpr (RX == 2 && RY == 2) { fx(i+1,j+1,k,n) += w[3]*(c000+c100+c010+c110); }
-    if constexpr (RZ == 2) {
-        fx(i,j,k+1,n) += w[4]*(c000+c001);
-        if constexpr (RX == 2) { fx(i+1,j,k+1,n) += w[5]*(c000+c100+c001+c101); }
-        if constexpr (RY == 2) { fx(i,j+1,k+1,n) += w[6]*(c000+c010+c001+c011); }
-        if constexpr (RX == 2 && RY == 2) {
-            fx(i+1,j+1,k+1,n) += w[7]*(c000+c100+c010+c110+c001+c101+c011+c111);
-        }
-    }
-}
-
-template <int RX, int RY, int RZ>
-void prolong_impl (CrossProj::Level& F, CrossProj::Level& C)
-{
+    BL_PROFILE("GMG::CrossProj::prolong");
     MultiFab const* src = &C.x;
     if (C.cba.empty()) {
         C.x.FillBoundary(C.period);
@@ -465,110 +251,48 @@ void prolong_impl (CrossProj::Level& F, CrossProj::Level& C)
     auto const w = C.pw;
     auto const& fa = F.x.arrays();
     auto const& ca = src->const_arrays();
-    ParallelFor(*src, IntVect(0), C.ncomp, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int K, int n) noexcept
+    ParallelFor(*src, IntVect(0), C.ncomp, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int k, int n) noexcept
     {
-        prolong_node<RX,RY,RZ>(ca[bno], fa[bno], w, I, J, K, n);
+        auto const& cx = ca[bno];
+        auto const& fx = fa[bno];
+        Real const c00 = cx(I  ,J  ,k,n);
+        Real const c10 = cx(I+1,J  ,k,n);
+        Real const c01 = cx(I  ,J+1,k,n);
+        Real const c11 = cx(I+1,J+1,k,n);
+        int const i = 2*I;
+        int const j = 2*J;
+        fx(i  ,j  ,k,n) += w[0]*c00;
+        fx(i+1,j  ,k,n) += w[1]*(c00+c10);
+        fx(i  ,j+1,k,n) += w[2]*(c00+c01);
+        fx(i+1,j+1,k,n) += w[3]*(c00+c10+c01+c11);
     });
-}
-
-void prolong_add (CrossProj::Level& F, CrossProj::Level& C)
-{
-    BL_PROFILE("GMG::CrossProj::prolong");
-#if (AMREX_SPACEDIM == 2)
-    prolong_impl<2,2,1>(F, C);
-#else
-    if (C.ratio[0] == 1)      { prolong_impl<1,2,2>(F, C); }
-    else if (C.ratio[1] == 1) { prolong_impl<2,1,2>(F, C); }
-    else if (C.ratio[2] == 1) { prolong_impl<2,2,1>(F, C); }
-    else                      { prolong_impl<2,2,2>(F, C); }
-#endif
 }
 
 void set_stencil (CrossProj::Level& L)
 {
     for (int b = 0; b < 3; ++b) {
     for (int a = 0; a < 3; ++a) {
-#if (AMREX_SPACEDIM == 2)
-        L.sten[9+b*3+a] = L.K[0][a]*L.M[1][b] + L.M[0][a]*L.K[1][b];
-#else
-        for (int c = 0; c < 3; ++c) {
-            L.sten[c*9+b*3+a] = L.K[0][a]*L.M[1][b]*L.M[2][c] + L.M[0][a]*L.K[1][b]*L.M[2][c]
-                + L.M[0][a]*L.M[1][b]*L.K[2][c];
-        }
-#endif
+        L.sten[b*3+a] = L.K[0][a]*L.M[1][b] + L.M[0][a]*L.K[1][b];
     }}
 }
 
-// Transfer weights of a level from its parent: linear interpolation in the
-// coarsened directions, times (-1)^(modulate . fine index).
+// Transfer weights of a level from its parent: linear interpolation times
+// (-1)^(modulate . fine index).
 void set_transfer_weights (CrossProj::Level& C)
 {
-    int rr[3] = {1,1,1};
-    int md[3] = {0,0,0};
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        rr[idim] = C.ratio[idim];
-        md[idim] = C.modulate[idim];
-    }
-    for (int c = -1; c <= 1; ++c) {
+    int const md[2] = {C.modulate[0], C.modulate[1]};
     for (int b = -1; b <= 1; ++b) {
     for (int a = -1; a <= 1; ++a) {
-        int const off[3] = {a, b, c};
-        Real w = Real(1.0);
-        for (int idim = 0; idim < 3; ++idim) {
-            if (off[idim] == 0) { continue; }
-            w *= (rr[idim] == 2) ? Real(0.5) : Real(0.0);
-        }
-        if ((md[0]*a + md[1]*b + md[2]*c) & 1) { w = -w; }
-        C.rw[(c+1)*9+(b+1)*3+(a+1)] = w;
-    }}}
-    for (int c = 0; c < 2; ++c) {
+        Real w = ((a == 0) ? Real(1.0) : Real(0.5)) * ((b == 0) ? Real(1.0) : Real(0.5));
+        if ((md[0]*a + md[1]*b) & 1) { w = -w; }
+        C.rw[(b+1)*3+(a+1)] = w;
+    }}
     for (int b = 0; b < 2; ++b) {
     for (int a = 0; a < 2; ++a) {
-        Real w = Real(1.0) / Real((a+1)*(b+1)*(c+1));
-        if ((md[0]*a + md[1]*b + md[2]*c) & 1) { w = -w; }
-        C.pw[c*4+b*2+a] = w;
-    }}}
-}
-
-// Thomas factors of the constant tridiagonal (tlo, tdiag, tlo) by position
-// in a segment: tdi[m] = 1/den_m, tcp[m] = tlo/den_m.
-void set_thomas (CrossProj::Level& L)
-{
-    if (L.line_dir < 0) { return; }
-    int const f = L.line_dir;
-    int const stride = (f == 0) ? 1 : ((f == 1) ? 3 : 9);
-    Real const tlo = L.sten[13-stride];
-    Real const tdiag = L.sten[13];
-    int maxlen = 0;
-    for (int i = 0, N = int(L.ba.size()); i < N; ++i) {
-        maxlen = std::max(maxlen, L.ba[i].length(f));
-    }
-    Vector<Real> cp(maxlen), di(maxlen);
-    Real den = tdiag;
-    for (int m = 0; m < maxlen; ++m) {
-        di[m] = Real(1.0) / den;
-        cp[m] = tlo * di[m];
-        den = tdiag - tlo * cp[m];
-    }
-    L.tcp.resize(maxlen);
-    L.tdi.resize(maxlen);
-    Gpu::copy(Gpu::hostToDevice, cp.begin(), cp.end(), L.tcp.begin());
-    Gpu::copy(Gpu::hostToDevice, di.begin(), di.end(), L.tdi.begin());
-#ifdef AMREX_USE_GPU
-    Vector<int> lines;
-    for (MFIter mfi(L.y); mfi.isValid(); ++mfi) {
-        Box lbx = mfi.validbox();
-        lbx.setBig(f, lbx.smallEnd(f));
-        int const bno = mfi.LocalIndex();
-        amrex::LoopOnCpu(lbx, [&] (int i, int j, int k)
-        {
-            lines.push_back(bno); lines.push_back(i); lines.push_back(j); lines.push_back(k);
-        });
-    }
-    L.lines.resize(lines.size());
-    Gpu::copy(Gpu::hostToDevice, lines.begin(), lines.end(), L.lines.begin());
-#endif
-    Gpu::streamSynchronize();
+        Real w = Real(1.0) / Real((a+1)*(b+1));
+        if ((md[0]*a + md[1]*b) & 1) { w = -w; }
+        C.pw[b*2+a] = w;
+    }}
 }
 
 // Exact solve of the bottom level, A x = b, with the periodic constant
@@ -582,25 +306,23 @@ void bottom_solve (CrossProj::Level& L)
 {
     BL_PROFILE("GMG::CrossProj::bottom");
     IntVect const dlo = L.domain.smallEnd();
-    int const nn[3] = {L.domain.length(0), L.domain.length(1),
-                       (AMREX_SPACEDIM == 3) ? L.domain.length(AMREX_SPACEDIM-1) : 1};
-    int const nx = nn[0], ny = nn[1], nz = nn[2];
-    Long const N = Long(nx)*ny*nz;
+    int const nn[2] = {L.domain.length(0), L.domain.length(1)};
+    int const nx = nn[0], ny = nn[1];
+    Long const N = Long(nx)*ny;
     int const nc = L.ncomp;
     bool const local = (L.ba.size() == 1);
     if (local && L.b.local_size() == 0) { return; }
 
-    // The stencil symbol at mode (i,j,k), in double so that the null modes
+    // The stencil symbol at mode (i,j), in double so that the null modes
     // cancel to roundoff in single precision too.
-    auto symbol = [&] (int i, int j, int k) {
+    auto symbol = [&] (int i, int j) {
         double sym = 0.0;
-        for (int c = -kz; c <= kz; ++c) {
         for (int b = -1; b <= 1; ++b) {
         for (int a = -1; a <= 1; ++a) {
             double const arg = 2.0*amrex::Math::pi<double>()
-                * (double(a*i)/nx + double(b*j)/ny + double(c*k)/nz);
-            sym += double(L.sten[(c+1)*9+(b+1)*3+(a+1)]) * std::cos(arg);
-        }}}
+                * (double(a*i)/nx + double(b*j)/ny);
+            sym += double(L.sten[(b+1)*3+(a+1)]) * std::cos(arg);
+        }}
         return sym;
     };
     // The null modes cancel only to the roundoff of the Real stencil.
@@ -622,19 +344,20 @@ void bottom_solve (CrossProj::Level& L)
         for (int n = 0; n < nc; ++n) {
             L.bfft.push_back(std::make_unique<FFT::LocalR2C<Real>>(L.domain.length()));
         }
-        IntVect const ss = L.bfft[0]->spectralSize();
-        int const sx = ss[0];
-        Long const NS = Long(sx)*ny*nz;
+        int const sx = L.bfft[0]->spectralSize()[0];
+        Long const NS = Long(sx)*ny;
         hinv.resize(NS);
-        for (int k = 0; k < nz; ++k) {
         for (int j = 0; j < ny; ++j) {
         for (int i = 0; i < sx; ++i) {
-            hinv[(Long(k)*ny + j)*sx + i] = Real(symbol(i,j,k));
-        }}}
+            hinv[Long(j)*sx + i] = Real(symbol(i,j));
+        }}
         invert(hinv, L.bfft[0]->scalingFactor());
         L.bspec.resize(NS);
+        L.binv.resize(hinv.size());
+        Gpu::copy(Gpu::hostToDevice, hinv.begin(), hinv.end(), L.binv.begin());
+        Gpu::streamSynchronize();
 #else
-        for (int d = 0; d < 3; ++d) {
+        for (int d = 0; d < 2; ++d) {
             int const n = nn[d];
             L.bcos[d].resize(Long(n)*n);
             L.bsin[d].resize(Long(n)*n);
@@ -646,32 +369,26 @@ void bottom_solve (CrossProj::Level& L)
             }}
         }
         hinv.resize(N);
-        for (int k = 0; k < nz; ++k) {
         for (int j = 0; j < ny; ++j) {
         for (int i = 0; i < nx; ++i) {
-            hinv[(Long(k)*ny + j)*nx + i] = Real(symbol(i,j,k));
-        }}}
+            hinv[Long(j)*nx + i] = Real(symbol(i,j));
+        }}
         invert(hinv, Real(1.0)); // the inverse DFT below normalizes
         L.bre.resize(N);
         L.bim.resize(N);
         L.binv = hinv;
 #endif
-#ifdef AMREX_USE_FFT
-        L.binv.resize(hinv.size());
-        Gpu::copy(Gpu::hostToDevice, hinv.begin(), hinv.end(), L.binv.begin());
-        Gpu::streamSynchronize();
-#endif
     }
 
     // gather the right-hand side into the global array on the device
-    int const dlo0 = dlo[0], dlo1 = dlo[1], dlo2 = (AMREX_SPACEDIM == 3) ? dlo[AMREX_SPACEDIM-1] : 0;
+    int const dlo0 = dlo[0], dlo1 = dlo[1];
     Real* const pd = L.bdev.data();
     {
         Gpu::fillAsync(L.bdev.begin(), L.bdev.end(), [=] AMREX_GPU_DEVICE (Real& v, Long) noexcept { v = Real(0.0); });
         auto const& ba = L.b.const_arrays();
         ParallelFor(L.b, IntVect(0), nc, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
         {
-            pd[n*N + (Long(k-dlo2)*ny + (j-dlo1))*nx + (i-dlo0)] = ba[bno](i,j,k,n);
+            pd[n*N + Long(j-dlo1)*nx + (i-dlo0)] = ba[bno](i,j,k,n);
         });
     }
     if (!local) {
@@ -697,7 +414,7 @@ void bottom_solve (CrossProj::Level& L)
     auto dft = [&] (int d, bool inverse) {
         int const n = nn[d];
         if (n == 1) { return; }
-        Long const stride = (d == 0) ? 1 : ((d == 1) ? nx : Long(nx)*ny);
+        Long const stride = (d == 0) ? 1 : nx;
         Long const nlines = N / n;
         Real const* ct = L.bcos[d].data();
         Real const* st = L.bsin[d].data();
@@ -705,10 +422,7 @@ void bottom_solve (CrossProj::Level& L)
         Real const scale = inverse ? Real(1.0)/Real(n) : Real(1.0);
         Vector<Real> tr(n), ti(n);
         for (Long l = 0; l < nlines; ++l) {
-            Long base;
-            if (d == 0)      { base = l*nx; }
-            else if (d == 1) { base = (l / nx)*(Long(nx)*ny) + (l % nx); }
-            else             { base = l; }
+            Long const base = (d == 0) ? l*nx : l;
             for (int kk = 0; kk < n; ++kk) {
                 Real sr = Real(0.0), si = Real(0.0);
                 for (int m = 0; m < n; ++m) {
@@ -732,9 +446,9 @@ void bottom_solve (CrossProj::Level& L)
     for (int n = 0; n < nc; ++n) {
         std::copy(L.bg.begin() + n*N, L.bg.begin() + (n+1)*N, L.bre.begin());
         std::fill(L.bim.begin(), L.bim.end(), Real(0.0));
-        for (int d = 0; d < 3; ++d) { dft(d, false); }
+        for (int d = 0; d < 2; ++d) { dft(d, false); }
         for (Long m = 0; m < N; ++m) { L.bre[m] *= hinv[m]; L.bim[m] *= hinv[m]; }
-        for (int d = 0; d < 3; ++d) { dft(d, true); }
+        for (int d = 0; d < 2; ++d) { dft(d, true); }
         std::copy(L.bre.begin(), L.bre.end(), L.bg.begin() + n*N);
     }
     Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
@@ -746,7 +460,7 @@ void bottom_solve (CrossProj::Level& L)
         auto const& xa = L.x.arrays();
         ParallelFor(L.x, IntVect(0), nc, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
         {
-            xa[bno](i,j,k,n) = ps[n*N + (Long(k-dlo2)*ny + (j-dlo1))*nx + (i-dlo0)];
+            xa[bno](i,j,k,n) = ps[n*N + Long(j-dlo1)*nx + (i-dlo0)];
         });
     }
 }
@@ -757,42 +471,35 @@ void alloc_level (CrossProj::Level& L)
     L.x2.define(L.ba, L.dm, L.ncomp, 1);
     L.r.define(L.ba, L.dm, L.ncomp, 1);
     L.b.define(L.ba, L.dm, L.ncomp, 0);
-    L.y.define(L.ba, L.dm, L.ncomp, 0);
     L.x.setVal(Real(0.0));
     L.x2.setVal(Real(0.0));
     L.r.setVal(Real(0.0));
     set_stencil(L);
     set_transfer_weights(L);
-    set_thomas(L);
 }
 
-// Coarse level of P by `ratio`; regrids when the coarsened boxes are too small
+// Coarse level of P by 2; regrids when the coarsened boxes are too small
 // to be coarsened again.
 std::unique_ptr<CrossProj::Level>
-make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntVect const& modulate)
+make_coarse (CrossProj::Level const& P, IntVect const& modulate)
 {
     auto C = std::make_unique<CrossProj::Level>();
-    C->domain = amrex::coarsen(P.domain, ratio);
+    C->domain = amrex::coarsen(P.domain, 2);
     C->period = Periodicity(C->domain.length());
-    C->ratio = ratio;
-    C->line_dir = line_dir;
     C->modulate = modulate;
     C->ncomp = P.ncomp;
     C->cheby_degree = P.cheby_degree;
 
     // The bottom level is one box on one rank, so that its exact solve is
     // local and the transfers reach only that rank. Other levels keep the
-    // parent's boxes unless they got too small to coarsen again; regridded
-    // family levels get boxes spanning the free direction, since the box
-    // local line solves are a poor smoother once the transverse coupling
-    // is weak (256^3 took 10 iterations instead of 7 with 32-cell segments).
-    bool const bottom = !coarsenable(C->domain, ratio);
-    BoxArray const cba = amrex::coarsen(P.ba, ratio);
+    // parent's boxes unless they got too small to coarsen again.
+    bool const bottom = !coarsenable(C->domain);
+    BoxArray const cba = amrex::coarsen(P.ba, 2);
     bool ok = true;
     for (int i = 0, N = int(cba.size()); i < N && ok; ++i) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const len = cba[i].length(idim);
-            if (ratio[idim] == 2 && (len % 2 != 0 || len < 4)) { ok = false; }
+            if (len % 2 != 0 || len < 4) { ok = false; }
         }
     }
     if (bottom && cba.size() > 1) { ok = false; }
@@ -801,11 +508,7 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
         C->dm = P.dm;
     } else {
         C->ba = BoxArray(C->domain);
-        if (!bottom) {
-            IntVect ms(regrid_max_size);
-            if (line_dir >= 0) { ms[line_dir] = C->domain.length(line_dir); }
-            C->ba.maxSize(ms);
-        }
+        if (!bottom) { C->ba.maxSize(regrid_max_size); }
         C->dm = DistributionMapping(C->ba);
         C->cba = cba;
         C->talign.define(C->cba, P.dm, C->ncomp, 1);
@@ -813,25 +516,19 @@ make_coarse (CrossProj::Level const& P, IntVect const& ratio, int line_dir, IntV
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (ratio[idim] == 1) {
-            C->K[idim] = P.K[idim];
-            C->M[idim] = P.M[idim];
-        } else {
-            C->K[idim] = galerkin1d(P.K[idim], modulate[idim]);
-            C->M[idim] = galerkin1d(P.M[idim], modulate[idim]);
-        }
+        C->K[idim] = galerkin1d(P.K[idim], modulate[idim]);
+        C->M[idim] = galerkin1d(P.M[idim], modulate[idim]);
     }
     alloc_level(*C);
     if (!bottom) { estimate_lmax(*C); }
     return C;
 }
 
-#if (AMREX_SPACEDIM == 2)
 // Reduced right-hand side of the red and black problems from the fine b
 // (needs 1 ghost node).
 void reduce_rhs (CrossProj::Level const& T, CrossProj::Level& R)
 {
-    Real const w = -T.sten[9] / T.sten[13]; // minus corner over diagonal (1/4)
+    Real const w = -T.sten[0] / T.sten[4]; // minus corner over diagonal (1/4)
     auto const& fa = T.b.const_arrays();
     auto const& ra = R.b.arrays();
     ParallelFor(R.b, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int k) noexcept
@@ -847,8 +544,8 @@ void reduce_rhs (CrossProj::Level const& T, CrossProj::Level& R)
 // Fine phi from the reduced solution xr (needs 1 ghost node) and the fine b.
 void back_substitute (CrossProj::Level& T, MultiFab const& xr)
 {
-    Real const w = -T.sten[9] / T.sten[13];
-    Real const dinv = Real(1.0) / T.sten[13];
+    Real const w = -T.sten[0] / T.sten[4];
+    Real const dinv = Real(1.0) / T.sten[4];
     auto const& fa = T.b.const_arrays();
     auto const& ca = xr.const_arrays();
     auto const& pa = T.x.arrays();
@@ -872,7 +569,6 @@ void back_substitute (CrossProj::Level& T, MultiFab const& xr)
         pa[bno](i,j,k) = v;
     });
 }
-#endif
 
 // CPU reductions over the valid boxes with partial accumulators so that the
 // loops vectorize. G takes an MFIter and returns the per-point functor
@@ -1108,29 +804,25 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
 
     for (auto& h : m_hier) { h.clear(); }
 
-#if (AMREX_SPACEDIM == 2)
     {
         Real const rdx = m_geom.CellSize(0) / m_geom.CellSize(1);
         constexpr Real tol = std::is_same_v<Real,float> ? Real(1.e-5) : Real(1.e-12);
         m_reduced = std::abs(Real(1.0) - rdx*rdx) <= tol;
     }
-#endif
 
     Level* pcglev = &T;
     if (m_reduced) {
-#if (AMREX_SPACEDIM == 2)
         set_stencil(T);
         T.b.define(ba, dm, 1, 1);
         T.x.define(ba, dm, 1, 1);
         auto R = std::make_unique<Level>();
         R->domain = amrex::coarsen(T.domain, 2);
         R->period = Periodicity(R->domain.length());
-        R->ratio = IntVect(2);
         R->ncomp = 2;
         R->cheby_degree = 2;
         R->ba = amrex::coarsen(ba, 2);
         R->dm = dm;
-        Real const a0 = T.sten[13];
+        Real const a0 = T.sten[4];
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             R->K[idim] = {-a0/Real(4.0), a0/Real(2.0), -a0/Real(4.0)};
             R->M[idim] = {Real(0.125), Real(0.75), Real(0.125)};
@@ -1139,31 +831,22 @@ CrossProj::setup (BoxArray const& ba, DistributionMapping const& dm)
         estimate_lmax(*R);
         m_hier[0].push_back(std::move(R));
         pcglev = m_hier[0][0].get();
-#endif
     } else {
         alloc_level(T);
         estimate_lmax(T);
     }
 
-    // Hierarchy 0: smooth modes. 2D: 1 for the checkerboard. 3D: 1-3 for the
-    // families with the free direction x, y, z.
-    for (int h = 0; h < (m_reduced ? 1 : nhier); ++h) {
-        int const free = (AMREX_SPACEDIM == 3) ? h - 1 : -1; // line direction
-        IntVect rr(2);
-        IntVect mod(h > 0 ? 1 : 0);
-        if (free >= 0) {
-            rr[free] = 1;
-            mod[free] = 0;
-        }
+    // Hierarchy 0: smooth modes; 1: the checkerboard.
+    int const nhier = m_reduced ? 1 : int(m_hier.size());
+    for (int h = 0; h < nhier; ++h) {
         // Coarsen while possible, until the level is small enough for the
         // exact bottom solve. The fine grid always gets a coarse level.
         Level const* parent = m_hier[h].empty() ? &T : m_hier[h].back().get();
-        bool more = m_hier[h].empty() || coarsenable(parent->domain, rr);
+        bool more = m_hier[h].empty() || coarsenable(parent->domain);
         while (more) {
-            m_hier[h].push_back(make_coarse(*parent, rr, free,
-                                            m_hier[h].empty() ? mod : IntVect(0)));
+            m_hier[h].push_back(make_coarse(*parent, IntVect(m_hier[h].empty() ? h : 0)));
             parent = m_hier[h].back().get();
-            more = coarsenable(parent->domain, rr);
+            more = coarsenable(parent->domain);
         }
     }
 
@@ -1206,7 +889,7 @@ CrossProj::precond ()
     }
     Level& T = *m_top;
     cheby(T, 1, true);
-    for (int h = 0; h < nhier; ++h) {
+    for (int h = 0; h < int(m_hier.size()); ++h) {
         Level& C = *m_hier[h][0];
         residual(T);
         restrict_to(T, C);
@@ -1237,12 +920,10 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
     m_vel.FillBoundary(m_geom.periodicity());
 
     auto const dxinv = m_geom.InvCellSizeArray();
-    // G averages the differences over the 2^(dim-1) edges of a cell.
-    Real const avg = (AMREX_SPACEDIM == 3) ? Real(0.25) : Real(0.5);
-    GpuArray<Real,3> fac{};
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { fac[idim] = avg*dxinv[idim]; }
+    // G averages the differences over the 2 edges of a cell.
+    GpuArray<Real,2> const fac{Real(0.5)*dxinv[0], Real(0.5)*dxinv[1]};
 
-    // b = G^T u = -D u at the node (i,j,k), from the cells (i-1..i, ...)
+    // b = G^T u = -D u at the node (i,j), from the cells (i-1..i, j-1..j)
     {
         BL_PROFILE("GMG::CrossProj::rhs");
         auto const& ba = T.b.arrays();
@@ -1251,16 +932,12 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
         {
             auto const& v = va[bno];
             Real s = Real(0.0);
-            for (int c = 0; c <= kz; ++c) {
             for (int bb = 0; bb < 2; ++bb) {
             for (int a = 0; a < 2; ++a) {
-                int const ii = i-1+a, jj = j-1+bb, kk = k-kz+c;
-                s += (a  ? -fac[0] : fac[0]) * v(ii,jj,kk,0)
-                   + (bb ? -fac[1] : fac[1]) * v(ii,jj,kk,1);
-#if (AMREX_SPACEDIM == 3)
-                s += (c  ? -fac[2] : fac[2]) * v(ii,jj,kk,2);
-#endif
-            }}}
+                int const ii = i-1+a, jj = j-1+bb;
+                s += (a  ? -fac[0] : fac[0]) * v(ii,jj,k,0)
+                   + (bb ? -fac[1] : fac[1]) * v(ii,jj,k,1);
+            }}
             ba[bno](i,j,k) = s;
         });
     }
@@ -1269,16 +946,14 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
     // Below the roundoff in G^T u the residual cannot decrease, e.g., when
     // projecting a field that is already divergence free.
     Real const floor = Real(100.0) * std::numeric_limits<Real>::epsilon()
-        * maxabs(m_vel, AMREX_SPACEDIM) * (AMREX_D_TERM(dxinv[0], + dxinv[1], + dxinv[2]));
+        * maxabs(m_vel, AMREX_SPACEDIM) * (dxinv[0] + dxinv[1]);
     Real const target = std::max({m_reltol*bnorm, m_abstol, floor});
 
-#if (AMREX_SPACEDIM == 2)
     if (m_reduced) {
         BL_PROFILE("GMG::CrossProj::reduce");
         T.b.FillBoundary(T.period);
         reduce_rhs(T, P);
     }
-#endif
 
     m_x.setVal(Real(0.0));
     m_niters = 0;
@@ -1320,13 +995,11 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
     }
 
     MultiFab& phi = m_reduced ? T.x : m_x;
-#if (AMREX_SPACEDIM == 2)
     if (m_reduced) {
         BL_PROFILE("GMG::CrossProj::backsub");
         m_x.FillBoundary(P.period);
         back_substitute(T, m_x);
     }
-#endif
     phi.FillBoundary(T.period);
 
     // u -= G phi
@@ -1338,18 +1011,10 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
         ParallelFor(a_soln, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k) noexcept
         {
             auto const& ph = pa[bno];
-            Real g[3] = {Real(0.0), Real(0.0), Real(0.0)};
-            for (int c = 0; c <= kz; ++c) {
-            for (int bb = 0; bb < 2; ++bb) {
-            for (int a = 0; a < 2; ++a) {
-                Real const v = ph(i+a,j+bb,k+c);
-                g[0] += a  ? v : -v;
-                g[1] += bb ? v : -v;
-                g[2] += c  ? v : -v;
-            }}}
-            for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                sa[bno](i,j,k,n) = va[bno](i,j,k,n) - fac[n] * g[n];
-            }
+            Real const gx = ph(i+1,j,k) + ph(i+1,j+1,k) - ph(i,j,k) - ph(i,j+1,k);
+            Real const gy = ph(i,j+1,k) + ph(i+1,j+1,k) - ph(i,j,k) - ph(i+1,j,k);
+            sa[bno](i,j,k,0) = va[bno](i,j,k,0) - fac[0] * gx;
+            sa[bno](i,j,k,1) = va[bno](i,j,k,1) - fac[1] * gy;
         });
     }
     Gpu::streamSynchronize();
