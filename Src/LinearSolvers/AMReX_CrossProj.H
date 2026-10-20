@@ -69,7 +69,7 @@ public:
 private:
 
     void setup (BoxArray const& ba, DistributionMapping const& dm);
-    void precond (MultiFab& z, MultiFab const& r);
+    void precond ();
     void vcycle (int h, int lev);
 
     Geometry m_geom;
@@ -81,6 +81,8 @@ private:
 
     BoxArray m_grids; // cell-centered
     DistributionMapping m_dmap;
+    bool m_reduced = false; // 2D, dx == dy: PCG on the red/black reduced problem
+    MultiFab m_vel, m_x, m_p, m_q;
     std::unique_ptr<Level> m_top;
     // Coarse hierarchies: 0 for smooth modes; 2D: 1 for the checkerboard;
     // 3D: 1-3 for the families with the free direction x, y, z.
