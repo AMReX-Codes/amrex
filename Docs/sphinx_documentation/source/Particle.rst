@@ -622,6 +622,11 @@ with an :cpp:`amrex::SIMDindex`, provided by ``AMReX_ReduceSIMD.H``). See
 For a complete example, including a benchmark against the scalar entry
 points, see ``Tests/Particles/ParticleReduceSIMD``.
 
+Kernels that call transcendental functions on SIMD variables should use the
+math functions in ``AMReX_Math.H``, see :ref:`sec:basics:simdmath`. The SIMD
+library evaluates its own :cpp:`sin`, :cpp:`sinh` and friends one lane at a
+time, which can make a vectorized kernel slower than the scalar one.
+
 .. _sec:Particles:Interacting:
 
 Interacting with Mesh Data
