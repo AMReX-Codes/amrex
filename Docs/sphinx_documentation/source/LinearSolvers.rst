@@ -1183,8 +1183,8 @@ filled. The header is :cpp:`AMReX_CrossProj.H`.
     int niters = proj.getNumIters();
 
 The object should be cached for reuse, since it sets up the multigrid
-hierarchy on the first solve and whenever the grids change. Unlike the
-FFT solver, it does not need all-to-all communication.
+hierarchy on the first solve and whenever the grids change.
+
 
 .. _sec:linearsolver:gmres:
 
