@@ -926,10 +926,19 @@ int main (int argc, char* argv[])
     pc.checkNeighborList();
 
 #ifndef AMREX_USE_GPU
+    // A second container of the same type, constructed before inverse is
+    // enabled on pc. Enabling inverse on pc must not affect this container.
+    PureSoANeighborContainer other(geom, dm, ba, 1);
+    other.InitParticles(IntVect(params.num_ppc), params.size);
+
     // sumNeighbors() is currently only implemented on the CPU path.
     pc.setEnableInverse(true);
     pc.fillNeighbors();
     pc.checkInverseSumNeighbors();
+
+    AMREX_ALWAYS_ASSERT(!other.enableInverse());
+    other.fillNeighbors();
+    other.checkNeighbors();
 #endif
 
     amrex::Finalize();

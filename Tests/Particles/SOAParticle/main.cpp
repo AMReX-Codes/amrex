@@ -8,6 +8,7 @@
 #include <AMReX_GpuContainers.H>
 
 #include <array>
+#include <type_traits>
 
 using namespace amrex;
 
@@ -178,6 +179,82 @@ void addParticles ()
 
 
 
+// A non-default cell assignor; make_alike() must preserve it.
+struct MyAssignor : amrex::DefaultAssignor {};
+
+void testContainerLike ()
+{
+    using PCSoA = ParticleContainerPureSoA<4, 2, amrex::DefaultAllocator, MyAssignor>;
+    static_assert(std::is_same_v<PCSoA::ContainerLike<amrex::PinnedArenaAllocator>,
+                  ParticleContainerPureSoA<4, 2, amrex::PinnedArenaAllocator, MyAssignor>>,
+                  "ContainerLike must preserve the CellAssignor");
+
+    using PCAoS = ParticleContainer<1, 1, 2, 2, amrex::DefaultAllocator, MyAssignor>;
+    static_assert(std::is_same_v<PCAoS::ContainerLike<amrex::PinnedArenaAllocator>,
+                  ParticleContainer<1, 1, 2, 2, amrex::PinnedArenaAllocator, MyAssignor>>,
+                  "ContainerLike must preserve the CellAssignor");
+}
+
+void testPushBackRange ()
+{
+    ParticleTile<SoAParticle<4, 2>, 4, 2, amrex::PinnedArenaAllocator> ptile;
+    ptile.define(0, 0);
+
+    amrex::Vector<amrex::ParticleReal> rv{1.0_prt, 2.0_prt, 3.0_prt};
+    amrex::Vector<int> iv{4, 5, 6};
+    amrex::Vector<amrex::ParticleReal> rempty;
+    amrex::Vector<int> iempty;
+
+    ptile.push_back_real(0, rempty);
+    ptile.push_back_int(0, iempty);
+    AMREX_ALWAYS_ASSERT(ptile.GetStructOfArrays().GetRealData(0).empty());
+    AMREX_ALWAYS_ASSERT(ptile.GetStructOfArrays().GetIntData(0).empty());
+
+    ptile.push_back_real(0, rv);
+    ptile.push_back_int(0, iv);
+    ptile.push_back_real(0, rv.cbegin(), rv.cend());
+    ptile.push_back_int(0, iv.cbegin(), iv.cend());
+
+    auto const& rdata = ptile.GetStructOfArrays().GetRealData(0);
+    auto const& idata = ptile.GetStructOfArrays().GetIntData(0);
+    AMREX_ALWAYS_ASSERT(rdata.size() == 6 && idata.size() == 6);
+    for (int i = 0; i < 6; ++i) {
+        AMREX_ALWAYS_ASSERT(rdata[i] == rv[i%3]);
+        AMREX_ALWAYS_ASSERT(idata[i] == iv[i%3]);
+    }
+}
+
+void testPerContainerParmParse ()
+{
+    // particles.use_prepost must apply to every
+    // container, not only the first one of a given type.
+    {
+        amrex::ParmParse pp("particles");
+        pp.add("use_prepost", 1);
+    }
+
+    Box domain(IntVect(0), IntVect(15));
+    RealBox real_box;
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 1.0);
+    }
+    Array<int,AMREX_SPACEDIM> is_per{AMREX_D_DECL(0,0,0)};
+    Geometry geom(domain, real_box, CoordSys::cartesian, is_per);
+    BoxArray ba(domain);
+    DistributionMapping dm(ba);
+
+    using PC = ParticleContainerPureSoA<4, 2>;
+    PC a(geom, dm, ba);
+    PC b(geom, dm, ba);
+    AMREX_ALWAYS_ASSERT(a.GetUsePrePost() && b.GetUsePrePost());
+
+    {
+        amrex::ParmParse pp("particles");
+        pp.remove("use_prepost");
+    }
+}
+
 int main(int argc, char* argv[])
  {
     {
@@ -186,6 +263,9 @@ int main(int argc, char* argv[])
     }
     amrex::Initialize(argc,argv);
     {
+        testContainerLike();
+        testPushBackRange();
+        testPerContainerParmParse();
         addParticles< ParticleContainerPureSoA<4, 2, amrex::PolymorphicArenaAllocator> > ();
     }
     amrex::Finalize();
