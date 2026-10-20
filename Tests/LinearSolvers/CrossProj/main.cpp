@@ -42,8 +42,8 @@ int main (int argc, char* argv[])
         ParallelFor(vel, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
             constexpr Real tpi = Real(2.)*Math::pi<Real>();
-            Real x = (i+0.5_rt) * dx[0] / plen[0] - 0.5_rt;
-            Real y = (j+0.5_rt) * dx[1] / plen[1] - 0.5_rt;
+            Real x = (Real(i)+0.5_rt) * dx[0] / plen[0] - 0.5_rt;
+            Real y = (Real(j)+0.5_rt) * dx[1] / plen[1] - 0.5_rt;
             // Plus a checkerboard, which the cross stencil barely sees.
             Real const chk = ((i+j) % 2 == 0) ? 0.1_rt : -0.1_rt;
             u[b](i,j,k,0) = std::cos(tpi*x) + std::cos(tpi*y) + chk;
