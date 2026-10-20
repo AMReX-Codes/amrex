@@ -1363,6 +1363,11 @@ The following can be tuned:
   boundaries. As in MLMG, the mean of the right-hand side is removed, but
   the caller's right-hand side is not modified, and the solution is returned
   with zero mean.
+- :cpp:`setNullSpaceGroups(group, ngroups)`: with :cpp:`setSingular(true)`,
+  for matrices whose rows split into groups that the matrix does not couple,
+  so that the constant on each group is a null vector. :cpp:`group` gives
+  the group, from 0 to :cpp:`ngroups-1`, of each local row. The means are
+  then removed per group.
 - :cpp:`setStrongThreshold`: threshold of the strength of connection,
   typically between 0.1 and 0.5 (0.25 by default). It trades performance
   for robustness: a smaller value gives a cheaper hierarchy, with less

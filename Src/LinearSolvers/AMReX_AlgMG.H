@@ -330,6 +330,20 @@ public:
     void setSingular (bool b) {
         if (m_singular != b) { m_singular = b; m_prepared = false; }
     }
+    //! For a singular matrix whose rows split into `ngroups` groups that
+    //! the matrix does not couple: the constant on each group is a null
+    //! vector, and the mean is removed per group. `group` holds the group
+    //! (0 to ngroups-1) of each local row. Used with setSingular(true). Next setup.
+    void setNullSpaceGroups (Gpu::DeviceVector<int> const& group, int ngroups) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngroups >= 1 && ngroups <= max_null_groups,
+                                         "AlgMG::setNullSpaceGroups: 1 to 8 groups");
+        m_ngroups = ngroups;
+        m_group0.resize(group.size());
+        Gpu::copyAsync(Gpu::deviceToDevice, group.begin(), group.end(), m_group0.begin());
+        Gpu::streamSynchronize();
+        m_prepared = false;
+    }
+    static constexpr int max_null_groups = 8;
     //! Takes effect at the next setup.
     void setInterpType (InterpType it) { if (m_interp_type != it) { m_interp_type = it; m_prepared = false; } }
     //! Maximum number of entries per row of P (0: no limit; at most
@@ -418,6 +432,10 @@ private:
     int m_aggressive_num_levels = 0;
     bool m_aggressive_direct_interp = false;
     bool m_singular = false;
+    int m_ngroups = 1;
+    Gpu::DeviceVector<int> m_group0;              // null space groups of the rows
+    Vector<Gpu::DeviceVector<int>> m_group;       // per level, with m_ngroups > 1
+    Vector<Vector<Long>> m_group_size;            // per level, global rows per group
     std::unique_ptr<AlgVector<T>> m_bproj; // rhs with the mean removed
     T m_strong_threshold = T(0.25);
 
@@ -432,6 +450,8 @@ private:
     Long m_bottom_n = -1;          // rows of the factored coarsest matrix; -1: not built, 0: not applicable
     Vector<double> m_bottom_lu;    // dense LU, row-major, pivoted
     Vector<int> m_bottom_piv;
+    Vector<int> m_bottom_group;    // singular: null space group of each row
+    Vector<Long> m_bottom_group_size;
     T m_bottom_reltol = T(1.e-4);
     int m_bottom_maxiter = 200;
     int m_bottom_verbose = 0;
@@ -543,16 +563,44 @@ public: // NOLINT
                                          Gpu::DeviceVector<Long>& cidx,
                                          int which = PointType::coarse);
 
-    //! Singular systems: remove the mean of `x` (the constant null vector
-    //! is the same on every level since interpolation preserves constants).
-    void project_out (AlgVector<T>& x)
+    [[nodiscard]] bool has_groups () const { return m_singular && m_ngroups > 1; }
+
+    //! Singular systems: remove the mean of `x` on level `lev`, per null
+    //! space group (the constant null vectors are the same on every level
+    //! since interpolation preserves constants within each group).
+    void project_out (AlgVector<T>& x, int lev)
     {
         if (!m_singular) { return; }
-        T const mean = x.sum() / T(x.partition().numGlobalRows());
         auto* AMREX_RESTRICT px = x.data();
-        ParallelForOMP(x.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) noexcept { px[i] -= mean; });
+        Long const nrows = x.numLocalRows();
+        if (!has_groups()) {
+            T const mean = x.sum() / T(x.partition().numGlobalRows());
+            ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { px[i] -= mean; });
+        } else {
+            auto const* AMREX_RESTRICT pg = m_group[lev].data();
+            GpuArray<T,max_null_groups> mean{};
+            for (int g = 0; g < m_ngroups; ++g) {
+                mean[g] = Reduce::Sum<T>(nrows, [=] AMREX_GPU_DEVICE (Long i) -> T {
+                    return (pg[i] == g) ? px[i] : T(0);
+                });
+            }
+            ParallelAllReduce::Sum(mean.data(), m_ngroups, ParallelContext::CommunicatorSub());
+            for (int g = 0; g < m_ngroups; ++g) { mean[g] /= T(m_group_size[lev][g]); }
+            ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { px[i] -= mean[pg[i]]; });
+        }
         Gpu::streamSynchronize();
     }
+
+    //! Global number of rows in each null space group on level `lev`.
+    [[nodiscard]] Vector<Long> count_groups (int lev) const;
+
+    //! Groups of the coarse rows: a C-point i (state_i coarse) keeps its group.
+    void coarse_groups (int lev, Gpu::DeviceVector<int> const& state,
+                        Gpu::DeviceVector<Long> const& cidx, Long ncoarse_local);
+
+    //! Aborts unless P maps the constant on each coarse group to the
+    //! constant on the same fine group, i.e., P does not couple groups.
+    void check_group_interp (int lev, SpMatrix<T> const& P, AlgPartition const& cpart);
 
     //! Classical direct interpolation.
     static SpMatrix<T> build_interp (SpMatrix<T>& A, SpMatrix<TS> const& S,
@@ -652,6 +700,10 @@ void AlgMG<T>::clear_levels ()
     m_bottom_n = -1;
     m_bottom_lu.clear();
     m_bottom_piv.clear();
+    m_bottom_group.clear();
+    m_bottom_group_size.clear();
+    m_group.clear();
+    m_group_size.clear();
 }
 
 template <typename T>
@@ -666,7 +718,7 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     if (m_singular) {
         if (!m_bproj) { m_bproj = std::make_unique<AlgVector<T>>(m_mat->partition()); }
         m_bproj->copy(a_rhs);
-        project_out(*m_bproj);
+        project_out(*m_bproj, 0);
         prhs = m_bproj.get();
     }
     AlgVector<T> const& rhs = *prhs;
@@ -692,13 +744,13 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         if (m_verbose >= 1) {
             amrex::Print() << m_print_ident << "AlgMG: No iterations needed\n";
         }
-        project_out(a_sol);
+        project_out(a_sol, 0);
         return;
     }
 
     if (m_krylov != KrylovSolver::none) {
         solve_krylov(a_sol, rhs, res_target);
-        project_out(a_sol);
+        project_out(a_sol, 0);
         return;
     }
 
@@ -739,7 +791,7 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         amrex::Print() << m_print_ident << "AlgMG: Not converged after " << m_niters
                        << " iterations. rnorm/bnorm = " << m_rnorm/m_bnorm << "\n";
     }
-    project_out(a_sol);
+    project_out(a_sol, 0);
 }
 
 template <typename T>
@@ -747,7 +799,7 @@ void AlgMG<T>::precond (AlgVector<T>& x, AlgVector<T> const& b)
 {
     prepare();
     vcycle(x, b);
-    project_out(x);
+    project_out(x, 0);
 }
 
 template <typename T>
@@ -928,7 +980,14 @@ void AlgMG<T>::bottom_solve ()
     BL_PROFILE("AlgMG::bottom_solve");
 
     int const lev = numLevels()-1;
-    project_out(m_res[lev]); // keep the coarsest solve consistent
+    auto bottom_solver = m_bottom_solver;
+    if (bottom_solver == BottomSolver::direct) {
+        if (m_bottom_n < 0) { build_direct_bottom(); }
+        if (m_bottom_n == 0) { bottom_solver = BottomSolver::jacobi; }
+    }
+    // The direct solver removes the means locally on the gathered vectors.
+    bool const direct = (bottom_solver == BottomSolver::direct);
+    if (!direct) { project_out(m_res[lev], lev); } // keep the coarsest solve consistent
     auto smooth_bottom = [&] () {
         if (m_smoother_type == Smoother::l1_gauss_seidel) {
             // Forward then backward sweeps keep the cycle symmetric.
@@ -955,11 +1014,6 @@ void AlgMG<T>::bottom_solve ()
             smooth_bottom();
         }
     };
-    auto bottom_solver = m_bottom_solver;
-    if (bottom_solver == BottomSolver::direct) {
-        if (m_bottom_n < 0) { build_direct_bottom(); }
-        if (m_bottom_n == 0) { bottom_solver = BottomSolver::jacobi; }
-    }
     switch (bottom_solver) {
     case BottomSolver::direct:
         direct_bottom_solve();
@@ -982,7 +1036,7 @@ void AlgMG<T>::bottom_solve ()
         krylov_bottom(*m_bicgstab);
         break;
     }
-    project_out(m_cor[lev]);
+    if (!direct) { project_out(m_cor[lev], lev); }
 }
 
 template <typename T>
@@ -996,6 +1050,18 @@ void AlgMG<T>::setup ()
     m_mat->setColumnPartition(m_mat->partition()); // square: local column indexing
     m_setup_peak_bytes = 0;
     note_memory(0, "start");
+    if (has_groups()) {
+        Long const nrows = m_mat->numLocalRows();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Long(m_group0.size()) == nrows,
+            "AlgMG: setNullSpaceGroups needs one group per local row");
+        m_group.emplace_back(nrows);
+        Gpu::copyAsync(Gpu::deviceToDevice, m_group0.begin(), m_group0.end(), m_group[0].begin());
+        m_group_size.push_back(count_groups(0));
+        Long ntot = 0;
+        for (auto c : m_group_size[0]) { ntot += c; }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ntot == m_mat->numGlobalRows(),
+            "AlgMG: setNullSpaceGroups: groups must be in [0, ngroups)");
+    }
 
     // The coarsening follows De Sterck, Yang & Heys [2].
 
@@ -1029,6 +1095,7 @@ void AlgMG<T>::setup ()
         // P 1 = 1 only to single precision, since the weights come from the
         // strength matrix; singular problems need it exactly.
         if (m_singular) { normalize_rows(P); }
+        if (has_groups()) { check_group_interp(lev, P, cpart); }
         if (m_verbose >= 2 && aggressive) {
             amrex::Print() << m_print_ident << "AlgMG: level " << lev
                            << ": aggressive coarsening, " << ncoarse << " -> "
@@ -1167,14 +1234,33 @@ void AlgMG<T>::build_direct_bottom ()
     }
     allgather_rows(dense.data(), A.partition(), n);
 
-    // Singular: the constant vector is in the null space. Adding (1/n) 1 1^T
-    // makes the matrix regular; the coarsest residual and correction have
-    // their mean removed, so the added term never acts on them.
+    // Singular: the constant vector (on each group) is in the null space.
+    // Adding (1/n_g) 1_g 1_g^T makes the matrix regular; the coarsest
+    // residual and correction have their (group) means removed, so the
+    // added terms never act on them.
     if (m_singular) {
         double dsum = 0.0;
         for (Long i = 0; i < n; ++i) { dsum += std::abs(dense[i*n+i]); }
-        double const w = (dsum/double(n))/double(n);
-        for (auto& v : dense) { v += w; }
+        double const dmean = dsum/double(n);
+        m_bottom_group.assign(n, 0);
+        m_bottom_group_size.assign(1, n);
+        if (has_groups()) {
+            Vector<double> grp(n); // group of each global row
+            Long const nl = A.numLocalRows();
+            Gpu::PinnedVector<int> hg(nl);
+            if (nl > 0) { Gpu::copy(Gpu::deviceToHost, m_group[lev].begin(), m_group[lev].end(), hg.begin()); }
+            for (Long i = 0; i < nl; ++i) { grp[pc.row_begin+i] = double(hg[i]); }
+            allgather_rows(grp.data(), A.partition(), 1);
+            for (Long i = 0; i < n; ++i) { m_bottom_group[i] = int(grp[i]); }
+            m_bottom_group_size = m_group_size[lev];
+        }
+        for (Long i = 0; i < n; ++i) {
+            int const gi = m_bottom_group[i];
+            double const w = dmean/double(m_bottom_group_size[gi]);
+            for (Long j = 0; j < n; ++j) {
+                if (m_bottom_group[j] == gi) { dense[i*n+j] += w; }
+            }
+        }
     }
 
     // LU with partial pivoting, in place (Doolittle). A pivot at roundoff
@@ -1252,6 +1338,18 @@ void AlgMG<T>::direct_bottom_solve ()
     }
     allgather_rows(rhs.data(), r.partition(), 1);
 
+    // Singular: remove the (group) means from the gathered vectors, as
+    // project_out does but without communication.
+    auto remove_means = [&] (auto& v) {
+        if (m_bottom_group.empty()) { return; }
+        int const ng = int(m_bottom_group_size.size());
+        Vector<double> mean(ng, 0.0);
+        for (Long i = 0; i < n; ++i) { mean[m_bottom_group[i]] += v[i]; }
+        for (int g = 0; g < ng; ++g) { mean[g] /= double(m_bottom_group_size[g]); }
+        for (Long i = 0; i < n; ++i) { v[i] -= mean[m_bottom_group[i]]; }
+    };
+    remove_means(rhs);
+
     // P A = L U: forward substitution with the unit lower part, then back.
     Vector<double> y(n);
     auto const& lu = m_bottom_lu;
@@ -1265,6 +1363,7 @@ void AlgMG<T>::direct_bottom_solve ()
         for (Long k = i+1; k < n; ++k) { v -= lu[i*n+k]*y[k]; }
         y[i] = v/lu[i*n+i];
     }
+    remove_means(y);
 
     if (nl > 0) {
         for (Long i = 0; i < nl; ++i) { loc[i] = T(y[b0+i]); }
@@ -1362,6 +1461,7 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
                 cf[i] = (p1[i] == PointType::coarse) ? c2[c1[i]] : Long(0);
             });
             Gpu::streamSynchronize();
+            if (has_groups()) { coarse_groups(lev, statef, cidxf, cpart2.numLocalRows()); }
 
             bool const trunc = (m_p_max_elmts > 0 || m_trunc_factor > T(0));
             SpMatrix<T> P1;
@@ -1402,6 +1502,7 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
         }
     }
     if (!aggressive) {
+        if (has_groups()) { coarse_groups(lev, state, cidx, cpart.numLocalRows()); }
 #ifndef AMREX_USE_GPU
         if (host_interp) {
             P = build_interp_mm_host(A, S, ST, state, cidx, cpart, sscale,
@@ -1421,6 +1522,65 @@ bool AlgMG<T>::coarsen_level (int lev, SpMatrix<T>& A, SpMatrix<T>& P, AlgPartit
     }
     note_memory(lev, "interpolation");
     return true;
+}
+
+template <typename T>
+Vector<Long> AlgMG<T>::count_groups (int lev) const
+{
+    auto const* AMREX_RESTRICT pg = m_group[lev].data();
+    Long const nrows = Long(m_group[lev].size());
+    Vector<Long> count(m_ngroups);
+    for (int g = 0; g < m_ngroups; ++g) {
+        count[g] = Reduce::Sum<Long>(nrows, [=] AMREX_GPU_DEVICE (Long i) -> Long {
+            return pg[i] == g;
+        });
+    }
+    ParallelAllReduce::Sum(count.data(), m_ngroups, ParallelContext::CommunicatorSub());
+    return count;
+}
+
+template <typename T>
+void AlgMG<T>::coarse_groups (int lev, Gpu::DeviceVector<int> const& state,
+                              Gpu::DeviceVector<Long> const& cidx, Long ncoarse_local)
+{
+    auto const* AMREX_RESTRICT ps = state.data();
+    auto const* AMREX_RESTRICT pc = cidx.data();
+    auto const* AMREX_RESTRICT pf = m_group[lev].data();
+    Gpu::DeviceVector<int> cg(ncoarse_local);
+    auto* AMREX_RESTRICT pcg = cg.data();
+    ParallelForOMP(Long(state.size()), [=] AMREX_GPU_DEVICE (Long i) noexcept
+    {
+        if (ps[i] == PointType::coarse) { pcg[pc[i]] = pf[i]; }
+    });
+    Gpu::streamSynchronize();
+    m_group.push_back(std::move(cg));
+    m_group_size.push_back(count_groups(lev+1));
+}
+
+template <typename T>
+void AlgMG<T>::check_group_interp (int lev, SpMatrix<T> const& P, AlgPartition const& cpart)
+{
+    AlgVector<T> ind(cpart), pind(P.partition());
+    auto const* AMREX_RESTRICT pcg = m_group[lev+1].data();
+    auto const* AMREX_RESTRICT pfg = m_group[lev].data();
+    T const tol = std::sqrt(std::numeric_limits<T>::epsilon());
+    for (int g = 0; g < m_ngroups; ++g) {
+        auto* AMREX_RESTRICT pi = ind.data();
+        ParallelForOMP(ind.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) noexcept
+        {
+            pi[i] = (pcg[i] == g) ? T(1) : T(0);
+        });
+        SpMV(pind, P, ind);
+        auto const* AMREX_RESTRICT pp = pind.data();
+        T err = Reduce::Max<T>(pind.numLocalRows(), [=] AMREX_GPU_DEVICE (Long i) -> T {
+            return std::abs(pp[i] - ((pfg[i] == g) ? T(1) : T(0)));
+        });
+        ParallelAllReduce::Max(err, ParallelContext::CommunicatorSub());
+        if (err > tol) {
+            amrex::Abort("AlgMG: the matrix couples the null space groups (level "
+                         + std::to_string(lev) + " interpolation)");
+        }
+    }
 }
 
 template <typename T>

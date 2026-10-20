@@ -38,7 +38,9 @@ struct Params {
     // constant: a*phi - lap(phi);
     // jump: coefficient `jump` in the central cube;
     // checker: blocks of `block` cells alternating 1 and `jump`;
-    // aniso: coefficient `eps` in x, 1 in the other directions.
+    // aniso: coefficient `eps` in x, 1 in the other directions;
+    // corner: singular periodic stencil coupling only diagonal neighbors
+    // (i+-2 in 1D), whose rows split into decoupled null space groups.
     std::string problem = "constant";
     Real jump = Real(1.e3);
     int block = 4;
@@ -73,7 +75,7 @@ std::string sci (Real v)
 // Cell-centered diffusion coefficient of the test problems.
 struct Coef
 {
-    int type; // 0 constant, 1 jump, 2 checker, 3 aniso
+    int type; // 0 constant, 1 jump, 2 checker, 3 aniso, 4 corner
     Real jump;
     int block;
     Real eps;
@@ -81,7 +83,7 @@ struct Coef
 
     AMREX_GPU_DEVICE Real operator() (IntVect const& c, int dir) const noexcept
     {
-        if (type == 0) { return Real(1); }
+        if (type == 0 || type == 4) { return Real(1); }
         if (type == 3) { return (dir == 0) ? eps : Real(1); }
         if (type == 1) {
             bool inside = true;
@@ -101,7 +103,7 @@ struct Coef
 // the MLMG solves.
 struct Problem
 {
-    int type; // 0 constant, 1 jump, 2 checker, 3 aniso
+    int type; // 0 constant, 1 jump, 2 checker, 3 aniso, 4 corner
     bool dirichlet;
     Box domain;
     Real dx;
@@ -111,8 +113,12 @@ struct Problem
 Problem make_problem (Params const& p)
 {
     int const ptype = (p.problem == "constant") ? 0 : (p.problem == "jump") ? 1
-                    : (p.problem == "checker") ? 2 : (p.problem == "aniso") ? 3 : -1;
+                    : (p.problem == "checker") ? 2 : (p.problem == "aniso") ? 3
+                    : (p.problem == "corner") ? 4 : -1;
     if (ptype < 0) { amrex::Abort("Unknown problem: " + p.problem); }
+    if (ptype == 4 && (p.bc != "periodic" || p.n_cell % 2 != 0)) {
+        amrex::Abort("Problem corner needs bc=periodic and an even n_cell");
+    }
     Box const domain(IntVect(0), IntVect(p.n_cell-1));
     Real const dx = Real(2)*Math::pi<Real>()/Real(domain.length(0));
     return {.type = ptype, .dirichlet = p.bc == "dirichlet", .domain = domain, .dx = dx,
@@ -284,7 +290,7 @@ Result run (Params const& p)
     AlgVector<Real> bvec(xvec.partition());
     AlgVector<Real> exact(xvec.partition());
 
-    Real a = p.alpha;
+    Real a = (ptype == 4) ? Real(0) : p.alpha;
 
     BoxIndexer box_indexer(domain);
 
@@ -366,7 +372,39 @@ Result run (Params const& p)
         val[i] = diag;
     };
 
-    int const nnz_row = 2*AMREX_SPACEDIM+1;
+    // Corner: 2/dx^2 (phi_i - mean of the diagonal neighbors), and in 1D
+    // neighbors i+-2. Its null space is the constant on each group.
+    auto set_corner = [=] AMREX_GPU_DEVICE (Long row, Long* col, Real* val)
+    {
+        IntVect cell = box_indexer.intVect(row);
+        constexpr int nnb = (AMREX_SPACEDIM == 1) ? 2 : (1 << AMREX_SPACEDIM);
+        for (int m = 0; m < nnb; ++m) {
+            IntVect cell2 = cell;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                int const off = (AMREX_SPACEDIM == 1) ? 2*(2*m-1) : (((m >> idim) & 1) ? 1 : -1);
+                int const len = domain.length(idim);
+                cell2[idim] = (cell2[idim] + off + len) % len;
+            }
+            col[m] = domain.index(cell2);
+            val[m] = -Real(2)/(Real(nnb)*dx*dx);
+        }
+        col[nnb] = row;
+        val[nnb] = Real(2)/(dx*dx);
+    };
+    auto group_of = [=] AMREX_GPU_DEVICE (IntVect const& c) -> int
+    {
+#if (AMREX_SPACEDIM == 1)
+        return c[0] & 1;
+#elif (AMREX_SPACEDIM == 2)
+        return (c[0]+c[1]) & 1;
+#else
+        return ((c[0]+c[2]) & 1) + 2*((c[1]+c[2]) & 1);
+#endif
+    };
+    int const ngroups = (AMREX_SPACEDIM == 3) ? 4 : 2;
+
+    int const nnz_row = (ptype == 4) ? ((AMREX_SPACEDIM == 1) ? 3 : (1 << AMREX_SPACEDIM) + 1)
+                                     : 2*AMREX_SPACEDIM+1;
     Long const nlocal = xvec.numLocalRows();
     SpMatrix<Real> mat;
     {
@@ -380,7 +418,13 @@ Result run (Params const& p)
         ParallelFor(nlocal+1, [=] AMREX_GPU_DEVICE (Long lrow)
         {
             po[lrow] = lrow*nnz_row;
-            if (lrow < nlocal) { set_stencil(lrow+ib, pc+lrow*nnz_row, pv+lrow*nnz_row); }
+            if (lrow < nlocal) {
+                if (ptype == 4) {
+                    set_corner(lrow+ib, pc+lrow*nnz_row, pv+lrow*nnz_row);
+                } else {
+                    set_stencil(lrow+ib, pc+lrow*nnz_row, pv+lrow*nnz_row);
+                }
+            }
         });
         Gpu::streamSynchronize();
         mat.define(xvec.partition(), pv, pc, nlocal*nnz_row, po, CsrSorted{false},
@@ -402,8 +446,20 @@ Result run (Params const& p)
     if (p.max_levels) { amg.setMaxLevels(*p.max_levels); }
     if (p.aggressive_levels) { amg.setAggressiveNumLevels(*p.aggressive_levels); }
     if (p.aggressive_direct) { amg.setAggressiveDirectInterp(*p.aggressive_direct != 0); }
-    bool const singular = (p.alpha == Real(0) && !dirichlet);
+    bool const singular = (a == Real(0) && !dirichlet);
     if (singular) { amg.setSingular(true); }
+    Gpu::DeviceVector<int> groups;
+    if (ptype == 4) {
+        groups.resize(nlocal);
+        auto* pg = groups.data();
+        Long const ib = xvec.globalBegin();
+        ParallelFor(nlocal, [=] AMREX_GPU_DEVICE (Long lrow)
+        {
+            pg[lrow] = group_of(box_indexer.intVect(lrow+ib));
+        });
+        Gpu::streamSynchronize();
+        amg.setNullSpaceGroups(groups, ngroups);
+    }
     if (p.max_coarse_size) { amg.setMaxCoarseSize(*p.max_coarse_size); }
     amg.setInterpType(amrex::getEnumCaseInsensitive<AlgMGInterpType>(interp));
     amg.setSmoother(amrex::getEnumCaseInsensitive<AlgMGSmoother>(p.smoother));
@@ -440,9 +496,13 @@ Result run (Params const& p)
     // error) at least the smallest coefficient times the lowest nonzero
     // Laplacian eigenvalue. Dirichlet: at least alpha plus the smallest
     // coefficient times the lowest eigenvalue with the boundary one cell out.
+    // Corner (error with zero mean on each group): 2/dx^2 (1 - cos(dx)), or
+    // 2/dx^2 (1 - cos(2 dx)) in 1D.
     Real const cmin = (ptype == 0) ? Real(1) : (ptype == 3) ? std::min(Real(1), p.eps)
                                              : std::min(Real(1), p.jump);
-    Real const lam_min = dirichlet
+    Real const lam_corner = (Real(2) - Real(2)*std::cos((AMREX_SPACEDIM == 1) ? 2*dx : dx))
+        / (dx*dx);
+    Real const lam_min = (ptype == 4) ? lam_corner : dirichlet
         ? a + cmin * Real(AMREX_SPACEDIM) *
               (Real(2) - Real(2)*std::cos(amrex::Math::pi<Real>()/Real(n_cell+1))) / (dx*dx)
         : singular ? cmin * (Real(2) - Real(2)*std::cos(dx)) / (dx*dx) : a;
@@ -450,7 +510,19 @@ Result run (Params const& p)
         + Real(100) * std::numeric_limits<Real>::epsilon();
 
     amrex::Axpy(xvec, Real(-1), exact);
-    if (singular) { // the solution is defined up to a constant
+    if (singular && ptype == 4) { // defined up to a constant on each group
+        auto* px = xvec.data();
+        auto const* pg = groups.data();
+        GpuArray<Real,4> mean{};
+        for (int g = 0; g < ngroups; ++g) {
+            mean[g] = Reduce::Sum<Real>(nlocal, [=] AMREX_GPU_DEVICE (Long i) -> Real {
+                return (pg[i] == g) ? px[i] : Real(0);
+            }) / (Real(n) / Real(ngroups));
+        }
+        ParallelAllReduce::Sum(mean.data(), ngroups, ParallelDescriptor::Communicator());
+        ParallelFor(nlocal, [=] AMREX_GPU_DEVICE (Long i) { px[i] -= mean[pg[i]]; });
+        Gpu::streamSynchronize();
+    } else if (singular) { // the solution is defined up to a constant
         Real const mean = xvec.sum() / Real(xvec.partition().numGlobalRows());
         amrex::ForEach(xvec, [=] AMREX_GPU_DEVICE (Real& x) { x -= mean; });
         Gpu::streamSynchronize();
@@ -509,7 +581,8 @@ std::string given_options (Params const& p)
 std::string problem_line (Params const& p)
 {
     std::ostringstream os;
-    os << p.problem << ": n_cell=" << p.n_cell << " bc=" << p.bc << " alpha=" << p.alpha;
+    os << p.problem << ": n_cell=" << p.n_cell << " bc=" << p.bc
+       << " alpha=" << ((p.problem == "corner") ? Real(0) : p.alpha);
     if (p.problem == "jump" || p.problem == "checker") { os << " jump=" << p.jump; }
     if (p.problem == "checker") { os << " block=" << p.block; }
     if (p.problem == "aniso") { os << " eps=" << p.eps; }
@@ -594,7 +667,7 @@ Vector<Params> make_cases (Params const& p, Vector<std::string> const& groups)
     // PCG needs a symmetric cycle: as many pre- as post-smoothing sweeps and
     // smoother sweeps at the bottom.
     bool const symmetric = (p.nu1 == p.nu2);
-    if (p.alpha != Real(0)) {
+    if (p.alpha != Real(0) && p.problem != "corner") {
         // Singular periodic problem: plain cycles and PCG.
         add("singular", "bicgstab").alpha = Real(0);
         if (symmetric) {
@@ -654,7 +727,10 @@ int main (int argc, char* argv[])
         if (p.bc != "periodic" && p.bc != "dirichlet") { amrex::Abort("Unknown bc: " + p.bc); }
         Vector<std::string> problems; // queryarr does not shrink a vector
         pp.queryarr("problem", problems);
-        if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso"}; }
+        if (problems.empty()) { problems = {"constant", "jump", "checker", "aniso", "corner"}; }
+        if (p.bc != "periodic" || p.n_cell % 2 != 0) { // corner needs both
+            std::erase(problems, std::string("corner"));
+        }
         Vector<std::string> variation_problems; // empty: all problems
         pp.queryarr("variation_problems", variation_problems);
         Vector<std::string> variation_groups; // empty: all groups
@@ -760,7 +836,7 @@ int main (int argc, char* argv[])
                 }
             }
             amrex::Print() << rule << "\n";
-            if (p.mlmg) { run_mlmg(p, failures); }
+            if (p.mlmg && problem != "corner") { run_mlmg(p, failures); }
         }
         amrex::Print() << "\nSummary: " << ncases << (ncases == 1 ? " case, " : " cases, ")
                        << ncases - failures.size()
