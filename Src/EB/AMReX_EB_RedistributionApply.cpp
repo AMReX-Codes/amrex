@@ -170,13 +170,28 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                 });
         }
 
-        amrex::ParallelFor(Box(scratch), ncomp,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
-                scratch(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n) / scale;
-            }
-        );
+        Box const scratch_box(scratch);
+
+        if (srd_update_scale) {
+            amrex::ParallelFor(scratch_box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    const Real inv_scale = Real(1.0) / srd_update_scale(i,j,k);
+                    const Real alpha = dt * inv_scale;
+
+                    for (int n = 0; n < ncomp; ++n) {
+                        scratch(i,j,k,n) = U_in(i,j,k,n)
+                            + alpha * dUdt_in(i,j,k,n);
+                    }
+                });
+        } else {
+            amrex::ParallelFor(scratch_box, ncomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    scratch(i,j,k,n) = U_in(i,j,k,n)
+                        + dt * dUdt_in(i,j,k,n);
+                });
+        }
 
         Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
         Dim3* const active_cells = active_cells_v.data();
