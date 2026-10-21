@@ -14,6 +14,9 @@ permissions:
   actions: read  # clang-tidy database artifacts
   contents: read
 
+env:
+  GH_TOKEN: ${{ github.token }}  # clang-tidy database artifacts
+
 jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
@@ -72,7 +75,6 @@ jobs:
         make install
         make test_install
 
-        GH_TOKEN=${{ github.token }} \
         ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
             "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -142,7 +144,6 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        GH_TOKEN=${{ github.token }} \
         ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
             "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -305,7 +306,6 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        GH_TOKEN=${{ github.token }} \
         ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
             "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 

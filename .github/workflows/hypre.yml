@@ -14,6 +14,9 @@ permissions:
   actions: read  # clang-tidy database artifacts
   contents: read
 
+env:
+  GH_TOKEN: ${{ github.token }}  # clang-tidy database artifacts
+
 jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
@@ -131,7 +134,6 @@ jobs:
             done
         done
 
-        GH_TOKEN=${{ github.token }} \
         ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
             "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -188,7 +190,6 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
-        GH_TOKEN=${{ github.token }} \
         ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
             "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
