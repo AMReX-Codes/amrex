@@ -74,8 +74,7 @@ find_active_cells (Box const& bx, Array4<Real const> const& vfrac,
 
 #if (AMREX_SPACEDIM == 2)
 
-// itracker has 4 components: the neighbor count followed by neighbor IDs.
-// Neighbor IDs use the following ordering:
+// Neighbor ID ordering; component 0 stores the neighbor count.
 //
 // ^  6 7 8
 // |  4   5
@@ -335,8 +334,7 @@ construct_itracker_cell (int i, int j, int k,
 
 #elif (AMREX_SPACEDIM == 3)
 
-// itracker has 8 components: the neighbor count followed by neighbor IDs.
-// Neighbor IDs use the following ordering:
+// Neighbor ID ordering; component 0 stores the neighbor count.
 //
 //    at k-1   |   at k   |   at k+1
 //
@@ -539,7 +537,6 @@ construct_itracker_cell (int i, int j, int k,
             amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
         }
 
-        // Update the selected neighbor and offsets
         n1 = first_idx;
 
         ioff = imap[first_idx];
@@ -764,7 +761,6 @@ construct_itracker_cell (int i, int j, int k,
                                       " from 4 to 8 since sum_vol with 4 was only " << sum_vol << " " << '\n';
 #endif
 
-            // Choose, use and store one expansion neighbor at a time.
             for (int n = 4; n < 8; ++n) {
                 int nbor;
                 if (koff == 0) {
