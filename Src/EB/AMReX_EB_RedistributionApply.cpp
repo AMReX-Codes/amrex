@@ -214,6 +214,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                             level_mask_not_covered, fac_for_deltaR, srd_max_order);
 
         // Copy unaffected cells directly to avoid roundoff that depends on tiling.
+        const Real inv_dt = Real(1.0) / dt;
         if (srd_update_scale) {
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -222,7 +223,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                         const Real scale = srd_update_scale(i,j,k);
                         for (int n = 0; n < ncomp; ++n) {
                             dUdt_out(i,j,k,n) = scale *
-                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) * inv_dt;
                         }
                     } else {
                         for (int n = 0; n < ncomp; ++n) {
@@ -237,7 +238,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                     if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1) {
                         for (int n = 0; n < ncomp; ++n) {
                             dUdt_out(i,j,k,n) =
-                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) * inv_dt;
                         }
                     } else {
                         for (int n = 0; n < ncomp; ++n) {
