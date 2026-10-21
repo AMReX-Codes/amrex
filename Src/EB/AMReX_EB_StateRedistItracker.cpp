@@ -110,20 +110,21 @@ construct_itracker_cell (int i, int j, int k,
     bool nx_eq_ny = ( (std::abs(nx-ny) < small_norm_diff) ||
                       (std::abs(nx+ny) < small_norm_diff)  ) ? true : false;
 
+    int n1;
     // As a first pass, choose just based on the normal
     if (std::abs(nx) > std::abs(ny))
     {
         if (nx > 0) {
-            itracker(i,j,k,1) = 5;
+            n1 = 5;
         } else {
-            itracker(i,j,k,1) = 4;
+            n1 = 4;
         }
 
     } else {
         if (ny > 0) {
-            itracker(i,j,k,1) = 7;
+            n1 = 7;
         } else {
-            itracker(i,j,k,1) = 2;
+            n1 = 2;
         }
     }
 
@@ -137,23 +138,23 @@ construct_itracker_cell (int i, int j, int k,
     // direction the normal points in, but reverse the sign if that side is outside.
     // Otherwise, at a domain corner, the second override could undo the first one and
     // leave us pointing outside the domain again.
-    if ( (!xdir_mns_ok && (itracker(i,j,k,1) == 4)) ||
-         (!xdir_pls_ok && (itracker(i,j,k,1) == 5)) )
+    if ( (!xdir_mns_ok && (n1 == 4)) ||
+         (!xdir_pls_ok && (n1 == 5)) )
     {
-        itracker(i,j,k,1) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
+        n1 = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
     }
-    if ( (!ydir_mns_ok && (itracker(i,j,k,1) == 2)) ||
-         (!ydir_pls_ok && (itracker(i,j,k,1) == 7)) )
+    if ( (!ydir_mns_ok && (n1 == 2)) ||
+         (!ydir_pls_ok && (n1 == 7)) )
     {
-        itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
+        n1 = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
     }
 
     // (i,j) merges with at least one cell now
-    itracker(i,j,k,0) += 1;
+    int num_neighbors = 1;
 
     // (i+ioff,j+joff) is in the nbhd of (i,j)
-    int ioff = imap[itracker(i,j,k,1)];
-    int joff = jmap[itracker(i,j,k,1)];
+    int ioff = imap[n1];
+    int joff = jmap[n1];
 
     // Variables for vfrac fallback
     bool select_by_vfrac = false;
@@ -161,7 +162,8 @@ construct_itracker_cell (int i, int j, int k,
     int second_idx = -1;
 
     // Sanity check - if selected neighbor is covered, use vfrac fallback
-    if (vfrac(i+ioff,j+joff,k) == 0.)
+    Real first_vfrac = vfrac(i+ioff,j+joff,k);
+    if (first_vfrac == 0.)
     {
         Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
         int idx_x = 5;
@@ -179,7 +181,6 @@ construct_itracker_cell (int i, int j, int k,
 
         // Select largest and second-largest vfrac
         int first_idx;
-        Real first_vfrac;
         if (vfrac_x >= vfrac_y) {
             first_idx = idx_x;
             first_vfrac = vfrac_x;
@@ -196,7 +197,7 @@ construct_itracker_cell (int i, int j, int k,
             amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
         }
 
-        itracker(i,j,k,1) = first_idx;
+        n1 = first_idx;
 
         ioff = imap[first_idx];
         joff = jmap[first_idx];
@@ -204,27 +205,29 @@ construct_itracker_cell (int i, int j, int k,
         select_by_vfrac = true;
     }
 
-    Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k);
+    itracker(i,j,k,1) = n1;
+    Real const vf = vfrac(i,j,k);
+    Real sum_vol = vf + first_vfrac;
 
 #if 0
     if (debug_verbose > 0)
-        amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vfrac(i,j,k) <<
+        amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vf <<
                           " trying to merge with " << IntVect(i+ioff,j+joff) <<
                           " with volfrac " << vfrac(i+ioff,j+joff,k) <<
                           " to get new sum_vol " <<  sum_vol << '\n';
 #endif
 
+    int n2 = 0;
     // If the merged cell isn't large enough, we try to merge in the other direction
     if (sum_vol < target_volfrac || nx_eq_ny)
     {
         // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
         if (select_by_vfrac && second_vfrac > 0.0)
         {
-            itracker(i,j,k,2) = second_idx;
-            itracker(i,j,k,0) += 1;
-            int ioff2 = imap[second_idx];
-            int joff2 = jmap[second_idx];
-            sum_vol += vfrac(i+ioff2,j+joff2,k);
+            n2 = second_idx;
+            itracker(i,j,k,2) = n2;
+            num_neighbors += 1;
+            sum_vol += second_vfrac;
         }
         else if (!select_by_vfrac)
         {
@@ -234,13 +237,13 @@ construct_itracker_cell (int i, int j, int k,
             if (ioff == 0) {
                 if (nx >= 0 && xdir_pls_ok)
                 {
-                    itracker(i,j,k,2) = 5;
-                    itracker(i,j,k,0) += 1;
+                    n2 = 5;
+                    num_neighbors += 1;
                 }
                 else if (nx <= 0 && xdir_mns_ok)
                 {
-                    itracker(i,j,k,2) = 4;
-                    itracker(i,j,k,0) += 1;
+                    n2 = 4;
+                    num_neighbors += 1;
                 }
 
             // Original offset was in x-direction, so we will add to the y-direction
@@ -248,26 +251,27 @@ construct_itracker_cell (int i, int j, int k,
             } else {
                 if (ny >= 0 && ydir_pls_ok)
                 {
-                    itracker(i,j,k,2) = 7;
-                    itracker(i,j,k,0) += 1;
+                    n2 = 7;
+                    num_neighbors += 1;
                 }
                 else if (ny <= 0 && ydir_mns_ok)
                 {
-                    itracker(i,j,k,2) = 2;
-                    itracker(i,j,k,0) += 1;
+                    n2 = 2;
+                    num_neighbors += 1;
                 }
             }
 
-            if (itracker(i,j,k,0) > 1)
+            if (num_neighbors > 1)
             {
                 // (i+ioff2,j+joff2) is in the nbhd of (i,j)
-                int ioff2 = imap[itracker(i,j,k,2)];
-                int joff2 = jmap[itracker(i,j,k,2)];
+                int ioff2 = imap[n2];
+                int joff2 = jmap[n2];
 
                 sum_vol += vfrac(i+ioff2,j+joff2,k);
+                itracker(i,j,k,2) = n2;
 #if 0
                 if (debug_verbose > 0)
-                    amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vfrac(i,j,k) <<
+                    amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vf <<
                                       " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2) <<
                                       " with volfrac " << vfrac(i+ioff2,j+joff2,k) <<
                                        " to get new sum_vol " <<  sum_vol << '\n';
@@ -277,29 +281,32 @@ construct_itracker_cell (int i, int j, int k,
     }
 
     // Now we merge in the corner direction if we have already claimed two
-    if (itracker(i,j,k,0) == 2)
+    if (num_neighbors == 2)
     {
+        int n3;
         // We already have two offsets, and we know they are in different directions
-        ioff = imap[itracker(i,j,k,1)] + imap[itracker(i,j,k,2)];
-        joff = jmap[itracker(i,j,k,1)] + jmap[itracker(i,j,k,2)];
+        ioff = imap[n1] + imap[n2];
+        joff = jmap[n1] + jmap[n2];
 
         if (ioff > 0 && joff > 0) {
-            itracker(i,j,k,3) = 8;
+            n3 = 8;
         } else if (ioff < 0 && joff > 0) {
-            itracker(i,j,k,3) = 6;
+            n3 = 6;
         } else if (ioff > 0 && joff < 0) {
-            itracker(i,j,k,3) = 3;
+            n3 = 3;
         } else {
-            itracker(i,j,k,3) = 1;
+            n3 = 1;
         }
 
+        itracker(i,j,k,3) = n3;
+
         // (i,j) merges with at least three cells now
-        itracker(i,j,k,0) += 1;
+        num_neighbors += 1;
 
         sum_vol += vfrac(i+ioff,j+joff,k);
 #if 0
         if (debug_verbose > 0)
-            amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vfrac(i,j,k) <<
+            amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vf <<
                               " trying to ALSO merge with " << IntVect(i+ioff,j+joff) <<
                               " with volfrac " << vfrac(i+ioff,j+joff,k) <<
                               " to get new sum_vol " <<  sum_vol << '\n';
@@ -323,6 +330,7 @@ construct_itracker_cell (int i, int j, int k,
 #endif
       amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
     }
+    itracker(i,j,k,0) = num_neighbors;
 }
 
 #elif (AMREX_SPACEDIM == 3)
@@ -380,14 +388,15 @@ construct_itracker_cell (int i, int j, int k,
     bool zdir_mns_ok = (is_periodic_z || (k > domain.smallEnd(2)));
     bool zdir_pls_ok = (is_periodic_z || (k < domain.bigEnd(2)  ));
 
+    int n1;
     // x-component of normal is greatest
     if ( (std::abs(nx) > std::abs(ny)) &&
          (std::abs(nx) > std::abs(nz)) )
     {
         if (nx > 0) {
-            itracker(i,j,k,1) = 5;
+            n1 = 5;
         } else {
-            itracker(i,j,k,1) = 4;
+            n1 = 4;
         }
 
     // y-component of normal is greatest
@@ -395,17 +404,17 @@ construct_itracker_cell (int i, int j, int k,
                 (std::abs(ny) > std::abs(nz)) )
     {
         if (ny > 0) {
-            itracker(i,j,k,1) = 7;
+            n1 = 7;
         } else {
-            itracker(i,j,k,1) = 2;
+            n1 = 2;
         }
 
     // z-component of normal is greatest
     } else {
         if (nz > 0) {
-            itracker(i,j,k,1) = 22;
+            n1 = 22;
         } else {
-            itracker(i,j,k,1) = 13;
+            n1 = 13;
         }
     }
 
@@ -420,43 +429,43 @@ construct_itracker_cell (int i, int j, int k,
     // if neither of the two remaining directions is open on the side the normal points to.
     // Otherwise, at a domain corner or edge, a later override could undo an earlier one and
     // leave us pointing outside the domain again.
-    if ( (!xdir_mns_ok && (itracker(i,j,k,1) == 4)) ||
-         (!xdir_pls_ok && (itracker(i,j,k,1) == 5)) )
+    if ( (!xdir_mns_ok && (n1 == 4)) ||
+         (!xdir_pls_ok && (n1 == 5)) )
     {
         if ( (std::abs(ny) > std::abs(nz) && ydir_nrm_ok) || !zdir_nrm_ok ) {
-            itracker(i,j,k,1) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
+            n1 = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
         } else {
-            itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
+            n1 = (nz > 0) ? 22 : 13;
         }
     }
 
-    if ( (!ydir_mns_ok && (itracker(i,j,k,1) == 2)) ||
-         (!ydir_pls_ok && (itracker(i,j,k,1) == 7)) )
+    if ( (!ydir_mns_ok && (n1 == 2)) ||
+         (!ydir_pls_ok && (n1 == 7)) )
     {
         if ( (std::abs(nx) > std::abs(nz) && xdir_nrm_ok) || !zdir_nrm_ok ) {
-            itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
+            n1 = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
         } else {
-            itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
+            n1 = (nz > 0) ? 22 : 13;
         }
     }
 
-    if ( (!zdir_mns_ok && (itracker(i,j,k,1) == 13)) ||
-         (!zdir_pls_ok && (itracker(i,j,k,1) == 22)) )
+    if ( (!zdir_mns_ok && (n1 == 13)) ||
+         (!zdir_pls_ok && (n1 == 22)) )
     {
         if ( (std::abs(nx) > std::abs(ny) && xdir_nrm_ok) || !ydir_nrm_ok ) {
-            itracker(i,j,k,1) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
+            n1 = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
         } else {
-            itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
+            n1 = (ny > 0) ? 7 : 2;
         }
     }
 
     // (i,j,k) merges with at least one cell now
-    itracker(i,j,k,0) += 1;
+    int num_neighbors = 1;
 
     // (i+ioff,j+joff,k+koff) is now the first cell in the nbhd of (i,j,k)
-    int ioff = imap[itracker(i,j,k,1)];
-    int joff = jmap[itracker(i,j,k,1)];
-    int koff = kmap[itracker(i,j,k,1)];
+    int ioff = imap[n1];
+    int joff = jmap[n1];
+    int koff = kmap[n1];
 
     // Variables for vfrac fallback
     bool select_by_vfrac = false;
@@ -464,7 +473,8 @@ construct_itracker_cell (int i, int j, int k,
     int second_idx = -1;
 
     // Sanity check - if selected neighbor is covered, use vfrac fallback
-    if (vfrac(i+ioff,j+joff,k+koff) == 0.)
+    Real first_vfrac = vfrac(i+ioff,j+joff,k+koff);
+    if (first_vfrac == 0.)
     {
         Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
         int idx_x = 5;
@@ -489,7 +499,6 @@ construct_itracker_cell (int i, int j, int k,
 
         // Find largest and second-largest vfrac
         int first_idx;
-        Real first_vfrac;
 
         if (vfrac_x >= vfrac_y && vfrac_x >= vfrac_z) {
             // X is largest
@@ -530,8 +539,8 @@ construct_itracker_cell (int i, int j, int k,
             amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
         }
 
-        // Update itracker and offsets
-        itracker(i,j,k,1) = first_idx;
+        // Update the selected neighbor and offsets
+        n1 = first_idx;
 
         ioff = imap[first_idx];
         joff = jmap[first_idx];
@@ -540,11 +549,13 @@ construct_itracker_cell (int i, int j, int k,
         select_by_vfrac = true;
     }
 
-    Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k+koff);
+    itracker(i,j,k,1) = n1;
+    Real const vf = vfrac(i,j,k);
+    Real sum_vol = vf + first_vfrac;
 
 #if 0
     if (debug_print)
-        amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
+        amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vf <<
                           " trying to merge with " << IntVect(i+ioff,j+joff,k+koff) <<
                           " with volfrac " << vfrac(i+ioff,j+joff,k+koff) <<
                           " to get new sum_vol " <<  sum_vol << '\n';
@@ -554,6 +565,7 @@ construct_itracker_cell (int i, int j, int k,
                                  ( (ioff == 0 && koff == 0) && (nx_eq_ny || ny_eq_nz) ) ||
                                  ( (ioff == 0 && joff == 0) && (nx_eq_nz || ny_eq_nz) ) );
 
+    int n2 = 0;
     // If the merged cell isn't large enough, or if we broke symmetry by the current merge,
     // we merge in one of the other directions.  Note that the direction of the next merge
     // is first set by a symmetry break, but if that isn't happening, we choose the next largest normal
@@ -563,13 +575,11 @@ construct_itracker_cell (int i, int j, int k,
         // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
         if (select_by_vfrac && second_vfrac > 0.0)
         {
-            itracker(i,j,k,2) = second_idx;
-            itracker(i,j,k,0) += 1;
+            n2 = second_idx;
+            itracker(i,j,k,2) = n2;
+            num_neighbors += 1;
 
-            int ioff2 = imap[second_idx];
-            int joff2 = jmap[second_idx];
-            int koff2 = kmap[second_idx];
-            sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
+            sum_vol += second_vfrac;
 
         }
         else if (!select_by_vfrac)
@@ -579,46 +589,46 @@ construct_itracker_cell (int i, int j, int k,
             if (joff == 0 && koff == 0)
             {
                 if (nx_eq_ny) {
-                    itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                    n2 = (ny > 0) ? 7 : 2;
                 } else if (nx_eq_nz) {
-                    itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                    n2 = (nz > 0) ? 22 : 13;
                 } else if ( (std::abs(ny) > std::abs(nz)) ) {
-                    itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                    n2 = (ny > 0) ? 7 : 2;
                 } else {
-                    itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                    n2 = (nz > 0) ? 22 : 13;
                 }
 
             // Original offset was in y-direction
             } else if (ioff == 0 && koff == 0)
             {
                 if (nx_eq_ny) {
-                    itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                    n2 = (nx > 0) ? 5 : 4;
                 } else if (ny_eq_nz) {
-                    itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                    n2 = (nz > 0) ? 22 : 13;
                 } else if ( (std::abs(nx) > std::abs(nz)) ) {
-                    itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                    n2 = (nx > 0) ? 5 : 4;
                 } else {
-                    itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                    n2 = (nz > 0) ? 22 : 13;
                 }
 
             // Original offset was in z-direction
             } else if (ioff == 0 && joff == 0)
             {
                 if (nx_eq_nz) {
-                    itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                    n2 = (nx > 0) ? 5 : 4;
                 } else if (ny_eq_nz) {
-                    itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                    n2 = (ny > 0) ? 7 : 2;
                 } else if ( (std::abs(nx) > std::abs(ny)) ) {
-                    itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                    n2 = (nx > 0) ? 5 : 4;
                 } else {
-                    itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                    n2 = (ny > 0) ? 7 : 2;
                 }
             }
 
             // (i+ioff2,j+joff2,k+koff2) would be in the nbhd of (i,j,k)
-            int ioff2 = imap[itracker(i,j,k,2)];
-            int joff2 = jmap[itracker(i,j,k,2)];
-            int koff2 = kmap[itracker(i,j,k,2)];
+            int ioff2 = imap[n2];
+            int joff2 = jmap[n2];
+            int koff2 = kmap[n2];
 
             // As in 2D, we don't reach outside a domain boundary (and non-periodic).
             // The first merge used one coordinate direction and this one wants another,
@@ -631,37 +641,38 @@ construct_itracker_cell (int i, int j, int k,
             if (!nbor2_ok)
             {
                 if (ioff == 0 && ioff2 == 0) {
-                    itracker(i,j,k,2) = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
-                    nbor2_ok = (itracker(i,j,k,2) == 5) ? xdir_pls_ok : xdir_mns_ok;
+                    n2 = ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok) ? 5 : 4;
+                    nbor2_ok = (n2 == 5) ? xdir_pls_ok : xdir_mns_ok;
                 } else if (joff == 0 && joff2 == 0) {
-                    itracker(i,j,k,2) = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
-                    nbor2_ok = (itracker(i,j,k,2) == 7) ? ydir_pls_ok : ydir_mns_ok;
+                    n2 = ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok) ? 7 : 2;
+                    nbor2_ok = (n2 == 7) ? ydir_pls_ok : ydir_mns_ok;
                 } else {
-                    itracker(i,j,k,2) = ((nz > 0 && zdir_pls_ok) || !zdir_mns_ok) ? 22 : 13;
-                    nbor2_ok = (itracker(i,j,k,2) == 22) ? zdir_pls_ok : zdir_mns_ok;
+                    n2 = ((nz > 0 && zdir_pls_ok) || !zdir_mns_ok) ? 22 : 13;
+                    nbor2_ok = (n2 == 22) ? zdir_pls_ok : zdir_mns_ok;
                 }
 
-                ioff2 = imap[itracker(i,j,k,2)];
-                joff2 = jmap[itracker(i,j,k,2)];
-                koff2 = kmap[itracker(i,j,k,2)];
+                ioff2 = imap[n2];
+                joff2 = jmap[n2];
+                koff2 = kmap[n2];
             }
 
             if (!nbor2_ok)
             {
                 // Leave the neighbor count alone so that nothing downstream -- including
                 // the corner merge and the 2x2x2 expansion below -- sees this neighbor
-                itracker(i,j,k,2) = 0;
+                n2 = 0;
             }
             else
             {
                 // (i,j,k) merges with at least two cells now
-                itracker(i,j,k,0) += 1;
+                num_neighbors += 1;
 
                 sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
             }
+            itracker(i,j,k,2) = n2;
 #if 0
             if (debug_print)
-                amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
+                amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vf <<
                                   " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2,k+koff2) <<
                                   " with volfrac " << vfrac(i+ioff2,j+joff2,k+koff2) <<
                                    " to get new sum_vol " <<  sum_vol << '\n';
@@ -670,62 +681,65 @@ construct_itracker_cell (int i, int j, int k,
     }
 
     // If the merged cell has merged in two directions, we now merge in the corner direction within the current plane
-    if (itracker(i,j,k,0) >= 2)
+    if (num_neighbors >= 2)
     {
+        int n3;
         // We already have two offsets, and we know they are in different directions
-        ioff = imap[itracker(i,j,k,1)] + imap[itracker(i,j,k,2)];
-        joff = jmap[itracker(i,j,k,1)] + jmap[itracker(i,j,k,2)];
-        koff = kmap[itracker(i,j,k,1)] + kmap[itracker(i,j,k,2)];
+        ioff = imap[n1] + imap[n2];
+        joff = jmap[n1] + jmap[n2];
+        koff = kmap[n1] + kmap[n2];
 
         // Both nbors are in the koff=0 plane
         if (koff == 0)
         {
             if (ioff > 0 && joff > 0) {
-                itracker(i,j,k,3) = 8;
+                n3 = 8;
             } else if (ioff < 0 && joff > 0) {
-                itracker(i,j,k,3) = 6;
+                n3 = 6;
             } else if (ioff > 0 && joff < 0) {
-                itracker(i,j,k,3) = 3;
+                n3 = 3;
             } else {
-                itracker(i,j,k,3) = 1;
+                n3 = 1;
             }
 
         // Both nbors are in the joff=0 plane
         } else if (joff == 0) {
             if (ioff > 0 && koff > 0) {
-                itracker(i,j,k,3) = 23;
+                n3 = 23;
             } else if (ioff < 0 && koff > 0) {
-                itracker(i,j,k,3) = 21;
+                n3 = 21;
             } else if (ioff > 0 && koff < 0) {
-                itracker(i,j,k,3) = 14;
+                n3 = 14;
             } else {
-                itracker(i,j,k,3) = 12;
+                n3 = 12;
             }
 
         // Both nbors are in the ioff=0 plane
         } else {
             if (joff > 0 && koff > 0) {
-                itracker(i,j,k,3) = 25;
+                n3 = 25;
             } else if (joff < 0 && koff > 0) {
-                itracker(i,j,k,3) = 19;
+                n3 = 19;
             } else if (joff > 0 && koff < 0) {
-                itracker(i,j,k,3) = 16;
+                n3 = 16;
             } else {
-                itracker(i,j,k,3) = 10;
+                n3 = 10;
             }
         }
 
+        itracker(i,j,k,3) = n3;
+
         // (i,j,k) merges with at least three cells now
-        itracker(i,j,k,0) += 1;
+        num_neighbors += 1;
 
         sum_vol += vfrac(i+ioff,j+joff,k+koff);
 
 #if 0
-        int ioff3 = imap[itracker(i,j,k,3)];
-        int joff3 = jmap[itracker(i,j,k,3)];
-        int koff3 = kmap[itracker(i,j,k,3)];
+        int ioff3 = imap[n3];
+        int joff3 = jmap[n3];
+        int koff3 = kmap[n3];
         if (debug_print)
-            amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
+            amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vf <<
                               " trying to ALSO merge with " << IntVect(i+ioff3,j+joff3,k+koff3) <<
                               " with volfrac " << vfrac(i+ioff3,j+joff3,k+koff3) << '\n';
 #endif
@@ -749,181 +763,92 @@ construct_itracker_cell (int i, int j, int k,
                     amrex::Print() << "Expanding neighborhood of " << IntVect(i,j,k) <<
                                       " from 4 to 8 since sum_vol with 4 was only " << sum_vol << " " << '\n';
 #endif
-            // All nbors are currently in the koff=0 plane.  We use the sign of the
-            // remaining normal component to pick the side to expand to, but reverse
-            // that choice if it would take us outside a non-periodic domain boundary.
-            if (koff == 0)
-            {
-                if ((nz > 0 && zdir_pls_ok) || !zdir_mns_ok)
-                {
-                    itracker(i,j,k,4) = 22;
 
-                    if (ioff > 0) {
-                        itracker(i,j,k,5) =  23;
+            // Choose, use and store one expansion neighbor at a time.
+            for (int n = 4; n < 8; ++n) {
+                int nbor;
+                if (koff == 0) {
+                    bool const expand_plus = (nz > 0 && zdir_pls_ok) || !zdir_mns_ok;
+                    if (n == 4) {
+                        nbor = expand_plus ? 22 : 13;
+                    } else if (n == 5) {
+                        nbor = expand_plus ? ((ioff > 0) ? 23 : 21)
+                                           : ((ioff > 0) ? 14 : 12);
+                    } else if (n == 6) {
+                        nbor = expand_plus ? ((joff > 0) ? 25 : 19)
+                                           : ((joff > 0) ? 16 : 10);
                     } else {
-                        itracker(i,j,k,5) =  21;
+                        if (ioff > 0 && joff > 0) {
+                            nbor = expand_plus ? 26 : 17;
+                        } else if (ioff < 0 && joff > 0) {
+                            nbor = expand_plus ? 24 : 15;
+                        } else if (ioff > 0 && joff < 0) {
+                            nbor = expand_plus ? 20 : 11;
+                        } else {
+                            nbor = expand_plus ? 18 : 9;
+                        }
                     }
-                    if (joff > 0) {
-                        itracker(i,j,k,6) =  25;
+                } else if (joff == 0) {
+                    bool const expand_plus = (ny > 0 && ydir_pls_ok) || !ydir_mns_ok;
+                    if (n == 4) {
+                        nbor = expand_plus ? 7 : 2;
+                    } else if (n == 5) {
+                        nbor = expand_plus ? ((ioff > 0) ? 8 : 6)
+                                           : ((ioff > 0) ? 3 : 1);
+                    } else if (n == 6) {
+                        nbor = expand_plus ? ((koff > 0) ? 25 : 16)
+                                           : ((koff > 0) ? 19 : 10);
                     } else {
-                        itracker(i,j,k,6) =  19;
+                        if (ioff > 0 && koff > 0) {
+                            nbor = expand_plus ? 26 : 20;
+                        } else if (ioff < 0 && koff > 0) {
+                            nbor = expand_plus ? 24 : 18;
+                        } else if (ioff > 0 && koff < 0) {
+                            nbor = expand_plus ? 17 : 11;
+                        } else {
+                            nbor = expand_plus ? 15 : 9;
+                        }
                     }
-
-                    if (ioff > 0 && joff > 0) {
-                        itracker(i,j,k,7) = 26;
-                    } else if (ioff < 0 && joff > 0) {
-                        itracker(i,j,k,7) = 24;
-                    } else if (ioff > 0 && joff < 0) {
-                        itracker(i,j,k,7) = 20;
+                } else {
+                    // The two cardinal neighbors leave ioff == 0.
+                    bool const expand_plus = (nx > 0 && xdir_pls_ok) || !xdir_mns_ok;
+                    if (n == 4) {
+                        nbor = expand_plus ? 5 : 4;
+                    } else if (n == 5) {
+                        nbor = expand_plus ? ((joff > 0) ? 8 : 3)
+                                           : ((joff > 0) ? 6 : 1);
+                    } else if (n == 6) {
+                        nbor = expand_plus ? ((koff > 0) ? 23 : 14)
+                                           : ((koff > 0) ? 21 : 12);
                     } else {
-                        itracker(i,j,k,7) = 18;
-                    }
-
-                } else { // expand in the -z direction
-
-                    itracker(i,j,k,4) = 13;
-
-                    if (ioff > 0) {
-                        itracker(i,j,k,5) =  14;
-                    } else {
-                        itracker(i,j,k,5) =  12;
-                    }
-                    if (joff > 0) {
-                        itracker(i,j,k,6) =  16;
-                    } else {
-                        itracker(i,j,k,6) =  10;
-                    }
-
-                    if (ioff > 0 && joff > 0) {
-                        itracker(i,j,k,7) = 17;
-                    } else if (ioff < 0 && joff > 0) {
-                        itracker(i,j,k,7) = 15;
-                    } else if (ioff > 0 && joff < 0) {
-                        itracker(i,j,k,7) = 11;
-                    } else {
-                        itracker(i,j,k,7) =  9;
-                    }
-                }
-            } else if (joff == 0) {
-                if ((ny > 0 && ydir_pls_ok) || !ydir_mns_ok)
-                {
-                    itracker(i,j,k,4) = 7;
-
-                    if (ioff > 0) {
-                        itracker(i,j,k,5) =  8;
-                    } else {
-                        itracker(i,j,k,5) =  6;
-                    }
-                    if (koff > 0) {
-                        itracker(i,j,k,6) =  25;
-                    } else {
-                        itracker(i,j,k,6) =  16;
-                    }
-
-                    if (ioff > 0 && koff > 0) {
-                        itracker(i,j,k,7) = 26;
-                    } else if (ioff < 0 && koff > 0) {
-                        itracker(i,j,k,7) = 24;
-                    } else if (ioff > 0 && koff < 0) {
-                        itracker(i,j,k,7) = 17;
-                    } else {
-                        itracker(i,j,k,7) = 15;
-                    }
-
-                } else { // expand in the -y direction
-
-                    itracker(i,j,k,4) = 2;
-
-                    if (ioff > 0) {
-                        itracker(i,j,k,5) =  3;
-                    } else {
-                        itracker(i,j,k,5) =  1;
-                    }
-                    if (koff > 0) {
-                        itracker(i,j,k,6) =  19;
-                    } else {
-                        itracker(i,j,k,6) =  10;
-                    }
-
-                    if (ioff > 0 && koff > 0) {
-                        itracker(i,j,k,7) = 20;
-                    } else if (ioff < 0 && koff > 0) {
-                        itracker(i,j,k,7) = 18;
-                    } else if (ioff > 0 && koff < 0) {
-                        itracker(i,j,k,7) = 11;
-                    } else {
-                        itracker(i,j,k,7) =  9;
+                        if (joff > 0 && koff > 0) {
+                            nbor = expand_plus ? 26 : 24;
+                        } else if (joff < 0 && koff > 0) {
+                            nbor = expand_plus ? 20 : 18;
+                        } else if (joff > 0 && koff < 0) {
+                            nbor = expand_plus ? 17 : 15;
+                        } else {
+                            nbor = expand_plus ? 11 : 9;
+                        }
                     }
                 }
-            } else if (ioff == 0) {
 
-                if ((nx > 0 && xdir_pls_ok) || !xdir_mns_ok)
-                {
-                    itracker(i,j,k,4) = 5;
-
-                    if (joff > 0) {
-                        itracker(i,j,k,5) =  8;
-                    } else {
-                        itracker(i,j,k,5) =  3;
-                    }
-                    if (koff > 0) {
-                        itracker(i,j,k,6) =  23;
-                    } else {
-                        itracker(i,j,k,6) =  14;
-                    }
-
-                    if (joff > 0 && koff > 0) {
-                        itracker(i,j,k,7) = 26;
-                    } else if (joff < 0 && koff > 0) {
-                        itracker(i,j,k,7) = 20;
-                    } else if (joff > 0 && koff < 0) {
-                        itracker(i,j,k,7) = 17;
-                    } else {
-                        itracker(i,j,k,7) = 11;
-                    }
-                } else { // expand in the -x direction
-
-                    itracker(i,j,k,4) = 4;
-
-                    if (joff > 0) {
-                        itracker(i,j,k,5) =  6;
-                    } else {
-                        itracker(i,j,k,5) =  1;
-                    }
-                    if (koff > 0) {
-                        itracker(i,j,k,6) =  21;
-                    } else {
-                        itracker(i,j,k,6) =  12;
-                    }
-
-                    if (joff > 0 && koff > 0) {
-                        itracker(i,j,k,7) = 24;
-                    } else if (joff < 0 && koff > 0) {
-                        itracker(i,j,k,7) = 18;
-                    } else if (joff > 0 && koff < 0) {
-                        itracker(i,j,k,7) = 15;
-                    } else {
-                        itracker(i,j,k,7) =  9;
-                    }
-                }
-            }
-
-            for(int n(4); n<8; n++){
-              int ioffn = imap[itracker(i,j,k,n)];
-              int joffn = jmap[itracker(i,j,k,n)];
-              int koffn = kmap[itracker(i,j,k,n)];
-              sum_vol += vfrac(i+ioffn,j+joffn,k+koffn);
+                int const ioffn = imap[nbor];
+                int const joffn = jmap[nbor];
+                int const koffn = kmap[nbor];
+                sum_vol += vfrac(i+ioffn,j+joffn,k+koffn);
+                itracker(i,j,k,n) = nbor;
 #if 0
-              if (debug_print)
-                amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
-                  " trying to ALSO merge with " << IntVect(i+ioffn,j+joffn,k+koffn) <<
-                  " with volfrac " << vfrac(i+ioffn,j+joffn,k+koffn) <<
-                  " to get new sum_vol " <<  sum_vol << '\n';
+                if (debug_print)
+                    amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vf <<
+                      " trying to ALSO merge with " << IntVect(i+ioffn,j+joffn,k+koffn) <<
+                      " with volfrac " << vfrac(i+ioffn,j+joffn,k+koffn) <<
+                      " to get new sum_vol " << sum_vol << '\n';
 #endif
             }
 
             // (i,j,k) has a 2x2x2 neighborhood now
-            itracker(i,j,k,0) += 4;
+            num_neighbors += 4;
         }
     }
     // A cell next to a non-periodic domain boundary can only merge with the cells
@@ -945,6 +870,7 @@ construct_itracker_cell (int i, int j, int k,
 #endif
       amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
     }
+    itracker(i,j,k,0) = num_neighbors;
 }
 
 #endif
