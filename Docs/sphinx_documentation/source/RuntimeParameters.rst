@@ -838,7 +838,9 @@ Error Handling
 By default AMReX installs a signal handler that will be run when a signal
 such as segfault is received. You can also enable floating point exception
 trapping. The signal handler will print out backtraces that can be useful
-for debugging.
+for debugging. AMReX replaces signal handlers that were installed before
+(e.g., by the MPI library) until ``amrex::Finalize``. Signals that AMReX does
+not handle keep their previous action, e.g., a core dump.
 
 .. note:: Floating point exception trapping is not enabled by default,
    because compilers might generate optimized SIMD code that raises the
@@ -855,7 +857,9 @@ for debugging.
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGSEGV``
-   will be handled by AMReX.
+   will be handled by AMReX, also for a stack overflow on the thread that
+   called ``amrex::Initialize`` if it has no alternate signal stack of its
+   own (e.g., of a sanitizer).
 
 .. py:data:: amrex.handle_sigterm
    :type: bool
@@ -864,20 +868,24 @@ for debugging.
    If both this flag and ``amrex.signal_handling`` are true, ``SIGTERM``
    will be handled by AMReX. This flag is false by default because this
    could generate lots of backtrace files on some batch systems that issue
-   ``SIGTERM`` for jobs running out of wall clock time.
+   ``SIGTERM`` for jobs running out of wall clock time. A ``SIGTERM`` while
+   AMReX handles another signal, or more than a second after the first one,
+   ends the process right away.
 
 .. py:data:: amrex.handle_sigint
    :type: bool
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGINT``
-   will be handled by AMReX.
+   will be handled by AMReX. A ``SIGINT`` (e.g., control-c) while AMReX
+   handles another signal, or more than a second after the first one, ends the
+   process right away, e.g., if the handler is stuck.
 
 .. py:data:: amrex.handle_sigabrt
    :type: bool
    :value: true
 
-   If both this flag and ``amrex.signal_handling`` are true, ``SIGABGT``
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGABRT``
    will be handled by AMReX.
 
 .. py:data:: amrex.handle_sigfpe
@@ -897,7 +905,28 @@ for debugging.
    :value: true
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGILL``
-   will be handled by AMReX.
+   will be handled by AMReX. On Apple silicon, trapped floating-point
+   exceptions raise ``SIGILL`` instead of ``SIGFPE``, so this flag instead of
+   :py:data:`amrex.handle_sigfpe` enables their trapping.
+
+.. py:data:: amrex.handle_sigbus
+   :type: bool
+   :value: true
+
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGBUS``
+   will be handled by AMReX. For example, macOS raises ``SIGBUS`` for writes
+   to read-only memory, and Linux raises it for accesses to a memory-mapped
+   file or shared memory segment (e.g., in ``/dev/shm``) that cannot be
+   backed. This has no effect on Windows.
+
+.. py:data:: amrex.handle_sigtrap
+   :type: bool
+   :value: true
+
+   If both this flag and ``amrex.signal_handling`` are true, ``SIGTRAP``
+   will be handled by AMReX. For example, Apple silicon raises ``SIGTRAP`` for
+   ``__builtin_trap()`` and for the overflow checks of ``-ftrapv``. This has no
+   effect on Windows.
 
 .. py:data:: amrex.handle_crt_reports
    :type: bool

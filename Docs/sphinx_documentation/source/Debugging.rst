@@ -10,11 +10,11 @@ offer a few tips we have found to be useful.
 To aid debugging, AMReX handles various signals in the C standard
 library that are raised during runs. This gives us a chance to print more
 information using Linux/Unix backtrace capability.  The signals
-include segmentation fault (or "segfault"), interruption by the user (control-c), assertion
-errors, and floating-point exceptions (NaNs, division by zero, and
-overflow).  The handling of segfault, assertion errors and
-interruption by control-C are enabled by default.  Note that
-``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
+include segmentation fault (or "segfault"), bus error, trap, interruption by
+the user (control-c), assertion errors, and floating-point exceptions (NaNs,
+division by zero, and overflow).  The handling of segfault, bus error, trap,
+assertion errors and interruption by control-C are enabled by default.
+Note that ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
 ``USE_ASSERTION=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` or
 ``-DAMReX_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
@@ -31,8 +31,47 @@ use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 ``MultiFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.
 One can also control this setting for ``FArrayBox`` using the runtime parameter ``fab.init_snan``.
-Note for Macs: Apple silicon chips using the Arm64 architecture are not able to trap
-division by zero.
+Note for Macs: on Apple silicon, trapped floating-point exceptions raise
+``SIGILL`` instead of ``SIGFPE`` (see ``amrex.handle_sigill``).
+
+Backtrace Files
+---------------
+
+On Linux and macOS, when a handled signal is raised or ``amrex::Abort`` is
+called, AMReX writes the call stack to a file named ``Backtrace.<rank>``
+(``Backtrace.<rank>.<thread>`` with OpenMP, ``Backtrace.prog<N>.<rank>`` in
+MPMD runs). Function names, files and line numbers need debug information,
+e.g., ``-g`` or ``-g1`` (the default in optimized GNU Make builds with GCC
+and Clang), or ``-DCMAKE_BUILD_TYPE=RelWithDebInfo`` in CMake. Looking them
+up can be turned off with ``amrex.call_addr2line=0``. If several threads fail
+at once, one of them writes the file.
+
+On Linux, AMReX uses ``eu-addr2line``, ``llvm-addr2line`` or ``addr2line``.
+If no line numbers are shown, run ``amrex/Tools/Backtrace/parse_bt.py
+my_exefile Backtrace.0`` afterwards.
+
+On macOS, AMReX uses ``atos``. There, the debug information stays in the
+object files (or ``libamrex.a``), which must still exist unchanged when the
+program fails. For installed or packaged builds, create a dSYM bundle right
+after linking and keep it next to the executable or library:
+
+.. highlight:: console
+
+::
+
+    dsymutil my_exefile          # creates my_exefile.dSYM
+    dsymutil libamrex.dylib      # for a shared AMReX library
+
+Each frame in a macOS ``Backtrace`` file shows
+``[my_image my_load_address my_line_address]``, which can also be looked up
+later, e.g., on another machine with the dSYM bundle:
+
+::
+
+    atos -i -o my_image.dSYM -l my_load_address my_line_address
+
+Other Tools
+-----------
 
 One can get more information than the backtrace of the call stack by
 instrumenting the code.  Here is an example.

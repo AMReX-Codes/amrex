@@ -52,10 +52,45 @@ namespace amrex {
 struct BLBackTrace
 {
     /**
-     * \brief Signal handler that prints and aborts on fatal signals.
-     * \param s Signal number provided by the runtime.
+     * \brief Signal handler that prints a backtrace to a Backtrace file and
+     * aborts.
+     *
+     * Prefer install_signal_handlers (called by amrex::Initialize): with this
+     * function as the signal handler, backtraces on macOS miss the function
+     * that raised the signal.
+     *
+     * \param s Signal number.
      */
     static void handler(int s);
+
+    /**
+     * \brief Print a backtrace to a Backtrace file and abort, for an error that
+     * the program found (e.g., ParallelDescriptor::Abort calls it).
+     * \param errorcode Error code, e.g., SIGABRT from amrex::Abort.
+     */
+    static void handle_error (int errorcode);
+
+    /**
+     * \brief Install the signal handlers of AMReX for the signals enabled in
+     * amrex::system (e.g., amrex::system::handle_sigsegv).
+     *
+     * They replace handlers that were in place before (e.g., of the MPI
+     * library) until the matching restore_signal_handlers. Calls can be
+     * nested (e.g., by nested amrex::Initialize); a nested call installs
+     * nothing if the handlers are already installed. On POSIX systems, they
+     * take the signal information (SA_SIGINFO), so code that calls them as
+     * previous handlers must get them with sigaction, not std::signal.
+     *
+     * \param install Whether to install the handlers. Pass false to only
+     * match a later restore_signal_handlers.
+     */
+    static void install_signal_handlers (bool install = true);
+
+    /**
+     * \brief Restore the signal handlers that were in place before the
+     * matching install_signal_handlers, if it installed them.
+     */
+    static void restore_signal_handlers ();
     /**
      * \brief Print backtrace details to \p f for abort handling.
      * \param f Destination file handle (for example, stderr).
