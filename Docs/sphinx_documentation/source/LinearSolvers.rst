@@ -886,8 +886,9 @@ sparse matrix:
   the setup and continues once before failing;
   :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
   :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
-  needed more iterations.  The AlgMG backend sets up a new hierarchy for
-  every matrix.
+  needed more iterations.  With the AlgMG backend, the hierarchy is kept in
+  the same way (:cpp:`AlgMG::updateMatrix`), and the matrix of a repeated
+  setup is built on the device.
 
 - In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
   report the last solve, and with :cpp:`setThrowException(true)` a solve that
@@ -1461,7 +1462,11 @@ the norm of the right-hand side; ``x`` holds the initial guess. The V-cycle
 is also available on its own as :cpp:`precond(x, b)` for use in other
 solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
 set per solver object, so several solvers with different settings can
-coexist. The solver runs on CPUs and GPUs with any number of MPI processes.
+coexist. :cpp:`updateMatrix(A2)` replaces the matrix by one with the same
+row partition but keeps the hierarchy of the last setup: only the smoothers
+are rebuilt, and the V-cycle then approximates the new matrix. That is much
+cheaper than a new setup when the matrix changes little between solves.
+The solver runs on CPUs and GPUs with any number of MPI processes.
 :cpp:`MLMG` can use it on the coarsest AMR level or as its bottom solver
 (see :ref:`sec:linearsolver:pars`). The
 enumerations below are ``AMREX_ENUM`` types, so they can be read from an

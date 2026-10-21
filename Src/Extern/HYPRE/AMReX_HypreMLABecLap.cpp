@@ -1085,7 +1085,9 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     {
         BL_PROFILE("HypreMLABecLap::ij_assemble");
         // The host CSR is needed for AlgMG and for pending dumps
-        const bool need_csr = (m_backend == Backend::algmg) ||
+        // AlgMG with a known pattern builds its matrix on the device
+        const bool alg_direct = (m_backend == Backend::algmg) && !m_alg_slots.empty();
+        const bool need_csr = ((m_backend == Backend::algmg) && !alg_direct) ||
                               composite::dump_pending(m_dump_prefix, m_dump_max);
         const Long nrows = m_ij_upper - m_ij_lower + 1;
         Long ntot = 0;
@@ -1135,6 +1137,25 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 trips[n] = composite::Triplet{.row = Long(hr[n]), .col = Long(hc[n]), .val = hv[n]};
             }
             m_csr.define(m_ij_lower, nrows, std::move(trips));
+            if (m_backend == Backend::algmg && m_reuse_setup && !alg_direct) {
+                // Position of each triplet in the sorted CSR, for later setups
+                Vector<Long> slots(ntot);
+                for (Long n = 0; n < ntot; ++n) {
+                    auto const r = Long(hr[n]) - m_ij_lower;
+                    auto const* b = m_csr.col_index.data() + m_csr.row_offset[r];
+                    auto const* e = m_csr.col_index.data() + m_csr.row_offset[r+1];
+                    slots[n] = Long(std::lower_bound(b, e, Long(hc[n])) - m_csr.col_index.data());
+                }
+                m_alg_row_offset.resize(m_csr.row_offset.size());
+                m_alg_col_index.resize(m_csr.col_index.size());
+                m_alg_slots.resize(ntot);
+                Gpu::copyAsync(Gpu::hostToDevice, m_csr.row_offset.begin(), m_csr.row_offset.end(),
+                               m_alg_row_offset.begin());
+                Gpu::copyAsync(Gpu::hostToDevice, m_csr.col_index.begin(), m_csr.col_index.end(),
+                               m_alg_col_index.begin());
+                Gpu::copyAsync(Gpu::hostToDevice, slots.begin(), slots.end(), m_alg_slots.begin());
+                Gpu::streamSynchronize();
+            }
         }
         if (m_backend == Backend::hypre) {
             if (!direct) {
@@ -1144,15 +1165,46 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 if (m_reuse_setup) { buildIJSlots(rows, cols); }
             }
         } else {
-            // A new hierarchy for the new matrix (no setup reuse with AlgMG)
-            m_algmg.reset();
-            m_spA = std::make_unique<SpMatrix<Real>>();
-            m_csr.toSpMatrix(*m_spA, m_rank_offset);
-            m_algmg = std::make_unique<AlgMG<Real>>(*m_spA);
-            m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
-            // V-cycles alone can stall on composite AMR systems; not symmetric
-            composite::algmg_parse_options(*m_algmg, m_parmparse_prefix,
-                                           AlgMGKrylovSolver::gmres);
+            auto spA = std::make_unique<SpMatrix<Real>>();
+            if (alg_direct) {
+                BL_PROFILE("HypreMLABecLap::algmg_matrix");
+                AMREX_ALWAYS_ASSERT(std::cmp_equal(m_alg_slots.size(), ntot));
+                SpMatrix<Real>::csr_type csr;
+                csr.nnz = Long(m_alg_col_index.size());
+                csr.mat.resize(csr.nnz);
+                csr.col_index.resize(csr.nnz);
+                csr.row_offset.resize(m_alg_row_offset.size());
+                Gpu::copyAsync(Gpu::deviceToDevice, m_alg_row_offset.begin(),
+                               m_alg_row_offset.end(), csr.row_offset.begin());
+                Gpu::copyAsync(Gpu::deviceToDevice, m_alg_col_index.begin(),
+                               m_alg_col_index.end(), csr.col_index.begin());
+                auto* pm = csr.mat.data();
+                amrex::ParallelFor(csr.nnz, [=] AMREX_GPU_DEVICE (Long i) noexcept { pm[i] = Real(0.0); });
+                auto const* slots = m_alg_slots.data();
+                auto const* v = vals.data();
+                // Several triplets can add to the same entry
+                amrex::ParallelFor(ntot, [=] AMREX_GPU_DEVICE (Long n) noexcept
+                {
+                    Gpu::Atomic::AddNoRet(pm+slots[n], v[n]);
+                });
+                Gpu::streamSynchronize();
+                spA->define(AlgPartition(m_rank_offset), std::move(csr), CsrSorted{true});
+            } else {
+                m_csr.toSpMatrix(*spA, m_rank_offset);
+            }
+            // With setup reuse, keep the hierarchy for the new matrix
+            m_algmg_kept = m_algmg && m_reuse_setup && !m_algmg_reset;
+            if (m_algmg_kept) {
+                m_algmg->updateMatrix(*spA);
+            } else {
+                m_algmg = std::make_unique<AlgMG<Real>>(*spA);
+                m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
+                // V-cycles alone can stall on composite AMR systems; not symmetric
+                composite::algmg_parse_options(*m_algmg, m_parmparse_prefix,
+                                               AlgMGKrylovSolver::gmres);
+            }
+            m_algmg_reset = false;
+            m_spA = std::move(spA); // after m_algmg has let go of the old matrix
         }
         if (!composite::dump_pending(m_dump_prefix, m_dump_max)) { m_csr = composite::OwnedCSR{}; }
         return;
@@ -1793,6 +1845,21 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         num_iterations = m_algmg->getNumIters();
         const Real bnorm = ab.norm2();
         final_res = (bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / bnorm : Real(0.0);
+        if (m_algmg_kept && !(final_res <= a_reltol)) {
+            // The kept hierarchy may be too poor for the current matrix: build
+            // a new one and continue from the current x
+            if (m_verbose) {
+                amrex::Print() << m_parmparse_prefix << ": no convergence with the kept AlgMG "
+                               << "hierarchy (" << num_iterations << " iterations); rebuilding it\n";
+            }
+            m_algmg->define(*m_spA);
+            m_algmg_kept = false;
+            m_algmg->solve(ax, ab);
+            num_iterations += m_algmg->getNumIters();
+            final_res = (bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / bnorm : Real(0.0);
+        } else if (m_algmg_kept && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+            m_algmg_reset = true; // for the next setup
+        }
         Gpu::copyAsync(Gpu::deviceToDevice, ax.data(), ax.data()+nrows, xvec.begin());
         Gpu::streamSynchronize();
     }

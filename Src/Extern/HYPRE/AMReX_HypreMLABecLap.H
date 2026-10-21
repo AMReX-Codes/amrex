@@ -78,7 +78,10 @@ public:
     //! also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
-    void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
+    void resetSolverSetup () {
+        if (m_ij_solver) { m_ij_solver->setNeedSetup(); }
+        m_algmg_reset = true;
+    }
     //! Throw std::runtime_error instead of aborting when the solve fails
     void setThrowException (bool t) noexcept { m_throw_exception = t; }
     //! Iterations and final relative residual of the last solve
@@ -235,6 +238,10 @@ private:
     bool m_throw_exception = false;
     //! The hypre vectors were assembled once; later solves write into them
     bool m_ij_vectors_assembled = false;
+    //! AlgMG backend: build a new hierarchy at the next setup
+    bool m_algmg_reset = false;
+    //! AlgMG backend: the last setup kept the hierarchy
+    bool m_algmg_kept = false;
     int m_reuse_max_iter = 0;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
@@ -265,6 +272,11 @@ private:
     composite::OwnedCSR m_csr;               // owned rows (AlgMG backend, dumps)
     std::unique_ptr<SpMatrix<Real>> m_spA;
     std::unique_ptr<AlgMG<Real>> m_algmg;
+    //! AlgMG backend with setup reuse: the sorted CSR pattern of the local
+    //! rows and the position of each triplet in it (empty if not built)
+    Gpu::DeviceVector<Long> m_alg_row_offset;
+    Gpu::DeviceVector<Long> m_alg_col_index;
+    Gpu::DeviceVector<Long> m_alg_slots;
 
     //! `<prefix>.dump_matrix = N`: Matrix Market dumps of the first N solves
     //! with this dump prefix, counted over all objects of the run: for solve
