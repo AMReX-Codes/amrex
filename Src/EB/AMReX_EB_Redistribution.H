@@ -265,7 +265,7 @@ namespace amrex {
                         amrex::Array4<amrex::Real> const& alpha,
                         amrex::Array4<amrex::Real> const& cent_hat,
                         amrex::Dim3* active_cells,
-                        int* active_count,
+                        int& num_active_cells,
                         amrex::Geometry const& geom,
                         amrex::Real target_volfrac);
 

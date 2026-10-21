@@ -195,12 +195,11 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
 
         Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
         Dim3* const active_cells = active_cells_v.data();
-        Gpu::DeviceScalar<int> active_count_v(0);
+        int num_active_cells;
         MakeITracker(
             bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
-            nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
-            lev_geom, target_volfrac);
-        int const num_active_cells = active_count_v.dataValue();
+            nrs, alpha, cent_hat, active_cells, num_active_cells, lev_geom,
+            target_volfrac);
 
         MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
                              nbhd_vol, cent_hat, active_cells, num_active_cells,
@@ -328,12 +327,11 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
 
     Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
     Dim3* const active_cells = active_cells_v.data();
-    Gpu::DeviceScalar<int> active_count_v(0);
+    int num_active_cells;
     MakeITracker(
         bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
-        nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
-        lev_geom, target_volfrac);
-    int const num_active_cells = active_count_v.dataValue();
+        nrs, alpha, cent_hat, active_cells, num_active_cells, lev_geom,
+        target_volfrac);
 
     MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
                          nbhd_vol, cent_hat, active_cells, num_active_cells,
