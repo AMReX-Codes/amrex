@@ -91,6 +91,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build libamrex and all tests
   tests_build_3D:
@@ -151,6 +159,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
     # Publish this configuration to https://my.cdash.org/index.php?project=AMReX
     # Only on pushes: pull requests from forks get no secrets, and per-PR
@@ -225,6 +241,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   tests_build_1D:
     name: GNU@13 1D Debug Fortran [tests]
@@ -284,6 +308,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
   # Build libamrex and all tests
@@ -366,6 +398,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -434,6 +474,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
   # Build libamrex and all tests
@@ -510,6 +558,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -558,6 +614,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build 3D libamrex with configure
   configure-3d:
@@ -605,6 +669,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
   # Build 3D libamrex with single precision and tiny profiler
@@ -655,6 +727,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
@@ -703,6 +783,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Build Tools/Plotfile
   plotfile-tools:
@@ -749,6 +837,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
   # Build libamrex and run all tests
@@ -804,6 +900,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
     - name: Run tests
@@ -930,6 +1034,14 @@ jobs:
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
         if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
+        if-no-files-found: ignore
 
   # Single precision 3D build that runs the test suite.  See the 2D job above.
   tests_single_precision_3D:
@@ -996,6 +1108,14 @@ jobs:
         name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
         path: ${{ runner.temp }}/clang-tidy-db/out
         retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
+    - name: Save ccache log
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ccache-log-${{ github.workflow }}-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log.txt
+        retention-days: 2
         if-no-files-found: ignore
 
   test_hdf5:
