@@ -149,7 +149,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 }
                 else
                 {
-                    Qhat(i,j,k,n) = 0.;
+                    Real qhat_sum = Real(0);
 
                     // This loops over (i,j,k) and the neighbors of (i,j,k)
                     for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
@@ -165,10 +165,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                         if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                         {
-                            qt(i,j,k,i_nbor) = fac * U_in(r,s,t,n) * vfrac(r,s,t) / nbhd_vol(i,j,k);
-                            Qhat(i,j,k,n) += qt(i,j,k,i_nbor);
+                            const Real contribution = fac * U_in(r,s,t,n)
+                                * vfrac(r,s,t) / nbhd_vol(i,j,k);
+                            qt(i,j,k,i_nbor) = contribution;
+                            qhat_sum += contribution;
                         }
                     }
+                    Qhat(i,j,k,n) = qhat_sum;
                 }
             } else {
                 Qhat(i,j,k,n) = U_in(i,j,k,n);
