@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read  # clang-tidy database artifacts
   contents: read
 
 jobs:
@@ -71,10 +72,9 @@ jobs:
         make install
         make test_install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+        GH_TOKEN=${{ github.token }} \
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which amrex_fcompare
@@ -83,6 +83,14 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Save clang-tidy database
+      if: success()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
+        path: ${{ runner.temp }}/clang-tidy-db/out
+        retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
 
   tests_clang:
     name: Clang@14.0 SP Particles DP Mesh Debug [tests]
@@ -134,15 +142,22 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+        GH_TOKEN=${{ github.token }} \
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Save clang-tidy database
+      if: success()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
+        path: ${{ runner.temp }}/clang-tidy-db/out
+        retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
 
   tests_cxx20:
     name: Clang [tests]
@@ -290,10 +305,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+        GH_TOKEN=${{ github.token }} \
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Save clang-tidy database
+      if: success()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
+        path: ${{ runner.temp }}/clang-tidy-db/out
+        retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+        if-no-files-found: ignore
