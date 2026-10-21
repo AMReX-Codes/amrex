@@ -113,20 +113,19 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the reference to \p lo if \p v < \p lo; return the reference to
-    //! \p hi if \p hi < \p v; otherwise return the reference to \p v. This
-    //! function was added to AMReX before switching to C++17. `std::clamp`
-    //! can now be used directly instead.
+    //! Return \p lo if \p v < \p lo; return \p hi if \p hi < \p v; otherwise
+    //! return \p v. Returns by value: CUDA 12.6 miscompiles the reference-returning
+    //! version in some EB kernels.
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
+    constexpr T Clamp (const T& v, const T& lo, const T& hi)
     {
         if (v < lo) {
-            return lo; // NOLINT(bugprone-return-const-ref-from-parameter)
+            return lo;
         } else if (hi < v) {
-            return hi; // NOLINT(bugprone-return-const-ref-from-parameter)
+            return hi;
         } else {
-            return v; // NOLINT(bugprone-return-const-ref-from-parameter)
+            return v;
         }
     }
 

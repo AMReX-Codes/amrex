@@ -486,7 +486,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 #ifdef AMREX_USE_FLOAT
     Real small_volfrac = 1.e-5_rt;
 #else
-    Real small_volfrac = 1.e-14;
+    Real small_volfrac = 1.e-12;
 #endif
     bool cover_multiple_cuts = false;
     int maxiter = 32;
