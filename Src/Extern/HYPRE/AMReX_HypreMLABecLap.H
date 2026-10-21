@@ -73,6 +73,10 @@ public:
      * operator (see resetSolverSetup()).
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    //! IJ mode, hypre backend, with setup reuse: redo the setup at the next
+    //! solve when a solve needs more than \p n iterations (0: never; this is
+    //! also `<prefix>.reuse_setup_max_iter`)
+    void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
     //! Throw std::runtime_error instead of aborting when the solve fails
@@ -135,6 +139,14 @@ public:
 
     //! Build the device maps of the IJ assembly; public for cuda
     void buildIJMaps ();
+
+    //! Map the assembled triplets to the hypre matrix's value arrays
+    //! (m_ij_slots); public for cuda
+    void buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
+                       Gpu::DeviceVector<HYPRE_BigInt> const& cols);
+    //! Overwrite the hypre matrix's values with the triplet values
+    //! (m_ij_slots); public for cuda
+    void updateIJValues (Gpu::DeviceVector<Real> const& vals);
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
@@ -221,6 +233,9 @@ private:
     bool m_use_ij = false;
     bool m_reuse_setup = false;
     bool m_throw_exception = false;
+    //! The hypre vectors were assembled once; later solves write into them
+    bool m_ij_vectors_assembled = false;
+    int m_reuse_max_iter = 0;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;
@@ -234,6 +249,10 @@ private:
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_rows;
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
     Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
+    //! With setup reuse, the triplets are written directly into the
+    //! assembled hypre matrix: slot of each triplet in its diag (>= 0) or
+    //! offd (-1-index) value array; empty if not built
+    Gpu::DeviceVector<Long> m_ij_slots;
 
     //! `<prefix>.backend = hypre` (default) or `algmg`: in IJ mode, solve the
     //! assembled composite system with hypre or with AMReX's AlgMG

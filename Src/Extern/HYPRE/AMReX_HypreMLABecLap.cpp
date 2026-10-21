@@ -5,12 +5,15 @@
 #include <AMReX_HypreMLABecLap_K.H>
 #include <AMReX_ParmParse.H>
 
+#include <_hypre_parcsr_mv.h>
+
 #include <algorithm>
 #include <functional>
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
 #include <tuple>
+#include <utility>
 
 namespace amrex {
 
@@ -114,6 +117,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         m_dump_prefix = m_parmparse_prefix;
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
+        pp.query("reuse_setup_max_iter", m_reuse_max_iter);
         m_use_ij = pp.contains("hypre_solver") || (m_backend == Backend::algmg);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij || m_dump_max == 0,
             "HypreMLABecLap: dump_matrix requires IJ mode (hypre_solver or backend = algmg)");
@@ -703,12 +707,18 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     };
     if (m_use_ij && m_backend == Backend::hypre) {
         if (m_reuse_setup && m_ij_solver) {
-            // Same pattern, new values: zero, then add; the solver setup is
-            // kept (also if reuse was turned on after the first setup)
+            // Same pattern, new values; the solver setup is kept (also if
+            // reuse was turned on after the first setup)
             m_ij_solver->setRecomputePreconditioner(false);
-            HYPRE_IJMatrixSetConstantValues(m_ij_solver->A(), Real(0.0));
-            HYPRE_IJMatrixInitialize(m_ij_solver->A());
+            if (m_ij_slots.empty()) { // zero, then add and assemble
+                BL_PROFILE("HypreMLABecLap::ij_zero");
+                HYPRE_IJMatrixSetConstantValues(m_ij_solver->A(), Real(0.0));
+                HYPRE_IJMatrixInitialize(m_ij_solver->A());
+                Gpu::hypreSynchronize();
+            }
         } else {
+            m_ij_slots.clear();
+            m_ij_vectors_assembled = false;
             m_ij_solver.reset();
             using IJInt = HypreIJIface::HypreIntType; // range checked in the constructor
             m_ij_solver = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ij_lower),
@@ -1082,16 +1092,26 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         for (auto const& t : ij_chunks) { ntot += Long(t.rows.size()); }
         Gpu::DeviceVector<HYPRE_BigInt> rows(ntot), cols(ntot);
         Gpu::DeviceVector<Real> vals(ntot);
-        Long off = 0;
-        for (auto const& t : ij_chunks) {
-            Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
-            off += Long(t.rows.size());
+        {
+            BL_PROFILE("HypreMLABecLap::ij_concat");
+            Long off = 0;
+            for (auto const& t : ij_chunks) {
+                Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
+                Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
+                Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
+                off += Long(t.rows.size());
+            }
+            Gpu::streamSynchronize();
+            ij_chunks.clear();
         }
-        Gpu::streamSynchronize();
-        ij_chunks.clear();
-        if (m_backend == Backend::hypre && ntot > 0) {
+        // In-place update of the assembled matrix (setup reuse)
+        const bool direct = (m_backend == Backend::hypre) && !m_ij_slots.empty();
+        if (direct) {
+            AMREX_ALWAYS_ASSERT(std::cmp_equal(m_ij_slots.size(), ntot));
+            updateIJValues(vals);
+        }
+        if (m_backend == Backend::hypre && ntot > 0 && !direct) {
+            BL_PROFILE("HYPRE_IJMatrixAddToValues");
             Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
             // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
             constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
@@ -1117,7 +1137,12 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             m_csr.define(m_ij_lower, nrows, std::move(trips));
         }
         if (m_backend == Backend::hypre) {
-            HYPRE_IJMatrixAssemble(ij_A);
+            if (!direct) {
+                BL_PROFILE("HYPRE_IJMatrixAssemble");
+                HYPRE_IJMatrixAssemble(ij_A);
+                Gpu::hypreSynchronize();
+                if (m_reuse_setup) { buildIJSlots(rows, cols); }
+            }
         } else {
             // A new hierarchy for the new matrix (no setup reuse with AlgMG)
             m_algmg.reset();
@@ -1540,6 +1565,107 @@ void HypreMLABecLap::buildIJMaps ()
 #endif
 }
 
+void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
+                                   Gpu::DeviceVector<HYPRE_BigInt> const& cols)
+{
+#if (AMREX_SPACEDIM > 1)
+    BL_PROFILE("HypreMLABecLap::buildIJSlots()");
+    m_ij_slots.clear();
+    HYPRE_ParCSRMatrix parA = nullptr;
+    HYPRE_IJMatrixGetObject(m_ij_solver->A(), (void**) &parA);
+    auto* A = (hypre_ParCSRMatrix*) parA;
+    hypre_CSRMatrix* diag = hypre_ParCSRMatrixDiag(A);
+    hypre_CSRMatrix* offd = hypre_ParCSRMatrixOffd(A);
+    const auto nr = Long(hypre_CSRMatrixNumRows(diag));
+    auto host_copy = [] (hypre_CSRMatrix* m, HYPRE_Int const* p, Long n) {
+        Vector<HYPRE_Int> h(n);
+        if (n > 0) {
+            hypre_TMemcpy(h.data(), p, HYPRE_Int, n, HYPRE_MEMORY_HOST,
+                          hypre_CSRMatrixMemoryLocation(m));
+        }
+        return h;
+    };
+    auto const di = host_copy(diag, hypre_CSRMatrixI(diag), nr+1);
+    auto const dj = host_copy(diag, hypre_CSRMatrixJ(diag), di[nr]);
+    auto const oi = host_copy(offd, hypre_CSRMatrixI(offd), nr+1);
+    auto const oj = host_copy(offd, hypre_CSRMatrixJ(offd), oi[nr]);
+    HYPRE_BigInt const* colmap = hypre_ParCSRMatrixColMapOffd(A); // host
+    const auto ncolmap = Long(hypre_CSRMatrixNumCols(offd));
+    const HYPRE_BigInt row0 = hypre_ParCSRMatrixFirstRowIndex(A);
+    const HYPRE_BigInt col0 = hypre_ParCSRMatrixFirstColDiag(A);
+    const HYPRE_BigInt col1 = hypre_ParCSRMatrixLastColDiag(A);
+
+    const auto ntot = Long(rows.size());
+    Vector<HYPRE_BigInt> hr(ntot), hc(ntot);
+    Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
+    Gpu::streamSynchronize();
+    Vector<Long> slots(ntot);
+    for (Long n = 0; n < ntot; ++n) {
+        const Long r = Long(hr[n] - row0);
+        Long s = -1;
+        bool found = false;
+        if (hc[n] >= col0 && hc[n] <= col1) {
+            const auto lc = HYPRE_Int(hc[n] - col0);
+            for (HYPRE_Int k = di[r]; k < di[r+1]; ++k) {
+                if (dj[k] == lc) { s = k; found = true; break; }
+            }
+        } else {
+            auto const* it = std::lower_bound(colmap, colmap+ncolmap, hc[n]);
+            if (it != colmap+ncolmap && *it == hc[n]) {
+                const auto lc = HYPRE_Int(it - colmap);
+                for (HYPRE_Int k = oi[r]; k < oi[r+1]; ++k) {
+                    if (oj[k] == lc) { s = -1 - Long(k); found = true; break; }
+                }
+            }
+        }
+        // hypre may have dropped the entry: keep the general path
+        if (!found) { return; }
+        slots[n] = s;
+    }
+    m_ij_slots.resize(ntot);
+    Gpu::copyAsync(Gpu::hostToDevice, slots.begin(), slots.end(), m_ij_slots.begin());
+    Gpu::streamSynchronize();
+#else
+    amrex::ignore_unused(rows, cols);
+#endif
+}
+
+void HypreMLABecLap::updateIJValues (Gpu::DeviceVector<Real> const& vals)
+{
+#if (AMREX_SPACEDIM > 1)
+    BL_PROFILE("HypreMLABecLap::updateIJValues()");
+    HYPRE_ParCSRMatrix parA = nullptr;
+    HYPRE_IJMatrixGetObject(m_ij_solver->A(), (void**) &parA);
+    auto* A = (hypre_ParCSRMatrix*) parA;
+    hypre_CSRMatrix* diag = hypre_ParCSRMatrixDiag(A);
+    hypre_CSRMatrix* offd = hypre_ParCSRMatrixOffd(A);
+    Real* dd = hypre_CSRMatrixData(diag);
+    Real* od = hypre_CSRMatrixData(offd);
+    const auto nd = Long(hypre_CSRMatrixNumNonzeros(diag));
+    const auto no = Long(hypre_CSRMatrixNumNonzeros(offd));
+    // hypre may still be using the matrix on its own stream
+    Gpu::hypreSynchronize();
+    amrex::ParallelFor(nd, [=] AMREX_GPU_DEVICE (Long i) noexcept { dd[i] = Real(0.0); });
+    amrex::ParallelFor(no, [=] AMREX_GPU_DEVICE (Long i) noexcept { od[i] = Real(0.0); });
+    auto const* slots = m_ij_slots.data();
+    auto const* v = vals.data();
+    // Several triplets can add to the same entry
+    amrex::ParallelFor(Long(vals.size()), [=] AMREX_GPU_DEVICE (Long n) noexcept
+    {
+        const Long s = slots[n];
+        if (s >= 0) {
+            Gpu::Atomic::AddNoRet(dd+s, v[n]);
+        } else {
+            Gpu::Atomic::AddNoRet(od+(-1-s), v[n]);
+        }
+    });
+    Gpu::streamSynchronize(); // before hypre uses the matrix
+#else
+    amrex::ignore_unused(vals);
+#endif
+}
+
 void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                               Real a_reltol, Real a_abstol)
 {
@@ -1567,6 +1693,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         }
     }
 
+    BL_PROFILE_VAR("HypreMLABecLap::ij_load", blp_load);
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         AMREX_ALWAYS_ASSERT(a_rhs[ilev]->nGrowVect() == 0);
         for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
@@ -1593,6 +1720,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         }
     }
     Gpu::streamSynchronize();
+    BL_PROFILE_VAR_STOP(blp_load);
 
     const int dump_k = (m_dump_max > 0) ? composite::next_dump_index(m_dump_prefix, m_dump_max) : -1;
     if (dump_k >= 0) { dumpSystem(dump_k, bvec, false); }
@@ -1600,22 +1728,53 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     int num_iterations = 0;
     Real final_res = 0.0;
     if (m_backend == Backend::hypre) {
-        HYPRE_IJVectorInitialize(b);
-        HYPRE_IJVectorInitialize(x);
-        if (nrows > 0) {
-            HYPRE_IJVectorSetValues(b, HYPRE_Int(nrows), m_ij_rowids.data(), bvec.data());
-            HYPRE_IJVectorSetValues(x, HYPRE_Int(nrows), m_ij_rowids.data(), xvec.data());
+        BL_PROFILE_VAR("HypreMLABecLap::ij_vectors_in", blp_vin);
+        if (m_ij_vectors_assembled) {
+            // Same layout: write into the assembled vectors directly
+            for (auto [v, src] : {std::pair{b, bvec.data()}, std::pair{x, xvec.data()}}) {
+                HYPRE_ParVector pv = nullptr;
+                HYPRE_IJVectorGetObject(v, (void**) &pv);
+                Real* dst = hypre_VectorData(hypre_ParVectorLocalVector((hypre_ParVector*) pv));
+                Gpu::copyAsync(Gpu::deviceToDevice, src, src+nrows, dst);
+            }
+            Gpu::streamSynchronize();
+        } else {
+            HYPRE_IJVectorInitialize(b);
+            HYPRE_IJVectorInitialize(x);
+            if (nrows > 0) {
+                HYPRE_IJVectorSetValues(b, HYPRE_Int(nrows), m_ij_rowids.data(), bvec.data());
+                HYPRE_IJVectorSetValues(x, HYPRE_Int(nrows), m_ij_rowids.data(), xvec.data());
+                Gpu::hypreSynchronize();
+            }
+            HYPRE_IJVectorAssemble(b);
+            HYPRE_IJVectorAssemble(x);
             Gpu::hypreSynchronize();
+            m_ij_vectors_assembled = true;
         }
-        HYPRE_IJVectorAssemble(b);
-        HYPRE_IJVectorAssemble(x);
+        BL_PROFILE_VAR_STOP(blp_vin);
 
         m_ij_solver->setThrowException(m_throw_exception);
+        const bool reused = !m_ij_solver->setupPending();
         m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
         num_iterations = static_cast<int>(m_ij_solver->getNumIters());
         final_res = m_ij_solver->getFinalResidualNorm();
+        if (reused && !(final_res <= a_reltol)) {
+            // The reused setup may have become too poor a preconditioner for
+            // the current matrix: redo it and continue from the current x
+            if (m_verbose) {
+                amrex::Print() << m_parmparse_prefix << ": no convergence with the reused setup ("
+                               << num_iterations << " iterations); redoing the setup\n";
+            }
+            m_ij_solver->setNeedSetup();
+            m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+            num_iterations += static_cast<int>(m_ij_solver->getNumIters());
+            final_res = m_ij_solver->getFinalResidualNorm();
+        } else if (m_reuse_setup && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+            m_ij_solver->setNeedSetup(); // for the next solve
+        }
 
         if (nrows > 0) {
+            BL_PROFILE("HypreMLABecLap::ij_vectors_out");
             HYPRE_IJVectorGetValues(x, HYPRE_Int(nrows), m_ij_rowids.data(), xvec.data());
             Gpu::hypreSynchronize();
         }
