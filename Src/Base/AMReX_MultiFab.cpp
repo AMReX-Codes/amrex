@@ -754,11 +754,16 @@ MultiFab::min (int comp, int nghost, bool local) const
             mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
             {
+#ifdef AMREX_USE_GPU
                 if (flagsma[box_no](i,j,k).isCovered()) {
                     return AMREX_REAL_MAX;
                 } else {
                     return ma[box_no](i,j,k,comp);
                 }
+#else // for vectorization
+                Real const v = ma[box_no](i,j,k,comp);
+                return flagsma[box_no](i,j,k).isCovered() ? AMREX_REAL_MAX : v;
+#endif
             });
         }
 #ifdef AMREX_USE_GPU
@@ -932,11 +937,16 @@ MultiFab::max (int comp, int nghost, bool local) const
             mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
             {
+#ifdef AMREX_USE_GPU
                 if (flagsma[box_no](i,j,k).isCovered()) {
                     return AMREX_REAL_LOWEST;
                 } else {
                     return ma[box_no](i,j,k,comp);
                 }
+#else // for vectorization
+                Real const v = ma[box_no](i,j,k,comp);
+                return flagsma[box_no](i,j,k).isCovered() ? AMREX_REAL_LOWEST : v;
+#endif
             });
         }
 #ifdef AMREX_USE_GPU
@@ -1407,7 +1417,12 @@ MultiFab::sum_unique (int comp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                        -> GpuTuple<Real>
         {
+#ifdef AMREX_USE_GPU
             return msk[box_no](i,j,k) ? ma[box_no](i,j,k,comp) : 0.0_rt;
+#else // for vectorization
+            Real const v = ma[box_no](i,j,k,comp);
+            return msk[box_no](i,j,k) ? v : 0.0_rt;
+#endif
         });
     }
 #ifdef AMREX_USE_GPU
