@@ -11,6 +11,10 @@ unit is in one of the --db-in files.  The hash covers the preprocessed source
 with comments, the compile arguments, clang-tidy's version and arguments, and
 the --config-file.  When all targets succeed, the makefile writes the hashes
 of all translation units in the log to --db-out.
+
+The hits and misses found in the log are checked against `ccache
+--print-stats`, so the statistics must be zeroed (ccache -z) before the
+build.  A mismatch, e.g. after a change of the log format, is an error.
 """
 
 import argparse, concurrent.futures, hashlib, os, re, shlex, subprocess, sys
@@ -40,6 +44,8 @@ def mmclt(argv):
                         help="Clang-tidy arguments (--db-out only)")
     parser.add_argument("--jobs", type=int, default=os.cpu_count(),
                         help="Parallel preprocessing jobs (--db-out only)")
+    parser.add_argument("--ccache", default="ccache",
+                        help="Ccache executable for the statistics check; empty skips it (--db-out only)")
     args = parser.parse_args()
 
     if args.db_out:
@@ -83,7 +89,8 @@ SOURCE_EXTS = (".cpp", ".cxx", ".cc", ".C", ".c")
 
 
 def read_compilations(logfile, identifier):
-    """Compilations in a ccache log: (cwd, compiler, arguments, source, miss)."""
+    """Compilations in a ccache log: (cwd, compiler, arguments, source, miss),
+    and the numbers of hits and misses in the log regardless of identifier."""
     line_re = re.compile(r"^\[\S+ (\d+)\] (.*)$")
     current = {}
     done = []
@@ -108,8 +115,15 @@ def read_compilations(logfile, identifier):
     done.extend(current.values())
 
     compilations = []
+    nhits = nmisses = 0
     for c in done:
-        if not c["cmd"] or identifier not in c["cmd"] or " -c " not in c["cmd"] + " ":
+        if not c["cmd"] or " -c " not in c["cmd"] + " ":
+            continue
+        if c["miss"]:
+            nmisses += 1
+        else:
+            nhits += 1
+        if identifier not in c["cmd"]:
             continue
         try:
             tokens = shlex.split(c["cmd"])
@@ -120,7 +134,30 @@ def read_compilations(logfile, identifier):
         parsed = split_command(tokens)
         if parsed:
             compilations.append((c["cwd"], parsed[0], parsed[1], parsed[2], c["miss"]))
-    return compilations
+    return compilations, nhits, nmisses
+
+
+def check_ccache_stats(ccache, nhits, nmisses):
+    """Abort unless the hits and misses found in the log match ccache's statistics."""
+    try:
+        out = subprocess.run([ccache, "--print-stats"], stdout=subprocess.PIPE,
+                             check=True).stdout.decode(errors="replace")
+    except (OSError, subprocess.CalledProcessError) as e:
+        sys.exit("mmclt: cannot run {} --print-stats: {}".format(ccache, e))
+    stats = {}
+    for line in out.splitlines():
+        key, _, value = line.partition("\t")
+        if value.strip().isdigit():
+            stats[key.strip()] = int(value)
+    keys = ("direct_cache_hit", "preprocessed_cache_hit", "cache_miss")
+    if any(k not in stats for k in keys):
+        sys.exit("mmclt: {} --print-stats lacks {}; its format may have changed"
+                 .format(ccache, ", ".join(k for k in keys if k not in stats)))
+    hits = stats["direct_cache_hit"] + stats["preprocessed_cache_hit"]
+    if (nhits, nmisses) != (hits, stats["cache_miss"]):
+        sys.exit("mmclt: found {} hits and {} misses in the log, but ccache reports {} and {}."
+                 " Was ccache -z run before the build, or has the log format changed?"
+                 .format(nhits, nmisses, hits, stats["cache_miss"]))
 
 
 def split_command(tokens):
@@ -190,7 +227,11 @@ def mmclt_db(args):
             with open(fn) as f:
                 known.update(line.strip() for line in f if line.strip())
 
-    compilations = read_compilations(args.input, args.identifier)
+    compilations, nhits, nmisses = read_compilations(args.input, args.identifier)
+    if args.ccache:
+        check_ccache_stats(args.ccache, nhits, nmisses)
+    if not compilations:
+        sys.exit("mmclt: no compilations with {} in {}".format(args.identifier, args.input))
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
         hashes = list(ex.map(lambda c: tu_hash(common, *c[:4]), compilations))
 
