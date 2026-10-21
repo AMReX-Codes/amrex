@@ -811,7 +811,7 @@ Embedded Boundary
    :value: [depend on the type of amrex::Real]
 
    This parameter specifies the threshold for small cells that will be
-   converted to covered cells. The default value is ``1.e-14`` if
+   converted to covered cells. The default value is ``1.e-12`` if
    :cpp:`amrex::Real` is ``double``, or ``1.e-5`` if :cpp:`amrex::Real` is
    ``float``.
 
