@@ -638,6 +638,10 @@ MyTest::readParameters ()
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
+    pp.query("periodic_x", periodic_x);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
+                                                     composite_solve && max_level == 1),
+        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
     pp.query("max_error", max_error);
     pp.query("use_hypre_ssamg", use_hypre_ssamg);
 
@@ -701,7 +705,7 @@ MyTest::initData ()
     }
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(int(periodic_x),0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
@@ -717,6 +721,10 @@ MyTest::initData ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
+        if (periodic_x) { // ... except in x, where it touches the high end
+            domain.setSmall(0, n_cell/2);
+            domain.setBig(0, n_cell-1);
+        }
         domain.refine(ref_ratio);
     }
 
@@ -805,11 +813,26 @@ MyTest::solveMLHypre ()
                     for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
                 }
 
-                hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
-                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                // periodic_x: unit b coefficients, so that the fine ones at
+                // the coarse/fine faces across the periodic boundary are used
+                Vector<Array<MultiFab,AMREX_SPACEDIM>> unit_b;
+                if (periodic_x) {
+                    unit_b.resize(nlevels);
+                    for (int ilev = 0; ilev < nlevels; ++ilev) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            unit_b[ilev][idim].define(
+                                amrex::convert(grids[ilev], IntVect::TheDimensionVector(idim)),
+                                dmap[ilev], 1, 0);
+                            unit_b[ilev][idim].setVal(Real(1.0));
+                        }
+                    }
+                }
+                auto const xbc = periodic_x ? LinOpBCType::Periodic : LinOpBCType::Dirichlet;
+                hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, GetVecOfArrOfConstPtrs(unit_b),
+                                      {AMREX_D_DECL(xbc,
                                                     LinOpBCType::Dirichlet,
                                                     LinOpBCType::Dirichlet)},
-                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                      {AMREX_D_DECL(xbc,
                                                     LinOpBCType::Dirichlet,
                                                     LinOpBCType::Dirichlet)},
                                       GetVecOfConstPtrs(solution));

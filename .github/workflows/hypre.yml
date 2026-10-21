@@ -118,6 +118,12 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij composite_solve=0
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij hypre_mlabeclap.dump_matrix=1 \
             hypre_mlabeclap.dump_gather_max=100
+        # Periodic in x with the fine level at the high-x boundary; one rank,
+        # so that the periodic coarse/fine coefficients are copied locally
+        for i in inputs-mlhypre inputs-mlhypre-ij inputs-mlhypre-algmg; do
+            mpiexec -n 1 ./main3d.gnu.MPI.ex $i prob_type=1 max_level=1 n_cell=16 \
+                max_grid_size=8 periodic_x=1 mlhypre_num_setups=1 max_error=0.03 do_plots=0
+        done
         # Each half of the ranks solves on its own sub-communicator
         for i in inputs-mlhypre inputs-mlhypre-ij inputs-mlhypre-algmg; do
             mpiexec -n 2 ./main3d.gnu.MPI.ex $i split_comm=1
