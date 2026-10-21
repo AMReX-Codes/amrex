@@ -15,6 +15,7 @@
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <utility>
 
 namespace amrex {
 
@@ -208,9 +209,18 @@ bool AnyOf (BoxND<dim> const& box, P const& pred);
 namespace Reduce::detail {
 
 // CPU reductions keep nacc partial accumulators so that the inner loop
-// vectorizes; chunk is the OpenMP work unit of the 1D reductions.
+// vectorizes.
 inline constexpr int nacc = 8;
-inline constexpr int chunk = 1024;
+
+// Split a 1D range into chunks of a multiple of nacc, enough for all threads.
+template <std::integral N>
+std::pair<N,N> chunks_1d (N n)
+{
+    auto const nthreads = static_cast<N>(OpenMP::get_max_threads());
+    N const chunk = std::max(static_cast<N>(nacc), (n / (4*nthreads) / nacc) * nacc);
+    N const nchunks = n / chunk + ((n % chunk != 0) ? 1 : 0);
+    return {chunk, nchunks};
+}
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
@@ -1459,13 +1469,16 @@ requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
     using Reduce::detail::nacc;
-    using Reduce::detail::chunk;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:r)
 #endif
-    for (N ib = 0; ib < n; ib += chunk) {
-        N const ie = std::min(static_cast<N>(ib+chunk), n);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
         T acc[nacc] = {};
         N i = ib;
         for (; i + (nacc-1) < ie; i += nacc) {
@@ -1488,13 +1501,16 @@ requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
     using Reduce::detail::nacc;
-    using Reduce::detail::chunk;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r)
 #endif
-    for (N ib = 0; ib < n; ib += chunk) {
-        N const ie = std::min(static_cast<N>(ib+chunk), n);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
         T acc[nacc];
         for (T& a : acc) { a = init_val; }
         N i = ib;
@@ -1518,13 +1534,16 @@ requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
     using Reduce::detail::nacc;
-    using Reduce::detail::chunk;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(max:r)
 #endif
-    for (N ib = 0; ib < n; ib += chunk) {
-        N const ie = std::min(static_cast<N>(ib+chunk), n);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
         T acc[nacc];
         for (T& a : acc) { a = init_val; }
         N i = ib;
@@ -1548,14 +1567,17 @@ requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
     using Reduce::detail::nacc;
-    using Reduce::detail::chunk;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r_min) reduction(max:r_max)
 #endif
-    for (N ib = 0; ib < n; ib += chunk) {
-        N const ie = std::min(static_cast<N>(ib+chunk), n);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
         T amin[nacc], amax[nacc];
         for (T& a : amin) { a = std::numeric_limits<T>::max(); }
         for (T& a : amax) { a = std::numeric_limits<T>::lowest(); }

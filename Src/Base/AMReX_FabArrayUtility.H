@@ -2111,8 +2111,12 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
         {
             auto m = T(mma[box_no](i,j,k));
-            auto v = xma[box_no](i,j,k,xcomp+n);
-            return (m != 0) ? m*v*v : T(0.0);
+            if (m != 0) {
+                auto v = xma[box_no](i,j,k,xcomp+n);
+                return m*v*v;
+            } else {
+                return T(0.0);
+            }
         });
     }
 #ifdef AMREX_USE_GPU
