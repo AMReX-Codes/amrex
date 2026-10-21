@@ -105,6 +105,9 @@ public:
     void setVerbose (int _verbose);
     //! Flag a singular operator (enables null-space handling in derived classes).
     void setIsMatrixSingular(bool flag) { is_matrix_singular = flag; }
+    //! IJ interface: throw std::runtime_error instead of aborting on a hypre
+    //! error or a non-finite residual (see HypreIJIface::setThrowException)
+    void setThrowException (bool t) noexcept { throw_exception = t; }
     /**
      * \brief Solve the linear system using the concrete interface implementation.
      *
@@ -192,6 +195,7 @@ protected:
     int m_maxorder = -1;
 
     bool is_matrix_singular { false };
+    bool throw_exception { false };
 };
 
 /**

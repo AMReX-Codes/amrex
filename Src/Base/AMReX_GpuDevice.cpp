@@ -1524,7 +1524,9 @@ void hypreSynchronize ()
 {
 #ifdef AMREX_USE_GPU
 #if (HYPRE_RELEASE_NUMBER > 23200) || (HYPRE_RELEASE_NUMBER == 23200 && HYPRE_DEVELOP_NUMBER >= 4)
-    hypre_SyncComputeStream();
+    // hypre_SyncComputeStream does nothing unless hypre's compute-stream
+    // sync flag is set (by default only with unified memory)
+    hypre_ForceSyncComputeStream();
 #else
     hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
 #endif

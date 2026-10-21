@@ -181,6 +181,80 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   }
 
                   reorder_polygon(m_points, m_connectivity.back(), n0);
+
+                  // If the plane lies on a cell face, the polygon covers the whole
+                  // face, but only part of it is wall.  Trim it with a straight line
+                  // on the side away from bcent so that its area matches the EB area.
+                  auto& conn = m_connectivity.back();
+                  int const np = conn[0];
+                  std::array<std::array<Real,3>,8> poly;
+                  std::array<Real,3> pcent = {0, 0, 0};
+                  for(int n = 0; n < np; ++n) {
+                     poly[n] = m_points[conn[n+1]];
+                     for(int idim = 0; idim < 3; ++idim) { pcent[idim] += poly[n][idim]/Real(np); }
+                  }
+                  auto area = [&] (std::array<std::array<Real,3>,8> const& pts, int n) {
+                     std::array<Real,3> s = {0, 0, 0};
+                     for(int a = 0; a < n; ++a) {
+                        auto const& u = pts[a];
+                        auto const& v = pts[(a+1)%n];
+                        s[0] += u[1]*v[2] - u[2]*v[1];
+                        s[1] += u[2]*v[0] - u[0]*v[2];
+                        s[2] += u[0]*v[1] - u[1]*v[0];
+                     }
+                     return Real(0.5)*std::abs(dot_product(s, n0));
+                  };
+                  std::array<Real,3> m;
+                  Real const mc = dot_product(n0, centroid) - dot_product(n0, pcent);
+                  for(int idim = 0; idim < 3; ++idim) {
+                     m[idim] = centroid[idim] - pcent[idim] - mc*n0[idim];
+                  }
+                  Real const mnorm = std::sqrt(dot_product(m, m));
+                  if(area(poly, np) > apnorm*Real(1.01) &&
+                     mnorm > Real(1.e-3)*std::min({dx[0], dx[1], dx[2]})) {
+                     for(auto& x : m) { x /= mnorm; }
+                     // keep the part with dot(m,x) >= t
+                     std::array<std::array<Real,3>,8> clipped;
+                     int nc = 0;
+                     auto clip = [&] (Real t) {
+                        nc = 0;
+                        for(int a = 0; a < np; ++a) {
+                           auto const& u = poly[a];
+                           auto const& v = poly[(a+1)%np];
+                           Real const du = dot_product(m, u) - t;
+                           Real const dv = dot_product(m, v) - t;
+                           if(du >= 0) { clipped[nc++] = u; }
+                           if((du >= 0) != (dv >= 0)) {
+                              Real const f = du/(du-dv);
+                              for(int idim = 0; idim < 3; ++idim) {
+                                 clipped[nc][idim] = u[idim] + f*(v[idim]-u[idim]);
+                              }
+                              ++nc;
+                           }
+                        }
+                        return (nc >= 3) ? area(clipped, nc) : Real(0);
+                     };
+                     Real tlo = std::numeric_limits<Real>::max();
+                     Real thi = std::numeric_limits<Real>::lowest();
+                     for(int n = 0; n < np; ++n) {
+                        tlo = std::min(tlo, dot_product(m, poly[n]));
+                        thi = std::max(thi, dot_product(m, poly[n]));
+                     }
+                     for(int iter = 0; iter < 60; ++iter) {
+                        Real const t = Real(0.5)*(tlo+thi);
+                        if(clip(t) > apnorm) { tlo = t; } else { thi = t; }
+                     }
+                     clip(tlo);
+                     if(nc >= 3 && nc <= 6) {
+                        for(int n = 0; n < np; ++n) { m_points.pop_back(); }
+                        conn = {0,0,0,0,0,0,0};
+                        for(int n = 0; n < nc; ++n) {
+                           m_points.push_back(clipped[n]);
+                           conn[0] = n+1;
+                           conn[n+1] = static_cast<int>(m_points.size()-1);
+                        }
+                     }
+                  }
                }
             }
          }

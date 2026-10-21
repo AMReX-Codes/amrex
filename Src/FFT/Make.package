@@ -7,6 +7,7 @@ CEXE_headers += AMReX_FFT_LocalR2C.H
 
 ifneq ($(DIM),1)
 CEXE_headers += AMReX_FFT_Stokes.H
+CEXE_headers += AMReX_FFT_CrossProj.H
 endif
 CEXE_sources += AMReX_FFT.cpp
 

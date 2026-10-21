@@ -281,6 +281,41 @@ Below is an example of using the solver.
 
 Similar to the other FFT classes, the solver should be cached for reuse.
 
+Cross-Stencil Projection
+========================
+
+:cpp:`FFT::CrossProj` projects a cell-centered velocity field onto fields
+that are divergence free with respect to a node-centered divergence. In 2D,
+the divergence at the node shared by cells :math:`(i,j)`, :math:`(i+1,j)`,
+:math:`(i,j+1)` and :math:`(i+1,j+1)` is
+
+.. math::
+
+  \frac{u_{i+1,j} + u_{i+1,j+1} - u_{i,j} - u_{i,j+1}}{2 \Delta x}
+  + \frac{v_{i,j+1} + v_{i+1,j+1} - v_{i,j} - v_{i+1,j}}{2 \Delta y}.
+
+In 3D, it is computed similarly from the 8 cells surrounding the node. The
+projected velocity has zero divergence at every node, and projecting it
+again leaves it unchanged. The class is available in 2D and 3D, and it
+currently only supports periodic boundary conditions. The domain must have
+at least 2 cells in each direction. The first :cpp:`AMREX_SPACEDIM`
+components of the :cpp:`MultiFab` are the velocity. If the output has ghost
+cells, one layer of them is filled. Below is an example of using
+it.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);   // periodic in all directions
+    MultiFab vel(...);    // cell-centered, AMREX_SPACEDIM components
+    MultiFab vel_proj(...);
+
+    FFT::CrossProj proj(geom);
+    proj.solve(vel_proj, vel); // vel_proj and vel can be the same MultiFab
+
+Similar to the other FFT classes, the object should be cached for reuse.
+
 .. _sec:FFT:rawptr:
 
 Raw Pointer Interface

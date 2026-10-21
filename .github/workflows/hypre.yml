@@ -113,6 +113,22 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-algmg
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij composite_solve=0
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij hypre_mlabeclap.dump_matrix=1 \
+            hypre_mlabeclap.dump_gather_max=100
+        # Each half of the ranks solves on its own sub-communicator
+        for i in inputs-mlhypre inputs-mlhypre-ij inputs-mlhypre-algmg; do
+            mpiexec -n 2 ./main3d.gnu.MPI.ex $i split_comm=1
+        done
+        # A NaN right-hand side (1) or NaN coefficients (2) must throw
+        for m in 1 2; do
+            for i in "inputs-mlhypre prob_type=2" inputs-mlhypre-ij inputs-mlhypre-algmg; do
+                mpiexec -n 2 ./main3d.gnu.MPI.ex $i mlhypre_test_throw=$m max_error=-1 \
+                    amrex.fpe_trap_invalid=0 do_plots=0
+            done
+        done
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \

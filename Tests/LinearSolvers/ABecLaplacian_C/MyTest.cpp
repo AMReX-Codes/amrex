@@ -12,6 +12,9 @@
 #include <AMReX_HypreMLABecLap.H>
 #endif
 
+#include <limits>
+#include <stdexcept>
+
 using namespace amrex;
 
 namespace {
@@ -54,6 +57,7 @@ MyTest::solve ()
 #ifdef AMREX_USE_HYPRE
     if (use_mlhypre) {
         solveMLHypre();
+        if (mlhypre_test_throw) { return; }
         // Unlike MLMG, the hypre solve does not stop on a NaN.
         for (int ilev = 0; ilev < int(solution.size()); ++ilev) {
             if (solution[ilev].contains_nan(0, solution[ilev].nComp(), 0)) {
@@ -632,6 +636,9 @@ MyTest::readParameters ()
     pp.query("composite_solve", composite_solve);
 
     pp.query("use_mlhypre", use_mlhypre);
+    pp.query("mlhypre_num_setups", mlhypre_num_setups);
+    pp.query("mlhypre_test_throw", mlhypre_test_throw);
+    pp.query("max_error", max_error);
     pp.query("use_hypre_ssamg", use_hypre_ssamg);
 
     pp.query("prob_type", prob_type);
@@ -752,6 +759,32 @@ MyTest::solveMLHypre ()
 
     const auto nlevels = static_cast<int>(geom.size());
 
+    // Composite solve; see mlhypre_test_throw
+    auto composite_solve_or_throw = [&] (HypreMLABecLap& h)
+    {
+        if (mlhypre_test_throw == 0) {
+            h.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+            return;
+        }
+        if (mlhypre_test_throw == 1) {
+            for (auto& mf : rhs) { mf.setVal(std::numeric_limits<Real>::quiet_NaN()); }
+        }
+        h.setThrowException(true);
+        try {
+            h.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+        } catch (std::runtime_error const& e) {
+            amrex::Print() << "mlhypre_test_throw: caught \"" << e.what() << "\"\n";
+            return;
+        }
+        amrex::Abort("mlhypre_test_throw: the solve did not throw");
+    };
+
+    if (mlhypre_test_throw == 2) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(prob_type == 2 && composite_solve,
+            "mlhypre_test_throw = 2 needs prob_type = 2 and composite_solve");
+        for (auto& mf : acoef) { mf.setVal(std::numeric_limits<Real>::quiet_NaN()); }
+    }
+
 #ifdef AMREX_FEATURE_HYPRE_SSAMG
     auto hypre_solver_id = use_hypre_ssamg ? HypreSolverID::SSAMG
                                            : HypreSolverID::BoomerAMG;
@@ -763,18 +796,26 @@ MyTest::solveMLHypre ()
         if (composite_solve) {
             HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
+            // mlhypre_num_setups > 1: repeated setups on the same object, each
+            // solved from zero; reuse is turned on after the first setup (in
+            // place with the hypre backend)
+            for (int isetup = 0; isetup < mlhypre_num_setups; ++isetup) {
+                if (isetup > 0) {
+                    hypre_mlabeclap.setReuseSolverSetup(true);
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                }
 
-            hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet)},
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet)},
-                                  GetVecOfConstPtrs(solution));
+                hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      GetVecOfConstPtrs(solution));
 
-            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
-                                  tol_rel, tol_abs);
+                composite_solve_or_throw(hypre_mlabeclap);
+            }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
@@ -814,20 +855,28 @@ MyTest::solveMLHypre ()
         if (composite_solve) {
             HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
+            // mlhypre_num_setups > 1: repeated setups on the same object, each
+            // solved from zero; reuse is turned on after the first setup (in
+            // place with the hypre backend)
+            for (int isetup = 0; isetup < mlhypre_num_setups; ++isetup) {
+                if (isetup > 0) {
+                    hypre_mlabeclap.setReuseSolverSetup(true);
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                }
 
-            hypre_mlabeclap.setup(ascalar, bscalar,
-                                  GetVecOfConstPtrs(acoef),
-                                  GetVecOfArrOfConstPtrs(face_bcoef),
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Neumann,
-                                                LinOpBCType::Neumann)},
-                                  {AMREX_D_DECL(LinOpBCType::Neumann,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Neumann)},
-                                  GetVecOfConstPtrs(solution));
+                hypre_mlabeclap.setup(ascalar, bscalar,
+                                      GetVecOfConstPtrs(acoef),
+                                      GetVecOfArrOfConstPtrs(face_bcoef),
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann,
+                                                    LinOpBCType::Neumann)},
+                                      {AMREX_D_DECL(LinOpBCType::Neumann,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann)},
+                                      GetVecOfConstPtrs(solution));
 
-            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
-                                  tol_rel, tol_abs);
+                composite_solve_or_throw(hypre_mlabeclap);
+            }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
