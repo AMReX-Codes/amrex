@@ -213,31 +213,39 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                             as_fine, dm_as_fine, levmsk,
                             level_mask_not_covered, fac_for_deltaR, srd_max_order);
 
-        amrex::ParallelFor(bx, ncomp,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                // Only update the values which actually changed -- this makes
-                // the results insensitive to tiling -- otherwise cells that aren't
-                // changed but are in a tile on which StateRedistribute gets called
-                // will have precision-level changes due to adding/subtracting U_in
-                // and multiplying/dividing by dt.   Here we test on whether (i,j,k)
-                // has at least one neighbor and/or whether (i,j,k) is in the
-                // neighborhood of another cell -- if either of those is true the
-                // value may have changed
-
-                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1)
+        // Copy unaffected cells directly to avoid roundoff that depends on tiling.
+        if (srd_update_scale) {
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                   const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
-
-                   dUdt_out(i,j,k,n) = scale * (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
-
-                }
-                else
+                    if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1) {
+                        const Real scale = srd_update_scale(i,j,k);
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = scale *
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
+                        }
+                    } else {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+                        }
+                    }
+                });
+        } else {
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                   dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
-                }
-            }
-        );
+                    if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1) {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) =
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
+                        }
+                    } else {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+                        }
+                    }
+                });
+        }
 
     } else if (redistribution_type == "NoRedist") {
         amrex::ParallelFor(bx, ncomp,
