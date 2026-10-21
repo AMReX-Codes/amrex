@@ -199,7 +199,6 @@ construct_itracker_cell (int i, int j, int k,
         n1 = first_idx;
 
         ioff = imap[first_idx];
-        joff = jmap[first_idx];
 
         select_by_vfrac = true;
     }
