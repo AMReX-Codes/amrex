@@ -99,6 +99,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 3)
     if (is_periodic_z) { domain_per_grown.grow(2,3); }
 #endif
+    const Box qhat_region = bxg2 & domain_per_grown;
 
     // Solution at the centroid of my nbhd
     FArrayBox    Qhat_fab (bxg3,ncomp,The_Async_Arena());
@@ -138,8 +139,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         amrex::ParallelFor(bxg3,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (vfrac(i,j,k) > 0.0 && bxg2.contains(IntVect(AMREX_D_DECL(i,j,k)))
-                                   && domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))))
+            if (vfrac(i,j,k) > 0.0 && qhat_region.contains(IntVect(AMREX_D_DECL(i,j,k))))
             {
                 if (itracker(i,j,k,0) == 0)
                 {
