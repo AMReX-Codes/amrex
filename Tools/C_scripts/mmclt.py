@@ -235,18 +235,23 @@ def mmclt_db(args):
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
         hashes = list(ex.map(lambda c: tu_hash(common, *c[:4]), compilations))
 
+    # A hit only counts as passed if the same unit is not also a miss in this
+    # log; otherwise the miss decides.
+    miss_hashes = {h for (*_, miss), h in zip(compilations, hashes) if miss and h}
     passed = set()      # hashes known to pass: ccache hits and database entries
     targets = []        # (hash, cwd, source, arguments) to clang-tidy
+    target_hashes = set()
     nhit = ndb = 0
     for (cwd, compiler, cargs, src, miss), h in zip(compilations, hashes):
         if not miss:
             nhit += 1
-            if h:
+            if h and h not in miss_hashes:
                 passed.add(h)
         elif h and h in known:
             ndb += 1
             passed.add(h)
-        elif h is None or h not in [t[0] for t in targets]:
+        elif h is None or h not in target_hashes:
+            target_hashes.add(h)
             targets.append((h, cwd or ".", os.path.join(cwd or ".", src), cargs))
 
     db_dir = os.path.abspath(args.db_dir or args.db_out + ".d")
