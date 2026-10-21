@@ -115,12 +115,12 @@ MultiFab::Dot (const iMultiFab& mask,
                                       : Real(0.0);
 #else // unconditional loads so that the loop vectorizes; zero masked
       // values before any arithmetic, which could trap on garbage
-            Real x = xma[box_no](i,j,k,xcomp+n);
-            Real y = yma[box_no](i,j,k,ycomp+n);
+            Real xv = xma[box_no](i,j,k,xcomp+n);
+            Real yv = yma[box_no](i,j,k,ycomp+n);
             bool const in = mma[box_no](i,j,k);
-            x = in ? x : Real(0.0);
-            y = in ? y : Real(0.0);
-            return x*y;
+            xv = in ? xv : Real(0.0);
+            yv = in ? yv : Real(0.0);
+            return xv*yv;
 #endif
         });
     }

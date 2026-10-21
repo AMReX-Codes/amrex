@@ -2048,11 +2048,11 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp,
             return (m != 0) ? m * xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n) : T(0.0);
 #else // unconditional loads so that the loop vectorizes; zero masked
       // values before any arithmetic, which could trap on garbage
-            auto x = xma[box_no](i,j,k,xcomp+n);
-            auto y = yma[box_no](i,j,k,ycomp+n);
-            x = (m != 0) ? x : T(0.0);
-            y = (m != 0) ? y : T(0.0);
-            return m*x*y;
+            auto xv = xma[box_no](i,j,k,xcomp+n);
+            auto yv = yma[box_no](i,j,k,ycomp+n);
+            xv = (m != 0) ? xv : T(0.0);
+            yv = (m != 0) ? yv : T(0.0);
+            return m*xv*yv;
 #endif
         });
     }
