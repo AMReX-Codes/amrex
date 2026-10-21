@@ -177,11 +177,11 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     const Real inv_scale = Real(1.0) / srd_update_scale(i,j,k);
-                    const Real alpha = dt * inv_scale;
+                    const Real scaled_dt = dt * inv_scale;
 
                     for (int n = 0; n < ncomp; ++n) {
                         scratch(i,j,k,n) = U_in(i,j,k,n)
-                            + alpha * dUdt_in(i,j,k,n);
+                            + scaled_dt * dUdt_in(i,j,k,n);
                     }
                 });
         } else {
