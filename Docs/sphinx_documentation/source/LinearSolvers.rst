@@ -882,7 +882,12 @@ sparse matrix:
   repeated :cpp:`setup` with new coefficients (on the same grids) updates the
   matrix values in place and keeps the solver setup until
   :cpp:`resetSolverSetup()`.  It can be turned on before or after the first
-  :cpp:`setup`.  The AlgMG backend sets up a new hierarchy for every matrix.
+  :cpp:`setup`.  A solve with a reused setup that does not converge redoes
+  the setup and continues once before failing;
+  :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
+  :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
+  needed more iterations.  The AlgMG backend sets up a new hierarchy for
+  every matrix.
 
 - In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
   report the last solve, and with :cpp:`setThrowException(true)` a solve that

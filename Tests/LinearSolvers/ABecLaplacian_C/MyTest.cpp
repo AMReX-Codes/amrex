@@ -888,7 +888,10 @@ MyTest::solveMLHypre ()
                     for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
                 }
 
-                hypre_mlabeclap.setup(ascalar, bscalar,
+                // Setup k scales the operator and the rhs by k+1: the same
+                // solution from new matrix values (updated in place)
+                Real const scale = Real(1 + isetup);
+                hypre_mlabeclap.setup(ascalar*scale, bscalar*scale,
                                       GetVecOfConstPtrs(acoef),
                                       GetVecOfArrOfConstPtrs(face_bcoef),
                                       {AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -899,7 +902,9 @@ MyTest::solveMLHypre ()
                                                     LinOpBCType::Neumann)},
                                       GetVecOfConstPtrs(solution));
 
+                for (auto& mf : rhs) { mf.mult(scale); }
                 composite_solve_or_throw(hypre_mlabeclap);
+                for (auto& mf : rhs) { mf.mult(Real(1.0)/scale); }
             }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
