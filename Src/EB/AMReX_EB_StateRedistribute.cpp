@@ -149,29 +149,26 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 }
                 else
                 {
-                    const Real inv_nbhd_vol = Real(1) / nbhd_vol(i,j,k);
-                    const Real self_contribution = alpha(i,j,k,0) * U_in(i,j,k,n)
-                        * vfrac(i,j,k) * inv_nbhd_vol;
-                    qt(i,j,k,0) = self_contribution;
-                    Real qhat_sum = Real(0) + self_contribution;
+                    Qhat(i,j,k,n) = 0.;
 
-                    for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
+                    // This loops over (i,j,k) and the neighbors of (i,j,k)
+                    for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
                     {
-                        const int id = itracker(i,j,k,i_nbor);
-                        const int r = i+imap[id];
-                        const int s = j+jmap[id];
-                        const int t = k+kmap[id];
-                        const Real fac = alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t));
+                        int r = i; int s = j; int t = k;
+                        Real fac = alpha(i,j,k,0);
+                        if (i_nbor > 0) {
+                            r = i+imap[itracker(i,j,k,i_nbor)];
+                            s = j+jmap[itracker(i,j,k,i_nbor)];
+                            t = k+kmap[itracker(i,j,k,i_nbor)];
+                            fac = alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t));
+                        }
 
                         if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                         {
-                            const Real contribution = fac * U_in(r,s,t,n)
-                                * vfrac(r,s,t) * inv_nbhd_vol;
-                            qt(i,j,k,i_nbor) = contribution;
-                            qhat_sum += contribution;
+                            qt(i,j,k,i_nbor) = fac * U_in(r,s,t,n) * vfrac(r,s,t) / nbhd_vol(i,j,k);
+                            Qhat(i,j,k,n) += qt(i,j,k,i_nbor);
                         }
                     }
-                    Qhat(i,j,k,n) = qhat_sum;
                 }
             } else {
                 Qhat(i,j,k,n) = U_in(i,j,k,n);
