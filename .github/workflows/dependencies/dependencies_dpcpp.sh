@@ -43,12 +43,15 @@ source /etc/os-release
 ver="${VERSION_ID//\"/}"
 if [ "$ver" == "22.04" ]; then exit 0; fi
 
+# intel-ocloc needs the IGC of its own release: libigc1 up to 24.04, libigc2 from 26.04
+if [ "$ver" == "24.04" ]; then igc=libigc-dev; else igc=libigc2; fi
+
 status=1
 for itry in {1..5}
 do
     sudo apt-get install -y --no-install-recommends \
         intel-ocloc \
-        libigc-dev  \
+        ${igc}      \
         && { sudo apt-get clean; status=0; break; }  \
         || { sleep 10; }
 done

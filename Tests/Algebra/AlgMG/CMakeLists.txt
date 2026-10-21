@@ -3,7 +3,13 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     set(_input_files inputs)
 
     if (AMReX_GPU_BACKEND STREQUAL NONE)
-        setup_test(${D} _sources _input_files)
+        # A smaller 3D problem keeps the ctest short.
+        if (D EQUAL 3)
+            set(_ctest_params n_cell=24)
+        endif ()
+        setup_test(${D} _sources _input_files
+            CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params})
+        unset(_ctest_params)
     else ()
         # Every case syncs the GPU often, which is slow when the GPU is
         # shared, so run the variations for one problem, split them across
