@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <sstream>
 #include <string>
 
 /**
@@ -30,6 +31,14 @@ namespace amrex::composite {
 
 //! (row, column, value) of a matrix entry with global indices
 struct Triplet { Long row; Long col; Real val; };
+
+//! Scientific notation for messages (std::to_string prints 0.000000 for 1e-7)
+inline std::string to_sci (double x)
+{
+    std::ostringstream os;
+    os << std::scientific << std::setprecision(6) << x;
+    return os.str();
+}
 
 /**
  * \brief Rows owned by this rank in CSR form, columns sorted within each

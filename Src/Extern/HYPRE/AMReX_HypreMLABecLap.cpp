@@ -1366,7 +1366,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         std::string msg = hypreErrorMessage("HypreMLABecLap solve");
         if (msg.empty() && !(final_res <= reltol)) { // also catches NaN
             msg = "Hypre failed to converge after " + std::to_string(num_iterations) +
-                  " iterations. Final relative residual is " + std::to_string(final_res);
+                  " iterations. Final relative residual is " + composite::to_sci(final_res);
         }
         if (!msg.empty()) {
             HYPRE_SStructVectorDestroy(m_ss_x);
@@ -1648,7 +1648,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     if (!(final_res <= a_reltol)) {
         fail(std::string((m_backend == Backend::hypre) ? "Hypre" : "AlgMG") +
              " failed to converge after " + std::to_string(num_iterations) +
-             " iterations. Final relative residual is " + std::to_string(final_res));
+             " iterations. Final relative residual is " + composite::to_sci(final_res));
     }
     if (dump_k >= 0) { dumpSystem(dump_k, xvec, true); }
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {

@@ -1212,7 +1212,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         (abstol > Real(0.0) && m_final_res*m_bnorm <= abstol);
     if (!converged) {
         fail("HypreMLNodeLap: failed to converge after " + std::to_string(m_num_iters) +
-             " iterations; final relative residual " + std::to_string(m_final_res));
+             " iterations; final relative residual " + composite::to_sci(m_final_res));
     }
 
     if (dump_k >= 0) { dumpSystem(dump_k, true); }
