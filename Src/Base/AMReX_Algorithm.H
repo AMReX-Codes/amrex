@@ -34,12 +34,13 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the smallest value. This function was added to AMReX to
-    //! support GPU before `std::min` was constexpr in C++14. `std::min` can
-    //! now be used directly instead.
+    //! Return the smallest value. The arguments are reduced pairwise with the
+    //! two-argument `min` of their type, which is element-wise for types such
+    //! as `IntVect`, `RealVect` and SIMD vectors. The result is returned by
+    //! value, because such element-wise `min` overloads return a temporary.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE constexpr const T& min (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE constexpr T min (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return min(min(a,b),c...);
     }
@@ -56,12 +57,13 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the greatest value. This function was added to AMReX to
-    //! support GPU before `std::max` was constexpr in C++14. `std::max` can
-    //! now be used directly instead.
+    //! Return the greatest value. The arguments are reduced pairwise with the
+    //! two-argument `max` of their type, which is element-wise for types such
+    //! as `IntVect`, `RealVect` and SIMD vectors. The result is returned by
+    //! value, because such element-wise `max` overloads return a temporary.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE constexpr const T& max (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE constexpr T max (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return max(max(a,b),c...);
     }
