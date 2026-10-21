@@ -149,19 +149,18 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 }
                 else
                 {
-                    Real qhat_sum = Real(0);
+                    const Real self_contribution = alpha(i,j,k,0) * U_in(i,j,k,n)
+                        * vfrac(i,j,k) / nbhd_vol(i,j,k);
+                    qt(i,j,k,0) = self_contribution;
+                    Real qhat_sum = Real(0) + self_contribution;
 
-                    // This loops over (i,j,k) and the neighbors of (i,j,k)
-                    for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
+                    for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
                     {
-                        int r = i; int s = j; int t = k;
-                        Real fac = alpha(i,j,k,0);
-                        if (i_nbor > 0) {
-                            r = i+imap[itracker(i,j,k,i_nbor)];
-                            s = j+jmap[itracker(i,j,k,i_nbor)];
-                            t = k+kmap[itracker(i,j,k,i_nbor)];
-                            fac = alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t));
-                        }
+                        const int id = itracker(i,j,k,i_nbor);
+                        const int r = i+imap[id];
+                        const int s = j+jmap[id];
+                        const int t = k+kmap[id];
+                        const Real fac = alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t));
 
                         if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                         {
