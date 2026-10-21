@@ -149,8 +149,9 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 }
                 else
                 {
+                    const Real inv_nbhd_vol = Real(1) / nbhd_vol(i,j,k);
                     const Real self_contribution = alpha(i,j,k,0) * U_in(i,j,k,n)
-                        * vfrac(i,j,k) / nbhd_vol(i,j,k);
+                        * vfrac(i,j,k) * inv_nbhd_vol;
                     qt(i,j,k,0) = self_contribution;
                     Real qhat_sum = Real(0) + self_contribution;
 
@@ -165,7 +166,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                         if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                         {
                             const Real contribution = fac * U_in(r,s,t,n)
-                                * vfrac(r,s,t) / nbhd_vol(i,j,k);
+                                * vfrac(r,s,t) * inv_nbhd_vol;
                             qt(i,j,k,i_nbor) = contribution;
                             qhat_sum += contribution;
                         }
