@@ -7,10 +7,11 @@ This generates a makefile for clang-tidying ccache-cache-missing files. This
 could be used to speed up clang-tidy in CIs.
 
 With --db-out, a ccache miss is also skipped if the hash of its translation
-unit is in one of the --db-in files.  The hash covers the preprocessed source
-with comments, the compile arguments, clang-tidy's version and arguments, and
-the --config-file.  When all targets succeed, the makefile writes the hashes
-of all translation units in the log to --db-out.
+unit is in one of the --db-in files.  The hash covers the source as clang
+preprocesses it, with comments, the compile arguments, the versions of clang
+and clang-tidy, clang-tidy's arguments, and the --config-file.  When all
+targets succeed, the makefile writes the hashes of all translation units in
+the log to --db-out.
 
 The hits and misses found in the log are checked against `ccache
 --print-stats`, so the statistics must be zeroed (ccache -z) before the
@@ -42,6 +43,9 @@ def mmclt(argv):
                         help="Clang-tidy executable (--db-out only)")
     parser.add_argument("--clang-tidy-args", default="",
                         help="Clang-tidy arguments (--db-out only)")
+    parser.add_argument("--clang",
+                        help="Clang++ that preprocesses the sources for hashing"
+                             " (--db-out only; default: clang++ of the --clang-tidy version)")
     parser.add_argument("--jobs", type=int, default=os.cpu_count(),
                         help="Parallel preprocessing jobs (--db-out only)")
     parser.add_argument("--ccache", default="ccache",
@@ -85,6 +89,8 @@ def mmclt(argv):
 EXTRA_ARGS = ["--extra-arg=-Wno-unknown-warning-option",
               "--extra-arg=-Wno-ignored-optimization-argument",
               "--extra-arg-before=--driver-mode=g++"]
+# The same for preprocessing with clang: the compile arguments are the build compiler's.
+PP_ARGS = ["-Wno-unknown-warning-option", "-Wno-ignored-optimization-argument"]
 SOURCE_EXTS = (".cpp", ".cxx", ".cc", ".C", ".c")
 
 
@@ -189,10 +195,11 @@ def split_command(tokens):
     return compiler, out, src
 
 
-def tu_hash(common, cwd, compiler, cargs, src):
-    """Hash of a translation unit, or None if it cannot be preprocessed."""
+def tu_hash(common, clang, cwd, compiler, cargs, src):
+    """Hash of a translation unit as clang-tidy sees it, or None if clang cannot
+    preprocess it."""
     try:
-        pp = subprocess.run([compiler] + cargs + ["-E", "-C", src], cwd=cwd,
+        pp = subprocess.run([clang] + PP_ARGS + cargs + ["-E", "-C", src], cwd=cwd,
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return None
@@ -214,6 +221,15 @@ def mmclt_db(args):
                                      stderr=subprocess.DEVNULL).stdout)
     except OSError:
         sys.exit("mmclt: cannot run " + args.clang_tidy)
+    clang = args.clang
+    if not clang:
+        d, b = os.path.split(args.clang_tidy)
+        clang = os.path.join(d, b.replace("clang-tidy", "clang++", 1))
+    try:
+        common.update(b"\0" + subprocess.run([clang, "--version"], stdout=subprocess.PIPE,
+                                             stderr=subprocess.DEVNULL).stdout)
+    except OSError:
+        sys.exit("mmclt: cannot run {}; pass --clang".format(clang))
     common.update(b"\0" + "\0".join(ct_args).encode() + b"\0")
     for a in ct_args:
         if a.startswith("--config-file="):
@@ -233,7 +249,7 @@ def mmclt_db(args):
     if not compilations:
         sys.exit("mmclt: no compilations with {} in {}".format(args.identifier, args.input))
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
-        hashes = list(ex.map(lambda c: tu_hash(common, *c[:4]), compilations))
+        hashes = list(ex.map(lambda c: tu_hash(common, clang, *c[:4]), compilations))
 
     # A hit only counts as passed if the same unit is not also a miss in this
     # log; otherwise the miss decides.
@@ -291,6 +307,10 @@ def mmclt_db(args):
 
     print("mmclt: {} translation units, {} ccache hits, {} in the database, {} to check"
           .format(len(compilations), nhit, ndb, len(targets)))
+    nopp = hashes.count(None)
+    if nopp:
+        print("mmclt: {} could not preprocess {} of them; they are always checked"
+              .format(clang, nopp))
 
 
 if __name__ == "__main__":
