@@ -516,14 +516,15 @@ void HypreMLNodeLap::buildMatrix ()
 
     // Every cell emits the (row, column, value) triplets of its element
     // matrix mapped through the hanging-node constraints, on the device.
-    // They go to hypre (which sums duplicates and routes off-rank rows) or,
-    // for AlgMG and dumps, to an owned-row CSR, one AMR level at a time.
+    // They go to hypre (which sums duplicates and routes off-rank rows), to
+    // the AlgMG matrix (built on the device) and, for dumps, to an owned-row
+    // CSR on the host, one AMR level at a time.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_dbc.empty(), "HypreMLNodeLap::buildMatrix called twice");
     const int finest = m_nlevels-1;
     m_pin_gid = (m_linop->isBottomSingular() && m_nglobal > 0) ? 0 : -1;
     Long const pin = m_pin_gid;
-    const bool need_csr = (m_backend == Backend::algmg) ||
-                          composite::dump_pending(m_dump_prefix, m_dump_max);
+    const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
+    const bool algmg_dev = (m_backend == Backend::algmg) && !need_csr;
 
     struct Triplets {
         Gpu::DeviceVector<BigInt> rows, cols;
@@ -531,6 +532,8 @@ void HypreMLNodeLap::buildMatrix ()
     };
     Vector<Triplets> chunks;
     Vector<composite::Triplet> host_trips;
+    Gpu::DeviceVector<Long> alg_rows, alg_cols;
+    Gpu::DeviceVector<Real> alg_vals;
     auto flush = [&] ()
     {
         Long ntot = 0;
@@ -556,6 +559,25 @@ void HypreMLNodeLap::buildMatrix ()
                                           cols.data()+n0, vals.data()+n0);
                 Gpu::hypreSynchronize();
             }
+        }
+        if (algmg_dev && ntot > 0) {
+            const auto n0 = Long(alg_rows.size());
+            alg_rows.resize(n0+ntot);
+            alg_cols.resize(n0+ntot);
+            alg_vals.resize(n0+ntot);
+            auto const* r = rows.data();
+            auto const* c = cols.data();
+            auto const* v = vals.data();
+            auto* ar = alg_rows.data() + n0;
+            auto* ac = alg_cols.data() + n0;
+            auto* av = alg_vals.data() + n0;
+            amrex::ParallelFor(ntot, [=] AMREX_GPU_DEVICE (Long n) noexcept
+            {
+                ar[n] = r[n];
+                ac[n] = c[n];
+                av[n] = v[n];
+            });
+            Gpu::streamSynchronize();
         }
         if (need_csr && ntot > 0) {
             Vector<BigInt> hr(ntot), hc(ntot);
@@ -892,7 +914,27 @@ void HypreMLNodeLap::buildMatrix ()
 
     if (m_backend == Backend::algmg) {
         m_spA = std::make_unique<SpMatrix<Real>>();
-        m_csr.toSpMatrix(*m_spA, m_rank_offset);
+        if (algmg_dev) {
+            if (pin_here) {
+                const auto n0 = Long(alg_rows.size());
+                alg_rows.resize(n0+1);
+                alg_cols.resize(n0+1);
+                alg_vals.resize(n0+1);
+                auto* ar = alg_rows.data();
+                auto* ac = alg_cols.data();
+                auto* av = alg_vals.data();
+                amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) noexcept
+                {
+                    ar[n0] = pin;
+                    ac[n0] = pin;
+                    av[n0] = Real(1.0);
+                });
+            }
+            composite::triplets_to_spmatrix(alg_rows, alg_cols, alg_vals, m_ilower,
+                                            m_iupper - m_ilower + 1, m_rank_offset, m_comm, *m_spA);
+        } else {
+            m_csr.toSpMatrix(*m_spA, m_rank_offset);
+        }
         m_algmg = std::make_unique<AlgMG<Real>>(*m_spA);
         m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
         // V-cycles alone can stall on composite AMR systems; S is symmetric
