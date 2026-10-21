@@ -110,8 +110,18 @@ MultiFab::Dot (const iMultiFab& mask,
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost), numcomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
         {
+#ifdef AMREX_USE_GPU
             return mma[box_no](i,j,k) ? xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n)
                                       : Real(0.0);
+#else // unconditional loads so that the loop vectorizes; zero masked
+      // values before any arithmetic, which could trap on garbage
+            Real x = xma[box_no](i,j,k,xcomp+n);
+            Real y = yma[box_no](i,j,k,ycomp+n);
+            bool const in = mma[box_no](i,j,k);
+            x = in ? x : Real(0.0);
+            y = in ? y : Real(0.0);
+            return x*y;
+#endif
         });
     }
 #ifdef AMREX_USE_GPU

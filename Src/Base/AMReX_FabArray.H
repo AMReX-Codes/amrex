@@ -4318,7 +4318,14 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
         nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, IntVect(nghost), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
         {
+#ifdef AMREX_USE_GPU
             return maskma[box_no](i,j,k) ? absinf(ma[box_no](i,j,k,comp+n)) : RT(0.0);
+#else // unconditional load so that the loop vectorizes; zero masked
+      // values before any arithmetic, which could trap on garbage
+            RT v = ma[box_no](i,j,k,comp+n);
+            v = maskma[box_no](i,j,k) ? v : RT(0.0);
+            return absinf(v);
+#endif
         });
     }
 #ifdef AMREX_USE_GPU

@@ -2044,7 +2044,16 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
         {
             auto m = T(mma[box_no](i,j,k));
+#ifdef AMREX_USE_GPU
             return (m != 0) ? m * xma[box_no](i,j,k,xcomp+n) * yma[box_no](i,j,k,ycomp+n) : T(0.0);
+#else // unconditional loads so that the loop vectorizes; zero masked
+      // values before any arithmetic, which could trap on garbage
+            auto x = xma[box_no](i,j,k,xcomp+n);
+            auto y = yma[box_no](i,j,k,ycomp+n);
+            x = (m != 0) ? x : T(0.0);
+            y = (m != 0) ? y : T(0.0);
+            return m*x*y;
+#endif
         });
     }
 #ifdef AMREX_USE_GPU
@@ -2111,12 +2120,18 @@ Dot (FabArray<MFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<T>
         {
             auto m = T(mma[box_no](i,j,k));
+#ifdef AMREX_USE_GPU
             if (m != 0) {
                 auto v = xma[box_no](i,j,k,xcomp+n);
                 return m*v*v;
             } else {
                 return T(0.0);
             }
+#else // see Dot(mask, x, y) above
+            auto v = xma[box_no](i,j,k,xcomp+n);
+            v = (m != 0) ? v : T(0.0);
+            return m*v*v;
+#endif
         });
     }
 #ifdef AMREX_USE_GPU
