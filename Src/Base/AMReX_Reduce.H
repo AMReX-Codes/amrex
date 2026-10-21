@@ -1430,7 +1430,7 @@ public:
         N i = 0;
         for (; i + (nacc-1) < n; i += nacc) {
             for (int l = 0; l < nacc; ++l) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(i+l));
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(static_cast<N>(i+l)));
             }
         }
         for (; i < n; ++i) {
@@ -1482,7 +1482,7 @@ T Sum (N n, F const& f, T init_val)
         T acc[nacc] = {};
         N i = ib;
         for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] += f(i+l); }
+            for (int l = 0; l < nacc; ++l) { acc[l] += f(static_cast<N>(i+l)); }
         }
         for (; i < ie; ++i) { acc[0] += f(i); }
         for (T const& a : acc) { r += a; }
@@ -1515,7 +1515,7 @@ T Min (N n, F const& f, T init_val)
         for (T& a : acc) { a = init_val; }
         N i = ib;
         for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::min(acc[l], f(i+l)); }
+            for (int l = 0; l < nacc; ++l) { acc[l] = std::min(acc[l], f(static_cast<N>(i+l))); }
         }
         for (; i < ie; ++i) { acc[0] = std::min(acc[0], f(i)); }
         for (T const& a : acc) { r = std::min(r, a); }
@@ -1548,7 +1548,7 @@ T Max (N n, F const& f, T init_val)
         for (T& a : acc) { a = init_val; }
         N i = ib;
         for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(i+l)); }
+            for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(static_cast<N>(i+l))); }
         }
         for (; i < ie; ++i) { acc[0] = std::max(acc[0], f(i)); }
         for (T const& a : acc) { r = std::max(r, a); }
@@ -1584,7 +1584,7 @@ std::pair<T,T> MinMax (N n, F const& f)
         N i = ib;
         for (; i + (nacc-1) < ie; i += nacc) {
             for (int l = 0; l < nacc; ++l) {
-                T tmp = f(i+l);
+                T tmp = f(static_cast<N>(i+l));
                 amin[l] = std::min(amin[l], tmp);
                 amax[l] = std::max(amax[l], tmp);
             }
