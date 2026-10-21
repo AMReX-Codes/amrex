@@ -217,7 +217,7 @@ template <std::integral N>
 std::pair<N,N> chunks_1d (N n)
 {
     auto const nthreads = static_cast<N>(OpenMP::get_max_threads());
-    N const chunk = std::max(static_cast<N>(nacc), (n / (4*nthreads) / nacc) * nacc);
+    N const chunk = std::max(static_cast<N>(nacc), static_cast<N>((n / (4*nthreads) / nacc) * nacc));
     N const nchunks = n / chunk + ((n % chunk != 0) ? 1 : 0);
     return {chunk, nchunks};
 }
