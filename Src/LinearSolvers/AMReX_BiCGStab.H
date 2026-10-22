@@ -128,11 +128,11 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
 
     // Norm of the convergence test: the operator's residualNorm if it has
     // one, else the 2-norm.
-    auto resnorm = [&] (V const& v) -> RT {
-        if constexpr (requires { m_linop->residualNorm(v); }) {
-            return m_linop->residualNorm(v);
+    auto resnorm = [&] (V const& vec) -> RT {
+        if constexpr (requires { m_linop->residualNorm(vec); }) {
+            return m_linop->residualNorm(vec);
         } else {
-            return m_linop->norm2(v);
+            return m_linop->norm2(vec);
         }
     };
 
