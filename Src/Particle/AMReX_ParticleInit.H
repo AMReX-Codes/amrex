@@ -7,6 +7,197 @@
 
 namespace amrex {
 
+namespace particle_detail {
+
+// Stage complete runtime records on the host before copying to container tiles.
+template <class PC>
+class RTSoAInitBuffer
+{
+public:
+    explicit RTSoAInitBuffer (PC& pc) : m_pc(pc), m_tiles(pc.finestLevel()+1)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc.NumRealComps() >= AMREX_SPACEDIM,
+            "RTSoA initialization requires runtime position components");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc.arena() != nullptr,
+            "Call SetArena before initializing RTSoA particles");
+        pc.resizeData();
+    }
+
+    void append (Particle<0,0> p, Vector<ParticleReal> const& real,
+                 Vector<int> const& integer, bool only_owner = false)
+    {
+        ParticleLocData loc;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_pc.Where(p, loc) || m_pc.EnforcePeriodicWhere(p, loc),
+            "RTSoA initializer: particle outside the domain");
+        if (only_owner && m_pc.ParticleDistributionMap(loc.m_lev)[loc.m_grid]
+                          != ParallelDescriptor::MyProc()) { return; }
+        auto& tile = m_tiles[loc.m_lev][{loc.m_grid, loc.m_tile}];
+        tile.define(m_pc.NumRealComps(), m_pc.NumIntComps(), nullptr, nullptr, The_Pinned_Arena());
+        auto i = tile.size();
+        tile.resize(i+1);
+        auto ptd = tile.getParticleTileData();
+        ptd.id(i) = PC::ParticleType::NextID();
+        ptd.cpu(i) = ParallelDescriptor::MyProc();
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) { ptd.pos(d,i) = p.pos(d); }
+        for (int c = AMREX_SPACEDIM; c < m_pc.NumRealComps(); ++c) {
+            ptd.rdata(c,i) = real[c-AMREX_SPACEDIM];
+        }
+        for (int c = 0; c < m_pc.NumIntComps(); ++c) { ptd.idata(c,i) = integer[c]; }
+    }
+
+    void flush ()
+    {
+        for (int lev = 0; lev < std::ssize(m_tiles); ++lev) {
+            for (auto const& [key, src] : m_tiles[lev]) {
+                auto& dst = m_pc.DefineAndReturnParticleTile(lev, key.first, key.second);
+                auto offset = dst.size();
+                dst.resize(offset + src.size());
+                Gpu::copyAsync(Gpu::hostToDevice, src.GetIdCPUData().begin(), src.GetIdCPUData().begin()+src.size(),
+                               dst.GetIdCPUData().begin()+offset);
+                for (int c = 0; c < m_pc.NumRealComps(); ++c) {
+                    Gpu::copyAsync(Gpu::hostToDevice, src.GetRealData(c).begin(), src.GetRealData(c).begin()+src.size(),
+                                   dst.GetRealData(c).begin()+offset);
+                }
+                for (int c = 0; c < m_pc.NumIntComps(); ++c) {
+                    Gpu::copyAsync(Gpu::hostToDevice, src.GetIntData(c).begin(), src.GetIntData(c).begin()+src.size(),
+                                   dst.GetIntData(c).begin()+offset);
+                }
+            }
+        }
+        Gpu::streamSynchronize();
+        for (auto& tiles : m_tiles) { tiles.clear(); }
+        m_pc.Redistribute();
+    }
+
+private:
+    PC& m_pc;
+    Vector<std::map<std::pair<int,int>, typename PC::ParticleTileType>> m_tiles;
+};
+
+template <class PC>
+auto rtsoa_init_defaults (PC const& pc, typename PC::ParticleInitData const& data)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc.NumRealComps() >= AMREX_SPACEDIM,
+        "RTSoA initialization requires runtime position components");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(data.real_array_data) <= pc.NumRealComps()-AMREX_SPACEDIM,
+        "RTSoA initializer: too many real defaults (positions are excluded)");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(data.int_array_data) <= pc.NumIntComps(),
+        "RTSoA initializer: too many integer defaults");
+    Vector<ParticleReal> real(pc.NumRealComps()-AMREX_SPACEDIM, ParticleReal(0));
+    Vector<int> integer(pc.NumIntComps(), 0);
+    std::copy(data.real_array_data.begin(), data.real_array_data.end(), real.begin());
+    std::copy(data.int_array_data.begin(), data.int_array_data.end(), integer.begin());
+    return std::make_pair(std::move(real), std::move(integer));
+}
+
+template <class PC>
+void init_ascii_rtsoa (PC& pc, std::string const& file, int extradata, IntVect const* nrep)
+{
+    RTSoAInitBuffer<PC> buffer(pc);
+    AMREX_ALWAYS_ASSERT(extradata >= 0 && extradata <= pc.NumRealComps()-AMREX_SPACEDIM);
+    IntVect reps = nrep ? *nrep : IntVect(1);
+    AMREX_ALWAYS_ASSERT(reps.allGT(0));
+    auto [real, integer] = rtsoa_init_defaults(pc, typename PC::ParticleInitData{});
+    std::ifstream input;
+    Long count = 0;
+    if (ParallelDescriptor::IOProcessor()) {
+        input.open(file);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bool(input >> count) && count >= 0,
+            "RTSoA ASCII initializer: invalid file or particle count");
+    }
+    ParallelDescriptor::Bcast(&count, 1, ParallelDescriptor::IOProcessorNumber());
+    // Bound host staging memory and let all ranks participate in redistribution.
+    constexpr Long batch_size = 4096;
+    for (Long begin = 0; begin < count; begin += batch_size) {
+        if (ParallelDescriptor::IOProcessor()) {
+            Long end = std::min(count, begin+batch_size);
+            for (Long i = begin; i < end; ++i) {
+                Particle<0,0> p{};
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) { input >> p.pos(d); }
+                for (int c = 0; c < extradata; ++c) { input >> real[c]; }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bool(input), "RTSoA ASCII initializer: truncated or invalid record");
+                Box replicas(IntVect(0), reps-IntVect(1));
+                for (IntVect r = replicas.smallEnd(); r <= replicas.bigEnd(); replicas.next(r)) {
+                    auto copy = p;
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        copy.pos(d) += ParticleReal(r[d]*pc.Geom(0).ProbLength(d)/reps[d]);
+                    }
+                    buffer.append(copy, real, integer);
+                }
+            }
+        }
+        buffer.flush();
+    }
+}
+
+template <class PC>
+void init_random_rtsoa (PC& pc, Long count, ULong seed, typename PC::ParticleInitData const& data,
+                        bool serialize, RealBox bounds)
+{
+    AMREX_ALWAYS_ASSERT(count > 0 && seed > 0);
+    RTSoAInitBuffer<PC> buffer(pc);
+    auto [real, integer] = rtsoa_init_defaults(pc, data);
+    auto const& geom = pc.Geom(0);
+    if (!bounds.ok() || !geom.ProbDomain().contains(bounds)) { bounds = geom.ProbDomain(); }
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) { AMREX_ALWAYS_ASSERT(bounds.hi(d) > bounds.lo(d)); }
+    int rank = ParallelDescriptor::MyProc();
+    int nranks = ParallelDescriptor::NProcs();
+    amrex::InitRandom(seed+rank);
+    Long local_count = serialize ? count : count/nranks + (rank == 0 ? count%nranks : 0);
+    constexpr Long batch_size = 4096;
+    // Parallel ranks can have different local counts: redistribute only after generation.
+    for (Long begin = 0; begin < local_count; begin += batch_size) {
+        Long n = std::min(batch_size, local_count-begin);
+        Vector<ParticleReal> positions(n*AMREX_SPACEDIM);
+        if (!serialize || ParallelDescriptor::IOProcessor()) {
+            for (Long i = 0; i < n; ++i) {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    ParticleReal x;
+                    do {
+                        x = ParticleReal(bounds.lo(d) + amrex::Random()*(bounds.hi(d)-bounds.lo(d)));
+                    } while (x < ParticleReal(bounds.lo(d)) || x >= ParticleReal(bounds.hi(d)));
+                    positions[i*AMREX_SPACEDIM+d] = x;
+                }
+            }
+        }
+        if (serialize) {
+            ParallelDescriptor::Bcast(positions.data(), positions.size(), ParallelDescriptor::IOProcessorNumber());
+        }
+        for (Long i = 0; i < n; ++i) {
+            Particle<0,0> p{};
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) { p.pos(d) = positions[i*AMREX_SPACEDIM+d]; }
+            buffer.append(p, real, integer, serialize);
+        }
+    }
+    buffer.flush();
+}
+
+template <class PC>
+void init_one_per_cell_rtsoa (PC& pc, Real x, Real y, Real z, typename PC::ParticleInitData const& data)
+{
+    RTSoAInitBuffer<PC> buffer(pc);
+    auto [real, integer] = rtsoa_init_defaults(pc, data);
+    GpuArray<Real,3> offset{x,y,z};
+    for (Real v : offset) { AMREX_ALWAYS_ASSERT(v >= 0 && v <= 1); }
+    auto lo = pc.Geom(0).ProbLoArray();
+    auto dx = pc.Geom(0).CellSizeArray();
+    auto domain_lo = pc.Geom(0).Domain().smallEnd();
+    for (MFIter mfi = pc.MakeMFIter(0); mfi.isValid(); ++mfi) {
+        auto box = mfi.tilebox();
+        for (IntVect cell = box.smallEnd(); cell <= box.bigEnd(); box.next(cell)) {
+            Particle<0,0> p{};
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                p.pos(d) = ParticleReal(lo[d] + (cell[d]-domain_lo[d]+offset[d])*dx[d]);
+            }
+            buffer.append(p, real, integer);
+        }
+    }
+    buffer.flush();
+}
+
+} // namespace particle_detail
+
+
 /*
   \brief Initialize particles from an Ascii file in the following format:
 
@@ -41,6 +232,10 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
+    if constexpr (ParticleType::is_rtsoa_particle) {
+        particle_detail::init_ascii_rtsoa(*this, file, extradata, Nrep);
+    } else {
+
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
     AMREX_ASSERT(!file.empty());
     AMREX_ASSERT(extradata <= NStructReal + NumRealComps());
@@ -468,6 +663,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
         amrex::Print() << "InitFromAsciiFile() time: " << runtime << '\n';
+    }
     }
 }
 
@@ -977,6 +1173,10 @@ InitRandom (Long                    icount,
             bool                    serialize,
             RealBox                 containing_bx)
 {
+    if constexpr (ParticleType::is_rtsoa_particle) {
+        particle_detail::init_random_rtsoa(*this, icount, iseed, pdata, serialize, containing_bx);
+    } else {
+
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitRandom()");
     AMREX_ASSERT(iseed  > 0);
     AMREX_ASSERT(icount > 0);
@@ -1360,6 +1560,7 @@ InitRandom (Long                    icount,
     }
 
     Gpu::streamSynchronize();
+    }
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -1469,6 +1670,10 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
+    if constexpr (ParticleType::is_rtsoa_particle) {
+        particle_detail::init_one_per_cell_rtsoa(*this, x_off, y_off, z_off, pdata);
+    } else {
+
     amrex::ignore_unused(y_off,z_off);
 
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitOnePerCell()");
@@ -1544,6 +1749,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
         amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
+    }
     }
 }
 
