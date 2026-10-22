@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read  # clang-tidy database artifacts
   contents: read
 
 jobs:
@@ -41,13 +42,16 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=20M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -69,11 +73,6 @@ jobs:
         make install
         make test_install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         export PATH=/tmp/my-amrex/bin:$PATH
         which amrex_fcompare
 
@@ -81,6 +80,15 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build libamrex and all tests
   tests_build_3D:
@@ -102,6 +110,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
         # It's too slow with -O0
@@ -109,7 +119,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=400M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -126,16 +137,20 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --test-dir build --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
     # Publish this configuration to https://my.cdash.org/index.php?project=AMReX
     # Only on pushes: pull requests from forks get no secrets, and per-PR
     # submissions would swamp the dashboard. Runs even when the tests failed
@@ -170,6 +185,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
         # It's too slow with -O0
@@ -177,7 +194,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=300M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -194,15 +212,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --test-dir build --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   tests_build_1D:
     name: GNU@13 1D Debug Fortran [tests]
@@ -223,6 +245,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
         # -Werror temporarily skipped until we have functional testing established
@@ -231,7 +255,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=180M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -248,15 +273,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --test-dir build --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build libamrex and all tests
   tests_cxx20:
@@ -285,6 +314,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       # We could put -Wnull-dereference back once this uses GCC >= 15.
       # Right now, vector::resize in packIODataCpu triggers a false positive warning.
@@ -296,7 +327,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=260M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -323,15 +355,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -353,13 +389,16 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -DAMREX_PARSER_THREADED_DISPATCH=0"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -386,15 +425,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build libamrex and all tests
   tests-nofortran:
@@ -417,6 +460,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       #
       # /home/runner/work/amrex/amrex/Src/Base/AMReX_IntVect.H:194:92: error: array subscript -1 is below array bounds of ‘int [3]’ [-Werror=array-bounds]
@@ -431,7 +476,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=400M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -455,15 +501,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -485,12 +535,15 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -499,13 +552,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build 3D libamrex with configure
   configure-3d:
@@ -527,12 +584,15 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=130M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -541,13 +601,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build 3D libamrex with single precision and tiny profiler
   configure-3d-single-tprof:
@@ -569,12 +633,15 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=115M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -584,13 +651,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
@@ -612,12 +683,15 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=120M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -626,13 +700,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         make install
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build Tools/Plotfile
   plotfile-tools:
@@ -654,12 +732,15 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=40M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -667,13 +748,17 @@ jobs:
         make -j4 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
             CCACHE=ccache CXXSTD=c++20
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Build libamrex and run all tests
   tests_run:
@@ -695,13 +780,16 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -716,13 +804,17 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
     - name: Run tests
       run: |
@@ -802,13 +894,16 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Test
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -833,15 +928,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --test-dir build --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   # Single precision 3D build that runs the test suite.  See the 2D job above.
   tests_single_precision_3D:
@@ -863,13 +962,16 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Test
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -894,15 +996,19 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ctest --test-dir build --output-on-failure
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   test_hdf5:
     name: GNU@13 HDF5 I/O Test [tests]

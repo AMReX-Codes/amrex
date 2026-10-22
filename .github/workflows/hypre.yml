@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read  # clang-tidy database artifacts
   contents: read
 
 jobs:
@@ -99,12 +100,15 @@ jobs:
         make -j 4
         make install
         cd ../../
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build and Run Test
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -130,13 +134,17 @@ jobs:
             done
         done
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   test-hypre-solver-cpu-eb-2d:
     name: GCC EB 2D Hypre@2.32.0
@@ -166,12 +174,15 @@ jobs:
         make -j 4
         make install
         cd ../../
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build and Run Test
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -180,13 +191,17 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   test-hypre-nodal-eb-fd-2d:
     name: GCC Nodal EB FD 2D Hypre@2.32.0
