@@ -1208,6 +1208,41 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                  Real a_tol_rel, Real a_tol_abs);
 
 
+.. _sec:linearsolver:crossproj:
+
+Cross-Stencil Projection
+========================
+
+:cpp:`amrex::GMG::CrossProj` computes the same projection as
+:cpp:`FFT::CrossProj` (see section :ref:`sec:FFT:crossproj`), with
+geometric multigrid instead of FFT. It projects a cell-centered velocity
+field onto fields that are divergence free with respect to the
+node-centered divergence computed from the 4 cells around each node. The
+class is available in 2D only, and it currently only supports periodic
+boundary conditions. The domain must start at index 0 and have an even
+number of cells (at least 4) in each direction, and the boxes must have
+even lengths. The first two components of the :cpp:`MultiFab` are the
+velocity. The input and output must have the same :cpp:`BoxArray` and
+:cpp:`DistributionMapping`, and they can be the same :cpp:`MultiFab`. If
+the output has ghost cells, one layer of them is filled. The header is
+:cpp:`AMReX_CrossProj.H`.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);   // periodic in all directions
+    MultiFab vel(...);    // cell-centered, AMREX_SPACEDIM components
+    MultiFab vel_proj(...);
+
+    GMG::CrossProj proj(geom);
+    proj.setRelTol(1.e-10); // optional; see also setAbsTol, setMaxIter, setVerbose
+    proj.solve(vel_proj, vel); // vel_proj and vel can be the same MultiFab
+    int niters = proj.getNumIters();
+
+The object should be cached for reuse, since it sets up the multigrid
+hierarchy on the first solve and whenever the grids change.
+
 .. _sec:linearsolver:gmres:
 
 GMRES
