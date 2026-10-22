@@ -237,15 +237,15 @@ inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVect
             Gpu::Atomic::AddNoRet(pcnt + (pr[i]-row_begin), 1);
         }
     });
-    const Long nown = Scan::PrefixSum<Long>(nrows,
+    const Long n_owned = Scan::PrefixSum<Long>(nrows,
         [=] AMREX_GPU_DEVICE (Long r) -> Long { return pcnt[r]; },
         [=] AMREX_GPU_DEVICE (Long r, Long const& x) { pstart[r] = x; },
         Scan::Type::exclusive, Scan::retSum);
     amrex::ParallelFor(nrows+1, [=] AMREX_GPU_DEVICE (Long r) noexcept
     {
-        if (r < nrows) { pcnt[r] = 0; } else { pstart[r] = nown; }
+        if (r < nrows) { pcnt[r] = 0; } else { pstart[r] = n_owned; }
     });
-    Gpu::DeviceVector<Long> perm(nown);
+    Gpu::DeviceVector<Long> perm(n_owned);
     auto* pp = perm.data();
     amrex::ParallelFor(ntrip, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
