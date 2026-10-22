@@ -99,7 +99,7 @@ jobs:
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.21.0.tar.gz
         tar xfz v2.21.0.tar.gz
         cd hypre-2.21.0/src
-        ./configure --with-cxxstandard=20 --enable-bigint
+        ./configure CFLAGS="-O2 -std=gnu17" --with-cxxstandard=20 --enable-bigint
         make -j 4
         make install
         cd ../../
@@ -180,7 +180,7 @@ jobs:
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
         tar xfz v2.32.0.tar.gz
         cd hypre-2.32.0/src
-        ./configure --with-cxxstandard=20 --enable-bigint
+        ./configure CFLAGS="-O2 -std=gnu17" --with-cxxstandard=20 --enable-bigint
         make -j 4
         make install
         cd ../../
@@ -243,7 +243,7 @@ jobs:
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
         tar xfz v2.32.0.tar.gz
         cd hypre-2.32.0/src
-        ./configure --with-cxxstandard=20 --enable-bigint
+        ./configure CFLAGS="-O2 -std=gnu17" --with-cxxstandard=20 --enable-bigint
         make -j 4
         make install
         cd ../../

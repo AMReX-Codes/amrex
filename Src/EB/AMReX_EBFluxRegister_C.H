@@ -11,7 +11,7 @@ namespace amrex {
 #ifdef AMREX_USE_FLOAT
     inline constexpr Real eb_flux_reg_small_volfrac = Real(1.e-5);
 #else
-    inline constexpr Real eb_flux_reg_small_volfrac = Real(1.e-14);
+    inline constexpr Real eb_flux_reg_small_volfrac = Real(1.e-12);
 #endif
 }
 

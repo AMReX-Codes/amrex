@@ -22,6 +22,7 @@ struct TestParams {
   int max_grid_size;
   int nppc;
   int nlevs;
+  int nsteps;
   bool verbose;
 };
 
@@ -256,7 +257,7 @@ void test_async_io(TestParams& parms)
 
     myPC.InitParticles(IntVect(AMREX_D_DECL(2, 2, 2)));
 
-    for (int step = 0; step < 4000; ++step)
+    for (int step = 0; step < parms.nsteps; ++step)
     {
         myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
 
@@ -264,7 +265,7 @@ void test_async_io(TestParams& parms)
             MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
         }
 
-        if (step % 1000 == 0) {
+        if (step % std::max(parms.nsteps/4, 1) == 0) {
             Vector<std::string> varnames;
             varnames.push_back("density");
 
@@ -311,6 +312,9 @@ int main(int argc, char* argv[])
   if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
   }
+
+  parms.nsteps = 4000;
+  pp.query("nsteps", parms.nsteps);
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

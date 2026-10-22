@@ -37,10 +37,12 @@ unset(_hydro_sources)
 set(_sod_sources Exec/Sod/cns_prob.F90 ${_sources})
 set(_input_files Exec/Sod/inputs-ci)
 
+# A smaller problem keeps the ctest short.
 setup_test(3 _sod_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_Sod
-   RUNTIME_SUBDIR Sod)
+   RUNTIME_SUBDIR Sod
+   CMDLINE_PARAMS_AFTER_INPUTS amr.n_cell=32 32 32)
 
 target_link_options(Test_CNS_Sod_3d PRIVATE
    "$<$<COMPILE_LANG_AND_ID:Fortran,NVHPC>:-Mnomain>")
