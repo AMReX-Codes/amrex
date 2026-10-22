@@ -54,6 +54,9 @@ namespace amrex {
      *
      * This function fills the nodal MultiFab with signed distance.  Note
      * that the distance is valid only if it's within a few cells to the EB.
+     * The sign follows the EB2 convention for the implicit function: a node
+     * where it is negative is in the fluid, and a node where it is zero or
+     * positive is in the body.
      *
      * \param mf is a nodal MultiFab.
      * \param ls_lev is an EB2::Level object with an implicit function. This

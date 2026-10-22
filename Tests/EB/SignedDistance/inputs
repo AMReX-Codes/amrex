@@ -1,0 +1,4 @@
+n_cell = 8
+
+# walls this far inside the domain faces, within roundoff of a node
+offset = 1.e-15
