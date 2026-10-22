@@ -59,6 +59,9 @@ private:
     // Composite mlhypre: the solve must throw with a NaN rhs (1) or, with
     // prob_type = 2, NaN coefficients, i.e. a failing solver (2)
     int mlhypre_test_throw = 0;
+    // Composite mlhypre Poisson (prob_type 1, max_level 1): periodic in x,
+    // with the fine level at the high-x boundary and unit b coefficients
+    bool periodic_x = false;
     amrex::Real max_error = -1.0; // if positive: abort if a level's max-norm error exceeds it
     bool use_hypre_ssamg = false; // this option is for mlhypre only
 
