@@ -1,7 +1,7 @@
 name: Save clang-tidy database
 description: >-
   Upload this job's clang-tidy database, or its ccache log when the job
-  failed.  Use it with "if: ${{ !cancelled() }}" and "job-status: ${{ job.status }}".
+  failed.  Call it with "if: not cancelled" and job-status set to job.status.
 inputs:
   job-status:
     description: job.status of the calling job
