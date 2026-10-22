@@ -22,17 +22,20 @@ fetch () {
     local run="" page resp
     # Newest first; looking at the newest 500 is plenty.
     for page in 1 2 3 4 5; do
-        resp=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${NAME}&per_page=100&page=${page}" \
-                   2>/dev/null) || break
+        resp=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${NAME}&per_page=100&page=${page}") \
+            || { echo "clang-tidy database: cannot list the artifacts ($3)"; return; }
         run=$(jq -r ".artifacts[] | select(.expired | not)
                      | select(.workflow_run.head_branch == \"$1\" and .workflow_run.head_repository_id == $2)
                      | .workflow_run.id" <<< "${resp}" | head -n 1)
         [[ -n "${run}" ]] && break
         [[ $(jq '.artifacts | length' <<< "${resp}") == 100 ]] || break
     done
-    if [[ -n "${run}" ]] && gh run download "${run}" -R "${GITHUB_REPOSITORY}" -n "${NAME}" \
-                                -D "${DB}/in/$3" > /dev/null 2>&1; then
+    if [[ -z "${run}" ]]; then
+        echo "clang-tidy database: no ${NAME} of branch $1 ($3)"
+    elif gh run download "${run}" -R "${GITHUB_REPOSITORY}" -n "${NAME}" -D "${DB}/in/$3"; then
         echo "clang-tidy database: $3 run ${run}"
+    else
+        echo "clang-tidy database: cannot download run ${run} ($3)"
     fi
 }
 
