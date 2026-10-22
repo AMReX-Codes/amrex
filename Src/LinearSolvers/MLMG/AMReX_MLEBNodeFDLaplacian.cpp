@@ -1,4 +1,5 @@
 #include <AMReX_MLEBNodeFDLaplacian.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MLEBNodeFDLap_K.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLinOp_K.H>
@@ -556,27 +557,25 @@ MLEBNodeFDLaplacian::build_eb_data ()
                 }
             }
 
-            // Fine EB edges that no coarse edge represents, in cells without
-            // any EB.  limit_coarsening drops such levels.
-            {
-                ReduceOps<ReduceOpLogicalOr> rop;
-                ReduceData<int> rdata(rop);
-                for (MFIter mfi(*pclevset); mfi.isValid(); ++mfi) {
-                    Box const& cbx = amrex::enclosedCells(mfi.validbox());
-                    Array4<Real const> const& cls = pclevset->const_array(mfi);
-                    GpuArray<Array4<Real const>,AMREX_SPACEDIM> cep;
-                    GpuArray<Array4<Real const>,AMREX_SPACEDIM> fep;
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        cep[idim] = pcebp[idim]->const_array(mfi);
-                        fep[idim] = febp[idim].const_array(mfi);
-                    }
-                    rop.eval(cbx, rdata,
-                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> GpuTuple<int>
-                    {
-                        return { mlebndfdlap_eb_lost(i,j,k,cls,cep,fep,rr) ? 1 : 0 };
-                    });
+            // Per-cell flag: fine EB edges that no coarse edge represents,
+            // in cells without any EB.
+            iMultiFab lost_tmp(amrex::convert(pclevset->boxArray(), IntVect(0)),
+                               pclevset->DistributionMap(), 1, 0,
+                               MFInfo().SetArena(The_Async_Arena()));
+            for (MFIter mfi(lost_tmp); mfi.isValid(); ++mfi) {
+                Box const& cbx = mfi.validbox();
+                Array4<Real const> const& cls = pclevset->const_array(mfi);
+                Array4<int> const& la = lost_tmp.array(mfi);
+                GpuArray<Array4<Real const>,AMREX_SPACEDIM> cep;
+                GpuArray<Array4<Real const>,AMREX_SPACEDIM> fep;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    cep[idim] = pcebp[idim]->const_array(mfi);
+                    fep[idim] = febp[idim].const_array(mfi);
                 }
-                m_eb_lost[amrlev][mglev] = amrex::get<0>(rdata.value(rop));
+                AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+                {
+                    la(i,j,k) = mlebndfdlap_eb_lost(i,j,k,cls,cep,fep,rr) ? 1 : 0;
+                });
             }
 
             if (need_parallel_copy) {
@@ -589,6 +588,56 @@ MLEBNodeFDLaplacian::build_eb_data ()
             fill_domain_ghost(clevset, m_geom[amrlev][mglev], -1);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 fill_domain_ghost(cebp[idim], m_geom[amrlev][mglev], idim);
+            }
+
+            // A lost feature matters only when the coarse operator sees no
+            // EB (covered node or cut edge) within one cell of it.  A thin
+            // part of a larger body that falls between coarse edge lines is
+            // still constrained by the body next to it, and the fine
+            // smoother corrects the local error.
+            {
+                iMultiFab lost_c;
+                iMultiFab const* plost = &lost_tmp;
+                if (need_parallel_copy) {
+                    lost_c.define(amrex::convert(clevset.boxArray(), IntVect(0)),
+                                  clevset.DistributionMap(), 1, 0,
+                                  MFInfo().SetArena(The_Async_Arena()));
+                    lost_c.ParallelCopy(lost_tmp);
+                    plost = &lost_c;
+                }
+                auto const& la = plost->const_arrays();
+                auto const& cls = clevset.const_arrays();
+                GpuArray<MultiArray4<Real const>,AMREX_SPACEDIM> cep;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    cep[idim] = cebp[idim].const_arrays();
+                }
+                m_eb_lost[amrlev][mglev] = ParReduce
+                    (TypeList<ReduceOpLogicalOr>{}, TypeList<int>{}, *plost, IntVect(0),
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    -> GpuTuple<int>
+                {
+                    if (!la[box_no](i,j,k)) { return {0}; }
+                    constexpr int d3 = (AMREX_SPACEDIM == 3) ? 1 : 0;
+                    auto const& ls = cls[box_no];
+                    for (int kk = k-d3; kk <= k+2*d3; ++kk) {
+                    for (int jj = j-1; jj <= j+2; ++jj) {
+                    for (int ii = i-1; ii <= i+2; ++ii) {
+                        if (ls(ii,jj,kk) >= Real(0.0)) { return {0}; }
+                    }}}
+                    AMREX_D_TERM(auto const& ex = cep[0][box_no];,
+                                 auto const& ey = cep[1][box_no];,
+                                 auto const& ez = cep[2][box_no];)
+                    for (int kk = k-d3; kk <= k+2*d3; ++kk) {
+                    for (int jj = j-1; jj <= j+2; ++jj) {
+                    for (int ii = i-1; ii <= i+2; ++ii) {
+                        if (ii <= i+1 && ex(ii,jj,kk) != Real(1.0)) { return {0}; }
+                        if (jj <= j+1 && ey(ii,jj,kk) != Real(1.0)) { return {0}; }
+#if (AMREX_SPACEDIM == 3)
+                        if (kk <= k+1 && ez(ii,jj,kk) != Real(1.0)) { return {0}; }
+#endif
+                    }}}
+                    return {1};
+                });
             }
         }
 
@@ -696,7 +745,8 @@ MLEBNodeFDLaplacian::limit_coarsening ()
         if (has_eb[mglev]) { break; }
     }
 
-    // Levels that hide an EB feature inside a cell.  See mlebndfdlap_eb_lost.
+    // Levels that hide an isolated EB feature inside a cell.  See
+    // mlebndfdlap_eb_lost and build_eb_data.
     for (int mglev = 1; mglev < nmglevs; ++mglev) {
         lost[mglev] = m_eb_lost[0][mglev];
     }
