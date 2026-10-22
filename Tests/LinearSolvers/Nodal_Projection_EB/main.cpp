@@ -77,11 +77,15 @@ int main (int argc, char* argv[])
 
         int n_cell_y =   n_cell;
         int n_cell_x = 2*n_cell;
+#if (AMREX_SPACEDIM == 3)
         int n_cell_z =   n_cell/8;
+#endif
 
         Real ylen = 1.0;
         Real xlen = Real(2.0) * ylen;
+#if (AMREX_SPACEDIM == 3)
         Real zlen = ylen / Real(8.0);
+#endif
 
         Geometry geom;
         BoxArray grids;
