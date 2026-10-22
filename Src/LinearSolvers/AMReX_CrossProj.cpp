@@ -570,103 +570,13 @@ void back_substitute (CrossProj::Level& T, MultiFab const& xr)
     });
 }
 
-// CPU reductions over the valid boxes with partial accumulators so that the
-// loops vectorize. G takes an MFIter and returns the per-point functor
-// f(i,j,k,n) of that box.
-#ifndef AMREX_USE_GPU
-constexpr int nacc = 8;
-
-template <typename G>
-Real cpu_sum (MultiFab const& mf, int ncomp, G const& g)
-{
-    Real s = Real(0.0);
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto const lo = amrex::lbound(bx);
-        auto const hi = amrex::ubound(bx);
-        auto const f = g(mfi);
-        for (int n = 0; n < ncomp; ++n) {
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            Real acc[nacc] = {};
-            int i = lo.x;
-            for (; i + nacc - 1 <= hi.x; i += nacc) {
-                for (int l = 0; l < nacc; ++l) { acc[l] += f(i+l, j, k, n); }
-            }
-            for (; i <= hi.x; ++i) { acc[0] += f(i, j, k, n); }
-            for (Real a : acc) { s += a; }
-        }}}
-    }
-    return s;
-}
-
-template <typename G>
-Real cpu_max (MultiFab const& mf, int ncomp, G const& g)
-{
-    Real s = Real(0.0);
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto const lo = amrex::lbound(bx);
-        auto const hi = amrex::ubound(bx);
-        auto const f = g(mfi);
-        for (int n = 0; n < ncomp; ++n) {
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            Real acc[nacc] = {};
-            int i = lo.x;
-            for (; i + nacc - 1 <= hi.x; i += nacc) {
-                for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(i+l, j, k, n)); }
-            }
-            for (; i <= hi.x; ++i) { acc[0] = std::max(acc[0], f(i, j, k, n)); }
-            for (Real a : acc) { s = std::max(s, a); }
-        }}}
-    }
-    return s;
-}
-#endif
-
-// u.v (global)
-Real dot (MultiFab const& u, MultiFab const& v, int ncomp)
-{
-#ifdef AMREX_USE_GPU
-    auto const& ua = u.const_arrays();
-    auto const& va = v.const_arrays();
-    Real s = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, u, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            for (int n = 0; n < ncomp; ++n) {
-                t += ua[bno](i,j,k,n) * va[bno](i,j,k,n);
-            }
-            return {t};
-        });
-#else
-    Real s = cpu_sum(u, ncomp, [&] (MFIter const& mfi)
-    {
-        Array4<Real const> const ua = u.const_array(mfi);
-        Array4<Real const> const va = v.const_array(mfi);
-        return [=] (int i, int j, int k, int n) { return ua(i,j,k,n) * va(i,j,k,n); };
-    });
-#endif
-    ParallelAllReduce::Sum(s, ParallelContext::CommunicatorSub());
-    return s;
-}
-
 // max |u| (global)
 Real maxabs (MultiFab const& u, int ncomp)
 {
-#ifdef AMREX_USE_GPU
     Real s = Real(0.0);
     for (int n = 0; n < ncomp; ++n) {
         s = std::max(s, u.norminf(n, 0, true));
     }
-#else
-    Real s = cpu_max(u, ncomp, [&] (MFIter const& mfi)
-    {
-        Array4<Real const> const ua = u.const_array(mfi);
-        return [=] (int i, int j, int k, int n) { return std::abs(ua(i,j,k,n)); };
-    });
-#endif
     ParallelAllReduce::Max(s, ParallelContext::CommunicatorSub());
     return s;
 }
@@ -676,46 +586,15 @@ Real apply_dot (CrossProj::Level const& P, MultiFab& q, MultiFab const& p)
 {
     BL_PROFILE("GMG::CrossProj::pcg_apply");
     auto const sten = P.sten;
-    int const nc = P.ncomp;
-#ifdef AMREX_USE_GPU
     auto const& qa = q.arrays();
     auto const& pa = p.const_arrays();
-    Real s = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, q, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k) noexcept -> GpuTuple<Real>
+    Real s = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, q, IntVect(0), P.ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
         {
-            Real t = Real(0.0);
-            for (int n = 0; n < nc; ++n) {
-                Real const v = stencil_sum(sten, pa[bno], i, j, k, n);
-                qa[bno](i,j,k,n) = v;
-                t += v * pa[bno](i,j,k,n);
-            }
-            return {t};
+            Real const v = stencil_sum(sten, pa[bno], i, j, k, n);
+            qa[bno](i,j,k,n) = v;
+            return {v * pa[bno](i,j,k,n)};
         });
-#else
-    // q = A p on each row, then the row's contribution to p.q
-    Real s = Real(0.0);
-    for (MFIter mfi(q); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto const lo = amrex::lbound(bx);
-        auto const hi = amrex::ubound(bx);
-        Array4<Real> const qq = q.array(mfi);
-        Array4<Real const> const pp = p.const_array(mfi);
-        for (int n = 0; n < nc; ++n) {
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                qq(i,j,k,n) = stencil_sum(sten, pp, i, j, k, n);
-            }
-            Real acc[nacc] = {};
-            int i = lo.x;
-            for (; i + nacc - 1 <= hi.x; i += nacc) {
-                for (int l = 0; l < nacc; ++l) { acc[l] += qq(i+l,j,k,n) * pp(i+l,j,k,n); }
-            }
-            for (; i <= hi.x; ++i) { acc[0] += qq(i,j,k,n) * pp(i,j,k,n); }
-            for (Real a : acc) { s += a; }
-        }}}
-    }
-#endif
     ParallelAllReduce::Sum(s, ParallelContext::CommunicatorSub());
     return s;
 }
@@ -725,36 +604,18 @@ Real update_norm (CrossProj::Level const& P, MultiFab& x, MultiFab& r, MultiFab 
                   MultiFab const& q, Real alpha)
 {
     BL_PROFILE("GMG::CrossProj::pcg_update");
-    int const nc = P.ncomp;
     auto const& xa = x.arrays();
     auto const& ra = r.arrays();
     auto const& pa = p.const_arrays();
     auto const& qa = q.const_arrays();
-#ifdef AMREX_USE_GPU
-    Real s = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, r, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k) noexcept -> GpuTuple<Real>
+    Real s = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, r, IntVect(0), P.ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
         {
-            Real t = Real(0.0);
-            for (int n = 0; n < nc; ++n) {
-                xa[bno](i,j,k,n) += alpha * pa[bno](i,j,k,n);
-                Real const v = ra[bno](i,j,k,n) - alpha * qa[bno](i,j,k,n);
-                ra[bno](i,j,k,n) = v;
-                t = std::max(t, std::abs(v));
-            }
-            return {t};
+            xa[bno](i,j,k,n) += alpha * pa[bno](i,j,k,n);
+            Real const v = ra[bno](i,j,k,n) - alpha * qa[bno](i,j,k,n);
+            ra[bno](i,j,k,n) = v;
+            return {std::abs(v)};
         });
-#else
-    ParallelFor(r, IntVect(0), nc, [=] (int bno, int i, int j, int k, int n) noexcept
-    {
-        xa[bno](i,j,k,n) += alpha * pa[bno](i,j,k,n);
-        ra[bno](i,j,k,n) -= alpha * qa[bno](i,j,k,n);
-    });
-    Real s = cpu_max(r, nc, [&] (MFIter const& mfi)
-    {
-        Array4<Real const> const rr = r.const_array(mfi);
-        return [=] (int i, int j, int k, int n) { return std::abs(rr(i,j,k,n)); };
-    });
-#endif
     ParallelAllReduce::Max(s, ParallelContext::CommunicatorSub());
     return s;
 }
@@ -965,7 +826,7 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
         bool const flexible = !m_reduced;
         precond();
         MultiFab::Copy(m_p, P.x, 0, 0, nc, 0);
-        Real rz = dot(P.b, P.x, nc);
+        Real rz = MultiFab::Dot(P.b, 0, P.x, 0, nc, 0);
         for (int iter = 1; iter <= m_maxiter; ++iter) {
             m_p.FillBoundary(P.period);
             Real const pq = apply_dot(P, m_q, m_p);
@@ -980,8 +841,8 @@ CrossProj::solve (MultiFab& a_soln, MultiFab const& a_rhs)
             if (rnorm <= target) { break; }
             precond();
             BL_PROFILE_VAR("GMG::CrossProj::pcg_p", pcgp);
-            Real const rz1 = dot(P.b, P.x, nc);
-            Real const beta = (flexible ? rz1 - dot(m_rold, P.x, nc) : rz1) / rz;
+            Real const rz1 = MultiFab::Dot(P.b, 0, P.x, 0, nc, 0);
+            Real const beta = (flexible ? rz1 - MultiFab::Dot(m_rold, 0, P.x, 0, nc, 0) : rz1) / rz;
             MultiFab::Xpay(m_p, beta, P.x, 0, 0, nc, 0);
             BL_PROFILE_VAR_STOP(pcgp);
             rz = rz1;
