@@ -639,13 +639,14 @@ MyTest::readParameters ()
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
     pp.query("periodic_x", periodic_x);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
-                                                     composite_solve && max_level == 1),
-        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
     pp.query("max_error", max_error);
     pp.query("use_hypre_ssamg", use_hypre_ssamg);
 
     pp.query("prob_type", prob_type);
+    // after every value it checks has been read
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
+                                                     composite_solve && max_level == 1),
+        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
 
     pp.query("verbose", verbose);
     pp.query("do_plots", do_plots);
