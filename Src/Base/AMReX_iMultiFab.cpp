@@ -292,16 +292,18 @@ iMultiFab::min (int comp, int nghost, bool local) const
     int mn = std::numeric_limits<int>::max();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         mn = ParReduce(TypeList<ReduceOpMin>{}, TypeList<int>{}, *this, IntVect(nghost),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<int>
         {
             return ma[box_no](i,j,k,comp);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:mn)
 #endif
@@ -314,6 +316,7 @@ iMultiFab::min (int comp, int nghost, bool local) const
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
@@ -376,16 +379,18 @@ iMultiFab::max (int comp, int nghost, bool local) const
     int mx = std::numeric_limits<int>::lowest();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         mx = ParReduce(TypeList<ReduceOpMax>{}, TypeList<int>{}, *this, IntVect(nghost),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<int>
         {
             return ma[box_no](i,j,k,comp);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mx)
 #endif
@@ -398,6 +403,7 @@ iMultiFab::max (int comp, int nghost, bool local) const
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
@@ -461,6 +467,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
+#endif
     {
         auto const& ma = this->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Long>{}, *this, IntVect(nghost),
@@ -469,9 +476,8 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             return { static_cast<Long>(ma[box_no](i,j,k,comp)) };
         });
     }
-    else
-#endif
-    {
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -485,6 +491,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             });
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
