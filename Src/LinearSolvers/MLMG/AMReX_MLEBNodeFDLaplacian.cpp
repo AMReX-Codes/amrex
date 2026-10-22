@@ -562,8 +562,11 @@ MLEBNodeFDLaplacian::build_eb_data ()
             iMultiFab lost_tmp(amrex::convert(pclevset->boxArray(), IntVect(0)),
                                pclevset->DistributionMap(), 1, 0,
                                MFInfo().SetArena(The_Async_Arena()));
-            for (MFIter mfi(lost_tmp); mfi.isValid(); ++mfi) {
-                Box const& cbx = mfi.validbox();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(lost_tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& cbx = mfi.tilebox();
                 Array4<Real const> const& cls = pclevset->const_array(mfi);
                 Array4<int> const& la = lost_tmp.array(mfi);
                 GpuArray<Array4<Real const>,AMREX_SPACEDIM> cep;
