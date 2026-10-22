@@ -16,9 +16,25 @@ the log to --db-out.
 The hits and misses found in the log are checked against `ccache
 --print-stats`, so the statistics must be zeroed (ccache -z) before the
 build.  A mismatch, e.g. after a change of the log format, is an error.
+
+Option values that start with "-" must be given with "=", e.g.
+
+    mmclt.py --db-out db.txt --clang-tidy=clang-tidy-21 \\
+        --clang-tidy-args="--config-file=.clang-tidy --warnings-as-errors=*"
 """
 
 import argparse, concurrent.futures, hashlib, os, re, shlex, subprocess, sys
+
+EXTRA_ARGS = ["--extra-arg=-Wno-unknown-warning-option",
+              "--extra-arg=-Wno-ignored-optimization-argument",
+              "--extra-arg-before=--driver-mode=g++"]
+# The same for preprocessing with clang: the compile arguments are the build compiler's.
+PP_ARGS = ["-Wno-unknown-warning-option", "-Wno-ignored-optimization-argument"]
+SOURCE_EXTS = (".cpp", ".cxx", ".cc", ".C", ".c")
+# The "Result:" lines that make an invocation a hit or a miss, as in --print-stats
+RESULT_IS_MISS = {"direct_cache_hit": False, "preprocessed_cache_hit": False,
+                  "cache_miss": True}
+
 
 def mmclt(argv):
     parser = argparse.ArgumentParser()
@@ -40,11 +56,11 @@ def mmclt(argv):
     parser.add_argument("--db-dir",
                         help="Scratch directory for the hashes (default: DB_OUT.d)")
     parser.add_argument("--clang-tidy", default="clang-tidy",
-                        help="Clang-tidy executable (--db-out only)")
+                        help="Clang-tidy executable, as --clang-tidy=... (--db-out only)")
     parser.add_argument("--clang-tidy-args", default="",
-                        help="Clang-tidy arguments (--db-out only)")
+                        help='Clang-tidy arguments, as --clang-tidy-args="..." (--db-out only)')
     parser.add_argument("--clang",
-                        help="Clang++ that preprocesses the sources for hashing"
+                        help="Clang++ that preprocesses the sources for hashing, as --clang=..."
                              " (--db-out only; default: clang++ of the --clang-tidy version)")
     parser.add_argument("--jobs", type=int, default=os.cpu_count(),
                         help="Parallel preprocessing jobs (--db-out only)")
@@ -56,47 +72,20 @@ def mmclt(argv):
         mmclt_db(args)
         return
 
-    with open(args.input, "r") as fin, open(args.output, "w") as fout:
-
-        fout.write("CLANG_TIDY ?= clang-tidy\n")
-        fout.write("override CLANG_TIDY_ARGS += --extra-arg=-Wno-unknown-warning-option --extra-arg=-Wno-ignored-optimization-argument --extra-arg-before=--driver-mode=g++\n")
-        fout.write("\n")
-
-        fout.write(".SECONDEXPANSION:\n")
-        fout.write("clang-tidy: $$(all_targets)\n")
-        fout.write("\t@echo SUCCESS\n\n")
-
-        exe_re = re.compile(r" Executing .*? (-.*{}.*) -c(?: \S+)* -o .* (\S*)".format(args.identifier))
-
-        count = 0
-        for line in fin.readlines():
-            ret_exe_re = exe_re.search(line)
-            if ret_exe_re:
-                fout.write("target_{}: {}\n".format(count, ret_exe_re.group(2)))
-                fout.write("\t$(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- {}\n".format
-                           (ret_exe_re.group(1)))
-                fout.write("\ttouch target_{}\n\n".format(count))
-                count = count + 1
-
-        fout.write("all_targets =")
-        for i in range(count):
-            fout.write(" target_{}".format(i))
-        fout.write("\n\n")
-
-        fout.write("clean:\n\t$(RM) $(all_targets)\n\n")
-
-
-EXTRA_ARGS = ["--extra-arg=-Wno-unknown-warning-option",
-              "--extra-arg=-Wno-ignored-optimization-argument",
-              "--extra-arg-before=--driver-mode=g++"]
-# The same for preprocessing with clang: the compile arguments are the build compiler's.
-PP_ARGS = ["-Wno-unknown-warning-option", "-Wno-ignored-optimization-argument"]
-SOURCE_EXTS = (".cpp", ".cxx", ".cc", ".C", ".c")
+    compilations = read_compilations(args.input, args.identifier)[0]
+    targets = [("target_{}".format(i), False, cwd or ".", os.path.join(cwd or ".", src), cargs)
+               for i, (cwd, _, cargs, src, _) in enumerate(c for c in compilations if c[4])]
+    write_makefile(args.output,
+                   "CLANG_TIDY ?= clang-tidy\noverride CLANG_TIDY_ARGS += {}\n"
+                   .format(" ".join(EXTRA_ARGS)), targets)
 
 
 def read_compilations(logfile, identifier):
-    """Compilations in a ccache log: (cwd, compiler, arguments, source, miss),
-    and the numbers of hits and misses in the log regardless of identifier."""
+    """Compilations in a ccache log that hit or missed the cache: (cwd,
+    compiler, arguments, source, miss), and the numbers of hits and misses in
+    the log regardless of identifier.  Invocations with other results, e.g.
+    compile_failed or called_for_link, are neither hits nor misses to ccache
+    either and are skipped."""
     line_re = re.compile(r"^\[\S+ (\d+)\] (.*)$")
     current = {}
     done = []
@@ -107,15 +96,17 @@ def read_compilations(logfile, identifier):
                 continue
             pid, text = m.groups()
             if text.startswith("=== CCACHE") and "STARTED" in text:
-                current[pid] = {"cmd": None, "cwd": None, "miss": False}
+                current[pid] = {"cmd": None, "cwd": None, "miss": None}
             elif pid not in current:
                 continue
             elif text.startswith("Command line: "):
                 current[pid]["cmd"] = text[len("Command line: "):]
             elif text.startswith("Working directory: "):
                 current[pid]["cwd"] = text[len("Working directory: "):]
-            elif text.startswith("Executing ") and re.search(r" -c( |$)", text):
-                current[pid]["miss"] = True
+            elif text.startswith("Result: "):
+                result = text[len("Result: "):]
+                if result in RESULT_IS_MISS:
+                    current[pid]["miss"] = RESULT_IS_MISS[result]
             elif text.startswith("=== CCACHE DONE"):
                 done.append(current.pop(pid))
     done.extend(current.values())
@@ -123,7 +114,7 @@ def read_compilations(logfile, identifier):
     compilations = []
     nhits = nmisses = 0
     for c in done:
-        if not c["cmd"] or " -c " not in c["cmd"] + " ":
+        if c["miss"] is None or not c["cmd"]:
             continue
         if c["miss"]:
             nmisses += 1
@@ -140,6 +131,9 @@ def read_compilations(logfile, identifier):
         parsed = split_command(tokens)
         if parsed:
             compilations.append((c["cwd"], parsed[0], parsed[1], parsed[2], c["miss"]))
+    if nhits + nmisses == 0:
+        sys.exit("mmclt: no cache hits or misses in {}; has the log format changed?"
+                 .format(logfile))
     return compilations, nhits, nmisses
 
 
@@ -210,6 +204,36 @@ def tu_hash(common, clang, cwd, compiler, cargs, src):
     return h.hexdigest()
 
 
+def mk(s):  # a string in a recipe
+    return shlex.quote(s).replace("$", "$$")
+
+
+def mkname(s):  # a target or prerequisite
+    return s.replace("$", "$$").replace(" ", "\\ ")
+
+
+def write_makefile(output, header, targets, db=None):
+    """Makefile with a target per (name, phony, cwd, source, arguments).  The
+    header defines CLANG_TIDY and CLANG_TIDY_ARGS.  With db = (dir, file),
+    the clang-tidy target lists dir into file when all targets succeed."""
+    with open(output, "w") as fout:
+        fout.write(header)
+        fout.write("\n.SECONDEXPANSION:\n")
+        fout.write("clang-tidy: $$(all_targets)\n")
+        if db:
+            fout.write("\tls {} > {}\n".format(mk(db[0]), mk(db[1])))
+        fout.write("\t@echo SUCCESS\n\n")
+        for name, _, cwd, src, cargs in targets:
+            fout.write("{}: {}\n".format(mkname(name), mkname(src)))
+            fout.write("\tcd {} && $(CLANG_TIDY) $(CLANG_TIDY_ARGS) {} -- {}\n".format
+                       (mk(cwd), mk(src), " ".join(mk(a) for a in cargs)))
+            fout.write("\ttouch $@\n\n")
+        fout.write("all_targets = {}\n\n".format(" ".join(mkname(t[0]) for t in targets)))
+        fout.write(".PHONY: clang-tidy clean {}\n\n".format(
+            " ".join(mkname(t[0]) for t in targets if t[1])))
+        fout.write("clean:\n\t$(RM) $(all_targets)\n\n")
+
+
 def mmclt_db(args):
     ct_args = shlex.split(args.clang_tidy_args) + EXTRA_ARGS
 
@@ -255,9 +279,11 @@ def mmclt_db(args):
     # log; otherwise the miss decides.
     miss_hashes = {h for (*_, miss), h in zip(compilations, hashes) if miss and h}
     passed = set()      # hashes known to pass: ccache hits and database entries
-    targets = []        # (hash, cwd, source, arguments) to clang-tidy
+    targets = []        # (name, phony, cwd, source, arguments) to clang-tidy
     target_hashes = set()
     nhit = ndb = 0
+
+    db_dir = os.path.abspath(args.db_dir or args.db_out + ".d")
     for (cwd, compiler, cargs, src, miss), h in zip(compilations, hashes):
         if not miss:
             nhit += 1
@@ -268,9 +294,10 @@ def mmclt_db(args):
             passed.add(h)
         elif h is None or h not in target_hashes:
             target_hashes.add(h)
-            targets.append((h, cwd or ".", os.path.join(cwd or ".", src), cargs))
+            # Without a hash, always check.
+            name = os.path.join(db_dir, h) if h else os.path.abspath("target_{}".format(len(targets)))
+            targets.append((name, h is None, cwd or ".", os.path.join(cwd or ".", src), cargs))
 
-    db_dir = os.path.abspath(args.db_dir or args.db_out + ".d")
     os.makedirs(os.path.dirname(os.path.abspath(args.db_out)), exist_ok=True)
     os.makedirs(db_dir, exist_ok=True)
     for f in os.listdir(db_dir):
@@ -278,32 +305,10 @@ def mmclt_db(args):
     for h in passed:
         open(os.path.join(db_dir, h), "w").close()
 
-    def mk(s):  # in a recipe
-        return shlex.quote(s).replace("$", "$$")
-
-    def mkname(s):  # a target or prerequisite
-        return s.replace("$", "$$").replace(" ", "\\ ")
-
-    names = []
-    with open(args.output, "w") as fout:
-        fout.write("override CLANG_TIDY := {}\n".format(mk(args.clang_tidy)))
-        fout.write("override CLANG_TIDY_ARGS := {}\n\n".format(" ".join(mk(a) for a in ct_args)))
-        fout.write(".SECONDEXPANSION:\n")
-        fout.write("clang-tidy: $$(all_targets)\n")
-        fout.write("\tls {} > {}\n".format(mk(db_dir), mk(args.db_out)))
-        fout.write("\t@echo SUCCESS\n\n")
-        for i, (h, cwd, src, cargs) in enumerate(targets):
-            name = os.path.join(db_dir, h) if h else os.path.abspath("target_{}".format(i))
-            names.append(name)
-            fout.write("{}: {}\n".format(mkname(name), mkname(src)))
-            fout.write("\tcd {} && $(CLANG_TIDY) $(CLANG_TIDY_ARGS) {} -- {}\n".format
-                       (mk(cwd), mk(src), " ".join(mk(a) for a in cargs)))
-            fout.write("\ttouch $@\n\n")
-        fout.write("all_targets = {}\n\n".format(" ".join(mkname(n) for n in names)))
-        # Without a hash, always check.
-        fout.write(".PHONY: clang-tidy clean {}\n\n".format(
-            " ".join(mkname(n) for (h, *_), n in zip(targets, names) if not h)))
-        fout.write("clean:\n\t$(RM) $(all_targets)\n\n")
+    write_makefile(args.output,
+                   "override CLANG_TIDY := {}\noverride CLANG_TIDY_ARGS := {}\n"
+                   .format(mk(args.clang_tidy), " ".join(mk(a) for a in ct_args)),
+                   targets, (db_dir, args.db_out))
 
     print("mmclt: {} translation units, {} ccache hits, {} in the database, {} to check"
           .format(len(compilations), nhit, ndb, len(targets)))
