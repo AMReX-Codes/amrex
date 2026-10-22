@@ -19,6 +19,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#include <limits>
+
 using namespace amrex;
 
 namespace {
@@ -106,7 +108,7 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     {
         int n_cell = 8;
-        Real offset = 1.e-15_rt;
+        Real offset = Real(4.0) * std::numeric_limits<Real>::epsilon();
         {
             ParmParse pp;
             pp.query("n_cell", n_cell);
