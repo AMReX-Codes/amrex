@@ -66,6 +66,7 @@ jobs:
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
         cmake -S . -B build             \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
