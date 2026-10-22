@@ -18,6 +18,8 @@ namespace amrex {
  * The operator type `M` must provide the same interface as for
  * amrex::GMRES: `makeVecRHS`, `makeVecLHS`, `norm2`, `dotProduct`, `assign`,
  * `increment`, `linComb`, `scale`, `setToZero`, `apply` and `precond`.
+ * If it also provides `residualNorm(V const&)`, that norm is used in the
+ * convergence test instead of the 2-norm.
  */
 template <typename V, typename M>
 class BiCGStab
@@ -70,10 +72,10 @@ public:
      */
     [[nodiscard]] int getStatus () const { return m_status; }
 
-    //! Gets the 2-norm of the residual.
+    //! Gets the norm of the residual (the 2-norm, or the operator's `residualNorm`).
     [[nodiscard]] RT getResidualNorm () const { return m_res; }
 
-    //! Gets the 2-norm of the initial residual of the last solve().
+    //! Gets the norm of the initial residual of the last solve().
     [[nodiscard]] RT getInitialResidualNorm () const { return m_rnorm0; }
 
 private:
@@ -124,7 +126,17 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
     }
     m_linop->assign(rh, r);
 
-    RT rnorm = m_linop->norm2(r);
+    // Norm of the convergence test: the operator's residualNorm if it has
+    // one, else the 2-norm.
+    auto resnorm = [&] (V const& v) -> RT {
+        if constexpr (requires { m_linop->residualNorm(v); }) {
+            return m_linop->residualNorm(v);
+        } else {
+            return m_linop->norm2(v);
+        }
+    };
+
+    RT rnorm = resnorm(r);
     RT const rnorm0 = rnorm;
     m_res = rnorm;
     m_rnorm0 = rnorm;
@@ -168,7 +180,7 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
         m_linop->increment(a_sol, ph, alpha);
         m_linop->increment(r, v, -alpha);        // r is now s
 
-        rnorm = m_linop->norm2(r);
+        rnorm = resnorm(r);
         m_its = iter;
         m_res = rnorm;
 
@@ -190,7 +202,7 @@ void BiCGStab<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs,
         m_linop->increment(a_sol, sh, omega);
         m_linop->increment(r, t, -omega);
 
-        rnorm = m_linop->norm2(r);
+        rnorm = resnorm(r);
         m_res = rnorm;
 
         if (m_verbose > 1) {

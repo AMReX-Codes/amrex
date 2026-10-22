@@ -203,6 +203,14 @@ public:
      */
     [[nodiscard]] std::pair<T,T> norm1and2 (bool local = false) const;
 
+    /**
+     * \brief Return the 2-norm and max-norm as a pair, from one reduction.
+     *
+     * \param local If true, compute the norms over local entries only.
+     * \return The 2-norm and max-norm as a pair.
+     */
+    [[nodiscard]] std::pair<T,T> norm2andinf (bool local = false) const;
+
     template <BaseFabType FAB>
     requires (std::same_as<T,typename FAB::value_type>)
     void copyFrom (FabArray<FAB> const& fa);
@@ -414,6 +422,28 @@ std::pair<T,T> AlgVector<T,Allocator>::norm1and2 (bool local) const
         ParallelAllReduce::Sum(a.data(), 2, ParallelContext::CommunicatorSub());
         return std::make_pair(a[0], std::sqrt(a[1]));
     }
+}
+
+template <typename T, typename Allocator>
+std::pair<T,T> AlgVector<T,Allocator>::norm2andinf (bool local) const
+{
+    Long n = m_data.size();
+    T const* p = m_data.data();
+    Math::detail::AbsNanToInf<T> const absinf{};
+    ReduceOps<ReduceOpSum,ReduceOpMax> reduce_op;
+    ReduceData<T,T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (Long i) -> ReduceTuple
+                   {
+                       return {p[i]*p[i], absinf(p[i])};
+                   });
+    auto hv = reduce_data.value(reduce_op);
+    T sumsq = amrex::get<0>(hv);
+    T vmax  = amrex::get<1>(hv);
+    if (!local) {
+        ParallelAllReduce::SumAndMax(sumsq, vmax, ParallelContext::CommunicatorSub());
+    }
+    return std::make_pair(std::sqrt(sumsq), vmax);
 }
 
 /**

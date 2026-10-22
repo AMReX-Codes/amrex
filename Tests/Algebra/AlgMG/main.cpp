@@ -32,6 +32,8 @@ struct Params {
     std::string interp = "mm_ext_i"; // AlgMGInterpType names
     std::string smoother = "chebyshev"; // AlgMGSmoother names (l1_gauss_seidel: CPU)
     std::string krylov = "none"; // AlgMGKrylovSolver names
+    std::string norm = "two";    // AlgMGNormType names: two, max
+    int spike = 0; // 1: rhs is a unit spike at the domain center (no error check)
     // periodic, or dirichlet: homogeneous Dirichlet on the domain faces
     std::string bc = "periodic";
     // Input `problem` is a list (all four by default); each run has one.
@@ -56,7 +58,7 @@ struct Params {
 struct Result {
     Real error;     // max-norm error of the solution
     Real err_bound; // upper bound of the error implied by the residual
-    Real rel_res;   // final residual 2-norm relative to the rhs
+    Real rel_res;   // final residual relative to the rhs, in the selected norm
     int niters;
     int nlevels;
     double time;    // solve time in seconds
@@ -387,6 +389,15 @@ Result run (Params const& p)
                    CsrValid{!dirichlet});
     }
     if (ptype != 0 || dirichlet) { SpMV(bvec, mat, exact); } // rhs = A*phi
+    bool const singular = (p.alpha == Real(0) && !dirichlet);
+    if (p.spike) { // unit spike at the center, mean-free for the singular problem
+        bvec.setVal(singular ? Real(-1)/Real(n) : Real(0));
+        Long const center = n/2 - bvec.globalBegin();
+        auto* rhs = bvec.data();
+        if (center >= 0 && center < bvec.numLocalRows()) {
+            ParallelFor(1, [=] AMREX_GPU_DEVICE (Long) { rhs[center] += Real(1); });
+        }
+    }
 
     AlgMG<Real> amg(mat);
     amg.setMaxIter(p.max_iter);
@@ -402,7 +413,6 @@ Result run (Params const& p)
     if (p.max_levels) { amg.setMaxLevels(*p.max_levels); }
     if (p.aggressive_levels) { amg.setAggressiveNumLevels(*p.aggressive_levels); }
     if (p.aggressive_direct) { amg.setAggressiveDirectInterp(*p.aggressive_direct != 0); }
-    bool const singular = (p.alpha == Real(0) && !dirichlet);
     if (singular) { amg.setSingular(true); }
     if (p.max_coarse_size) { amg.setMaxCoarseSize(*p.max_coarse_size); }
     amg.setInterpType(amrex::getEnumCaseInsensitive<AlgMGInterpType>(interp));
@@ -413,8 +423,10 @@ Result run (Params const& p)
     if (p.theta) { amg.setStrongThreshold(*p.theta); }
     amg.setBottomSolver(amrex::getEnumCaseInsensitive<AlgMGBottomSolver>(bottom));
     amg.setKrylovSolver(amrex::getEnumCaseInsensitive<AlgMGKrylovSolver>(p.krylov));
+    bool const maxnorm = (p.norm == "max");
+    amg.setNormType(amrex::getEnumCaseInsensitive<AlgMGNormType>(p.norm));
 
-    auto bnorm = bvec.norm2();
+    auto const bnorms = bvec.norm2andinf();
     Gpu::streamSynchronize();
     auto const t0 = amrex::second();
     // Divergence is a failed case, not the end of the run.
@@ -432,8 +444,9 @@ Result run (Params const& p)
     AlgVector<Real> rvec(xvec.partition());
     SpMV(rvec, mat, xvec);
     amrex::Axpy(rvec, Real(-1), bvec);
-    auto const rnorm = rvec.norm2();
-    auto rel_res = rnorm / bnorm;
+    auto const rnorms = rvec.norm2andinf();
+    auto const rnorm = rnorms.first;
+    auto rel_res = maxnorm ? rnorms.second / bnorms.second : rnorms.first / bnorms.first;
 
     // A is symmetric and A e = -r, so |e|_inf <= |e|_2 <= |r|_2 / lambda_min.
     // Periodic: lambda_min is alpha, or for the singular problem (mean-zero
@@ -455,7 +468,7 @@ Result run (Params const& p)
         amrex::ForEach(xvec, [=] AMREX_GPU_DEVICE (Real& x) { x -= mean; });
         Gpu::streamSynchronize();
     }
-    auto error = xvec.norminf();
+    auto error = p.spike ? Real(0) : xvec.norminf(); // no exact solution for the spike
     return {.error = error, .err_bound = err_bound, .rel_res = rel_res,
             .niters = amg.getNumIters(), .nlevels = amg.numLevels(),
             .time = t1-t0, .blew_up = blew_up};
@@ -513,6 +526,8 @@ std::string problem_line (Params const& p)
     if (p.problem == "jump" || p.problem == "checker") { os << " jump=" << p.jump; }
     if (p.problem == "checker") { os << " block=" << p.block; }
     if (p.problem == "aniso") { os << " eps=" << p.eps; }
+    if (p.norm != "two") { os << " norm=" << p.norm; }
+    if (p.spike) { os << " spike=1"; }
     return os.str();
 }
 
@@ -650,6 +665,8 @@ int main (int argc, char* argv[])
         pp.query("interp", p.interp);
         pp.query("smoother", p.smoother);
         pp.query("krylov", p.krylov);
+        pp.query("norm", p.norm);
+        pp.query("spike", p.spike);
         pp.query("bc", p.bc);
         if (p.bc != "periodic" && p.bc != "dirichlet") { amrex::Abort("Unknown bc: " + p.bc); }
         Vector<std::string> problems; // queryarr does not shrink a vector

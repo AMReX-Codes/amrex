@@ -58,8 +58,9 @@ public:
     /**
      * \brief Solve A x = b with zero initial guess.
      *
-     * \p soln is overwritten. Converged when the residual 2-norm is below
-     * max(reltol times the rhs 2-norm, abstol).
+     * \p soln is overwritten. Converged when the residual norm (2-norm, or
+     * the max-norm after AlgMG::setNormType) is below max(reltol times the
+     * rhs norm, abstol).
      */
     void solve (MultiFab& soln, MultiFab const& rhs, Real reltol, Real abstol, int maxiter);
 

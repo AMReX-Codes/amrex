@@ -95,7 +95,7 @@ MyTest::configureMLMG (MLMG& mlmg) const
     mlmg.setBottomVerbose(bottom_verbose);
     mlmg.setMultigridType(multigrid_type);
     if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
-    if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
+    if (use_algmg_bottom) {
         mlmg.setBottomSolver(MLMG::BottomSolver::algmg);
     }
 }

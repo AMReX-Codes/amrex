@@ -413,7 +413,9 @@ Available choices of the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::algmg`: AMReX's own algebraic multigrid
   (see :ref:`sec:linearsolver:algmg`), available in every build for the
-  operators that hypre supports.
+  operators that hypre supports.  When the hierarchy has a single AMR
+  level and a single MG level, it is run once to MLMG's tolerance in the
+  max-norm and its residual is the one MLMG reports.
 
 - :cpp:`MLMG::BottomSolver::custom`: A solver provided by the linear operator
   itself, for operators that ship one.  :cpp:`MLEBNodeFDLaplacian` is currently
@@ -517,7 +519,9 @@ level is solved:
   solves the whole coarsest AMR level in every MLMG iteration, using the
   bottom solver's tolerance, iteration limit and verbosity.  The
   geometric levels of that AMR level are then unused, so
-  :cpp:`LPInfo::setMaxCoarseningLevel(0)` avoids building them.
+  :cpp:`LPInfo::setMaxCoarseningLevel(0)` avoids building them.  With a
+  single AMR level, AlgMG is instead run once to MLMG's own tolerance in
+  the max-norm, and its residual is the one MLMG reports.
 
 - :cpp:`MultigridType::hybrid`: geometric multigrid first.  If the residual
   stalls, grows or becomes NaN, MLMG switches to the algebraic solver and
@@ -528,7 +532,8 @@ level is solved:
   and :cpp:`MLMG::setHybridDivergenceFactor` (default 10) declares
   divergence when the residual exceeds that multiple of the best residual.
   After the switch, the algebraic phase gets its own :cpp:`setMaxIter`
-  budget.
+  budget, and with a single AMR level it runs AlgMG once to MLMG's
+  tolerance as the algebraic type does.
 
 Finer AMR levels always use the geometric cycles.  The algebraic types
 support the same operators as the hypre bottom solver, for single
@@ -1406,8 +1411,12 @@ the same hierarchy.
     amg.setBottomSolver(AlgMG<Real>::BottomSolver::bicgstab);
     amg.solve(x, b);    // x holds the initial guess
 
-The iteration stops when the residual 2-norm is below :cpp:`setRelTol` times
-the norm of the right-hand side; ``x`` holds the initial guess. The V-cycle
+The iteration stops when the residual norm is below :cpp:`setRelTol` times
+the norm of the right-hand side (or below :cpp:`setAbsTol`); ``x`` holds
+the initial guess. :cpp:`setNormType` selects the 2-norm (the default) or
+the max-norm; with the max-norm, the BiCGStab and PCG accelerations test
+their residual in that norm too, and GMRES checks the true residual after
+each restart cycle. The V-cycle
 is also available on its own as :cpp:`precond(x, b)` for use in other
 solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
 set per solver object, so several solvers with different settings can

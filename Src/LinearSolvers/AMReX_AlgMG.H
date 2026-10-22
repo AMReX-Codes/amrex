@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <array>
 #include <utility>
 
 namespace amrex {
@@ -215,6 +216,9 @@ AMREX_ENUM(AlgMGBottomSolver, jacobi, bicgstab, gmres, direct);
 //! bottom).
 AMREX_ENUM(AlgMGKrylovSolver, none, bicgstab, gmres, pcg);
 
+//! Norm of the residual in the convergence test: 2-norm or max-norm.
+AMREX_ENUM(AlgMGNormType, two, max);
+
 //! direct: classical direct interpolation. mm_ext and mm_ext_i: extended
 //! and extended+i interpolation in matrix-matrix form.
 AMREX_ENUM(AlgMGInterpType, direct, mm_ext, mm_ext_i);
@@ -271,6 +275,7 @@ public:
     using KrylovSolver = AlgMGKrylovSolver;
     using InterpType   = AlgMGInterpType;
     using Smoother     = AlgMGSmoother;
+    using NormType     = AlgMGNormType;
 
     AlgMG () = default;
     explicit AlgMG (SpMatrix<T>& a_mat);
@@ -288,8 +293,10 @@ public:
     //! If positive, run exactly this many V-cycles regardless of tolerance.
     void setFixedIter (int n) { m_fixediter = n; }
     void setRelTol (T t) { m_reltol = t; }
-    //! Converged when the residual 2-norm is below max(reltol*bnorm, abstol).
+    //! Converged when the residual norm is below max(reltol*bnorm, abstol).
     void setAbsTol (T t) { m_abstol = t; }
+    //! Residual norm of the convergence test: 2-norm (default) or max-norm.
+    void setNormType (NormType n) { m_norm_type = n; }
     //! Takes effect at the next solve; the hierarchy is kept.
     void setSmoother (Smoother sm) { if (m_smoother_type != sm) { m_smoother_type = sm; m_smoothers_stale = true; } }
     //! Relaxation weight of the smoother; negative restores the default. Next solve.
@@ -372,6 +379,7 @@ public:
     [[nodiscard]] int getNumIters () const { return m_niters; }
     //! Number of setups run so far (for checks that the setup is reused).
     [[nodiscard]] int getNumSetups () const { return m_num_setups; }
+    //! Residual norm of the last solve, in the norm of setNormType.
     [[nodiscard]] T getResidualNorm () const { return m_rnorm; }
     //! Number of levels; 0 before setup.
     [[nodiscard]] int numLevels () const { return int(m_a.size()); }
@@ -438,8 +446,11 @@ private:
 
     T m_reltol = std::is_same_v<T,float> ? T(1.e-4) : T(1.e-8);
     T m_abstol = T(0);
+    NormType m_norm_type = NormType::two;
     T m_init_rnorm = std::numeric_limits<T>::max();
-    T m_rnorm = std::numeric_limits<T>::max();
+    T m_rnorm = std::numeric_limits<T>::max();   // in the selected norm
+    T m_rnorm2 = std::numeric_limits<T>::max();
+    T m_rnorminf = std::numeric_limits<T>::max();
     T m_bnorm = std::numeric_limits<T>::max();
 
     std::string m_print_ident;
@@ -504,13 +515,24 @@ private:
                  bool with_initial_guess, bool backward = false);
     void bottom_solve ();
 
-    static std::pair<T,T> compute_rbnorms (SpMatrix<T> const& mat,
-                                           AlgVector<T> const& xvec,
-                                           AlgVector<T> const& bvec,
-                                           AlgVector<T>& rvec);
+    //! rvec = bvec - mat*xvec, and the norms of both vectors from one
+    //! reduction: m_bnorm, m_rnorm (selected norm), m_rnorm2, m_rnorminf.
+    void compute_rbnorms (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
+                          AlgVector<T> const& bvec, AlgVector<T>& rvec);
 
-    static T compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
-                            AlgVector<T> const& bvec, AlgVector<T>& rvec);
+    //! rvec = bvec - mat*xvec and its norms: m_rnorm, m_rnorm2, m_rnorminf.
+    void compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
+                        AlgVector<T> const& bvec, AlgVector<T>& rvec);
+
+    void set_rnorms (T n2, T ninf) {
+        m_rnorm2 = n2;
+        m_rnorminf = ninf;
+        m_rnorm = (m_norm_type == NormType::max) ? ninf : n2;
+    }
+
+    [[nodiscard]] char const* norm_name () const {
+        return (m_norm_type == NormType::max) ? "max-norm" : "2-norm";
+    }
 
 //Public for CUDA
 public: // NOLINT
@@ -671,9 +693,8 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     }
     AlgVector<T> const& rhs = *prhs;
 
-    auto norms = compute_rbnorms(*m_mat, a_sol, rhs, m_res[0]);
-    m_bnorm = norms.first;
-    m_init_rnorm = m_rnorm = norms.second;
+    compute_rbnorms(*m_mat, a_sol, rhs, m_res[0]);
+    m_init_rnorm = m_rnorm;
     m_niters = 0;
 
     if (m_bnorm == 0) {
@@ -683,8 +704,8 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
     }
 
     if (m_verbose >= 1) {
-        amrex::Print() << m_print_ident << "AlgMG: Initial rhs      2-norm = " << m_bnorm << "\n"
-                       << m_print_ident << "AlgMG: Initial residual 2-norm = " << m_rnorm << "\n";
+        amrex::Print() << m_print_ident << "AlgMG: Initial rhs      " << norm_name() << " = " << m_bnorm << "\n"
+                       << m_print_ident << "AlgMG: Initial residual " << norm_name() << " = " << m_rnorm << "\n";
     }
 
     T res_target = std::max(m_bnorm * m_reltol, m_abstol);
@@ -708,7 +729,7 @@ void AlgMG<T>::solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs)
         vcycle(m_cor[0], m_res[0]);
         a_sol.plusAsync(m_cor[0]);
 
-        m_rnorm = compute_rnorm(*m_mat, a_sol, rhs, m_res[0]);
+        compute_rnorm(*m_mat, a_sol, rhs, m_res[0]);
         m_niters = iter+1;
 
         if (m_verbose >= 2) {
@@ -768,26 +789,39 @@ void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T r
     // Bound on every solve so that a moved AlgMG object stays usable.
     auto pc = [this] (AlgVector<T>& x, AlgVector<T> const& b) { this->precond(x, b); };
     int const niters = (m_fixediter > 0) ? m_fixediter : m_maxiter;
-    T const atol = (m_fixediter > 0) ? T(0) : res_target;
     int const verbose = std::max(0, m_verbose-1);
+    bool const maxnorm = (m_norm_type == NormType::max);
     T krylov_rnorm = T(0);
 
-    // Converge on the absolute target reltol*|b|, as the V-cycle iteration.
-    // Restart if the recurrence residual converged before the true one.
-    auto run = [&] (auto& s) {
+    // Converge on the absolute target, as the V-cycle iteration. The Krylov
+    // solvers test their recurrence residual; when they stop, the true
+    // residual is checked and the solve restarts if it is not there yet.
+    // BiCGStab and PCG test in the selected norm. GMRES only has the 2-norm:
+    // with the max-norm it runs one restart cycle at a time toward the
+    // 2-norm target implied by the current true residual (max-norm target
+    // times |r|_2/|r|_inf), so it cannot chase an unreachable target.
+    auto run = [&] (auto& s, bool exact, int chunk) {
         s.setVerbose(verbose);
         s.setInitialGuessNonzero(true);
         m_niters = 0;
         while (true) {
-            s.setMaxIters(niters - m_niters);
+            T atol = T(0);
+            if (m_fixediter <= 0) {
+                atol = res_target;
+                if (maxnorm && !exact && m_rnorminf > T(0)) { atol *= m_rnorm2 / m_rnorminf; }
+            }
+            s.setMaxIters(std::min(chunk, niters - m_niters));
             s.solve(a_sol, a_rhs, T(0), atol);
             m_niters += s.getNumIters();
             krylov_rnorm = s.getResidualNorm();
-            m_rnorm = compute_rnorm(*m_mat, a_sol, a_rhs, m_res[0]);
-            if (m_fixediter > 0 || m_rnorm <= res_target || krylov_rnorm > res_target ||
-                m_niters >= niters || s.getNumIters() == 0 || amrex::isnan(m_rnorm)) {
+            compute_rnorm(*m_mat, a_sol, a_rhs, m_res[0]);
+            if (m_fixediter > 0 || m_rnorm <= res_target || m_niters >= niters ||
+                s.getNumIters() == 0 || amrex::isnan(m_rnorm)) {
                 break;
             }
+            // Status 0: the recurrence residual converged before the true
+            // one. 1: the end of a cycle. Anything else is a breakdown.
+            if (s.getStatus() != 0 && s.getStatus() != 1) { break; }
             if (m_verbose >= 2) {
                 amrex::Print() << m_print_ident << "AlgMG: restarting Krylov solver at iteration "
                                << m_niters << ", rnorm/bnorm = " << m_rnorm/m_bnorm << "\n";
@@ -802,21 +836,24 @@ void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T r
             m_krylov_bicgstab = std::make_unique<BiCGStab_MV<T>>(m_mat);
         }
         m_krylov_bicgstab->setPrecond(pc);
-        run(m_krylov_bicgstab->getSolver());
+        m_krylov_bicgstab->setResidualNormInf(maxnorm);
+        run(m_krylov_bicgstab->getSolver(), true, niters);
     } else if (m_krylov == KrylovSolver::gmres) {
         name = "GMRES";
         if (!m_krylov_gmres) {
             m_krylov_gmres = std::make_unique<GMRES_MV<T>>(m_mat);
         }
         m_krylov_gmres->setPrecond(pc);
-        run(m_krylov_gmres->getSolver());
+        auto& s = m_krylov_gmres->getSolver();
+        run(s, false, maxnorm ? s.getRestartLength() : niters);
     } else {
         name = "PCG";
         if (!m_krylov_pcg) {
             m_krylov_pcg = std::make_unique<PCG_MV<T>>(m_mat);
         }
         m_krylov_pcg->setPrecond(pc);
-        run(m_krylov_pcg->getSolver());
+        m_krylov_pcg->setResidualNormInf(maxnorm);
+        run(m_krylov_pcg->getSolver(), true, niters);
     }
 
     if (amrex::isnan(m_rnorm) || m_rnorm > T(1.e20) * m_init_rnorm) { blew_up(); }
@@ -836,33 +873,27 @@ void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T r
 }
 
 template <typename T>
-std::pair<T,T> AlgMG<T>::compute_rbnorms (SpMatrix<T> const& mat,
-                                        AlgVector<T> const& xvec,
-                                        AlgVector<T> const& bvec,
-                                        AlgVector<T>& rvec)
+void AlgMG<T>::compute_rbnorms (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
+                               AlgVector<T> const& bvec, AlgVector<T>& rvec)
 {
-    auto bnorm = bvec.norm2(true);
-
     amrex::computeResidual(rvec, mat, xvec, bvec);
-    auto rnorm = rvec.norm2(true);
-
+    auto const bn = bvec.norm2andinf(true);
+    auto const rn = rvec.norm2andinf(true);
+    std::array<T,4> a{Math::powi<2>(bn.first), bn.second, Math::powi<2>(rn.first), rn.second};
     if (ParallelContext::NProcsSub() > 1) {
-        bnorm = Math::powi<2>(bnorm);
-        rnorm = Math::powi<2>(rnorm);
-        ParallelAllReduce::Sum<T>({bnorm,rnorm}, ParallelContext::CommunicatorSub());
-        bnorm = std::sqrt(bnorm);
-        rnorm = std::sqrt(rnorm);
+        ParallelAllReduce::SumAndMax(a.data(), 2, ParallelContext::CommunicatorSub());
     }
-
-    return {bnorm, rnorm};
+    m_bnorm = (m_norm_type == NormType::max) ? a[1] : std::sqrt(a[0]);
+    set_rnorms(std::sqrt(a[2]), a[3]);
 }
 
 template <typename T>
-T AlgMG<T>::compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
-                         AlgVector<T> const& bvec, AlgVector<T>& rvec)
+void AlgMG<T>::compute_rnorm (SpMatrix<T> const& mat, AlgVector<T> const& xvec,
+                             AlgVector<T> const& bvec, AlgVector<T>& rvec)
 {
     amrex::computeResidual(rvec, mat, xvec, bvec);
-    return rvec.norm2();
+    auto const rn = rvec.norm2andinf();
+    set_rnorms(rn.first, rn.second);
 }
 
 template <typename T>

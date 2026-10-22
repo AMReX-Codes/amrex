@@ -32,6 +32,8 @@ mlmg_repeat = 2   # solves per type with one MLMG object if it uses AlgMG; the A
 interp   = mm_ext_i  # direct, mm_ext, mm_ext_i
 smoother = chebyshev # jacobi, l1_jacobi, chebyshev, l1_gauss_seidel (CPU only)
 krylov   = none      # none, bicgstab, gmres, pcg
+# norm = two           # residual norm of the convergence test: two, max
+# spike = 0            # 1: unit-spike rhs at the domain center
 bottom   = direct    # direct, jacobi, bicgstab, gmres; used as is with variations = 0
 # theta = 0.25            # strength threshold
 # aggressive_levels = 0   # levels with aggressive coarsening

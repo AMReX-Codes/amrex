@@ -29,7 +29,8 @@ AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
  * solves the finest MG level of AMR level 0 in every iteration. hybrid:
  * geometric until the iteration stalls or diverges, then algebraic,
  * restarting from the best iterate so far. Finer AMR levels always use
- * geometric mini cycles.
+ * geometric mini cycles. With a single AMR level, AlgMG is run once to
+ * MLMG's own tolerance in the max-norm.
  */
 AMREX_ENUM(MultigridType, geometric, algebraic, hybrid);
 
@@ -353,7 +354,7 @@ public:
      * The callback runs once, when a solver is built for an assembled
      * matrix, so it can set the multigrid parameters (Krylov acceleration,
      * smoother, interpolation, strength, coarsening) without repeating the
-     * setup. MLMG applies its own bottom tolerances, iteration limit,
+     * setup. MLMG applies its own tolerances, norm type, iteration limit,
      * verbosity, exception and singularity settings on every solve; those
      * cannot be changed here.
      */
@@ -709,8 +710,10 @@ public:
 
     template <class TMF=MF>
     requires (std::same_as<TMF,MultiFab>)
-    //! Solve with the cached AlgMG solver: one V-cycle as a preconditioner.
-    void algmgSolve (MLAlgMG& s, MF& x, MF const& b);
+    //! Solve with the cached AlgMG solver: one V-cycle as a preconditioner,
+    //! to MLMG's own target in the max-norm when `to_mlmg_target`, else to
+    //! the bottom tolerances in the 2-norm.
+    void algmgSolve (MLAlgMG& s, MF& x, MF const& b, bool to_mlmg_target);
 
     //! Hybrid mode: is it time to give up on the geometric phase? `norms`
     //! holds the residual norms of the geometric iterations so far.
@@ -757,9 +760,15 @@ private:
 
     MultigridType multigrid_type = MultigridType::geometric;
     bool m_algmg_active = false;         //!< AlgMG solves AMR level 0 in this solve
+    //! Single AMR level: AlgMG may be run to MLMG's target in the max-norm,
+    //! and its residual is then the final one.
+    bool m_algmg_direct = false;
+    bool m_algmg_converged = false;      //!< AlgMG met the target in this iteration
     int hybrid_stall_window = 4;
     RT hybrid_stall_rate = RT(0.8);
     RT hybrid_divergence_factor = RT(10.0);
+    RT m_algmg_target = RT(0);           //!< absolute target of the direct AlgMG run
+    RT m_algmg_resnorm = RT(0);          //!< its residual max-norm
     std::function<void(AlgMG<RT>&)> m_algmg_options;
     std::unique_ptr<MLAlgMG> m_algmg_bottom;
     std::unique_ptr<MLAlgMG> m_algmg_level0;
@@ -1024,6 +1033,13 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
     const RT res_target = std::max(a_tol_abs, std::max(a_tol_rel,std::numeric_limits<RT>::epsilon())*max_norm);
 
+    // With one AMR level, AlgMG (algebraic/hybrid type, or the bottom solver
+    // of a one-level hierarchy) is run to res_target in the max-norm, and
+    // its residual norm serves as MLMG's convergence test.
+    m_algmg_direct = (namrlevs == 1) && !is_nsolve && !do_nsolve && !do_fixed_number_of_iters;
+    m_algmg_target = res_target;
+    m_algmg_converged = false;
+
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
@@ -1053,16 +1069,22 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
+            m_algmg_converged = false;
             oneIter(iter);
 
             converged = false;
 
-            // Test convergence on the fine amr level
-            computeResidual(finest_amr_lev);
+            RT fine_norminf;
+            if (m_algmg_converged) {
+                fine_norminf = m_algmg_resnorm; // AlgMG's max-norm residual is the final one
+            } else {
+                // Test convergence on the fine amr level
+                computeResidual(finest_amr_lev);
 
-            if (is_nsolve) { continue; }
+                if (is_nsolve) { continue; }
 
-            RT fine_norminf = ResNormInf(finest_amr_lev);
+                fine_norminf = ResNormInf(finest_amr_lev);
+            }
             m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
@@ -2613,17 +2635,27 @@ template <typename MF>
 template <class TMF>
 requires (std::same_as<TMF,MultiFab>)
 void
-MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
+MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b, bool to_mlmg_target)
 {
     // As a preconditioner MLMG must be a fixed linear operation: one V-cycle.
     if (precond_mode) {
         s.applyVcycle(x, b);
-    } else {
-        try {
+        return;
+    }
+    AlgMG<RT>& a = s.solver();
+    a.setNormType(to_mlmg_target ? AlgMG<RT>::NormType::max : AlgMG<RT>::NormType::two);
+    try {
+        if (to_mlmg_target) {
+            s.solve(x, b, RT(0), m_algmg_target, bottom_maxiter);
+        } else {
             s.solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
-        } catch (std::runtime_error const& e) {
-            throw error(e.what());
         }
+    } catch (std::runtime_error const& e) {
+        throw error(e.what());
+    }
+    if (to_mlmg_target) {
+        m_algmg_resnorm = a.getResidualNorm();
+        m_algmg_converged = (m_algmg_resnorm <= m_algmg_target);
     }
 }
 
@@ -2641,7 +2673,7 @@ MLMGT<MF>::bottomSolveWithAlgMG (MF& x, const MF& b)
     bool const fresh = (m_algmg_bottom == nullptr);
     if (fresh) { m_algmg_bottom = linop.makeAlgMG(mglev); }
     configureAlgMG(*m_algmg_bottom, linop.isBottomSingular(), fresh);
-    algmgSolve(*m_algmg_bottom, x, b);
+    algmgSolve(*m_algmg_bottom, x, b, m_algmg_direct && linop.NMGLevels(amrlev) == 1);
 
     if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable()) {
         makeSolvable(amrlev, mglev, x);
@@ -2663,7 +2695,7 @@ MLMGT<MF>::algmgLevel0Solve ()
     bool const fresh = (m_algmg_level0 == nullptr);
     if (fresh) { m_algmg_level0 = linop.makeAlgMG(0); }
     configureAlgMG(*m_algmg_level0, linop.isSingular(0), fresh);
-    algmgSolve(*m_algmg_level0, cor[0][0], res[0][0]);
+    algmgSolve(*m_algmg_level0, cor[0][0], res[0][0], m_algmg_direct);
 
     // Known overset cells must not receive a correction; the matrix rows
     // there are identities with a zero rhs, so this is a safety pass.

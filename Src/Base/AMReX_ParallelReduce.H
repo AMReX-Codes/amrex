@@ -7,12 +7,37 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
+#include <algorithm>
 #include <type_traits>
 
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
+
+#ifdef AMREX_USE_MPI
+    // Sum the even and max the odd elements.
+    template <typename T>
+    MPI_Op mpi_op_sum_max ()
+    {
+        static MPI_Op mpi_op = MPI_OP_NULL;
+        if (mpi_op == MPI_OP_NULL) {
+            static auto user_fn = [] (void* invec, void* inoutvec, int* len, // NOLINT
+                                      MPI_Datatype* /*datatype*/)
+            {
+                auto const* in = static_cast<T const*>(invec);
+                auto* out = static_cast<T*>(inoutvec);
+                for (int i = 0; i < *len; i += 2) {
+                    out[i] += in[i];
+                    out[i+1] = std::max(out[i+1], in[i+1]);
+                }
+            };
+            BL_MPI_REQUIRE( MPI_Op_create(user_fn, 1, &mpi_op) );
+            ParallelDescriptor::m_mpi_ops.push_back(&mpi_op);
+        }
+        return mpi_op;
+    }
+#endif
 
     enum class ReduceOp : int {
         max = 0,
@@ -127,6 +152,34 @@ namespace ParallelGather {
 }
 
 namespace ParallelAllReduce {
+
+    /**
+     * \brief Sum and max in one call.
+     *
+     * \p sm holds \p cnt pairs. The first element of each pair is summed
+     * and the second takes the max over the communicator.
+     */
+    /// \ingroup amrex_mpi
+    template<typename T>
+    void SumAndMax (T* sm, int cnt, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        MPI_Allreduce(MPI_IN_PLACE, sm, 2*cnt,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      detail::mpi_op_sum_max<T>(), comm);
+#else
+        amrex::ignore_unused(sm, cnt, comm);
+#endif
+    }
+
+    //! Sum of \p s and max of \p m in one call.
+    /// \ingroup amrex_mpi
+    template<typename T>
+    void SumAndMax (T& s, T& m, MPI_Comm comm) {
+        T sm[2] = {s, m};
+        SumAndMax(sm, 1, comm);
+        s = sm[0];
+        m = sm[1];
+    }
 
     /// \ingroup amrex_mpi
     template<typename K, typename V>

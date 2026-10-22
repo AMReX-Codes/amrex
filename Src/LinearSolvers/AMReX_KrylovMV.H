@@ -89,6 +89,16 @@ public:
     //! Euclidean norm of \p vec.
     static T norm2 (VEC const& vec);
 
+    //! Norm of the residual in the convergence test of BiCGStab and PCG:
+    //! the 2-norm, or the max-norm after setResidualNormInf(true).
+    [[nodiscard]] T residualNorm (VEC const& vec) const {
+        return m_norm_inf ? vec.norminf() : vec.norm2();
+    }
+
+    //! Test convergence of BiCGStab and PCG on the max-norm of the residual
+    //! instead of the 2-norm. GMRES always uses the 2-norm.
+    void setResidualNormInf (bool b) { m_norm_inf = b; }
+
     //! Scale \p vec in place by \p scale_factor.
     static void scale (VEC& vec, T scale_factor);
 
@@ -121,6 +131,7 @@ private:
     Solver m_solver;
     MAT const* m_mat = nullptr;
     PC m_pc;
+    bool m_norm_inf = false;
 };
 
 template <template <typename, typename> class S, typename T>

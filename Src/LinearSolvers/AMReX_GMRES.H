@@ -141,6 +141,8 @@ public:
      */
     void setRestartLength (int rl);
 
+    [[nodiscard]] int getRestartLength () const { return m_restrtlen; }
+
     /**
      * \brief Cap the number of iterations performed by solve().
      *
