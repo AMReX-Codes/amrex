@@ -61,9 +61,6 @@ jobs:
         make install
         make test_install
 
-        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
-            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         mkdir ../Tests/SpackSmokeTest/build
         cd ../Tests/SpackSmokeTest/build
         cmake .. \
@@ -76,6 +73,10 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
     - name: Save clang-tidy database
       if: ${{ !cancelled() }}
       uses: ./.github/actions/clang-tidy-db/save

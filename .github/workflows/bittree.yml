@@ -66,11 +66,12 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
 
-        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
-            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
     - name: Save clang-tidy database
       if: ${{ !cancelled() }}
       uses: ./.github/actions/clang-tidy-db/save
@@ -125,11 +126,12 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
 
-        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
-            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
     - name: Save clang-tidy database
       if: ${{ !cancelled() }}
       uses: ./.github/actions/clang-tidy-db/save
