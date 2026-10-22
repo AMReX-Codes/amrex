@@ -2937,7 +2937,9 @@ FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
     using T = typename FAB::value_type;
     auto sm = T(0.0);
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion())
+#endif
+    {
         auto const& ma = this->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, *this, nghost,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -2945,9 +2947,9 @@ FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
         {
             return ma[box_no](i,j,k,comp);
         });
-    } else
-#endif
-    {
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -2963,6 +2965,7 @@ FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
             sm += tmp; // Do it this way so that it does not break regression tests.
         }
     }
+#endif
 
     if (!local) {
         ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -4220,26 +4223,26 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            auto const& flagsma = flags.const_arrays();
-            auto const& ma = this->const_arrays();
-            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
-            {
-                if (flagsma[box_no](i,j,k).isCovered()) {
-                    return RT(0.0);
-                } else {
-                    auto tmp = RT(0.0);
-                    auto const& a = ma[box_no];
-                    for (int n = 0; n < ncomp; ++n) {
-                        tmp = amrex::max(tmp, absinf(a(i,j,k,comp+n)));
-                    }
-                    return tmp;
-                }
-            });
-        } else
+        if (Gpu::inLaunchRegion())
 #endif
         {
+            auto const& flagsma = flags.const_arrays();
+            auto const& ma = this->const_arrays();
+            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
+            {
+#ifdef AMREX_USE_GPU
+                return flagsma[box_no](i,j,k).isCovered() ? RT(0.0) : absinf(ma[box_no](i,j,k,comp+n));
+#else // unconditional load so that the loop vectorizes; zero covered
+      // values before any arithmetic
+                RT v = ma[box_no](i,j,k,comp+n);
+                v = flagsma[box_no](i,j,k).isCovered() ? RT(0.0) : v;
+                return absinf(v);
+#endif
+            });
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:nm0)
 #endif
@@ -4257,21 +4260,24 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                 }
             }
         }
+#endif
     }
     else
 #endif
     {
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion())
+#endif
+        {
             auto const& ma = this->const_arrays();
             nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
             {
                 return absinf(ma[box_no](i,j,k,comp+n));
             });
-        } else
-#endif
-        {
+        }
+#ifdef AMREX_USE_GPU
+        else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:nm0)
 #endif
@@ -4284,7 +4290,10 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                 });
             }
         }
+#endif
     }
+
+    nm0 = std::max(nm0, RT(0.0)); // ParReduce returns lowest() if this rank has no boxes
 
     if (!local) {
         ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
@@ -4308,26 +4317,26 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
     Math::detail::AbsNanToInf<RT> const absinf{};
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& ma = this->const_arrays();
-        auto const& maskma = mask.const_arrays();
-        nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
-        {
-            if (maskma[box_no](i,j,k)) {
-                auto tmp = RT(0.0);
-                auto const& a = ma[box_no];
-                for (int n = 0; n < ncomp; ++n) {
-                    tmp = amrex::max(tmp, absinf(a(i,j,k,comp+n)));
-                }
-                return tmp;
-            } else {
-                return RT(0.0);
-            }
-        });
-    } else
+    if (Gpu::inLaunchRegion())
 #endif
     {
+        auto const& ma = this->const_arrays();
+        auto const& maskma = mask.const_arrays();
+        nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, IntVect(nghost), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
+        {
+#ifdef AMREX_USE_GPU
+            return maskma[box_no](i,j,k) ? absinf(ma[box_no](i,j,k,comp+n)) : RT(0.0);
+#else // unconditional load so that the loop vectorizes; zero masked
+      // values before any arithmetic, which could trap on garbage
+            RT v = ma[box_no](i,j,k,comp+n);
+            v = maskma[box_no](i,j,k) ? v : RT(0.0);
+            return absinf(v);
+#endif
+        });
+    }
+#ifdef AMREX_USE_GPU
+    else {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:nm0)
 #endif
@@ -4343,6 +4352,9 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
             });
         }
     }
+#endif
+
+    nm0 = std::max(nm0, RT(0.0)); // ParReduce returns lowest() if this rank has no boxes
 
     if (!local) {
         ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());

@@ -68,6 +68,10 @@ public:
     //! setNeedSetup when the matrix changes can turn it off.
     void setRecomputePreconditioner (bool b) noexcept { m_recompute_preconditioner = b; }
 
+    //! Throw std::runtime_error instead of aborting on a hypre error or a
+    //! non-finite residual (with abort_on_hypre_error, the default)
+    void setThrowException (bool t) noexcept { m_throw_exception = t; }
+
     //! IJ matrix instance
     [[nodiscard]] HYPRE_IJMatrix A() { return m_mat; }
 
@@ -94,6 +98,8 @@ private:
     //! run_setup
     void run_hypre_setup();
     void run_hypre_solve();
+    //! Warn, throw or abort with \p msg (no-op if empty)
+    void report_failure (const std::string& msg) const;
 
     // Preconditioners
     void boomeramg_precond_configure(const std::string& prefix);
@@ -180,12 +186,19 @@ private:
     //! Abort (rather than warn) when hypre flags an error other than non-convergence
     bool m_abort_on_hypre_error{true};
 
+    //! Throw instead of aborting (see setThrowException)
+    bool m_throw_exception{false};
+
     //! Flag indicating whether to dump matrix files
     bool m_write_files{false};
 
     //! Flag indicating whether the files are overwritten on subsequent writes
     bool m_overwrite_files{true};
 };
+
+//! Message for a pending hypre error other than non-convergence (which the
+//! caller detects from the residual), or empty; clears hypre's error flag
+std::string hypreErrorMessage (const std::string& where);
 
 } // namespace amrex
 

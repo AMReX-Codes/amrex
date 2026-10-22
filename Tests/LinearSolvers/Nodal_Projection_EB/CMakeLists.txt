@@ -5,7 +5,9 @@ endif ()
 set(_sources main.cpp)
 set(_input_files inputs_3d)
 
-setup_test(3 _sources _input_files)
+# A smaller problem keeps the ctest short.
+setup_test(3 _sources _input_files
+   CMDLINE_PARAMS_AFTER_INPUTS n_cell=32 max_grid_size=16)
 
 unset(_sources)
 unset(_input_files)

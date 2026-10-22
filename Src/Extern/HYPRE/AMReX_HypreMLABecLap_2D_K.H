@@ -117,12 +117,14 @@ void hypmlabeclap_c2f (int i, int j, int k,
             stencil(i,j,k)[m] = Real(0.0);
         }
     } else if (nentries_to(i,j,k) > 0) {
-        int const fromoff = offset_from(i,j,k);
-        civ[fromoff][0] = i;
-        civ[fromoff][1] = j;
-        nentries[fromoff] = nentries_to(i,j,k);
         int foff = offset_to(i,j,k);
-        entry_offset[fromoff] = foff;
+        if (civ) { // only the SStruct mode needs these
+            int const fromoff = offset_from(i,j,k);
+            civ[fromoff][0] = i;
+            civ[fromoff][1] = j;
+            nentries[fromoff] = nentries_to(i,j,k);
+            entry_offset[fromoff] = foff;
+        }
 
         // We must iterate the faces in the lexicographical order of fine
         // neighbor cells, because that's the order when non-stencil entries

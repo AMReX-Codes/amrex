@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EB2_Graph.H>
+#include <AMReX_Algorithm.H>
 #include <AMReX_Geometry.H>
 
 #if (AMREX_SPACEDIM == 2)
@@ -14,6 +15,16 @@
 #endif
 
 namespace amrex::EB2 {
+
+// Fraction of the edge from node i to node i+1 before the intercept.  An
+// intercept at a node is exactly the node_coord, so the result is exactly 0 or 1.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real intercept_fraction (Real inter, Real problo, int i, Real dx, Real dxinv) noexcept
+{
+    if (inter == node_coord(problo, i+1, dx)) { return Real(1.0); }
+    Real const cut = (inter - node_coord(problo, i, dx))*dxinv;
+    return amrex::Clamp(cut, Real(0.0), Real(1.0));
+}
 
 #if (AMREX_SPACEDIM == 2)
 

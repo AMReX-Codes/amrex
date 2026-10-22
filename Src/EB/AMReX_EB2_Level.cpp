@@ -32,6 +32,14 @@ Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const&
     amrex::AllGatherBoxes(cut_boxes);
     amrex::AllGatherBoxes(covered_boxes);
 
+    // Fixing small cells on the finer levels can leave a level without
+    // any cut cells.
+    if (cut_boxes.empty() && covered_boxes.empty()) {
+        m_allregular = true;
+        m_ok = true;
+        return;
+    }
+
     if (!covered_boxes.empty()) {
         m_covered_grids = BoxArray(BoxList(std::move(covered_boxes)));
     }

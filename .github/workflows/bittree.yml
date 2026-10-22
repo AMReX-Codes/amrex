@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read  # clang-tidy database artifacts
   contents: read
 
 jobs:
@@ -48,12 +49,15 @@ jobs:
         cd build
         make -j4
         make install
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build and Run Test
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=80M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -63,13 +67,17 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   bittree-3d:
     name: Bittree 3D
@@ -102,12 +110,15 @@ jobs:
         cd build
         make -j4
         make install
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build and Run Test
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=80M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -117,10 +128,14 @@ jobs:
             CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}

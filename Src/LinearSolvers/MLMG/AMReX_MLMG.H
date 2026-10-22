@@ -2752,9 +2752,14 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
         amrex::Real hypre_abstol =
             (hypre_interface == amrex::Hypre::Interface::ij)
             ? bottom_abstol : Real(-1.0);
-        hypre_solver->solve(
-            x, b, bottom_reltol, hypre_abstol, bottom_maxiter, *hypre_bndry,
-            linop.getMaxOrder());
+        hypre_solver->setThrowException(throw_exception);
+        try {
+            hypre_solver->solve(
+                x, b, bottom_reltol, hypre_abstol, bottom_maxiter, *hypre_bndry,
+                linop.getMaxOrder());
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
     }
     else
     {
@@ -2763,7 +2768,12 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             hypre_node_solver =
                 linop.makeHypreNodeLap(bottom_verbose, hypre_options_namespace);
         }
-        hypre_node_solver->solve(x, b, bottom_reltol, bottom_abstol, bottom_maxiter);
+        hypre_node_solver->setThrowException(throw_exception);
+        try {
+            hypre_node_solver->solve(x, b, bottom_reltol, bottom_abstol, bottom_maxiter);
+        } catch (std::runtime_error const& e) {
+            throw error(e.what());
+        }
     }
 
     // For singular problems there may be a large constant added to all values of the solution

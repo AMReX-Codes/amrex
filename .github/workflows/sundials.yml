@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read  # clang-tidy database artifacts
   contents: read
 
 jobs:
@@ -56,12 +57,16 @@ jobs:
         make -j4
         make install
         cd ../..
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Compile Test
       run: |
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
         cmake -S . -B build             \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -71,13 +76,17 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
-        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-21 \
-            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
-
         ccache -s
         du -hs ~/.cache/ccache
+    - name: Clang-tidy
+      run: |
+        ${{github.workspace}}/.github/workflows/clang-tidy/clang-tidy-ccache-misses.sh clang-tidy-21 \
+            "--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+    - name: Save clang-tidy database
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
+      with:
+        job-status: ${{ job.status }}
 
   sundials-cuda:
     name: CUDA SUNDIALS@7.0.0
