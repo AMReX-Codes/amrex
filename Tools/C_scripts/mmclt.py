@@ -86,7 +86,7 @@ def read_compilations(logfile, identifier):
     the log regardless of identifier.  Invocations with other results, e.g.
     compile_failed or called_for_link, are neither hits nor misses to ccache
     either and are skipped."""
-    line_re = re.compile(r"^\[\S+ (\d+)\] (.*)$")
+    line_re = re.compile(r"^\[\S+ +(\d+) *\] (.*)$")  # the pid is padded
     current = {}
     done = []
     with open(logfile, "r", errors="replace") as fin:
