@@ -14,9 +14,6 @@ permissions:
   actions: read  # clang-tidy database artifacts
   contents: read
 
-env:
-  GH_TOKEN: ${{ github.token }}  # clang-tidy database artifacts
-
 jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
@@ -40,6 +37,8 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Fetch clang-tidy databases
+      uses: ./.github/actions/clang-tidy-db/fetch
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wno-null-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
@@ -78,18 +77,7 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
     - name: Save clang-tidy database
-      if: success()
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      if: ${{ !cancelled() }}
+      uses: ./.github/actions/clang-tidy-db/save
       with:
-        name: clang-tidy-db-${{ github.workflow }}-${{ github.job }}
-        path: ${{ runner.temp }}/clang-tidy-db/out
-        retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
-        if-no-files-found: ignore
-    - name: Save ccache log
-      if: failure()
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-      with:
-        name: ccache-log-${{ github.workflow }}-${{ github.job }}
-        path: ${{ github.workspace }}/ccache.log.txt
-        retention-days: 2
-        if-no-files-found: ignore
+        job-status: ${{ job.status }}

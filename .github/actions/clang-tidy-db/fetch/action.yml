@@ -1,0 +1,12 @@
+name: Fetch clang-tidy databases
+description: >-
+  Download this job's clang-tidy databases of the latest development run and
+  of this PR's previous run for clang-tidy-ccache-misses.sh.  The only step
+  that sees the token.
+runs:
+  using: composite
+  steps:
+    - run: ${{ github.action_path }}/fetch.sh
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}

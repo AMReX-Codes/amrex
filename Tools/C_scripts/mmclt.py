@@ -131,9 +131,6 @@ def read_compilations(logfile, identifier):
         parsed = split_command(tokens)
         if parsed:
             compilations.append((c["cwd"], parsed[0], parsed[1], parsed[2], c["miss"]))
-    if nhits + nmisses == 0:
-        sys.exit("mmclt: no cache hits or misses in {}; has the log format changed?"
-                 .format(logfile))
     return compilations, nhits, nmisses
 
 
@@ -268,6 +265,9 @@ def mmclt_db(args):
                 known.update(line.strip() for line in f if line.strip())
 
     compilations, nhits, nmisses = read_compilations(args.input, args.identifier)
+    if nhits + nmisses == 0:
+        sys.exit("mmclt: no cache hits or misses in {}; has the log format changed?"
+                 .format(args.input))
     if args.ccache:
         check_ccache_stats(args.ccache, nhits, nmisses)
     if not compilations:
