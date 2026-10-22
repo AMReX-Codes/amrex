@@ -393,7 +393,7 @@ void bottom_solve (CrossProj::Level& L)
     }
     if (!local) {
         Gpu::copy(Gpu::deviceToHost, L.bdev.begin(), L.bdev.end(), L.bg.begin());
-        ParallelDescriptor::ReduceRealSum(L.bg.data(), int(N*nc));
+        ParallelAllReduce::Sum(L.bg.data(), int(N*nc), ParallelContext::CommunicatorSub());
         Gpu::copy(Gpu::hostToDevice, L.bg.begin(), L.bg.end(), L.bdev.begin());
     }
 
@@ -648,7 +648,7 @@ Real dot (MultiFab const& u, MultiFab const& v, int ncomp)
         return [=] (int i, int j, int k, int n) { return ua(i,j,k,n) * va(i,j,k,n); };
     });
 #endif
-    ParallelDescriptor::ReduceRealSum(s);
+    ParallelAllReduce::Sum(s, ParallelContext::CommunicatorSub());
     return s;
 }
 
@@ -667,7 +667,7 @@ Real maxabs (MultiFab const& u, int ncomp)
         return [=] (int i, int j, int k, int n) { return std::abs(ua(i,j,k,n)); };
     });
 #endif
-    ParallelDescriptor::ReduceRealMax(s);
+    ParallelAllReduce::Max(s, ParallelContext::CommunicatorSub());
     return s;
 }
 
@@ -716,7 +716,7 @@ Real apply_dot (CrossProj::Level const& P, MultiFab& q, MultiFab const& p)
         }}}
     }
 #endif
-    ParallelDescriptor::ReduceRealSum(s);
+    ParallelAllReduce::Sum(s, ParallelContext::CommunicatorSub());
     return s;
 }
 
@@ -755,7 +755,7 @@ Real update_norm (CrossProj::Level const& P, MultiFab& x, MultiFab& r, MultiFab 
         return [=] (int i, int j, int k, int n) { return std::abs(rr(i,j,k,n)); };
     });
 #endif
-    ParallelDescriptor::ReduceRealMax(s);
+    ParallelAllReduce::Max(s, ParallelContext::CommunicatorSub());
     return s;
 }
 
