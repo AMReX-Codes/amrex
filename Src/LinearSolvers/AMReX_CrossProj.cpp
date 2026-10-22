@@ -52,7 +52,7 @@ struct CrossProj::Level
     GpuArray<Real,9> sten{};  // [(b+1)*3+(a+1)] for offset (a,b)
     GpuArray<Real,9> rw{};    // restriction weights from the parent, same layout
     GpuArray<Real,4> pw{};    // prolongation weights [b*2+a] for fine offset (a,b)
-    MultiFab x, x2, b, r, talign;
+    MultiFab x, x2, b, r, t;
     // bottom level: gathered data on the device, inverse symbol (including
     // the normalization) and the transform
     bool binit = false;
@@ -218,7 +218,7 @@ void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
 {
     BL_PROFILE("GMG::CrossProj::restrict");
     F.r.FillBoundary(F.period);
-    MultiFab* dst = C.cba.empty() ? &C.b : &C.talign;
+    MultiFab* dst = C.cba.empty() ? &C.b : &C.t;
     auto const w = C.rw;
     auto const& fa = F.r.const_arrays();
     auto const& ca = dst->arrays();
@@ -233,7 +233,7 @@ void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
         ca[bno](I,J,k,n) = s;
     });
     if (dst != &C.b) {
-        C.b.ParallelCopy(C.talign, 0, 0, C.ncomp);
+        C.b.ParallelCopy(C.t, 0, 0, C.ncomp);
     }
 }
 
@@ -246,8 +246,8 @@ void prolong_add (CrossProj::Level& F, CrossProj::Level& C)
     if (C.cba.empty()) {
         C.x.FillBoundary(C.period);
     } else {
-        C.talign.ParallelCopy(C.x, 0, 0, C.ncomp, IntVect(0), IntVect(1), C.period);
-        src = &C.talign;
+        C.t.ParallelCopy(C.x, 0, 0, C.ncomp, IntVect(0), IntVect(1), C.period);
+        src = &C.t;
     }
     auto const w = C.pw;
     auto const& fa = F.x.arrays();
@@ -511,8 +511,8 @@ make_coarse (CrossProj::Level const& P, bool modulate)
         if (!bottom) { C->ba.maxSize(regrid_max_size); }
         C->dm = DistributionMapping(C->ba);
         C->cba = cba;
-        C->talign.define(C->cba, P.dm, C->ncomp, 1);
-        C->talign.setVal(Real(0.0));
+        C->t.define(C->cba, P.dm, C->ncomp, 1);
+        C->t.setVal(Real(0.0));
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
