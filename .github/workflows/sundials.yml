@@ -63,7 +63,8 @@ jobs:
       run: |
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
         cmake -S . -B build             \

@@ -11,7 +11,8 @@ unit is in one of the --db-in files.  The hash covers the source as clang
 preprocesses it, with comments, the compile arguments, the versions of clang
 and clang-tidy, clang-tidy's arguments, and the --config-file.  When all
 targets succeed, the makefile writes the hashes of all translation units in
-the log to --db-out.
+the log to --db-out.  A ccache hit counts as passed, so the ccache key must
+cover the clang-tidy version too, e.g. a version file in CCACHE_EXTRAFILES.
 
 The hits and misses found in the log are checked against `ccache
 --print-stats`, so the statistics must be zeroed (ccache -z) before the

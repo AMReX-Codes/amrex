@@ -50,7 +50,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=20M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -118,7 +119,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=400M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -192,7 +194,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=300M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -252,7 +255,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=180M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -323,7 +327,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=260M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -392,7 +397,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -470,7 +476,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=400M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -535,7 +542,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -583,7 +591,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=130M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -631,7 +640,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=115M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -680,7 +690,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=120M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -728,7 +739,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=40M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -776,7 +788,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -889,7 +902,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
@@ -956,7 +970,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
-        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        clang-tidy-21 --version > ${{ runner.temp }}/clang-tidy-version.txt
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy:${{ runner.temp }}/clang-tidy-version.txt
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
