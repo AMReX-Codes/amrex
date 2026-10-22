@@ -72,6 +72,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
+    // These options belong to each container, not to the specialization.
+    ParmParse pp_instance("particles");
+    pp_instance.query("use_prepost", usePrePost);
+    pp_instance.query("do_unlink", doUnlink);
+
     static bool initialized = false;
     if ( ! initialized)
     {
@@ -90,8 +95,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
 
-        pp.query("use_prepost", usePrePost);
-        pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
         pp.queryAdd("use_comms_arena", use_comms_arena);
 

@@ -945,6 +945,12 @@ problems with particle I/O, you could try varying some or all of these parameter
 |                   | I/O speeds on large problems.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
+The ``particles.use_prepost`` and ``particles.do_unlink`` parameters initialize
+every particle container, including multiple containers of the same type.
+``SetUsePrePost`` and ``SetUseUnlink`` override these options for one container
+without changing other containers or the defaults for subsequently constructed
+containers.
+
 The following runtime parameters affect the behavior of virtual particles in Nyx.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+

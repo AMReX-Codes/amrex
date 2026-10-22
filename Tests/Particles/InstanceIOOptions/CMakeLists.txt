@@ -1,0 +1,15 @@
+if (NOT AMReX_PARTICLES)
+    return()
+endif()
+foreach(D IN LISTS AMReX_SPACEDIM)
+    set(_sources main.cpp)
+    set(_input_files "")
+    setup_test(${D} _sources _input_files)
+    foreach(prepost IN ITEMS 0 1)
+        foreach(unlink IN ITEMS 0 1)
+            add_test(NAME Particles_InstanceIOOptions_${D}d_${prepost}_${unlink}
+                COMMAND $<TARGET_FILE:Test_Particles_InstanceIOOptions_${D}d>
+                    particles.use_prepost=${prepost} particles.do_unlink=${unlink})
+        endforeach()
+    endforeach()
+endforeach()
