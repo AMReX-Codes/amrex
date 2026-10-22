@@ -15,7 +15,7 @@ mkdir -p "${DB}/in"
 # newest first, and the zip.
 fetch () {
     local found="" page resp
-    for page in 1 2 3 4 5; do  # 500 runs of this workflow is plenty
+    for page in 1 2 3; do  # 300 runs of this workflow is plenty
         resp=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${NAME}&per_page=100&page=${page}") \
             || { echo "clang-tidy database: cannot list the artifacts ($3)"; return; }
         found=$(jq -r ".artifacts[] | select(.expired | not)
