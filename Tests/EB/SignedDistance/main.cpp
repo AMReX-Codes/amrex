@@ -106,27 +106,27 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     {
         int n_cell = 8;
-        Real offset = 1.e-15;
+        Real offset = 1.e-15_rt;
         {
             ParmParse pp;
             pp.query("n_cell", n_cell);
             pp.query("offset", offset);
         }
         Box domain(IntVect(0), IntVect(n_cell-1));
-        RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+        RealBox rb({AMREX_D_DECL(0._rt,0._rt,0._rt)}, {AMREX_D_DECL(1._rt,1._rt,1._rt)});
 
         int nerr = 0;
 
         // Walls a roundoff distance inside the domain faces, fluid inside.
         {
             Geometry geom(domain, rb, 0, {AMREX_D_DECL(0,0,0)});
-            EB2::PlaneIF plo_x({AMREX_D_DECL(offset,0.,0.)}, {AMREX_D_DECL(-1.,0.,0.)});
-            EB2::PlaneIF phi_x({AMREX_D_DECL(1.-offset,0.,0.)}, {AMREX_D_DECL(1.,0.,0.)});
-            EB2::PlaneIF plo_y({AMREX_D_DECL(0.,offset,0.)}, {AMREX_D_DECL(0.,-1.,0.)});
-            EB2::PlaneIF phi_y({AMREX_D_DECL(0.,1.-offset,0.)}, {AMREX_D_DECL(0.,1.,0.)});
+            EB2::PlaneIF plo_x({AMREX_D_DECL(offset,0._rt,0._rt)}, {AMREX_D_DECL(-1._rt,0._rt,0._rt)});
+            EB2::PlaneIF phi_x({AMREX_D_DECL(1._rt-offset,0._rt,0._rt)}, {AMREX_D_DECL(1._rt,0._rt,0._rt)});
+            EB2::PlaneIF plo_y({AMREX_D_DECL(0._rt,offset,0._rt)}, {AMREX_D_DECL(0._rt,-1._rt,0._rt)});
+            EB2::PlaneIF phi_y({AMREX_D_DECL(0._rt,1._rt-offset,0._rt)}, {AMREX_D_DECL(0._rt,1._rt,0._rt)});
 #if (AMREX_SPACEDIM == 3)
-            EB2::PlaneIF plo_z({0.,0.,offset}, {0.,0.,-1.});
-            EB2::PlaneIF phi_z({0.,0.,1.-offset}, {0.,0.,1.});
+            EB2::PlaneIF plo_z({0._rt,0._rt,offset}, {0._rt,0._rt,-1._rt});
+            EB2::PlaneIF phi_z({0._rt,0._rt,1._rt-offset}, {0._rt,0._rt,1._rt});
             auto walls = EB2::makeUnion(plo_x, phi_x, plo_y, phi_y, plo_z, phi_z);
 #else
             auto walls = EB2::makeUnion(plo_x, phi_x, plo_y, phi_y);
@@ -138,14 +138,14 @@ int main (int argc, char* argv[])
         // Sphere with fluid inside.
         {
             Geometry geom(domain, rb, 0, {AMREX_D_DECL(0,0,0)});
-            EB2::SphereIF sphere(0.3, {AMREX_D_DECL(0.5,0.5,0.5)}, true);
+            EB2::SphereIF sphere(0.3_rt, {AMREX_D_DECL(0.5_rt,0.5_rt,0.5_rt)}, true);
             nerr += run_case("sphere fluid inside", sphere, geom, 1);
         }
 
         // Sphere with fluid outside, periodic domain.
         {
             Geometry geom(domain, rb, 0, {AMREX_D_DECL(1,1,1)});
-            EB2::SphereIF sphere(0.3, {AMREX_D_DECL(0.5,0.5,0.5)}, false);
+            EB2::SphereIF sphere(0.3_rt, {AMREX_D_DECL(0.5_rt,0.5_rt,0.5_rt)}, false);
             nerr += run_case("sphere fluid outside", sphere, geom, 1);
         }
 
