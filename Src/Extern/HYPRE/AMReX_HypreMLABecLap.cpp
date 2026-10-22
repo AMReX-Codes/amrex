@@ -2105,7 +2105,9 @@ void HypreMLABecLap::commBCoefs_local (int flev,
     for (int itag = 0; itag < int(tags.size()); ++itag) { // NOLINT(modernize-loop-convert)
         auto const& tag = tags[itag];
         Box const& cbx = amrex::coarsen(tag.dbox,rr);
-        IntVect d2s = tag.dbox.smallEnd() - tag.sbox.smallEnd();
+        // Fine source index = refined destination index + d2s (with a
+        // periodic shift, the boxes differ by the period)
+        IntVect d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
 
         auto const type = cbx.ixType();
 #if (AMREX_SPACEDIM == 2)
