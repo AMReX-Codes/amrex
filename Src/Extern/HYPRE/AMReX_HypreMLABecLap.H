@@ -144,11 +144,11 @@ public:
     void buildIJMaps ();
 
     //! Map the assembled triplets to the hypre matrix's value arrays
-    //! (m_ij_slots); public for cuda
+    //! (m_ij_gather); public for cuda
     void buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
                        Gpu::DeviceVector<HYPRE_BigInt> const& cols);
     //! Overwrite the hypre matrix's values with the triplet values
-    //! (m_ij_slots); public for cuda
+    //! (m_ij_gather); public for cuda
     void updateIJValues (Gpu::DeviceVector<Real> const& vals);
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
@@ -256,10 +256,21 @@ private:
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_rows;
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
     Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
-    //! With setup reuse, the triplets are written directly into the
-    //! assembled hypre matrix: slot of each triplet in its diag (>= 0) or
-    //! offd (-1-index) value array; empty if not built
-    Gpu::DeviceVector<Long> m_ij_slots;
+    //! With setup reuse, the triplets of later setups are summed directly
+    //! into a matrix's value array, each entry adding its triplets in
+    //! increasing triplet order so that the sums do not depend on thread
+    //! scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
+    struct EntryGather
+    {
+        Gpu::DeviceVector<Long> offset;
+        Gpu::DeviceVector<Long> trip;
+        [[nodiscard]] bool empty () const { return offset.empty(); }
+        [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
+        void clear () { offset.clear(); trip.clear(); }
+    };
+    //! Hypre backend: entries of the assembled hypre matrix, diag values
+    //! first, then offd values; empty if not built
+    EntryGather m_ij_gather;
 
     //! `<prefix>.backend = hypre` (default) or `algmg`: in IJ mode, solve the
     //! assembled composite system with hypre or with AMReX's AlgMG
@@ -273,10 +284,10 @@ private:
     std::unique_ptr<SpMatrix<Real>> m_spA;
     std::unique_ptr<AlgMG<Real>> m_algmg;
     //! AlgMG backend with setup reuse: the sorted CSR pattern of the local
-    //! rows and the position of each triplet in it (empty if not built)
+    //! rows and the triplets of each of its entries (empty if not built)
     Gpu::DeviceVector<Long> m_alg_row_offset;
     Gpu::DeviceVector<Long> m_alg_col_index;
-    Gpu::DeviceVector<Long> m_alg_slots;
+    EntryGather m_alg_gather;
 
     //! `<prefix>.dump_matrix = N`: Matrix Market dumps of the first N solves
     //! with this dump prefix, counted over all objects of the run: for solve
