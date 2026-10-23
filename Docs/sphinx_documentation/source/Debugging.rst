@@ -26,7 +26,9 @@ NaNs, ``amrex.fpe_trap_zero`` for division by zero and
 assumes floating-point exceptions are not trapped, so an optimized build may
 raise exceptions the source code does not (e.g., in unused SIMD lanes). To
 trap floating-point exceptions in an optimized clang build, also compile with
-``-ffp-exception-behavior=maytrap``. GCC does not need this. To trap the
+``-ffp-exception-behavior=maytrap``. The CMake options ``AMReX_FPE=ON`` and
+``AMReX_TESTING=ON`` and the GNU Make options ``DEBUG=TRUE`` and ``TEST=TRUE``
+add it for clang. GCC does not need this. To trap the
 use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 ``MultiFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.

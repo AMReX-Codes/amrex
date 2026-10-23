@@ -182,6 +182,19 @@ target_compile_options ( Flags_FPE
 endif()
 
 #
+# Keep clang from raising FP exceptions in unused vector lanes, so that
+# trapping them at run time works.
+#
+add_library(Flags_FP_EXCEPTIONS INTERFACE)
+add_library(AMReX::Flags_FP_EXCEPTIONS ALIAS Flags_FP_EXCEPTIONS)
+
+target_compile_options ( Flags_FP_EXCEPTIONS
+   INTERFACE
+   $<${_cxx_clang}:-ffp-exception-behavior=maytrap>
+   $<${_cxx_appleclang}:-ffp-exception-behavior=maytrap>
+   )
+
+#
 # Unset all the variables defined in this module
 #
 foreach (_lang cxx fortran)
