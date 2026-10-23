@@ -960,7 +960,7 @@ MakeITracker ( Box const& bx,
                          target_volfrac);
 }
 
-void
+int
 MakeITracker ( Box const& bx,
                AMREX_D_DECL(Array4<Real const> const& apx,
                             Array4<Real const> const& apy,
@@ -973,11 +973,10 @@ MakeITracker ( Box const& bx,
                Array4<Real> const& alpha,
                Array4<Real> const& cent_hat,
                Dim3* active_cells,
-               int& num_active_cells,
                Geometry const& lev_geom,
                Real target_volfrac)
 {
-    num_active_cells = make_itracker<true>(
+    return make_itracker<true>(
         bx, AMREX_D_DECL(apx, apy, apz), vfrac, itracker, flag, ccent, nrs,
         alpha, cent_hat, active_cells, lev_geom, target_volfrac);
 }
