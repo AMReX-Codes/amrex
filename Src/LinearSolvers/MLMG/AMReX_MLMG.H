@@ -760,6 +760,7 @@ private:
     int hybrid_stall_window = 4;
     RT hybrid_stall_rate = RT(0.8);
     RT hybrid_divergence_factor = RT(10.0);
+    RT m_algmg_reltol = RT(0);           //!< AlgMG tolerance of the current iteration
     std::function<void(AlgMG<RT>&)> m_algmg_options;
     std::unique_ptr<MLAlgMG> m_algmg_bottom;
     std::unique_ptr<MLAlgMG> m_algmg_level0;
@@ -1024,6 +1025,19 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
     const RT res_target = std::max(a_tol_abs, std::max(a_tol_rel,std::numeric_limits<RT>::epsilon())*max_norm);
 
+    // When AlgMG solves the whole system, its tolerance is the reduction
+    // still needed, if that is looser than bottom_reltol. A 2-norm
+    // reduction stands in for the max-norm one; MLMG checks its own residual.
+    bool const algmg_adapt = (namrlevs == 1) && !is_nsolve && !do_nsolve && !do_fixed_number_of_iters
+        && (multigrid_type != MultigridType::geometric || linop.NMGLevels(0) == 1);
+    m_algmg_reltol = bottom_reltol;
+    if (algmg_adapt && resnorm0 > RT(0)) {
+        m_algmg_reltol = std::max(bottom_reltol, res_target/resnorm0);
+    } else if (namrlevs > 1 && multigrid_type != MultigridType::geometric) {
+        // The finer levels' V-cycles rarely reduce the residual by more than 1e-2.
+        m_algmg_reltol = std::max(bottom_reltol, RT(1.e-2));
+    }
+
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
@@ -1063,6 +1077,9 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             if (is_nsolve) { continue; }
 
             RT fine_norminf = ResNormInf(finest_amr_lev);
+            if (algmg_adapt && fine_norminf > RT(0)) {
+                m_algmg_reltol = std::max(bottom_reltol, res_target/fine_norminf);
+            }
             m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
@@ -2620,7 +2637,7 @@ MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
         s.applyVcycle(x, b);
     } else {
         try {
-            s.solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
+            s.solve(x, b, m_algmg_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
         } catch (std::runtime_error const& e) {
             throw error(e.what());
         }
