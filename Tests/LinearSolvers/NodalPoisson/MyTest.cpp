@@ -70,6 +70,12 @@ MyTest::solve ()
         // solution is passed to MLMG::solve to provide an initial guess.
         // Additionally it also provides boundary conditions for Dirichlet
         // boundaries if there are any.
+        if (const_solution) { // u = 1: unit Dirichlet values, zero rhs
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                exact_solution[ilev].setVal(1.0);
+                rhs[ilev].setVal(0.0);
+            }
+        }
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
             const Box& interior = amrex::surroundingNodes(
@@ -116,18 +122,36 @@ MyTest::solve ()
                 }
                 amrex::Abort("mlhypre_test_throw: the solve did not throw");
             }
-            hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0, max_iter);
+            // The rhs at Dirichlet nodes is not used, and MLMG allows NaNs there
+            Vector<MultiFab> hyp_rhs(max_level+1);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                hyp_rhs[ilev].define(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+                MultiFab::Copy(hyp_rhs[ilev], rhs[ilev], 0, 0, 1, 0);
+                if (mlhypre_nan_dirichlet_rhs) {
+                    Box const ndom = amrex::surroundingNodes(geom[ilev].Domain());
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        hyp_rhs[ilev].setVal(std::numeric_limits<Real>::quiet_NaN(),
+                                             amrex::bdryLo(ndom, d), 0, 1, 0);
+                        hyp_rhs[ilev].setVal(std::numeric_limits<Real>::quiet_NaN(),
+                                             amrex::bdryHi(ndom, d), 0, 1, 0);
+                    }
+                }
+            }
+            hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
                 MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
-                MultiFab::Subtract(diff, sol_mlmg[ilev], 0, 0, 1, 0);
+                // const_solution: against the exact (constant) solution
+                MultiFab const& ref = const_solution ? exact_solution[ilev] : sol_mlmg[ilev];
+                MultiFab::Subtract(diff, ref, 0, 0, 1, 0);
                 // Singular (periodic) problems: solutions differ by a constant
                 const Real dmax = periodic ? Real(0.5)*(diff.max(0) - diff.min(0)) : diff.norm0();
-                const Real smax = sol_mlmg[ilev].norm0();
-                amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - MLMG| = "
-                               << dmax << " (max |MLMG| = " << smax << ")\n";
+                const Real smax = ref.norm0();
+                std::string const rname = const_solution ? "exact" : "MLMG";
+                amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - " << rname << "| = "
+                               << dmax << " (max |" << rname << "| = " << smax << ")\n";
                 if (mlhypre_max_diff > Real(0.0) && !(dmax <= mlhypre_max_diff*smax)) {
-                    amrex::Abort("HypreMLNodeLap differs from MLMG by more than "
+                    amrex::Abort("HypreMLNodeLap differs from " + rname + " by more than "
                                  "mlhypre_max_diff on level " + std::to_string(ilev));
                 }
             }
@@ -270,6 +294,13 @@ MyTest::readParameters ()
     pp.query("mlhypre_prefix", mlhypre_prefix);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
+    pp.query("fine_at_boundary", fine_at_boundary);
+    pp.query("const_solution", const_solution);
+    pp.query("mlhypre_nan_dirichlet_rhs", mlhypre_nan_dirichlet_rhs);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mlhypre_nan_dirichlet_rhs || (use_mlhypre && !periodic),
+                                     "mlhypre_nan_dirichlet_rhs requires use_mlhypre = 1 and periodic = 0");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!const_solution || (use_mlhypre && !periodic),
+                                     "const_solution requires use_mlhypre = 1 and periodic = 0");
     pp.query("hypre_interface", hypre_interface_i);
     if (hypre_interface_i == 1) {
         hypre_interface = Hypre::Interface::structed;
@@ -311,6 +342,7 @@ MyTest::initData ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
+        if (fine_at_boundary) { domain.shift(0, -domain.smallEnd(0)); } // or touch low x
         domain.refine(ref_ratio);
     }
 

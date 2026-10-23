@@ -64,8 +64,17 @@ private:
     // if positive: abort if max |HypreMLNodeLap - MLMG| exceeds it relative to max |MLMG|
     amrex::Real mlhypre_max_diff = -1.0;
     // mlhypre: the solve must throw with a NaN rhs (1) or a NaN initial
-    // guess, i.e. a failing solver (2)
+    // guess, i.e. NaN Dirichlet values (2)
     int mlhypre_test_throw = 0;
+    // the fine levels touch the low-x (Dirichlet) domain face, so that
+    // hanging nodes interpolate from coarse Dirichlet nodes
+    int fine_at_boundary = 0;
+    // mlhypre: solve for u = 1 (unit Dirichlet values, zero rhs) and compare
+    // with it instead of MLMG, whose composite solve does not reproduce the
+    // constant when a fine level touches a Dirichlet face
+    int const_solution = 0;
+    // mlhypre: NaN rhs at the Dirichlet domain nodes, which must not be used
+    int mlhypre_nan_dirichlet_rhs = 0;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the

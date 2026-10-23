@@ -303,7 +303,8 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
     if (m_backend == Backend::hypre) {
         nrows_max = std::min(nrows_max, Long(std::numeric_limits<IJInt>::max()));
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Long(m_nglobal) <= nrows_max,
+    // m_nglobal has already been narrowed to BigInt: check the Long total
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_rank_offset.back() <= nrows_max,
         "HypreMLNodeLap: too many unknowns for this hypre build's integer type; "
         "build hypre with --enable-bigint");
 
@@ -699,6 +700,34 @@ void HypreMLNodeLap::buildMatrix ()
                 return false;
             };
 
+            // Dirichlet domain nodes (fine index, weight) of a corner node: the
+            // node itself, or the coarse Dirichlet nodes that a hanging node
+            // interpolates from (qmap keeps only the unknowns), as fine nodes
+            // at the same place, inside this box since fine boxes are
+            // coarsenable
+            auto dmap_nodes = [=] AMREX_GPU_DEVICE (IntVect const& n, IntVect* dn, Real* dw) -> int
+            {
+                if (on_dirichlet(n)) {
+                    dn[0] = n;
+                    dw[0] = Real(1.0);
+                    return 1;
+                }
+                if (rr == 1 || gid(n) >= 0 || !dm(n)) { return 0; }
+                IntVect cn[nnodes_cell];
+                Real cw[nnodes_cell];
+                const int m = interp_stencil(n, rr, cn, cw);
+                int nd = 0;
+                for (int k = 0; k < m; ++k) {
+                    const IntVect fn = cn[k]*rr;
+                    if (cgid(cn[k]) < 0 && on_dirichlet(fn)) {
+                        dn[nd] = fn;
+                        dw[nd] = cw[k];
+                        ++nd;
+                    }
+                }
+                return nd;
+            };
+
             // Composite unknowns (id, weight) of a corner node
             auto qmap = [=] AMREX_GPU_DEVICE (IntVect const& n, Long* g, Real* w,
                                               bool scaled) -> int
@@ -795,9 +824,10 @@ void HypreMLNodeLap::buildMatrix ()
             // sync: the 'continue's below free count/offset
             Gpu::streamSynchronize();
 
-            // Couplings of the unknowns to Dirichlet domain nodes, whose values
-            // (taken from the initial guess at each solve) move to the
-            // right-hand side.  Unscaled; loadRHS scales the right-hand side.
+            // Couplings of the unknowns to Dirichlet domain nodes, directly or
+            // through the interpolation of hanging nodes, whose values (taken
+            // from the initial guess at each solve) move to the right-hand
+            // side.  Unscaled; loadRHS scales the right-hand side.
             bool touches_dirichlet = false;
             {
                 Box const ndbx = mfi.validbox();
@@ -817,13 +847,12 @@ void HypreMLNodeLap::buildMatrix ()
                 for (int a = 0; a < nnodes_cell; ++a) {
                     IntVect n = cell;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) { n[d] += (a >> d) & 1; }
-                    if (on_dirichlet(n)) {
-                        ++nd;
-                    } else {
-                        Long g[nnodes_cell];
-                        Real w[nnodes_cell];
-                        nu += qmap(n, g, w, false);
-                    }
+                    IntVect dn[nnodes_cell];
+                    Real dw[nnodes_cell];
+                    nd += dmap_nodes(n, dn, dw);
+                    Long g[nnodes_cell];
+                    Real w[nnodes_cell];
+                    nu += qmap(n, g, w, false);
                 }
                 pcount[idx] = Long(nd)*nu;
             });
@@ -852,19 +881,23 @@ void HypreMLNodeLap::buildMatrix ()
                 for (int b = 0; b < nnodes_cell; ++b) {
                     IntVect nb = cell;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) { nb[d] += (b >> d) & 1; }
-                    if (!on_dirichlet(nb)) { continue; }
+                    IntVect dn[nnodes_cell];
+                    Real dw[nnodes_cell];
+                    const int nd = dmap_nodes(nb, dn, dw);
+                    if (nd == 0) { continue; }
                     for (int a = 0; a < nnodes_cell; ++a) {
                         IntVect na = cell;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d) { na[d] += (a >> d) & 1; }
-                        if (on_dirichlet(na)) { continue; }
                         Long g[nnodes_cell];
                         Real w[nnodes_cell];
                         const int nq = qmap(na, g, w, false);
                         for (int q = 0; q < nq; ++q) {
-                            pbr[e] = g[q];
-                            pbc[e] = (g[q] == pin) ? Real(0.0) : w[q]*K[a][b];
-                            pbn[e] = nb;
-                            ++e;
+                            for (int p = 0; p < nd; ++p) {
+                                pbr[e] = g[q];
+                                pbc[e] = (g[q] == pin) ? Real(0.0) : w[q]*K[a][b]*dw[p];
+                                pbn[e] = dn[p];
+                                ++e;
+                            }
                         }
                     }
                 }
@@ -877,6 +910,7 @@ void HypreMLNodeLap::buildMatrix ()
             Gpu::copyAsync(Gpu::deviceToHost, bc_node.begin(), bc_node.end(), h_node.begin());
             Gpu::streamSynchronize();
             for (Long n = 0; n < nbc; ++n) {
+                AMREX_ALWAYS_ASSERT(mfi.validbox().contains(h_node[n]));
                 if (h_coef[n] != Real(0.0)) {
                     m_dbc.push_back(DirichletCoupling{.row = h_row[n], .coef = h_coef[n], .lev = lev,
                                                       .li = mfi.LocalIndex(), .node = h_node[n]});
@@ -1170,14 +1204,13 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         }
     }
 
-    // BoomerAMG can report convergence with non-finite data
-    for (auto const* rhs : a_rhs) {
-        if (rhs->contains_nan(0, 1, 0) || rhs->contains_inf(0, 1, 0)) {
-            fail("HypreMLNodeLap: right-hand side is not finite");
-        }
-    }
-
     loadRHS(a_rhs, a_sol);
+    // BoomerAMG can report convergence with non-finite data.  Only the
+    // assembled right-hand side counts (MLMG allows NaNs at Dirichlet nodes);
+    // it includes the Dirichlet values, and m_bnorm is reduced over m_comm.
+    if (!std::isfinite(m_bnorm)) {
+        fail("HypreMLNodeLap: right-hand side or Dirichlet values are not finite");
+    }
     const Long nrows = m_iupper - m_ilower + 1;
     const int dump_k = (m_dump_max > 0) ? composite::next_dump_index(m_dump_prefix, m_dump_max) : -1;
     if (dump_k >= 0) { dumpSystem(dump_k, false); }

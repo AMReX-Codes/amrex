@@ -198,6 +198,14 @@ jobs:
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=algmg
         # singular: the manufactured right-hand side is consistent only to O(h^2)
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre periodic=1 mlhypre_max_diff=1.e-5
+        # fine level on a Dirichlet face: u = 1 must be reproduced exactly
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                fine_at_boundary=1 const_solution=1 mlhypre_max_diff=1.e-10 do_plots=0
+            # NaN rhs at Dirichlet nodes, which the solve does not use
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_nan_dirichlet_rhs=1 do_plots=0
+        done
         # sub-communicators, and failures that must throw (NaN rhs or initial guess)
         for b in hypre algmg; do
             mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b split_comm=1
