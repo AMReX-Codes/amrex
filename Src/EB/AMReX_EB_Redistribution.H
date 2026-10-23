@@ -253,7 +253,11 @@ namespace amrex {
                         amrex::Geometry const& geom,
                         amrex::Real target_volfrac);
 
-    void MakeITracker ( amrex::Box const& bx,
+    /**
+     * \brief Build the SRD tracker and active-cell list, and initialize helper arrays.
+     * \return The number of active cells written to \p active_cells.
+     */
+    int MakeITracker ( amrex::Box const& bx,
                         AMREX_D_DECL(amrex::Array4<amrex::Real const> const& apx,
                                      amrex::Array4<amrex::Real const> const& apy,
                                      amrex::Array4<amrex::Real const> const& apz),
@@ -265,7 +269,6 @@ namespace amrex {
                         amrex::Array4<amrex::Real> const& alpha,
                         amrex::Array4<amrex::Real> const& cent_hat,
                         amrex::Dim3* active_cells,
-                        int* active_count,
                         amrex::Geometry const& geom,
                         amrex::Real target_volfrac);
 

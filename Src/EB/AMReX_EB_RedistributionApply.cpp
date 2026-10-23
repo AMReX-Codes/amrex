@@ -170,22 +170,35 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                 });
         }
 
-        amrex::ParallelFor(Box(scratch), ncomp,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
-                scratch(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n) / scale;
-            }
-        );
+        Box const scratch_box(scratch);
+
+        if (srd_update_scale) {
+            amrex::ParallelFor(scratch_box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    const Real inv_scale = Real(1.0) / srd_update_scale(i,j,k);
+                    const Real scaled_dt = dt * inv_scale;
+
+                    for (int n = 0; n < ncomp; ++n) {
+                        scratch(i,j,k,n) = U_in(i,j,k,n)
+                            + scaled_dt * dUdt_in(i,j,k,n);
+                    }
+                });
+        } else {
+            amrex::ParallelFor(scratch_box, ncomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    scratch(i,j,k,n) = U_in(i,j,k,n)
+                        + dt * dUdt_in(i,j,k,n);
+                });
+        }
 
         Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
         Dim3* const active_cells = active_cells_v.data();
-        Gpu::DeviceScalar<int> active_count_v(0);
-        MakeITracker(
+        int const num_active_cells = MakeITracker(
             bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
-            nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
-            lev_geom, target_volfrac);
-        int const num_active_cells = active_count_v.dataValue();
+            nrs, alpha, cent_hat, active_cells, lev_geom,
+            target_volfrac);
 
         MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
                              nbhd_vol, cent_hat, active_cells, num_active_cells,
@@ -199,31 +212,40 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                             as_fine, dm_as_fine, levmsk,
                             level_mask_not_covered, fac_for_deltaR, srd_max_order);
 
-        amrex::ParallelFor(bx, ncomp,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                // Only update the values which actually changed -- this makes
-                // the results insensitive to tiling -- otherwise cells that aren't
-                // changed but are in a tile on which StateRedistribute gets called
-                // will have precision-level changes due to adding/subtracting U_in
-                // and multiplying/dividing by dt.   Here we test on whether (i,j,k)
-                // has at least one neighbor and/or whether (i,j,k) is in the
-                // neighborhood of another cell -- if either of those is true the
-                // value may have changed
-
-                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1)
+        // Copy unaffected cells directly to avoid roundoff that depends on tiling.
+        const Real inv_dt = Real(1.0) / dt;
+        if (srd_update_scale) {
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                   const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
-
-                   dUdt_out(i,j,k,n) = scale * (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
-
-                }
-                else
+                    if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1) {
+                        const Real scale = srd_update_scale(i,j,k);
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = scale *
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) * inv_dt;
+                        }
+                    } else {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+                        }
+                    }
+                });
+        } else {
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                   dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
-                }
-            }
-        );
+                    if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1) {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) =
+                                (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) * inv_dt;
+                        }
+                    } else {
+                        for (int n = 0; n < ncomp; ++n) {
+                            dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+                        }
+                    }
+                });
+        }
 
     } else if (redistribution_type == "NoRedist") {
         amrex::ParallelFor(bx, ncomp,
@@ -313,12 +335,10 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
 
     Gpu::AsyncVector<Dim3> active_cells_v(bxg4.numPts());
     Dim3* const active_cells = active_cells_v.data();
-    Gpu::DeviceScalar<int> active_count_v(0);
-    MakeITracker(
+    int const num_active_cells = MakeITracker(
         bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, flag, ccc,
-        nrs, alpha, cent_hat, active_cells, active_count_v.dataPtr(),
-        lev_geom, target_volfrac);
-    int const num_active_cells = active_count_v.dataValue();
+        nrs, alpha, cent_hat, active_cells, lev_geom,
+        target_volfrac);
 
     MakeStateRedistUtils(bx, flag, vfrac, ccc, itr_const, nrs, alpha,
                          nbhd_vol, cent_hat, active_cells, num_active_cells,
