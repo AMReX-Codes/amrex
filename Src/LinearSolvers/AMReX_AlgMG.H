@@ -793,13 +793,9 @@ void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T r
     bool const maxnorm = (m_norm_type == NormType::max);
     T krylov_rnorm = T(0);
 
-    // Converge on the absolute target, as the V-cycle iteration. The Krylov
-    // solvers test their recurrence residual; when they stop, the true
-    // residual is checked and the solve restarts if it is not there yet.
-    // BiCGStab and PCG test in the selected norm. GMRES only has the 2-norm:
-    // with the max-norm it runs one restart cycle at a time toward the
-    // 2-norm target implied by the current true residual (max-norm target
-    // times |r|_2/|r|_inf), so it cannot chase an unreachable target.
+    // Restart when the recurrence residual converges before the true one.
+    // GMRES only has the 2-norm: with the max-norm it runs one cycle at a
+    // time toward the 2-norm target implied by the current true residual.
     auto run = [&] (auto& s, bool exact, int chunk) {
         s.setVerbose(verbose);
         s.setInitialGuessNonzero(true);
@@ -816,7 +812,7 @@ void AlgMG<T>::solve_krylov (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs, T r
             krylov_rnorm = s.getResidualNorm();
             compute_rnorm(*m_mat, a_sol, a_rhs, m_res[0]);
             if (m_fixediter > 0 || m_rnorm <= res_target || m_niters >= niters ||
-                s.getNumIters() == 0 || amrex::isnan(m_rnorm)) {
+                s.getNumIters() == 0 || !amrex::isfinite(m_rnorm)) {
                 break;
             }
             // Status 0: the recurrence residual converged before the true
