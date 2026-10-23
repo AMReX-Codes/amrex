@@ -399,7 +399,7 @@ public:
      */
     void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
     /**
-     * \brief Absolute tolerance for the bottom solver.
+     * \brief Absolute tolerance for the bottom solver (not used by AlgMG and PETSc).
      *
      * \param t Absolute tolerance.
      */
@@ -2631,7 +2631,7 @@ MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
         s.applyVcycle(x, b);
     } else {
         try {
-            s.solve(x, b, m_algmg_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
+            s.solve(x, b, m_algmg_reltol, RT(0), bottom_maxiter);
         } catch (std::runtime_error const& e) {
             throw error(e.what());
         }
