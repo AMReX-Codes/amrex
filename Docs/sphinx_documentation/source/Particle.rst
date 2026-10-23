@@ -945,6 +945,11 @@ problems with particle I/O, you could try varying some or all of these parameter
 |                   | I/O speeds on large problems.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
+Pre/post particle output (``particles.use_prepost=1``) supports pure runtime
+SoA containers. Call ``CheckpointPre`` before writing the checkpoint and
+``CheckpointPost`` afterwards. Counts include valid particles only, including
+when the particle data reside on a GPU.
+
 The following runtime parameters affect the behavior of virtual particles in Nyx.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
