@@ -198,8 +198,6 @@ construct_itracker_cell (int i, int j, int k,
 
         n1 = first_idx;
 
-        ioff = imap[first_idx];
-
         select_by_vfrac = true;
     }
 
@@ -210,8 +208,8 @@ construct_itracker_cell (int i, int j, int k,
 #if 0
     if (debug_verbose > 0)
         amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vf <<
-                          " trying to merge with " << IntVect(i+ioff,j+joff) <<
-                          " with volfrac " << vfrac(i+ioff,j+joff,k) <<
+                          " trying to merge with " << IntVect(i+imap[n1],j+jmap[n1]) <<
+                          " with volfrac " << vfrac(i+imap[n1],j+jmap[n1],k) <<
                           " to get new sum_vol " <<  sum_vol << '\n';
 #endif
 
