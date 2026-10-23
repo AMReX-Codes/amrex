@@ -399,7 +399,7 @@ public:
      */
     void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
     /**
-     * \brief Absolute tolerance for the bottom solver.
+     * \brief Absolute tolerance for the bottom solver (not used by AlgMG and PETSc).
      *
      * \param t Absolute tolerance.
      */
@@ -760,6 +760,7 @@ private:
     int hybrid_stall_window = 4;
     RT hybrid_stall_rate = RT(0.8);
     RT hybrid_divergence_factor = RT(10.0);
+    RT m_algmg_reltol = RT(0);           //!< AlgMG tolerance of the current iteration
     std::function<void(AlgMG<RT>&)> m_algmg_options;
     std::unique_ptr<MLAlgMG> m_algmg_bottom;
     std::unique_ptr<MLAlgMG> m_algmg_level0;
@@ -1053,6 +1054,16 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
+            // AlgMG solving all of AMR level 0 gets the reduction still needed
+            // (one AMR level; 2-norm for max-norm, MLMG checks its own residual)
+            // or 1e-2 (several; the finer levels' V-cycles rarely do better),
+            // if looser than bottom_reltol.
+            m_algmg_reltol = bottom_reltol;
+            if (!is_nsolve && !do_fixed_number_of_iters && (m_algmg_active || linop.NMGLevels(0) == 1)) {
+                RT const resnorm = (iter == 0) ? resnorm0 : composite_norminf;
+                m_algmg_reltol = std::max(bottom_reltol, (namrlevs == 1) ? res_target/resnorm : RT(1.e-2));
+            }
+
             oneIter(iter);
 
             converged = false;
@@ -2620,7 +2631,7 @@ MLMGT<MF>::algmgSolve (MLAlgMG& s, MF& x, MF const& b)
         s.applyVcycle(x, b);
     } else {
         try {
-            s.solve(x, b, bottom_reltol, std::max(bottom_abstol, RT(0)), bottom_maxiter);
+            s.solve(x, b, m_algmg_reltol, RT(0), bottom_maxiter);
         } catch (std::runtime_error const& e) {
             throw error(e.what());
         }
