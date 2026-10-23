@@ -1025,19 +1025,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
     const RT res_target = std::max(a_tol_abs, std::max(a_tol_rel,std::numeric_limits<RT>::epsilon())*max_norm);
 
-    // When AlgMG solves the whole system, its tolerance is the reduction
-    // still needed, if that is looser than bottom_reltol. A 2-norm
-    // reduction stands in for the max-norm one; MLMG checks its own residual.
-    bool const algmg_adapt = (namrlevs == 1) && !is_nsolve && !do_nsolve && !do_fixed_number_of_iters
-        && (multigrid_type != MultigridType::geometric || linop.NMGLevels(0) == 1);
-    m_algmg_reltol = bottom_reltol;
-    if (algmg_adapt && resnorm0 > RT(0)) {
-        m_algmg_reltol = std::max(bottom_reltol, res_target/resnorm0);
-    } else if (namrlevs > 1 && multigrid_type != MultigridType::geometric) {
-        // The finer levels' V-cycles rarely reduce the residual by more than 1e-2.
-        m_algmg_reltol = std::max(bottom_reltol, RT(1.e-2));
-    }
-
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
@@ -1067,6 +1054,16 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
+            // AlgMG solving all of AMR level 0 gets the reduction still needed
+            // (one AMR level; 2-norm for max-norm, MLMG checks its own residual)
+            // or 1e-2 (several; the finer levels' V-cycles rarely do better),
+            // if looser than bottom_reltol.
+            m_algmg_reltol = bottom_reltol;
+            if (!is_nsolve && !do_fixed_number_of_iters && (m_algmg_active || linop.NMGLevels(0) == 1)) {
+                RT const resnorm = (iter == 0) ? resnorm0 : composite_norminf;
+                m_algmg_reltol = std::max(bottom_reltol, (namrlevs == 1) ? res_target/resnorm : RT(1.e-2));
+            }
+
             oneIter(iter);
 
             converged = false;
@@ -1077,9 +1074,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             if (is_nsolve) { continue; }
 
             RT fine_norminf = ResNormInf(finest_amr_lev);
-            if (algmg_adapt && fine_norminf > RT(0)) {
-                m_algmg_reltol = std::max(bottom_reltol, res_target/fine_norminf);
-            }
             m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
