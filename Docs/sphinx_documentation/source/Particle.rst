@@ -968,3 +968,40 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
    see ``amrex-tutorials/ExampleCodes/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+
+Initializing runtime SoA particles
+---------------------------------
+
+``ParticleContainerRTSoA<>`` supports ``InitFromAsciiFile``, ``InitRandom``, and
+``InitOnePerCell``. Set the container's memory arena with ``SetArena`` and add
+all runtime components before initialization. The first ``AMREX_SPACEDIM`` real
+components hold positions. ID/CPU values are stored separately from user integer
+components.
+
+For random and one-per-cell initialization, ``ParticleInitData`` contains two
+runtime-sized vectors, ``real_array_data`` and ``int_array_data``. Real defaults
+start at the first component after the positions; integer defaults start at
+component zero. Omitted trailing fields are zero. For example, with two user
+real fields and two integer fields::
+
+    amrex::ParticleContainerRTSoA<>::ParticleInitData data;
+    data.real_array_data = {3.25, -6.5};
+    data.int_array_data = {17, -23};
+    pc.InitRandom(1000, 12345, data);
+
+ASCII initialization reads a particle count followed by records containing
+positions and ``extradata`` user real values. Remaining real fields and all
+integer fields are zero. The I/O rank reads batches of up to 4096 source records
+and distributes the particles to their owning ranks. ``Nrep`` replicates records
+with offsets of the domain length divided by the replication count in each
+direction. Each replication count must be positive.
+
+Both random generation modes populate every runtime field and allocate one ID
+per generated particle. In serialized mode the I/O rank generates positions and
+broadcasts them, and each owner allocates IDs for its accepted particles. In
+parallel mode each rank generates its share before redistribution. IDs and
+positions need not match between the two generation modes.
+
+These initializers append to existing particles and preserve the configured
+component names and arena. The initialization data type and behavior of AoS and
+compile-time SoA containers are unchanged.
