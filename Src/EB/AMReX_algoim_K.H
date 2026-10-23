@@ -470,14 +470,20 @@ struct ImplicitIntegral
         }
     }
 
-    // Main calling engine; parameters with underscores are copied
-    // upon entry but modified internally in the ctor
+    // The constructors only copy their arguments. The work is done in
+    // run(), called after construction. nvcc 12.x miscompiles the
+    // original version, in which the constructor passed *this to the
+    // next level and was called back before it had returned.
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept requires (M==1)
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
+    {}
+
+    AMREX_GPU_HOST_DEVICE
+    void run () noexcept requires (M==1)
     {
         // For the one-dimensional base case, evaluate the
         // bottom-level integral.
@@ -489,16 +495,18 @@ struct ImplicitIntegral
         evalIntegrand(GpuArray<Real,N>{}, 1.0);
     }
 
-    // Main calling engine; parameters with underscores are copied
-    // upon entry but modified internally in the ctor
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept requires (M>1)
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
+    {}
+
+    AMREX_GPU_HOST_DEVICE
+    void run () noexcept requires (M>1)
     {
-        // Establish interval bounds for prune() and remaining part of ctor.
+        // Establish interval bounds for prune() and the rest of run().
         for (int dim = 0; dim < N; ++dim)
         {
             if (free[dim])
@@ -571,7 +579,8 @@ struct ImplicitIntegral
         GpuArray<bool,N> new_free = free;
         new_free[e0] = false;
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
-            (*phi, *this, new_free, newPsi, newPsiCount);
+            inner(*phi, *this, new_free, newPsi, newPsiCount);
+        inner.run();
     }
 };
 
@@ -593,7 +602,8 @@ quadGen (EBPlane const& phi) noexcept
     GpuArray<bool,3> free{true,true,true};
     GpuArray<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
-    ImplicitIntegral<3,3,EBPlane,QuadratureRule,false>(phi, q, free, psi, 1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,false> I(phi, q, free, psi, 1);
+    I.run();
     return q;
 }
 
@@ -605,7 +615,8 @@ quadGenSurf (EBPlane const& phi) noexcept
     GpuArray<bool,3> free{true,true,true};
     GpuArray<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
-    ImplicitIntegral<3,3,EBPlane,QuadratureRule,true>(phi, q, free, psi, 1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,true> I(phi, q, free, psi, 1);
+    I.run();
     return q;
 }
 

@@ -261,8 +261,16 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
 
             if (Gpu::inLaunchRegion())
             {
+#if defined(AMREX_USE_CUDA)
+                // Same nvcc bug as in compute_integrals: nvcc 12.x
+                // miscompiles this kernel with the 3D ParallelFor.
+                int ncomp = fg.nComp();
+                amrex::ParallelFor(bx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int) noexcept
+#else
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+#endif
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
