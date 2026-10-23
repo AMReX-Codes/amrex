@@ -418,6 +418,22 @@ public:
     }
 
     /**
+     * \brief Before a composite solve, set the solution at the nodes that
+     * fine AMR level famrlev takes from the coarse level (the coarse/fine
+     * nodes of nodal solvers) to the interpolated coarse solution.  The
+     * solve only adds interpolated corrections there, so the result would
+     * otherwise depend on the initial guess.  The default does nothing.
+     *
+     * \param famrlev  fine AMR level
+     * \param fine_sol solution on fine AMR level
+     * \param crse_sol solution on coarse AMR level, after the average-down
+     */
+    virtual void interpCoarseFineSolution (int famrlev, MF& fine_sol, const MF& crse_sol) const
+    {
+        amrex::ignore_unused(famrlev, fine_sol, crse_sol);
+    }
+
+    /**
      * \brief Average-down data from fine AMR level to coarse AMR level.
      *
      * \param camrlev  coarse AMR level

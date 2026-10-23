@@ -154,6 +154,16 @@ MyTest::solve ()
                     amrex::Abort("HypreMLNodeLap differs from " + rname + " by more than "
                                  "mlhypre_max_diff on level " + std::to_string(ilev));
                 }
+                if (const_solution) { // MLMG must reproduce u = 1 as well
+                    MultiFab::Copy(diff, sol_mlmg[ilev], 0, 0, 1, 0);
+                    diff.plus(Real(-1.0), 0, 1, 0);
+                    const Real mmax = diff.norm0();
+                    amrex::Print() << "Level " << ilev << ": max |MLMG - exact| = " << mmax << "\n";
+                    if (mlhypre_max_diff > Real(0.0) && !(mmax <= mlhypre_max_diff)) {
+                        amrex::Abort("MLMG differs from exact by more than mlhypre_max_diff on level "
+                                     + std::to_string(ilev));
+                    }
+                }
             }
 #else
             amrex::Abort("use_mlhypre requires USE_HYPRE=TRUE");

@@ -212,6 +212,19 @@ public:
                                    IntVect const& nghost) const override;
 
     /**
+     * \brief Set the coarse/fine nodes of fine AMR level \p famrlev (Dirichlet
+     * mask set, not on a Dirichlet domain face) to the interpolated coarse
+     * solution, so that the composite solution does not depend on the
+     * initial guess there.  Skipped with an overset mask.
+     *
+     * \param famrlev  Fine AMR level index.
+     * \param fine_sol Fine solution, modified at the coarse/fine nodes.
+     * \param crse_sol Coarse solution.
+     */
+    void interpCoarseFineSolution (int famrlev, MultiFab& fine_sol,
+                                   const MultiFab& crse_sol) const override;
+
+    /**
      * \brief Average nodal solutions down the AMR hierarchy and synchronize overlaps.
      *
      * \param sol Vector of nodal MultiFabs spanning all AMR levels.

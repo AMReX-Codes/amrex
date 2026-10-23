@@ -70,8 +70,7 @@ private:
     // hanging nodes interpolate from coarse Dirichlet nodes
     int fine_at_boundary = 0;
     // mlhypre: solve for u = 1 (unit Dirichlet values, zero rhs) and compare
-    // with it instead of MLMG, whose composite solve does not reproduce the
-    // constant when a fine level touches a Dirichlet face
+    // with it instead of MLMG
     int const_solution = 0;
     // mlhypre: NaN rhs at the Dirichlet domain nodes, which must not be used
     int mlhypre_nan_dirichlet_rhs = 0;
