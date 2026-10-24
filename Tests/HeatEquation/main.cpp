@@ -101,6 +101,7 @@ void main_main ()
 
     // extract dx from the geometry object
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
@@ -169,10 +170,10 @@ void main_main ()
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 phiNew(i,j,k) = phiOld(i,j,k) + dt *
-                    ( (phiOld(i+1,j,k) - 2.*phiOld(i,j,k) + phiOld(i-1,j,k)) / (dx[0]*dx[0])
-                     +(phiOld(i,j+1,k) - 2.*phiOld(i,j,k) + phiOld(i,j-1,k)) / (dx[1]*dx[1])
+                    ( (phiOld(i+1,j,k) - Real(2.0)*phiOld(i,j,k) + phiOld(i-1,j,k)) * (dxinv[0]*dxinv[0])
+                     +(phiOld(i,j+1,k) - Real(2.0)*phiOld(i,j,k) + phiOld(i,j-1,k)) * (dxinv[1]*dxinv[1])
 #if (AMREX_SPACEDIM == 3)
-                     +(phiOld(i,j,k+1) - 2.*phiOld(i,j,k) + phiOld(i,j,k-1)) / (dx[2]*dx[2])
+                     +(phiOld(i,j,k+1) - Real(2.0)*phiOld(i,j,k) + phiOld(i,j,k-1)) * (dxinv[2]*dxinv[2])
 #endif
                         );
             });
