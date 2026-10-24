@@ -232,7 +232,12 @@ int main (int argc, char** argv)
             std::fprintf(stderr, "rank %d selected GPU %d, only %d visible\n",
                          rank, device, device_count);
             result = 1;
-        } else {
+        }
+
+        // Every rank must agree to enter the collective NCCL setup.
+        check_mpi(MPI_Allreduce(MPI_IN_PLACE, &result, 1, MPI_INT, MPI_MAX, comm),
+                  "MPI_Allreduce(device validation)");
+        if (result == 0) {
             check_cuda(cudaSetDevice(device), "cudaSetDevice");
 
             NCCLCommCache comm_cache;
