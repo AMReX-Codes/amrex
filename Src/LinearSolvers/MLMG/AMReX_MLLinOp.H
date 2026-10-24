@@ -135,6 +135,8 @@ template <typename T> class GMRESMLMGT;
  * Specializations expose domain/AMR metadata, boundary-condition wiring,
  * and hooks for applying the operator and its coarse/fine helpers.
  */
+class HypreMLNodeLap;
+
 template <typename MF>
 class MLLinOpT
 {
@@ -145,6 +147,7 @@ public:
     template <typename T> friend class MLPoissonT;
     template <typename T> friend class MLABecLaplacianT;
     template <typename T> friend class GMRESMLMGT;
+    friend class HypreMLNodeLap;
 
     using MFType = MF;
     using FAB = typename FabDataType<MF>::fab_type;
@@ -412,6 +415,22 @@ public:
     {
         amrex::ignore_unused(famrlev, fine, crse, nghost);
         amrex::Abort("MLLinOpT::interpolationAmr: Must be implemented for composite solves across multiple AMR levels");
+    }
+
+    /**
+     * \brief Before a composite solve, set the solution at the nodes that
+     * fine AMR level famrlev takes from the coarse level (the coarse/fine
+     * nodes of nodal solvers) to the interpolated coarse solution.  The
+     * solve only adds interpolated corrections there, so the result would
+     * otherwise depend on the initial guess.  The default does nothing.
+     *
+     * \param famrlev  fine AMR level
+     * \param fine_sol solution on fine AMR level
+     * \param crse_sol solution on coarse AMR level, after the average-down
+     */
+    virtual void interpCoarseFineSolution (int famrlev, MF& fine_sol, const MF& crse_sol) const
+    {
+        amrex::ignore_unused(famrlev, fine_sol, crse_sol);
     }
 
     /**

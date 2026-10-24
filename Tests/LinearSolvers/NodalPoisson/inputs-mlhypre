@@ -1,0 +1,20 @@
+# Composite (all AMR levels) solve with HypreMLNodeLap, compared with MLMG.
+# hypre_mlnodelap.backend = hypre (FlexGMRES + BoomerAMG below) or algmg.
+max_level = 1
+ref_ratio = 2
+n_cell = 64
+max_grid_size = 32
+
+composite_solve = 1
+use_mlhypre = 1
+mlhypre_max_diff = 1.e-9
+
+verbose = 1
+max_iter = 200
+reltol = 1.e-11
+
+hypre_mlnodelap.backend = hypre
+hypre_mlnodelap.hypre_solver = FlexGMRES
+hypre_mlnodelap.hypre_preconditioner = BoomerAMG
+hypre_mlnodelap.num_krylov = 50
+hypre_mlnodelap.algmg.krylov = pcg
