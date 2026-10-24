@@ -163,23 +163,30 @@ endif ()
 add_library(Flags_FPE INTERFACE)
 add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
-if (NOT AMReX_HIP)
-target_compile_options ( Flags_FPE
-   INTERFACE
-   $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
-   $<${_cxx_gnu}:-ftrapv>
-   $<${_fortran_intel}:-fpe3>
-   $<${_cxx_intel}:-fpe3>
-   $<${_fortran_pgi}:-Ktrap=divz,inv>
-   $<${_cxx_pgi}:>
-   $<${_fortran_cray}:-K trap=fp>
-   $<${_cxx_cray}:-K trap=fp>
-   # Flang has no FPE trapping option.
-   $<${_fortran_llvmflang}:>
-   $<${_cxx_clang}:-ftrapv>
-   $<${_cxx_appleclang}:-ftrapv>	
-   )
-endif()
+if (AMReX_HIP)
+   # Only the host pass gets -ftrapv.
+   target_compile_options ( Flags_FPE
+      INTERFACE
+      $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
+      $<${_cxx_clang}:-Xarch_host -ftrapv>
+      )
+else ()
+   target_compile_options ( Flags_FPE
+      INTERFACE
+      $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
+      $<${_cxx_gnu}:-ftrapv>
+      $<${_fortran_intel}:-fpe3>
+      $<${_cxx_intel}:-fpe3>
+      $<${_fortran_pgi}:-Ktrap=divz,inv>
+      $<${_cxx_pgi}:>
+      $<${_fortran_cray}:-K trap=fp>
+      $<${_cxx_cray}:-K trap=fp>
+      # Flang has no FPE trapping option.
+      $<${_fortran_llvmflang}:>
+      $<${_cxx_clang}:-ftrapv>
+      $<${_cxx_appleclang}:-ftrapv>
+      )
+endif ()
 
 #
 # Keep clang from raising FP exceptions in unused vector lanes, so that
