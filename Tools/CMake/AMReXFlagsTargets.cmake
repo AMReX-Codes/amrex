@@ -164,11 +164,12 @@ add_library(Flags_FPE INTERFACE)
 add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
 if (AMReX_HIP)
-   # Only the host pass gets -ftrapv.
+   # Only the host pass gets -ftrapv. SHELL: keeps -Xarch_host paired
+   # with its flag when CMake de-duplicates options.
    target_compile_options ( Flags_FPE
       INTERFACE
       $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
-      $<${_cxx_clang}:-Xarch_host -ftrapv>
+      "$<${_cxx_clang}:SHELL:-Xarch_host -ftrapv>"
       )
 else ()
    target_compile_options ( Flags_FPE
@@ -200,7 +201,7 @@ if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
       # The AMDGPU device pass does not support the flag.
       target_compile_options ( Flags_FP_EXCEPTIONS
          INTERFACE
-         $<${_cxx_clang}:-Xarch_host -ffp-exception-behavior=maytrap>
+         "$<${_cxx_clang}:SHELL:-Xarch_host -ffp-exception-behavior=maytrap>"
          )
    else ()
       target_compile_options ( Flags_FP_EXCEPTIONS
