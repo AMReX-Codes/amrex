@@ -188,11 +188,21 @@ endif()
 add_library(Flags_FP_EXCEPTIONS INTERFACE)
 add_library(AMReX::Flags_FP_EXCEPTIONS ALIAS Flags_FP_EXCEPTIONS)
 
-target_compile_options ( Flags_FP_EXCEPTIONS
-   INTERFACE
-   $<${_cxx_clang}:-ffp-exception-behavior=maytrap>
-   $<${_cxx_appleclang}:-ffp-exception-behavior=maytrap>
-   )
+if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+   if (AMReX_HIP)
+      # The AMDGPU device pass does not support the flag.
+      target_compile_options ( Flags_FP_EXCEPTIONS
+         INTERFACE
+         $<${_cxx_clang}:-Xarch_host -ffp-exception-behavior=maytrap>
+         )
+   else ()
+      target_compile_options ( Flags_FP_EXCEPTIONS
+         INTERFACE
+         $<${_cxx_clang}:-ffp-exception-behavior=maytrap>
+         $<${_cxx_appleclang}:-ffp-exception-behavior=maytrap>
+         )
+   endif ()
+endif ()
 
 #
 # Unset all the variables defined in this module
