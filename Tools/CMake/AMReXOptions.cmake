@@ -129,6 +129,18 @@ if (NOT AMReX_GPU_BACKEND IN_LIST AMReX_GPU_BACKEND_VALUES)
       " Must be one of ${AMReX_GPU_BACKEND_VALUES}")
 endif ()
 
+option(AMReX_NCCL_DEVICE_API
+       "Build the opt-in NCCL Device API GPU collective test"
+       OFF)
+
+set(AMReX_NCCL_ROOT "" CACHE PATH
+    "Root directory containing the NCCL Device API headers and library")
+
+if (AMReX_NCCL_DEVICE_API AND NOT AMReX_GPU_BACKEND STREQUAL CUDA)
+   message(FATAL_ERROR
+      "AMReX_NCCL_DEVICE_API requires AMReX_GPU_BACKEND=CUDA")
+endif ()
+
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
 
