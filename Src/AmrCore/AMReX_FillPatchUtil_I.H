@@ -102,6 +102,8 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     else if (smf.size() == 2)
     {
         BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+        const Real t0 = stime[0];
+        const Real t1 = stime[1];
         MF raii;
         MF * dmf;
         int destcomp;
@@ -112,16 +114,25 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             dmf = &mf;
             destcomp = dcomp;
             sameba = true;
-        } else {
+        }
+        else if (time == t0 || time == t1 || amrex::almostEqual(t0,t1))
+        {
+            // A single source suffices. Copy it straight into the patch.
+            dmf = smf[(time != t0 && time == t1) ? 1 : 0];
+            destcomp = scomp;
+            sameba = false;
+        }
+        else
+        {
             raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, src_ghost,
-                        MFInfo(), smf[0]->Factory());
+                        MFInfo().SetArena(The_Async_Arena()), smf[0]->Factory());
 
             dmf = &raii;
             destcomp = 0;
             sameba = false;
         }
 
-        if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
+        if ((dmf != smf[0] && dmf != smf[1]) || (sameba && scomp != dcomp))
         {
             IntVect interp_ghost(0);
             if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
@@ -130,19 +141,52 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                     interp_ghost.min(nghost);
                 }
             }
+
+            // Patch case: interpolate only the cells the ParallelCopy below reads,
+            // i.e. the hull of the local and send tags of each source FAB.
+            Vector<Box> hull;
+            if (!sameba) {
+                hull.resize(raii.local_size());
+                if (!mf.empty() && !raii.empty()) {
+                    auto const& cpc = mf.getCPC(nghost, raii, src_ghost, geom.periodicity());
+                    for (auto const& tag : *cpc.m_LocTags) {
+                        Box& h = hull[raii.localindex(tag.srcIndex)];
+                        h = h.ok() ? amrex::minBox(h, tag.sbox) : tag.sbox;
+                    }
+                    for (auto const& kv : *cpc.m_SndTags) {
+                        for (auto const& tag : kv.second) {
+                            Box& h = hull[raii.localindex(tag.srcIndex)];
+                            h = h.ok() ? amrex::minBox(h, tag.sbox) : tag.sbox;
+                        }
+                    }
+                }
+            }
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(interp_ghost);
-                const Real t0 = stime[0];
-                const Real t1 = stime[1];
                 auto const sfab0 = smf[0]->array(mfi);
                 auto const sfab1 = smf[1]->array(mfi);
                 auto       dfab  = dmf->array(mfi);
 
-                if (time == t0)
+                if (!sameba)
+                {
+                    const Box& hbx = hull[mfi.LocalIndex()];
+                    if (hbx.ok()) {
+                        const Box& ibx = bx & hbx;
+                        Real alpha = (t1-time)/(t1-t0);
+                        Real beta = (time-t0)/(t1-t0);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( ibx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
+                                +                     beta*sfab1(i,j,k,n+scomp);
+                        });
+                    }
+                }
+                else if (time == t0)
                 {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
@@ -184,7 +228,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         }
         else
         {
-            mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
+            mf.ParallelCopy(*dmf, destcomp, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
         }
     }
     else {
