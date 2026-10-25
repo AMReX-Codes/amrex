@@ -844,6 +844,52 @@ memory system information from the OS to give us a summary of our memory usage. 
 supported on Windows.
 
 
+Opt-in NCCL Device API tests
+===========================
+
+The experimental NCCL tests require a CUDA/MPI build, NCCL 2.30.4 or newer,
+and a host compiler supporting C++23. Enable them explicitly:
+
+.. code-block:: bash
+
+   cmake -S . -B build -DAMReX_GPU_BACKEND=CUDA -DAMReX_MPI=ON \
+     -DAMReX_ENABLE_TESTS=ON -DAMReX_TEST_TYPE=All \
+     -DAMReX_NCCL_DEVICE_API=ON -DAMReX_NCCL_ROOT=/path/to/nccl
+   cmake --build build -j4 --target Test_GpuParallelReduce_NCCLGIN_3d
+
+Set the CUDA architectures for the allocated GPUs when configuring the build.
+The GIN target compiles the communication kernel as CUDA C++20 and keeps its
+independent numerical reference on the host compiler as C++23.
+
+The targets exercise different communication paths:
+
+* ``Test_GpuParallelReduce_NCCLDevice_3d`` uses load/store-accessible (LSA)
+  memory. All participating devices must belong to one LSA team.
+* ``Test_GpuParallelReduce_NCCLGIN_3d`` exercises GPU-initiated networking
+  across two nodes, with one MPI rank and one allocated GPU on each node.
+  It checks distinct physical GPU UUIDs, exchanges rank-dependent payloads,
+  verifies every result exactly and reuses the windows/signals for two iterations.
+
+Configure ``MPIEXEC_EXECUTABLE``, ``MPIEXEC_NUMPROC_FLAG`` and
+``MPIEXEC_PREFLAGS`` for the MPI launcher of the allocation. For example, a
+Slurm/PMIx configuration can use ``srun``, ``-n`` and
+``--mpi=pmix;--ntasks-per-node=1`` respectively. Then run:
+
+.. code-block:: bash
+
+   ctest --test-dir build -R '^GpuParallelReduce_NCCLGIN_3d$' --output-on-failure
+
+GIN requires a compatible GPU memory-registration and RDMA stack in addition
+to a positive capability query. Unsupported capabilities or failed registrations
+are reported as failures; the test does not switch to a host collective.
+For NCCL 2.30.4, disable NIC fusion for GIN with the job-local setting
+``NCCL_IB_MERGE_NICS=0``. On hosts with multiple fabrics, select matching HCA
+ports and the shared subnet with ``NCCL_IB_HCA`` and ``NCCL_IB_ADDR_RANGE``.
+Do not infer GIN support from a passing MPI, host-NCCL or single-GPU LSA test.
+
+These tests are disabled by default. Their launch requirements are independent
+of AMReX's ordinary MPI/GPU-aware-MPI collective implementation.
+
 .. _sec:build:spack:
 
 Spack
