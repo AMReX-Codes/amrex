@@ -44,5 +44,28 @@ if (AMReX_NCCL_DEVICE_API AND AMReX_MPI AND AMReX_GPU_BACKEND STREQUAL CUDA)
         setup_target_for_cuda_compilation(${_target})
 
         unset(_target)
+
+        set(_gin_target Test_GpuParallelReduce_NCCLGIN_${D}d)
+        add_executable(${_gin_target} nccl_gin.cpp nccl_gin.cu)
+        target_include_directories(${_gin_target} PRIVATE
+            ${AMReX_NCCL_INCLUDE_DIR} ${AMReX_NCCL_DEVICE_INCLUDE_DIR})
+        target_link_libraries(${_gin_target} PRIVATE
+            AMReX::amrex_${D}d ${AMReX_NCCL_LIBRARY})
+        setup_target_for_cuda_compilation(${_gin_target})
+        # Keep the numerical reference on the host compiler, separate from CUDA.
+        set_source_files_properties(nccl_gin.cpp PROPERTIES LANGUAGE CXX)
+        set_target_properties(${_gin_target} PROPERTIES
+            CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED ON
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
+        target_compile_options(${_gin_target} PRIVATE
+            "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-fno-fast-math>")
+        add_test(NAME GpuParallelReduce_NCCLGIN_${D}d
+            COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+                ${MPIEXEC_PREFLAGS} $<TARGET_FILE:${_gin_target}>
+                ${MPIEXEC_POSTFLAGS})
+        set_tests_properties(GpuParallelReduce_NCCLGIN_${D}d PROPERTIES
+            TIMEOUT 120 PROCESSORS 2 LABELS "GPU;NCCL;multinode")
+        unset(_gin_target)
     endforeach()
 endif ()
