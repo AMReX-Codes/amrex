@@ -1,0 +1,5 @@
+n_cell = 8
+
+# Walls this far inside the domain faces; the default is a few ulp of the
+# domain length, within roundoff of a node in single and double precision.
+#offset = 1.e-15

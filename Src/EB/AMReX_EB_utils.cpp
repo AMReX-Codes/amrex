@@ -396,7 +396,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     }
 
                     Real usd = amrex::min(ls_roof,std::abs(min_dist));
-                    if (fab(i,j,k) <= 0._rt) {
+                    if (fab(i,j,k) < 0._rt) {
                         fab(i,j,k) = fluid_sign * usd;
                     } else {
                         fab(i,j,k) = (-fluid_sign) * usd;
@@ -410,7 +410,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
         if (!filled) {
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (fab(i,j,k) <= 0._rt) {
+                if (fab(i,j,k) < 0._rt) {
                     fab(i,j,k) = fluid_sign * ls_roof;
                 } else {
                     fab(i,j,k) = (-fluid_sign) * ls_roof;
