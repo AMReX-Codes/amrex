@@ -10,7 +10,7 @@ Elixir::clear ()
     if (Gpu::inLaunchRegion())
     {
         for (auto const& pa : m_pa) {
-            Gpu::freeAsync(pa.second, pa.first);
+            if (pa.first != nullptr) { Gpu::freeAsync(pa.second, pa.first); }
         }
     }
     else

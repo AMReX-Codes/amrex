@@ -1,6 +1,5 @@
 #include <AMReX_PArena.H>
 #include <AMReX_GpuDevice.H>
-#include <AMReX_GpuElixir.H>
 
 namespace amrex {
 
@@ -89,7 +88,7 @@ PArena::free (void* p)
     } else
 #endif
     {
-        Elixir eli(p, The_Arena());
+        Gpu::freeAsync(The_Arena(), p);
     }
 
 #else

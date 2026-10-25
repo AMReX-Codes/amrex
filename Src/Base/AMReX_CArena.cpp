@@ -456,11 +456,11 @@ CArena::freeUnused_protected ()
     });
     relaxed_sub(m_used, nbytes);
 
-    // deallocate_system can call cudafree which may perform implicit synchronization
-    // of all cuda streams. If a stream has a host callback that calls CArena::free,
-    // which acquires carena_mutex, that would deadlock.
-    // So here carena_mutex needs to be unlocked first.
-    // Note that other threads to allocate/free memory from the CArena in the meantime.
+    // deallocate_system can call cudaFree, which may implicitly synchronize all
+    // streams. Unlock carena_mutex first so that other threads are not blocked
+    // for the duration, and so that an application-supplied stream callback
+    // calling CArena::free cannot deadlock. Note that other threads may
+    // allocate/free memory from the CArena in the meantime.
     if (!to_free.empty()) {
         carena_mutex.unlock();
         for (auto& a : to_free) {

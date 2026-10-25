@@ -756,10 +756,11 @@ can copy the data from device back to host.  It can also be used as
 scratch space on device.
 
 The destructor of :cpp:`AsyncArray` does not release the memory
-immediately. This guarantees the memory allocated in :cpp:`AsyncArray`
-continues to exist after the :cpp:`AsyncArray` object is deleted when
-going out of scope until after all GPU kernels in the stream are
-completed without forcing the code to synchronize. The resulting
+immediately. The memory is held until the next time the GPU stream is
+synchronized, so it continues to exist after the :cpp:`AsyncArray`
+object goes out of scope while GPU kernels already launched in the
+stream may still be using it. In case too much memory is being held,
+the stream is synchronized automatically. The resulting
 :cpp:`AsyncArray` class is "async-safe", meaning it can be safely used
 in asynchronous code regions that contain both CPU work and GPU
 launches, including :cpp:`MFIter` loops.
