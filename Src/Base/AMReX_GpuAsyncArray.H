@@ -14,11 +14,6 @@
 namespace amrex {
 namespace Gpu {
 
-/**
- * \warning AsyncArray assumes the GPU launch-region state stays fixed for its
- * lifetime. Flipping the launch-region flag between construction and
- * destruction prevents the matching free and will leak memory.
- */
 template <typename T>
 requires (std::is_trivially_copyable_v<T>)
 class AsyncArray
@@ -67,17 +62,8 @@ public:
     [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
     void clear ()
     {
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion())
-        {
-            if (d_data != nullptr) { Gpu::freeAsync(The_Arena(), d_data); }
-            if (h_data != nullptr) { Gpu::freeAsync(The_Pinned_Arena(), h_data); }
-        }
-        else
-#endif
-        {
-            The_Pinned_Arena()->free(h_data);
-        }
+        if (d_data != nullptr) { Gpu::freeAsync(The_Arena(), d_data); }
+        if (h_data != nullptr) { Gpu::freeAsync(The_Pinned_Arena(), h_data); }
         d_data = nullptr;
         h_data = nullptr;
     }
