@@ -12,6 +12,7 @@
 /Src/Boundary/          @WeiqunZhang @asalmgren
 /Src/EB/                @WeiqunZhang @asalmgren
 /Src/Extern/            @WeiqunZhang @asalmgren @atmyers
+/Src/Extern/HYPRE/      @WeiqunZhang @drummerdoc
 /Src/F_Interfaces/      @WeiqunZhang
 /Src/FFT/               @WeiqunZhang
 /Src/LinearSolvers/     @WeiqunZhang @asalmgren
