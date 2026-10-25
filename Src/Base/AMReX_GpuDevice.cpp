@@ -13,11 +13,15 @@
 
 #include <iostream>
 #include <algorithm>
+#include <array>
+#include <cstdlib>
 #include <exception>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
@@ -222,6 +226,116 @@ StreamManager::wait_list_size () {
 
 #endif
 
+#ifdef AMREX_USE_GPU
+namespace {
+    // Apply the machine's CPU/GPU affinity to a rank-in-node order.
+    int machine_device_id (int id, int ngpus)
+    {
+        if (Machine::name() == "nersc.perlmutter") {
+            // The CPU/GPU mapping on perlmutter has the reverse order.
+            return ngpus - id - 1;
+        } else if (Machine::name() == "olcf.frontier" && ngpus == 8) {
+            // The CPU/GPU mapping on fronter is documented at
+            // https://docs.olcf.ornl.gov/systems/frontier_user_guide.html
+            constexpr std::array<int,8> gpu_order = {4,5,2,3,6,7,0,1};
+            return gpu_order[id];
+        } else {
+            return id;
+        }
+    }
+}
+#endif
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+namespace {
+    int preinit_device_id = -1;
+    int preinit_local_rank = -1;
+
+    // Is the GPU selected before MPI_Init usable on all ranks? The launcher's
+    // local ranks must be unique within each node.
+    bool use_preinit_device ()
+    {
+        bool r = preinit_device_id >= 0;
+#ifdef AMREX_USE_MPI
+        if (ParallelDescriptor::NProcs() > 1) {
+#if defined(OPEN_MPI)
+            int split_type = OMPI_COMM_TYPE_NODE;
+#else
+            int split_type = MPI_COMM_TYPE_SHARED;
+#endif
+            MPI_Comm node_comm;
+            MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, 0,
+                                MPI_INFO_NULL, &node_comm);
+            int nlocal = 0;
+            MPI_Comm_size(node_comm, &nlocal);
+            std::vector<int> local_ranks(nlocal);
+            MPI_Allgather(&preinit_local_rank, 1, MPI_INT, local_ranks.data(), 1, MPI_INT,
+                          node_comm);
+            MPI_Comm_free(&node_comm);
+            std::sort(local_ranks.begin(), local_ranks.end());
+            r = r && std::adjacent_find(local_ranks.begin(), local_ranks.end())
+                == local_ranks.end();
+            ParallelDescriptor::ReduceBoolAnd(r);
+        }
+#endif
+        return r;
+    }
+}
+#endif
+
+int SelectDeviceBeforeMPIInit ()
+{
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (preinit_device_id >= 0) { return preinit_device_id; }
+
+#ifdef AMREX_USE_MPI
+    int mpi_initialized = 0;
+    MPI_Initialized(&mpi_initialized);
+    if (mpi_initialized) { return -1; }
+#endif
+
+    // MPI-specific variables first, because mpirun inside a Slurm job
+    // may inherit SLURM_LOCALID from the batch script.
+    int local_rank = -1;
+    for (char const* name : {"OMPI_COMM_WORLD_LOCAL_RANK", "MV2_COMM_WORLD_LOCAL_RANK",
+                             "MPI_LOCALRANKID", "PALS_LOCAL_RANKID", "MPT_LRANK",
+                             "FLUX_TASK_LOCAL_ID", "JSM_NAMESPACE_LOCAL_RANK",
+                             "PMI_LOCAL_RANK", "SLURM_LOCALID"})
+    {
+        if (char const* value = std::getenv(name)) {
+            char* end = nullptr;
+            long r = std::strtol(value, &end, 10);
+            if (end != value && *end == '\0' && r >= 0 && r <= std::numeric_limits<int>::max()) {
+                local_rank = static_cast<int>(r);
+            }
+            break;
+        }
+    }
+    if (local_rank < 0) { return -1; }
+
+    int ngpus = 0;
+    if (AMREX_HIP_OR_CUDA(hipGetDeviceCount(&ngpus) != hipSuccess,
+                          cudaGetDeviceCount(&ngpus) != cudaSuccess) || ngpus <= 0)
+    {
+        return -1;
+    }
+
+    Machine::Initialize();
+    int id = machine_device_id(local_rank % ngpus, ngpus);
+    if (AMREX_HIP_OR_CUDA(hipSetDevice(id) != hipSuccess,
+                          cudaSetDevice(id) != cudaSuccess))
+    {
+        return -1;
+    }
+
+    preinit_device_id = id;
+    preinit_local_rank = local_rank;
+    return id;
+#else
+    return -1;
+#endif
+}
+
 void
 Device::Initialize (bool minimal, int a_device_id)
 {
@@ -280,12 +394,28 @@ Device::Initialize (bool minimal, int a_device_id)
     int n_local_procs = 1;
     amrex::ignore_unused(n_local_procs);
 
+    bool use_preinit = false;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (! minimal) {
+        use_preinit = use_preinit_device() && a_device_id < 0;
+        if (! use_preinit && preinit_device_id >= 0 && a_device_id < 0 &&
+            gpu_device_count > 1 && amrex::Verbose() && ParallelDescriptor::IOProcessor())
+        {
+            amrex::Warning("Ignoring the GPU selected before MPI initialization, because the launcher's local ranks are not unique within a node.");
+        }
+    }
+#endif
+
     if (minimal) {
         device_id = 0;
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDevice(&device_id));,
                           AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device_id)); );
     } else if (a_device_id >= 0) {
         device_id = a_device_id;
+    } else if (use_preinit) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        device_id = preinit_device_id;
+#endif
     } else if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
@@ -302,28 +432,28 @@ Device::Initialize (bool minimal, int a_device_id)
         }
     }
 
-    if (gpu_device_count > 1 && ! minimal && a_device_id < 0) {
+    if (gpu_device_count > 1 && ! minimal && a_device_id < 0 && ! use_preinit) {
+        device_id = machine_device_id(device_id, gpu_device_count);
         if (Machine::name() == "nersc.perlmutter") {
-            // The CPU/GPU mapping on perlmutter has the reverse order.
-            device_id = gpu_device_count - device_id - 1;
             if (amrex::Verbose()) {
                 amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmutter according to heuristics.\n";
             }
         } else if (Machine::name() == "olcf.frontier") {
-            // The CPU/GPU mapping on fronter is documented at
-            // https://docs.olcf.ornl.gov/systems/frontier_user_guide.html
-            if (gpu_device_count == 8) {
-                constexpr std::array<int,8> gpu_order = {4,5,2,3,6,7,0,1};
-                device_id = gpu_order[device_id];
-                if (amrex::Verbose()) {
-                    amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Frontier according to heuristics.\n";
-                }
+            if (gpu_device_count == 8 && amrex::Verbose()) {
+                amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Frontier according to heuristics.\n";
             }
         } else {
             if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
                 amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
             }
         }
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        if (preinit_device_id < 0 && ParallelDescriptor::NProcs() > 1 &&
+            amrex::Verbose() && ParallelDescriptor::IOProcessor())
+        {
+            amrex::Warning("The GPU was selected after MPI initialization, which may slow down GPU-aware MPI. If the application initializes MPI, it should call amrex::Gpu::SelectDeviceBeforeMPIInit() before MPI_Init. Otherwise, make only one GPU visible to each MPI rank.");
+        }
+#endif
     }
 
 #if !defined(AMREX_USE_SYCL)
@@ -1394,7 +1524,9 @@ void hypreSynchronize ()
 {
 #ifdef AMREX_USE_GPU
 #if (HYPRE_RELEASE_NUMBER > 23200) || (HYPRE_RELEASE_NUMBER == 23200 && HYPRE_DEVELOP_NUMBER >= 4)
-    hypre_SyncComputeStream();
+    // hypre_SyncComputeStream does nothing unless hypre's compute-stream
+    // sync flag is set (by default only with unified memory)
+    hypre_ForceSyncComputeStream();
 #else
     hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
 #endif

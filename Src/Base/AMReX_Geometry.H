@@ -17,6 +17,8 @@
 #include <omp.h>
 #endif
 
+#include <cmath>
+#include <concepts>
 #include <iosfwd>
 #include <map>
 #include <numbers>
@@ -610,6 +612,20 @@ refine (Geometry const& crse, IntVect const& rr) {
 inline
 Geometry
 refine (Geometry const& crse, int rr) { return refine(crse, IntVect(rr)); }
+
+/**
+ * \ingroup amrex_real_space
+ * \brief Coordinate of node \p i: problo + i*dx.
+ *
+ * The explicit fma makes the result the same in every kernel, so a point
+ * placed at a node by one code path equals the node recomputed by another.
+ */
+template <std::floating_point T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T node_coord (T problo, int i, T dx) noexcept
+{
+    return std::fma(T(i), dx, problo);
+}
 
 /**
  * \ingroup amrex_real_space

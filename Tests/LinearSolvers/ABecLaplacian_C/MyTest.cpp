@@ -12,6 +12,9 @@
 #include <AMReX_HypreMLABecLap.H>
 #endif
 
+#include <limits>
+#include <stdexcept>
+
 using namespace amrex;
 
 namespace {
@@ -54,6 +57,7 @@ MyTest::solve ()
 #ifdef AMREX_USE_HYPRE
     if (use_mlhypre) {
         solveMLHypre();
+        if (mlhypre_test_throw) { return; }
         // Unlike MLMG, the hypre solve does not stop on a NaN.
         for (int ilev = 0; ilev < int(solution.size()); ++ilev) {
             if (solution[ilev].contains_nan(0, solution[ilev].nComp(), 0)) {
@@ -632,9 +636,17 @@ MyTest::readParameters ()
     pp.query("composite_solve", composite_solve);
 
     pp.query("use_mlhypre", use_mlhypre);
+    pp.query("mlhypre_num_setups", mlhypre_num_setups);
+    pp.query("mlhypre_test_throw", mlhypre_test_throw);
+    pp.query("periodic_x", periodic_x);
+    pp.query("max_error", max_error);
     pp.query("use_hypre_ssamg", use_hypre_ssamg);
 
     pp.query("prob_type", prob_type);
+    // after every value it checks has been read
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
+                                                     composite_solve && max_level == 1),
+        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
 
     pp.query("verbose", verbose);
     pp.query("do_plots", do_plots);
@@ -694,7 +706,7 @@ MyTest::initData ()
     }
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(int(periodic_x),0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
@@ -710,6 +722,10 @@ MyTest::initData ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
+        if (periodic_x) { // ... except in x, where it touches the high end
+            domain.setSmall(0, n_cell/2);
+            domain.setBig(0, n_cell-1);
+        }
         domain.refine(ref_ratio);
     }
 
@@ -752,6 +768,32 @@ MyTest::solveMLHypre ()
 
     const auto nlevels = static_cast<int>(geom.size());
 
+    // Composite solve; see mlhypre_test_throw
+    auto composite_solve_or_throw = [&] (HypreMLABecLap& h)
+    {
+        if (mlhypre_test_throw == 0) {
+            h.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+            return;
+        }
+        if (mlhypre_test_throw == 1) {
+            for (auto& mf : rhs) { mf.setVal(std::numeric_limits<Real>::quiet_NaN()); }
+        }
+        h.setThrowException(true);
+        try {
+            h.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+        } catch (std::runtime_error const& e) {
+            amrex::Print() << "mlhypre_test_throw: caught \"" << e.what() << "\"\n";
+            return;
+        }
+        amrex::Abort("mlhypre_test_throw: the solve did not throw");
+    };
+
+    if (mlhypre_test_throw == 2) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(prob_type == 2 && composite_solve,
+            "mlhypre_test_throw = 2 needs prob_type = 2 and composite_solve");
+        for (auto& mf : acoef) { mf.setVal(std::numeric_limits<Real>::quiet_NaN()); }
+    }
+
 #ifdef AMREX_FEATURE_HYPRE_SSAMG
     auto hypre_solver_id = use_hypre_ssamg ? HypreSolverID::SSAMG
                                            : HypreSolverID::BoomerAMG;
@@ -763,18 +805,41 @@ MyTest::solveMLHypre ()
         if (composite_solve) {
             HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
+            // mlhypre_num_setups > 1: repeated setups on the same object, each
+            // solved from zero; reuse is turned on after the first setup (in
+            // place with the hypre backend)
+            for (int isetup = 0; isetup < mlhypre_num_setups; ++isetup) {
+                if (isetup > 0) {
+                    hypre_mlabeclap.setReuseSolverSetup(true);
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                }
 
-            hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet)},
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Dirichlet)},
-                                  GetVecOfConstPtrs(solution));
+                // periodic_x: unit b coefficients, so that the fine ones at
+                // the coarse/fine faces across the periodic boundary are used
+                Vector<Array<MultiFab,AMREX_SPACEDIM>> unit_b;
+                if (periodic_x) {
+                    unit_b.resize(nlevels);
+                    for (int ilev = 0; ilev < nlevels; ++ilev) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            unit_b[ilev][idim].define(
+                                amrex::convert(grids[ilev], IntVect::TheDimensionVector(idim)),
+                                dmap[ilev], 1, 0);
+                            unit_b[ilev][idim].setVal(Real(1.0));
+                        }
+                    }
+                }
+                auto const xbc = periodic_x ? LinOpBCType::Periodic : LinOpBCType::Dirichlet;
+                hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, GetVecOfArrOfConstPtrs(unit_b),
+                                      {AMREX_D_DECL(xbc,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      {AMREX_D_DECL(xbc,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      GetVecOfConstPtrs(solution));
 
-            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
-                                  tol_rel, tol_abs);
+                composite_solve_or_throw(hypre_mlabeclap);
+            }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
@@ -814,20 +879,28 @@ MyTest::solveMLHypre ()
         if (composite_solve) {
             HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
+            // mlhypre_num_setups > 1: repeated setups on the same object, each
+            // solved from zero; reuse is turned on after the first setup (in
+            // place with the hypre backend)
+            for (int isetup = 0; isetup < mlhypre_num_setups; ++isetup) {
+                if (isetup > 0) {
+                    hypre_mlabeclap.setReuseSolverSetup(true);
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                }
 
-            hypre_mlabeclap.setup(ascalar, bscalar,
-                                  GetVecOfConstPtrs(acoef),
-                                  GetVecOfArrOfConstPtrs(face_bcoef),
-                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                                LinOpBCType::Neumann,
-                                                LinOpBCType::Neumann)},
-                                  {AMREX_D_DECL(LinOpBCType::Neumann,
-                                                LinOpBCType::Dirichlet,
-                                                LinOpBCType::Neumann)},
-                                  GetVecOfConstPtrs(solution));
+                hypre_mlabeclap.setup(ascalar, bscalar,
+                                      GetVecOfConstPtrs(acoef),
+                                      GetVecOfArrOfConstPtrs(face_bcoef),
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann,
+                                                    LinOpBCType::Neumann)},
+                                      {AMREX_D_DECL(LinOpBCType::Neumann,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann)},
+                                      GetVecOfConstPtrs(solution));
 
-            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
-                                  tol_rel, tol_abs);
+                composite_solve_or_throw(hypre_mlabeclap);
+            }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);

@@ -404,6 +404,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::error_handler = a_errhandler;
     }
 
+#ifdef AMREX_USE_MPI
+    // MPI_Init may set up GPU communication on the current GPU.
+    if (! initialization_by_init_minimal && a_device_id < 0) {
+        Gpu::SelectDeviceBeforeMPIInit();
+    }
+#endif
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     prev_out_precision = system::osout->precision(10);

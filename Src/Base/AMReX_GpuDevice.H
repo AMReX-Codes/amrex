@@ -284,6 +284,22 @@ private:
 #endif
 };
 
+/**
+ * \brief Select this process's GPU before MPI is initialized.
+ *
+ * GPU-aware MPI may bind to the current GPU in \c MPI_Init. \c amrex::Initialize
+ * calls this function when it initializes MPI. An application that initializes
+ * MPI itself should call it before \c MPI_Init; \c amrex::Initialize then uses
+ * the selected GPU.
+ *
+ * The GPU is chosen from the node-local rank set by the job launcher (e.g.,
+ * \c SLURM_LOCALID). This function does nothing in CPU and SYCL builds, after
+ * MPI is initialized, or if the local rank is unknown.
+ *
+ * \return The selected GPU, or -1 if none was selected.
+ */
+int SelectDeviceBeforeMPIInit ();
+
 // Put these in amrex::Gpu
 
 #if defined(AMREX_USE_GPU)

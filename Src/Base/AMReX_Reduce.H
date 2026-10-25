@@ -1,6 +1,7 @@
 #ifndef AMREX_REDUCE_H_
 #define AMREX_REDUCE_H_
 #include <AMReX_Config.H>
+#include <AMReX.H>
 
 #include <AMReX_Concepts.H>
 #include <AMReX_Gpu.H>
@@ -14,6 +15,7 @@
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <utility>
 
 namespace amrex {
 
@@ -205,6 +207,20 @@ bool AnyOf (BoxND<dim> const& box, P const& pred);
 
 /// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
+
+// CPU reductions keep nacc partial accumulators so that the inner loop
+// vectorizes.
+inline constexpr int nacc = 8;
+
+// Split a 1D range into chunks of a multiple of nacc, enough for all threads.
+template <std::integral N>
+std::pair<N,N> chunks_1d (N n)
+{
+    auto const nthreads = OpenMP::get_max_threads();
+    N const chunk = std::max(static_cast<N>(nacc), static_cast<N>((n / (4*nthreads) / nacc) * nacc));
+    N const nchunks = n / chunk + ((n % chunk != 0) ? 1 : 0);
+    return {chunk, nchunks};
+}
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
@@ -1054,7 +1070,7 @@ bool AnyOf (N n, T const* v, P const& pred)
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
-        gh.sharedBarrier();
+        gh.syncThreads();
 
         if (!(*has_any))
         {
@@ -1113,7 +1129,7 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
-        gh.sharedBarrier();
+        gh.syncThreads();
 
         if (!(*has_any))
         {
@@ -1249,11 +1265,28 @@ private:
     static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
     {
         using ReduceTuple = typename D::Type;
-        For(box,
-            [&] (IntVectND<dim> iv) {
-                auto pr = Reduce::detail::call_f_intvect(f, iv);
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
-            });
+        ReduceTuple acc[nacc];
+        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
+        int const ilo = box.smallEnd(0);
+        int const ihi = box.bigEnd(0);
+        BoxND<dim> rows = box;
+        rows.setBig(0, ilo);
+        For(rows, [&] (IntVectND<dim> iv) {
+            int i = ilo;
+            for (; i + nacc - 1 <= ihi; i += nacc) {
+                for (int l = 0; l < nacc; ++l) {
+                    iv[0] = i + l;
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
+                        (acc[l], Reduce::detail::call_f_intvect(f, iv));
+                }
+            }
+            for (; i <= ihi; ++i) {
+                iv[0] = i;
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
+                    (acc[0], Reduce::detail::call_f_intvect(f, iv));
+            }
+        });
+        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, a); }
     }
 
     template <typename D, typename F, int dim>
@@ -1267,6 +1300,8 @@ private:
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
     }
 
+    static constexpr int nacc = Reduce::detail::nacc;
+
 public:
 
     template <FabArrayType MF, typename D, typename F>
@@ -1275,7 +1310,7 @@ public:
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!system::regtest_reduction)
 #endif
         {
             ReduceTuple rr;
@@ -1285,11 +1320,23 @@ public:
                 const int li = mfi.LocalIndex();
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
+                // Partial accumulators break the dependency chain so that the
+                // i loop can vectorize.
+                ReduceTuple acc[nacc];
+                for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k));
-                }}}
+                    int i = lo.x;
+                    for (; i + nacc - 1 <= hi.x; i += nacc) {
+                        for (int l = 0; l < nacc; ++l) {
+                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(li,i+l,j,k));
+                        }
+                    }
+                    for (; i <= hi.x; ++i) {
+                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(li,i,j,k));
+                    }
+                }}
+                for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
             }
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
                 reduce_data.reference(OpenMP::get_thread_num()), rr);
@@ -1302,7 +1349,7 @@ public:
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!system::regtest_reduction)
 #endif
         {
             ReduceTuple rr;
@@ -1312,12 +1359,22 @@ public:
                 const int li = mfi.LocalIndex();
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
+                ReduceTuple acc[nacc];
+                for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
                 for (int n = 0; n < ncomp; ++n) {
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k,n));
-                }}}}
+                    int i = lo.x;
+                    for (; i + nacc - 1 <= hi.x; i += nacc) {
+                        for (int l = 0; l < nacc; ++l) {
+                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(li,i+l,j,k,n));
+                        }
+                    }
+                    for (; i <= hi.x; ++i) {
+                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(li,i,j,k,n));
+                    }
+                }}}
+                for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
             }
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
                 reduce_data.reference(OpenMP::get_thread_num()), rr);
@@ -1339,28 +1396,48 @@ public:
     void eval (BoxND<dim> const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple rr;
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        For(box, ncomp,
-            [&] (IntVectND<dim> iv, int n) {
-                auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, pr);
-            });
-        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
-             reduce_data.reference(OpenMP::get_thread_num()), rr);
+        ReduceTuple acc[nacc];
+        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
+        int const ilo = box.smallEnd(0);
+        int const ihi = box.bigEnd(0);
+        BoxND<dim> rows = box;
+        rows.setBig(0, ilo);
+        For(rows, ncomp, [&] (IntVectND<dim> iv, int n) {
+            int i = ilo;
+            for (; i + nacc - 1 <= ihi; i += nacc) {
+                for (int l = 0; l < nacc; ++l) {
+                    iv[0] = i + l;
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
+                        (acc[l], Reduce::detail::call_f_intvect_n(f, iv, n));
+                }
+            }
+            for (; i <= ihi; ++i) {
+                iv[0] = i;
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
+                    (acc[0], Reduce::detail::call_f_intvect_n(f, iv, n));
+            }
+        });
+        auto& rr = reduce_data.reference(OpenMP::get_thread_num());
+        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
     }
 
     template <std::integral N, typename D, typename F>
     void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple rr;
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        for (N i = 0; i < n; ++i) {
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i));
+        ReduceTuple acc[nacc];
+        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
+        N i = 0;
+        for (; i + (nacc-1) < n; i += nacc) {
+            for (int l = 0; l < nacc; ++l) {
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(static_cast<N>(i+l)));
+            }
         }
-        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
-             reduce_data.reference(OpenMP::get_thread_num()), rr);
+        for (; i < n; ++i) {
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(i));
+        }
+        auto& rr = reduce_data.reference(OpenMP::get_thread_num());
+        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
     }
 
     template <typename D>
@@ -1391,12 +1468,24 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
+    using Reduce::detail::nacc;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:r)
 #endif
-    for (N i = 0; i < n; ++i) {
-        r += f(i);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
+        T acc[nacc] = {};
+        N i = ib;
+        for (; i + (nacc-1) < ie; i += nacc) {
+            for (int l = 0; l < nacc; ++l) { acc[l] += f(static_cast<N>(i+l)); }
+        }
+        for (; i < ie; ++i) { acc[0] += f(i); }
+        for (T const& a : acc) { r += a; }
     }
     return r;
 }
@@ -1411,12 +1500,25 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
+    using Reduce::detail::nacc;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r)
 #endif
-    for (N i = 0; i < n; ++i) {
-        r = std::min(r,f(i));
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
+        T acc[nacc];
+        for (T& a : acc) { a = init_val; }
+        N i = ib;
+        for (; i + (nacc-1) < ie; i += nacc) {
+            for (int l = 0; l < nacc; ++l) { acc[l] = std::min(acc[l], f(static_cast<N>(i+l))); }
+        }
+        for (; i < ie; ++i) { acc[0] = std::min(acc[0], f(i)); }
+        for (T const& a : acc) { r = std::min(r, a); }
     }
     return r;
 }
@@ -1431,12 +1533,25 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
+    using Reduce::detail::nacc;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r = init_val;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(max:r)
 #endif
-    for (N i = 0; i < n; ++i) {
-        r = std::max(r,f(i));
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
+        T acc[nacc];
+        for (T& a : acc) { a = init_val; }
+        N i = ib;
+        for (; i + (nacc-1) < ie; i += nacc) {
+            for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(static_cast<N>(i+l))); }
+        }
+        for (; i < ie; ++i) { acc[0] = std::max(acc[0], f(i)); }
+        for (T const& a : acc) { r = std::max(r, a); }
     }
     return r;
 }
@@ -1451,15 +1566,36 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
+    using Reduce::detail::nacc;
+    auto const cn = Reduce::detail::chunks_1d(n);
+    N const chunk = cn.first;
+    N const nchunks = cn.second;
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r_min) reduction(max:r_max)
 #endif
-    for (N i = 0; i < n; ++i) {
-        T tmp = f(i);
-        r_min = std::min(r_min,tmp);
-        r_max = std::max(r_max,tmp);
+    for (N ic = 0; ic < nchunks; ++ic) {
+        N const ib = ic*chunk;
+        N const ie = (n - ib < chunk) ? n : ib + chunk;
+        T amin[nacc], amax[nacc];
+        for (T& a : amin) { a = std::numeric_limits<T>::max(); }
+        for (T& a : amax) { a = std::numeric_limits<T>::lowest(); }
+        N i = ib;
+        for (; i + (nacc-1) < ie; i += nacc) {
+            for (int l = 0; l < nacc; ++l) {
+                T tmp = f(static_cast<N>(i+l));
+                amin[l] = std::min(amin[l], tmp);
+                amax[l] = std::max(amax[l], tmp);
+            }
+        }
+        for (; i < ie; ++i) {
+            T tmp = f(i);
+            amin[0] = std::min(amin[0], tmp);
+            amax[0] = std::max(amax[0], tmp);
+        }
+        for (T const& a : amin) { r_min = std::min(r_min, a); }
+        for (T const& a : amax) { r_max = std::max(r_max, a); }
     }
     return std::make_pair(r_min,r_max);
 }

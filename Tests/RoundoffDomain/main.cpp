@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 #include <random>
@@ -16,7 +17,9 @@ int main(int argc, char* argv[])
         seed = dist(rd);
         amrex::ResetRandomSeed(seed);
     }
-    for (int icell = 0; icell < 10000; ++icell)
+    int ndomains = 10000;
+    ParmParse().query("ndomains", ndomains);
+    for (int icell = 0; icell < ndomains; ++icell)
     {
         int ncells = int(amrex::Random_int(102400)) + 4;
         Box domain(IntVect(0),IntVect(ncells-1));

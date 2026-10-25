@@ -55,6 +55,7 @@ public:
     template <typename U> friend class OpenBCSolver;
     template <typename U> friend class Poisson;
     template <typename U> friend class PoissonHybrid;
+    template <typename U> friend class CrossProj;
 
     /**
      * \brief Constructor

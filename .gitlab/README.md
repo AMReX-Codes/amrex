@@ -24,7 +24,14 @@ directory. To change the configuration file location, select `Settings ->
 CI/CD -> General pipelines` and update `CI/CD configuration file`.
 
 CI/CD jobs triggered by push require no special setup. They can also be
-disabled.
+disabled. The `workflow: rules:` section of `.gitlab/hpsf-gitlab-ci.yml`
+skips push pipelines on `dependabot/*` branches and otherwise runs them
+only when the push changes source, tests, build tools or the GitLab CI
+config itself. On `development` the comparison is against the previous
+commit; on any other branch it is against `development`, because GitLab
+treats `changes` as always true for a newly created branch. Docs-only
+changes mirrored from GitHub therefore do not occupy the GPU runners. The
+nightly scheduled pipeline still covers everything.
 
 For GitHub PR triggered jobs, we choose not to run automatically. Instead
 they need to be triggered by a `/run-hpsf-gitlab-ci` comment from authorized

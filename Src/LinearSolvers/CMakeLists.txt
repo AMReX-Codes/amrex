@@ -40,6 +40,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson_${D}D_K.H
        AMReX_AlgMG.H
        AMReX_BiCGStab.H
+       AMReX_CrossProj.H
+       AMReX_CrossProj.cpp
        AMReX_BiCGStab_MV.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H

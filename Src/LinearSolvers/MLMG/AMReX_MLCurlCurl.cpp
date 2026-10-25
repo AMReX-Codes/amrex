@@ -940,6 +940,7 @@ void MLCurlCurl::prepareForSolve ()
 {
     set_curvilinear_domain_bc();
     update_lusolver();
+    m_needs_update = false;
 }
 
 void MLCurlCurl::preparePrecond ()

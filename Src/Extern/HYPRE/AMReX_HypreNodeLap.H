@@ -79,6 +79,10 @@ public:
     void setHypreOptionsNamespace(const std::string& ns)
     { options_namespace = ns; }
 
+    //! Throw std::runtime_error instead of aborting on a hypre error or a
+    //! non-finite residual (see HypreIJIface::setThrowException)
+    void setThrowException (bool t) noexcept { throw_exception = t; }
+
 private:
 
     BoxArray grids;
@@ -90,6 +94,7 @@ private:
     MPI_Comm comm = MPI_COMM_NULL;
     MLNodeLinOp const* linop = nullptr;
     int verbose = 0;
+    bool throw_exception = false;
 
     std::unique_ptr<HypreIJIface> hypre_ij;
 

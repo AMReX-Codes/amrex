@@ -458,7 +458,8 @@ consolidation strategy for multigrid coarsening.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
-application. The application code must catch the exception:
+application. This includes failures of the hypre IJ and AlgMG bottom solvers. The
+application code must catch the exception:
 
 .. highlight:: c++
 
@@ -849,6 +850,63 @@ To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
 reader to the tutorial, `ABecLaplacian`_.
 
+Composite multi-level solves with HypreMLABecLap
+------------------------------------------------
+
+:cpp:`HypreMLABecLap` solves a cell-centered ABecLaplacian on all AMR levels
+at once as a single composite system, rather than as an MLMG bottom solver
+(for example AMReX-Hydro's MAC projection with ``mac_proj.use_mlhypre``).  By
+default it assembles a semi-structured hypre matrix and solves it with
+BoomerAMG.  The following parameters, under the ParmParse prefix given to the
+constructor (default ``hypre_mlabeclap``), select and control the IJ mode, in
+which the composite matrix is assembled on the device into one distributed
+sparse matrix:
+
+- :cpp:`hypre_mlabeclap.hypre_solver`: if given, use the IJ mode and solve with
+  :cpp:`HypreIJIface` configured from the same keys as above (e.g.
+  ``hypre_solver = FlexGMRES``, ``hypre_preconditioner = BoomerAMG``,
+  ``bamg_*``), with the prefix ``hypre_mlabeclap``.
+
+- :cpp:`hypre_mlabeclap.backend`: ``hypre`` (default) or ``algmg``.  With
+  ``algmg`` the assembled IJ system is solved by AMReX's AlgMG
+  (:ref:`sec:linearsolver:algmg`), which implies the IJ mode and does not need
+  ``hypre_solver``.  AlgMG is configured with
+  ``hypre_mlabeclap.algmg.krylov`` (``none``, ``bicgstab``, ``gmres``,
+  ``pcg``; default ``gmres``, since V-cycles alone can stall on composite
+  systems), ``.smoother``, ``.interp_type``, ``.bottom_solver``,
+  ``.strong_threshold``, ``.max_levels``, ``.max_coarse_size``,
+  ``.agg_num_levels``, ``.pmax_elmts``, ``.trunc_factor``, ``.pre_smooth``,
+  ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
+
+- :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: with the hypre backend, a
+  repeated :cpp:`setup` with new coefficients (on the same grids) updates the
+  matrix values in place and keeps the solver setup until
+  :cpp:`resetSolverSetup()`.  It can be turned on before or after the first
+  :cpp:`setup`.  The AlgMG backend sets up a new hierarchy for every matrix.
+
+- In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
+  report the last solve, and with :cpp:`setThrowException(true)` a solve that
+  does not converge, or whose solver fails (a hypre error, a non-finite
+  residual, AlgMG diverging), throws :cpp:`std::runtime_error` instead of
+  aborting.  The absolute tolerance of :cpp:`solve` must be 0.
+
+- :cpp:`hypre_mlabeclap.dump_matrix`: default 0.  Write the systems of the
+  first N solves with the same dump prefix, counted over all
+  :cpp:`HypreMLABecLap` objects of the run, in Matrix Market format for
+  analysis outside AMReX: for solve ``k``, ``<dump_prefix>_<k>_A.mtx``
+  (matrix), ``_b.mtx`` (right-hand side), ``_x.mtx`` (solution) and
+  ``_rows.txt`` (AMR level and cell of each row).
+  :cpp:`hypre_mlabeclap.dump_prefix` defaults to the ParmParse prefix.  Files
+  with more than :cpp:`hypre_mlabeclap.dump_gather_max` values (default
+  ``5e7``) are written one per rank, as ``<file>.<rank>`` (on one rank, always
+  one file).
+
+The number of rows of the composite system must fit in ``HYPRE_Int``, so
+systems with more than about :math:`2^{31}` cells need HYPRE built with
+``--enable-bigint``.  Like the default mode, the IJ mode runs on the
+communicator of the current :cpp:`ParallelContext` frame, which must be the
+same for the construction, :cpp:`setup` and :cpp:`solve`.
+
 Tensor Solve
 ============
 
@@ -1149,6 +1207,41 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                 const Vector<MultiFab const*>& a_rhs,
                  Real a_tol_rel, Real a_tol_abs);
 
+
+.. _sec:linearsolver:crossproj:
+
+Cross-Stencil Projection
+========================
+
+:cpp:`amrex::GMG::CrossProj` computes the same projection as
+:cpp:`FFT::CrossProj` (see section :ref:`sec:FFT:crossproj`), with
+geometric multigrid instead of FFT. It projects a cell-centered velocity
+field onto fields that are divergence free with respect to the
+node-centered divergence computed from the 4 cells around each node. The
+class is available in 2D only, and it currently only supports periodic
+boundary conditions. The domain must start at index 0 and have an even
+number of cells (at least 4) in each direction, and the boxes must have
+even lengths. The first two components of the :cpp:`MultiFab` are the
+velocity. The input and output must have the same :cpp:`BoxArray` and
+:cpp:`DistributionMapping`, and they can be the same :cpp:`MultiFab`. If
+the output has ghost cells, one layer of them is filled. The header is
+:cpp:`AMReX_CrossProj.H`.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);   // periodic in all directions
+    MultiFab vel(...);    // cell-centered, AMREX_SPACEDIM components
+    MultiFab vel_proj(...);
+
+    GMG::CrossProj proj(geom);
+    proj.setRelTol(1.e-10); // optional; see also setAbsTol, setMaxIter, setVerbose
+    proj.solve(vel_proj, vel); // vel_proj and vel can be the same MultiFab
+    int niters = proj.getNumIters();
+
+The object should be cached for reuse, since it sets up the multigrid
+hierarchy on the first solve and whenever the grids change.
 
 .. _sec:linearsolver:gmres:
 

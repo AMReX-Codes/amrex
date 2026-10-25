@@ -3,19 +3,26 @@
  */
 
 #include <AMReX_EB_Redistribution.H>
+#include <AMReX_EB_StateRedistTracker_K.H>
 
 namespace amrex {
+
+using state_redist_detail::imap;
+using state_redist_detail::jmap;
+using state_redist_detail::kmap;
 
 void
 MakeStateRedistUtils ( Box const& bx,
                        Array4<EBCellFlag const> const& flag,
                        Array4<Real const> const& vfrac,
                        Array4<Real const> const& ccent,
-                       Array4<int  const> const& itracker,
-                       Array4<Real      > const& nrs,
+                       Array4<int const  > const& itracker,
+                       Array4<int       > const& nrs,
                        Array4<Real      > const& alpha,
                        Array4<Real      > const& nbhd_vol,
                        Array4<Real      > const& cent_hat,
+                       Dim3 const* active_cells,
+                       int num_active_cells,
                        Geometry const& lev_geom,
                        Real target_vol)
 {
@@ -41,15 +48,6 @@ MakeStateRedistUtils ( Box const& bx,
     //
     // Note the first component of each of these arrays should never be used
     //
-#if (AMREX_SPACEDIM == 2)
-    Array<int,9> imap{0,-1, 0, 1,-1, 1,-1, 0, 1};
-    Array<int,9> jmap{0,-1,-1,-1, 0, 0, 1, 1, 1};
-    Array<int,9> kmap{0, 0, 0, 0, 0, 0, 0, 0, 0};
-#else
-    Array<int,27>    imap{0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    Array<int,27>    jmap{0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    Array<int,27>    kmap{0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-#endif
 
     AMREX_D_TERM(const auto& is_periodic_x = lev_geom.isPeriodic(0);,
                  const auto& is_periodic_y = lev_geom.isPeriodic(1);,
@@ -68,169 +66,105 @@ MakeStateRedistUtils ( Box const& bx,
     if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
 
-    // ****************************************************************************************
-    // DEFINING NRS
-    // ****************************************************************************************
-    //
-    // Need nrs in bxg5 in order to compute alpha in bxg4
-    // nrs captures how many neighborhoods (r,s,t) is in
-    //
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    // Ghost extents propagate nrs through alpha and cent_hat to slopes in bxg1.
+
+    // Scatter neighborhood counts and construct local alpha only for active cells.
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
-        // Everyone is in their own neighborhood at least
-        nrs(i,j,k) = 1.;
-    });
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
+
         for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
         {
-            int r = i+imap[itracker(i,j,k,i_nbor)];
-            int s = j+jmap[itracker(i,j,k,i_nbor)];
-            int t = k+kmap[itracker(i,j,k,i_nbor)];
-            if ( domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
-                 bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))) )
+            int const r = i+imap[itracker(i,j,k,i_nbor)];
+            int const s = j+jmap[itracker(i,j,k,i_nbor)];
+            int const t = k+kmap[itracker(i,j,k,i_nbor)];
+            if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
+                bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))))
             {
-                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.0_rt);
+                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1);
             }
         }
-    });
-    //
 
-    // ****************************************************************************************
-    // DEFINING ALPHA
-    // ****************************************************************************************
-    //
-    // Need alpha in bxg4 in order to define cent_hat in bxg3
-    // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
-    //
-    amrex::ParallelFor(bxg4,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        alpha(i,j,k,0) = 1.;
-        alpha(i,j,k,1) = 1.;
-    });
-    amrex::ParallelFor(bxg4,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        if (!flag(i,j,k).isCovered())
+        if (bxg4.contains(IntVect(AMREX_D_DECL(i,j,k))) &&
+            !flag(i,j,k).isCovered())
         {
             Real vol_of_nbors = 0.;
-
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
-                int r = i+imap[itracker(i,j,k,i_nbor)];
-                int s = j+jmap[itracker(i,j,k,i_nbor)];
-                int t = k+kmap[itracker(i,j,k,i_nbor)];
+                int const r = i+imap[itracker(i,j,k,i_nbor)];
+                int const s = j+jmap[itracker(i,j,k,i_nbor)];
+                int const t = k+kmap[itracker(i,j,k,i_nbor)];
                 vol_of_nbors += vfrac(r,s,t);
             }
-
-            if (itracker(i,j,k,0) > 0) {
-                alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
-            }
-
-        } else {
-            alpha(i,j,k,0) = 0.;
-            alpha(i,j,k,1) = 0.;
+            alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
         }
     });
 
-    //
-    // Must loop over (i,j,k) in bxg5 in order to define alpha(r,s,t) in bxg4
-    //
-    amrex::ParallelFor(bxg5,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    // Accumulate active-cell alpha corrections in neighboring cells.
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
+
         if (!flag(i,j,k).isCovered())
         {
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
                 int r = i+imap[itracker(i,j,k,i_nbor)];
                 int s = j+jmap[itracker(i,j,k,i_nbor)];
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
                 if ( bxg4.contains(IntVect(AMREX_D_DECL(r,s,t))) ) {
-                    amrex::Gpu::Atomic::Add(&alpha(r,s,t,0),-(alpha(i,j,k,1)/nrs(r,s,t)));
+                    amrex::Gpu::Atomic::Add(&alpha(r,s,t,0),
+                                           -(alpha(i,j,k,1) / static_cast<Real>(nrs(r,s,t))));
                 }
             }
         }
     });
 
-    // ****************************************************************************************
-    // DEFINING NBHD_VOL
-    // ****************************************************************************************
-    //
-    // Redefine nbhd_vol in bxg3 in order to use it to define cent_hat in bxg3
-    // (which allows us to compute slopes in bxg1)
-    // To define nbhd_vol in bxg3 we also need alpha(i,j,k,0/1) in bxg3,
-    //    and vfrac and nrs in bxg4
-    //
-    amrex::ParallelFor(bxg3,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    // MakeITracker appends only positive-volume cells in domain_per_grown, so
+    // both the volume and centroid accumulations are unconditional here.
+    amrex::ParallelFor(num_active_cells,
+    [=] AMREX_GPU_DEVICE (int active_index) noexcept
     {
-        if (!flag(i,j,k).isCovered())
-        {
-            nbhd_vol(i,j,k)  = alpha(i,j,k,0) * vfrac(i,j,k);
+        Dim3 const cell = active_cells[active_index];
+        int const i = cell.x;
+        int const j = cell.y;
+        int const k = cell.z;
 
-            // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
+        if (bxg3.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+            Real const cell_vfrac = vfrac(i,j,k);
+            Real local_nbhd_vol = alpha(i,j,k,0) * cell_vfrac;
+
+            Real const self_weight = local_nbhd_vol;
+            AMREX_D_TERM(Real local_cent_hat_x = ccent(i,j,k,0) * self_weight;,
+                         Real local_cent_hat_y = ccent(i,j,k,1) * self_weight;,
+                         Real local_cent_hat_z = ccent(i,j,k,2) * self_weight;);
+
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
             {
-                int r = i+imap[itracker(i,j,k,i_nbor)];
-                int s = j+jmap[itracker(i,j,k,i_nbor)];
-                int t = k+kmap[itracker(i,j,k,i_nbor)];
-                amrex::Gpu::Atomic::Add(&nbhd_vol(i,j,k),alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t));
+                int const ii = imap[itracker(i,j,k,i_nbor)]; int const r = i+ii;
+                int const jj = jmap[itracker(i,j,k,i_nbor)]; int const s = j+jj;
+                int const kk = kmap[itracker(i,j,k,i_nbor)]; int const t = k+kk;
+                Real const weight = alpha(i,j,k,1) * vfrac(r,s,t) /
+                    static_cast<Real>(nrs(r,s,t));
+
+                local_nbhd_vol += weight;
+                AMREX_D_TERM(local_cent_hat_x += (ccent(r,s,t,0) + Real(ii)) * weight;,
+                             local_cent_hat_y += (ccent(r,s,t,1) + Real(jj)) * weight;,
+                             local_cent_hat_z += (ccent(r,s,t,2) + Real(kk)) * weight;);
             }
-        } else {
-            nbhd_vol(i,j,k) = 0.;
-        }
-    });
 
-    // ****************************************************************************************
-    // DEFINING CENT_HAT
-    // ****************************************************************************************
-    //
-    // Need cent_hat(xhat,yhat,zhat) in bxg3 to compute slopes in bxg1
-    //
-    amrex::ParallelFor(bxg3,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        if (vfrac(i,j,k) > 0.0)
-        {
-            AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0);,
-                         cent_hat(i,j,k,1) = ccent(i,j,k,1);,
-                         cent_hat(i,j,k,2) = ccent(i,j,k,2););
-
-            if ( itracker(i,j,k,0) > 0 &&
-                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))) )
-            {
-                AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0) * alpha(i,j,k,0) *vfrac(i,j,k);,
-                             cent_hat(i,j,k,1) = ccent(i,j,k,1) * alpha(i,j,k,0) *vfrac(i,j,k);,
-                             cent_hat(i,j,k,2) = ccent(i,j,k,2) * alpha(i,j,k,0) *vfrac(i,j,k););
-
-                // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
-                for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
-                {
-                    int ii = imap[itracker(i,j,k,i_nbor)]; int r = i+ii;
-                    int jj = jmap[itracker(i,j,k,i_nbor)]; int s = j+jj;
-                    int kk = kmap[itracker(i,j,k,i_nbor)]; int t = k+kk;
-
-                    AMREX_D_TERM(cent_hat(i,j,k,0) += (ccent(r,s,t,0) + Real(ii)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,1) += (ccent(r,s,t,1) + Real(jj)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);,
-                                 cent_hat(i,j,k,2) += (ccent(r,s,t,2) + Real(kk)) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t););
-                }
-
-                AMREX_D_TERM(cent_hat(i,j,k,0) /= nbhd_vol(i,j,k);,
-                             cent_hat(i,j,k,1) /= nbhd_vol(i,j,k);,
-                             cent_hat(i,j,k,2) /= nbhd_vol(i,j,k););
-            }
-        } else {
-
-                AMREX_D_TERM(cent_hat(i,j,k,0) = eb_covered_val;,
-                             cent_hat(i,j,k,1) = eb_covered_val;,
-                             cent_hat(i,j,k,2) = eb_covered_val;);
+            nbhd_vol(i,j,k) = local_nbhd_vol;
+            AMREX_D_TERM(cent_hat(i,j,k,0) = local_cent_hat_x / local_nbhd_vol;,
+                         cent_hat(i,j,k,1) = local_cent_hat_y / local_nbhd_vol;,
+                         cent_hat(i,j,k,2) = local_cent_hat_z / local_nbhd_vol;);
         }
     });
 }
