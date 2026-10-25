@@ -277,7 +277,8 @@ void mlebndfdlap_coarsen_eb_pos (int ic, int jc, int kc, Array4<Real> const& ceb
  *
  * True when a fine edge with an EB lies on no edge line of the coarse cell
  * while the cell's nodes are all open and its edges all uncut.  Multigrid
- * diverges near such a feature.
+ * diverges near such a feature unless the coarse operator sees an EB in a
+ * neighboring cell (checked by the caller).
  *
  * \param ratio coarsening ratio, 1 in directions that are not coarsened
  */
