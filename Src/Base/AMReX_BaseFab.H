@@ -2074,7 +2074,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
         [=] (int i, int j, int k, int n) noexcept
         {
             auto const t = a(i,j,k,n+scomp);
-            return m(i,j,k) ? static_cast<Real>(std::abs(t)) : Real(0.0);
+            return static_cast<Real>(m(i,j,k) ? std::abs(t) : T(0));
         });
     }
     return r;
