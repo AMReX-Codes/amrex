@@ -881,9 +881,14 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                 }
             }
 
-            if (!cctv_tags_cross.empty()) {
+            if (cross) {
                 cctv.swap(cctv_tags_cross);
             }
+        }
+
+        if (cross) {
+            // Ranks sharing only edges or corners have nothing left to exchange.
+            std::erase_if(Tags, [] (auto const& kv) { return kv.second.empty(); });
         }
     }
 }
