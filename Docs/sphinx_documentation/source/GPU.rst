@@ -755,15 +755,14 @@ can take initial values from the host and move them to the device.  It
 can copy the data from device back to host.  It can also be used as
 scratch space on device.
 
-The call to delete the memory is added to the GPU stream as a callback
-function in the destructor of :cpp:`AsyncArray`. This guarantees the
-memory allocated in :cpp:`AsyncArray` continues to exist after the
-:cpp:`AsyncArray` object is deleted when going out of scope until
-after all GPU kernels in the stream are completed without forcing the
-code to synchronize. The resulting :cpp:`AsyncArray` class is
-"async-safe", meaning it can be safely used in asynchronous code
-regions that contain both CPU work and GPU launches, including
-:cpp:`MFIter` loops.
+The destructor of :cpp:`AsyncArray` does not release the memory
+immediately. This guarantees the memory allocated in :cpp:`AsyncArray`
+continues to exist after the :cpp:`AsyncArray` object is deleted when
+going out of scope until after all GPU kernels in the stream are
+completed without forcing the code to synchronize. The resulting
+:cpp:`AsyncArray` class is "async-safe", meaning it can be safely used
+in asynchronous code regions that contain both CPU work and GPU
+launches, including :cpp:`MFIter` loops.
 
 :cpp:`AsyncArray` is also portable. When AMReX is compiled without
 GPU support, the object only stores and handles the CPU version of

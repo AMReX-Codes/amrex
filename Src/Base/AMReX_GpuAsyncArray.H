@@ -11,16 +11,6 @@
 #include <cstdlib>
 #include <memory>
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-extern "C" {
-#if defined(AMREX_USE_HIP)
-    void amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);
-#elif defined(AMREX_USE_CUDA)
-    void CUDART_CB amrex_asyncarray_delete (void* p);
-#endif
-}
-#endif
-
 namespace amrex {
 namespace Gpu {
 
@@ -80,34 +70,8 @@ public:
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            if (d_data != nullptr) {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-                T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
-                p[0] = d_data;
-                p[1] = h_data;
-#if defined(AMREX_USE_HIP)
-                AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
-                                                           amrex_asyncarray_delete, p, 0));
-#elif defined(AMREX_USE_CUDA)
-                AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(),
-                                                        amrex_asyncarray_delete, p));
-#endif
-#elif defined(AMREX_USE_SYCL)
-                auto* pd = d_data;
-                auto* ph = h_data;
-                auto& q = *(Gpu::gpuStream().queue);
-                try {
-                    q.submit([&] (sycl::handler& h) {
-                        h.host_task([=] () {
-                            The_Arena()->free(pd);
-                            The_Pinned_Arena()->free(ph);
-                        });
-                    });
-                } catch (sycl::exception const& ex) {
-                    amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
-                }
-#endif
-            }
+            if (d_data != nullptr) { Gpu::freeAsync(The_Arena(), d_data); }
+            if (h_data != nullptr) { Gpu::freeAsync(The_Pinned_Arena(), h_data); }
         }
         else
 #endif
