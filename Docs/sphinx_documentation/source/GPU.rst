@@ -1068,6 +1068,34 @@ As another example, the following function computes the max- and 1-norm of a
 It should be noted that the reduction result of :cpp:`ParReduce` is local
 and it is the user's responsibility if MPI communication is needed.
 
+:cpp:`ParReduce` with a number of components reduces over the components as
+well.  To get a separate result for each component, use
+:cpp:`ParReducePerComp`, which takes the same arguments and returns a
+:cpp:`Vector` with one result per component.  :cpp:`ParReducePerBoxComp`
+returns one result per local box and component, stored at index
+``box_no*ncomp+n``.  For example, the following function computes the
+minimum and maximum of every component of a :cpp:`MultiFab`.
+
+.. highlight:: c++
+
+::
+
+    Vector<GpuTuple<Real,Real>> compute_minmax (MultiFab const& mf)
+    {
+        auto const& ma = mf.const_arrays();
+        return ParReducePerComp(TypeList<ReduceOpMin,ReduceOpMax>{},
+                                TypeList<Real,Real>{},
+                                mf, IntVect(0), mf.nComp(),
+               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
+                   noexcept -> GpuTuple<Real,Real>
+               {
+                   Real a = ma[box_no](i,j,k,n);
+                   return { a, a };
+               });
+    }
+
+Like :cpp:`ParReduce`, these functions return local results.
+
 Box, IntVect and IndexType
 --------------------------
 
