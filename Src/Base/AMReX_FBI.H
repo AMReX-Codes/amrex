@@ -1393,8 +1393,44 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
     if (N_snds == 0) { return; }
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel for
+    if (omp_get_max_threads() > 1)
+    {
+        // Threads share tags, not neighbor ranks, which are often fewer than threads.
+        Vector<std::pair<char*,CopyComTag const*>> tags;
+        for (int j = 0; j < N_snds; ++j)
+        {
+            if (send_size[j] > 0)
+            {
+                char* dptr = send_data[j];
+                for (auto const& tag : *send_cctc[j])
+                {
+                    tags.emplace_back(dptr, &tag);
+                    dptr += (tag.sbox.numPts() * ncomp * sizeof(BUF));
+                }
+                BL_ASSERT(dptr <= send_data[j] + send_size[j]);
+            }
+        }
+
+        auto const N_tags = static_cast<int>(tags.size());
+        // Small chunks keep threads on nearby boxes, which share cache lines.
+        int const chunk = std::clamp(N_tags/omp_get_max_threads(), 1, 64);
+#pragma omp parallel for schedule(static,chunk)
+        for (int i = 0; i < N_tags; ++i)
+        {
+            auto const& tag = *tags[i].second;
+            const Box& bx = tag.sbox;
+            auto const sfab = src.array(tag.srcIndex);
+            auto pfab = amrex::makeArray4((BUF*)(tags[i].first),bx,ncomp);
+            amrex::LoopConcurrentOnCpu( bx, ncomp,
+            [=] (int ii, int jj, int kk, int n) noexcept
+            {
+                pfab(ii,jj,kk,n) = static_cast<BUF>(sfab(ii,jj,kk,n+scomp));
+            });
+        }
+        return;
+    }
 #endif
+
     for (int j = 0; j < N_snds; ++j)
     {
         if (send_size[j] > 0)
@@ -1435,8 +1471,45 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     if (is_thread_safe)
     {
 #ifdef AMREX_USE_OMP
-#pragma omp parallel for
+        if (omp_get_max_threads() > 1)
+        {
+            // Threads share tags, not neighbor ranks, which are often fewer than threads.
+            Vector<std::pair<const char*,CopyComTag const*>> tags;
+            for (int k = 0; k < N_rcvs; ++k)
+            {
+                if (recv_size[k] > 0)
+                {
+                    const char* dptr = recv_data[k];
+                    for (auto const& tag : *recv_cctc[k])
+                    {
+                        tags.emplace_back(dptr, &tag);
+                        dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
+                    }
+                    BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
+                }
+            }
+
+            auto const N_tags = static_cast<int>(tags.size());
+            // Small chunks keep threads on nearby boxes, which share cache lines.
+            int const chunk = std::clamp(N_tags/omp_get_max_threads(), 1, 64);
+#pragma omp parallel for schedule(static,chunk)
+            for (int i = 0; i < N_tags; ++i)
+            {
+                auto const& tag = *tags[i].second;
+                FAB& dfab = dst[tag.dstIndex];
+                if (op == FabArrayBase::COPY)
+                {
+                    dfab.template copyFromMem<RunOn::Host, BUF>(tag.dbox, dcomp, ncomp, tags[i].first);
+                }
+                else
+                {
+                    dfab.template addFromMem<RunOn::Host, BUF>(tag.dbox, dcomp, ncomp, tags[i].first);
+                }
+            }
+            return;
+        }
 #endif
+
         for (int k = 0; k < N_rcvs; ++k)
         {
             if (recv_size[k] > 0)
