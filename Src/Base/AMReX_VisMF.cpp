@@ -21,6 +21,25 @@ namespace {
     const char *TheFabOnDiskPrefix = "FabOnDisk:";
 }
 
+#ifdef AMREX_USE_GPU
+namespace {
+    // Min and max over the valid box of every local FAB and component.  Result
+    // nc*L+n is for component n of local FAB L.  This is not inlined because
+    // nvcc does not allow extended lambdas in constructors.
+    Vector<GpuTuple<Real,Real>> device_minmax (const FabArray<FArrayBox>& mf)
+    {
+        auto const& ma = mf.const_arrays();
+        return ParReducePerBoxComp(TypeList<ReduceOpMin,ReduceOpMax>{}, TypeList<Real,Real>{},
+                                   mf, IntVect(0), mf.nComp(),
+        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n) noexcept -> GpuTuple<Real,Real>
+        {
+            Real const x = ma[b](i,j,k,n);
+            return {x, x};
+        });
+    }
+}
+#endif
+
 std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
 
 int VisMF::verbose(0);
@@ -718,17 +737,25 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       m_famin.resize(m_ncomp,  std::numeric_limits<Real>::max());
       m_famax.resize(m_ncomp, -std::numeric_limits<Real>::max());
 
-      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        const int idx = mfi.index();
-        for(int i(0); i < m_ncomp; ++i) {
 #ifdef AMREX_USE_GPU
-            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],i)
-                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],i);
-#else
-            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],i);
+      if (run_on_device) {
+        auto const mm = device_minmax(mf);
+        for (int L = 0; L < mf.local_size(); ++L) {
+          for(int i(0); i < m_ncomp; ++i) {
+            m_famin[i] = std::min(m_famin[i], amrex::get<0>(mm[m_ncomp*L+i]));
+            m_famax[i] = std::max(m_famax[i], amrex::get<1>(mm[m_ncomp*L+i]));
+          }
+        }
+      } else
 #endif
-            m_famin[i] = std::min(m_famin[i], mm.first);
-            m_famax[i] = std::max(m_famax[i], mm.second);
+      {
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+          const int idx = mfi.index();
+          for(int i(0); i < m_ncomp; ++i) {
+              auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],i);
+              m_famin[i] = std::min(m_famin[i], mm.first);
+              m_famax[i] = std::max(m_famax[i], mm.second);
+          }
         }
       }
       ParallelAllReduce::Min(m_famin.dataPtr(), static_cast<int>(m_famin.size()), comm);
@@ -757,30 +784,41 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         && (mf.arena()->isManaged() || mf.arena()->isDevice());
     amrex::ignore_unused(run_on_device);
 
-#ifdef BL_USE_MPI
     //
     // Calculate m_min and m_max on the CPU owning the fab.
     //
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        const int idx = mfi.index();
-
-        m_min[idx].resize(m_ncomp);
-        m_max[idx].resize(m_ncomp);
-
-        BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
-
-        for(int j(0); j < m_ncomp; ++j) {
 #ifdef AMREX_USE_GPU
-            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
-                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
-#else
-            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+    if (run_on_device) {
+        auto const mm = device_minmax(mf);
+        for (int L = 0; L < mf.local_size(); ++L) {
+            const int idx = mf.IndexArray()[L];
+            m_min[idx].resize(m_ncomp);
+            m_max[idx].resize(m_ncomp);
+            for(int j(0); j < m_ncomp; ++j) {
+                m_min[idx][j] = amrex::get<0>(mm[m_ncomp*L+j]);
+                m_max[idx][j] = amrex::get<1>(mm[m_ncomp*L+j]);
+            }
+        }
+    } else
 #endif
-            m_min[idx][j] = mm.first;
-            m_max[idx][j] = mm.second;
+    {
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const int idx = mfi.index();
+
+            m_min[idx].resize(m_ncomp);
+            m_max[idx].resize(m_ncomp);
+
+            BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
+
+            for(int j(0); j < m_ncomp; ++j) {
+                auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+                m_min[idx][j] = mm.first;
+                m_max[idx][j] = mm.second;
+            }
         }
     }
 
+#ifdef BL_USE_MPI
     Vector<int> nmtags(ParallelDescriptor::NProcs(comm), 0);
     Vector<int> offset(ParallelDescriptor::NProcs(comm), 0);
 
@@ -856,26 +894,6 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
                 offset[pmap[j]] += 2*m_ncomp;
             }
-        }
-    }
-#else
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        const int idx = mfi.index();
-
-        m_min[idx].resize(m_ncomp);
-        m_max[idx].resize(m_ncomp);
-
-        BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
-
-        for(int j(0); j < m_ncomp; ++j) {
-#ifdef AMREX_USE_GPU
-            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
-                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
-#else
-            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
-#endif
-            m_min[idx][j] = mm.first;
-            m_max[idx][j] = mm.second;
         }
     }
 #endif /*BL_USE_MPI*/
@@ -998,14 +1016,18 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             && (mf.arena()->isManaged() || mf.arena()->isDevice());
         amrex::ignore_unused(run_on_device);
 
+#ifdef AMREX_USE_GPU
+        Vector<GpuTuple<Real,Real>> dmm;
+        if (run_on_device) { dmm = device_minmax(mf); }
+#endif
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
 #ifdef AMREX_USE_GPU
                 if (run_on_device) {
-                    auto mm = mf[mfi].minmax<RunOn::Device>(mf.box(idx),j);
-                    const Real val = (mm.first + mm.second) / 2.0_rt;
+                    auto const& m = dmm[mf.nComp()*mfi.LocalIndex()+j];
+                    const Real val = (amrex::get<0>(m) + amrex::get<1>(m)) / 2.0_rt;
                     the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
                 } else
 #endif
@@ -2405,6 +2427,10 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     int64_t total_bytes = 0;
     if (localdata.size() > 1) {
+#ifdef AMREX_USE_GPU
+        Vector<GpuTuple<Real,Real>> dmm;
+        if (run_on_device) { dmm = device_minmax(mf); }
+#endif
         char* pld = (char*)(&(localdata[1]));
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -2424,8 +2450,9 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             // compute min and max
             for (int icomp = 0; icomp < ncomp; ++icomp) {
 #ifdef AMREX_USE_GPU
-                auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
-                                          : fab.minmax<RunOn::Host  >(bx,icomp);
+                const int m = ncomp*mfi.LocalIndex()+icomp;
+                auto mm = (run_on_device) ? std::make_pair(amrex::get<0>(dmm[m]), amrex::get<1>(dmm[m]))
+                                          : fab.minmax<RunOn::Host>(bx,icomp);
 #else
                 auto mm = fab.minmax<RunOn::Host>(bx,icomp);
 #endif
