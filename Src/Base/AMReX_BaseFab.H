@@ -2024,11 +2024,11 @@ T basefab_reduce_cpu (Box const& bx, int ncomp, T const& init, Op const& op, F c
         int i = lo.x;
         for (; i + nacc - 1 <= hi.x; i += nacc) {
             for (int l = 0; l < nacc; ++l) {
-                op.local_update(acc[l], f(i+l,j,k,n));
+                op.local_update(acc[l], static_cast<T>(f(i+l,j,k,n)));
             }
         }
         for (; i <= hi.x; ++i) {
-            op.local_update(acc[0], f(i,j,k,n));
+            op.local_update(acc[0], static_cast<T>(f(i,j,k,n)));
         }
     }}}
     for (int l = 1; l < nacc; ++l) { op.local_update(acc[0], acc[l]); }
@@ -2073,8 +2073,8 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
         r = detail::basefab_reduce_cpu(subbox, ncomp, Real(0.0), ReduceOpMax{},
         [=] (int i, int j, int k, int n) noexcept
         {
-            Real t = static_cast<Real>(std::abs(a(i,j,k,n+scomp)));
-            return m(i,j,k) ? t : Real(0.0);
+            auto const t = a(i,j,k,n+scomp);
+            return m(i,j,k) ? static_cast<Real>(std::abs(t)) : Real(0.0);
         });
     }
     return r;
