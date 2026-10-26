@@ -123,6 +123,19 @@ struct ParticleInitType
     std::array<int,    NArrayInt  > int_array_data;
 };
 
+namespace particle_detail {
+template <class PC> class RTSoAInitBuffer;
+}
+
+/** Initialization defaults for pure runtime SoA containers.
+ * Real values exclude positions; omitted trailing fields default to zero.
+ */
+struct ParticleInitTypeRT
+{
+    Vector<double> real_array_data;
+    Vector<int> int_array_data;
+};
+
 template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 class ParIterBase_impl;
@@ -189,7 +202,10 @@ public:
         ParticleTileRT<typename ParticleType::RealType, typename ParticleType::IntType>,
         ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>
     >;
-    using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    friend class particle_detail::RTSoAInitBuffer<ParticleContainer_impl>;
+
+    using ParticleInitData = std::conditional_t<is_rtsoa_pc, ParticleInitTypeRT,
+        ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>>;
 
     //! A single level worth of particles is indexed (grid id, tile id)
     //! for both SoA and AoS data.
