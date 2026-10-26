@@ -489,54 +489,54 @@ struct Lanes<GpuTuple<Ts...>>
 {
 #ifdef AMREX_CXX_GCC
     GpuTuple<GpuArray<Ts,nacc>...> data;
-    template <int I> auto& get (int l) noexcept { return amrex::get<I>(data)[l]; }
-    template <int I> auto const& get (int l) const noexcept { return amrex::get<I>(data)[l]; }
+    template <int K> auto& get (int lane) noexcept { return amrex::get<K>(data)[lane]; }
+    template <int K> [[nodiscard]] auto const& get (int lane) const noexcept { return amrex::get<K>(data)[lane]; }
 #else
     GpuTuple<Ts...> data[nacc];
-    template <int I> auto& get (int l) noexcept { return amrex::get<I>(data[l]); }
-    template <int I> auto const& get (int l) const noexcept { return amrex::get<I>(data[l]); }
+    template <int K> auto& get (int lane) noexcept { return amrex::get<K>(data[lane]); }
+    template <int K> [[nodiscard]] auto const& get (int lane) const noexcept { return amrex::get<K>(data[lane]); }
 #endif
 };
 
-template <int I, typename Tup>
+template <int K, typename Tup>
 AMREX_FORCE_INLINE
 void lanes_set (Lanes<Tup>& acc, Tup const& v) noexcept
 {
-    for (int l = 0; l < nacc; ++l) { acc.template get<I>(l) = amrex::get<I>(v); }
-    if constexpr (I+1 < GpuTupleSize<Tup>::value) { lanes_set<I+1>(acc, v); }
+    for (int lane = 0; lane < nacc; ++lane) { acc.template get<K>(lane) = amrex::get<K>(v); }
+    if constexpr (K+1 < GpuTupleSize<Tup>::value) { lanes_set<K+1>(acc, v); }
 }
 
-template <int I, typename Tup, typename P, typename... Ps>
+template <int K, typename Tup, typename P, typename... Ps>
 AMREX_FORCE_INLINE
-void lanes_update (Lanes<Tup>& acc, int l, Tup const& s) noexcept
+void lanes_update (Lanes<Tup>& acc, int lane, Tup const& s) noexcept
 {
-    P().local_update(acc.template get<I>(l), amrex::get<I>(s));
-    if constexpr (sizeof...(Ps) > 0) { lanes_update<I+1,Tup,Ps...>(acc, l, s); }
+    P().local_update(acc.template get<K>(lane), amrex::get<K>(s));
+    if constexpr (sizeof...(Ps) > 0) { lanes_update<K+1,Tup,Ps...>(acc, lane, s); }
 }
 
-template <int I, typename Tup, typename P, typename... Ps>
+template <int K, typename Tup, typename P, typename... Ps>
 AMREX_FORCE_INLINE
 void lanes_fold (Lanes<Tup> const& acc, Tup& r) noexcept
 {
-    for (int l = 0; l < nacc; ++l) { P().local_update(amrex::get<I>(r), acc.template get<I>(l)); }
-    if constexpr (sizeof...(Ps) > 0) { lanes_fold<I+1,Tup,Ps...>(acc, r); }
+    for (int lane = 0; lane < nacc; ++lane) { P().local_update(amrex::get<K>(r), acc.template get<K>(lane)); }
+    if constexpr (sizeof...(Ps) > 0) { lanes_fold<K+1,Tup,Ps...>(acc, r); }
 }
 
 // One row of a CPU reduction over the ops Ps: full blocks of nacc cells go
 // into the lanes, the rest into rem. value(i) is the tuple for cell i.
-template <typename... Ps, typename Tup, std::integral I, typename F>
+template <typename... Ps, typename Tup, std::integral N, typename F>
 AMREX_FORCE_INLINE
-void reduce_row (I ilo, I ihi, Lanes<Tup>& acc, Tup& rem, F const& value) noexcept
+void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value) noexcept
 {
-    I i = ilo;
+    N i = ilo;
     AMREX_PRAGMA_NACC_NOVECTOR
     for (; i + (nacc-1) <= ihi; i += nacc) {
         if constexpr (vectorize_nacc_loop<Ps...>) {
             AMREX_PRAGMA_NACC_VECTORIZE
-            for (int l = 0; l < nacc; ++l) { lanes_update<0,Tup,Ps...>(acc, l, value(static_cast<I>(i+l))); }
+            for (int lane = 0; lane < nacc; ++lane) { lanes_update<0,Tup,Ps...>(acc, lane, value(static_cast<N>(i+lane))); }
         } else {
             AMREX_PRAGMA_NACC_SCALAR
-            for (int l = 0; l < nacc; ++l) { lanes_update<0,Tup,Ps...>(acc, l, value(static_cast<I>(i+l))); }
+            for (int lane = 0; lane < nacc; ++lane) { lanes_update<0,Tup,Ps...>(acc, lane, value(static_cast<N>(i+lane))); }
         }
     }
     AMREX_PRAGMA_NACC_NOVECTOR
