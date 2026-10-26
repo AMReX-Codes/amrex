@@ -38,7 +38,8 @@ void set_eb_data (const int i, const int j,
     Real x_ym, x_yp, y_xm, y_xp;
     if (nx == 0.0_rt) {
         if (apx(i,j,0) == 1.0_rt && apx(i+1,j,0) == 1.0_rt) {
-            if (levset(i,j,0) > 0.0_rt || levset(i,j+1,0) > 0.0_rt) {
+            // body on the left; a zero level set is body
+            if (levset(i,j,0) >= 0.0_rt || levset(i,j+1,0) >= 0.0_rt) {
                 x_ym = 0.5_rt*dx[0] - aym;
                 x_yp = 0.5_rt*dx[0] - ayp;
             } else {
@@ -59,7 +60,8 @@ void set_eb_data (const int i, const int j,
 
     if (ny == 0.0_rt) {
         if (apy(i,j,0) == 1.0_rt && apy(i,j+1,0) == 1.0_rt) {
-            if (levset(i,j,0) > 0.0_rt || levset(i+1,j,0) > 0.0_rt) {
+            // body at the bottom; a zero level set is body
+            if (levset(i,j,0) >= 0.0_rt || levset(i+1,j,0) >= 0.0_rt) {
                 y_xm = 0.5_rt*dx[1] - axm;
                 y_xp = 0.5_rt*dx[1] - axp;
             } else {

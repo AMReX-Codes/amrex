@@ -7,7 +7,9 @@
  * flags around it (all covered = body, all regular = fluid).  Cases: walls a roundoff
  * distance inside the domain faces, as MFIX-Exa builds its box, with and
  * without a refined level-set grid; a sphere with fluid inside; a sphere with
- * fluid outside in a periodic domain.
+ * fluid outside in a periodic domain; a sphere centered on a node with a
+ * radius through nodes, where the sign is also checked against the exact
+ * distance.
  */
 
 #include <AMReX.H>
@@ -19,14 +21,18 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#include <cmath>
+#include <functional>
 #include <limits>
 
 using namespace amrex;
 
 namespace {
 
+// exact, if given, is the exact signed distance (positive in the fluid).
 int check (std::string const& name, Geometry const& geom, Geometry const& ls_geom,
-           EB2::Level const& eb_level, EB2::Level const& ls_level, int refratio)
+           EB2::Level const& eb_level, EB2::Level const& ls_level, int refratio,
+           std::function<Real(RealArray const&)> const& exact)
 {
     const int ng_eb = 4;
     const int ng_ls = 2*refratio;
@@ -77,6 +83,18 @@ int check (std::string const& name, Geometry const& geom, Geometry const& ls_geo
             });
             if (all_covered && s(i,j,k) > 0.0_rt) { bad = true; }
             if (all_regular && s(i,j,k) < 0.0_rt) { bad = true; }
+            // Nodes clearly off the surface must have the exact sign, not zero.
+            if (exact) {
+                RealArray p;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    p[d] = ls_geom.ProbLo(d) + Real(iv[d])*ls_geom.CellSize(d);
+                }
+                Real const e = exact(p);
+                Real const tol = 0.05_rt*ls_geom.CellSize(0);
+                if ((e > tol && s(i,j,k) <= 0.0_rt) || (e < -tol && s(i,j,k) >= 0.0_rt)) {
+                    bad = true;
+                }
+            }
             if (bad) {
                 if (nerr < 10) {
                     amrex::AllPrint() << name << ": node " << iv << " level set " << l(i,j,k)
@@ -94,18 +112,19 @@ int check (std::string const& name, Geometry const& geom, Geometry const& ls_geo
 }
 
 template <class F>
-int run_case (std::string const& name, F const& f, Geometry const& geom, int refratio)
+int run_case (std::string const& name, F const& f, Geometry const& geom, int refratio,
+              std::function<Real(RealArray const&)> const& exact = {})
 {
     auto gshop = EB2::makeShop(f);
     EB2::Build(gshop, geom, 0, 100);
     EB2::Level const& eb_level = EB2::IndexSpace::top().getLevel(geom);
     if (refratio == 1) {
-        return check(name, geom, geom, eb_level, eb_level, 1);
+        return check(name, geom, geom, eb_level, eb_level, 1, exact);
     }
     Geometry ls_geom = amrex::refine(geom, refratio);
     EB2::Build(gshop, ls_geom, 0, 100);
     EB2::Level const& ls_level = EB2::IndexSpace::top().getLevel(ls_geom);
-    return check(name, geom, ls_geom, eb_level, ls_level, refratio);
+    return check(name, geom, ls_geom, eb_level, ls_level, refratio, exact);
 }
 
 } // namespace
@@ -156,6 +175,20 @@ int main (int argc, char* argv[])
             Geometry geom(domain, rb, 0, {AMREX_D_DECL(1,1,1)});
             EB2::SphereIF sphere(0.3_rt, {AMREX_D_DECL(0.5_rt,0.5_rt,0.5_rt)}, false);
             nerr += run_case("sphere fluid outside", sphere, geom, 1);
+        }
+
+        // Sphere centered on a node with a radius of 3 cells, so that it
+        // touches nodes from inside.  Fluid outside.
+        {
+            Geometry geom(domain, rb, 0, {AMREX_D_DECL(0,0,0)});
+            Real const r = Real(3.0)/Real(n_cell);
+            EB2::SphereIF sphere(r, {AMREX_D_DECL(0.5_rt,0.5_rt,0.5_rt)}, false);
+            auto exact = [=] (RealArray const& p) {
+                Real d2 = 0.0_rt;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) { d2 += (p[d]-0.5_rt)*(p[d]-0.5_rt); }
+                return std::sqrt(d2) - r;
+            };
+            nerr += run_case("sphere through nodes", sphere, geom, 1, exact);
         }
 
         if (nerr == 0) {
