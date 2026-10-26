@@ -469,7 +469,8 @@ namespace Reduce::detail {
 // SSE4.1, where the vector form is slower. Older GCC has no novector.
 template <typename... Ps>
 inline constexpr bool vectorize_nacc_loop =
-#if defined(AMREX_CXX_GCC) && (__GNUC__ >= 14) && (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
+#if defined(AMREX_CXX_GCC) && !defined(__CUDACC__) && (__GNUC__ >= 14) && \
+    (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
     sizeof...(Ps) != 1 ||
     !((std::is_same_v<Ps,ReduceOpMin> || std::is_same_v<Ps,ReduceOpMax>) && ...);
 #else
@@ -540,6 +541,9 @@ void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value)
     for (; i <= ihi; ++i) { for_each_local<0,Tup,Ps...>(rem, value(i)); }
 }
 }
+#undef AMREX_PRAGMA_NACC_VECTORIZE
+#undef AMREX_PRAGMA_NACC_NOVECTOR
+#undef AMREX_PRAGMA_NACC_SCALAR
 /// \endcond
 
 template <typename... Ps> class ReduceOps;
