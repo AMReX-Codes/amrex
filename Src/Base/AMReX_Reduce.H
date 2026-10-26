@@ -465,11 +465,11 @@ struct ReduceOpLogicalOr
 /// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
 // Whether the accumulator loop of a CPU reduction over Ps is vectorized.
-// A lone min or max stays scalar with GCC on x86 without SSE4.1, where the
-// vector form is slower.
+// A lone min or max stays scalar with GCC 14 or newer on x86 without
+// SSE4.1, where the vector form is slower. Older GCC has no novector.
 template <typename... Ps>
 inline constexpr bool vectorize_nacc_loop =
-#if defined(AMREX_CXX_GCC) && (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
+#if defined(AMREX_CXX_GCC) && (__GNUC__ >= 14) && (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
     sizeof...(Ps) != 1 ||
     !((std::is_same_v<Ps,ReduceOpMin> || std::is_same_v<Ps,ReduceOpMax>) && ...);
 #else
@@ -497,7 +497,7 @@ struct Lanes<GpuTuple<Ts...>>
 
 template <int K, typename Tup>
 AMREX_FORCE_INLINE
-void lanes_set (Lanes<Tup>& acc, Tup const& v) noexcept
+void lanes_set (Lanes<Tup>& acc, Tup const& v)
 {
     for (int lane = 0; lane < nacc; ++lane) { acc.template get<K>(lane) = amrex::get<K>(v); }
     if constexpr (K+1 < GpuTupleSize<Tup>::value) { lanes_set<K+1>(acc, v); }
@@ -505,7 +505,7 @@ void lanes_set (Lanes<Tup>& acc, Tup const& v) noexcept
 
 template <int K, typename Tup, typename P, typename... Ps>
 AMREX_FORCE_INLINE
-void lanes_update (Lanes<Tup>& acc, int lane, Tup const& s) noexcept
+void lanes_update (Lanes<Tup>& acc, int lane, Tup const& s)
 {
     P().local_update(acc.template get<K>(lane), amrex::get<K>(s));
     if constexpr (sizeof...(Ps) > 0) { lanes_update<K+1,Tup,Ps...>(acc, lane, s); }
@@ -513,7 +513,7 @@ void lanes_update (Lanes<Tup>& acc, int lane, Tup const& s) noexcept
 
 template <int K, typename Tup, typename P, typename... Ps>
 AMREX_FORCE_INLINE
-void lanes_fold (Lanes<Tup> const& acc, Tup& r) noexcept
+void lanes_fold (Lanes<Tup> const& acc, Tup& r)
 {
     for (int lane = 0; lane < nacc; ++lane) { P().local_update(amrex::get<K>(r), acc.template get<K>(lane)); }
     if constexpr (sizeof...(Ps) > 0) { lanes_fold<K+1,Tup,Ps...>(acc, r); }
@@ -523,7 +523,7 @@ void lanes_fold (Lanes<Tup> const& acc, Tup& r) noexcept
 // into the lanes, the rest into rem. value(i) is the tuple for cell i.
 template <typename... Ps, typename Tup, std::integral N, typename F>
 AMREX_FORCE_INLINE
-void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value) noexcept
+void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value)
 {
     N i = ilo;
     AMREX_PRAGMA_NACC_NOVECTOR
