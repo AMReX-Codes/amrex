@@ -49,9 +49,16 @@ int check (std::string const& name, Geometry const& geom, Geometry const& ls_geo
     int nerr = 0;
     for (MFIter mfi(sd); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.growntilebox();
-        auto const& s = sd.const_array(mfi);
-        auto const& l = lsn.const_array(mfi);
-        auto const& f = flags.const_array(mfi);
+        FArrayBox hs(sd[mfi].box(), 1, The_Pinned_Arena());
+        FArrayBox hl(lsn[mfi].box(), 1, The_Pinned_Arena());
+        BaseFab<EBCellFlag> hf(flags[mfi].box(), 1, The_Pinned_Arena());
+        Gpu::dtoh_memcpy_async(hs.dataPtr(), sd[mfi].dataPtr(), hs.nBytes());
+        Gpu::dtoh_memcpy_async(hl.dataPtr(), lsn[mfi].dataPtr(), hl.nBytes());
+        Gpu::dtoh_memcpy_async(hf.dataPtr(), flags[mfi].dataPtr(), hf.nBytes());
+        Gpu::streamSynchronize();
+        auto const& s = hs.const_array();
+        auto const& l = hl.const_array();
+        auto const& f = hf.const_array();
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
         {
             // EB2 level set: negative is fluid, zero or positive is body.  A zero
