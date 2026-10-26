@@ -2404,6 +2404,12 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | GPU-aware MPI is supported by the MPI library (MPICH, OpenMPI, and    |             |                |
 |                            | derivative implementations).                                          |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| fb.on_arrival_min_bytes    | With GPU-aware MPI, :cpp:`FillBoundary` and :cpp:`SumBoundary` unpack | Long        | 65536          |
+|                            | each message as soon as it arrives when a rank receives at least this |             |                |
+|                            | many bytes in one call, overlapping the unpacking with the remaining  |             |                |
+|                            | communication. With fewer bytes, the messages are unpacked together   |             |                |
+|                            | after all of them have arrived.                                       |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
 |                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |
 |                            | an error describing how much free memory there is and what was        |             |                |

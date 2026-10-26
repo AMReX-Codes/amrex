@@ -1,6 +1,7 @@
 
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
+#include <AMReX_FBUnpackOnArrival.H>
 
 /**
  * \file AMReX_FabArrayCommI.H
@@ -118,6 +119,21 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         // No work to do.
         return;
     }
+
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    // Unpack on arrival: GPU-aware MPI, no CUDA graph, not deterministic.
+    // COPY needs thread-safe tags or atomic stores; ADD needs thread-safe
+    // tags or atomic add. Other cases take the path below.
+    if (!deterministic && ParallelDescriptor::UseGpuAwareMpi() &&
+        Gpu::inLaunchRegion() && !Gpu::inGraphRegion() &&
+        (sumboundary ? (amrex::IsAddAssignable<value_type>::value &&
+                        (TheFB.m_threadsafe_rcv || amrex::HasAtomicAdd<value_type>::value))
+                     : (TheFB.m_threadsafe_rcv || amrex::IsStoreAtomic<value_type>::value)))
+    {
+        FB_on_arrival_nowait<BUF>(TheFB, scomp, ncomp, SeqNum, sumboundary);
+        return;
+    }
+#endif
 
     fbd = std::make_unique<FBData<FAB>>();
     fbd->fb    = &TheFB;
@@ -243,6 +259,13 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (!fbd) { return; }
 
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    if (fbd->oa_meta) {
+        FB_on_arrival_finish<BUF>();
+        return;
+    }
+#endif
+
     const FB* TheFB = fbd->fb;
     bool sumboundary = TheFB->m_sb_snghost.allGE(0);
     const auto N_rcvs = static_cast<int>(TheFB->m_RcvTags->size());
@@ -300,7 +323,11 @@ FabArray<FAB>::FillBoundary_finish ()
 
         if (fbd->the_recv_data)
         {
-            amrex::The_Comms_Arena()->free(fbd->the_recv_data);
+            if (Gpu::inNoSyncRegion()) {
+                Gpu::freeAsync(amrex::The_Comms_Arena(), fbd->the_recv_data);
+            } else {
+                amrex::The_Comms_Arena()->free(fbd->the_recv_data);
+            }
             fbd->the_recv_data = nullptr;
         }
     }
@@ -743,7 +770,11 @@ FabArray<FAB>::ParallelCopy_finish ()
 
         if (pcd->the_recv_data)
         {
-            amrex::The_Comms_Arena()->free(pcd->the_recv_data);
+            if (Gpu::inNoSyncRegion()) {
+                Gpu::freeAsync(amrex::The_Comms_Arena(), pcd->the_recv_data);
+            } else {
+                amrex::The_Comms_Arena()->free(pcd->the_recv_data);
+            }
             pcd->the_recv_data = nullptr;
         }
     }

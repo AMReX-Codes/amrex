@@ -117,6 +117,30 @@ struct TheFaArenaDeleter {
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 
+#if defined(AMREX_USE_MPI) && (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP))
+#define AMREX_FB_UNPACK_ON_ARRIVAL 1
+
+//! Cached message layout and kernel tags of the unpack-on-arrival
+//! FillBoundary path for one (FB, BUF, ncomp). See AMReX_FBUnpackOnArrival.H.
+template <class FAB>
+struct FBOnArrivalMeta {
+    using value_type = typename FAB::value_type;
+
+    //! One message per neighbor rank, all in one device buffer.
+    struct Layout {
+        Vector<int>         rank; // global rank
+        Vector<std::size_t> size;
+        Vector<std::size_t> offset;
+        std::size_t nbytes = 0;
+    };
+    Layout snd, rcv;
+
+    TagVector<CommSendBufTag<value_type>> send_tv;
+    TagVector<CommRecvBufTag<value_type>> recv_tv;
+    Vector<int> rcv_warp_begin; // first warp of each message in recv_tv, plus the total
+};
+#endif
+
 // Data used in non-blocking fill boundary.
 template <class FAB>
 struct FBData {
@@ -139,6 +163,11 @@ struct FBData {
     int                 tag;
     //
     bool                deterministic = false;
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    FBOnArrivalMeta<FAB>* oa_meta = nullptr;
+    char*               oa_rcv = nullptr;
+    char*               oa_snd = nullptr;
+#endif
 };
 
 // Data used in non-blocking parallel copy.
@@ -1698,6 +1727,18 @@ public:
                               Vector<CopyComTagsContainer const*> const& send_cctc,
                               int ncomp, std::uint64_t id) const;
 
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    template <typename BUF>
+    FBOnArrivalMeta<FAB>* FB_on_arrival_meta (const FB& TheFB, int ncomp);
+
+    template <typename BUF>
+    void FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int SeqNum,
+                               bool sumboundary);
+
+    template <typename BUF>
+    void FB_on_arrival_finish ();
+#endif
+
 #endif
 
     template <typename BUF = value_type>
@@ -1856,6 +1897,9 @@ private:
     mutable std::map<RecvSendCopyHandlerKey,
                      std::unique_ptr<TagVector<CommSendBufTag<value_type>>>>
         m_send_copy_handler;
+#endif
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    std::map<RecvSendCopyHandlerKey, std::unique_ptr<FBOnArrivalMeta<FAB>>> m_fb_on_arrival_meta;
 #endif
 
 public:
@@ -2178,6 +2222,9 @@ FabArray<FAB>::clear_fab_caches ()
     m_recv_copy_handler.clear();
     m_send_copy_handler.clear();
 #endif
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    m_fb_on_arrival_meta.clear();
+#endif
 }
 
 template <class FAB>
@@ -2262,6 +2309,9 @@ FabArray<FAB>::clear ()
     m_fb_local_copy_handler.clear();
     m_recv_copy_handler.clear();
     m_send_copy_handler.clear();
+#endif
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    m_fb_on_arrival_meta.clear();
 #endif
 
     FabArrayBase::clear();
@@ -2406,6 +2456,9 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_recv_copy_handler(std::move(rhs.m_recv_copy_handler))
     , m_send_copy_handler(std::move(rhs.m_send_copy_handler))
 #endif
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+    , m_fb_on_arrival_meta(std::move(rhs.m_fb_on_arrival_meta))
+#endif
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
@@ -2441,6 +2494,9 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         std::swap(m_fb_local_copy_handler, rhs.m_fb_local_copy_handler);
         std::swap(m_recv_copy_handler, rhs.m_recv_copy_handler);
         std::swap(m_send_copy_handler, rhs.m_send_copy_handler);
+#endif
+#ifdef AMREX_FB_UNPACK_ON_ARRIVAL
+        std::swap(m_fb_on_arrival_meta, rhs.m_fb_on_arrival_meta);
 #endif
 
         rhs.define_function_called = false;
