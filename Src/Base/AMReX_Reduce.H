@@ -228,6 +228,7 @@ inline constexpr int nacc = 8;
 #define AMREX_PRAGMA_NACC_NOVECTOR
 #define AMREX_PRAGMA_NACC_SCALAR
 #endif
+static_assert(nacc == 8, "The AMREX_PRAGMA_NACC unroll factors assume nacc == 8");
 
 // Split a 1D range into chunks of a multiple of nacc, enough for all threads.
 template <std::integral N>
@@ -461,6 +462,7 @@ struct ReduceOpLogicalOr
     constexpr void init (T& t) const noexcept { t = false; }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
 // Whether the accumulator loop of a CPU reduction over Ps is vectorized.
 // A lone min or max stays scalar with GCC on x86 without SSE4.1, where the
@@ -538,6 +540,7 @@ void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value) noexce
     for (; i <= ihi; ++i) { for_each_local<0,Tup,Ps...>(rem, value(i)); }
 }
 }
+/// \endcond
 
 template <typename... Ps> class ReduceOps;
 
