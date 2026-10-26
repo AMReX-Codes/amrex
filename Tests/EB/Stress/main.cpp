@@ -187,6 +187,7 @@ struct Case
     int max_coarsening_level = 0;
     bool sharp = false; // has edges or corners
     Real vf_tol = 0.5_rt;
+    Real dist_tol = 2.0_rt; // EB centroid distance to the surface, in units of the largest dx
     Shape shape;
     std::vector<Real> planes;        // for Polyhedron pieces
     std::vector<Triangle> triangles; // STL
@@ -525,6 +526,27 @@ Case make_case (int icase, std::uint64_t seed)
     } else if (family == 3) {
         desc << " if spheres-cylinders";
         add_pieces({Sphere, Cylinder}, rng.uniform(1, std::min(max_pieces, 4*grow)));
+        // An EB facet is at most a chord across the cell diagonal, so its
+        // centroid is off the surface by at most that chord's sagitta, plus
+        // the roundoff distance within which EB generation treats a node as
+        // on the surface (see IF_roundoff).
+        if (sh.n > 0) {
+            Real rmin = std::numeric_limits<Real>::max();
+            for (int b = 0; b < sh.n; ++b) { rmin = std::min(rmin, sh.piece[b].p[3]); }
+            Real diag2 = 0.0_rt;
+            Real dxmax = 0.0_rt;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                diag2 += Real(geom.CellSize(d)*geom.CellSize(d));
+                dxmax = std::max(dxmax, Real(geom.CellSize(d)));
+            }
+            Real const sagitta = rmin - std::sqrt(rmin*rmin - 0.25_rt*diag2);
+            Real size = 0.0_rt;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                size += std::abs(Real(geom.ProbLo(d))) + Real(geom.ProbHi(d) - geom.ProbLo(d));
+            }
+            Real const roundoff = 16.0_rt * std::numeric_limits<Real>::epsilon() * size;
+            c.dist_tol = (1.5_rt * sagitta + 2.0_rt * roundoff) / dxmax;
+        }
     } else if (family == 4) {
         c.stl = is3d && rng.uniform(0, 1);
         c.sharp = true;
@@ -1060,7 +1082,7 @@ int main (int argc, char* argv[])
             }
             EB2::IndexSpace::pop();
 
-            bool const ok = r.nbad_nodes == 0 && r.nbad_data == 0 && r.max_dist <= 2.0_rt
+            bool const ok = r.nbad_nodes == 0 && r.nbad_data == 0 && r.max_dist <= c.dist_tol
                 && r.max_vf_err <= c.vf_tol && r.layout_diff == 0.0_rt;
             std::ostringstream line;
             line << "case " << icase << " " << (ok ? "ok  " : "FAIL") << " [" << c.desc
