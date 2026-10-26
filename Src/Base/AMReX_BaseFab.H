@@ -2007,32 +2007,26 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 
 namespace detail {
 
-// CPU reduction of f(i,j,k,n) over bx and ncomp components. The partial
-// accumulators break the dependency chain so that the i loop vectorizes.
+// CPU reduction of f(i,j,k,n) over bx and ncomp components with the
+// partial accumulators of Reduce::detail::reduce_row.
 template <typename T, typename Op, typename F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
-T basefab_reduce_cpu (Box const& bx, int ncomp, T const& init, Op const& op, F const& f) noexcept
+T basefab_reduce_cpu (Box const& bx, int ncomp, T const& init, Op const&, F const& f) noexcept
 {
-    constexpr int nacc = Reduce::detail::nacc;
-    T acc[nacc];
-    for (auto& x : acc) { x = init; }
+    using Tup = GpuTuple<T>;
+    Tup rem{init};
+    Reduce::detail::Lanes<Tup> acc;
+    Reduce::detail::lanes_set<0>(acc, rem);
     auto const lo = amrex::lbound(bx);
     auto const hi = amrex::ubound(bx);
     for (int n = 0; n < ncomp; ++n) {
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
-        int i = lo.x;
-        for (; i + nacc - 1 <= hi.x; i += nacc) {
-            for (int l = 0; l < nacc; ++l) {
-                op.local_update(acc[l], static_cast<T>(f(i+l,j,k,n)));
-            }
-        }
-        for (; i <= hi.x; ++i) {
-            op.local_update(acc[0], static_cast<T>(f(i,j,k,n)));
-        }
+        Reduce::detail::reduce_row<Op>(lo.x, hi.x, acc, rem,
+            [&] (int i) { return Tup{static_cast<T>(f(i,j,k,n))}; });
     }}}
-    for (int l = 1; l < nacc; ++l) { op.local_update(acc[0], acc[l]); }
-    return acc[0];
+    Reduce::detail::lanes_fold<0,Tup,Op>(acc, rem);
+    return amrex::get<0>(rem);
 }
 
 }
@@ -2281,35 +2275,19 @@ BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
     } else
 #endif
     {
-        constexpr int nacc = Reduce::detail::nacc;
-        T rmin[nacc], rmax[nacc];
-        for (int l = 0; l < nacc; ++l) {
-            rmin[l] = std::numeric_limits<T>::max();
-            rmax[l] = std::numeric_limits<T>::lowest();
-        }
+        using MM = GpuTuple<T,T>;
+        MM rem{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
+        Reduce::detail::Lanes<MM> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
         auto const lo = amrex::lbound(subbox);
         auto const hi = amrex::ubound(subbox);
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
-            int i = lo.x;
-            for (; i + nacc - 1 <= hi.x; i += nacc) {
-                for (int l = 0; l < nacc; ++l) {
-                    auto const x = a(i+l,j,k);
-                    rmin[l] = amrex::min(rmin[l], x);
-                    rmax[l] = amrex::max(rmax[l], x);
-                }
-            }
-            for (; i <= hi.x; ++i) {
-                auto const x = a(i,j,k);
-                rmin[0] = amrex::min(rmin[0], x);
-                rmax[0] = amrex::max(rmax[0], x);
-            }
+            Reduce::detail::reduce_row<ReduceOpMin,ReduceOpMax>(lo.x, hi.x, acc, rem,
+                [&] (int i) { auto const x = a(i,j,k); return MM{x,x}; });
         }}
-        for (int l = 1; l < nacc; ++l) {
-            rmin[0] = amrex::min(rmin[0], rmin[l]);
-            rmax[0] = amrex::max(rmax[0], rmax[l]);
-        }
-        return std::make_pair(rmin[0],rmax[0]);
+        Reduce::detail::lanes_fold<0,MM,ReduceOpMin,ReduceOpMax>(acc, rem);
+        return std::make_pair(amrex::get<0>(rem), amrex::get<1>(rem));
     }
 }
 
