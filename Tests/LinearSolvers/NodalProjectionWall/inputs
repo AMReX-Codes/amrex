@@ -1,0 +1,7 @@
+# Resolutions (cells per side of the unit square); h = 1/n
+n_cell = 32 64 128 256
+max_grid_size = 32
+# Relative tolerance of the nodal projection solve
+rtol = 1.e-12
+# MLMG verbosity of the projection solve
+verbose = 0
