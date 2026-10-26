@@ -1548,7 +1548,7 @@ T Sum (N n, F const& f, T init_val)
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
         using Tup = GpuTuple<T>;
-        Tup rem{T(0)};
+        Tup rem{};
         Reduce::detail::Lanes<Tup> acc;
         Reduce::detail::lanes_set<0>(acc, rem);
         Reduce::detail::reduce_row<ReduceOpSum>(ib, static_cast<N>(ie-1), acc, rem,
