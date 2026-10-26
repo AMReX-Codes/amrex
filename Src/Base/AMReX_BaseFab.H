@@ -2009,9 +2009,9 @@ namespace detail {
 
 // CPU reduction of f(i,j,k,n) over bx and ncomp components with the
 // partial accumulators of Reduce::detail::reduce_row.
-template <typename T, typename Op, typename F>
+template <typename Op, typename T, typename F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
-T basefab_reduce_cpu (Box const& bx, int ncomp, T const& init, Op const&, F const& f) noexcept
+T basefab_reduce_cpu (Box const& bx, int ncomp, T const& init, F const& f) noexcept
 {
     using Tup = GpuTuple<T>;
     Tup rem{init};
@@ -2064,7 +2064,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(subbox, ncomp, Real(0.0), ReduceOpMax{},
+        r = detail::basefab_reduce_cpu<ReduceOpMax>(subbox, ncomp, Real(0.0),
         [=] (int i, int j, int k, int n) noexcept
         {
             auto const t = a(i,j,k,n+scomp);
@@ -2146,19 +2146,19 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
 #endif
     {
         if (p == 0) {
-            nrm = detail::basefab_reduce_cpu(subbox, numcomp, Real(0.0), ReduceOpMax{},
+            nrm = detail::basefab_reduce_cpu<ReduceOpMax>(subbox, numcomp, Real(0.0),
             [=] (int i, int j, int k, int n) noexcept
             {
                 return static_cast<Real>(std::abs(a(i,j,k,n+comp)));
             });
         } else if (p == 1) {
-            nrm = detail::basefab_reduce_cpu(subbox, numcomp, Real(0.0), ReduceOpSum{},
+            nrm = detail::basefab_reduce_cpu<ReduceOpSum>(subbox, numcomp, Real(0.0),
             [=] (int i, int j, int k, int n) noexcept
             {
                 return static_cast<Real>(std::abs(a(i,j,k,n+comp)));
             });
         } else if (p == 2) {
-            nrm = detail::basefab_reduce_cpu(subbox, numcomp, Real(0.0), ReduceOpSum{},
+            nrm = detail::basefab_reduce_cpu<ReduceOpSum>(subbox, numcomp, Real(0.0),
             [=] (int i, int j, int k, int n) noexcept
             {
                 return static_cast<Real>(a(i,j,k,n+comp)*a(i,j,k,n+comp));
@@ -2200,7 +2200,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
     } else
 #endif
     {
-        return detail::basefab_reduce_cpu(subbox, 1, std::numeric_limits<T>::max(), ReduceOpMin{},
+        return detail::basefab_reduce_cpu<ReduceOpMin>(subbox, 1, std::numeric_limits<T>::max(),
         [=] (int i, int j, int k, int) noexcept
         {
             return a(i,j,k);
@@ -2237,7 +2237,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
     } else
 #endif
     {
-        return detail::basefab_reduce_cpu(subbox, 1, std::numeric_limits<T>::lowest(), ReduceOpMax{},
+        return detail::basefab_reduce_cpu<ReduceOpMax>(subbox, 1, std::numeric_limits<T>::lowest(),
         [=] (int i, int j, int k, int) noexcept
         {
             return a(i,j,k);
@@ -2320,7 +2320,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
     } else
 #endif
     {
-        return detail::basefab_reduce_cpu(subbox, 1, T(0), ReduceOpMax{},
+        return detail::basefab_reduce_cpu<ReduceOpMax>(subbox, 1, T(0),
         [=] (int i, int j, int k, int) noexcept
         {
             return std::abs(a(i,j,k));
@@ -2827,7 +2827,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(xbx, numcomp, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(xbx, numcomp, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             return xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp);
@@ -2881,7 +2881,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(xbx, numcomp, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(xbx, numcomp, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
@@ -3927,7 +3927,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(bx, ncomp.n, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(bx, ncomp.n, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             return a(i,j,k,n+dcomp.i);
@@ -3968,7 +3968,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(bx, ncomp.n, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(bx, ncomp.n, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             return d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
@@ -4015,7 +4015,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(bx, ncomp.n, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(bx, ncomp.n, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             return a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
@@ -4060,7 +4060,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     } else
 #endif
     {
-        r = detail::basefab_reduce_cpu(bx, ncomp.n, T(0), ReduceOpSum{},
+        r = detail::basefab_reduce_cpu<ReduceOpSum>(bx, ncomp.n, T(0),
         [=] (int i, int j, int k, int n) noexcept
         {
             int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));

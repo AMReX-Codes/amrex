@@ -212,13 +212,9 @@ namespace Reduce::detail {
 // vectorizes.
 inline constexpr int nacc = 8;
 
-// GCC needs help with the loop over the nacc accumulators. To vectorize
-// it, an unroll request below nacc keeps it from being completely unrolled
-// into scalar code before the vectorizer runs; the vectorized loop is then
-// unrolled completely. To keep it scalar on purpose, it is unrolled right
-// away and both it and the enclosing block loop get novector, or GCC pairs
-// up some of the scalar chains. Clang vectorizes the unrolled loop as is,
-// and nvcc does not know the pragmas.
+// Pragmas for the loop over the nacc accumulators. With GCC, `unroll 4`
+// keeps it vectorizable and novector plus a full unroll keeps it scalar on
+// purpose. Clang needs neither, and nvcc does not know them.
 #if defined(AMREX_CXX_GCC) && !defined(__CUDACC__)
 #define AMREX_PRAGMA_NACC_VECTORIZE _Pragma("GCC unroll 4")
 #if __GNUC__ >= 14
@@ -467,9 +463,8 @@ struct ReduceOpLogicalOr
 
 namespace Reduce::detail {
 // Whether the accumulator loop of a CPU reduction over Ps is vectorized.
-// On x86 without SSE4.1, GCC has no packed min/max with the right NaN
-// semantics; a lone min or max then compiles to compare-and-blend code
-// that is slower than the scalar chains, so it stays scalar there.
+// A lone min or max stays scalar with GCC on x86 without SSE4.1, where the
+// vector form is slower.
 template <typename... Ps>
 inline constexpr bool vectorize_nacc_loop =
 #if defined(AMREX_CXX_GCC) && (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
@@ -1539,7 +1534,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1550,13 +1544,14 @@ T Sum (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc] = {};
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] += f(static_cast<N>(i+l)); }
-        }
-        for (; i < ie; ++i) { acc[0] += f(i); }
-        for (T const& a : acc) { r += a; }
+        using Tup = GpuTuple<T>;
+        Tup rem{T(0)};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpSum>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpSum>(acc, rem);
+        r += amrex::get<0>(rem);
     }
     return r;
 }
@@ -1571,7 +1566,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1582,14 +1576,14 @@ T Min (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc];
-        for (T& a : acc) { a = init_val; }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::min(acc[l], f(static_cast<N>(i+l))); }
-        }
-        for (; i < ie; ++i) { acc[0] = std::min(acc[0], f(i)); }
-        for (T const& a : acc) { r = std::min(r, a); }
+        using Tup = GpuTuple<T>;
+        Tup rem{init_val};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMin>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMin>(acc, rem);
+        r = std::min(r, amrex::get<0>(rem));
     }
     return r;
 }
@@ -1604,7 +1598,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1615,14 +1608,14 @@ T Max (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc];
-        for (T& a : acc) { a = init_val; }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(static_cast<N>(i+l))); }
-        }
-        for (; i < ie; ++i) { acc[0] = std::max(acc[0], f(i)); }
-        for (T const& a : acc) { r = std::max(r, a); }
+        using Tup = GpuTuple<T>;
+        Tup rem{init_val};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMax>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMax>(acc, rem);
+        r = std::max(r, amrex::get<0>(rem));
     }
     return r;
 }
@@ -1637,7 +1630,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1649,24 +1641,15 @@ std::pair<T,T> MinMax (N n, F const& f)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T amin[nacc], amax[nacc];
-        for (T& a : amin) { a = std::numeric_limits<T>::max(); }
-        for (T& a : amax) { a = std::numeric_limits<T>::lowest(); }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) {
-                T tmp = f(static_cast<N>(i+l));
-                amin[l] = std::min(amin[l], tmp);
-                amax[l] = std::max(amax[l], tmp);
-            }
-        }
-        for (; i < ie; ++i) {
-            T tmp = f(i);
-            amin[0] = std::min(amin[0], tmp);
-            amax[0] = std::max(amax[0], tmp);
-        }
-        for (T const& a : amin) { r_min = std::min(r_min, a); }
-        for (T const& a : amax) { r_max = std::max(r_max, a); }
+        using Tup = GpuTuple<T,T>;
+        Tup rem{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMin,ReduceOpMax>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { T const tmp = f(i); return Tup{tmp,tmp}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMin,ReduceOpMax>(acc, rem);
+        r_min = std::min(r_min, amrex::get<0>(rem));
+        r_max = std::max(r_max, amrex::get<1>(rem));
     }
     return std::make_pair(r_min,r_max);
 }
