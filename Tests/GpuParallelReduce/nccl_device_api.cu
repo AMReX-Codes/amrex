@@ -274,7 +274,8 @@ int main (int argc, char** argv)
                     for (int i = 0; i < count; ++i) {
                         float const expected = expected_rank_sum +
                             nranks * (i + iteration);
-                        if (std::fabs(host[i] - expected) > 1.0e-6f) {
+                        if (!std::isfinite(host[i]) ||
+                            std::fabs(host[i] - expected) > 1.0e-6f) {
                             std::fprintf(stderr,
                                 "rank %d iteration %d: result[%d]=%g expected=%g\n",
                                 rank, iteration, i, host[i], expected);
