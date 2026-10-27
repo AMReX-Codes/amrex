@@ -1173,7 +1173,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
 #ifdef AMREX_USE_GPU
     bool eb_covered = false;
 #ifdef AMREX_USE_EB
-    eb_covered = this->hasEBFabFactory() && ignore_covered;
+    eb_covered = this->is_cell_centered() && this->hasEBFabFactory() && ignore_covered;
 #endif
     if (Gpu::inLaunchRegion() && !eb_covered && n > 0 && this->local_size() > 0)
     {

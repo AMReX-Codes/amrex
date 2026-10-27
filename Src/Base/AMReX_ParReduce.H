@@ -437,7 +437,8 @@ struct ParReduceComp
             Vector<Box> bx(nlocal);
             Vector<int> thick(nlocal), nchunk(nlocal), ioff(nlocal+1, 0);
             for (int L = 0; L < nlocal; ++L) {
-                bx[L] = amrex::grow(fa.box(fa.IndexArray()[L]), nghost);
+                bx[L] = fa.box(fa.IndexArray()[L]);
+                if (bx[L].ok()) { bx[L].grow(nghost); }
                 // An empty box is one empty chunk.
                 const int len = bx[L].ok() ? bx[L].length(d) : 1;
                 thick[L] = (split && bx[L].ok()) ? int(std::max(Long(1), Long(16384)/(bx[L].numPts()/len))) : len;
