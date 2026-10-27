@@ -893,6 +893,13 @@ public:
                     return f(li, i, j, k, n);
                 });
             }
+        } else if (ncomp == 1) {
+            // Without the loop over components, the kernel reads memory faster.
+            eval_mf(Reduce::detail::iterate_box{}, mf, nghost, 0, reduce_data,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> ReduceTuple
+            {
+                return f(box_no, i, j, k, 0);
+            });
         } else {
             eval_mf(Reduce::detail::iterate_box_comp{},
                     mf, nghost, ncomp, reduce_data, std::forward<F>(f));
@@ -908,7 +915,16 @@ public:
     template <std::integral N, typename D, typename F, int dim>
     void eval (BoxND<dim> const& box, N ncomp, D & reduce_data, F const& f)
     {
-        eval_box(Reduce::detail::iterate_box_comp{}, box, ncomp, reduce_data, f);
+        if (ncomp == 1) {
+            // Without the loop over components, the kernel reads memory faster.
+            eval_box(Reduce::detail::iterate_box{}, box, 0, reduce_data,
+            [=] AMREX_GPU_DEVICE (IntVectND<dim> const& iv) noexcept
+            {
+                return Reduce::detail::call_f_intvect_n(f, iv, 0);
+            });
+        } else {
+            eval_box(Reduce::detail::iterate_box_comp{}, box, ncomp, reduce_data, f);
+        }
     }
 
     template <std::integral N, typename D, typename F>
