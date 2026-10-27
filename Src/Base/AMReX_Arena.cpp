@@ -561,7 +561,15 @@ Arena::Initialize (bool minimal)
         the_comms_arena = the_pinned_arena;
     }
 #else
-    the_comms_arena = The_BArena();
+    {
+        // A CArena reuses the MPI buffers instead of allocating new ones for
+        // every communication.
+        ArenaInfo ai{};
+        ai.SetReleaseThreshold(the_comms_arena_release_threshold);
+        ai.SetDefragmentation(the_comms_arena_defragmentation);
+        the_comms_arena = new CArena(0, ai);
+        the_comms_arena->registerForProfiling("Comms Memory");
+    }
 #endif
 
     if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {

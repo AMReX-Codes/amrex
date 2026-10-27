@@ -1,4 +1,5 @@
 #include <AMReX_BArena.H>
+#include <AMReX.H>
 
 void*
 amrex::BArena::alloc (std::size_t sz_)
@@ -9,6 +10,10 @@ amrex::BArena::alloc (std::size_t sz_)
 #else
     void* pt = _aligned_malloc(sz_, align_size);
 #endif
+    if (pt == nullptr && sz_ > 0) {
+        amrex::ErrorStream() << "Out of CPU memory: got nullptr from std::aligned_alloc\n";
+        throw_out_of_memory("CPU memory", sz_, "std::aligned_alloc returned nullptr");
+    }
     m_profiler.profile_alloc(pt, sz_);
     return pt;
 }

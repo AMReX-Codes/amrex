@@ -27,8 +27,8 @@ struct DataAllocator {
     //! Construct with an explicit arena \p ar.
     DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
 
-    //! Allocate \p sz bytes from the arena.
-    [[nodiscard]] void* alloc (std::size_t sz) const noexcept {
+    //! Allocate \p sz bytes from the arena. Throws OutOfMemoryError on failure.
+    [[nodiscard]] void* alloc (std::size_t sz) const {
         return arena()->alloc(sz);
     }
 
