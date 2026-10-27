@@ -1187,6 +1187,8 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
         {
             return absinf(ma[box_no](i,j,k,pcomps[m]));
         });
+        // ParReducePerComp returns lowest() if all grown boxes are empty
+        for (auto& x : nm0) { x = std::max(x, 0.0_rt); }
     }
     else
 #endif

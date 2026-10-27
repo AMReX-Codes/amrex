@@ -106,17 +106,15 @@ int check (BoxArray const& ba, int ncomp, int ng)
 
     for (int L = 0; L < nlocal; ++L) {
         for (int n = 0; n < ncomp; ++n) {
-            auto ref = ParReduce(TypeList<ReduceOpMin,ReduceOpMax,ReduceOpSum>{},
-                                 TypeList<Real,Real,Real>{}, mf, nghost,
-            [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept -> GpuTuple<Real,Real,Real>
+            ReduceOps<ReduceOpMin,ReduceOpMax,ReduceOpSum> rop;
+            ReduceData<Real,Real,Real> rdata(rop);
+            rop.eval(amrex::grow(mf.box(mf.IndexArray()[L]), nghost), rdata,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> GpuTuple<Real,Real,Real>
             {
-                if (b != L) {
-                    return {std::numeric_limits<Real>::max(),
-                            std::numeric_limits<Real>::lowest(), Real(0)};
-                }
-                Real v = cma[b](i,j,k,n);
+                Real v = cma[L](i,j,k,n);
                 return {v, v, v};
             });
+            auto ref = rdata.value(rop);
             auto const& r = pb[L*ncomp+n];
             if (amrex::get<0>(r) != amrex::get<0>(ref) ||
                 amrex::get<1>(r) != amrex::get<1>(ref) ||
