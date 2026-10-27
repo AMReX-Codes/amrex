@@ -438,21 +438,17 @@ struct ParReduceComp
                 b.grow(nghost);
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
-                RT acc[nacc];
-                for (auto& a : acc) { for_each_init<0, RT, Ops...>(a); }
+                RT rem;
+                for_each_init<0, RT, Ops...>(rem);
+                Lanes<RT> acc;
+                lanes_set<0>(acc, rem);
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    int i = lo.x;
-                    for (; i + nacc - 1 <= hi.x; i += nacc) {
-                        for (int l = 0; l < nacc; ++l) {
-                            for_each_local<0, RT, Ops...>(acc[l], f(L,i+l,j,k,n));
-                        }
-                    }
-                    for (; i <= hi.x; ++i) {
-                        for_each_local<0, RT, Ops...>(acc[0], f(L,i,j,k,n));
-                    }
+                    reduce_row<Ops...>(lo.x, hi.x, acc, rem,
+                        [&] (int i) { return f(L,i,j,k,n); });
                 }}
-                for (auto const& a : acc) { for_each_local<0, RT, Ops...>(r[key], a); }
+                lanes_fold<0, RT, Ops...>(acc, r[key]);
+                for_each_local<0, RT, Ops...>(r[key], rem);
             }
         } else {
             const int nthreads = OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads();
@@ -465,27 +461,23 @@ struct ParReduceComp
                 RT* rr = rt.data() + std::size_t(nthreads > 1 ? OpenMP::get_thread_num() : 0)*ncomp;
                 // Component loop outermost, so that each pass streams one component.
                 for (int n = 0; n < ncomp; ++n) {
+                    RT rem;
+                    for_each_init<0, RT, Ops...>(rem);
+                    Lanes<RT> acc;
+                    lanes_set<0>(acc, rem);
                     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi) {
                         Box const& b = mfi.growntilebox(nghost);
                         const int L = mfi.LocalIndex();
                         const auto lo = amrex::lbound(b);
                         const auto hi = amrex::ubound(b);
-                        RT acc[nacc];
-                        for (auto& a : acc) { for_each_init<0, RT, Ops...>(a); }
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                            int i = lo.x;
-                            for (; i + nacc - 1 <= hi.x; i += nacc) {
-                                for (int l = 0; l < nacc; ++l) {
-                                    for_each_local<0, RT, Ops...>(acc[l], f(L,i+l,j,k,n));
-                                }
-                            }
-                            for (; i <= hi.x; ++i) {
-                                for_each_local<0, RT, Ops...>(acc[0], f(L,i,j,k,n));
-                            }
+                            reduce_row<Ops...>(lo.x, hi.x, acc, rem,
+                                [&] (int i) { return f(L,i,j,k,n); });
                         }}
-                        for (auto const& a : acc) { for_each_local<0, RT, Ops...>(rr[n], a); }
                     }
+                    lanes_fold<0, RT, Ops...>(acc, rr[n]);
+                    for_each_local<0, RT, Ops...>(rr[n], rem);
                 }
             }
             for (int it = 0; it < nthreads; ++it) {

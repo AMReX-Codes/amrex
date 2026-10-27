@@ -1167,7 +1167,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
     int n = static_cast<int>(comps.size());
     Vector<Real> nm0;
 
-    // CPU keeps norminf per component; vectorizing its abs is slower with SSE2.
+    // One pass over all components only pays off on GPU.
 #ifdef AMREX_USE_GPU
     bool eb_covered = false;
 #ifdef AMREX_USE_EB
@@ -1278,9 +1278,9 @@ MultiFab::norm2 (const Vector<int>& comps) const
     int n = static_cast<int>(comps.size());
     Vector<Real> nm2;
 
+    // One pass over all components only pays off on GPU.
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
-#endif
     {
         Gpu::DeviceVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
@@ -1292,18 +1292,18 @@ MultiFab::norm2 (const Vector<int>& comps) const
             Real const v = ma[box_no](i,j,k,pcomps[m]);
             return v*v;
         });
-        ParallelAllReduce::Sum(nm2.dataPtr(), n, ParallelContext::CommunicatorSub());
-        for (auto& x : nm2) { x = std::sqrt(x); }
     }
-#ifdef AMREX_USE_GPU
     else
+#endif
     {
         nm2.reserve(n);
         for (int comp : comps) {
-            nm2.push_back(this->norm2(comp));
+            nm2.push_back(MultiFab::Dot(*this, comp, 1, 0, true));
         }
     }
-#endif
+
+    ParallelAllReduce::Sum(nm2.dataPtr(), n, ParallelContext::CommunicatorSub());
+    for (auto& x : nm2) { x = std::sqrt(x); }
 
     return nm2;
 }
@@ -1379,9 +1379,9 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     int n = static_cast<int>(comps.size());
     Vector<Real> nm1;
 
+    // One pass over all components only pays off on GPU.
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
-#endif
     {
         Gpu::DeviceVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
@@ -1393,15 +1393,14 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
             return std::abs(ma[box_no](i,j,k,pcomps[m]));
         });
     }
-#ifdef AMREX_USE_GPU
     else
+#endif
     {
         nm1.reserve(n);
         for (int comp : comps) {
             nm1.push_back(this->norm1(comp, ngrow, true));
         }
     }
-#endif
 
     if (!local) {
         ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
