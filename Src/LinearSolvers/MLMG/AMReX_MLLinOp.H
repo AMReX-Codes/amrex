@@ -420,7 +420,7 @@ public:
     /**
      * \brief Before a composite solve, set the solution at the nodes that
      * fine AMR level famrlev takes from the coarse level (the coarse/fine
-     * nodes of nodal solvers) to the interpolated coarse solution.  The
+     * nodes of MLNodeLaplacian) to the interpolated coarse solution.  The
      * solve only adds interpolated corrections there, so the result would
      * otherwise depend on the initial guess.  The default does nothing.
      *
