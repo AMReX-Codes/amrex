@@ -138,9 +138,13 @@ int check (BoxArray const& ba, int ncomp, int ng)
             if (nm1[m] != mf.norm1(comps[m], ng)) { ++nbad; }
         }
         if (ng == 0) {
+            // Sums of squares can exceed the exact integer range of float.
             auto nm2 = mf.norm2(comps);
             for (int m = 0; m < ncomp; ++m) {
-                if (nm2[m] != mf.norm2(comps[m])) { ++nbad; }
+                Real ref = mf.norm2(comps[m]);
+                if (std::abs(nm2[m] - ref) > Real(100)*std::numeric_limits<Real>::epsilon()*ref) {
+                    ++nbad;
+                }
             }
         }
     }
