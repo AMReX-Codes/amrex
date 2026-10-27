@@ -1177,7 +1177,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
 #endif
     if (Gpu::inLaunchRegion() && !eb_covered && n > 0 && this->local_size() > 0)
     {
-        Gpu::DeviceVector<int> dcomps(n);
+        Gpu::AsyncVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
         int const* pcomps = dcomps.data();
         auto const& ma = this->const_arrays();
@@ -1285,7 +1285,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
     {
-        Gpu::DeviceVector<int> dcomps(n);
+        Gpu::AsyncVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
         int const* pcomps = dcomps.data();
         auto const& ma = this->const_arrays();
@@ -1388,7 +1388,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
     {
-        Gpu::DeviceVector<int> dcomps(n);
+        Gpu::AsyncVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
         int const* pcomps = dcomps.data();
         auto const& ma = this->const_arrays();
