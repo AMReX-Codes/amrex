@@ -1164,12 +1164,39 @@ MultiFab::norm0 (int comp, int ncomp, IntVect const& nghost, bool local, bool ig
 Vector<Real>
 MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_covered) const
 {
+    BL_PROFILE("MultiFab::norm0(comps)");
+
     int n = static_cast<int>(comps.size());
     Vector<Real> nm0;
-    nm0.reserve(n);
 
-    for (int comp : comps) {
-        nm0.push_back(this->norm0(comp, nghost, true, ignore_covered));
+    // One pass over all components only pays off on GPU.
+#ifdef AMREX_USE_GPU
+    bool eb_covered = false;
+#ifdef AMREX_USE_EB
+    eb_covered = this->is_cell_centered() && this->hasEBFabFactory() && ignore_covered;
+#endif
+    if (Gpu::inLaunchRegion() && !eb_covered && n > 0 && this->local_size() > 0)
+    {
+        Gpu::AsyncVector<int> dcomps(n);
+        Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
+        int const* pcomps = dcomps.data();
+        auto const& ma = this->const_arrays();
+        Math::detail::AbsNanToInf<Real> const absinf{};
+        nm0 = ParReducePerComp(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost), n,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int m) noexcept -> GpuTuple<Real>
+        {
+            return absinf(ma[box_no](i,j,k,pcomps[m]));
+        });
+        // ParReducePerComp returns lowest() if all grown boxes are empty
+        for (auto& x : nm0) { x = std::max(x, 0.0_rt); }
+    }
+    else
+#endif
+    {
+        nm0.reserve(n);
+        for (int comp : comps) {
+            nm0.push_back(this->norm0(comp, nghost, true, ignore_covered));
+        }
     }
 
     if (!local) {
@@ -1249,13 +1276,37 @@ MultiFab::norm2 (const Vector<int>& comps) const
 {
     BL_ASSERT(ixType().cellCentered());
 
+    BL_PROFILE("MultiFab::norm2(comps)");
+
     int n = static_cast<int>(comps.size());
     Vector<Real> nm2;
-    nm2.reserve(n);
 
-    for (int comp : comps) {
-        nm2.push_back(this->norm2(comp));
+    // One pass over all components only pays off on GPU.
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
+    {
+        Gpu::AsyncVector<int> dcomps(n);
+        Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
+        int const* pcomps = dcomps.data();
+        auto const& ma = this->const_arrays();
+        nm2 = ParReducePerComp(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0), n,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int m) noexcept -> GpuTuple<Real>
+        {
+            Real const v = ma[box_no](i,j,k,pcomps[m]);
+            return v*v;
+        });
     }
+    else
+#endif
+    {
+        nm2.reserve(n);
+        for (int comp : comps) {
+            nm2.push_back(MultiFab::Dot(*this, comp, 1, 0, true));
+        }
+    }
+
+    ParallelAllReduce::Sum(nm2.dataPtr(), n, ParallelContext::CommunicatorSub());
+    for (auto& x : nm2) { x = std::sqrt(x); }
 
     return nm2;
 }
@@ -1328,12 +1379,32 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 {
     BL_ASSERT(ixType().cellCentered());
 
+    BL_PROFILE("MultiFab::norm1(comps)");
+
     int n = static_cast<int>(comps.size());
     Vector<Real> nm1;
-    nm1.reserve(n);
 
-    for (int comp : comps) {
-        nm1.push_back(this->norm1(comp, ngrow, true));
+    // One pass over all components only pays off on GPU.
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
+    {
+        Gpu::AsyncVector<int> dcomps(n);
+        Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
+        int const* pcomps = dcomps.data();
+        auto const& ma = this->const_arrays();
+        nm1 = ParReducePerComp(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(ngrow), n,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int m) noexcept -> GpuTuple<Real>
+        {
+            return std::abs(ma[box_no](i,j,k,pcomps[m]));
+        });
+    }
+    else
+#endif
+    {
+        nm1.reserve(n);
+        for (int comp : comps) {
+            nm1.push_back(this->norm1(comp, ngrow, true));
+        }
     }
 
     if (!local) {
