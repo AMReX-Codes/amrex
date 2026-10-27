@@ -212,6 +212,24 @@ namespace Reduce::detail {
 // vectorizes.
 inline constexpr int nacc = 8;
 
+// Pragmas for the loop over the nacc accumulators. With GCC, `unroll 4`
+// keeps it vectorizable and novector plus a full unroll keeps it scalar on
+// purpose. Clang needs neither, and nvcc does not know them.
+#if defined(AMREX_CXX_GCC) && !defined(__CUDACC__)
+#define AMREX_PRAGMA_NACC_VECTORIZE _Pragma("GCC unroll 4")
+#if __GNUC__ >= 14
+#define AMREX_PRAGMA_NACC_NOVECTOR _Pragma("GCC novector")
+#else
+#define AMREX_PRAGMA_NACC_NOVECTOR
+#endif
+#define AMREX_PRAGMA_NACC_SCALAR AMREX_PRAGMA_NACC_NOVECTOR _Pragma("GCC unroll 8")
+#else
+#define AMREX_PRAGMA_NACC_VECTORIZE
+#define AMREX_PRAGMA_NACC_NOVECTOR
+#define AMREX_PRAGMA_NACC_SCALAR
+#endif
+static_assert(nacc == 8, "The AMREX_PRAGMA_NACC unroll factors assume nacc == 8");
+
 // Split a 1D range into chunks of a multiple of nacc, enough for all threads.
 template <std::integral N>
 std::pair<N,N> chunks_1d (N n)
@@ -443,6 +461,90 @@ struct ReduceOpLogicalOr
     template <std::integral T>
     constexpr void init (T& t) const noexcept { t = false; }
 };
+
+/// \cond DOXYGEN_IGNORE
+namespace Reduce::detail {
+// Whether the accumulator loop of a CPU reduction over Ps is vectorized.
+// A lone min or max stays scalar with GCC 14 or newer on x86 without
+// SSE4.1, where the vector form is slower. Older GCC has no novector.
+template <typename... Ps>
+inline constexpr bool vectorize_nacc_loop =
+#if defined(AMREX_CXX_GCC) && !defined(__CUDACC__) && (__GNUC__ >= 14) && \
+    (defined(__x86_64__) || defined(__i386__)) && !defined(__SSE4_1__)
+    sizeof...(Ps) != 1 ||
+    !((std::is_same_v<Ps,ReduceOpMin> || std::is_same_v<Ps,ReduceOpMax>) && ...);
+#else
+    true;
+#endif
+
+// The nacc partial accumulators of a CPU reduction. GCC keeps them in
+// vector registers only when each tuple member has its own array, clang
+// only when each lane holds a whole tuple.
+template <typename Tup> struct Lanes;
+
+template <typename... Ts>
+struct Lanes<GpuTuple<Ts...>>
+{
+#ifdef AMREX_CXX_GCC
+    GpuTuple<GpuArray<Ts,nacc>...> data;
+    template <int K> auto& get (int lane) noexcept { return amrex::get<K>(data)[lane]; }
+    template <int K> [[nodiscard]] auto const& get (int lane) const noexcept { return amrex::get<K>(data)[lane]; }
+#else
+    GpuTuple<Ts...> data[nacc];
+    template <int K> auto& get (int lane) noexcept { return amrex::get<K>(data[lane]); }
+    template <int K> [[nodiscard]] auto const& get (int lane) const noexcept { return amrex::get<K>(data[lane]); }
+#endif
+};
+
+template <int K, typename Tup>
+AMREX_FORCE_INLINE
+void lanes_set (Lanes<Tup>& acc, Tup const& v)
+{
+    for (int lane = 0; lane < nacc; ++lane) { acc.template get<K>(lane) = amrex::get<K>(v); }
+    if constexpr (K+1 < GpuTupleSize<Tup>::value) { lanes_set<K+1>(acc, v); }
+}
+
+template <int K, typename Tup, typename P, typename... Ps>
+AMREX_FORCE_INLINE
+void lanes_update (Lanes<Tup>& acc, int lane, Tup const& s)
+{
+    P().local_update(acc.template get<K>(lane), amrex::get<K>(s));
+    if constexpr (sizeof...(Ps) > 0) { lanes_update<K+1,Tup,Ps...>(acc, lane, s); }
+}
+
+template <int K, typename Tup, typename P, typename... Ps>
+AMREX_FORCE_INLINE
+void lanes_fold (Lanes<Tup> const& acc, Tup& r)
+{
+    for (int lane = 0; lane < nacc; ++lane) { P().local_update(amrex::get<K>(r), acc.template get<K>(lane)); }
+    if constexpr (sizeof...(Ps) > 0) { lanes_fold<K+1,Tup,Ps...>(acc, r); }
+}
+
+// One row of a CPU reduction over the ops Ps: full blocks of nacc cells go
+// into the lanes, the rest into rem. value(i) is the tuple for cell i.
+template <typename... Ps, typename Tup, std::integral N, typename F>
+AMREX_FORCE_INLINE
+void reduce_row (N ilo, N ihi, Lanes<Tup>& acc, Tup& rem, F const& value)
+{
+    N i = ilo;
+    AMREX_PRAGMA_NACC_NOVECTOR
+    for (; i + (nacc-1) <= ihi; i += nacc) {
+        if constexpr (vectorize_nacc_loop<Ps...>) {
+            AMREX_PRAGMA_NACC_VECTORIZE
+            for (int lane = 0; lane < nacc; ++lane) { lanes_update<0,Tup,Ps...>(acc, lane, value(static_cast<N>(i+lane))); }
+        } else {
+            AMREX_PRAGMA_NACC_SCALAR
+            for (int lane = 0; lane < nacc; ++lane) { lanes_update<0,Tup,Ps...>(acc, lane, value(static_cast<N>(i+lane))); }
+        }
+    }
+    AMREX_PRAGMA_NACC_NOVECTOR
+    for (; i <= ihi; ++i) { for_each_local<0,Tup,Ps...>(rem, value(i)); }
+}
+}
+#undef AMREX_PRAGMA_NACC_VECTORIZE
+#undef AMREX_PRAGMA_NACC_NOVECTOR
+#undef AMREX_PRAGMA_NACC_SCALAR
+/// \endcond
 
 template <typename... Ps> class ReduceOps;
 
@@ -1265,28 +1367,22 @@ private:
     static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple acc[nacc];
-        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
+        ReduceTuple rem;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rem);
+        Reduce::detail::Lanes<ReduceTuple> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
         int const ilo = box.smallEnd(0);
         int const ihi = box.bigEnd(0);
         BoxND<dim> rows = box;
         rows.setBig(0, ilo);
         For(rows, [&] (IntVectND<dim> iv) {
-            int i = ilo;
-            for (; i + nacc - 1 <= ihi; i += nacc) {
-                for (int l = 0; l < nacc; ++l) {
-                    iv[0] = i + l;
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                        (acc[l], Reduce::detail::call_f_intvect(f, iv));
-                }
-            }
-            for (; i <= ihi; ++i) {
+            Reduce::detail::reduce_row<Ps...>(ilo, ihi, acc, rem, [&] (int i) {
                 iv[0] = i;
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                    (acc[0], Reduce::detail::call_f_intvect(f, iv));
-            }
+                return Reduce::detail::call_f_intvect(f, iv);
+            });
         });
-        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, a); }
+        Reduce::detail::lanes_fold<0, ReduceTuple, Ps...>(acc, r);
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, rem);
     }
 
     template <typename D, typename F, int dim>
@@ -1300,8 +1396,6 @@ private:
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
     }
 
-    static constexpr int nacc = Reduce::detail::nacc;
-
 public:
 
     template <FabArrayType MF, typename D, typename F>
@@ -1313,33 +1407,27 @@ public:
 #pragma omp parallel if (!system::regtest_reduction)
 #endif
         {
-            ReduceTuple rr;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
+            // The partial accumulators break the dependency chain so that
+            // the i loop can vectorize. They live across the MFIter loop so
+            // that they stay in vector registers.
+            ReduceTuple rem;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rem);
+            Reduce::detail::Lanes<ReduceTuple> acc;
+            Reduce::detail::lanes_set<0>(acc, rem);
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
                 Box const& b = mfi.growntilebox(nghost);
                 const int li = mfi.LocalIndex();
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
-                // Partial accumulators break the dependency chain so that the
-                // i loop can vectorize.
-                ReduceTuple acc[nacc];
-                for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    int i = lo.x;
-                    for (; i + nacc - 1 <= hi.x; i += nacc) {
-                        for (int l = 0; l < nacc; ++l) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(li,i+l,j,k));
-                        }
-                    }
-                    for (; i <= hi.x; ++i) {
-                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(li,i,j,k));
-                    }
+                    Reduce::detail::reduce_row<Ps...>(lo.x, hi.x, acc, rem,
+                        [&] (int i) { return f(li,i,j,k); });
                 }}
-                for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
             }
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
-                reduce_data.reference(OpenMP::get_thread_num()), rr);
+            auto& rr = reduce_data.reference(OpenMP::get_thread_num());
+            Reduce::detail::lanes_fold<0, ReduceTuple, Ps...>(acc, rr);
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, rem);
         }
     }
 
@@ -1352,32 +1440,25 @@ public:
 #pragma omp parallel if (!system::regtest_reduction)
 #endif
         {
-            ReduceTuple rr;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
+            ReduceTuple rem;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rem);
+            Reduce::detail::Lanes<ReduceTuple> acc;
+            Reduce::detail::lanes_set<0>(acc, rem);
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
                 Box const& b = mfi.growntilebox(nghost);
                 const int li = mfi.LocalIndex();
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
-                ReduceTuple acc[nacc];
-                for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
                 for (int n = 0; n < ncomp; ++n) {
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    int i = lo.x;
-                    for (; i + nacc - 1 <= hi.x; i += nacc) {
-                        for (int l = 0; l < nacc; ++l) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(li,i+l,j,k,n));
-                        }
-                    }
-                    for (; i <= hi.x; ++i) {
-                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(li,i,j,k,n));
-                    }
+                    Reduce::detail::reduce_row<Ps...>(lo.x, hi.x, acc, rem,
+                        [&] (int i) { return f(li,i,j,k,n); });
                 }}}
-                for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
             }
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
-                reduce_data.reference(OpenMP::get_thread_num()), rr);
+            auto& rr = reduce_data.reference(OpenMP::get_thread_num());
+            Reduce::detail::lanes_fold<0, ReduceTuple, Ps...>(acc, rr);
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, rem);
         }
     }
 
@@ -1396,48 +1477,40 @@ public:
     void eval (BoxND<dim> const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple acc[nacc];
-        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
+        ReduceTuple rem;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rem);
+        Reduce::detail::Lanes<ReduceTuple> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
         int const ilo = box.smallEnd(0);
         int const ihi = box.bigEnd(0);
         BoxND<dim> rows = box;
         rows.setBig(0, ilo);
         For(rows, ncomp, [&] (IntVectND<dim> iv, int n) {
-            int i = ilo;
-            for (; i + nacc - 1 <= ihi; i += nacc) {
-                for (int l = 0; l < nacc; ++l) {
-                    iv[0] = i + l;
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                        (acc[l], Reduce::detail::call_f_intvect_n(f, iv, n));
-                }
-            }
-            for (; i <= ihi; ++i) {
+            Reduce::detail::reduce_row<Ps...>(ilo, ihi, acc, rem, [&] (int i) {
                 iv[0] = i;
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                    (acc[0], Reduce::detail::call_f_intvect_n(f, iv, n));
-            }
+                return Reduce::detail::call_f_intvect_n(f, iv, n);
+            });
         });
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
-        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
+        Reduce::detail::lanes_fold<0, ReduceTuple, Ps...>(acc, rr);
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, rem);
     }
 
     template <std::integral N, typename D, typename F>
     void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple acc[nacc];
-        for (auto& a : acc) { Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(a); }
-        N i = 0;
-        for (; i + (nacc-1) < n; i += nacc) {
-            for (int l = 0; l < nacc; ++l) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[l], f(static_cast<N>(i+l)));
-            }
-        }
-        for (; i < n; ++i) {
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(acc[0], f(i));
+        ReduceTuple rem;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rem);
+        Reduce::detail::Lanes<ReduceTuple> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        if (n > 0) {
+            Reduce::detail::reduce_row<Ps...>(N(0), static_cast<N>(n-1), acc, rem,
+                [&] (N i) { return f(i); });
         }
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
-        for (auto const& a : acc) { Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, a); }
+        Reduce::detail::lanes_fold<0, ReduceTuple, Ps...>(acc, rr);
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, rem);
     }
 
     template <typename D>
@@ -1468,7 +1541,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1479,13 +1551,14 @@ T Sum (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc] = {};
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] += f(static_cast<N>(i+l)); }
-        }
-        for (; i < ie; ++i) { acc[0] += f(i); }
-        for (T const& a : acc) { r += a; }
+        using Tup = GpuTuple<T>;
+        Tup rem{};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpSum>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpSum>(acc, rem);
+        r += amrex::get<0>(rem);
     }
     return r;
 }
@@ -1500,7 +1573,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1511,14 +1583,14 @@ T Min (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc];
-        for (T& a : acc) { a = init_val; }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::min(acc[l], f(static_cast<N>(i+l))); }
-        }
-        for (; i < ie; ++i) { acc[0] = std::min(acc[0], f(i)); }
-        for (T const& a : acc) { r = std::min(r, a); }
+        using Tup = GpuTuple<T>;
+        Tup rem{init_val};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMin>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMin>(acc, rem);
+        r = std::min(r, amrex::get<0>(rem));
     }
     return r;
 }
@@ -1533,7 +1605,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1544,14 +1615,14 @@ T Max (N n, F const& f, T init_val)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T acc[nacc];
-        for (T& a : acc) { a = init_val; }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) { acc[l] = std::max(acc[l], f(static_cast<N>(i+l))); }
-        }
-        for (; i < ie; ++i) { acc[0] = std::max(acc[0], f(i)); }
-        for (T const& a : acc) { r = std::max(r, a); }
+        using Tup = GpuTuple<T>;
+        Tup rem{init_val};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMax>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { return Tup{f(i)}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMax>(acc, rem);
+        r = std::max(r, amrex::get<0>(rem));
     }
     return r;
 }
@@ -1566,7 +1637,6 @@ template <typename T, std::integral N, typename F>
 requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
-    using Reduce::detail::nacc;
     auto const cn = Reduce::detail::chunks_1d(n);
     N const chunk = cn.first;
     N const nchunks = cn.second;
@@ -1578,24 +1648,15 @@ std::pair<T,T> MinMax (N n, F const& f)
     for (N ic = 0; ic < nchunks; ++ic) {
         N const ib = ic*chunk;
         N const ie = (n - ib < chunk) ? n : ib + chunk;
-        T amin[nacc], amax[nacc];
-        for (T& a : amin) { a = std::numeric_limits<T>::max(); }
-        for (T& a : amax) { a = std::numeric_limits<T>::lowest(); }
-        N i = ib;
-        for (; i + (nacc-1) < ie; i += nacc) {
-            for (int l = 0; l < nacc; ++l) {
-                T tmp = f(static_cast<N>(i+l));
-                amin[l] = std::min(amin[l], tmp);
-                amax[l] = std::max(amax[l], tmp);
-            }
-        }
-        for (; i < ie; ++i) {
-            T tmp = f(i);
-            amin[0] = std::min(amin[0], tmp);
-            amax[0] = std::max(amax[0], tmp);
-        }
-        for (T const& a : amin) { r_min = std::min(r_min, a); }
-        for (T const& a : amax) { r_max = std::max(r_max, a); }
+        using Tup = GpuTuple<T,T>;
+        Tup rem{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
+        Reduce::detail::Lanes<Tup> acc;
+        Reduce::detail::lanes_set<0>(acc, rem);
+        Reduce::detail::reduce_row<ReduceOpMin,ReduceOpMax>(ib, static_cast<N>(ie-1), acc, rem,
+            [&] (N i) { T const tmp = f(i); return Tup{tmp,tmp}; });
+        Reduce::detail::lanes_fold<0,Tup,ReduceOpMin,ReduceOpMax>(acc, rem);
+        r_min = std::min(r_min, amrex::get<0>(rem));
+        r_max = std::max(r_max, amrex::get<1>(rem));
     }
     return std::make_pair(r_min,r_max);
 }

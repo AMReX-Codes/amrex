@@ -591,14 +591,16 @@ template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::define ()
 {
-    m_truesize = size();
-    AMREX_ASSERT(m_truesize >= 0);
-    if (m_truesize == 0) {
+    const Long n = size();
+    AMREX_ASSERT(n >= 0);
+    if (n == 0) {
+        m_truesize = 0;
         return;
-    } else {
-        m_ptr_owner = true;
-        m_dptr = static_cast<T*>(this->alloc(m_truesize*sizeof(T)));
     }
+    // set the members after alloc, which may throw
+    m_dptr = static_cast<T*>(this->alloc(n*sizeof(T)));
+    m_truesize = n;
+    m_ptr_owner = true;
 }
 
 /// \cond DOXYGEN_IGNORE
