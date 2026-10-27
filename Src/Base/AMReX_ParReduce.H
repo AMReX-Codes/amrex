@@ -427,15 +427,37 @@ struct ParReduceComp
         Gpu::streamSynchronize();
 #else
         if constexpr (PerBox) {
+            // With too few (box, component) pairs for the threads, split each
+            // box along its last dimension into contiguous chunks of about 16K
+            // cells. Items are ordered by box, component and chunk, which is
+            // the memory order, and their partial results are combined in order.
+            constexpr int d = AMREX_SPACEDIM-1;
+            const int nthreads = OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads();
+            const bool split = nthreads > 1 && nkeys < 4*nthreads;
+            Vector<Box> bx(nlocal);
+            Vector<int> thick(nlocal), nchunk(nlocal), ioff(nlocal+1, 0);
+            for (int L = 0; L < nlocal; ++L) {
+                bx[L] = amrex::grow(fa.box(fa.IndexArray()[L]), nghost);
+                const int len = bx[L].length(d);
+                thick[L] = split ? int(std::max(Long(1), Long(16384)/(bx[L].numPts()/len))) : len;
+                nchunk[L] = (len + thick[L] - 1) / thick[L];
+                ioff[L+1] = ioff[L] + nchunk[L]*ncomp;
+            }
+            // Without splitting, item is the result index.
+            const int nitems = ioff[nlocal];
+            Vector<RT> part(split ? nitems : 0);
+            RT* pr = split ? part.data() : r.data();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for schedule(dynamic) if (!system::regtest_reduction)
 #endif
-            for (int key = 0; key < nkeys; ++key) {
-                const int L = key / ncomp;
-                const int n = key - L*ncomp;
-                Box b = fa.box(fa.IndexArray()[L]);
-                if (!b.ok()) { continue; }
-                b.grow(nghost);
+            for (int item = 0; item < nitems; ++item) {
+                const int L = split ? amrex::bisect(ioff.data(), 0, nlocal, item) : item/ncomp;
+                const int m = item - ioff[L];
+                const int n = m / nchunk[L];
+                const int c = m - n*nchunk[L];
+                Box b = bx[L];
+                b.setSmall(d, bx[L].smallEnd(d) + c*thick[L]);
+                b.setBig(d, std::min(b.smallEnd(d)+thick[L]-1, bx[L].bigEnd(d)));
                 const auto lo = amrex::lbound(b);
                 const auto hi = amrex::ubound(b);
                 RT rem;
@@ -447,8 +469,17 @@ struct ParReduceComp
                     reduce_row<Ops...>(lo.x, hi.x, acc, rem,
                         [&] (int i) { return f(L,i,j,k,n); });
                 }}
-                lanes_fold<0, RT, Ops...>(acc, r[key]);
-                for_each_local<0, RT, Ops...>(r[key], rem);
+                RT& x = pr[item];
+                for_each_init<0, RT, Ops...>(x);
+                lanes_fold<0, RT, Ops...>(acc, x);
+                for_each_local<0, RT, Ops...>(x, rem);
+            }
+            if (split) {
+                for (int L = 0; L < nlocal; ++L) {
+                    for (int m = 0; m < nchunk[L]*ncomp; ++m) {
+                        for_each_local<0, RT, Ops...>(r[L*ncomp+m/nchunk[L]], part[ioff[L]+m]);
+                    }
+                }
             }
         } else {
             const int nthreads = OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads();
