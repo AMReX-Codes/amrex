@@ -1164,6 +1164,8 @@ MultiFab::norm0 (int comp, int ncomp, IntVect const& nghost, bool local, bool ig
 Vector<Real>
 MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_covered) const
 {
+    BL_PROFILE("MultiFab::norm0(comps)");
+
     int n = static_cast<int>(comps.size());
     Vector<Real> nm0;
 
@@ -1272,6 +1274,8 @@ MultiFab::norm2 (const Vector<int>& comps) const
 {
     BL_ASSERT(ixType().cellCentered());
 
+    BL_PROFILE("MultiFab::norm2(comps)");
+
     int n = static_cast<int>(comps.size());
     Vector<Real> nm2;
 
@@ -1372,6 +1376,8 @@ Vector<Real>
 MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 {
     BL_ASSERT(ixType().cellCentered());
+
+    BL_PROFILE("MultiFab::norm1(comps)");
 
     int n = static_cast<int>(comps.size());
     Vector<Real> nm1;
