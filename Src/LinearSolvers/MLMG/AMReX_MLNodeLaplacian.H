@@ -33,6 +33,8 @@ class MLNodeLaplacian
 {
 public :
 
+    friend class HypreMLNodeLap;
+
     //! Construct an empty operator; call define() before solving.
     MLNodeLaplacian () = default;
     /**
@@ -201,6 +203,19 @@ public :
     //! Average solution/RHS pairs from fine AMR levels onto (\p camrlev).
     void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
+
+    /**
+     * \brief Set the coarse/fine nodes of fine AMR level \p famrlev (Dirichlet
+     * mask set, not on a Dirichlet domain face) to the interpolated coarse
+     * solution, so that the composite solution does not depend on the
+     * initial guess there.  Skipped with an overset mask.
+     *
+     * \param famrlev  Fine AMR level index.
+     * \param fine_sol Fine solution, modified at the coarse/fine nodes.
+     * \param crse_sol Coarse solution.
+     */
+    void interpCoarseFineSolution (int famrlev, MultiFab& fine_sol,
+                                   const MultiFab& crse_sol) const final;
 
     /**
      * \brief Flux register reflux coupling coarse/fine nodal solves

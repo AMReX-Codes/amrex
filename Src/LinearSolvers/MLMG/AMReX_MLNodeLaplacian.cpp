@@ -768,6 +768,45 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 }
 
 void
+MLNodeLaplacian::interpCoarseFineSolution (int famrlev, MultiFab& fine_sol,
+                                       const MultiFab& crse_sol) const
+{
+    if (m_overset_dirichlet_mask) { return; } // user Dirichlet nodes
+    const int ncomp = getNComp();
+
+    MultiFab crse_copy = makeCoarseAmr(famrlev, IntVect(0), MFInfo().SetArena(The_Async_Arena()));
+    crse_copy.setVal(0.0);
+    crse_copy.ParallelCopy(crse_sol, 0, 0, ncomp, IntVect(0), IntVect(0),
+                           Geom(famrlev-1,0).periodicity());
+    MultiFab fine_interp(fine_sol.boxArray(), fine_sol.DistributionMap(), ncomp, 0,
+                         MFInfo().SetArena(The_Async_Arena()));
+    interpolationAmr(famrlev, fine_interp, crse_copy, IntVect(0));
+
+    const Box nddom = amrex::surroundingNodes(Geom(famrlev,0).Domain());
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
+    GpuArray<int,AMREX_SPACEDIM> dlo{}, dhi{};
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        dlo[d] = (lobc[d] == LinOpBCType::Dirichlet) ? nddom.smallEnd(d) : nddom.smallEnd(d)-1;
+        dhi[d] = (hibc[d] == LinOpBCType::Dirichlet) ? nddom.bigEnd(d) : nddom.bigEnd(d)+1;
+    }
+    auto const& f = fine_sol.arrays();
+    auto const& t = fine_interp.const_arrays();
+    auto const& dm = m_dirichlet_mask[famrlev][0]->const_arrays();
+    amrex::ParallelFor(fine_sol, IntVect(0), ncomp,
+    [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
+    {
+        if (!dm[bno](i,j,k)) { return; }
+        const IntVect iv(AMREX_D_DECL(i,j,k));
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if (iv[d] == dlo[d] || iv[d] == dhi[d]) { return; } // Dirichlet domain node
+        }
+        f[bno](i,j,k,n) = t[bno](i,j,k,n);
+    });
+    Gpu::streamSynchronize();
+}
+
+void
 MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a_frhs) const
 {
     const BoxArray& fba = a_frhs.boxArray();

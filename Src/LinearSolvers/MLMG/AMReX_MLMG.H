@@ -1748,6 +1748,13 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         linop.averageDownSolutionRHS(falev-1, sol[falev-1], rhs[falev-1], sol[falev], rhs[falev]);
     }
 
+    // Nodal solvers: the fine coarse/fine nodes from the coarse solution
+    if (cf_strategy != CFStrategy::ghostnodes) {
+        for (int falev = 1; falev <= finest_amr_lev; ++falev) {
+            linop.interpCoarseFineSolution(falev, sol[falev], sol[falev-1]);
+        }
+    }
+
     // enforce solvability if appropriate
     if (linop.isSingular(0) && linop.getEnforceSingularSolvable())
     {

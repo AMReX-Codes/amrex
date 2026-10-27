@@ -907,6 +907,51 @@ systems with more than about :math:`2^{31}` cells need HYPRE built with
 communicator of the current :cpp:`ParallelContext` frame, which must be the
 same for the construction, :cpp:`setup` and :cpp:`solve`.
 
+Composite multi-level nodal solves with HypreMLNodeLap
+------------------------------------------------------
+
+:cpp:`HypreMLNodeLap` is the nodal counterpart: it assembles the composite
+system of a prepared :cpp:`MLNodeLaplacian` (all AMR levels) into one
+distributed sparse matrix and solves it with hypre or AlgMG.  It is meant for
+problems where MLMG's geometric coarsening fails, such as strongly stretched
+mapped meshes or EB geometries with very small cut cells.  The solution equals
+MLMG's composite solution up to the solver tolerance, except at coarse/fine
+nodes next to cut cells (where MLMG's coarse/fine treatment ignores the cut
+cells) and, for singular problems whose composite right-hand side is not
+exactly consistent, by the effect of a different consistency correction.
+Singular problems are made consistent by subtracting the nodal-volume
+weighted mean of the right-hand side, and one unknown is pinned.
+
+.. highlight:: c++
+
+::
+
+    // linop: MLNodeLaplacian with sigma set and masks built
+    // (after MLMG::prepareForSolve, or a solve)
+    HypreMLNodeLap hyp(linop, "hypre_mlnodelap", verbose);
+    hyp.solve(GetVecOfPtrs(phi), GetVecOfConstPtrs(rhs), reltol, abstol, maxiter);
+    mlmg.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(phi));
+
+As with MLMG, the values of :cpp:`phi` on Dirichlet domain boundaries are the
+boundary values.  It supports scalar, constant and anisotropic (mapped) sigma,
+refinement ratios 2 and 4, and in EB builds the cut cells; RZ is not
+supported.  The parameters, under the prefix given to the constructor
+(default ``hypre_mlnodelap``), are the :cpp:`HypreIJIface` keys above, and
+``backend``, ``algmg.*`` (with ``algmg.krylov`` defaulting to ``pcg``, as the
+assembled system is symmetric), ``dump_matrix``, ``dump_prefix`` and
+``dump_gather_max`` as for :cpp:`HypreMLABecLap`.  The dumped system is the
+one solved, :math:`S' x' = b'` with :math:`S' = s S s` and :math:`x = s x'`,
+where the scaling :math:`s` of each unknown is listed in the row map (it is 1
+except next to small cut cells, see ``eb_scaling``).
+
+- :cpp:`hypre_mlnodelap.eb_scaling`: default true.  In EB builds, scale the
+  unknowns by :math:`1/\sqrt{\text{nodal fluid fraction}}` so that the rows
+  of nodes next to small cut cells count in the residual norm.
+
+:cpp:`getNumIters()`, :cpp:`getFinalResidualNorm()` and
+:cpp:`setThrowException()` work as for :cpp:`HypreMLABecLap`, and so does the
+use on a sub-communicator (the communicator of the :cpp:`MLNodeLaplacian`).
+
 Tensor Solve
 ============
 

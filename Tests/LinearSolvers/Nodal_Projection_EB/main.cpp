@@ -1,6 +1,9 @@
 #include <AMReX.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLNodeLaplacian.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreMLNodeLap.H>
+#endif
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
@@ -43,6 +46,8 @@ int main (int argc, char* argv[])
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
+        int use_mlhypre = 0;  // also solve with HypreMLNodeLap and compare with MLMG
+        Real mlhypre_max_diff = -1.0;  // if positive: abort if the velocity correction differs more (relative)
         Vector<std::string> multigrid_types{"geometric"};
 
         Real obstacle_radius = Real(0.10);
@@ -55,11 +60,13 @@ int main (int argc, char* argv[])
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
+            pp.query("use_mlhypre", use_mlhypre);
+            pp.query("mlhypre_max_diff", mlhypre_max_diff);
             pp.queryarr("multigrid_types", multigrid_types);
         }
 
 #ifndef AMREX_USE_HYPRE
-        if (use_hypre == 1) {
+        if (use_hypre == 1 || use_mlhypre == 1) {
             amrex::Abort("Cant use hypre if we dont build with USE_HYPRE=TRUE");
         }
 #endif
@@ -70,11 +77,15 @@ int main (int argc, char* argv[])
 
         int n_cell_y =   n_cell;
         int n_cell_x = 2*n_cell;
+#if (AMREX_SPACEDIM == 3)
         int n_cell_z =   n_cell/8;
+#endif
 
         Real ylen = 1.0;
         Real xlen = Real(2.0) * ylen;
+#if (AMREX_SPACEDIM == 3)
         Real zlen = ylen / Real(8.0);
+#endif
 
         Geometry geom;
         BoxArray grids;
@@ -289,6 +300,40 @@ int main (int argc, char* argv[])
 
         // Get fluxes from solver
         nodal_solver.getFluxes( {&fluxes} );
+
+#ifdef AMREX_USE_HYPRE
+        // The same system solved by HypreMLNodeLap (hypre or AlgMG backend,
+        // hypre_mlnodelap.backend); compare the solution and the velocity
+        // correction -sigma grad(phi) with MLMG's.
+        if (use_mlhypre == 1) {
+            MultiFab phi_h(phi.boxArray(), phi.DistributionMap(), 1, phi.nGrowVect());
+            phi_h.setVal(0.0);
+            HypreMLNodeLap hyp(matrix, "hypre_mlnodelap", mg_verbose);
+            hyp.solve({&phi_h}, {&rhs}, reltol, abstol, 200);
+
+            MultiFab fluxes_h(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
+            fluxes_h.setVal(0.0);
+            nodal_solver.getFluxes({&fluxes_h}, {&phi_h});
+
+            MultiFab dphi(phi.boxArray(), phi.DistributionMap(), 1, 0);
+            MultiFab::Copy(dphi, phi_h, 0, 0, 1, 0);
+            MultiFab::Subtract(dphi, phi, 0, 0, 1, 0);
+            MultiFab dflux(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), factory);
+            MultiFab::Copy(dflux, fluxes_h, 0, 0, AMREX_SPACEDIM, 0);
+            MultiFab::Subtract(dflux, fluxes, 0, 0, AMREX_SPACEDIM, 0);
+            Real fmax = 0.0, dfmax = 0.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                fmax = std::max(fmax, fluxes.norm0(d));
+                dfmax = std::max(dfmax, dflux.norm0(d));
+            }
+            amrex::Print() << "HypreMLNodeLap vs MLMG: max |dphi| = " << dphi.norm0()
+                           << " (max |phi| = " << phi.norm0() << "), max |d(sigma grad phi)| = "
+                           << dfmax << " (max " << fmax << ")\n";
+            if (mlhypre_max_diff > Real(0.0) && !(dfmax <= mlhypre_max_diff*fmax)) {
+                amrex::Abort("HypreMLNodeLap differs from MLMG by more than mlhypre_max_diff");
+            }
+        }
+#endif
 
         //
         // Apply projection explicitly --  vel = vel - sigma * grad(phi)
