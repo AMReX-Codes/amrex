@@ -1173,7 +1173,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
 #ifdef AMREX_USE_EB
     eb_covered = this->hasEBFabFactory() && ignore_covered;
 #endif
-    if (Gpu::inLaunchRegion() && !eb_covered)
+    if (Gpu::inLaunchRegion() && !eb_covered && n > 0 && this->local_size() > 0)
     {
         Gpu::DeviceVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
@@ -1185,9 +1185,6 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
         {
             return absinf(ma[box_no](i,j,k,pcomps[m]));
         });
-        for (auto& x : nm0) {
-            x = std::max(x, Real(0.0)); // lowest() if this rank has no boxes
-        }
     }
     else
 #endif
@@ -1280,7 +1277,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 
     // One pass over all components only pays off on GPU.
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+    if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
     {
         Gpu::DeviceVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
@@ -1381,7 +1378,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 
     // One pass over all components only pays off on GPU.
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+    if (Gpu::inLaunchRegion() && n > 0 && this->local_size() > 0)
     {
         Gpu::DeviceVector<int> dcomps(n);
         Gpu::copyAsync(Gpu::hostToDevice, comps.begin(), comps.end(), dcomps.begin());
