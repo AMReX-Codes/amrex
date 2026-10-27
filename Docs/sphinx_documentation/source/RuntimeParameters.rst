@@ -1122,7 +1122,16 @@ Memory
    :type: long
    :value: LONG_MAX
 
-   This controls the release threshold of the communication arena.
+   This controls the release threshold of the communication arena, which
+   keeps the memory of MPI buffers for reuse. When the memory in use would
+   reach this threshold, the arena first returns its unused memory to the
+   system. A smaller value lowers the memory kept by the arena.
+
+   In GPU runs without GPU-aware MPI, MPI buffers come from the pinned arena,
+   and :py:data:`amrex.the_pinned_arena_release_threshold` applies instead.
+   In GPU runs with GPU-aware MPI and managed memory for the main arena, they
+   may come from the device arena, and then
+   :py:data:`amrex.the_device_arena_release_threshold` applies.
 
 .. py:data:: amrex.the_arena_defragmentation
    :type: bool
