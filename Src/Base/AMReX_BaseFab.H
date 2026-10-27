@@ -1601,9 +1601,11 @@ BaseFab<T>::define ()
     if (this->nvar == 0) { return; }
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 
-    this->truesize  = this->nvar*this->domain.numPts();
+    // set the members after alloc, which may throw
+    const Long n = this->nvar*this->domain.numPts();
+    this->dptr = static_cast<T*>(this->alloc(n*sizeof(T)));
+    this->truesize  = n;
     this->ptr_owner = true;
-    this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
 #ifdef AMREX_USE_GPU
     this->alloc_stream = Gpu::gpuStream();
 #endif
