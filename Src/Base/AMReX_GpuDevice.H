@@ -42,6 +42,7 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int managedMemory;
         int concurrentManagedAccess;
         int maxParameterSize;
+        int integrated;
     };
 #endif
 }
@@ -197,6 +198,8 @@ public:
     static int maxThreadsPerBlock (int dir) noexcept { return device_prop.maxThreadsDim[dir]; }
     static int maxBlocksPerGrid (int dir) noexcept { return device_prop.maxGridSize[dir]; }
     static std::string deviceName () noexcept { return std::string(device_prop.name); }
+    //! Whether the GPU shares its memory with the host (e.g., an APU)
+    static bool isIntegrated () noexcept { return device_prop.integrated != 0; }
 #endif
 
 #ifdef AMREX_USE_CUDA

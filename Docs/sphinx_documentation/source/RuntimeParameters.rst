@@ -1056,7 +1056,8 @@ Memory
 
    This controls the main memory arena's initial size in bytes. For CPU
    runs, the default is 0, whereas for GPU runs, the default is set at run
-   time to 3/4 of the system's device memory.
+   time to 3/4 of the system's device memory, or 3/8 on integrated GPUs
+   that share memory with the host.
 
    .. tip:: Since ``amrex v24.08``, instead of
             ``amrex.the_arena_init_size=10000000000``, one can use

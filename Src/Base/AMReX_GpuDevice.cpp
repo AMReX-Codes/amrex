@@ -718,6 +718,7 @@ Device::initialize_gpu (bool minimal)
         device_prop.managedMemory = d.has(sycl::aspect::usm_host_allocations);
         device_prop.concurrentManagedAccess = d.has(sycl::aspect::usm_shared_allocations);
         device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
+        device_prop.integrated = 0; // xxxxx SYCL todo: unknown
         if (verbose)
         {
             amrex::Print() << "Device Properties:\n"
