@@ -1,0 +1,54 @@
+
+max_step = 200
+stop_time = 2.0
+
+geometry.is_periodic = 0 0
+geometry.coord_sys   = 0
+geometry.prob_lo     = -2.0   -1.5
+geometry.prob_hi     =  4.0    1.5
+amr.n_cell           = 96     48
+
+# BC: 0=Interior, 1=Inflow, 2=Outflow, 3=Symmetry, 4=SlipWall, 5=NoSlipWall
+wmles.lo_bc = 1 4
+wmles.hi_bc = 2 4
+
+wmles.cfl = 0.5
+
+wmles.v = 1
+amr.v = 1
+
+# LOAD BALANCE
+amr.loadbalance_with_workestimates = 1
+amr.loadbalance_level0_int = 1000
+
+# REFINEMENT
+amr.max_level       = 0
+amr.ref_ratio       = 2
+amr.regrid_int      = 2
+amr.blocking_factor = 16
+amr.max_grid_size   = 64
+amr.n_error_buf     = 2
+
+# CHECKPOINT
+amr.checkpoint_files_output = 0
+amr.check_file      = chk
+amr.check_int       = 500
+
+# PLOTFILES
+amr.plot_files_output = 1
+amr.plot_file         = plt
+amr.plot_int          = 50
+amr.derive_plot_vars  = pressure x_velocity y_velocity
+
+# EB: use implicit-function cylinder for testing (no STL needed)
+eb2.geom_type = "cylinder"
+eb2.cylinder_radius = 0.5
+eb2.cylinder_direction = 2
+eb2.cylinder_center = 0.0 0.0 0.0
+eb2.cylinder_has_fluid_inside = false
+
+# Problem parameters
+prob.inflow_velocity = 1.0
+prob.inflow_rho      = 1.0
+prob.inflow_T        = 300.0
+prob.inflow_p        = 71500.0
