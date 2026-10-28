@@ -197,6 +197,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
 
+        if (mf.empty() || bndry[face].m_mf.empty()) { continue; } // NOLINT(clang-analyzer-security.ArrayBound)
+
         // Compute mflx*mult*area only on the faces the copy below reads
         // (source boxes of its CPC).  An empty area MultiFab means unit area.
         const auto& cpc = bndry[face].m_mf.getCPC(IntVect(0), mf, IntVect(0), // NOLINT(clang-analyzer-security.ArrayBound)
@@ -330,6 +332,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     for (int pass = 0; pass < 2; pass++)
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
+
+        if (mf.empty() || bndry[face].m_mf.empty()) { continue; } // NOLINT(clang-analyzer-security.ArrayBound)
 
         // Same restriction to the copy's source boxes as in CrseInit.
         const auto& cpc = bndry[face].m_mf.getCPC(IntVect(0), mf, IntVect(0), // NOLINT(clang-analyzer-security.ArrayBound)
@@ -651,7 +655,10 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                             bx});
         }
     };
-    for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
+    // With MPI teams, local tags include the destinations of teammates.
+    for (auto const& t : *cpc.m_LocTags) {
+        if (mf.DistributionMap()[t.dstIndex] == ParallelDescriptor::MyProc()) { add_tag(t); }
+    }
     for (auto const& kv : *cpc.m_RcvTags) {
         for (auto const& t : kv.second) { add_tag(t); }
     }
