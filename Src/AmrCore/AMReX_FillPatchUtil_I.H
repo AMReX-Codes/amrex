@@ -170,26 +170,17 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 #endif
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.growntilebox(interp_ghost);
+                Box bx = mfi.growntilebox(interp_ghost);
+                if (!sameba) {
+                    const Box& hbx = hull[mfi.LocalIndex()];
+                    if (!hbx.ok()) { continue; }
+                    bx &= hbx;
+                }
                 auto const sfab0 = smf[0]->array(mfi);
                 auto const sfab1 = smf[1]->array(mfi);
                 auto       dfab  = dmf->array(mfi);
 
-                if (!sameba)
-                {
-                    const Box& hbx = hull[mfi.LocalIndex()];
-                    if (hbx.ok()) {
-                        const Box& ibx = bx & hbx;
-                        Real alpha = (t1-time)/(t1-t0);
-                        Real beta = (time-t0)/(t1-t0);
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( ibx, ncomp, i, j, k, n,
-                        {
-                            dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
-                                +                     beta*sfab1(i,j,k,n+scomp);
-                        });
-                    }
-                }
-                else if (time == t0)
+                if (time == t0)
                 {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
