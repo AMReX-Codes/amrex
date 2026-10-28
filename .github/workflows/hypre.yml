@@ -121,6 +121,8 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-algmg
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-algmg hypre_mlabeclap.reuse_setup_max_iter=12 \
             mlhypre_resolve=1
+        # V-cycles alone diverge with the kept hierarchy: rebuilt, then converge
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-algmg hypre_mlabeclap.algmg.krylov=none
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij composite_solve=0
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij hypre_mlabeclap.reuse_setup_max_iter=1
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs-mlhypre-ij hypre_mlabeclap.dump_matrix=1 \

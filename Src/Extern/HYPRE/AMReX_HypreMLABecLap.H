@@ -239,7 +239,7 @@ private:
     //! The hypre vectors were assembled once; later solves write into them
     bool m_ij_vectors_assembled = false;
     bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
-    //! AlgMG backend: build a new hierarchy at the next setup
+    //! AlgMG backend: build a new hierarchy at the next setup or solve
     bool m_algmg_reset = false;
     //! AlgMG backend: the last setup kept the hierarchy
     bool m_algmg_kept = false;

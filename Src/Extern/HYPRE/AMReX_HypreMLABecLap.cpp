@@ -1682,6 +1682,11 @@ void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
         const Long r = Long(hr[n] - row0);
         Long s = -1;
         bool found = false;
+        if (r < 0 || r >= nr) {
+            // Only rows owned by this rank are assembled here
+            all_found = false;
+            break;
+        }
         if (hc[n] >= col0 && hc[n] <= col1) {
             const auto lc = HYPRE_Int(hc[n] - col0);
             for (HYPRE_Int k = di[r]; k < di[r+1]; ++k) {
@@ -1871,20 +1876,34 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             m_algmg_kept = false;
             m_algmg_reset = false;
         }
-        m_algmg->setThrowException(m_throw_exception);
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(Real(0.0));
         m_algmg->setMaxIter(m_maxiter);
-        m_algmg->solve(ax, ab);
+        // With a kept hierarchy, a blow-up is caught (all ranks see the same
+        // global residual) and retried below like a solve that does not converge
+        m_algmg->setThrowException(m_throw_exception || m_algmg_kept);
+        bool blew_up = false;
+        try {
+            m_algmg->solve(ax, ab);
+        } catch (std::runtime_error const&) {
+            if (!m_algmg_kept) { throw; }
+            blew_up = true;
+        }
+        m_algmg->setThrowException(m_throw_exception);
         num_iterations = m_algmg->getNumIters();
         const Real bnorm = ab.norm2();
         final_res = (bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / bnorm : Real(0.0);
-        if (m_algmg_kept && !(final_res <= a_reltol)) {
+        if (m_algmg_kept && (blew_up || !(final_res <= a_reltol))) {
             // The kept hierarchy may be too poor for the current matrix: build
-            // a new one and continue from the current x
+            // a new one and continue from the current x (from the initial
+            // guess after a blow-up)
             if (m_verbose) {
                 amrex::Print() << m_parmparse_prefix << ": no convergence with the kept AlgMG "
                                << "hierarchy (" << num_iterations << " iterations); rebuilding it\n";
+            }
+            if (blew_up) {
+                Gpu::copyAsync(Gpu::deviceToDevice, xvec.begin(), xvec.end(), ax.data());
+                Gpu::streamSynchronize();
             }
             m_algmg->define(*m_spA);
             m_algmg_kept = false;
