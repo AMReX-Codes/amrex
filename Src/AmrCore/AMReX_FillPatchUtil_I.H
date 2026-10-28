@@ -102,26 +102,40 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     else if (smf.size() == 2)
     {
         BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+        const Real t0 = stime[0];
+        const Real t1 = stime[1];
         MF raii;
         MF * dmf;
         int destcomp;
         bool sameba;
+        bool fill_dmf;
         if (mf.boxArray() == smf[0]->boxArray() &&
             mf.DistributionMap() == smf[0]->DistributionMap())
         {
             dmf = &mf;
             destcomp = dcomp;
             sameba = true;
-        } else {
+            fill_dmf = (&mf != smf[0] && &mf != smf[1]) || scomp != dcomp;
+        }
+        else if (time == t0 || time == t1 || amrex::almostEqual(t0,t1))
+        {
+            dmf = smf[(time != t0 && time == t1) ? 1 : 0];
+            destcomp = scomp;
+            sameba = false;
+            fill_dmf = false;
+        }
+        else
+        {
             raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, src_ghost,
-                        MFInfo(), smf[0]->Factory());
+                        MFInfo().SetArena(The_Async_Arena()), smf[0]->Factory());
 
             dmf = &raii;
             destcomp = 0;
             sameba = false;
+            fill_dmf = true;
         }
 
-        if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
+        if (fill_dmf)
         {
             IntVect interp_ghost(0);
             if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
@@ -130,14 +144,41 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                     interp_ghost.min(nghost);
                 }
             }
+
+            // Patch case: interpolate only the cells the ParallelCopy below reads,
+            // i.e. the hull of the local and send tags of each source FAB. Not with
+            // MPI teams, whose members work on each other's FABs but only have the
+            // send tags of their own.
+            const bool use_hull = !sameba && ParallelDescriptor::TeamSize() == 1;
+            Vector<Box> hull;
+            if (use_hull) {
+                hull.resize(raii.local_size());
+                if (!mf.empty() && !raii.empty()) {
+                    auto const& cpc = mf.getCPC(nghost, raii, src_ghost, geom.periodicity());
+                    for (auto const& tag : *cpc.m_LocTags) {
+                        Box& h = hull[raii.localindex(tag.srcIndex)];
+                        h = h.ok() ? amrex::minBox(h, tag.sbox) : tag.sbox;
+                    }
+                    for (auto const& kv : *cpc.m_SndTags) {
+                        for (auto const& tag : kv.second) {
+                            Box& h = hull[raii.localindex(tag.srcIndex)];
+                            h = h.ok() ? amrex::minBox(h, tag.sbox) : tag.sbox;
+                        }
+                    }
+                }
+            }
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.growntilebox(interp_ghost);
-                const Real t0 = stime[0];
-                const Real t1 = stime[1];
+                Box bx = mfi.growntilebox(interp_ghost);
+                if (use_hull) {
+                    const Box& hbx = hull[mfi.LocalIndex()];
+                    if (!hbx.ok()) { continue; }
+                    bx &= hbx;
+                }
                 auto const sfab0 = smf[0]->array(mfi);
                 auto const sfab1 = smf[1]->array(mfi);
                 auto       dfab  = dmf->array(mfi);
@@ -184,7 +225,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         }
         else
         {
-            mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
+            mf.ParallelCopy(*dmf, destcomp, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
         }
     }
     else {
