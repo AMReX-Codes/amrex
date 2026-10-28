@@ -108,19 +108,21 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         MF * dmf;
         int destcomp;
         bool sameba;
+        bool fill_dmf;
         if (mf.boxArray() == smf[0]->boxArray() &&
             mf.DistributionMap() == smf[0]->DistributionMap())
         {
             dmf = &mf;
             destcomp = dcomp;
             sameba = true;
+            fill_dmf = (&mf != smf[0] && &mf != smf[1]) || scomp != dcomp;
         }
         else if (time == t0 || time == t1 || amrex::almostEqual(t0,t1))
         {
-            // A single source suffices. Copy it straight into the patch.
             dmf = smf[(time != t0 && time == t1) ? 1 : 0];
             destcomp = scomp;
             sameba = false;
+            fill_dmf = false;
         }
         else
         {
@@ -130,9 +132,10 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             dmf = &raii;
             destcomp = 0;
             sameba = false;
+            fill_dmf = true;
         }
 
-        if ((dmf != smf[0] && dmf != smf[1]) || (sameba && scomp != dcomp))
+        if (fill_dmf)
         {
             IntVect interp_ghost(0);
             if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
