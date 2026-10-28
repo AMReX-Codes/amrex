@@ -8,6 +8,24 @@
 
 namespace amrex {
 
+namespace {
+    // One patch of a coarse-level MultiFab next to a register box
+    struct FluxRegTag {
+        Array4<Real> dfab;
+        Array4<Real const> sfab;
+        Array4<Real const> afab; // area or volume; empty when constant
+        Box dbox;
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        Box const& box () const noexcept { return dbox; }
+    };
+
+    struct ConstVolume {
+        Real v;
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        Real operator() (int, int, int) const noexcept { return v; }
+    };
+}
+
 FluxRegister::FluxRegister ()
 {
     fine_level = ncomp = -1;
@@ -175,41 +193,58 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
-        auto const& dma = mf.arrays();
-        auto const& sma = mflx.const_arrays();
-        auto const& ama = area.const_arrays();
-        ParallelFor(mf, IntVect(0), numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
-        });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            auto       dfab =   mf.array(mfi);
-            auto const sfab = mflx.const_array(mfi);
-            auto const afab = area.const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
-            });
-        }
-    }
-
     for (int pass = 0; pass < 2; pass++)
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
+
+        // Compute mflx*mult*area only on the faces the copy below reads
+        // (source boxes of its CPC).  An empty area MultiFab means unit area.
+        const auto& cpc = bndry[face].m_mf.getCPC(IntVect(0), mf, IntVect(0), // NOLINT(clang-analyzer-security.ArrayBound)
+                                                   Periodicity::NonPeriodic());
+        Vector<FluxRegTag> ftags;
+        auto add_tag = [&] (FabArrayBase::CopyComTag const& t)
+        {
+            ftags.push_back({mf.array(t.srcIndex), mflx.const_array(t.srcIndex),
+                            area.empty() ? Array4<Real const>{} : area.const_array(t.srcIndex),
+                            t.sbox});
+        };
+        for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
+        for (auto const& kv : *cpc.m_SndTags) {
+            for (auto const& t : kv.second) { add_tag(t); }
+        }
+
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            ParallelFor(ftags, numcomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, FluxRegTag const& tag) noexcept
+            {
+                Real a = tag.afab ? tag.afab(i,j,k) : Real(1.0);
+                tag.dfab(i,j,k,n) = tag.sfab(i,j,k,n+srccomp)*mult*a;
+            });
+        } else
+#endif
+        {
+            auto const ntags = static_cast<int>(ftags.size());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+            for (int it = 0; it < ntags; ++it) {
+                auto const& dfab = ftags[it].dfab;
+                auto const& sfab = ftags[it].sfab;
+                auto const& afab = ftags[it].afab;
+                if (afab) {
+                    AMREX_LOOP_4D(ftags[it].dbox, numcomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
+                    });
+                } else {
+                    AMREX_LOOP_4D(ftags[it].dbox, numcomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult;
+                    });
+                }
+            }
+        }
 
         if (op == FluxRegister::COPY)
         {
@@ -270,15 +305,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         Real            mult,
                         FrOp            op)
 {
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
-
-    area.setVal(1, 0, 1, 0);
-
-    CrseInit(mflx,area,dir,srccomp,destcomp,numcomp,mult,op);
+    CrseInit(mflx,MultiFab(),dir,srccomp,destcomp,numcomp,mult,op); // empty area: unit area
 }
 
 void
@@ -300,41 +327,58 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
-        auto const& dma = mf.arrays();
-        auto const& sma = mflx.const_arrays();
-        auto const& ama = area.const_arrays();
-        ParallelFor(mf, IntVect(0), numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
-        });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            auto       dfab =   mf.array(mfi);
-            auto const sfab = mflx.const_array(mfi);
-            auto const afab = area.const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
-            });
-        }
-    }
-
     for (int pass = 0; pass < 2; pass++)
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
+
+        // Same restriction to the copy's source boxes as in CrseInit.
+        const auto& cpc = bndry[face].m_mf.getCPC(IntVect(0), mf, IntVect(0), // NOLINT(clang-analyzer-security.ArrayBound)
+                                                   geom.periodicity());
+        Vector<FluxRegTag> ftags;
+        auto add_tag = [&] (FabArrayBase::CopyComTag const& t)
+        {
+            ftags.push_back({mf.array(t.srcIndex), mflx.const_array(t.srcIndex),
+                            area.empty() ? Array4<Real const>{} : area.const_array(t.srcIndex),
+                            t.sbox});
+        };
+        for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
+        for (auto const& kv : *cpc.m_SndTags) {
+            for (auto const& t : kv.second) { add_tag(t); }
+        }
+
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            ParallelFor(ftags, numcomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, FluxRegTag const& tag) noexcept
+            {
+                Real a = tag.afab ? tag.afab(i,j,k) : Real(1.0);
+                tag.dfab(i,j,k,n) = tag.sfab(i,j,k,n+srccomp)*mult*a;
+            });
+        } else
+#endif
+        {
+            auto const ntags = static_cast<int>(ftags.size());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+            for (int it = 0; it < ntags; ++it) {
+                auto const& dfab = ftags[it].dfab;
+                auto const& sfab = ftags[it].sfab;
+                auto const& afab = ftags[it].afab;
+                if (afab) {
+                    AMREX_LOOP_4D(ftags[it].dbox, numcomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
+                    });
+                } else {
+                    AMREX_LOOP_4D(ftags[it].dbox, numcomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult;
+                    });
+                }
+            }
+        }
+
         bndry[face].plusFrom(mf,0,0,destcomp,numcomp,geom.periodicity()); // NOLINT(clang-analyzer-security.ArrayBound)
     }
 }
@@ -348,15 +392,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
                        Real            mult,
                        const Geometry& geom)
 {
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
-
-    area.setVal(1, 0, 1, 0);
-
-    CrseAdd(mflx,area,dir,srccomp,destcomp,numcomp,mult,geom);
+    CrseAdd(mflx,MultiFab(),dir,srccomp,destcomp,numcomp,mult,geom); // empty area: unit area
 }
 
 void
@@ -565,14 +601,7 @@ FluxRegister::Reflux (MultiFab&       mf,
                       int             nc,
                       const Geometry& geom)
 {
-    const Real* dx = geom.CellSize();
-
-    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
-                    MFInfo().SetArena(The_Async_Arena()), mf.Factory());
-
-    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
-
-    Reflux(mf,volume,scale,scomp,dcomp,nc,geom);
+    Reflux(mf,MultiFab(),scale,scomp,dcomp,nc,geom); // empty volume: dx*dy*dz
 }
 
 void
@@ -584,14 +613,7 @@ FluxRegister::Reflux (MultiFab&       mf,
                       int             nc,
                       const Geometry& geom)
 {
-    const Real* dx = geom.CellSize();
-
-    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
-                    MFInfo().SetArena(The_Async_Arena()), mf.Factory());
-
-    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
-
-    Reflux(mf,volume,dir,scale,scomp,dcomp,nc,geom);
+    Reflux(mf,MultiFab(),dir,scale,scomp,dcomp,nc,geom); // empty volume: dx*dy*dz
 }
 
 void
@@ -605,24 +627,46 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
                   mf.DistributionMap(), nc, 0,
                   MFInfo().SetArena(The_Async_Arena()), mf.Factory());
-    flux.setVal(0.0);
 
+    const MultiFab& regmf = bndry[face].m_mf; // NOLINT(clang-analyzer-security.ArrayBound)
+    if (flux.empty() || regmf.empty()) { return; }
+
+    // Only the faces written by the copy (its CPC dboxes) are read, so flux
+    // needs no setVal.  An empty volume MultiFab means constant cell volume.
+    const auto& cpc = flux.getCPC(IntVect(0), regmf, IntVect(0), geom.periodicity());
     bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity()); // NOLINT(clang-analyzer-security.ArrayBound)
 
+    const Real* dx = geom.CellSize();
+    const Real cvol = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
+
+    Vector<FluxRegTag> tags;
+    auto add_tag = [&] (FabArrayBase::CopyComTag const& t)
+    {
+        Box bx(t.dbox.smallEnd(), t.dbox.bigEnd()); // cells on the high side of the faces
+        if (face.isLow()) { bx.shift(idir, -1); }  // cells on the low side
+        bx &= mf.box(t.dstIndex);
+        if (bx.ok()) {
+            tags.push_back({mf.array(t.dstIndex), flux.const_array(t.dstIndex),
+                            volume.empty() ? Array4<Real const>{} : volume.const_array(t.dstIndex),
+                            bx});
+        }
+    };
+    for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
+    for (auto const& kv : *cpc.m_RcvTags) {
+        for (auto const& t : kv.second) { add_tag(t); }
+    }
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
-        auto const& sma = mf.arrays();
-        auto const& fma = flux.const_arrays();
-        auto const& vma = volume.const_arrays();
-        ParallelFor(mf, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k, FluxRegTag const& tag) noexcept
         {
-#if (AMREX_SPACEDIM == 1)
             amrex::ignore_unused(j,k);
-#elif (AMREX_SPACEDIM == 2)
-            amrex::ignore_unused(k);
-#endif
-            fluxreg_reflux(Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))),
-                           sma[box_no], dcomp, fma[box_no], vma[box_no], nc, scale, face);
+            Box const bx(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k)));
+            if (tag.afab) {
+                fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, tag.afab, nc, scale, face);
+            } else {
+                fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, ConstVolume{cvol}, nc, scale, face);
+            }
         });
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
@@ -630,19 +674,17 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     } else
 #endif
     {
+        auto const ntags = static_cast<int>(tags.size());
 #ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel for if (cpc.m_threadsafe_loc && cpc.m_threadsafe_rcv)
 #endif
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const& sfab = mf.array(mfi);
-            Array4<Real const> const& ffab = flux.const_array(mfi);
-            Array4<Real const> const& vfab = volume.const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                fluxreg_reflux(tbx, sfab, dcomp, ffab, vfab, nc, scale, face);
-            });
+        for (int it = 0; it < ntags; ++it) {
+            auto const& tag = tags[it];
+            if (tag.afab) {
+                fluxreg_reflux(tag.dbox, tag.dfab, dcomp, tag.sfab, tag.afab, nc, scale, face);
+            } else {
+                fluxreg_reflux(tag.dbox, tag.dfab, dcomp, tag.sfab, ConstVolume{cvol}, nc, scale, face);
+            }
         }
     }
 }

@@ -125,9 +125,11 @@ fluxreg_fineareaadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
     }
 }
 
+//! v is the cell volume: an Array4 or any (i,j,k) callable.
+template <typename V>
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
-                Array4<Real const> const& f, Array4<Real const> const& v,
+                Array4<Real const> const& f, V const& v,
                 const int ncomp, const Real mult, const Orientation face) noexcept
 {
     const auto lo  = amrex::lbound(bx);
