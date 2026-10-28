@@ -642,7 +642,10 @@ to :cpp:`The_Arena()` to reduce memory fragmentation.
 In :cpp:`amrex::Initialize`, a large amount of GPU device memory is
 allocated and is kept in :cpp:`The_Arena()`.  The default is 3/4 of the
 total device memory divided by the number of MPI processes sharing the
-device, and it can be changed with a :cpp:`ParmParse` parameter,
+device.  On integrated GPUs (e.g., AMD MI300A) that share memory with the
+host, the default is 3/8 instead, leaving memory for the host.  SYCL
+devices are not detected as integrated.  The size can be changed with a
+:cpp:`ParmParse` parameter,
 ``amrex.the_arena_init_size``, in the unit of bytes.  Note that only the
 processes in the communicator passed to :cpp:`amrex::Initialize` are
 counted.  In MPMD runs, or when an application splits the communicator and

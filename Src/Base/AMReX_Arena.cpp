@@ -440,7 +440,9 @@ Arena::Initialize (bool minimal)
         the_pinned_arena_init_size = 0;
     } else {
 #ifdef AMREX_USE_GPU
-        the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
+        Long const mem = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners();
+        // An integrated GPU shares its memory with the host. Leave more for the host.
+        the_arena_init_size = Gpu::Device::isIntegrated() ? mem / 8L * 3L : mem / 4L * 3L;
 #ifdef AMREX_USE_SYCL
         the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
