@@ -740,6 +740,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             }
         } else {
             m_ij_gather.clear();
+            m_ij_gather_failed = false;
             m_ij_vectors_assembled = false;
             m_ij_solver.reset();
             using IJInt = HypreIJIface::HypreIntType; // range checked in the constructor
@@ -1183,7 +1184,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 BL_PROFILE("HYPRE_IJMatrixAssemble");
                 HYPRE_IJMatrixAssemble(ij_A);
                 Gpu::hypreSynchronize();
-                if (m_reuse_setup) { buildIJSlots(rows, cols); }
+                if (m_reuse_setup && !m_ij_gather_failed) { buildIJSlots(rows, cols); }
             }
         } else {
             auto spA = std::make_unique<SpMatrix<Real>>();
@@ -1214,11 +1215,12 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             } else {
                 m_csr.toSpMatrix(*spA, m_rank_offset);
             }
-            // With setup reuse, keep the hierarchy for the new matrix
-            m_algmg_kept = m_algmg && m_reuse_setup && !m_algmg_reset;
-            if (m_algmg_kept) {
-                m_algmg->updateMatrix(*spA);
+            // With setup reuse, keep the hierarchy for the new matrix; it is
+            // only kept if it has been set up (solved with) since its define()
+            if (m_algmg && m_reuse_setup && !m_algmg_reset) {
+                m_algmg_kept = m_algmg->updateMatrix(*spA);
             } else {
+                m_algmg_kept = false;
                 m_algmg = std::make_unique<AlgMG<Real>>(*spA);
                 m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
                 // V-cycles alone can stall on composite AMR systems; not symmetric
@@ -1700,7 +1702,10 @@ void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
     // hypre may have dropped an entry: then all ranks keep the general path,
     // whose assembly is collective
     ParallelAllReduce::And(all_found, m_comm);
-    if (!all_found) { return; }
+    if (!all_found) {
+        m_ij_gather_failed = true; // for this matrix; not tried again
+        return;
+    }
     define_gather(m_ij_gather.offset, m_ij_gather.trip, entry, Long(di[nr]) + Long(oi[nr]));
 #else
     amrex::ignore_unused(rows, cols);
@@ -1826,7 +1831,9 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         BL_PROFILE_VAR_STOP(blp_vin);
 
         m_ij_solver->setThrowException(m_throw_exception);
-        const bool reused = !m_ij_solver->setupPending();
+        // A setup kept from an earlier matrix (setup reuse), not one done for
+        // this solve
+        const bool reused = m_reuse_setup && !m_ij_solver->setupPending();
         m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
         num_iterations = static_cast<int>(m_ij_solver->getNumIters());
         final_res = m_ij_solver->getFinalResidualNorm();
@@ -1841,7 +1848,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
             num_iterations += static_cast<int>(m_ij_solver->getNumIters());
             final_res = m_ij_solver->getFinalResidualNorm();
-        } else if (m_reuse_setup && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+        } else if (reused && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
             m_ij_solver->setNeedSetup(); // for the next solve
         }
 

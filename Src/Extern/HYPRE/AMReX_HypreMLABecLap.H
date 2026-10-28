@@ -74,8 +74,8 @@ public:
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
     //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
-    //! the next solve when a solve needs more than \p n iterations (0: never;
-    //! this is also `<prefix>.reuse_setup_max_iter`)
+    //! the next solve when a solve with a reused setup needs more than \p n
+    //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {
@@ -238,6 +238,7 @@ private:
     bool m_throw_exception = false;
     //! The hypre vectors were assembled once; later solves write into them
     bool m_ij_vectors_assembled = false;
+    bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
     //! AlgMG backend: build a new hierarchy at the next setup
     bool m_algmg_reset = false;
     //! AlgMG backend: the last setup kept the hierarchy
