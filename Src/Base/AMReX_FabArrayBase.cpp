@@ -2049,6 +2049,17 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
         fact_crse_patch = std::make_unique<FArrayBoxFactory>();
         fact_fine_patch = std::make_unique<FArrayBoxFactory>();
     }
+
+    keep_crse_patch = std::make_unique<FabArrayBase>(ba_crse_patch, dm_patch, 1, 0);
+    keep_crse_patch->addThisBD();
+    keep_fine_patch = std::make_unique<FabArrayBase>(ba_fine_patch, dm_patch, 1, 0);
+    keep_fine_patch->addThisBD();
+}
+
+FabArrayBase::FPinfo::~FPinfo ()
+{
+    if (keep_crse_patch) { keep_crse_patch->clearThisBD(true); }
+    if (keep_fine_patch) { keep_fine_patch->clearThisBD(true); }
 }
 
 Long
@@ -2136,6 +2147,7 @@ FabArrayBase::flushFPinfo (bool no_assertion) const
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<FPinfoCacheIter> others;
+    std::vector<FPinfo*> dead;
 
     auto er_it = m_TheFillPatchCache.equal_range(m_bdkey);
 
@@ -2163,13 +2175,19 @@ FabArrayBase::flushFPinfo (bool no_assertion) const
         m_FPinfo_stats.bytes -= it->second->bytes();
 #endif
         m_FPinfo_stats.recordErase(it->second->m_nuse);
-        delete it->second;
+        dead.push_back(it->second);
     }
 
     m_TheFillPatchCache.erase(er_it.first, er_it.second);
 
     for (auto const& it : others) {
         m_TheFillPatchCache.erase(it);
+    }
+
+    // ~FPinfo flushes the patch layouts' caches; erase first so the map is
+    // not modified while the iterators above are in use.
+    for (auto* p : dead) {
+        delete p;
     }
 }
 
