@@ -835,16 +835,15 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
             // We need to fix the order so that the send and recv processes match.
             std::sort(cctv.begin(), cctv.end());
 
-            std::vector<CopyComTag> cctv_tags_cross;
-            cctv_tags_cross.reserve(cctv.size());
-
-            for (auto const& tag : cctv)
+            if (cross)
             {
-                const Box& bx = tag.dbox;
-                const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
+                std::vector<CopyComTag> cctv_tags_cross;
+                cctv_tags_cross.reserve(cctv.size());
 
-                std::vector<Box> boxes;
-                if (cross) {
+                for (auto const& tag : cctv)
+                {
+                    const Box& bx = tag.dbox;
+                    const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
                     const Box& dstvbx = ba[tag.dstIndex];
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
@@ -853,7 +852,7 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                         lo.setBig  (dir, dstvbx.smallEnd(dir) - 1);
                         lo &= bx;
                         if (lo.ok()) {
-                            boxes.push_back(lo);
+                            cctv_tags_cross.emplace_back(lo, lo+d2s, tag.dstIndex, tag.srcIndex);
                         }
 
                         Box hi = dstvbx;
@@ -861,29 +860,18 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                         hi.setBig  (dir, dstvbx.bigEnd(dir) + nghost[dir]);
                         hi &= bx;
                         if (hi.ok()) {
-                            boxes.push_back(hi);
-                        }
-                    }
-                } else {
-                    boxes.push_back(bx);
-                }
-
-                if (!boxes.empty())
-                {
-                    for (auto const& cross_box : boxes)
-                    {
-                        if (cross)
-                        {
-                            cctv_tags_cross.emplace_back(cross_box, cross_box+d2s,
-                                                         tag.dstIndex, tag.srcIndex);
+                            cctv_tags_cross.emplace_back(hi, hi+d2s, tag.dstIndex, tag.srcIndex);
                         }
                     }
                 }
-            }
 
-            if (!cctv_tags_cross.empty()) {
                 cctv.swap(cctv_tags_cross);
             }
+        }
+
+        if (cross) {
+            // Ranks sharing only edges or corners have nothing left to exchange.
+            std::erase_if(Tags, [] (auto const& kv) { return kv.second.empty(); });
         }
     }
 }
