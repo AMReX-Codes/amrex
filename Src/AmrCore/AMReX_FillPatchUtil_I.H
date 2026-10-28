@@ -146,9 +146,12 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             }
 
             // Patch case: interpolate only the cells the ParallelCopy below reads,
-            // i.e. the hull of the local and send tags of each source FAB.
+            // i.e. the hull of the local and send tags of each source FAB. Not with
+            // MPI teams, whose members work on each other's FABs but only have the
+            // send tags of their own.
+            const bool use_hull = !sameba && ParallelDescriptor::TeamSize() == 1;
             Vector<Box> hull;
-            if (!sameba) {
+            if (use_hull) {
                 hull.resize(raii.local_size());
                 if (!mf.empty() && !raii.empty()) {
                     auto const& cpc = mf.getCPC(nghost, raii, src_ghost, geom.periodicity());
@@ -171,7 +174,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 Box bx = mfi.growntilebox(interp_ghost);
-                if (!sameba) {
+                if (use_hull) {
                     const Box& hbx = hull[mfi.LocalIndex()];
                     if (!hbx.ok()) { continue; }
                     bx &= hbx;
