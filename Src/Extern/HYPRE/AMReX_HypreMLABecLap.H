@@ -73,9 +73,9 @@ public:
      * operator (see resetSolverSetup()).
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
-    //! IJ mode, hypre backend, with setup reuse: redo the setup at the next
-    //! solve when a solve needs more than \p n iterations (0: never; this is
-    //! also `<prefix>.reuse_setup_max_iter`)
+    //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
+    //! the next solve when a solve needs more than \p n iterations (0: never;
+    //! this is also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {

@@ -637,6 +637,7 @@ MyTest::readParameters ()
 
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
+    pp.query("mlhypre_resolve", mlhypre_resolve);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
     pp.query("periodic_x", periodic_x);
     pp.query("max_error", max_error);
@@ -904,6 +905,12 @@ MyTest::solveMLHypre ()
 
                 for (auto& mf : rhs) { mf.mult(scale); }
                 composite_solve_or_throw(hypre_mlabeclap);
+                if (mlhypre_resolve && isetup > 0) {
+                    // again from zero without a new setup: a pending setup
+                    // reset (reuse_setup_max_iter) must apply to this solve
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                    composite_solve_or_throw(hypre_mlabeclap);
+                }
                 for (auto& mf : rhs) { mf.mult(Real(1.0)/scale); }
             }
         } else {

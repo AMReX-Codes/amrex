@@ -4,6 +4,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_ParallelReduce.H>
 
 #include <_hypre_parcsr_mv.h>
 
@@ -1674,7 +1675,8 @@ void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
     Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
     Gpu::streamSynchronize();
     Vector<Long> entry(ntot);
-    for (Long n = 0; n < ntot; ++n) {
+    bool all_found = true;
+    for (Long n = 0; n < ntot && all_found; ++n) {
         const Long r = Long(hr[n] - row0);
         Long s = -1;
         bool found = false;
@@ -1692,10 +1694,13 @@ void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
                 }
             }
         }
-        // hypre may have dropped the entry: keep the general path
-        if (!found) { return; }
+        all_found = found;
         entry[n] = s;
     }
+    // hypre may have dropped an entry: then all ranks keep the general path,
+    // whose assembly is collective
+    ParallelAllReduce::And(all_found, m_comm);
+    if (!all_found) { return; }
     define_gather(m_ij_gather.offset, m_ij_gather.trip, entry, Long(di[nr]) + Long(oi[nr]));
 #else
     amrex::ignore_unused(rows, cols);
@@ -1852,6 +1857,13 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         Gpu::copyAsync(Gpu::deviceToDevice, bvec.begin(), bvec.end(), ab.data());
         Gpu::copyAsync(Gpu::deviceToDevice, xvec.begin(), xvec.end(), ax.data());
         Gpu::streamSynchronize();
+        if (m_algmg_reset) {
+            // resetSolverSetup() or reuse_setup_max_iter since the last setup:
+            // a new hierarchy for the current matrix
+            m_algmg->define(*m_spA);
+            m_algmg_kept = false;
+            m_algmg_reset = false;
+        }
         m_algmg->setThrowException(m_throw_exception);
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(Real(0.0));
@@ -1873,7 +1885,7 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             num_iterations += m_algmg->getNumIters();
             final_res = (bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / bnorm : Real(0.0);
         } else if (m_algmg_kept && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
-            m_algmg_reset = true; // for the next setup
+            m_algmg_reset = true; // for the next solve or setup
         }
         Gpu::copyAsync(Gpu::deviceToDevice, ax.data(), ax.data()+nrows, xvec.begin());
         Gpu::streamSynchronize();
