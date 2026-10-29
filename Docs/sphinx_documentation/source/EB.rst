@@ -180,6 +180,20 @@ ngrow` parameter specifies the number of ghost cells outside the domain on
 required levels. For levels coarser than the required level, no EB data are
 generated for ghost cells outside the domain.
 
+With :cpp:`extend_domain_face` (the default), the geometry outside a non-periodic
+domain face is the domain face extended outward, so each required level stores
+:cpp:`ngrow` cells (rounded up to a multiple of 16) outside the domain: every
+coarse level is coarsened from the finer one and then extended again from its
+own outermost layer. Setting ``eb2.extrude_coarse_levels = 0`` restores the
+earlier behavior, in which the finest level stores :math:`ngrow \times
+2^{required\_coarsening\_level}` cells outside the domain so that coarsening
+alone leaves :cpp:`ngrow` on the coarsest required level. That uses much more
+memory when the embedded boundary meets the domain boundary, for example
+buildings or terrain on the domain floor, and gives the same EB data. An EB
+checkpoint file written either way can be read back with
+:cpp:`EB2::BuildFromChkptFile`, but a file written with the default setting
+cannot be read by AMReX versions before this change.
+
 **Build with Explicit Multi-Level Geometry**
 
 For applications requiring explicit control over the geometry at each AMR level:

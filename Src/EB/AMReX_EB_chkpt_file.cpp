@@ -181,7 +181,10 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
             ngrow_chkptfile[i++] = std::stoi(word);
         }
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_chkptfile == ngrow_finest, "EB2::ChkptFile cannot read from different ngrow");
+    // A checkpoint written with more cells outside the domain only costs memory. This keeps
+    // files written before coarse levels were extruded (EB2::extrude_coarse_levels) readable.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_chkptfile.allGE(ngrow_finest),
+                                     "EB2::ChkptFile cannot read from a smaller ngrow");
 
     bool edf_chkptfile;
     is >> edf_chkptfile;

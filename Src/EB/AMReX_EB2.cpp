@@ -28,6 +28,8 @@ AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 AMREX_EXPORT int max_grid_size = 64;
 /// \endcond
 
+AMREX_EXPORT bool extrude_coarse_levels = true;
+
 namespace {
     bool extend_domain_face = true;
     int num_coarsen_opt = 0;
@@ -39,6 +41,7 @@ void Initialize ()
     pp.queryAdd("max_grid_size", max_grid_size);
     pp.queryAdd("extend_domain_face", extend_domain_face);
     pp.queryAdd("num_coarsen_opt", num_coarsen_opt);
+    pp.queryAdd("extrude_coarse_levels", extrude_coarse_levels);
 
     amrex::ExecOnFinalize(Finalize);
 }

@@ -39,6 +39,20 @@ class IndexSpace;
 template <typename G> class GShopLevel;
 template <typename G> class IndexSpaceImp;
 
+/**
+ * \brief Whether coarse EB levels rebuild their cells outside the domain by extrusion.
+ *
+ * Applies only with `extend_domain_face`. When true (the default), every required level
+ * stores `ngrow` cells outside each non-periodic domain face: coarse levels are coarsened
+ * from the finer level and then extended outward by copying their outermost layer, which
+ * is exact because the geometry there is an extrusion of the domain face. When false, the
+ * finest level stores `ngrow * 2^required_coarsening_level` cells outside the domain so
+ * that coarsening alone leaves `ngrow` on the coarsest required level; this uses much more
+ * memory when cut cells touch the domain boundary. Set at runtime with
+ * `eb2.extrude_coarse_levels`.
+ */
+extern AMREX_EXPORT bool extrude_coarse_levels;
+
 class Level
 {
 public:
@@ -237,6 +251,15 @@ public:
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
+    /**
+     * \brief Extend the cells outside the domain to \p ngrow by extruding the outermost layer.
+     *
+     * Only for levels built with extend_domain_face, where the geometry outside the domain
+     * is an extrusion of the domain face. A box that reaches the current outer edge,
+     * nGrowVect() cells outside a non-periodic face, is grown outward, and its new cells copy
+     * the outermost stored layer. Directions with no stored outside cell are left alone.
+     */
+    void extendAtDomainFaces (IntVect const& ngrow);
     //! Build the face-centered EBCellFlag connectivity for \p face_dir from its area fractions.
     void buildCellFlagFC (int face_dir);
     //! Build the cut-cell mask by coarsening from \p fine_level.
@@ -268,6 +291,7 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     bool m_has_eb_info = true;
+    bool m_extend_domain_face = false;
     IntVect m_shift{0};
     IndexSpace const* m_parent;
 
@@ -370,6 +394,8 @@ GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
     }
 
     BL_PROFILE("EB2::GShopLevel()-prepare_grids");
+
+    m_extend_domain_face = extend_domain_face;
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -802,10 +828,12 @@ GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
 #endif
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int /*ngrow*/,
+GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int ngrow,
                            const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(is, geom)
 {
+    m_extend_domain_face = fineLevel.m_extend_domain_face;
+
     if (fineLevel.isAllRegular()) {
         m_allregular = true;
         m_ok = true;
@@ -843,6 +871,12 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
         }
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
+    }
+
+    // Coarsening halves the number of cells outside the domain. Restore ngrow, rounded up to
+    // a multiple of 16 as on the finest level.
+    if (m_ok && m_extend_domain_face && EB2::extrude_coarse_levels) {
+        extendAtDomainFaces(IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16});
     }
 }
 

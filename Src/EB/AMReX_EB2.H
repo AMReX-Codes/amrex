@@ -156,7 +156,9 @@ int NumCoarsenOpt ();
  * \param max_coarsening_level      Upper bound on the number of coarsenings we attempt
  *        when generating the EB hierarchy (the builder simply stops earlier if the
  *        EB cannot be coarsened that far; it is not treated as an error).
- * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param ngrow  Number of EB grow cells to build outside the domain on each required level
+ *        (default 4). With \p extend_domain_face, each level stores ngrow cells (rounded up
+ *        to a multiple of 16); see EB2::extrude_coarse_levels.
  * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
  * \param extend_domain_face Whether to extrapolate the EB description from the domain face to the outside of the domain (defaults to EB2::ExtendDomainFace / runtime param `eb2.extend_domain_face`).
  * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
