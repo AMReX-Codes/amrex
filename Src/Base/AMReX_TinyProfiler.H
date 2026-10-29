@@ -102,7 +102,8 @@ private:
 
         bool operator< (TimerKey const& rhs) const noexcept
         {
-            return std::tie(name, gpu_sync) < std::tie(rhs.name, rhs.gpu_sync);
+            int const c = name.compare(rhs.name);
+            return c < 0 || (c == 0 && gpu_sync < rhs.gpu_sync);
         }
     };
 
