@@ -832,8 +832,6 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
                            const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(is, geom)
 {
-    m_extend_domain_face = fineLevel.m_extend_domain_face;
-
     if (fineLevel.isAllRegular()) {
         m_allregular = true;
         m_ok = true;
@@ -875,6 +873,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
     // Coarsening halves the number of cells outside the domain. Restore ngrow, rounded up to
     // a multiple of 16 as on the finest level.
+    m_extend_domain_face = fineLevel.m_extend_domain_face;
     if (m_ok && m_extend_domain_face && EB2::extrude_coarse_levels) {
         extendAtDomainFaces(IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16});
     }

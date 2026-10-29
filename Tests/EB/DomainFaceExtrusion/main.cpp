@@ -28,7 +28,6 @@
 #if (AMREX_SPACEDIM == 3)
 #  include <fstream>
 #endif
-#include <type_traits>
 #include <string>
 
 using namespace amrex;
@@ -49,6 +48,17 @@ Box grownDomain (Geometry const& geom, int ng)
     return bx;
 }
 
+// Whether two entries differ. For Real data, sign_only compares only the signs.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool differs (T const& a, T const& b, bool /*sign_only*/) noexcept { return a != b; }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool differs (Real a, Real b, bool sign_only) noexcept
+{
+    return sign_only ? (a < 0) != (b < 0) : a != b;
+}
+
 /**
  * Count the entries that differ between a and b, separately inside inner (cell-centered;
  * converted to the data's index type) and outside it. The old build computes the outermost
@@ -66,21 +76,15 @@ GpuTuple<Long,Long> countDiffs (MF const& a, MF const& b, Box const& inner_cc,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             -> GpuTuple<Long,Long>
         {
-            bool diff;
-            if constexpr (std::is_same_v<MF,MultiFab>) {
-                diff = sign_only ? (aa[box_no](i,j,k,n) < 0) != (ba[box_no](i,j,k,n) < 0)
-                                 : aa[box_no](i,j,k,n) != ba[box_no](i,j,k,n);
-            } else {
-                diff = aa[box_no](i,j,k,n) != ba[box_no](i,j,k,n);
-            }
+            bool const diff = differs(aa[box_no](i,j,k,n), ba[box_no](i,j,k,n), sign_only);
             bool const in = inner.contains(i,j,k);
             return { Long(diff && in), Long(diff && !in) };
         });
-    Long nin = amrex::get<0>(r);
-    Long nout = amrex::get<1>(r);
-    ParallelAllReduce::Sum(nin, ParallelContext::CommunicatorSub());
-    ParallelAllReduce::Sum(nout, ParallelContext::CommunicatorSub());
-    return {nin, nout};
+    Long n_inside = amrex::get<0>(r);
+    Long n_outside = amrex::get<1>(r);
+    ParallelAllReduce::Sum(n_inside, ParallelContext::CommunicatorSub());
+    ParallelAllReduce::Sum(n_outside, ParallelContext::CommunicatorSub());
+    return {n_inside, n_outside};
 }
 
 int compareLevels (EB2::IndexSpace const& is_ref, EB2::IndexSpace const& is_new,
@@ -97,16 +101,16 @@ int compareLevels (EB2::IndexSpace const& is_ref, EB2::IndexSpace const& is_new,
         DistributionMapping dm(ba);
         Box const inner = grownDomain(geom, ngrow-2);
 
-        Long nin = 0, nout = 0;
+        Long n_inside = 0, n_outside = 0;
         auto check = [&] (char const* name, auto const& a, auto const& b, bool sign_only = false) {
-            auto [din, dout] = countDiffs(a, b, inner, sign_only);
-            if (din > 0) {
+            auto [d_inside, d_outside] = countDiffs(a, b, inner, sign_only);
+            if (d_inside > 0) {
                 amrex::Print() << "  ERROR: " << label << " level " << ilev << ": " << name
-                               << " differs at " << din << " points\n";
+                               << " differs at " << d_inside << " points\n";
                 ++nerrors;
             }
-            nin += din;
-            nout += dout;
+            n_inside += d_inside;
+            n_outside += d_outside;
         };
 
         {
@@ -177,7 +181,7 @@ int compareLevels (EB2::IndexSpace const& is_ref, EB2::IndexSpace const& is_new,
                        << " -> " << lnew.boxArray().numPts()
                        << ", nGrowVect " << lref.nGrowVect() << " -> " << ng_new
                        << ", differences inside/outside grow(domain," << ngrow-2 << ") "
-                       << nin << "/" << nout << "\n";
+                       << n_inside << "/" << n_outside << "\n";
 
         geom = amrex::coarsen(geom, IntVect(2));
     }
@@ -271,22 +275,22 @@ int run (bool periodic_x)
     constexpr int floor_dir = AMREX_SPACEDIM-1;
 
     // Cut by the floor along a circle.
-    RealArray center{AMREX_D_DECL(0.32, 0.4, 0.0)};
-    center[floor_dir] = -0.1;
-    EB2::SphereIF dome(0.28, center, false);
+    RealArray center{AMREX_D_DECL(0.32_rt, 0.4_rt, 0.0_rt)};
+    center[floor_dir] = -0.1_rt;
+    EB2::SphereIF dome(0.28_rt, center, false);
 
     // A box on the floor whose sides are not grid aligned.
-    RealArray lo{AMREX_D_DECL(0.73, 0.71, 0.0)};
-    RealArray hi{AMREX_D_DECL(0.91, 0.88, 0.0)};
-    lo[floor_dir] = -1.0;
-    hi[floor_dir] = 0.2;
+    RealArray lo{AMREX_D_DECL(0.73_rt, 0.71_rt, 0.0_rt)};
+    RealArray hi{AMREX_D_DECL(0.91_rt, 0.88_rt, 0.0_rt)};
+    lo[floor_dir] = -1.0_rt;
+    hi[floor_dir] = 0.2_rt;
     EB2::BoxIF block(lo, hi, false);
 
     // In the top corner, cut by two domain faces at once. With a periodic x direction it is
     // moved away from the x faces, because it would not be periodic.
-    RealArray corner{AMREX_D_DECL(periodic_x ? 0.6 : 1.0, 0.65, 1.0)};
-    corner[floor_dir] = 1.0;
-    EB2::SphereIF ball(0.23, corner, false);
+    RealArray corner{AMREX_D_DECL(periodic_x ? 0.6_rt : 1.0_rt, 0.65_rt, 1.0_rt)};
+    corner[floor_dir] = 1.0_rt;
+    EB2::SphereIF ball(0.23_rt, corner, false);
 
     auto gshop = EB2::makeShop(EB2::makeUnion(dome, block, ball));
 
