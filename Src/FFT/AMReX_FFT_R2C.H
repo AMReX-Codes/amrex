@@ -495,8 +495,11 @@ private:
     std::unique_ptr<R2C<T,D,C>> m_r2c_sub;
     detail::SubHelper m_sub_helper;
 
-    //! Processes that own data; MPI_COMM_NULL on processes that own none.
+    //! Processes that own data, used by the collective strategies only.
+    //! MPI_COMM_NULL on processes that own none.
+    int m_nprocs_active = 0;
     MPI_Comm m_comm_active = MPI_COMM_NULL;
+    bool m_owns_comm_active = false; // true if it must be freed
 
     Info m_info;
 
@@ -656,15 +659,15 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         // make copiers
         //
 
-        m_comm_active = detail::make_active_comm({&m_rx, &m_cx, &m_cy, &m_cz});
+        m_nprocs_active = detail::count_active_procs({&m_rx, &m_cx, &m_cy, &m_cz});
 
 #if (AMREX_SPACEDIM >= 2)
         if (! m_cy.empty()) {
             // comm meta-data between x and y phases
             m_cmd_x2y = detail::make_transpose
-                (m_comm_active, m_cy, m_spectral_domain_y, m_cx, IntVect(0), m_dtos_x2y);
+                (m_nprocs_active, m_cy, m_spectral_domain_y, m_cx, IntVect(0), m_dtos_x2y);
             m_cmd_y2x = detail::make_transpose
-                (m_comm_active, m_cx, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
+                (m_nprocs_active, m_cx, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
         }
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -672,15 +675,15 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
             if (m_slab_decomp) {
                 // comm meta-data between xy and z phases
                 m_cmd_x2z = detail::make_transpose
-                    (m_comm_active, m_cz, m_spectral_domain_z, m_cx, IntVect(0), m_dtos_x2z);
+                    (m_nprocs_active, m_cz, m_spectral_domain_z, m_cx, IntVect(0), m_dtos_x2z);
                 m_cmd_z2x = detail::make_transpose
-                    (m_comm_active, m_cx, m_spectral_domain_x, m_cz, IntVect(0), m_dtos_z2x);
+                    (m_nprocs_active, m_cx, m_spectral_domain_x, m_cz, IntVect(0), m_dtos_z2x);
             } else {
                 // comm meta-data between y and z phases
                 m_cmd_y2z = detail::make_transpose
-                    (m_comm_active, m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
+                    (m_nprocs_active, m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
                 m_cmd_z2y = detail::make_transpose
-                    (m_comm_active, m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
+                    (m_nprocs_active, m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
             }
         }
 #endif
@@ -693,6 +696,9 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
                                       &m_cmd_z2y, &m_cmd_x2z, &m_cmd_z2x}),
              detail::transposes_dense({&m_cmd_x2y, &m_cmd_y2x, &m_cmd_y2z,
                                        &m_cmd_z2y, &m_cmd_x2z, &m_cmd_z2x}));
+        if (m_info.comm_strategy != CommStrategy::pointtopoint) {
+            m_comm_active = detail::make_active_comm(m_nprocs_active, m_owns_comm_active);
+        }
 
         //
         // make plans
@@ -783,7 +789,7 @@ R2C<T,D,C>::~R2C ()
         m_fft_bwd_x_half.destroy();
     }
     m_fft_fwd_x_half.destroy();
-    detail::free_active_comm(m_comm_active);
+    detail::free_active_comm(m_comm_active, m_owns_comm_active);
 }
 
 template <typename T, Direction D, bool C>
@@ -922,14 +928,14 @@ void R2C<T,D,C>::prepare_openbc ()
         // unit-stride direction here.
         bottom_half.growHi(0,-m_spectral_domain_z.length(0)/2);
         m_cmd_x2z_half = detail::make_transpose
-            (m_comm_active, m_cz, bottom_half, m_cx, IntVect(0), m_dtos_x2z);
+            (m_nprocs_active, m_cz, bottom_half, m_cx, IntVect(0), m_dtos_x2z);
     }
 
     if (m_cmd_z2x && ! m_cmd_z2x_half) {
         Box bottom_half = m_spectral_domain_x;
         bottom_half.growHi(2,-m_spectral_domain_x.length(2)/2);
         m_cmd_z2x_half = detail::make_transpose
-            (m_comm_active, m_cx, bottom_half, m_cz, IntVect(0), m_dtos_z2x);
+            (m_nprocs_active, m_cx, bottom_half, m_cz, IntVect(0), m_dtos_z2x);
     }
 #endif
 }
@@ -1023,12 +1029,12 @@ void R2C<T,D,C>::forward (MF const& inmf, int incomp)
     }
 
     if (                          m_cmd_x2y) {
-        detail::transpose(m_cy, m_cx, *m_cmd_x2y, ncomp, m_dtos_x2y, m_info.comm_strategy);
+        detail::transpose(m_cy, m_cx, *m_cmd_x2y, ncomp, m_dtos_x2y, m_info.comm_strategy, m_comm_active);
     }
     m_fft_fwd_y.template compute_c2c<Direction::forward>();
 
     if (                          m_cmd_y2z) {
-        detail::transpose(m_cz, m_cy, *m_cmd_y2z, ncomp, m_dtos_y2z, m_info.comm_strategy);
+        detail::transpose(m_cz, m_cy, *m_cmd_y2z, ncomp, m_dtos_y2z, m_info.comm_strategy, m_comm_active);
     }
 #if (AMREX_SPACEDIM == 3)
     else if (                     m_cmd_x2z) {
@@ -1047,7 +1053,7 @@ void R2C<T,D,C>::forward (MF const& inmf, int incomp)
 
             ParallelCopy_finish(m_cz, std::move(handler), m_cmd_x2z_half->cmd, packing);
         } else {
-            detail::transpose(m_cz, m_cx, *m_cmd_x2z, ncomp, m_dtos_x2z, m_info.comm_strategy);
+            detail::transpose(m_cz, m_cx, *m_cmd_x2z, ncomp, m_dtos_x2z, m_info.comm_strategy, m_comm_active);
         }
     }
 #endif
@@ -1167,18 +1173,18 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
 
     m_fft_bwd_z.template compute_c2c<Direction::backward>();
     if (                          m_cmd_z2y) {
-        detail::transpose(m_cy, m_cz, *m_cmd_z2y, ncomp, m_dtos_z2y, m_info.comm_strategy);
+        detail::transpose(m_cy, m_cz, *m_cmd_z2y, ncomp, m_dtos_z2y, m_info.comm_strategy, m_comm_active);
     }
 #if (AMREX_SPACEDIM == 3)
     else if (                     m_cmd_z2x) {
         auto const& cmd = m_openbc_half ? m_cmd_z2x_half : m_cmd_z2x;
-        detail::transpose(m_cx, m_cz, *cmd, ncomp, m_dtos_z2x, m_info.comm_strategy);
+        detail::transpose(m_cx, m_cz, *cmd, ncomp, m_dtos_z2x, m_info.comm_strategy, m_comm_active);
     }
 #endif
 
     m_fft_bwd_y.template compute_c2c<Direction::backward>();
     if (                          m_cmd_y2x) {
-        detail::transpose(m_cx, m_cy, *m_cmd_y2x, ncomp, m_dtos_y2x, m_info.comm_strategy);
+        detail::transpose(m_cx, m_cy, *m_cmd_y2x, ncomp, m_dtos_y2x, m_info.comm_strategy, m_comm_active);
     }
 
     auto& fft_x = m_openbc_half ? m_fft_bwd_x_half : m_fft_bwd_x;

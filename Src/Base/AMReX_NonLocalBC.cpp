@@ -57,7 +57,11 @@ void PrepareCommBuffers(CommData& comm,
     comm.id = FabArrayBase::getNextCommMetaDataId();
 
     const auto N_comms = static_cast<int>(cctc.size());
-    if (N_comms == 0) { return; }
+    if (N_comms == 0) {
+        comm.total_bytes = 0;
+        comm.the_data.reset();
+        return;
+    }
     // reserve for upcominf push_backs
     comm.data.reserve(N_comms);
     comm.size.reserve(N_comms);
@@ -95,17 +99,9 @@ void PrepareCommBuffers(CommData& comm,
         total_volume += nbytes;
     }
 
-    if (total_volume == 0)
-    {
-        comm.the_data.reset();
-    }
-    else
-    {
-        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
-        for (int i = 0; i < N_comms; ++i) {
-            comm.data[i] = comm.the_data.get() + comm.offset[i];
-        }
-    }
+    comm.total_bytes = total_volume;
+    comm.the_data.reset();
+    AcquireCommBuffer(comm);
 }
 
 void PostRecvs(CommData& recv, int mpi_tag) {
@@ -208,16 +204,23 @@ void PrepareCommBuffersUniform (CommData& comm,
     }
 
     std::size_t const total_volume = block_size * std::size_t(nprocs);
-    if (total_volume == 0)
-    {
-        comm.the_data.reset();
-    }
-    else
-    {
-        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
-        for (int i = 0; i < N_comms; ++i) {
-            comm.data[i] = comm.the_data.get() + comm.offset[i];
-        }
+    comm.total_bytes = total_volume;
+    comm.the_data.reset();
+    AcquireCommBuffer(comm);
+}
+
+void ReleaseCommBuffer(CommData& comm)
+{
+    comm.the_data.reset();
+    for (auto& p : comm.data) { p = nullptr; }
+}
+
+void AcquireCommBuffer(CommData& comm)
+{
+    if (comm.the_data || comm.total_bytes == 0) { return; }
+    comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(comm.total_bytes)));
+    for (std::size_t i = 0; i < comm.data.size(); ++i) {
+        comm.data[i] = comm.the_data.get() + comm.offset[i];
     }
 }
 

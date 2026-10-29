@@ -1757,8 +1757,6 @@ namespace detail
         return n * fa.nComp() * Long(sizeof(T));
     }
 
-    //! Communication meta-data for a transpose, with the buffers cached by
-    //! the collective strategies.
     //! Message pattern of a transpose: largest message between two
     //! processes and whether (nearly) every pair of processes exchanges
     //! data. In a 3D pencil-to-pencil transpose only processes sharing a
@@ -1770,56 +1768,139 @@ namespace detail
         bool dense = true;
     };
 
+    //! Communication meta-data for a transpose. The collective strategies
+    //! also cache the buffer layout in handler; the buffers themselves are
+    //! released after each transpose.
     struct TransposeMetaData
     {
         template <typename... Args>
-        explicit TransposeMetaData (TransposePattern pattern_, MPI_Comm comm_, Args&&... args)
-            : cmd(std::forward<Args>(args)...), pattern(pattern_), comm(comm_) {}
+        explicit TransposeMetaData (TransposePattern pattern_, Args&&... args)
+            : cmd(std::forward<Args>(args)...), pattern(pattern_) {}
 
         MultiBlockCommMetaData cmd;
         NonLocalBC::CommHandler handler;
         TransposePattern pattern;
-        MPI_Comm comm;           // communicator of the processes that own data
     };
 
-    //! Communicator of the processes that own data in any of the given
-    //! FabArrays. Returns the current communicator if all processes do.
-    //! Processes that own nothing get MPI_COMM_NULL. The caller owns the
-    //! communicator if it differs from the current one.
-    MPI_Comm make_active_comm (std::initializer_list<FabArrayBase const*> fas);
+    //! Number of processes that own data in any of the given FabArrays.
+    //! Layouts use make_iota_distromap, so these are the first n local ranks.
+    int count_active_procs (std::initializer_list<FabArrayBase const*> fas);
 
-    //! Free a communicator made by make_active_comm.
-    void free_active_comm (MPI_Comm comm);
+    //! Communicator of the first n_active processes. Returns the current
+    //! communicator if all processes are active. Processes that are not
+    //! active get MPI_COMM_NULL. owned is set to true if a new communicator
+    //! was created, which the caller must free.
+    MPI_Comm make_active_comm (int n_active, bool& owned);
+
+    //! Free a communicator made by make_active_comm if it is owned.
+    void free_active_comm (MPI_Comm comm, bool owned);
+
+    //! Sorted distinct intervals [lo,hi] of the boxes in direction dir.
+    inline Vector<std::pair<int,int>> box_intervals (Vector<Box> const& boxes, int dir)
+    {
+        Vector<std::pair<int,int>> iv;
+        iv.reserve(boxes.size());
+        for (auto const& b : boxes) {
+            iv.emplace_back(b.smallEnd(dir), b.bigEnd(dir));
+        }
+        std::sort(iv.begin(), iv.end());
+        iv.erase(std::unique(iv.begin(), iv.end()), iv.end());
+        return iv;
+    }
 
     //! Message pattern of the given transpose, computed from the replicated
-    //! layouts so that it is the same on all processes. Each process owns
-    //! at most one box in a FFT layout.
+    //! layouts so that it is the same on all processes. n_active is the
+    //! size of the communicator the collectives would use.
+    //!
+    //! The layouts come from amrex::decompose, so they are tensor grids: in
+    //! each direction the boxes take a few distinct intervals and every
+    //! combination of intervals is a box. Two boxes intersect iff their
+    //! intervals overlap in every direction, so the number of intersecting
+    //! pairs is the product of per-direction counts. This avoids testing
+    //! all pairs of boxes.
     template <typename FA, typename DTOS>
     TransposePattern transpose_pattern (FA const& dst, Box const& dstbox, FA const& src,
-                                        DTOS const& dtos)
+                                        DTOS const& dtos, int n_active)
     {
         using T = typename FA::FABType::value_type::value_type;
         auto const& dstba = dst.boxArray();
         auto const& dstdm = dst.DistributionMap();
         auto const& srcba = src.boxArray();
         auto const& srcdm = src.DistributionMap();
-        Long maxpts = 0;
-        Long npairs = 0;
+
+        // Destination boxes clipped and mapped into the source index space.
+        Vector<Box> dboxes;
+        Vector<int> downers;
         for (int i = 0, n = int(dstba.size()); i < n; ++i) {
             Box const b = dstba[i] & dstbox;
-            if (b.isEmpty()) { continue; }
-            Box const bs = NonLocalBC::Image(dtos, b).setType(srcba.ixType());
-            for (auto const& [k, sbox] : srcba.intersections(bs)) {
-                if (srcdm[k] != dstdm[i]) {
-                    maxpts = std::max(maxpts, sbox.numPts());
-                    ++npairs;
+            if (b.ok()) {
+                dboxes.push_back(NonLocalBC::Image(dtos, b).setType(srcba.ixType()));
+                downers.push_back(dstdm[i]);
+            }
+        }
+        Vector<Box> sboxes;
+        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
+            sboxes.push_back(srcba[k]);
+        }
+
+        Long npairs = 1;
+        bool shared_split = false; // a direction split by both layouts
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            auto const div = box_intervals(dboxes, idim);
+            auto const siv = box_intervals(sboxes, idim);
+            shared_split = shared_split || (div.size() > 1 && siv.size() > 1);
+            // Both sets are partitions, so a sweep finds the overlapping pairs.
+            Long nover = 0;
+            std::size_t j0 = 0;
+            for (auto const& a : div) {
+                while (j0 < siv.size() && siv[j0].second < a.first) { ++j0; }
+                for (auto j = j0; j < siv.size() && siv[j].first <= a.second; ++j) {
+                    ++nover;
+                }
+            }
+            npairs *= nover;
+        }
+
+        // decompose gives the extra cells to the first blocks, so box 0 is
+        // the largest box in each layout and their intersection bounds the
+        // largest message. The distribution maps are iota, so that pair is
+        // a local copy. If no direction is split by both layouts, every
+        // pair intersects and the largest message is the best pair with
+        // one of the two boxes 0. Otherwise the bound is used.
+        Long maxpts = 0;
+        if (!dboxes.empty() && !sboxes.empty()) {
+            if (shared_split) {
+                maxpts = (dboxes[0] & sboxes[0]).numPts();
+            } else {
+                for (std::size_t k = 1; k < sboxes.size(); ++k) {
+                    maxpts = std::max(maxpts, (dboxes[0] & sboxes[k]).numPts());
+                }
+                for (std::size_t i = 1; i < dboxes.size(); ++i) {
+                    maxpts = std::max(maxpts, (dboxes[i] & sboxes[0]).numPts());
                 }
             }
         }
+
+        // Pairs owned by the same process are local copies, not messages.
+        int maxrank = 0;
+        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
+            maxrank = std::max(maxrank, srcdm[k]);
+        }
+        Vector<int> src_of_rank(maxrank+1, -1);
+        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
+            src_of_rank[srcdm[k]] = k;
+        }
+        for (std::size_t i = 0; i < dboxes.size(); ++i) {
+            int const k = (downers[i] <= maxrank) ? src_of_rank[downers[i]] : -1;
+            if (k >= 0 && dboxes[i].intersects(sboxes[k])) { --npairs; }
+        }
+        if (npairs <= 0) { npairs = 0; maxpts = 0; }
+
         TransposePattern p;
         p.block_bytes = amrex::aligned_size(alignof(T), std::size_t(maxpts) * dst.nComp() * sizeof(T));
-        // Dense if at least half of all process pairs exchange data.
-        p.dense = (2*npairs >= dstba.size() * srcba.size());
+        // Dense if at least half of all pairs in the communicator exchange
+        // data. Alltoall pads every pair to the largest message.
+        p.dense = (2*npairs >= Long(n_active) * Long(n_active));
         return p;
     }
 
@@ -1845,31 +1926,33 @@ namespace detail
 
     template <typename FA, typename DTOS>
     std::unique_ptr<TransposeMetaData>
-    make_transpose (MPI_Comm comm, FA& dst, Box const& dstbox, FA const& src,
+    make_transpose (int n_active, FA& dst, Box const& dstbox, FA const& src,
                     IntVect const& ngrow, DTOS const& dtos)
     {
         return std::make_unique<TransposeMetaData>
-            (transpose_pattern(dst, dstbox, src, dtos), comm, dst, dstbox, src, ngrow, dtos);
+            (transpose_pattern(dst, dstbox, src, dtos, n_active), dst, dstbox, src, ngrow, dtos);
     }
 
+    //! comm is the communicator of the active processes (see
+    //! make_active_comm). It is not used by the point-to-point strategy.
     template <typename FA, typename DTOS>
     void transpose (FA& dst, FA const& src, TransposeMetaData& md, int ncomp,
-                    DTOS const& dtos, CommStrategy strategy)
+                    DTOS const& dtos, CommStrategy strategy, MPI_Comm comm)
     {
         BL_PROFILE("FFT::transpose");
         if (strategy == CommStrategy::pointtopoint) {
             NonLocalBC::ParallelCopy(dst, src, md.cmd, 0, 0, ncomp, dtos);
-        } else if (md.comm == MPI_COMM_NULL) {
+        } else if (comm == MPI_COMM_NULL) {
             return; // this process owns no data
         } else if (strategy == CommStrategy::alltoall && md.pattern.dense) {
             // With a sparse pattern the padded buffer would be much larger
             // than the data, so alltoallv is used instead.
             NonLocalBC::ParallelCopy_alltoall(dst, src, md.cmd, 0, 0, ncomp, dtos,
                                               NonLocalBC::Identity{}, md.pattern.block_bytes,
-                                              &md.handler, md.comm);
+                                              &md.handler, comm);
         } else {
             NonLocalBC::ParallelCopy_alltoallv(dst, src, md.cmd, 0, 0, ncomp, dtos,
-                                               NonLocalBC::Identity{}, &md.handler, md.comm);
+                                               NonLocalBC::Identity{}, &md.handler, comm);
         }
     }
 

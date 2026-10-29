@@ -125,36 +125,41 @@ CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
     return s;
 }
 
-MPI_Comm make_active_comm (std::initializer_list<FabArrayBase const*> fas)
+int count_active_procs (std::initializer_list<FabArrayBase const*> fas)
 {
-    MPI_Comm comm = ParallelContext::CommunicatorSub();
-#ifdef AMREX_USE_MPI
-    // Layouts use make_iota_distromap, so the data owners are the first
-    // n_active local ranks.
     int n_active = 0;
     for (auto const* fa : fas) {
         if (!fa->empty()) { n_active = std::max(n_active, fa->size()); }
     }
+    return std::min(n_active, ParallelContext::NProcsSub());
+}
+
+MPI_Comm make_active_comm (int n_active, bool& owned)
+{
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    owned = false;
+#ifdef AMREX_USE_MPI
     int const nprocs = ParallelContext::NProcsSub();
     if (n_active < nprocs) {
         int const myproc = ParallelContext::MyProcSub();
         int const color = (myproc < n_active) ? 0 : MPI_UNDEFINED;
         BL_MPI_REQUIRE( MPI_Comm_split(ParallelContext::CommunicatorSub(), color, myproc, &comm) );
+        owned = true;
     }
 #else
-    amrex::ignore_unused(fas);
+    amrex::ignore_unused(n_active);
 #endif
     return comm;
 }
 
-void free_active_comm (MPI_Comm comm)
+void free_active_comm (MPI_Comm comm, bool owned)
 {
 #ifdef AMREX_USE_MPI
-    if (comm != MPI_COMM_NULL && comm != ParallelContext::CommunicatorSub()) {
+    if (owned && comm != MPI_COMM_NULL) {
         MPI_Comm_free(&comm);
     }
 #else
-    amrex::ignore_unused(comm);
+    amrex::ignore_unused(comm, owned);
 #endif
 }
 

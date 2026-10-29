@@ -443,6 +443,8 @@ struct CommData {
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
     //! \brief rank translated into the communicator used by Alltoall and Alltoallv.
     Vector<int> comm_rank{};
+    //! \brief Size of the_data in bytes, so that it can be released and reacquired.
+    std::size_t total_bytes = 0;
     std::uint64_t id = std::numeric_limits<std::uint64_t>::max();
 #endif
 };
@@ -483,6 +485,12 @@ void PrepareCommBuffersUniform(CommData& comm, const FabArrayBase::MapOfCopyComT
 //! Both CommData objects must have been prepared by PrepareCommBuffersUniform with the same
 //! block_size and communicator c. All processes in c must call this function.
 void Alltoall(CommData const& send, CommData& recv, std::size_t block_size, MPI_Comm c);
+
+//! \brief Free the_data of a prepared CommData, keeping the rest of the meta-data.
+void ReleaseCommBuffer(CommData& comm);
+
+//! \brief Allocate the_data of a prepared CommData again after ReleaseCommBuffer.
+void AcquireCommBuffer(CommData& comm);
 #endif
 
 //! \brief This class stores both recv and send buffers with an associated MPI tag.
@@ -925,10 +933,11 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!
 //! \param[in]  data_packing A CPO that controls packing and unpacking of the buffers.
 //!
-//! \param[in,out] cached If not null, the communication buffers prepared in the first
-//!                       call are kept in this handler and reused in later calls. This
-//!                       requires that cmd, data_packing and the memory of src and dest
-//!                       do not change between calls.
+//! \param[in,out] cached If not null, the communication meta-data prepared in the first
+//!                       call is kept in this handler and reused in later calls. The data
+//!                       buffers are released between calls. This requires that cmd,
+//!                       data_packing and the memory of src and dest do not change
+//!                       between calls.
 //!
 //! \param[in]  comm     Communicator for the collective. MPI_COMM_NULL means the current
 //!                      ParallelContext communicator. Otherwise it must contain every
@@ -962,6 +971,9 @@ ParallelCopy_alltoallv (FabArray<FAB>& dest, const FabArray<FAB>& src,
             PrepareSendBuffers(data_packing, dest, src, handler.send, snd_tags);
             TranslateRanks(handler.recv, comm);
             TranslateRanks(handler.send, comm);
+        } else {
+            AcquireCommBuffer(handler.recv);
+            AcquireCommBuffer(handler.send);
         }
 
         if (!snd_tags.empty()) {
@@ -978,6 +990,10 @@ ParallelCopy_alltoallv (FabArray<FAB>& dest, const FabArray<FAB>& src,
 
         if (!rcv_tags.empty()) {
             UnpackRecvBuffers(data_packing, dest, handler.recv);
+        }
+        if (cached) {
+            ReleaseCommBuffer(handler.send);
+            ReleaseCommBuffer(handler.recv);
         }
         return;
     }
@@ -1051,6 +1067,9 @@ ParallelCopy_alltoall (FabArray<FAB>& dest, const FabArray<FAB>& src,
                                       sizeof(T), block_size, comm);
             PrepareCommBuffersUniform(handler.send, snd_tags, data_packing.n_components,
                                       sizeof(T), block_size, comm);
+        } else {
+            AcquireCommBuffer(handler.recv);
+            AcquireCommBuffer(handler.send);
         }
 
         if (!snd_tags.empty()) {
@@ -1065,6 +1084,10 @@ ParallelCopy_alltoall (FabArray<FAB>& dest, const FabArray<FAB>& src,
 
         if (!rcv_tags.empty()) {
             UnpackRecvBuffers(data_packing, dest, handler.recv);
+        }
+        if (cached) {
+            ReleaseCommBuffer(handler.send);
+            ReleaseCommBuffer(handler.recv);
         }
         return;
     }
