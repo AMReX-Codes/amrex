@@ -5,8 +5,21 @@
 #include <AMReX_ParReduce.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <string>
 
 using namespace amrex;
+
+// Communication strategy for the transposes, from the input comm_strategy.
+static FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
 
 int main (int argc, char* argv[])
 {
@@ -76,7 +89,7 @@ int main (int argc, char* argv[])
             // forward
             {
                 FFT::R2C<Real,FFT::Direction::forward> r2c
-                    (geom.Domain(), FFT::Info{}.setDomainStrategy(FFT::DomainStrategy::pencil));
+                    (geom.Domain(), test_info().setDomainStrategy(FFT::DomainStrategy::pencil));
                 auto const& [cba, cdm] = r2c.getSpectralDataLayout();
                 cmf.define(cba, cdm, 1, 0);
                 r2c.forward(mf,cmf);
@@ -85,7 +98,7 @@ int main (int argc, char* argv[])
             // backward
             {
                 FFT::R2C<Real,FFT::Direction::backward> r2c
-                    (geom.Domain(), FFT::Info{}.setDomainStrategy(FFT::DomainStrategy::pencil));
+                    (geom.Domain(), test_info().setDomainStrategy(FFT::DomainStrategy::pencil));
                 r2c.backward(cmf,mf2);
             }
 
@@ -109,7 +122,7 @@ int main (int argc, char* argv[])
 
         { // forward and backward
             FFT::R2C<Real,FFT::Direction::both> r2c
-                (geom.Domain(), FFT::Info{}.setDomainStrategy(FFT::DomainStrategy::slab));
+                (geom.Domain(), test_info().setDomainStrategy(FFT::DomainStrategy::slab));
             r2c.forwardThenBackward(mf, mf2,
                                     [=] AMREX_GPU_DEVICE (int, int, int, auto& sp)
             {
@@ -303,13 +316,13 @@ int main (int argc, char* argv[])
                  Box(IntVect(0),IntVect(31,15,0))};
 #endif
             Vector<std::pair<std::string,FFT::Info>> modes;
-            modes.emplace_back("plain", FFT::Info{});
-            modes.emplace_back("oned_mode", FFT::Info{}.setOneDMode(true));
+            modes.emplace_back("plain", test_info());
+            modes.emplace_back("oned_mode", test_info().setOneDMode(true));
 #if (AMREX_SPACEDIM == 3)
-            modes.emplace_back("twod_mode", FFT::Info{}.setTwoDMode(true));
+            modes.emplace_back("twod_mode", test_info().setTwoDMode(true));
             // Both flags, like FFT::PoissonHybrid sets for a degenerate domain.
             modes.emplace_back("oned+twod_mode",
-                               FFT::Info{}.setOneDMode(true).setTwoDMode(true));
+                               test_info().setOneDMode(true).setTwoDMode(true));
 #endif
 
             for (auto const& dom : domains) {

@@ -4,8 +4,21 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <string>
 
 using namespace amrex;
+
+// Communication strategy for the transposes, from the input comm_strategy.
+static FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
 
 int main (int argc, char* argv[])
 {
@@ -77,7 +90,7 @@ int main (int argc, char* argv[])
 
         // forward
         {
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setDomainStrategy(FFT::DomainStrategy::pencil);
             info.setBatchSize(batch_size);
             FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain(), info);
@@ -88,7 +101,7 @@ int main (int argc, char* argv[])
 
         // backward
         {
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setDomainStrategy(FFT::DomainStrategy::slab);
             info.setBatchSize(batch_size);
             FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain(), info);
@@ -143,7 +156,7 @@ int main (int argc, char* argv[])
         // Batched forwardThenBackward. The callable takes a CellData so that
         // it sees all components of the batch at a spectral point at once.
         {
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setBatchSize(batch_size);
             FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
             r2c.forwardThenBackward(mf, mf2,
@@ -217,7 +230,7 @@ int main (int argc, char* argv[])
                 oa[b](i,j,k,n) = base + cos_amp * std::cos(theta);
             });
 
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setOneDMode(true);
             FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
             auto const& [cba, cdm] = r2c.getSpectralDataLayout();
@@ -301,7 +314,7 @@ int main (int argc, char* argv[])
                 cia[b](i,j,k) = base + cos_amp * std::cos(theta);
             });
 
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setOneDMode(true);
             FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
             auto const& [cba, cdm] = c2c.getSpectralDataLayout();
@@ -384,7 +397,7 @@ int main (int argc, char* argv[])
                 ta[b](i,j,k,n) = base + cos_amp * std::cos(theta);
             });
 
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setTwoDMode(true);
             FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
             auto const& [cba, cdm] = r2c.getSpectralDataLayout();
@@ -453,7 +466,7 @@ int main (int argc, char* argv[])
                 cia[b](i,j,k) = base + cos_amp * std::cos(theta);
             });
 
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setTwoDMode(true);
             FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
             auto const& [cba, cdm] = c2c.getSpectralDataLayout();

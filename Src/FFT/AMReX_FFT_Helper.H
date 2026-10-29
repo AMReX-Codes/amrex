@@ -12,6 +12,7 @@
 #include <AMReX_GpuComplex.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Math.H>
+#include <AMReX_NonLocalBC.H>
 #include <AMReX_Periodicity.H>
 
 /**
@@ -43,6 +44,7 @@
 
 #include <algorithm>
 #include <complex>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <tuple>
@@ -55,6 +57,9 @@ namespace amrex::FFT
 enum struct Direction { forward, backward, both, none };
 
 enum struct DomainStrategy { automatic, slab, pencil };
+
+//! How the distributed transposes exchange data between processes.
+AMREX_ENUM( CommStrategy, automatic, pointtopoint, alltoallv, alltoall );
 
 AMREX_ENUM( Boundary, periodic, even, odd );
 
@@ -107,6 +112,9 @@ struct Info
 
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
+
+    //! Communication strategy for the distributed transposes.
+    CommStrategy comm_strategy = CommStrategy::automatic;
 
     //! Whether OpenBCSolver pads internal FFT lengths for better performance.
     bool openbc_padding = true;
@@ -161,6 +169,13 @@ struct Info
      * \return Reference to this Info.
      */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
+    /**
+     * \brief Select how the distributed transposes communicate.
+     *
+     * \param s Strategy (automatic|pointtopoint|alltoallv|alltoall).
+     * \return Reference to this Info.
+     */
+    Info& setCommStrategy (CommStrategy s) { comm_strategy = s; return *this; }
     /**
      * \brief Enable or disable OpenBCSolver internal FFT padding.
      *
@@ -1708,6 +1723,155 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 namespace detail
 {
     DistributionMapping make_iota_distromap (Long n);
+
+    //! Resolve CommStrategy::automatic.
+    //! max_fab_bytes is the largest FAB in any FabArray taking part in the
+    //! transposes, max_block_bytes the largest message between two
+    //! processes, and dense whether (nearly) every pair of processes
+    //! exchanges data in every transpose. All must be the same on all
+    //! processes.
+    CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
+                                        std::size_t max_block_bytes, bool dense);
+
+    struct TransposeMetaData;
+
+    //! Largest message of the given transposes (null pointers are skipped).
+    inline std::size_t max_block_bytes
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds);
+
+    //! Whether all the given transposes have a dense exchange pattern.
+    inline bool transposes_dense
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds);
+
+    template <typename FA>
+    Long max_fab_bytes (FA const& fa)
+    {
+        using T = typename FA::FABType::value_type::value_type;
+        Long n = 0;
+        if (!fa.empty()) {
+            auto const& ba = fa.boxArray();
+            for (int i = 0, nb = int(ba.size()); i < nb; ++i) {
+                n = std::max(n, ba[i].numPts());
+            }
+        }
+        return n * fa.nComp() * Long(sizeof(T));
+    }
+
+    //! Communication meta-data for a transpose, with the buffers cached by
+    //! the collective strategies.
+    //! Message pattern of a transpose: largest message between two
+    //! processes and whether (nearly) every pair of processes exchanges
+    //! data. In a 3D pencil-to-pencil transpose only processes sharing a
+    //! range in the third direction exchange data, so the pattern is sparse
+    //! and all-to-all collectives waste time on empty pairs.
+    struct TransposePattern
+    {
+        std::size_t block_bytes = 0;
+        bool dense = true;
+    };
+
+    struct TransposeMetaData
+    {
+        template <typename... Args>
+        explicit TransposeMetaData (TransposePattern pattern_, MPI_Comm comm_, Args&&... args)
+            : cmd(std::forward<Args>(args)...), pattern(pattern_), comm(comm_) {}
+
+        MultiBlockCommMetaData cmd;
+        NonLocalBC::CommHandler handler;
+        TransposePattern pattern;
+        MPI_Comm comm;           // communicator of the processes that own data
+    };
+
+    //! Communicator of the processes that own data in any of the given
+    //! FabArrays. Returns the current communicator if all processes do.
+    //! Processes that own nothing get MPI_COMM_NULL. The caller owns the
+    //! communicator if it differs from the current one.
+    MPI_Comm make_active_comm (std::initializer_list<FabArrayBase const*> fas);
+
+    //! Free a communicator made by make_active_comm.
+    void free_active_comm (MPI_Comm comm);
+
+    //! Message pattern of the given transpose, computed from the replicated
+    //! layouts so that it is the same on all processes. Each process owns
+    //! at most one box in a FFT layout.
+    template <typename FA, typename DTOS>
+    TransposePattern transpose_pattern (FA const& dst, Box const& dstbox, FA const& src,
+                                        DTOS const& dtos)
+    {
+        using T = typename FA::FABType::value_type::value_type;
+        auto const& dstba = dst.boxArray();
+        auto const& dstdm = dst.DistributionMap();
+        auto const& srcba = src.boxArray();
+        auto const& srcdm = src.DistributionMap();
+        Long maxpts = 0;
+        Long npairs = 0;
+        for (int i = 0, n = int(dstba.size()); i < n; ++i) {
+            Box const b = dstba[i] & dstbox;
+            if (b.isEmpty()) { continue; }
+            Box const bs = NonLocalBC::Image(dtos, b).setType(srcba.ixType());
+            for (auto const& [k, sbox] : srcba.intersections(bs)) {
+                if (srcdm[k] != dstdm[i]) {
+                    maxpts = std::max(maxpts, sbox.numPts());
+                    ++npairs;
+                }
+            }
+        }
+        TransposePattern p;
+        p.block_bytes = amrex::aligned_size(alignof(T), std::size_t(maxpts) * dst.nComp() * sizeof(T));
+        // Dense if at least half of all process pairs exchange data.
+        p.dense = (2*npairs >= dstba.size() * srcba.size());
+        return p;
+    }
+
+    inline std::size_t max_block_bytes
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds)
+    {
+        std::size_t n = 0;
+        for (auto const* md : mds) {
+            if (*md) { n = std::max(n, (*md)->pattern.block_bytes); }
+        }
+        return n;
+    }
+
+    inline bool transposes_dense
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds)
+    {
+        bool dense = true;
+        for (auto const* md : mds) {
+            if (*md) { dense = dense && (*md)->pattern.dense; }
+        }
+        return dense;
+    }
+
+    template <typename FA, typename DTOS>
+    std::unique_ptr<TransposeMetaData>
+    make_transpose (MPI_Comm comm, FA& dst, Box const& dstbox, FA const& src,
+                    IntVect const& ngrow, DTOS const& dtos)
+    {
+        return std::make_unique<TransposeMetaData>
+            (transpose_pattern(dst, dstbox, src, dtos), comm, dst, dstbox, src, ngrow, dtos);
+    }
+
+    template <typename FA, typename DTOS>
+    void transpose (FA& dst, FA const& src, TransposeMetaData& md, int ncomp,
+                    DTOS const& dtos, CommStrategy strategy)
+    {
+        BL_PROFILE("FFT::transpose");
+        if (strategy == CommStrategy::pointtopoint) {
+            NonLocalBC::ParallelCopy(dst, src, md.cmd, 0, 0, ncomp, dtos);
+        } else if (md.comm == MPI_COMM_NULL) {
+            return; // this process owns no data
+        } else if (strategy == CommStrategy::alltoall && md.pattern.dense) {
+            // With a sparse pattern the padded buffer would be much larger
+            // than the data, so alltoallv is used instead.
+            NonLocalBC::ParallelCopy_alltoall(dst, src, md.cmd, 0, 0, ncomp, dtos,
+                                              NonLocalBC::Identity{}, md.pattern.block_bytes,
+                                              &md.handler, md.comm);
+        } else {
+            NonLocalBC::ParallelCopy_alltoallv(dst, src, md.cmd, 0, 0, ncomp, dtos,
+                                               NonLocalBC::Identity{}, &md.handler, md.comm);
+        }
+    }
 
     template <typename FA>
     typename FA::FABType::value_type * get_fab (FA& fa)

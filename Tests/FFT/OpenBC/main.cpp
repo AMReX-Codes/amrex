@@ -6,8 +6,21 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Reduce.H>
+#include <string>
 
 using namespace amrex;
+
+// Communication strategy for the transposes, from the input comm_strategy.
+static FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
 
 namespace {
 
@@ -165,7 +178,7 @@ void test_twod_mode (Box const& domain, int max_grid_size)
     }
 
     auto const lo = amrex::lbound(domain);
-    FFT::Info info{};
+    FFT::Info info = test_info();
     info.setTwoDMode(true);
     FFT::OpenBCSolver<Real> solver(domain, info);
     solver.setGreensFunction([=] AMREX_GPU_DEVICE (int i, int j, int) -> Real
@@ -307,7 +320,7 @@ int main (int argc, char* argv[])
         {
             amrex::Print() << "\nTesting OpenBC padding against unpadded solve\n";
 
-            AMREX_ALWAYS_ASSERT(FFT::Info{}.openbc_padding_nfactors ==
+            AMREX_ALWAYS_ASSERT(FFT::Info().openbc_padding_nfactors ==
                                 FFT::FastNumPrimeFactors());
             AMREX_ALWAYS_ASSERT(FFT::nextFastLen(13) ==
                                 FFT::nextFastLen(13, FFT::FastNumPrimeFactors()));
@@ -327,7 +340,7 @@ int main (int argc, char* argv[])
             fill_rhs(rho2, geom2, IndexType::TheCellType());
 
             FFT::PoissonOpenBC padded_solver(geom2);
-            FFT::Info unpadded_info;
+            FFT::Info unpadded_info = test_info();
             unpadded_info.setOpenBCPadding(false);
             FFT::PoissonOpenBC unpadded_solver(geom2, IndexType::TheCellType(),
                                                IntVect(0), unpadded_info);

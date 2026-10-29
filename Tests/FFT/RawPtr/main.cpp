@@ -1,4 +1,18 @@
 #include <AMReX_FFT.H>
+#include <AMReX_ParmParse.H>
+#include <string>
+
+// Communication strategy for the transposes, from the input comm_strategy.
+static amrex::FFT::Info test_info ()
+{
+    amrex::FFT::Info info{};
+    amrex::ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<amrex::FFT::CommStrategy>(s));
+    }
+    return info;
+}
 
 int main (int argc, char* argv[])
 {
@@ -154,7 +168,7 @@ int main (int argc, char* argv[])
 
     int nbatch = 3;
     {
-        amrex::FFT::Info info{};
+        amrex::FFT::Info info = test_info();
         info.setBatchSize(nbatch);
         amrex::FFT::C2C<RT,amrex::FFT::Direction::both> c2c(domain_size,info);
 

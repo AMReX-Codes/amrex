@@ -4,8 +4,21 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <string>
 
 using namespace amrex;
+
+// Communication strategy for the transposes, from the input comm_strategy.
+static FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
 
 int main (int argc, char* argv[])
 {
@@ -133,13 +146,13 @@ int main (int argc, char* argv[])
                  Box(IntVect(0),IntVect(31,15,7))};
 #endif
             Vector<std::pair<std::string,FFT::Info>> modes;
-            modes.emplace_back("plain", FFT::Info{});
+            modes.emplace_back("plain", test_info());
 #if (AMREX_SPACEDIM == 2)
-            modes.emplace_back("oned_mode", FFT::Info{}.setOneDMode(true));
+            modes.emplace_back("oned_mode", test_info().setOneDMode(true));
 #else
-            modes.emplace_back("twod_mode", FFT::Info{}.setTwoDMode(true));
+            modes.emplace_back("twod_mode", test_info().setTwoDMode(true));
             modes.emplace_back("oned+twod_mode",
-                               FFT::Info{}.setOneDMode(true).setTwoDMode(true));
+                               test_info().setOneDMode(true).setTwoDMode(true));
 #endif
             Vector<Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>> dbcs
                 {{AMREX_D_DECL(bcs[0],bcs[0],bcs[0])},

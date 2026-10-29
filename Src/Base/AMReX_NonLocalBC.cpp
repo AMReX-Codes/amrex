@@ -1,5 +1,7 @@
 #include "AMReX_NonLocalBC.H"
 
+#include <limits>
+
 /// \cond DOXYGEN_IGNORE
 namespace amrex::NonLocalBC::detail {
 void split_boxes (BoxList& bl, Box const& domain)
@@ -136,6 +138,153 @@ void PostSends(CommData& send, int mpi_tag) {
                 ParallelDescriptor::Asend(send.data[j], send.size[j], rank, mpi_tag, comm).req();
         }
     }
+}
+
+void TranslateRanks (CommData& comm, MPI_Comm c)
+{
+    const int n = static_cast<int>(comm.rank.size());
+    comm.comm_rank.resize(n);
+    if (n == 0) { return; }
+    if (c == ParallelContext::CommunicatorSub()) {
+        ParallelContext::global_to_local_rank(comm.comm_rank.data(), comm.rank.data(), n);
+    } else {
+        MPI_Group group;
+        MPI_Comm_group(c, &group);
+        MPI_Group_translate_ranks(ParallelContext::GroupAll(), n, comm.rank.data(),
+                                  group, comm.comm_rank.data());
+        MPI_Group_free(&group);
+        for (int i = 0; i < n; ++i) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(comm.comm_rank[i] != MPI_UNDEFINED,
+                "NonLocalBC::TranslateRanks: process not in communicator");
+        }
+    }
+}
+
+void PrepareCommBuffersUniform (CommData& comm,
+                                const FabArrayBase::MapOfCopyComTagContainers& cctc,
+                                int n_components, std::size_t object_size,
+                                std::size_t block_size, MPI_Comm c)
+{
+    comm.data.clear();
+    comm.size.clear();
+    comm.rank.clear();
+    comm.request.clear();
+    comm.offset.clear();
+    comm.cctc.clear();
+    comm.stats.clear();
+
+    comm.id = FabArrayBase::getNextCommMetaDataId();
+
+    int nprocs;
+    MPI_Comm_size(c, &nprocs);
+    const auto N_comms = static_cast<int>(cctc.size());
+    comm.data.reserve(N_comms);
+    comm.size.reserve(N_comms);
+    comm.rank.reserve(N_comms);
+    comm.request.reserve(N_comms);
+    comm.offset.reserve(N_comms);
+    comm.cctc.reserve(N_comms);
+    comm.stats.resize(N_comms);
+
+    for (const auto& kv : cctc)
+    {
+        std::size_t nbytes = 0;
+        for (auto const& cct : kv.second) {
+            nbytes += cct.sbox.numPts() * object_size * n_components;
+        }
+        AMREX_ALWAYS_ASSERT(nbytes <= block_size);
+
+        comm.data.push_back(nullptr);
+        comm.size.push_back(nbytes);
+        comm.rank.push_back(kv.first);
+        comm.request.push_back(MPI_REQUEST_NULL);
+        comm.cctc.push_back(&kv.second);
+    }
+
+    // Block i of the buffer belongs to rank i of c.
+    TranslateRanks(comm, c);
+    for (int i = 0; i < N_comms; ++i) {
+        comm.offset.push_back(block_size * std::size_t(comm.comm_rank[i]));
+    }
+
+    std::size_t const total_volume = block_size * std::size_t(nprocs);
+    if (total_volume == 0)
+    {
+        comm.the_data.reset();
+    }
+    else
+    {
+        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
+        for (int i = 0; i < N_comms; ++i) {
+            comm.data[i] = comm.the_data.get() + comm.offset[i];
+        }
+    }
+}
+
+// MPI requires valid buffer pointers even when all counts are zero.
+static char s_dummy_buffer = 0;
+
+void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI_Comm comm)
+{
+    BL_PROFILE("NonLocalBC::Alltoall");
+
+    AMREX_ALWAYS_ASSERT(block_size <= std::size_t(std::numeric_limits<int>::max()));
+
+    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_buffer;
+    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_buffer;
+
+    int nprocs;
+    MPI_Comm_size(comm, &nprocs);
+    std::size_t const nbytes = block_size * std::size_t(nprocs);
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, nbytes, ParallelDescriptor::MyProc(),
+                    BLProfiler::BeforeCall());
+    BL_MPI_REQUIRE( MPI_Alltoall(sbuf, static_cast<int>(block_size), MPI_BYTE,
+                                 rbuf, static_cast<int>(block_size), MPI_BYTE, comm) );
+    BL_COMM_PROFILE(BLProfiler::Alltoall, nbytes, ParallelDescriptor::MyProc(),
+                    BLProfiler::AfterCall());
+}
+
+void Alltoallv (CommData const& send, CommData& recv, MPI_Comm comm)
+{
+    BL_PROFILE("NonLocalBC::Alltoallv");
+
+    int nprocs;
+    MPI_Comm_size(comm, &nprocs);
+    constexpr auto int_max = static_cast<std::size_t>(std::numeric_limits<int>::max());
+    AMREX_ASSERT(send.comm_rank.size() == send.rank.size() &&
+                 recv.comm_rank.size() == recv.rank.size());
+
+    Vector<int> sendcounts(nprocs, 0);
+    Vector<int> sdispls(nprocs, 0);
+    Vector<int> recvcounts(nprocs, 0);
+    Vector<int> rdispls(nprocs, 0);
+
+    std::size_t nbytes = 0;
+    for (int i = 0, n = static_cast<int>(send.rank.size()); i < n; ++i) {
+        const int rank = send.comm_rank[i];
+        AMREX_ALWAYS_ASSERT(send.offset[i] + send.size[i] <= int_max);
+        sendcounts[rank] = static_cast<int>(send.size[i]);
+        sdispls[rank] = static_cast<int>(send.offset[i]);
+        nbytes += send.size[i];
+    }
+    for (int i = 0, n = static_cast<int>(recv.rank.size()); i < n; ++i) {
+        const int rank = recv.comm_rank[i];
+        AMREX_ALWAYS_ASSERT(recv.offset[i] + recv.size[i] <= int_max);
+        recvcounts[rank] = static_cast<int>(recv.size[i]);
+        rdispls[rank] = static_cast<int>(recv.offset[i]);
+    }
+
+    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_buffer;
+    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_buffer;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoallv, nbytes, ParallelDescriptor::MyProc(),
+                    BLProfiler::BeforeCall());
+    BL_MPI_REQUIRE( MPI_Alltoallv(sbuf, sendcounts.data(), sdispls.data(), MPI_BYTE,
+                                  rbuf, recvcounts.data(), rdispls.data(), MPI_BYTE,
+                                  comm) );
+    BL_COMM_PROFILE(BLProfiler::Alltoallv, nbytes, ParallelDescriptor::MyProc(),
+                    BLProfiler::AfterCall());
 }
 #endif
 

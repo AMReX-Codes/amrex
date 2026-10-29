@@ -2,6 +2,7 @@
 #include <AMReX_FFT_Helper.H>
 #include <AMReX_OpenMP.H>
 
+#include <limits>
 #include <map>
 
 /// \cond DOXYGEN_IGNORE
@@ -93,6 +94,68 @@ void add_vendor_plan_d (Key const& key, PlanD plan)
 void add_vendor_plan_f (Key const& key, PlanF plan)
 {
     s_plans_f[key] = plan;
+}
+
+CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
+                                    std::size_t max_block_bytes, bool dense)
+{
+#ifdef AMREX_USE_MPI
+    // The collectives use int byte counts and displacements. The buffer of
+    // a process holds at most one FAB plus a little alignment padding.
+    Long const max_bytes = Long(std::numeric_limits<int>::max())
+        - 16 * Long(ParallelContext::NProcsSub());
+    if (ParallelContext::NProcsSub() == 1 || max_fab_bytes > max_bytes) {
+        s = CommStrategy::pointtopoint;
+    } else if (s == CommStrategy::automatic) {
+        if (!dense) {
+            // Most process pairs exchange nothing (e.g. 3D pencils).
+            s = CommStrategy::pointtopoint;
+        } else if (max_block_bytes <= 64) {
+            // Tiny messages are latency bound. MPI libraries have
+            // logarithmic algorithms for MPI_Alltoall but not Alltoallv.
+            s = CommStrategy::alltoall;
+        } else {
+            s = CommStrategy::alltoallv;
+        }
+    }
+#else
+    amrex::ignore_unused(max_fab_bytes, max_block_bytes, dense);
+    s = CommStrategy::pointtopoint;
+#endif
+    return s;
+}
+
+MPI_Comm make_active_comm (std::initializer_list<FabArrayBase const*> fas)
+{
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+#ifdef AMREX_USE_MPI
+    // Layouts use make_iota_distromap, so the data owners are the first
+    // n_active local ranks.
+    int n_active = 0;
+    for (auto const* fa : fas) {
+        if (!fa->empty()) { n_active = std::max(n_active, fa->size()); }
+    }
+    int const nprocs = ParallelContext::NProcsSub();
+    if (n_active < nprocs) {
+        int const myproc = ParallelContext::MyProcSub();
+        int const color = (myproc < n_active) ? 0 : MPI_UNDEFINED;
+        BL_MPI_REQUIRE( MPI_Comm_split(ParallelContext::CommunicatorSub(), color, myproc, &comm) );
+    }
+#else
+    amrex::ignore_unused(fas);
+#endif
+    return comm;
+}
+
+void free_active_comm (MPI_Comm comm)
+{
+#ifdef AMREX_USE_MPI
+    if (comm != MPI_COMM_NULL && comm != ParallelContext::CommunicatorSub()) {
+        MPI_Comm_free(&comm);
+    }
+#else
+    amrex::ignore_unused(comm);
+#endif
 }
 
 DistributionMapping make_iota_distromap (Long n)
