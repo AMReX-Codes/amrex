@@ -12,8 +12,6 @@
 namespace amrex {
 
 namespace {
-constexpr Real intersection_tol = Real(16)*std::numeric_limits<Real>::epsilon();
-
 amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b)
 {
    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
@@ -21,6 +19,7 @@ amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amr
 
 bool intersects(amrex::Real val)
 {
+   constexpr Real intersection_tol = Real(16)*std::numeric_limits<Real>::epsilon();
    // alpha is dimensionless; allow roundoff at both ends of a cell edge.
    return (val >= -intersection_tol && val <= Real(1) + intersection_tol);
 }
@@ -453,34 +452,13 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
 }
 
 void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-      std::array<Real,12>& alpha)
+      const std::array<Real,12>& alpha)
 {
    int_count = 0;
    std::ranges::fill(intersects_flags, false);
 
-   // Endpoints of the edges used by calc_alpha and the point reconstruction.
-   constexpr std::array<std::array<int,2>,12> edge_vertices = {{
-      {0,1}, {1,3}, {2,3}, {0,2}, {0,4}, {1,5},
-      {3,7}, {2,6}, {4,5}, {5,7}, {6,7}, {4,6}
-   }};
-   std::array<bool,8> corner_seen{};
-
    for(int lc1 = 0; lc1 < 12; ++lc1) {
       if(intersects(alpha[lc1])) {
-         int corner = -1;
-         if(std::abs(alpha[lc1]) <= intersection_tol) {
-            alpha[lc1] = Real(0);
-            corner = edge_vertices[lc1][0];
-         } else if(std::abs(alpha[lc1] - Real(1)) <= intersection_tol) {
-            alpha[lc1] = Real(1);
-            corner = edge_vertices[lc1][1];
-         }
-         // Several edges can intersect the same corner. Count it only once
-         // so a valid polygon is not rejected for having more than six points.
-         if(corner >= 0) {
-            if(corner_seen[corner]) { continue; }
-            corner_seen[corner] = true;
-         }
          ++int_count;
          intersects_flags[lc1] = true;
       }
