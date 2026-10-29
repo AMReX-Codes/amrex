@@ -233,7 +233,7 @@ void AcquireCommBuffer(CommData& comm)
 {
     if (comm.the_data || comm.total_bytes == 0) { return; }
     comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(comm.total_bytes)));
-    for (std::size_t i = 0; i < comm.data.size(); ++i) {
+    for (Long i = 0; i < comm.data.size(); ++i) {
         comm.data[i] = comm.the_data.get() + comm.offset[i];
     }
 }
@@ -273,7 +273,7 @@ void Alltoallv (CommData const& send, CommData& recv, MPI_Comm comm)
     int nprocs;
     MPI_Comm_size(comm, &nprocs);
     AMREX_ASSERT(send.counts.size() == recv.counts.size() &&
-                 send.counts.size() == std::size_t(nprocs));
+                 send.counts.size() == Long(nprocs));
     amrex::ignore_unused(nprocs);
 
 #ifdef BL_COMM_PROFILING

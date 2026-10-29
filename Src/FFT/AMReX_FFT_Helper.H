@@ -1845,7 +1845,7 @@ namespace detail
             shared_split = shared_split || (div.size() > 1 && siv.size() > 1);
             // Both sets are partitions, so a sweep finds the overlapping pairs.
             Long nover = 0;
-            std::size_t j0 = 0;
+            Long j0 = 0;
             for (auto const& a : div) {
                 while (j0 < siv.size() && siv[j0].second < a.first) { ++j0; }
                 for (auto j = j0; j < siv.size() && siv[j].first <= a.second; ++j) {
@@ -1863,10 +1863,10 @@ namespace detail
             if (shared_split) {
                 maxpts = (dboxes[0] & sboxes[0]).numPts();
             } else {
-                for (std::size_t k = 1; k < sboxes.size(); ++k) {
+                for (Long k = 1; k < sboxes.size(); ++k) {
                     maxpts = std::max(maxpts, (dboxes[0] & sboxes[k]).numPts());
                 }
-                for (std::size_t i = 1; i < dboxes.size(); ++i) {
+                for (Long i = 1; i < dboxes.size(); ++i) {
                     maxpts = std::max(maxpts, (dboxes[i] & sboxes[0]).numPts());
                 }
             }
@@ -1881,7 +1881,7 @@ namespace detail
         for (int k = 0, n = int(srcba.size()); k < n; ++k) {
             src_of_rank[srcdm[k]] = k;
         }
-        for (std::size_t i = 0; i < dboxes.size(); ++i) {
+        for (Long i = 0; i < dboxes.size(); ++i) {
             int const k = (downers[i] <= maxrank) ? src_of_rank[downers[i]] : -1;
             if (k >= 0 && dboxes[i].intersects(sboxes[k])) { --npairs; }
         }
