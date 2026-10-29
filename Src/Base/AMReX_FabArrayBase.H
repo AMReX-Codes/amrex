@@ -338,6 +338,7 @@ public:
 
         BoxArray            ba_crse_patch;
         BoxArray            ba_fine_patch;
+        BoxArray            ba_refined_patch;
         DistributionMapping dm_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_fine_patch;
@@ -345,6 +346,7 @@ public:
         //! temporary patch FabArrays survive between FillPatch calls.
         std::unique_ptr<FabArrayBase> keep_crse_patch;
         std::unique_ptr<FabArrayBase> keep_fine_patch;
+        std::unique_ptr<FabArrayBase> keep_refined_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;
