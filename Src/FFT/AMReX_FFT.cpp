@@ -104,7 +104,9 @@ CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
     // a process holds at most one FAB plus a little alignment padding.
     Long const max_bytes = Long(std::numeric_limits<int>::max())
         - 16 * Long(ParallelContext::NProcsSub());
-    if (ParallelContext::NProcsSub() == 1 || max_fab_bytes > max_bytes) {
+    if (ParallelContext::NProcsSub() == 1 || max_fab_bytes > max_bytes
+        || max_block_bytes == 0) // no messages at all (e.g. 1D or oned_mode)
+    {
         s = CommStrategy::pointtopoint;
     } else if (s == CommStrategy::automatic) {
         if (!dense) {
