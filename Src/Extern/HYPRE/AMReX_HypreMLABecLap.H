@@ -73,8 +73,15 @@ public:
      * operator (see resetSolverSetup()).
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
+    //! the next solve when a solve with a reused setup needs more than \p n
+    //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
+    void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
-    void resetSolverSetup () { if (m_ij_solver) { m_ij_solver->setNeedSetup(); } }
+    void resetSolverSetup () {
+        if (m_ij_solver) { m_ij_solver->setNeedSetup(); }
+        m_algmg_reset = true;
+    }
     //! Throw std::runtime_error instead of aborting when the solve fails
     void setThrowException (bool t) noexcept { m_throw_exception = t; }
     //! Iterations and final relative residual of the last solve
@@ -135,6 +142,14 @@ public:
 
     //! Build the device maps of the IJ assembly; public for cuda
     void buildIJMaps ();
+
+    //! Map the assembled triplets to the hypre matrix's value arrays
+    //! (m_ij_gather); public for cuda
+    void buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
+                       Gpu::DeviceVector<HYPRE_BigInt> const& cols);
+    //! Overwrite the hypre matrix's values with the triplet values
+    //! (m_ij_gather); public for cuda
+    void updateIJValues (Gpu::DeviceVector<Real> const& vals);
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
@@ -221,6 +236,14 @@ private:
     bool m_use_ij = false;
     bool m_reuse_setup = false;
     bool m_throw_exception = false;
+    //! The hypre vectors were assembled once; later solves write into them
+    bool m_ij_vectors_assembled = false;
+    bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
+    //! AlgMG backend: build a new hierarchy at the next setup or solve
+    bool m_algmg_reset = false;
+    //! AlgMG backend: the last setup kept the hierarchy
+    bool m_algmg_kept = false;
+    int m_reuse_max_iter = 0;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;
@@ -234,6 +257,21 @@ private:
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_rows;
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
     Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
+    //! With setup reuse, the triplets of later setups are summed directly
+    //! into a matrix's value array, each entry adding its triplets in
+    //! increasing triplet order so that the sums do not depend on thread
+    //! scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
+    struct EntryGather
+    {
+        Gpu::DeviceVector<Long> offset;
+        Gpu::DeviceVector<Long> trip;
+        [[nodiscard]] bool empty () const { return offset.empty(); }
+        [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
+        void clear () { offset.clear(); trip.clear(); }
+    };
+    //! Hypre backend: entries of the assembled hypre matrix, diag values
+    //! first, then offd values; empty if not built
+    EntryGather m_ij_gather;
 
     //! `<prefix>.backend = hypre` (default) or `algmg`: in IJ mode, solve the
     //! assembled composite system with hypre or with AMReX's AlgMG
@@ -246,6 +284,11 @@ private:
     composite::OwnedCSR m_csr;               // owned rows (AlgMG backend, dumps)
     std::unique_ptr<SpMatrix<Real>> m_spA;
     std::unique_ptr<AlgMG<Real>> m_algmg;
+    //! AlgMG backend with setup reuse: the sorted CSR pattern of the local
+    //! rows and the triplets of each of its entries (empty if not built)
+    Gpu::DeviceVector<Long> m_alg_row_offset;
+    Gpu::DeviceVector<Long> m_alg_col_index;
+    EntryGather m_alg_gather;
 
     //! `<prefix>.dump_matrix = N`: Matrix Market dumps of the first N solves
     //! with this dump prefix, counted over all objects of the run: for solve

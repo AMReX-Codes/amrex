@@ -56,6 +56,7 @@ private:
 
     bool use_mlhypre = false; // use multi-level hypre solver
     int mlhypre_num_setups = 1; // repeated setups with use_mlhypre (composite)
+    int mlhypre_resolve = 0;    // prob_type 2: solve again after each reused setup
     // Composite mlhypre: the solve must throw with a NaN rhs (1) or, with
     // prob_type = 2, NaN coefficients, i.e. a failing solver (2)
     int mlhypre_test_throw = 0;

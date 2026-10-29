@@ -68,6 +68,10 @@ public:
     //! setNeedSetup when the matrix changes can turn it off.
     void setRecomputePreconditioner (bool b) noexcept { m_recompute_preconditioner = b; }
 
+    //! Will the next solve do the solver/preconditioner setup?
+    [[nodiscard]] bool setupPending () const noexcept
+    { return m_need_setup || m_recompute_preconditioner; }
+
     //! Throw std::runtime_error instead of aborting on a hypre error or a
     //! non-finite residual (with abort_on_hypre_error, the default)
     void setThrowException (bool t) noexcept { m_throw_exception = t; }
