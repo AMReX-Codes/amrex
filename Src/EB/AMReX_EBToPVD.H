@@ -64,9 +64,10 @@ private:
          const std::array<std::array<Real,3>,8>& vertex,
          const Real* dx) ;
 
-   // Fills count and flags selecting the alphas which are in (0,1)
+   // Selects edge intersections in [0,1] with roundoff tolerance, snaps
+   // near-endpoint alphas to the endpoints, and counts each corner once.
    static void calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-         const std::array<Real,12>& alpha) ;
+         std::array<Real,12>& alpha) ;
 
    void print_points(std::ofstream& myfile) const;
    void print_connectivity(std::ofstream& myfile) const;
