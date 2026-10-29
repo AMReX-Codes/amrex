@@ -8,8 +8,10 @@
 
 using namespace amrex;
 
+#if (AMREX_SPACEDIM > 1)
+namespace {
 // Communication strategy for the transposes, from the input comm_strategy.
-static FFT::Info test_info ()
+FFT::Info test_info ()
 {
     FFT::Info info{};
     ParmParse pp;
@@ -19,6 +21,8 @@ static FFT::Info test_info ()
     }
     return info;
 }
+}
+#endif
 
 int main (int argc, char* argv[])
 {

@@ -10,8 +10,12 @@
 
 using namespace amrex;
 
+namespace {
+
+#if (AMREX_SPACEDIM == 3)
+
 // Communication strategy for the transposes, from the input comm_strategy.
-static FFT::Info test_info ()
+FFT::Info test_info ()
 {
     FFT::Info info{};
     ParmParse pp;
@@ -21,10 +25,6 @@ static FFT::Info test_info ()
     }
     return info;
 }
-
-namespace {
-
-#if (AMREX_SPACEDIM == 3)
 
 void fill_rhs (MultiFab& rho, Geometry const& geom, IndexType ixtype)
 {

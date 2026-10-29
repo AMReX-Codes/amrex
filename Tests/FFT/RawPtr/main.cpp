@@ -2,8 +2,9 @@
 #include <AMReX_ParmParse.H>
 #include <string>
 
+namespace {
 // Communication strategy for the transposes, from the input comm_strategy.
-static amrex::FFT::Info test_info ()
+amrex::FFT::Info test_info ()
 {
     amrex::FFT::Info info{};
     amrex::ParmParse pp;
@@ -12,6 +13,7 @@ static amrex::FFT::Info test_info ()
         info.setCommStrategy(amrex::getEnumCaseInsensitive<amrex::FFT::CommStrategy>(s));
     }
     return info;
+}
 }
 
 int main (int argc, char* argv[])

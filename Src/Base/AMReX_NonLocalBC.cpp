@@ -221,8 +221,10 @@ void PrepareCommBuffersUniform (CommData& comm,
     }
 }
 
+namespace {
 // MPI requires valid buffer pointers even when all counts are zero.
-static char s_dummy_buffer = 0;
+char s_dummy_buffer = 0;
+}
 
 void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI_Comm comm)
 {
@@ -233,9 +235,11 @@ void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI
     char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_buffer;
     char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_buffer;
 
+#ifdef BL_COMM_PROFILING
     int nprocs;
     MPI_Comm_size(comm, &nprocs);
     std::size_t const nbytes = block_size * std::size_t(nprocs);
+#endif
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, nbytes, ParallelDescriptor::MyProc(),
                     BLProfiler::BeforeCall());
@@ -260,13 +264,17 @@ void Alltoallv (CommData const& send, CommData& recv, MPI_Comm comm)
     Vector<int> recvcounts(nprocs, 0);
     Vector<int> rdispls(nprocs, 0);
 
+#ifdef BL_COMM_PROFILING
     std::size_t nbytes = 0;
+#endif
     for (int i = 0, n = static_cast<int>(send.rank.size()); i < n; ++i) {
         const int rank = send.comm_rank[i];
         AMREX_ALWAYS_ASSERT(send.offset[i] + send.size[i] <= int_max);
         sendcounts[rank] = static_cast<int>(send.size[i]);
         sdispls[rank] = static_cast<int>(send.offset[i]);
+#ifdef BL_COMM_PROFILING
         nbytes += send.size[i];
+#endif
     }
     for (int i = 0, n = static_cast<int>(recv.rank.size()); i < n; ++i) {
         const int rank = recv.comm_rank[i];
