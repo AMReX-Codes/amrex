@@ -1808,16 +1808,10 @@ namespace detail
         return iv;
     }
 
-    //! Message pattern of the given transpose, computed from the replicated
-    //! layouts so that it is the same on all processes. n_active is the
-    //! size of the communicator the collectives would use.
-    //!
-    //! The layouts come from amrex::decompose, so they are tensor grids: in
-    //! each direction the boxes take a few distinct intervals and every
-    //! combination of intervals is a box. Two boxes intersect iff their
-    //! intervals overlap in every direction, so the number of intersecting
-    //! pairs is the product of per-direction counts. This avoids testing
-    //! all pairs of boxes.
+    //! Message pattern of the given transpose. n_active is the size of
+    //! the communicator the collectives would use. The layouts are tensor
+    //! grids made by amrex::decompose, so the number of intersecting box
+    //! pairs is the product of per-direction overlap counts.
     template <typename FA, typename DTOS>
     TransposePattern transpose_pattern (FA const& dst, Box const& dstbox, FA const& src,
                                         DTOS const& dtos, int n_active)
@@ -1861,12 +1855,9 @@ namespace detail
             npairs *= nover;
         }
 
-        // decompose gives the extra cells to the first blocks, so box 0 is
-        // the largest box in each layout and their intersection bounds the
-        // largest message. The distribution maps are iota, so that pair is
-        // a local copy. If no direction is split by both layouts, every
-        // pair intersects and the largest message is the best pair with
-        // one of the two boxes 0. Otherwise the bound is used.
+        // Box 0 is the largest in each layout, and pair (0,0) is local.
+        // Without a shared split direction the largest message is thus
+        // among the other pairs involving a box 0; otherwise (0,0) bounds it.
         Long maxpts = 0;
         if (!dboxes.empty() && !sboxes.empty()) {
             if (shared_split) {

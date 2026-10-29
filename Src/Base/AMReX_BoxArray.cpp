@@ -2088,10 +2088,8 @@ BoxArray decompose (Box const& domain, int nboxes,
 
     AMREX_ALWAYS_ASSERT(AMREX_D_TERM(nprocs[0],*nprocs[1],*nprocs[2]) == nboxes);
 
-    // Note: The FFT code (FFT::detail::transpose_pattern) depends on the
-    // structure of the result: a tensor grid, in which every combination
-    // of the per-direction intervals is a box, with the extra cells given
-    // to the first blocks so that box 0 is the largest.
+    // Note: FFT::detail::transpose_pattern relies on the result being a
+    // tensor grid with the extra cells in the first blocks.
     IntVect const domlo = ccdomain.smallEnd();
     IntVect const sz = ncells / nprocs;
     IntVect const extra = ncells - sz*nprocs;

@@ -443,6 +443,9 @@ struct CommData {
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
     //! \brief rank translated into the communicator used by Alltoall and Alltoallv.
     Vector<int> comm_rank{};
+    //! \brief size and offset per rank of that communicator, as MPI_Alltoallv wants them.
+    Vector<int> counts{};
+    Vector<int> displs{};
     //! \brief Size of the_data in bytes, so that it can be released and reacquired.
     std::size_t total_bytes = 0;
     std::uint64_t id = std::numeric_limits<std::uint64_t>::max();
@@ -460,17 +463,18 @@ void PostRecvs(CommData& recv, int mpi_tag);
 //! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
 void PostSends(CommData& send, int mpi_tag);
 
-//! \brief Fill comm.comm_rank with the ranks of comm.rank (global ranks) in communicator c.
+//! \brief Fill comm.comm_rank with the ranks of comm.rank (global ranks) in communicator c,
+//! and comm.counts and comm.displs for MPI_Alltoallv on c.
 //!
 //! c must contain all processes in comm.rank. It may be a subset of the current
-//! ParallelContext communicator, e.g. the processes that own data.
+//! ParallelContext communicator, e.g. the processes that own data. The whole buffer must
+//! fit in 2^31-1 bytes.
 void TranslateRanks(CommData& comm, MPI_Comm c);
 
 //! \brief Exchange all send buffers for all recv buffers with one MPI_Alltoallv.
 //!
 //! Both CommData objects must have been prepared by PrepareCommBuffers and TranslateRanks
-//! with the same communicator c. The whole buffer of each must fit in 2^31-1 bytes. All
-//! processes in c must call this function.
+//! with the same communicator c. All processes in c must call this function.
 void Alltoallv(CommData const& send, CommData& recv, MPI_Comm c);
 
 //! \brief Like PrepareCommBuffers, but every process in communicator c gets a block of
@@ -922,8 +926,8 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!
 //! This is an alternative to ParallelCopy_nowait followed by ParallelCopy_finish for
 //! communication patterns in which most processes exchange data with most other
-//! processes, such as the transposes in a distributed FFT. All processes in the
-//! current ParallelContext communicator must call this function.
+//! processes, such as the transposes in a distributed FFT. All processes in comm
+//! must call this function.
 //!
 //! \param[out] dest     The FabArray that is going to be filled with received data.
 //!
@@ -940,9 +944,8 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!                       between calls.
 //!
 //! \param[in]  comm     Communicator for the collective. MPI_COMM_NULL means the current
-//!                      ParallelContext communicator. Otherwise it must contain every
-//!                      process that owns data in dest or src, and only those processes
-//!                      may call this function.
+//!                      ParallelContext communicator. It must contain every process that
+//!                      owns data in dest or src.
 template <BaseFabType FAB, typename DataPacking>
 requires (IsDataPacking<DataPacking, FAB>::value)
 void

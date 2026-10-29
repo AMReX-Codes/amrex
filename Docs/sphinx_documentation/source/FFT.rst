@@ -126,15 +126,13 @@ batch at a given spectral point at once.
         });
 
 The distributed FFT moves data between processes when it switches
-directions. :cpp:`FFT::Info::setCommStrategy` selects how this
-communication is done. :cpp:`FFT::CommStrategy::pointtopoint` uses
-individual messages between pairs of processes,
-:cpp:`FFT::CommStrategy::alltoallv` uses one ``MPI_Alltoallv`` collective per
-data exchange, :cpp:`FFT::CommStrategy::alltoall` uses one ``MPI_Alltoall``
-collective with equal-sized messages (falling back to ``MPI_Alltoallv`` when
-most pairs of processes have nothing to exchange), and
-:cpp:`FFT::CommStrategy::automatic` (the default) lets AMReX choose based on
-the exchange pattern and message size.
+directions. :cpp:`FFT::Info::setCommStrategy` selects how:
+
+- :cpp:`FFT::CommStrategy::automatic` (default): AMReX chooses.
+- :cpp:`FFT::CommStrategy::pointtopoint`: individual messages between
+  pairs of processes.
+- :cpp:`FFT::CommStrategy::alltoallv`: one ``MPI_Alltoallv`` per exchange.
+- :cpp:`FFT::CommStrategy::alltoall`: one ``MPI_Alltoall`` per exchange.
 
 .. _sec:FFT:c2c:
 

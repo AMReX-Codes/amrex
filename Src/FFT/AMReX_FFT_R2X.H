@@ -208,7 +208,6 @@ private:
 
     //! Processes that own data, used by the collective strategies only.
     //! MPI_COMM_NULL on processes that own none.
-    int m_nprocs_active = 0;
     MPI_Comm m_comm_active = MPI_COMM_NULL;
     bool m_owns_comm_active = false; // true if it must be freed
 
@@ -426,22 +425,22 @@ R2X<T>::R2X (Box const& domain,
     // make copiers
     //
 
-    m_nprocs_active = detail::count_active_procs({&m_rx, &m_ry, &m_rz, &m_cx, &m_cy, &m_cz});
+    int const nprocs_active = detail::count_active_procs({&m_rx, &m_ry, &m_rz, &m_cx, &m_cy, &m_cz});
 
 #if (AMREX_SPACEDIM >= 2)
     if (!m_cy.empty() || !m_ry.empty()) {
         if (! m_cx.empty()) {
             // copy(m_cx->m_cy)
             m_cmd_cx2cy = detail::make_transpose
-                (m_nprocs_active, m_cy, m_dom_cy, m_cx, IntVect(0), m_dtos_x2y);
+                (nprocs_active, m_cy, m_dom_cy, m_cx, IntVect(0), m_dtos_x2y);
             m_cmd_cy2cx = detail::make_transpose
-                (m_nprocs_active, m_cx, m_dom_cx, m_cy, IntVect(0), m_dtos_y2x);
+                (nprocs_active, m_cx, m_dom_cx, m_cy, IntVect(0), m_dtos_y2x);
         } else {
             // copy(m_rx->m_ry)
             m_cmd_rx2ry = detail::make_transpose
-                (m_nprocs_active, m_ry, m_dom_ry, m_rx, IntVect(0), m_dtos_x2y);
+                (nprocs_active, m_ry, m_dom_ry, m_rx, IntVect(0), m_dtos_x2y);
             m_cmd_ry2rx = detail::make_transpose
-                (m_nprocs_active, m_rx, m_dom_rx, m_ry, IntVect(0), m_dtos_y2x);
+                (nprocs_active, m_rx, m_dom_rx, m_ry, IntVect(0), m_dtos_y2x);
         }
     }
 #endif
@@ -451,15 +450,15 @@ R2X<T>::R2X (Box const& domain,
         if (! m_cy.empty()) {
             // copy(m_cy, m_cz)
             m_cmd_cy2cz = detail::make_transpose
-                (m_nprocs_active, m_cz, m_dom_cz, m_cy, IntVect(0), m_dtos_y2z);
+                (nprocs_active, m_cz, m_dom_cz, m_cy, IntVect(0), m_dtos_y2z);
             m_cmd_cz2cy = detail::make_transpose
-                (m_nprocs_active, m_cy, m_dom_cy, m_cz, IntVect(0), m_dtos_z2y);
+                (nprocs_active, m_cy, m_dom_cy, m_cz, IntVect(0), m_dtos_z2y);
         } else {
             // copy(m_ry, m_rz)
             m_cmd_ry2rz = detail::make_transpose
-                (m_nprocs_active, m_rz, m_dom_rz, m_ry, IntVect(0), m_dtos_y2z);
+                (nprocs_active, m_rz, m_dom_rz, m_ry, IntVect(0), m_dtos_y2z);
             m_cmd_rz2ry = detail::make_transpose
-                (m_nprocs_active, m_ry, m_dom_ry, m_rz, IntVect(0), m_dtos_z2y);
+                (nprocs_active, m_ry, m_dom_ry, m_rz, IntVect(0), m_dtos_z2y);
         }
     }
 #endif
@@ -478,7 +477,7 @@ R2X<T>::R2X (Box const& domain,
                                    &m_cmd_ry2rz, &m_cmd_cy2cx, &m_cmd_ry2rx,
                                    &m_cmd_cz2cy, &m_cmd_rz2ry}));
     if (m_info.comm_strategy != CommStrategy::pointtopoint) {
-        m_comm_active = detail::make_active_comm(m_nprocs_active, m_owns_comm_active);
+        m_comm_active = detail::make_active_comm(nprocs_active, m_owns_comm_active);
     }
 
     //
