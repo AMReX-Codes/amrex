@@ -19,7 +19,9 @@ amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amr
 
 bool intersects(amrex::Real val)
 {
-   return (val > 0.0 && val < 1.0);
+   constexpr Real intersection_tol = Real(16)*std::numeric_limits<Real>::epsilon();
+   // alpha is dimensionless; allow roundoff at both ends of a cell edge.
+   return (val >= -intersection_tol && val <= Real(1) + intersection_tol);
 }
 
 }
