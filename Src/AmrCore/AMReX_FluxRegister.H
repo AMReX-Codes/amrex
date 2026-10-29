@@ -153,8 +153,10 @@ public:
     /**
     * \brief Add coarse fluxes to the register without overwriting existing data.
     *
-    * Unlike CrseInit(ADD), this path is used when fine-grid fluxes are unavailable
-    * on regions covered by fine levels (e.g., the FLASH code).
+    * Unlike CrseInit(ADD), this path is for codes that do not compute coarse fluxes
+    * on grids covered by the fine level (e.g., the FLASH code). A face shared by two
+    * coarse grids gets the sum of both values, so \p mflx must be zero where it is
+    * not computed.
     *
     * \param mflx    Coarse flux MultiFab.
     * \param area    Coarse face areas.
