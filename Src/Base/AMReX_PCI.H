@@ -20,6 +20,10 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
         for (int i = 0; i < N_locs; ++i)
         {
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+#ifdef BL_USE_TEAM
+            // With MPI teams, the tags include teammates' FABs. Only write our own.
+            if (distributionMap[tag.dstIndex] != ParallelDescriptor::MyProc()) { continue; }
+#endif
             if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                 // avoid self copy or plus
                 const FAB* sfab = &(src[tag.srcIndex]);
@@ -34,6 +38,10 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                 }
             }
         }
+#ifdef BL_USE_TEAM
+        // Teammates may read our FABs next.
+        if (ParallelDescriptor::TeamSize() > 1) { ParallelDescriptor::MyTeam().MemoryBarrier(); }
+#endif
     }
     else
     {
