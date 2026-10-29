@@ -2130,7 +2130,16 @@ FabArray<FAB>::build_arrays () const
         m_arrays.dp = (A*)m_dp_arrays;
         m_const_arrays.dp = (AC*)m_dp_arrays + n;
         Gpu::htod_memcpy_async(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
-        if (!Gpu::inNoSyncRegion()) {
+        // The pinned buffer is not modified after this point and is freed
+        // in stream order by clear_arrays(), so kernels launched on the
+        // current stream are correctly ordered after the copy without a
+        // host sync. MFIter and StreamIter synchronize the current stream
+        // before switching to other streams, so we only need to sync here
+        // if we are already inside a multi-stream MFIter loop, where later
+        // iterations may use the arrays on a different stream.
+        if (!Gpu::inNoSyncRegion() && Gpu::numGpuStreams() > 1 &&
+            MFIter::currentDepth() > 0)
+        {
             Gpu::streamSynchronize();
         }
 #endif
