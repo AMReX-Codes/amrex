@@ -463,18 +463,23 @@ void PostRecvs(CommData& recv, int mpi_tag);
 //! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
 void PostSends(CommData& send, int mpi_tag);
 
-//! \brief Fill comm.comm_rank with the ranks of comm.rank (global ranks) in communicator c,
-//! and comm.counts and comm.displs for MPI_Alltoallv on c.
+//! \brief Fill comm.comm_rank with the ranks of comm.rank (global ranks) in communicator c.
 //!
 //! c must contain all processes in comm.rank. It may be a subset of the current
-//! ParallelContext communicator, e.g. the processes that own data. The whole buffer must
-//! fit in 2^31-1 bytes.
+//! ParallelContext communicator, e.g. the processes that own data.
 void TranslateRanks(CommData& comm, MPI_Comm c);
+
+//! \brief Fill comm.counts and comm.displs for MPI_Alltoallv on communicator c.
+//!
+//! comm must have been prepared by PrepareCommBuffers and TranslateRanks with c. The whole
+//! buffer must fit in 2^31-1 bytes.
+void PrepareAlltoallvCounts(CommData& comm, MPI_Comm c);
 
 //! \brief Exchange all send buffers for all recv buffers with one MPI_Alltoallv.
 //!
-//! Both CommData objects must have been prepared by PrepareCommBuffers and TranslateRanks
-//! with the same communicator c. All processes in c must call this function.
+//! Both CommData objects must have been prepared by PrepareCommBuffers, TranslateRanks and
+//! PrepareAlltoallvCounts with the same communicator c. All processes in c must call this
+//! function.
 void Alltoallv(CommData const& send, CommData& recv, MPI_Comm c);
 
 //! \brief Like PrepareCommBuffers, but every process in communicator c gets a block of
@@ -974,6 +979,8 @@ ParallelCopy_alltoallv (FabArray<FAB>& dest, const FabArray<FAB>& src,
             PrepareSendBuffers(data_packing, dest, src, handler.send, snd_tags);
             TranslateRanks(handler.recv, comm);
             TranslateRanks(handler.send, comm);
+            PrepareAlltoallvCounts(handler.recv, comm);
+            PrepareAlltoallvCounts(handler.send, comm);
         } else {
             AcquireCommBuffer(handler.recv);
             AcquireCommBuffer(handler.send);

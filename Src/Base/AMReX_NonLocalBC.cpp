@@ -138,10 +138,6 @@ void PostSends(CommData& send, int mpi_tag) {
 
 void TranslateRanks (CommData& comm, MPI_Comm c)
 {
-    int nprocs;
-    MPI_Comm_size(c, &nprocs);
-    comm.counts.assign(nprocs, 0);
-    comm.displs.assign(nprocs, 0);
     const int n = static_cast<int>(comm.rank.size());
     comm.comm_rank.resize(n);
     if (n == 0) { return; }
@@ -158,8 +154,16 @@ void TranslateRanks (CommData& comm, MPI_Comm c)
                 "NonLocalBC::TranslateRanks: process not in communicator");
         }
     }
+}
+
+void PrepareAlltoallvCounts (CommData& comm, MPI_Comm c)
+{
+    int nprocs;
+    MPI_Comm_size(c, &nprocs);
+    comm.counts.assign(nprocs, 0);
+    comm.displs.assign(nprocs, 0);
     constexpr auto int_max = static_cast<std::size_t>(std::numeric_limits<int>::max());
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0, n = static_cast<int>(comm.rank.size()); i < n; ++i) {
         AMREX_ALWAYS_ASSERT(comm.offset[i] + comm.size[i] <= int_max);
         comm.counts[comm.comm_rank[i]] = static_cast<int>(comm.size[i]);
         comm.displs[comm.comm_rank[i]] = static_cast<int>(comm.offset[i]);
