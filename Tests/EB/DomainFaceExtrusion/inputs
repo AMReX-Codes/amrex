@@ -1,0 +1,8 @@
+n_cell = 128
+max_grid_size = 32
+required_coarsening_level = 3
+ngrow = 4
+
+# Small EB boxes, so that the coarse levels run out of coarsenable boxes and also take the
+# prepareForCoarsening path.
+eb2.max_grid_size = 16

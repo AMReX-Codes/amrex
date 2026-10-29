@@ -22,9 +22,16 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
     max_coarsening_level = std::max(required_coarsening_level,max_coarsening_level);
     max_coarsening_level = std::min(30,max_coarsening_level);
 
+    // With extend_domain_face, the geometry outside the domain is an extrusion of the domain
+    // face, so each coarse level can rebuild its own outside cells after coarsening and the
+    // finest level needs only ngrow of them. Otherwise, the finest level has to carry enough
+    // for coarsening alone to leave ngrow on the coarsest required level.
+    bool const extrude = extend_domain_face && EB2::extrude_coarse_levels;
     int ngrow_finest = std::max(ngrow,0);
-    for (int i = 1; i <= required_coarsening_level; ++i) {
-        ngrow_finest *= 2;
+    if (!extrude) {
+        for (int i = 1; i <= required_coarsening_level; ++i) {
+            ngrow_finest *= 2;
+        }
     }
 
     m_geom.push_back(geom);
@@ -45,7 +52,10 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
             }
         }
 
-        int ng = (ilev > required_coarsening_level) ? 0 : m_ngrow.back()/2;
+        int ng = 0;
+        if (ilev <= required_coarsening_level) {
+            ng = extrude ? m_ngrow.back() : m_ngrow.back()/2;
+        }
 
         Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
         Geometry cgeom = amrex::coarsen(m_geom.back(),2);
