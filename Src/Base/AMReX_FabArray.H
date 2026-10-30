@@ -117,7 +117,7 @@ struct TheFaArenaDeleter {
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 
-#if defined(AMREX_USE_MPI) && (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP))
+#if defined(AMREX_USE_MPI) && defined(AMREX_USE_GPU)
 #define AMREX_FB_UNPACK_ON_ARRIVAL 1
 
 //! Cached message layout and kernel tags of the unpack-on-arrival

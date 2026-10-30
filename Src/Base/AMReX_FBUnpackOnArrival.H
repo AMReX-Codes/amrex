@@ -108,16 +108,30 @@ void fb_oa_unpack_ranges (TagVector<CommRecvBufTag<T>> const& tv,
     const auto ntags = tv.ntags;
 
     amrex::launch<nthreads>(nblocks, Gpu::gpuStream(),
+#ifdef AMREX_USE_SYCL
+    [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    [[sycl::reqd_work_group_size(nthreads)]]
+    [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+#else
     [=] AMREX_GPU_DEVICE () noexcept
+#endif
     {
+#ifdef AMREX_USE_SYCL
+        std::size_t g_tid = item.get_global_id(0);
+#else
         auto g_tid = std::size_t(blockDim.x)*blockIdx.x + threadIdx.x;
+#endif
         auto l_wid = int(g_tid / Gpu::Device::warp_size);
         if (l_wid >= nwarps) { return; }
         int ir = amrex::bisect(r.prefix, 0, r.n, l_wid);
         int g_wid = r.begin[ir] + (l_wid - r.prefix[ir]);
         int tag_id = amrex::bisect(d_nwarps, 0, ntags, g_wid);
         int b_wid = g_wid - d_nwarps[tag_id];
+#ifdef AMREX_USE_SYCL
+        int lane = item.get_local_id(0) % Gpu::Device::warp_size;
+#else
         int lane = threadIdx.x % Gpu::Device::warp_size;
+#endif
         int icell = b_wid*Gpu::Device::warp_size + lane;
         tagparfor_call_f(icell, d_tags[tag_id], f);
     });
