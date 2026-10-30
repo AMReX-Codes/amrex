@@ -1301,6 +1301,83 @@ loop and the component loop is moved to these innermost loops.  AMReX's launch f
 apply the appropriate optimizations for compiling both with and without GPU support
 in a compact and readable format.
 
+.. _sec:gpu:compile-time-options:
+
+Compile-time options for ParallelFor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a kernel has a small set of runtime choices, :cpp:`amrex::ParallelFor`
+can generate a specialized kernel for each choice using
+:cpp:`amrex::CompileTimeOptions`. The runtime value selects which specialization
+to launch. Inside the lambda, the selected option is a compile-time constant,
+so :cpp:`if constexpr` can discard branches that do not apply to that
+specialization. This interface works on both CPUs and GPUs.
+
+For example, the following code either assigns or adds to component zero of a
+:cpp:`MultiFab` named :cpp:`mf`:
+
+.. code-block:: c++
+
+    #include <AMReX_GpuLaunch.H>
+    #include <AMReX_MFIter.H>
+    #include <AMReX_MultiFab.H>
+
+    enum Update : int { Assign = 0, Add = 1 };
+    int update = Add; // May instead be selected from runtime input.
+
+    for (amrex::MFIter mfi(mf, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        auto const& box = mfi.tilebox();
+        auto const arr = mf.array(mfi);
+
+        amrex::ParallelFor(
+            amrex::TypeList<amrex::CompileTimeOptions<Assign, Add>>{},
+            {update}, box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, auto option)
+            {
+                // Reference the captured array before the constexpr branches.
+                auto const& a = arr;
+                if constexpr (option.value == Assign) {
+                    a(i,j,k,0) = 1.0;
+                } else {
+                    a(i,j,k,0) += 1.0;
+                }
+            });
+    }
+
+The :cpp:`TypeList` contains one :cpp:`CompileTimeOptions` set for each
+runtime parameter. Each set lists the allowed :cpp:`int` values; every runtime
+value must belong to its corresponding set. The next argument supplies the
+runtime values in the same order. After the usual loop indices, the lambda
+receives one :cpp:`auto` argument per option set, also in that order. Each
+argument is a :cpp:`std::integral_constant<int, value>` whose :cpp:`.value`
+can be used in a compile-time condition.
+
+For multiple parameters, use, for example,
+:cpp:`amrex::TypeList<amrex::CompileTimeOptions<0, 1>, amrex::CompileTimeOptions<0, 1, 2>>{}`
+with runtime values :cpp:`{first_option, second_option}` and trailing lambda
+arguments :cpp:`auto first, auto second`. All combinations are instantiated:
+this example produces six specializations, but each call launches only the
+matching one. Keep the option sets small, since their Cartesian product can
+increase compilation time and executable size.
+
+Compile-time options are supported for the 1D :cpp:`N`, :cpp:`Box`, and
+:cpp:`Box` plus component-count overloads. For the component-count overload,
+the option arguments follow the component index :cpp:`n`. The same interface
+is available for :cpp:`amrex::For`, which omits the CPU SIMD pragma as described
+above.
+
+.. note::
+
+    CUDA extended device lambdas have a restriction on first capturing a
+    variable inside an :cpp:`if constexpr` branch. If NVCC reports a capture
+    error, reference the captured variable before the branches, as shown with
+    :cpp:`arr` above. Alternatively, use a regular :cpp:`if`; its condition is
+    still known at compile time and can be optimized by the compiler.
+
+Loop launch examples
+^^^^^^^^^^^^^^^^^^^^
+
 AMReX also provides a variation of the launch function that is implemented as a
 C++ macro.  It behaves identically to the function, but hides the lambda function
 from the user.  There are some subtle differences between the two implementations,

@@ -278,6 +278,22 @@ public:
     //! Define the solver with a square matrix. Must be called before solve.
     void define (SpMatrix<T>& a_mat);
 
+    /**
+     * \brief Replace the matrix, keeping the hierarchy.
+     *
+     * The interpolation and coarse matrices of the last setup are kept, and
+     * only the smoothers (and a direct bottom solve on the finest level) are
+     * rebuilt, so the multigrid cycle then only approximates the new
+     * matrix. Cheaper than define() when the matrix changes little between
+     * solves. The matrix must have the same row partition. If no hierarchy
+     * has been set up since the last define() (no solve yet), this is
+     * define().
+     *
+     * \return true if the hierarchy was kept, false if it will be set up
+     * for \p a_mat
+     */
+    bool updateMatrix (SpMatrix<T>& a_mat);
+
     //! Solve A x = b. `a_sol` holds the initial guess on entry.
     void solve (AlgVector<T>& a_sol, AlgVector<T> const& a_rhs);
 
@@ -632,6 +648,31 @@ void AlgMG<T>::define (SpMatrix<T>& a_mat)
     m_krylov_bicgstab.reset();
     m_krylov_gmres.reset();
     m_krylov_pcg.reset();
+}
+
+template <typename T>
+bool AlgMG<T>::updateMatrix (SpMatrix<T>& a_mat)
+{
+    if (!m_prepared || m_a.empty()) {
+        define(a_mat);
+        return false;
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_mat.partition() == m_mat->partition(),
+        "AlgMG::updateMatrix: the matrix must have the same row partition");
+    m_mat = &a_mat;
+    m_mat->setColumnPartition(m_mat->partition()); // as in setup
+    m_a[0] = m_mat;
+    // The Krylov solvers hold the matrix
+    m_krylov_bicgstab.reset();
+    m_krylov_gmres.reset();
+    m_krylov_pcg.reset();
+    if (numLevels() == 1) { // the finest level is the bottom
+        m_bottom_n = -1;
+        m_bottom_lu.clear();
+        m_bottom_piv.clear();
+    }
+    m_smoothers_stale = true;
+    return true;
 }
 
 template <typename T>

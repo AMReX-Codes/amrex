@@ -328,6 +328,11 @@ public:
                 const Box&          fdomain,
                 const Box&          cdomain,
                 const EB2::IndexSpace* index_space);
+        ~FPinfo ();
+        FPinfo (FPinfo const&) = delete;
+        FPinfo (FPinfo&&) = delete;
+        FPinfo& operator= (FPinfo const&) = delete;
+        FPinfo& operator= (FPinfo&&) = delete;
 
         [[nodiscard]] Long bytes () const;
 
@@ -336,6 +341,10 @@ public:
         DistributionMapping dm_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_fine_patch;
+        //! Keep the patch layouts registered so caches built for the
+        //! temporary patch FabArrays survive between FillPatch calls.
+        std::unique_ptr<FabArrayBase> keep_crse_patch;
+        std::unique_ptr<FabArrayBase> keep_fine_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;

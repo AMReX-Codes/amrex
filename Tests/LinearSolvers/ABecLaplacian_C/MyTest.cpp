@@ -637,6 +637,7 @@ MyTest::readParameters ()
 
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
+    pp.query("mlhypre_resolve", mlhypre_resolve);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
     pp.query("periodic_x", periodic_x);
     pp.query("max_error", max_error);
@@ -888,7 +889,10 @@ MyTest::solveMLHypre ()
                     for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
                 }
 
-                hypre_mlabeclap.setup(ascalar, bscalar,
+                // Setup k scales the operator and the rhs by k+1: the same
+                // solution from new matrix values (updated in place)
+                Real const scale = Real(1 + isetup);
+                hypre_mlabeclap.setup(ascalar*scale, bscalar*scale,
                                       GetVecOfConstPtrs(acoef),
                                       GetVecOfArrOfConstPtrs(face_bcoef),
                                       {AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -899,7 +903,15 @@ MyTest::solveMLHypre ()
                                                     LinOpBCType::Neumann)},
                                       GetVecOfConstPtrs(solution));
 
+                for (auto& mf : rhs) { mf.mult(scale); }
                 composite_solve_or_throw(hypre_mlabeclap);
+                if (mlhypre_resolve && isetup > 0) {
+                    // again from zero without a new setup: a pending setup
+                    // reset (reuse_setup_max_iter) must apply to this solve
+                    for (auto& mf : solution) { mf.setVal(Real(0.0), 0, 1, 0); }
+                    composite_solve_or_throw(hypre_mlabeclap);
+                }
+                for (auto& mf : rhs) { mf.mult(Real(1.0)/scale); }
             }
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {

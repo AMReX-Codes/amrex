@@ -878,14 +878,20 @@ sparse matrix:
   ``.agg_num_levels``, ``.pmax_elmts``, ``.trunc_factor``, ``.pre_smooth``,
   ``.post_smooth``, ``.cheby_degree`` and ``.verbose``.
 
-- :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: with the hypre backend, a
-  repeated :cpp:`setup` with new coefficients (on the same grids) updates the
-  matrix values in place and keeps the solver setup until
-  :cpp:`resetSolverSetup()`.  It can be turned on before or after the first
-  :cpp:`setup`.  The AlgMG backend sets up a new hierarchy for every matrix.
+- :cpp:`HypreMLABecLap::setReuseSolverSetup(true)`: a repeated :cpp:`setup`
+  with new coefficients (on the same grids) updates the matrix values in
+  place and keeps the solver setup (with the AlgMG backend, the hierarchy:
+  :cpp:`AlgMG::updateMatrix`) until :cpp:`resetSolverSetup()`.  It can be
+  turned on before or after the first :cpp:`setup`.  A solve with a reused
+  setup that does not converge redoes the setup and continues once before
+  failing; :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
+  :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
+  with a reused setup needed more iterations.
 
 - In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
-  report the last solve, and with :cpp:`setThrowException(true)` a solve that
+  report the last solve; when a solve redid a reused setup and continued,
+  the iterations of both attempts are counted, so it can take up to twice
+  the maximum number of iterations.  With :cpp:`setThrowException(true)` a solve that
   does not converge, or whose solver fails (a hypre error, a non-finite
   residual, AlgMG diverging), throws :cpp:`std::runtime_error` instead of
   aborting.  The absolute tolerance of :cpp:`solve` must be 0.
@@ -1456,7 +1462,11 @@ the norm of the right-hand side; ``x`` holds the initial guess. The V-cycle
 is also available on its own as :cpp:`precond(x, b)` for use in other
 solvers. The setup is done on the first call to :cpp:`solve`. Parameters are
 set per solver object, so several solvers with different settings can
-coexist. The solver runs on CPUs and GPUs with any number of MPI processes.
+coexist. :cpp:`updateMatrix(A2)` replaces the matrix by one with the same
+row partition but keeps the hierarchy of the last setup: only the smoothers
+are rebuilt, and the V-cycle then approximates the new matrix. That is much
+cheaper than a new setup when the matrix changes little between solves.
+The solver runs on CPUs and GPUs with any number of MPI processes.
 :cpp:`MLMG` can use it on the coarsest AMR level or as its bottom solver
 (see :ref:`sec:linearsolver:pars`). The
 enumerations below are ``AMREX_ENUM`` types, so they can be read from an

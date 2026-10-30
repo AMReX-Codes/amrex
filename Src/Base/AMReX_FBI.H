@@ -407,14 +407,22 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
         for (int i = 0; i < N_locs; ++i)
         {
             const CopyComTag& tag = LocTags[i];
+#ifdef BL_USE_TEAM
+            // With MPI teams, the tags include teammates' FABs. Only write our own.
+            if (distributionMap[tag.dstIndex] != ParallelDescriptor::MyProc()) { continue; }
+#endif
 
             BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
             dfab->template copy<RunOn::Host>(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
         }
+#ifdef BL_USE_TEAM
+        // Teammates may read our FABs next.
+        if (ParallelDescriptor::TeamSize() > 1) { ParallelDescriptor::MyTeam().MemoryBarrier(); }
+#endif
     }
     else
     {
@@ -422,9 +430,13 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
         for (int i = 0; i < N_locs; ++i)
         {
             const CopyComTag& tag = LocTags[i];
+#ifdef BL_USE_TEAM
+            // With MPI teams, the tags include teammates' FABs. Only write our own.
+            if (distributionMap[tag.dstIndex] != ParallelDescriptor::MyProc()) { continue; }
+#endif
 
             BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
             loc_copy_tags[tag.dstIndex].push_back
                 ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});

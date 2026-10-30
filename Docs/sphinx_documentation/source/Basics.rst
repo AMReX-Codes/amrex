@@ -3102,6 +3102,10 @@ of signatures (including the :cpp:`CompileTimeOptions` variants) and
 is identical to :cpp:`ParallelFor` on GPU, but does not add the SIMD
 pragma on CPU.
 
+To specialize kernels for a small set of runtime choices, see
+:ref:`Compile-time options for ParallelFor <sec:gpu:compile-time-options>`
+for an explanation and example.
+
 Ghost Cells
 ===========
 
