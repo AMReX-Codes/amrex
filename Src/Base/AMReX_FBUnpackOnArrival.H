@@ -78,14 +78,18 @@ struct FBOnArrivalWarpRanges {
     int prefix[max_ranges+1] = {0}; // prefix sum of the range sizes
     int n = 0;
 
-    void add (int b, int nw) noexcept {
+    // Returns false if the table is full and the range cannot be merged.
+    bool add (int b, int nw) noexcept {
         if (n > 0 && begin[n-1] + (prefix[n]-prefix[n-1]) == b) {
             prefix[n] += nw;
-        } else {
+        } else if (n < max_ranges) {
             begin[n] = b;
             prefix[n+1] = prefix[n] + nw;
             ++n;
+        } else {
+            return false;
         }
+        return true;
     }
 };
 
@@ -320,8 +324,8 @@ FabArray<FAB>::FB_on_arrival_finish ()
             auto add = [&] (int m) {
                 const int b = e->rcv_warp_begin[m];
                 const int nw = e->rcv_warp_begin[m+1] - b;
-                if (nw > 0) {
-                    if (ranges.n == detail::FBOnArrivalWarpRanges::max_ranges) { flush(); }
+                if (nw > 0 && !ranges.add(b, nw)) {
+                    flush();
                     ranges.add(b, nw);
                 }
             };
