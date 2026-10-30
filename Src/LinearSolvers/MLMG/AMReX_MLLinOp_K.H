@@ -428,7 +428,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? T(1.0) : T(0.0);
+                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? T(-1.0) : T(0.0);
             }
         }
         break;
@@ -467,7 +467,7 @@ void mllinop_comp_interp_coef0_x (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
+        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? T(-1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
@@ -509,7 +509,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? T(1.0) : T(0.0);
+                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? T(-1.0) : T(0.0);
             }
         }
         break;
@@ -548,7 +548,7 @@ void mllinop_comp_interp_coef0_y (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
+        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? T(-1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
@@ -590,7 +590,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? T(1.0) : T(0.0);
+                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? T(-1.0) : T(0.0);
             }
         }
         break;
@@ -629,7 +629,7 @@ void mllinop_comp_interp_coef0_z (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
+        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? T(-1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
@@ -674,7 +674,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? Real(1.0) : Real(0.0);
+                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? Real(-1.0) : Real(0.0);
             }
         }
         break;
@@ -732,7 +732,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? Real(-1.0) : Real(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
@@ -793,7 +793,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? Real(1.0) : Real(0.0);
+                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? Real(-1.0) : Real(0.0);
             }
         }
         break;
@@ -851,7 +851,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? Real(-1.0) : Real(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
@@ -912,7 +912,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? Real(1.0) : Real(0.0);
+                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? Real(-1.0) : Real(0.0);
             }
         }
         break;
@@ -970,7 +970,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, int i, int j, int k, int blen,
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? Real(-1.0) : Real(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
