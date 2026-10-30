@@ -264,9 +264,6 @@ FabArray<FAB>::FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int 
         {
             BL_PROFILE("FB::pack");
             detail::fb_oa_pack<BUF>(e->send_tv, fbd->the_send_data, scomp, ncomp);
-        }
-        {
-            BL_PROFILE("FB::pack_sync");
             Gpu::streamSynchronize();
         }
         BL_PROFILE("FB::post_sends");
