@@ -7,6 +7,20 @@
 
 using namespace amrex;
 
+namespace {
+// Communication strategy for the transposes, from the input comm_strategy.
+FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
+}
+
 void make_rhs (MultiFab& rhs, Geometry const& geom,
                Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM> const& fft_bc)
 {
@@ -229,7 +243,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             soln.setVal(std::numeric_limits<Real>::max());
             make_rhs(rhs, geom, fft_bc);
 
-            FFT::Poisson fft_poisson(geom, fft_bc);
+            FFT::Poisson fft_poisson(geom, fft_bc, test_info());
             fft_poisson.solve(soln, rhs);
 
             auto [bnorm, rnorm] = check_convergence(soln, rhs, geom);
@@ -270,7 +284,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             Gpu::DeviceVector<Real> dz(n_cell_z, geom.CellSize(2));
             // or Vector<Real> dz(n_cell_z, geom.CellSize(2));
 
-            FFT::PoissonHybrid fft_poisson(geom, fft_bc);
+            FFT::PoissonHybrid fft_poisson(geom, fft_bc, test_info());
             fft_poisson.solve(soln, rhs, dz);
 
             auto [bnorm, rnorm] = check_convergence(soln, rhs, geom);
@@ -307,7 +321,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
             soln.setVal(std::numeric_limits<Real>::max());
             make_rhs_2d(rhs, geom, fft_bc);
 
-            FFT::PoissonHybrid fft_poisson(geom, fft_bc);
+            FFT::PoissonHybrid fft_poisson(geom, fft_bc, test_info());
             fft_poisson.solve_2d(soln, rhs);
 
             auto [bnorm, rnorm] = check_convergence(soln, rhs, geom, false);
