@@ -342,7 +342,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 
     for (int k = 0; k < N_rcvs; ++k)
     {
-        std::size_t offset = recv_data[k]-recv_data[0];
+        std::ptrdiff_t offset = recv_data[k]-recv_data[0];
         const char* dptr = pbuffer + offset;
         auto const& cctc = *recv_cctc[k];
         for (auto const& tag : cctc)

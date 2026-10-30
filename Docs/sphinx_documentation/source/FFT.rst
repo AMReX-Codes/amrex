@@ -134,6 +134,9 @@ directions. :cpp:`FFT::Info::setCommStrategy` selects how:
 - :cpp:`FFT::CommStrategy::alltoallv`: one ``MPI_Alltoallv`` per exchange.
 - :cpp:`FFT::CommStrategy::alltoall`: one ``MPI_Alltoall`` per exchange.
 
+AMReX may use a different method when the requested one does not apply,
+for example on a single process.
+
 .. _sec:FFT:c2c:
 
 FFT::C2C Class

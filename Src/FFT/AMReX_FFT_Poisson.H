@@ -391,6 +391,7 @@ Info PoissonOpenBC<MF>::make_solver_info (Info const& info)
     Info solver_info;
     solver_info.openbc_padding = info.openbc_padding;
     solver_info.openbc_padding_nfactors = info.openbc_padding_nfactors;
+    solver_info.comm_strategy = info.comm_strategy;
     return solver_info;
 }
 

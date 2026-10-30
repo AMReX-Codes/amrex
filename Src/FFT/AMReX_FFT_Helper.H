@@ -172,6 +172,8 @@ struct Info
     /**
      * \brief Select how the distributed transposes communicate.
      *
+     * AMReX may use another strategy when the requested one does not apply.
+     *
      * \param s Strategy (automatic|pointtopoint|alltoallv|alltoall).
      * \return Reference to this Info.
      */
@@ -1724,18 +1726,21 @@ namespace detail
 {
     DistributionMapping make_iota_distromap (Long n);
 
-    //! Resolve CommStrategy::automatic.
+    //! Strategy used for the transposes. Any strategy becomes pointtopoint
+    //! on one process, without messages, or if byte counts could overflow
+    //! int; automatic is resolved by density and message size.
     //! max_fab_bytes is the largest FAB in any FabArray taking part in the
-    //! transposes, max_block_bytes the largest message between two
-    //! processes, and dense whether (nearly) every pair of processes
-    //! exchanges data in every transpose. All must be the same on all
+    //! transposes, max_block_bytes an upper bound on any message between
+    //! two processes, and dense whether at least half of the process pairs
+    //! exchange data in every transpose. All must be the same on all
     //! processes.
     CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
                                         std::size_t max_block_bytes, bool dense);
 
     struct TransposeMetaData;
 
-    //! Largest message of the given transposes (null pointers are skipped).
+    //! Upper bound on the messages of the given transposes (null pointers
+    //! are skipped).
     inline std::size_t max_block_bytes
         (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds);
 
@@ -1757,11 +1762,9 @@ namespace detail
         return n * fa.nComp() * Long(sizeof(T));
     }
 
-    //! Message pattern of a transpose: largest message between two
-    //! processes and whether (nearly) every pair of processes exchanges
-    //! data. In a 3D pencil-to-pencil transpose only processes sharing a
-    //! range in the third direction exchange data, so the pattern is sparse
-    //! and all-to-all collectives waste time on empty pairs.
+    //! Message pattern of a transpose: upper bound on any message between
+    //! two processes and whether at least half of the process pairs
+    //! exchange data.
     struct TransposePattern
     {
         std::size_t block_bytes = 0;
