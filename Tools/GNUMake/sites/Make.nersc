@@ -79,6 +79,12 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     endif
 
     comm := ,
+#   With CRAY_ADD_RPATH=yes, --cray-print-opts=libs also prints each package's
+#   static-link extras, which break this shared link: darshan's -Wl,@darshan-ld-opts
+#   (--wrap options for libdarshan.a; g++ expands the response file, so only its first
+#   line reaches the linker) and cray-mpich's -lpmi -lpmi2 (no -L is printed, and
+#   libmpi.so already depends on both).
+    cray_static_only_libs := -lpmi -lpmi2 -Xlinker=@%
     ifneq ($(BL_NO_FORT),TRUE)
       ifdef MPICH_ROOT
 #       Set to mpicxx to avoid this warning:
@@ -88,7 +94,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       else ifdef OPENMPI_ROOT
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpifort -show)))
       else
-        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
+        LIBRARIES += $(filter-out $(cray_static_only_libs),$(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs)))
       endif
     else
       ifdef MPICH_ROOT
@@ -96,7 +102,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       else ifdef OPENMPI_ROOT
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
       else
-        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
+        LIBRARIES += $(filter-out $(cray_static_only_libs),$(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs)))
       endif
     endif
 
@@ -115,6 +121,19 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     else
         $(error No CUDA_ROOT nor CUDA_HOME nor CUDA_PATH found. Please load a cuda module.)
     endif
+
+#   The Cray PE does not rpath its libraries; at run time they resolve through
+#   LD_LIBRARY_PATH and /opt/cray/pe/lib64, which points at the *default* versions.
+#   nvcc does the link here with flags from --cray-print-opts, which carry no rpaths
+#   unless CRAY_ADD_RPATH=yes is set (see cray_static_only_libs above). Without these, a build
+#   against a non-default cray-mpich or cudatoolkit loads the default MPICH's
+#   libmpi_gtl_cuda at run time, which can need a different libcudart major version.
+#   CRAY_LD_LIBRARY_PATH lists the library dirs of every loaded Cray module (cray-mpich
+#   and its GTL, netcdf, hdf5, libsci, ...); the generic lib64 dirs are the fallback
+#   this avoids, so they are left out.
+    NERSC_RPATH_DIRS := $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(subst :, ,$(CRAY_LD_LIBRARY_PATH)))
+    NERSC_RPATH_DIRS += $(filter-out %/stubs,$(patsubst -L%,%,$(filter -L%,$(CRAY_CUDATOOLKIT_POST_LINK_OPTS))))
+    LIBRARIES += $(addprefix -Xlinker=-rpath=,$(wildcard $(NERSC_RPATH_DIRS)))
 
   endif
 
