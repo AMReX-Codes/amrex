@@ -668,7 +668,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
         ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k, FluxRegTag const& tag) noexcept
         {
             amrex::ignore_unused(j,k);
-            Box const bx(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k)));
+            Box const bx{IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))};
             if (tag.afab) {
                 fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, tag.afab, nc, scale, face);
             } else {
