@@ -165,8 +165,6 @@ struct FBData {
     bool                deterministic = false;
 #ifdef AMREX_FB_UNPACK_ON_ARRIVAL
     FBOnArrivalMeta<FAB>* oa_meta = nullptr;
-    char*               oa_rcv = nullptr;
-    char*               oa_snd = nullptr;
 #endif
 };
 

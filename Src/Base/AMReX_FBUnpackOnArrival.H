@@ -230,8 +230,8 @@ FabArray<FAB>::FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int 
     auto alloc = [] (std::size_t n) {
         return n > 0 ? static_cast<char*>(The_Comms_Arena()->alloc(n)) : nullptr;
     };
-    fbd->oa_rcv = alloc(e->rcv.nbytes);
-    fbd->oa_snd = alloc(e->snd.nbytes);
+    fbd->the_recv_data = alloc(e->rcv.nbytes);
+    fbd->the_send_data = alloc(e->snd.nbytes);
 
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
@@ -243,7 +243,8 @@ FabArray<FAB>::FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int 
             if (e->rcv.size[i] > 0) {
                 const int rank = ParallelContext::global_to_local_rank(e->rcv.rank[i]);
                 fbd->recv_reqs[i] = ParallelDescriptor::Arecv
-                    (fbd->oa_rcv + e->rcv.offset[i], e->rcv.size[i], rank, SeqNum, comm).req();
+                    (fbd->the_recv_data + e->rcv.offset[i], e->rcv.size[i],
+                     rank, SeqNum, comm).req();
             }
         }
     }
@@ -251,7 +252,7 @@ FabArray<FAB>::FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int 
     if (N_snds > 0) {
         {
             BL_PROFILE("FB::pack");
-            detail::fb_oa_pack<BUF>(e->send_tv, fbd->oa_snd, scomp, ncomp);
+            detail::fb_oa_pack<BUF>(e->send_tv, fbd->the_send_data, scomp, ncomp);
         }
         {
             BL_PROFILE("FB::pack_sync");
@@ -263,7 +264,8 @@ FabArray<FAB>::FB_on_arrival_nowait (const FB& TheFB, int scomp, int ncomp, int 
             if (e->snd.size[j] > 0) {
                 const int rank = ParallelContext::global_to_local_rank(e->snd.rank[j]);
                 fbd->send_reqs[j] = ParallelDescriptor::Asend
-                    (fbd->oa_snd + e->snd.offset[j], e->snd.size[j], rank, SeqNum, comm).req();
+                    (fbd->the_send_data + e->snd.offset[j], e->snd.size[j],
+                     rank, SeqNum, comm).req();
             }
         }
     }
@@ -352,17 +354,17 @@ FabArray<FAB>::FB_on_arrival_finish ()
             if constexpr (amrex::IsAddAssignable<T>::value) {
                 if (TheFB->m_threadsafe_rcv) {
                     unpack(detail::FBOnArrivalUnpack<BUF,T,true,false>
-                           {fbd->oa_rcv, fbd->scomp, fbd->ncomp});
+                           {fbd->the_recv_data, fbd->scomp, fbd->ncomp});
                 } else if constexpr (amrex::HasAtomicAdd<T>::value) {
                     unpack(detail::FBOnArrivalUnpack<BUF,T,true,true>
-                           {fbd->oa_rcv, fbd->scomp, fbd->ncomp});
+                           {fbd->the_recv_data, fbd->scomp, fbd->ncomp});
                 } else {
                     amrex::Abort("FB_on_arrival_finish: SumBoundary needs thread-safe tags or atomic add");
                 }
             }
         } else {
             unpack(detail::FBOnArrivalUnpack<BUF,T,false,false>
-                   {fbd->oa_rcv, fbd->scomp, fbd->ncomp});
+                   {fbd->the_recv_data, fbd->scomp, fbd->ncomp});
         }
     }
 
@@ -372,11 +374,11 @@ FabArray<FAB>::FB_on_arrival_finish ()
         BL_PROFILE("FB::unpack_sync");
         Gpu::streamSynchronize();
     }
-    if (fbd->oa_rcv) {
+    if (fbd->the_recv_data) {
         if (sync) {
-            The_Comms_Arena()->free(fbd->oa_rcv);
+            The_Comms_Arena()->free(fbd->the_recv_data);
         } else {
-            Gpu::freeAsync(The_Comms_Arena(), fbd->oa_rcv);
+            Gpu::freeAsync(The_Comms_Arena(), fbd->the_recv_data);
         }
     }
 
@@ -386,7 +388,7 @@ FabArray<FAB>::FB_on_arrival_finish ()
         ParallelDescriptor::Waitall(fbd->send_reqs, stats);
     }
     // The pack kernel finished before the sends were posted.
-    if (fbd->oa_snd) { The_Comms_Arena()->free(fbd->oa_snd); }
+    if (fbd->the_send_data) { The_Comms_Arena()->free(fbd->the_send_data); }
 
     fbd.reset();
 }

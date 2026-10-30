@@ -1891,8 +1891,10 @@ safe depends on the backend (CUDA and HIP synchronize the whole device
 before releasing memory, SYCL does not), so it must not be relied upon.
 The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
-stream-ordered fashion.  Host code that needs to read the results of GPU
-work must still synchronize explicitly (reductions such as
+stream-ordered fashion.  Communication functions such as
+:cpp:`FillBoundary` and :cpp:`ParallelCopy` may return with their unpack
+kernels still queued on the stream.  Host code that needs to read the
+results of GPU work must still synchronize explicitly (reductions such as
 :cpp:`MultiFab::sum` do this internally), and so must code that hands GPU
 data to a library that runs on its own stream (e.g., HYPRE).
 
