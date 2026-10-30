@@ -248,6 +248,10 @@ Neumann boundary in the last dimension. The last dimension is solved with a
 tridiagonal solver that can support non-uniform cell size in the
 z-direction. For most applications, :cpp:`FFT::Poisson` should be used.
 
+The Poisson solvers take an optional :cpp:`FFT::Info` argument, of which
+only the communication strategy set by :cpp:`FFT::Info::setCommStrategy`
+is used.
+
 Similar to :cpp:`FFT::R2C`, the Poisson solvers should be cached for reuse,
 and one might need to use :cpp:`std::unique_ptr<FFT::Poisson<MultiFab>>`
 because there is no default constructor.
