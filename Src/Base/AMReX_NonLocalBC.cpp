@@ -251,14 +251,15 @@ void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI
 
     AMREX_ALWAYS_ASSERT(block_size <= std::size_t(std::numeric_limits<int>::max()));
 
-    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_send;
-    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_recv;
-
-#ifdef BL_COMM_PROFILING
     int nprocs;
     MPI_Comm_size(comm, &nprocs);
     std::size_t const nbytes = block_size * std::size_t(nprocs);
-#endif
+    // Catches a CommHandler that was prepared by another ParallelCopy variant.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(send.total_bytes == nbytes && recv.total_bytes == nbytes,
+        "NonLocalBC::Alltoall: buffers were not prepared by PrepareCommBuffersUniform");
+
+    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_send;
+    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_recv;
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, nbytes, ParallelDescriptor::MyProc(),
                     BLProfiler::BeforeCall());
@@ -274,9 +275,10 @@ void Alltoallv (CommData const& send, CommData& recv, MPI_Comm comm)
 
     int nprocs;
     MPI_Comm_size(comm, &nprocs);
-    AMREX_ASSERT(send.counts.size() == recv.counts.size() &&
-                 send.counts.size() == Long(nprocs));
-    amrex::ignore_unused(nprocs);
+    // Catches a CommHandler that was prepared by another ParallelCopy variant.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(send.counts.size() == Long(nprocs) &&
+                                     recv.counts.size() == Long(nprocs),
+        "NonLocalBC::Alltoallv: buffers were not prepared by PrepareAlltoallvCounts");
 
 #ifdef BL_COMM_PROFILING
     std::size_t nbytes = 0;
