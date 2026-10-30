@@ -1,8 +1,5 @@
 #ifndef AMREX_FB_UNPACK_ON_ARRIVAL_H_
 #define AMREX_FB_UNPACK_ON_ARRIVAL_H_
-#include <AMReX_Config.H>
-
-#include <algorithm>
 
 /**
  * \file AMReX_FBUnpackOnArrival.H
