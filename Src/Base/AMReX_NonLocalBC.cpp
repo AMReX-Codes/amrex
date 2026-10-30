@@ -239,8 +239,10 @@ void AcquireCommBuffer(CommData& comm)
 }
 
 namespace {
-// MPI requires valid buffer pointers even when all counts are zero.
-char s_dummy_buffer = 0;
+// Valid buffer pointers for zero counts. They are separate in case an MPI
+// implementation rejects aliased send and receive buffers.
+char s_dummy_send = 0;
+char s_dummy_recv = 0;
 }
 
 void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI_Comm comm)
@@ -249,8 +251,8 @@ void Alltoall (CommData const& send, CommData& recv, std::size_t block_size, MPI
 
     AMREX_ALWAYS_ASSERT(block_size <= std::size_t(std::numeric_limits<int>::max()));
 
-    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_buffer;
-    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_buffer;
+    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_send;
+    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_recv;
 
 #ifdef BL_COMM_PROFILING
     int nprocs;
@@ -283,8 +285,8 @@ void Alltoallv (CommData const& send, CommData& recv, MPI_Comm comm)
     }
 #endif
 
-    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_buffer;
-    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_buffer;
+    char const* sbuf = send.the_data ? send.the_data.get() : &s_dummy_send;
+    char* rbuf = recv.the_data ? recv.the_data.get() : &s_dummy_recv;
 
     BL_COMM_PROFILE(BLProfiler::Alltoallv, nbytes, ParallelDescriptor::MyProc(),
                     BLProfiler::BeforeCall());
