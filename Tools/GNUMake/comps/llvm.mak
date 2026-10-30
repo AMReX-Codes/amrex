@@ -42,6 +42,12 @@ else
 
 endif
 
+ifneq ($(filter TRUE,$(DEBUG) $(TEST)),)
+  # Keep clang from raising FP exceptions in unused vector lanes.
+  CXXFLAGS += -ffp-exception-behavior=maytrap
+  CFLAGS   += -ffp-exception-behavior=maytrap
+endif
+
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi

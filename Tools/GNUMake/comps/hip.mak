@@ -89,7 +89,8 @@ ifeq ($(HIP_COMPILER),clang)
     else
       CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -munsafe-fp-atomics
     endif
-    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
+    CXXFLAGS += -Xarch_host -ftrapv
+    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -Xarch_host -ftrapv
 
     FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
@@ -105,6 +106,13 @@ ifeq ($(HIP_COMPILER),clang)
       CFLAGS   += -fno-math-errno
     endif
 
+  endif
+
+  ifneq ($(filter TRUE,$(DEBUG) $(TEST)),)
+    # Keep clang from raising FP exceptions in unused vector lanes.
+    # The device pass does not support the flag.
+    CXXFLAGS += -Xarch_host -ffp-exception-behavior=maytrap
+    CFLAGS   += -Xarch_host -ffp-exception-behavior=maytrap
   endif
 
   ifeq ($(WARN_ALL),TRUE)
