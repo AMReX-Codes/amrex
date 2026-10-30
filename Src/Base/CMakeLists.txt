@@ -162,6 +162,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FACopyDescriptor.H
        AMReX_FabArrayCommI.H
        AMReX_FBI.H
+       AMReX_FBUnpackOnArrival.H
        AMReX_PCI.H
        AMReX_FabArrayUtility.H
        AMReX_LayoutData.H
