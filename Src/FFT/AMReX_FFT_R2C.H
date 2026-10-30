@@ -1039,22 +1039,15 @@ void R2C<T,D,C>::forward (MF const& inmf, int incomp)
 #if (AMREX_SPACEDIM == 3)
     else if (                     m_cmd_x2z) {
         if (m_openbc_half) {
-            NonLocalBC::PackComponents components{};
-            components.n_components = ncomp;
-            NonLocalBC::ApplyDtosAndProjectionOnReciever packing
-                {components, m_dtos_x2z};
-            auto handler = ParallelCopy_nowait(m_cz, m_cx, m_cmd_x2z_half->cmd, packing);
-
+            // Only the lower half is received; zero the upper half.
             Box upper_half = m_spectral_domain_z;
             // Note that z-direction's index is 0 because we z is the
             // unit-stride direction here.
             upper_half.growLo (0,-m_spectral_domain_z.length(0)/2);
             m_cz.setVal(0, upper_half, 0, ncomp);
-
-            ParallelCopy_finish(m_cz, std::move(handler), m_cmd_x2z_half->cmd, packing);
-        } else {
-            detail::transpose(m_cz, m_cx, *m_cmd_x2z, ncomp, m_dtos_x2z, m_info.comm_strategy, m_comm_active);
         }
+        auto const& cmd = m_openbc_half ? m_cmd_x2z_half : m_cmd_x2z;
+        detail::transpose(m_cz, m_cx, *cmd, ncomp, m_dtos_x2z, m_info.comm_strategy, m_comm_active);
     }
 #endif
     m_fft_fwd_z.template compute_c2c<Direction::forward>();

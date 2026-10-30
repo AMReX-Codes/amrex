@@ -281,7 +281,7 @@ int main (int argc, char* argv[])
 
             fill_rhs(rho, geom, ixtype);
 
-            FFT::PoissonOpenBC solver(geom, ixtype, IntVect(ng));
+            FFT::PoissonOpenBC solver(geom, ixtype, IntVect(ng), test_info());
             solver.solve(phi, rho);
 
             Real mass = rho.sum_unique(0) * dx[0]*dx[1]*dx[2];
