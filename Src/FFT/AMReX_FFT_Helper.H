@@ -1818,18 +1818,17 @@ namespace detail
     {
         using T = typename FA::FABType::value_type::value_type;
         auto const& dstba = dst.boxArray();
-        auto const& dstdm = dst.DistributionMap();
         auto const& srcba = src.boxArray();
-        auto const& srcdm = src.DistributionMap();
 
-        // Destination boxes clipped and mapped into the source index space.
+        // Destination boxes clipped and mapped into the source index space,
+        // and their indices.
         Vector<Box> dboxes;
-        Vector<int> downers;
+        Vector<int> dindex;
         for (int i = 0, n = int(dstba.size()); i < n; ++i) {
             Box const b = dstba[i] & dstbox;
             if (b.ok()) {
                 dboxes.push_back(NonLocalBC::Image(dtos, b).setType(srcba.ixType()));
-                downers.push_back(dstdm[i]);
+                dindex.push_back(i);
             }
         }
         Vector<Box> sboxes;
@@ -1838,11 +1837,9 @@ namespace detail
         }
 
         Long npairs = 1;
-        bool shared_split = false; // a direction split by both layouts
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             auto const div = box_intervals(dboxes, idim);
             auto const siv = box_intervals(sboxes, idim);
-            shared_split = shared_split || (div.size() > 1 && siv.size() > 1);
             // Both sets are partitions, so a sweep finds the overlapping pairs.
             Long nover = 0;
             Long j0 = 0;
@@ -1855,35 +1852,17 @@ namespace detail
             npairs *= nover;
         }
 
-        // Box 0 is the largest in each layout, and pair (0,0) is local.
-        // Without a shared split direction the largest message is thus
-        // among the other pairs involving a box 0; otherwise (0,0) bounds it.
+        // Box 0 is the largest in each layout, so pair (0,0) bounds every message.
         Long maxpts = 0;
         if (!dboxes.empty() && !sboxes.empty()) {
-            if (shared_split) {
-                maxpts = (dboxes[0] & sboxes[0]).numPts();
-            } else {
-                for (Long k = 1; k < sboxes.size(); ++k) {
-                    maxpts = std::max(maxpts, (dboxes[0] & sboxes[k]).numPts());
-                }
-                for (Long i = 1; i < dboxes.size(); ++i) {
-                    maxpts = std::max(maxpts, (dboxes[i] & sboxes[0]).numPts());
-                }
-            }
+            maxpts = (dboxes[0] & sboxes[0]).numPts();
         }
 
-        // Pairs owned by the same process are local copies, not messages.
-        int maxrank = 0;
-        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
-            maxrank = std::max(maxrank, srcdm[k]);
-        }
-        Vector<int> src_of_rank(maxrank+1, -1);
-        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
-            src_of_rank[srcdm[k]] = k;
-        }
+        // Both layouts put box j on local rank j, so pairs (j,j) are local
+        // copies, not messages.
         for (Long i = 0; i < dboxes.size(); ++i) {
-            int const k = (downers[i] <= maxrank) ? src_of_rank[downers[i]] : -1;
-            if (k >= 0 && dboxes[i].intersects(sboxes[k])) { --npairs; }
+            int const j = dindex[i];
+            if (j < sboxes.size() && dboxes[i].intersects(sboxes[j])) { --npairs; }
         }
         if (npairs <= 0) { npairs = 0; maxpts = 0; }
 
