@@ -1809,9 +1809,13 @@ namespace detail
     }
 
     //! Message pattern of the given transpose. n_active is the size of
-    //! the communicator the collectives would use. The layouts are tensor
-    //! grids made by amrex::decompose, so the number of intersecting box
-    //! pairs is the product of per-direction overlap counts.
+    //! the communicator the collectives would use.
+    //!
+    //! Both layouts are slabs or pencils from amrex::decompose. Mapped into
+    //! the source index space by dtos, two boxes overlap iff their intervals
+    //! overlap in every direction. Slab to slab (2D) and slab to/from pencil
+    //! (3D) split different directions, so every pair overlaps. Pencil to
+    //! pencil shares one split direction.
     template <typename FA, typename DTOS>
     TransposePattern transpose_pattern (FA const& dst, Box const& dstbox, FA const& src,
                                         DTOS const& dtos, int n_active)
@@ -1836,26 +1840,27 @@ namespace detail
             sboxes.push_back(srcba[k]);
         }
 
+        // Per direction, count the overlapping (dst,src) interval pairs and
+        // find the longest overlap. Their products are the number of
+        // overlapping box pairs and the largest overlap.
         Long npairs = 1;
+        Long maxpts = 1;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             auto const div = box_intervals(dboxes, idim);
             auto const siv = box_intervals(sboxes, idim);
-            // Both sets are partitions, so a sweep finds the overlapping pairs.
             Long nover = 0;
+            int maxlen = 0;
             Long j0 = 0;
             for (auto const& a : div) {
                 while (j0 < siv.size() && siv[j0].second < a.first) { ++j0; }
                 for (auto j = j0; j < siv.size() && siv[j].first <= a.second; ++j) {
                     ++nover;
+                    maxlen = std::max(maxlen, std::min(a.second, siv[j].second)
+                                            - std::max(a.first, siv[j].first) + 1);
                 }
             }
             npairs *= nover;
-        }
-
-        // Box 0 is the largest in each layout, so pair (0,0) bounds every message.
-        Long maxpts = 0;
-        if (!dboxes.empty() && !sboxes.empty()) {
-            maxpts = (dboxes[0] & sboxes[0]).numPts();
+            maxpts *= maxlen;
         }
 
         // Both layouts put box j on local rank j, so pairs (j,j) are local
