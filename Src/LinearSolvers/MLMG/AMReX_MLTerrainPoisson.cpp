@@ -687,6 +687,10 @@ MLTerrainPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab&
         auto& res = m_smooth_res[mglev];
         if (!res.isDefined()) {
             res.define(m_grids[0][mglev], m_dmap[0][mglev], 1, 0);
+            // Each pass writes one color. The loops over i have a stride of 2,
+            // and the vector code can load the other color too, which must not
+            // hold a signaling NaN from fab.do_initval.
+            res.setVal(Real(0.0));
         }
         auto const& ta = res.arrays();
         auto const& sa = sol.arrays();
@@ -1040,6 +1044,10 @@ MLTerrainPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab&
         for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi) {
             Box const& tbx = mfi.tilebox();
             tmp.resize(tbx, 1, The_Async_Arena());
+            // See m_smooth_res above: only the active color is ever written.
+            if (FArrayBox::get_do_initval()) {
+                tmp.setVal<RunOn::Host>(Real(0.0));
+            }
             auto const& ta = tmp.array();
             auto const& sa = sol.array(mfi);
             auto const& ra = rhs.const_array(mfi);
