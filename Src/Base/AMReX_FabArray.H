@@ -1706,10 +1706,10 @@ public:
     /**
      * \brief Unpack received messages into dst on the GPU.
      *
-     * Outside a Gpu::NoSyncRegion the stream is synchronized before
-     * returning. Inside one it is not, so the caller must release
-     * recv_data in stream order (e.g. Gpu::freeAsync) or synchronize
-     * before freeing it.
+     * The stream is synchronized before returning, except on the
+     * thread-safe or atomic path inside a Gpu::NoSyncRegion. There the
+     * caller must release recv_data in stream order (e.g. Gpu::freeAsync)
+     * or synchronize before freeing it.
      */
     template <typename BUF = value_type>
     static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
