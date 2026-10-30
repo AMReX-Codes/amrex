@@ -11,8 +11,6 @@ AMReX is led in an open governance model, described in this document.
 - Andrew Myers
 - Weiqun Zhang
 
-See: [GitHub team](https://github.com/orgs/AMReX-Codes/teams/amrex-steering-committee)
-
 ### Role
 
 Members of the steering committee (SC) can change organizational settings, do administrative operations such as rename/move/archive repositories, change branch protection rules, etc.
@@ -57,8 +55,6 @@ SC members can resign or be removed by majority vote, e.g., due to inactivity, i
 - Weiqun Zhang
 - Michael Zingale
 
-See: [GitHub team](https://github.com/orgs/AMReX-Codes/teams/amrex-technical-committee)
-
 ### Role
 
 The technical committee (TC) is the core governance body, where, under normal operations, most ideas are discussed and decisions are made.
@@ -91,10 +87,6 @@ Steering committee members can also be TC members.
 TC members can resign or be removed by majority vote by either TC or SC due to inactivity, inappropriate or otherwise negative behavior, or other reasons.
 
 ## Contributors
-
-### Current Roster
-
-See: [GitHub team](https://github.com/orgs/AMReX-Codes/teams/amrex-contributors)
 
 ### Role
 
