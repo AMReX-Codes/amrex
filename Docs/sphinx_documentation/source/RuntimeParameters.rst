@@ -1260,6 +1260,17 @@ Particles
    This is the maximum estimated per-rank storage, in bytes, for using the CPU
    local ``Redistribute()`` lookup mask. Negative values disable this byte limit.
 
+.. py:data:: particles.redistribute_early_out
+   :type: bool
+   :value: true
+
+   .. versionadded:: 26.11
+      Runtime parameter ``particles.redistribute_early_out``.
+
+   This controls whether ``Redistribute()`` works in place, without
+   communication buffers, on a single process with a single level, box and
+   tile.
+
 Tiling
 ------
 
