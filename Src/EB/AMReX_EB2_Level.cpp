@@ -433,6 +433,108 @@ Level::buildCellFlag ()
     }
 }
 
+namespace {
+    template <typename MF>
+    MF extrudeFabArray (MF const& src, BoxArray const& ba, DistributionMapping const& dm)
+    {
+        const int ncomp = src.nComp();
+        MF dst(amrex::convert(ba, src.ixType()), dm, ncomp, src.nGrowVect());
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+        {
+            Box const& sbx = src.box(mfi.index());
+            Box const& dbx = mfi.validbox();
+            IntVect const slo = sbx.smallEnd();
+            IntVect const shi = sbx.bigEnd();
+            IntVect grew_lo(0), grew_hi(0);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                grew_lo[idim] = static_cast<int>(dbx.smallEnd(idim) < slo[idim]);
+                grew_hi[idim] = static_cast<int>(dbx.bigEnd(idim) > shi[idim]);
+            }
+            auto const& s = src.const_array(mfi);
+            auto const& d = dst.array(mfi);
+            amrex::ParallelFor(mfi.fabbox(), ncomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                IntVect iv(AMREX_D_DECL(i,j,k));
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (grew_lo[idim] && iv[idim] < slo[idim]) { iv[idim] = slo[idim]; }
+                    if (grew_hi[idim] && iv[idim] > shi[idim]) { iv[idim] = shi[idim]; }
+                }
+                d(i,j,k,n) = s(iv,n);
+            });
+        }
+
+        return dst;
+    }
+}
+
+void
+Level::extendAtDomainFaces (IntVect const& ngrow)
+{
+    BL_PROFILE("EB2::Level::extendAtDomainFaces()");
+
+    Box const& domain = m_geom.Domain();
+
+    IntVect extra(0);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (!m_geom.isPeriodic(idim) && m_ngrow[idim] > 0) {
+            int const ng = std::min(ngrow[idim], domain.length(idim));
+            extra[idim] = std::max(0, ng - m_ngrow[idim]);
+        }
+    }
+    if (extra == 0) { return; }
+
+    auto grow_at_edge = [&] (BoxArray& ba)
+    {
+        bool changed = false;
+        BoxList bl = ba.boxList();
+        for (auto& b : bl) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (extra[idim] > 0) {
+                    if (b.smallEnd(idim) == domain.smallEnd(idim) - m_ngrow[idim]) {
+                        b.growLo(idim, extra[idim]);
+                        changed = true;
+                    }
+                    if (b.bigEnd(idim) == domain.bigEnd(idim) + m_ngrow[idim]) {
+                        b.growHi(idim, extra[idim]);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if (changed) { ba = BoxArray(std::move(bl)); }
+        return changed;
+    };
+
+    if (!m_covered_grids.empty()) {
+        grow_at_edge(m_covered_grids);
+    }
+    bool const grids_changed = !m_allregular && grow_at_edge(m_grids);
+
+    m_ngrow += extra;
+
+    if (!grids_changed) { return; }
+
+    m_levelset = extrudeFabArray(m_levelset, m_grids, m_dmap);
+    m_cellflag = extrudeFabArray(m_cellflag, m_grids, m_dmap);
+    m_volfrac = extrudeFabArray(m_volfrac, m_grids, m_dmap);
+    m_centroid = extrudeFabArray(m_centroid, m_grids, m_dmap);
+    m_bndryarea = extrudeFabArray(m_bndryarea, m_grids, m_dmap);
+    m_bndrycent = extrudeFabArray(m_bndrycent, m_grids, m_dmap);
+    m_bndrynorm = extrudeFabArray(m_bndrynorm, m_grids, m_dmap);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_areafrac[idim] = extrudeFabArray(m_areafrac[idim], m_grids, m_dmap);
+        m_facecent[idim] = extrudeFabArray(m_facecent[idim], m_grids, m_dmap);
+        m_edgecent[idim] = extrudeFabArray(m_edgecent[idim], m_grids, m_dmap);
+    }
+
+    buildCellFlag();
+}
+
 void
 Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& /*geom*/) const
 {
