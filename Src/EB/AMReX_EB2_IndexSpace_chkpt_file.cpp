@@ -16,8 +16,10 @@ IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
     max_coarsening_level = std::min(30,max_coarsening_level);
 
     int ngrow_finest = std::max(ngrow,0);
-    for (int i = 1; i <= required_coarsening_level; ++i) {
-        ngrow_finest *= 2;
+    if (!extend_domain_face) {
+        for (int i = 1; i <= required_coarsening_level; ++i) {
+            ngrow_finest *= 2;
+        }
     }
 
     m_geom.push_back(geom);
@@ -38,7 +40,10 @@ IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
             }
         }
 
-        int ng = (ilev > required_coarsening_level) ? 0 : m_ngrow.back()/2;
+        int ng = 0;
+        if (ilev <= required_coarsening_level) {
+            ng = extend_domain_face ? m_ngrow.back() : m_ngrow.back()/2;
+        }
 
         Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
         Geometry cgeom = amrex::coarsen(m_geom.back(),2);
