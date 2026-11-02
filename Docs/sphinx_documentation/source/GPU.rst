@@ -1891,8 +1891,10 @@ safe depends on the backend (CUDA and HIP synchronize the whole device
 before releasing memory, SYCL does not), so it must not be relied upon.
 The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
-stream-ordered fashion.  Host code that needs to read the results of GPU
-work must still synchronize explicitly (reductions such as
+stream-ordered fashion.  Communication functions such as
+:cpp:`FillBoundary` and :cpp:`ParallelCopy` may return with their unpack
+kernels still queued on the stream.  Host code that needs to read the
+results of GPU work must still synchronize explicitly (reductions such as
 :cpp:`MultiFab::sum` do this internally), and so must code that hands GPU
 data to a library that runs on its own stream (e.g., HYPRE).
 
@@ -2403,6 +2405,12 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | will use pinned memory. It will be activated if AMReX detects that    |             |                |
 |                            | GPU-aware MPI is supported by the MPI library (MPICH, OpenMPI, and    |             |                |
 |                            | derivative implementations).                                          |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| fb.on_arrival_min_bytes    | With GPU-aware MPI, :cpp:`FillBoundary` and :cpp:`SumBoundary` unpack | Long        | 65536          |
+|                            | each message as soon as it arrives when a rank receives at least this |             |                |
+|                            | many bytes in one call, overlapping the unpacking with the remaining  |             |                |
+|                            | communication. With fewer bytes, the messages are unpacked together   |             |                |
+|                            | after all of them have arrived.                                       |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
 |                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |

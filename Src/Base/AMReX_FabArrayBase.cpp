@@ -85,6 +85,7 @@ std::map<std::string,FabArrayBase::meminfo> FabArrayBase::m_mem_usage;
 std::vector<std::string>                    FabArrayBase::m_region_tag;
 
 bool                               FabArrayBase::m_alloc_single_chunk = false;
+Long                               FabArrayBase::m_fb_on_arrival_min_bytes = 65536;
 
 namespace
 {
@@ -129,6 +130,9 @@ FabArrayBase::Initialize ()
 
     ParmParse ppmf("amrex.mf");
     ppmf.queryAdd("alloc_single_chunk", FabArrayBase::m_alloc_single_chunk);
+
+    ParmParse ppfb("amrex.fb");
+    ppfb.queryAdd("on_arrival_min_bytes", FabArrayBase::m_fb_on_arrival_min_bytes);
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 

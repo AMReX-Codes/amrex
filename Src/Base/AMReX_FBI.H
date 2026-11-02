@@ -1325,7 +1325,10 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     (pbuffer, *tv, dcomp, ncomp);
             }
         }
-        Gpu::streamSynchronize();
+        // In a no-sync region the caller frees the buffer in stream order.
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     }
     else
     {

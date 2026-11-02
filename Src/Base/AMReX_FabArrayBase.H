@@ -882,6 +882,12 @@ public:
 
     static AMREX_EXPORT bool m_alloc_single_chunk;
 
+    //! With GPU-aware MPI, FillBoundary and SumBoundary unpack messages as
+    //! they arrive when a rank receives at least this many bytes in one
+    //! call (`amrex.fb.on_arrival_min_bytes`). Below it, the messages are
+    //! unpacked together after all have arrived.
+    static AMREX_EXPORT Long m_fb_on_arrival_min_bytes;
+
     //! Query whether single-chunk allocation is enabled for new FabArrays.
     [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
 
