@@ -76,6 +76,16 @@ struct AmrInfo {
      * it.  A negative value means there is no such direction.
      */
     int no_box_split_dir = -1;
+
+    /**
+     * Region of level 0 index space where fine grids may be created
+     * (amr.gridding_region_lo/hi).  Tags outside it are ignored.  On each
+     * level, its sides inside the domain are moved inward to be aligned to
+     * the blocking factor, so the fine grids are coarsenable by it even if
+     * the domain is not.  An empty box (the default) means the whole
+     * domain.  Requires no_box_split_dir.
+     */
+    Box gridding_region;
 };
 
 /// \ingroup amrex_amrcore
@@ -325,6 +335,17 @@ public:
      */
     [[nodiscard]] IntVect bfLev (int lev) const noexcept;
 
+    /**
+     * \brief Return the region of level \p lev where tags are clustered
+     * into level \p lev+1 grids.
+     *
+     * This is the domain unless amr.gridding_region_lo/hi is set.  Then it
+     * is that box refined to level \p lev, with its sides inside the
+     * domain moved inward to multiples of bfLev(lev).  Requires
+     * 0 <= lev < maxLevel().
+     */
+    [[nodiscard]] Box griddingRegion (int lev) const noexcept;
+
     //! Return true if valid grids/dmaps exist for level \p lev.
     [[nodiscard]] bool LevelDefined (int lev) const noexcept;
 
@@ -462,6 +483,9 @@ protected:
     void SetUseNewChop () noexcept { use_new_chop = true; }
 
 private:
+    //! True if level lev+1 grids can reach the partial last cell of the
+    //! level lev domain coarsened by bfLev(lev) in direction idim.
+    [[nodiscard]] bool hasPartialCell (int lev, int idim) const noexcept;
     void ChopGridsExtended (int lev, BoxArray& ba, int target_size) const;
     [[nodiscard]] BoxArray MakeBaseGridsNoBoxSplit () const;
     void MakeNewGridsExtended (int lbase, Real time, int& new_finest,
