@@ -94,6 +94,13 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
+    if (AMReX_FPE OR AMReX_TESTING)
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_FP_EXCEPTIONS>
+          )
+    endif ()
+
     if (NOT AMReX_COMPILER_DEFAULT_INLINE)
        target_link_libraries(amrex_${D}d
           PUBLIC
