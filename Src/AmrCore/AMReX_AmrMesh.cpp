@@ -385,6 +385,23 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         amrex::Error("AmrMesh: no_box_split_dir is out of range");
     }
 
+    {
+        Vector<int> lo, hi;
+        bool const has_lo = pp.queryarr("gridding_region_lo", lo);
+        bool const has_hi = pp.queryarr("gridding_region_hi", hi);
+        if (has_lo != has_hi || (has_lo && (int(lo.size()) < AMREX_SPACEDIM ||
+                                            int(hi.size()) < AMREX_SPACEDIM))) {
+            amrex::Error("AmrMesh: amr.gridding_region_lo and amr.gridding_region_hi must "
+                         "both be given, with AMREX_SPACEDIM values each");
+        }
+        if (has_lo) {
+            gridding_region = Box(IntVect(lo.data()), IntVect(hi.data()));
+            if (!gridding_region.ok()) {
+                amrex::Error("AmrMesh: amr.gridding_region_lo/hi is not a valid box");
+            }
+        }
+    }
+
     pp.queryAdd("check_input", check_input);
     pp.queryAdd("max_grid_iterations", max_grid_iterations);
 
@@ -1227,6 +1244,10 @@ AmrMesh::checkInput ()
 
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
+    }
+
+    if (gridding_region.ok()) {
+        amrex::Error("amr.gridding_region_lo/hi requires amr.no_box_split_dir");
     }
 
     //

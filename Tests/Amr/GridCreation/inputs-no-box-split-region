@@ -1,0 +1,30 @@
+# Odd domain in x and y with one blocking factor for all levels, which is
+# allowed because the gridding region keeps the fine grids away from the
+# upper x and y boundaries.  The region is aligned inward to (4,4) on level
+# 0, i.e. (4:139, 4:127), and (8:279, 8:255) on level 1, and the fine
+# grids are multiples of 8 there.
+# Tags near the upper x boundary are outside the region and are dropped; the
+# tags around x = 0.95 straddle the edge of the region.  In z the region
+# spans the domain, so the partial last cell is handled as without it.
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 0 0 0
+
+amr.n_cell = 145 131 65
+amr.max_level = 2
+amr.ref_ratio_vect = 2 2 1  2 2 1
+amr.no_box_split_dir = 2
+
+amr.blocking_factor_x = 8
+amr.blocking_factor_y = 8
+amr.blocking_factor_z = 8
+amr.max_grid_size_x = 48 96 96
+amr.max_grid_size_y = 48 96 96
+amr.max_grid_size_z = 65 72 72
+amr.refine_grid_layout_z = 0
+
+amr.gridding_region_lo = 3 2 0
+amr.gridding_region_hi = 140 128 64
+
+test.centers = 0.9966 0.5 0.5   0.95 0.6 0.5   0.3 0.4 0.5
+test.radius = 0.05 0.03

@@ -189,7 +189,8 @@ thinner than the :cpp:`blocking_factor`.  In a periodic direction, choose
 :cpp:`n_cell` to be a multiple of the :cpp:`blocking_factor` divided by
 :math:`r` (8 in the example above); if it is not, a smaller power of 2 is
 used in that direction, the grids there are only multiples of :math:`r`
-times that smaller number, and a warning is printed.
+times that smaller number, and a warning is printed.  To keep every grid a
+multiple of the :cpp:`blocking_factor`, use a gridding region (see below).
 
 For example, with :cpp:`n_cell = 749 679 69`, :cpp:`ref_ratio_vect = 3 3 1`
 and :cpp:`max_level = 1`, a good choice is
@@ -214,3 +215,38 @@ and :cpp:`max_level = 1`, a good choice is
   :cpp:`max_grid_size_z` is not needed.
 - The level 1 max grid size is 96, a multiple of 24, in *x* and *y*.
 
+.. _sec:grid_creation:region:
+
+Gridding Region
+---------------
+
+If no refinement is wanted near some domain boundaries, for example near the
+lateral boundaries of a regional atmospheric model, the fine grids can be
+confined to a box given in level 0 index space:
+
+.. code-block:: none
+
+   amr.gridding_region_lo = 3 2 0
+   amr.gridding_region_hi = 140 128 64
+
+Cells tagged outside this box are ignored.  On each level, the sides of the
+box that are inside the domain are moved inward to multiples of the
+:cpp:`blocking_factor` of the next level divided by the refinement ratio,
+so the box above becomes :cpp:`(4:139, 4:127, 0:64)` on level 0 with a
+level 1 :cpp:`blocking_factor` of 8 and refinement ratio 2.  The fine grids
+inside it are all multiples of the :cpp:`blocking_factor`, even when
+:cpp:`n_cell` is not, and the grid generator can still work with blocks of
+cells.  A side of the box on the domain boundary stays there, and the usual
+rules for domain sizes apply in that direction.  With
+:cpp:`amr.verbose` > 0 the aligned box on each level is printed.
+
+Where the box stops short of the upper domain boundary, the level 0
+:cpp:`blocking_factor` does not need to divide :cpp:`n_cell`, so a single
+value such as :cpp:`amr.blocking_factor = 8` can be used for all levels.
+The level 0 grids still cover the whole domain, so in such a direction they
+are not all multiples of the level 0 :cpp:`blocking_factor`.
+
+Proper nesting is computed with respect to the domain, not the box.  The
+gridding region requires :cpp:`amr.no_box_split_dir`, must lie inside the
+domain, must span the domain in periodic directions, and cannot be combined
+with :cpp:`amr.refine_whole_domain_dir`.

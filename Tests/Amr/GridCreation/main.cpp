@@ -205,6 +205,15 @@ void check_level (TestMesh const& mesh, int lev)
     if (!domain.contains(ba.minimalBox())) {
         fail("level " + std::to_string(lev) + " grids outside domain");
     }
+    // Inside the gridding region (the domain unless amr.gridding_region_lo/hi
+    // is set), whose sides inside the domain are aligned to the grid unit.
+    Box const region = amrex::refine(mesh.griddingRegion(lev-1), rr);
+    for (int i = 0; i < ba.size(); ++i) {
+        if (!region.contains(ba[i])) {
+            fail("level " + std::to_string(lev) + " box " + std::to_string(i)
+                 + " outside the gridding region");
+        }
+    }
 
     for (int i = 0; i < ba.size(); ++i) {
         Box const& b = ba[i];
@@ -259,11 +268,12 @@ void check_level (TestMesh const& mesh, int lev)
 
     // Coverage: every tagged cell on lev-1 (plus its error buffer) must be
     // covered by the level lev grids, except cells outside the proper
-    // nesting domain, which we skip for lev >= 2.
+    // nesting domain, which we skip for lev >= 2, and cells outside the
+    // gridding region.
     if (lev == 1) {
         int const clev = lev-1;
         BoxArray const& cba = mesh.boxArray(clev);
-        Box const& cdomain = mesh.Geom(clev).Domain();
+        Box const cregion = mesh.griddingRegion(clev);
         auto const& period = mesh.Geom(clev).periodicity();
         IntVect const nbuf = mesh.nErrorBufVect(clev);
         BoxArray const cfba = amrex::coarsen(ba, rr);
@@ -289,7 +299,7 @@ void check_level (TestMesh const& mesh, int lev)
                         bool inside = true;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                             if (!period.isPeriodic(d) &&
-                                (jv[d] < cdomain.smallEnd(d) || jv[d] > cdomain.bigEnd(d))) {
+                                (jv[d] < cregion.smallEnd(d) || jv[d] > cregion.bigEnd(d))) {
                                 inside = false;
                             }
                         }
