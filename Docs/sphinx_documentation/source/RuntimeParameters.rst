@@ -1264,7 +1264,7 @@ Particles
    :type: bool
    :value: true
 
-   .. versionadded:: 26.11
+   .. versionadded:: 26.12
       Runtime parameter ``particles.redistribute_early_out``.
 
    This controls whether ``Redistribute()`` works in place, without
