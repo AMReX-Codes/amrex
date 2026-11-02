@@ -168,6 +168,18 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                 }
             }
 
+            // Divide only when needed. Inside the loop, clang hoists the
+            // division out even if the branch is not taken; 0/0 traps.
+            const bool interp_in_time = (time != t0 && time != t1 &&
+                                         !amrex::almostEqual(t0,t1));
+            const bool use_src1 = (time != t0 && time == t1);
+            Real alpha = Real(1.0);
+            Real beta = Real(0.0);
+            if (interp_in_time) {
+                alpha = (t1-time)/(t1-t0);
+                beta = (time-t0)/(t1-t0);
+            }
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -183,28 +195,19 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                 auto const sfab1 = smf[1]->array(mfi);
                 auto       dfab  = dmf->array(mfi);
 
-                if (time == t0)
+                if (interp_in_time)
                 {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
-                    });
-                }
-                else if (time == t1)
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
-                    });
-                }
-                else if (! amrex::almostEqual(t0,t1))
-                {
-                    Real alpha = (t1-time)/(t1-t0);
-                    Real beta = (time-t0)/(t1-t0);
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
                             +                     beta*sfab1(i,j,k,n+scomp);
+                    });
+                }
+                else if (use_src1)
+                {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
                     });
                 }
                 else
