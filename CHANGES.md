@@ -1,3 +1,212 @@
+# 26.11
+
+ ## Highlights:
+
+  * Composite (all AMR levels) solves with hypre or AlgMG
+    HypreMLABecLap: IJ assembly mode with hypre or AlgMG backend (#6082)
+    HypreMLNodeLap: composite (all AMR levels) nodal solve with hypre or AlgMG (#6083)
+    HypreMLABecLap: faster repeated setups in IJ mode; AlgMG keeps its hierarchy (#6142)
+    HypreIJIface: hypre error checks, non-finite residual check, ILUT keys (#6081)
+    `HypreMLABecLap` can assemble the composite cell-centered system
+    through hypre's IJ interface and solve it with any `HypreIJIface`
+    solver or with AMReX's AlgMG. The new `HypreMLNodeLap` does the same
+    for `MLNodeLaplacian`, including mapped sigma and EB. Repeated setups
+    with the same matrix pattern reuse the assembled matrices, and the
+    systems can be dumped in Matrix Market format. Also fixed: wrong
+    coarse/fine entries across periodic boundaries (#6106), uninitialized
+    fine-to-coarse values on GPUs (#6006), and GPU synchronization with
+    hypre >= 2.33 (#6104).
+
+  * MLMG: AlgMG bottom solver and multigrid types (#5973)
+    `BottomSolver::algmg` is always available, and `MLMG::setMultigridType`
+    selects geometric, algebraic or hybrid multigrid for the cell-centered
+    and nodal operators, including EB and overset. AlgMG's CPU setup is
+    about 2x faster (#6002) and its coarsening is deterministic (#6008).
+    AlgMG, hypre IJ and PETSc support `maxorder = 4` (#6003), and
+    `MLEBNodeFDLaplacian` supports them in RZ (#6053).
+
+  * MLTerrainPoisson: cell-centered terrain-following Poisson operator (#6030)
+    New 3D MLMG operator for the pressure Poisson problem on
+    terrain-following meshes. A line smoother solves each vertical column
+    exactly and multigrid coarsens horizontally. Domain sizes that are not
+    powers of 2 may coarsen by 3 or 5, and all operators now agglomerate
+    when boxes stop coarsening instead of stopping there. `getFluxes` is
+    supported (#6068).
+
+  * Cross-stencil projection
+    FFT based Cross proj (#6100)
+    Add GMG::CrossProj: cross-stencil projection with geometric multigrid (#6103)
+    `FFT::CrossProj` (2D and 3D) and `GMG::CrossProj` (2D) project a
+    cell-centered velocity onto fields that are divergence free with
+    respect to the node-centered divergence built from the cells around
+    each node. Periodic domains only.
+
+  * FFT: collective transposes with automatic strategy selection (#6150)
+    The distributed transposes can use `MPI_Alltoallv` or `MPI_Alltoall`
+    instead of point-to-point messages. `FFT::Info::setCommStrategy`
+    selects the strategy; the default picks one from the exchange pattern.
+    A 16384^2 transform on 8192 CPU ranks went from 834 ms to 54 ms.
+
+  * Faster GPU Gauss-Seidel smoothers
+    Add ParallelForStrided; use it in GPU Gauss-Seidel smoothers (#5996)
+    MLALaplacian: fused one-color Gauss-Seidel launches on GPU (#6017)
+    MLEBNodeFDLaplacian: fused one-color Gauss-Seidel launches on GPU (#6020)
+    GPU-fused MLEBABecLap Fapply and Fsmooth (#5622)
+    MLEBABecLap: launch half the box per color on GPU (#6016)
+    MLCurlCurl: launch one color at a time on GPU (#6015)
+    Fix nodal GPU smoother issues (#5988)
+    The smoothers launch only the cells of the current color, in one launch
+    over all boxes where possible. The MLNodeABecLaplacian and
+    MLNodeTensorLaplacian smoothers no longer race on GPUs, and
+    `LPInfo::setDeterministic(true)` gives a race-free MLEBABecLap smoother
+    at cut cells (#6093).
+
+  * MLEBNodeFDLaplacian improvements
+    MLEBNodeFDLaplacian: coarsen without the EB factory (#5970)
+    MLEBNodeFDLaplacian: converge on stretched cells (#6012)
+    MLEBNodeFDLaplacian: only isolated hidden EB features stop coarsening (#6122)
+    Multigrid coarsens as far as the grids allow, even when EB2 cannot
+    coarsen the geometry. For operators that support it, MLMG leaves
+    directions with much longer cells uncoarsened until the cells are
+    nearly cubic.
+
+  * EB: robust node classification near the surface; EB generation stress test (#6064)
+    Nodes on or within roundoff of the surface count as body, so geometries
+    no longer have holes or cut grid-aligned edges, and single and double
+    precision agree. `Tests/EB/Stress` checks random implicit-function and
+    STL geometries against the exact shapes. Follow-ups fix the signed
+    distance (#6115, #6135) and raise the double-precision
+    `eb2.small_volfrac` default to 1e-12 (#6110).
+
+  * EB state redistribution GPU performance
+    EB: Performance optimize the main kernel of MLStateRedistribute (#6078)
+    EB: Performance optimize MakeStateRedistUtils for SRD (#6094)
+    EB: Performance-optimize MakeITracker (#6112)
+    The kernels work on a compact list of cut cells instead of dense boxes
+    and are split to reduce register pressure. On an H100, the main kernel
+    is 3.5x faster and MakeStateRedistUtils 44x.
+
+  * Vectorized CPU reductions and per-component reductions
+    Vectorize the CPU reductions (#6105)
+    Vectorize the BaseFab CPU reductions (#6131)
+    Make the CPU reduction accumulator loops vectorize with GCC (#6132)
+    Add ParReducePerComp and ParReducePerBoxComp (#6137)
+    The CPU paths of ParReduce, ReduceOps, Reduce::Sum/Min/Max and the
+    BaseFab and MultiFab reductions now vectorize; sums change in the last
+    bits. `ParReducePerComp` and `ParReducePerBoxComp` return one result
+    per component, or per box and component, in a single pass. The
+    multi-component MultiFab norms and the VisMF headers (#6141) use them.
+
+  * Select the GPU before MPI_Init (#6079)
+    `amrex::Initialize` picks the GPU from the launcher's node-local rank
+    before `MPI_Init`, so GPU-aware MPI is set up on the right device.
+    Applications that call `MPI_Init` themselves can call
+    `Gpu::SelectDeviceBeforeMPIInit` first. On Perlmutter, multi-node
+    FillBoundary is 2-3.4x faster.
+
+  * Communication and FillPatch performance
+    FillBoundary: OpenMP pack/unpack over tags, not neighbor ranks (#6144)
+    FillBoundary: drop edge/corner-only messages for cross stencils (#6145)
+    FillPatchSingleLevel: time-interpolate only the patch, not the level (#6143)
+    FillPatch: keep FPinfo patch layouts' caches alive (#6147)
+    FluxRegister: restrict Reflux, CrseInit and CrseAdd to the touched cells (#6146)
+    FabArray: avoid host sync in build_arrays() (#6148)
+    GPU: free Elixir and AsyncArray memory via Gpu::freeAsync (#6130)
+    Arena: reuse MPI buffers in CPU builds, and check BArena allocations (#6138)
+
+  * Parser: Speed up evaluation (#6050)
+    CPU evaluation of medium and long expressions is 1.2-2.4x faster and
+    CUDA kernels 2-26% faster.
+
+  * Use Warp-aggregated atomics in amrex::DenseBins (#6031)
+    Binning sorted or nearly sorted items, as is common for particles, is
+    10-45x faster on GPUs.
+
+  * Use -fno-math-errno in non-debug builds (#5990)
+    Math functions no longer set errno, which makes them faster. The CMake
+    option `AMReX_MATH_ERRNO` and the GNU make variable `USE_MATH_ERRNO`
+    restore the old behavior. With FP exception trapping, clang may now
+    trap in guarded code such as `x > 0 ? sqrt(x) : 0`.
+
+  * Bug fixes
+    Fix dangling reference in variadic amrex::min/max (#6109)
+    FillPatch: do not share FPinfo across interpolaters with different CoarseBox (#6027)
+    ParallelCopy/FillBoundary: each team member writes only its own FABs (#6151)
+    Particles: use ParallelContext sub-communicator consistently (#6057)
+    ParticleContainerBase: preserve anisotropic ref ratios in Vector<IntVect> ctor (#6056)
+    Cell-centered interpolation in 1D cylindrical coordinates (#6086)
+    Fix complete elliptic integral values at k = ±1 (#6033)
+    Morton: clamp coordinates so round-off at xmax cannot wrap to zero (#6025)
+    ParmParse: keep text after a closing parenthesis in the same token (#5984)
+    MLMG: interpAssign zeros ghost cells without valid data (#6023)
+    MLEBABecLap::Fapply: classify tiles on a grown box for phi on centroids (#5999)
+    EB 2D: fix centroid-to-face-centroid interpolation on the -1 side (#5989)
+    EB 2D: avoid covered cells in centroid-to-face-centroid stencil (#5997)
+    EB2: classify 2D edges by level-set sign for edge centroids (#5993)
+    EB least squares: align grad_eb 2D/3D stencil selection (#5987)
+    EB: fix face-centered data build with odd eb2.max_grid_size (#5991)
+    EB: fix face-centered data outside the domain (#6085)
+    algoim: use the 4D ParallelFor for surface integrals under CUDA (#6126)
+    SUNDIALS MRI: set fixed fast step in advance() (#5986)
+    SUNDIALS: grow per-thread storage on re-initialization (#6028)
+    PlotFileData::get(level, varname): sync stream before freeing source FAB (#6047)
+    MPMD: do not free MPI_COMM_NULL in Finalize (#6026)
+    Add Initialize overload for a plain function pointer callback (#6048)
+
+ ## Other major changes:
+
+  * Add GPU-synchronized TinyProfiler timers (#5669)
+
+  * Add optional GPU_MIN_BLOCKS to cap registers via __launch_bounds__ (#5980)
+
+  * Arena, SpGEMM: recover from GPU out-of-memory (#6000)
+    `Arena::allocate_system` throws `amrex::OutOfMemoryError` instead of
+    aborting, and SpGEMM falls back to multiplying blocks of rows.
+
+  * Smaller default arena on integrated GPUs (#6140)
+
+  * GMRES: add flexible GMRES option (#6054)
+
+  * MLMG: set the AlgMG tolerance from the reduction MLMG still needs (#6124)
+
+  * MLEBNodeFDLaplacian, MLCurlCurl: clear m_needs_update in prepareForSolve (#6096)
+
+  * SundialsIntegrator: use ARKODE-wide API with SUNDIALS >= 7.1 and fix warnings (#6051)
+
+  * PETSc: check return codes of PETSc calls (#6029)
+
+  * Parser: reject statement lists without a final value (#6046)
+
+  * Parser: free scan buffer and parser when amrex_parser_new aborts (#6045)
+
+  * Conduit Blueprint: include runtime SoA particle components (#5656)
+
+  * Fortran: add amrex_imultifab_build_fine_mask (#5985)
+
+  * Handle MSVC Debug CRT Reports: No Dialog Boxes (#6013)
+
+  * CArena: Thread-Safe Usage Counters (#6011)
+
+  * TinyProfiler: Thread-Safe `CurrentName()` (#6010)
+
+  * Backtrace: prefer llvm-addr2line and batch the lookups (#6099)
+
+  * SYCL: Replace deprecated nd_item::barrier with sycl::group_barrier (#6091)
+
+  * SYCL: enable the host path of the HOST_DEVICE launch functions and macros (#6139)
+
+  * CI: oneAPI 2026.1 image for the Intel PVC job and oneMKL 2026 fixes (#6066)
+
+  * HIP: use default OpenMP runtime; no RDC by default with OpenMP (#5994)
+
+  * CMake: make AMReX_TP_PROFILE take effect (#5995)
+
+  * Rename template parameter I (#6063)
+
+  * CI: shorten slow ctests; fix hypre and GNU Multi-D builds with GCC 15 (#6111)
+
+  * CI: skip clang-tidy on ccache misses already checked on development (#6113)
+
 # 26.10
 
  ## Highlights:
