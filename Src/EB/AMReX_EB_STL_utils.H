@@ -98,7 +98,9 @@ public:
     void fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
                Real outside_value = -1._rt, Real inside_value = 1._rt) const;
 
-    //! Return whether the EB is regular/covered/mixed inside \p box.
+    //! Return whether the EB is regular/covered/mixed inside \p box.  A box
+    //! that no triangle touches is taken to be regular or covered, which
+    //! assumes a water-tight mesh.
     [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const;
 
     static constexpr bool isGPUable () noexcept { return true; }

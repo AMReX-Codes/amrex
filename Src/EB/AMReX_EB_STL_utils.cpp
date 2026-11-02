@@ -7,7 +7,6 @@
 #include <AMReX_Stack.H>
 
 #include <cstring>
-#include <type_traits>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -245,6 +244,103 @@ namespace {
             return false;
         }
         return pt_on_tri_nobox(pt, tri, tol);
+    }
+
+    // Does the triangle touch the box with center c and half sizes h?  This
+    // is the separating axis test of Akenine-Moller.  Roundoff is the
+    // caller's to cover by growing h.  A degenerate triangle gives zero
+    // axes, which separate nothing, so the answer errs on the side of true.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool tri_box_overlaps (STLtools::Triangle const& tri, Real const c[3], Real const h[3])
+    {
+        Real const v[3][3] = {{tri.v1.x-c[0], tri.v1.y-c[1], tri.v1.z-c[2]},
+                              {tri.v2.x-c[0], tri.v2.y-c[1], tri.v2.z-c[2]},
+                              {tri.v3.x-c[0], tri.v3.y-c[1], tri.v3.z-c[2]}};
+        auto separated = [&] (Real const a[3]) -> bool
+        {
+            Real const p0 = a[0]*v[0][0] + a[1]*v[0][1] + a[2]*v[0][2];
+            Real const p1 = a[0]*v[1][0] + a[1]*v[1][1] + a[2]*v[1][2];
+            Real const p2 = a[0]*v[2][0] + a[1]*v[2][1] + a[2]*v[2][2];
+            Real const r = h[0]*std::abs(a[0]) + h[1]*std::abs(a[1]) + h[2]*std::abs(a[2]);
+            return amrex::min(p0,p1,p2) > r || amrex::max(p0,p1,p2) < -r;
+        };
+        // the box faces
+        for (int d = 0; d < 3; ++d) {
+            if (amrex::min(v[0][d],v[1][d],v[2][d]) >  h[d] ||
+                amrex::max(v[0][d],v[1][d],v[2][d]) < -h[d]) {
+                return false;
+            }
+        }
+        Real const e[3][3] = {{v[1][0]-v[0][0], v[1][1]-v[0][1], v[1][2]-v[0][2]},
+                              {v[2][0]-v[1][0], v[2][1]-v[1][1], v[2][2]-v[1][2]},
+                              {v[0][0]-v[2][0], v[0][1]-v[2][1], v[0][2]-v[2][2]}};
+        // the triangle plane
+        Real const n[3] = {e[0][1]*e[1][2]-e[0][2]*e[1][1],
+                           e[0][2]*e[1][0]-e[0][0]*e[1][2],
+                           e[0][0]*e[1][1]-e[0][1]*e[1][0]};
+        if (separated(n)) { return false; }
+        // cross products of the box axes and the triangle edges
+        for (auto const& edge : e) {
+            Real const ax[3] = {Real(0), -edge[2], edge[1]};
+            Real const ay[3] = {edge[2], Real(0), -edge[0]};
+            Real const az[3] = {-edge[1], edge[0], Real(0)};
+            if (separated(ax) || separated(ay) || separated(az)) { return false; }
+        }
+        return true;
+    }
+
+    // Does any triangle touch the box with center c and half sizes h?
+    template <int M, int N>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool bvh_tri_box_overlaps (Real const c[3], Real const h[3],
+                               STLtools::BVHNodeT<M,N> const* root)
+    {
+        auto touches = [&] (RealBox const& bbox) -> bool
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (bbox.lo(idim) > c[idim]+h[idim] || bbox.hi(idim) < c[idim]-h[idim]) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        // Use stack to avoid recursion
+        Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
+        Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
+
+        if (touches(root->boundingbox)) {
+            nodes_to_do.push(0);
+            nchildren_done.push(0);
+        }
+
+        while (!nodes_to_do.empty()) {
+            auto const& node = root[nodes_to_do.top()];
+            if (node.nchildren == 0) { // leaf node
+                for (int tr = 0; tr < node.ntriangles; ++tr) {
+                    if (tri_box_overlaps(node.triangles[tr], c, h)) { return true; }
+                }
+                nodes_to_do.pop();
+                nchildren_done.pop();
+            } else {
+                auto& ndone = nchildren_done.top();
+                if (ndone < node.nchildren) {
+                    for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
+                        ++ndone;
+                        int inode = node.children[ichild];
+                        if (touches(root[inode].boundingbox)) {
+                            nodes_to_do.push(inode);
+                            nchildren_done.push(0);
+                            break;
+                        }
+                    }
+                } else {
+                    nodes_to_do.pop();
+                    nchildren_done.pop();
+                }
+            }
+        }
+        return false;
     }
 
     // pt_on_tri (if tol >= 0) and line_tri_intersects in one pass for the
@@ -1124,100 +1220,96 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) c
 
         auto const* bvh_root = m_bvh_nodes.data();
 
-#ifndef AMREX_USE_GPU
-        // Unlike the device reduction, the serial host path can stop as soon
-        // as it sees both signs.
-        auto classify_on_cpu = [&] (auto use_bvh) -> int
-        {
-            int first_value = -1;
-            if (blo.x < ptmin.x || blo.y < ptmin.y || blo.z < ptmin.z ||
-                bhi.x > ptmax.x || bhi.y > ptmax.y || bhi.z > ptmax.z)
-            {
-                first_value = ref_value;
-            }
+        // Box center and half sizes, grown so that the box reaches every
+        // triangle that can make one of its nodes on the surface.  The tol
+        // here bounds the one in crossing_parity for all nodes of the box.
+        // The region pt_on_tri accepts is within sqrt(3) on_tri_margin of the
+        // triangle; the factor of 4 leaves room for roundoff in the test.
+        Real const box_tol = Real(16) * std::numeric_limits<Real>::epsilon()
+            * amrex::max(amrex::max(std::abs(blo.x), std::abs(blo.y), std::abs(blo.z)),
+                         amrex::max(std::abs(bhi.x), std::abs(bhi.y), std::abs(bhi.z)),
+                         amrex::max(std::abs(ptref[0].x), std::abs(ptref[0].y),
+                                    std::abs(ptref[0].z)));
+        Real const margin = Real(4) * on_tri_margin(box_tol);
+        GpuArray<Real,3> const bc{Real(0.5)*(blo.x+bhi.x), Real(0.5)*(blo.y+bhi.y),
+                                  Real(0.5)*(blo.z+bhi.z)};
+        GpuArray<Real,3> const bh{Real(0.5)*(bhi.x-blo.x)+margin, Real(0.5)*(bhi.y-blo.y)+margin,
+                                  Real(0.5)*(bhi.z-blo.z)+margin};
 
-            const Dim3 lo = amrex::lbound(box);
-            const Dim3 hi = amrex::ubound(box);
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Real coords[3];
-                coords[0]=node_coord(plo[0], i, dx[0]);
-                coords[1]=node_coord(plo[1], j, dx[1]);
-#if (AMREX_SPACEDIM == 2)
-                amrex::ignore_unused(k);
-                coords[2]=Real(0.);
-#else
-                coords[2]=node_coord(plo[2], k, dx[2]);
-#endif
-                if (coords[0] < ptmin.x || coords[0] > ptmax.x ||
-                    coords[1] < ptmin.y || coords[1] > ptmax.y ||
-                    coords[2] < ptmin.z || coords[2] > ptmax.z)
-                {
-                    continue;
-                }
+        int const has_triangle = m_bvh_optimization
+            ? Reduce::Max<int>(1, [=] AMREX_GPU_DEVICE (int) -> int
+              {
+                  return int(bvh_tri_box_overlaps(bc.data(), bh.data(), bvh_root));
+              })
+            : Reduce::Max<int>(num_triangles, [=] AMREX_GPU_DEVICE (int i) -> int
+              {
+                  return int(tri_box_overlaps(tri_pts[i], bc.data(), bh.data()));
+              });
 
-                int const parity = crossing_parity<decltype(use_bvh)::value>(
-                    coords, ptref, bvh_root, tri_pts, num_triangles, bbmin, bbmax);
-                int const value = (parity == 2) ? 0 : ((parity == 0) ? ref_value : 1-ref_value);
-                if (first_value < 0) {
-                    first_value = value;
-                } else if (value != first_value) {
-                    return mixedcells;
-                }
-            }}}
-            return first_value == 1 ? allregular : allcovered;
-        };
+        bool const box_in_ptbox = blo.x >= ptmin.x && blo.y >= ptmin.y && blo.z >= ptmin.z &&
+                                  bhi.x <= ptmax.x && bhi.y <= ptmax.y && bhi.z <= ptmax.z;
 
-        if (m_bvh_optimization) {
-            return classify_on_cpu(std::true_type{});
-        } else {
-            return classify_on_cpu(std::false_type{});
+        // A segment between two nodes of a box without triangles crosses
+        // nothing, and a closed loop crosses a water-tight surface an even
+        // number of times.  So all its nodes have the same sign.  A node
+        // outside the bounding box has the sign of the reference point.
+        if (has_triangle == 0 && !box_in_ptbox) {
+            return ref_value == 1 ? allregular : allcovered;
         }
-#else
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        // Without triangles, one node decides.  With them, both signs are
+        // usually far apart, so look at coarse lattices of nodes first.  Two
+        // different signs make the box mixed; only the last lattice, which
+        // has all the nodes, can show that it is not.
+        IntVect const lo = box.smallEnd();
+        IntVect const hi_offset = box.bigEnd() - lo;
+        int const nlattices = (has_triangle != 0) ? 3 : 1;
+        int const strides[3] = {(has_triangle != 0) ? 9 : hi_offset.max()+1, 3, 1};
 
         enum bvh_opt_options : int { no_bvh, yes_bvh };
         int bvh_opt_runtime_option = m_bvh_optimization ? yes_bvh : no_bvh;
 
-        AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
-               {bvh_opt_runtime_option},
-               [&] (auto cto_func) { reduce_op.eval(box, reduce_data, cto_func); },
-               [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) -> ReduceTuple
-        {
-            Real coords[3];
-            coords[0]=node_coord(plo[0], i, dx[0]);
-            coords[1]=node_coord(plo[1], j, dx[1]);
-#if (AMREX_SPACEDIM == 2)
-            amrex::ignore_unused(k);
-            coords[2]=Real(0.);
-#else
-            coords[2]=node_coord(plo[2], k, dx[2]);
-#endif
-            int parity = 0;
-            if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
-                coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
-                coords[2] >= ptmin.z && coords[2] <= ptmax.z)
-            {
-                parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
-                                                             tri_pts, num_triangles, bbmin, bbmax);
-            }
+        Long nfluid = 0;
+        for (int ilat = 0; ilat < nlattices; ++ilat) {
+            int const stride = strides[ilat];
+            Box const lattice(IntVect(0), hi_offset/stride);
 
-            return (parity == 2) ? 0 : ((parity == 0) ? ref_value : 1-ref_value);
-        });
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        Long nfluid = static_cast<Long>(amrex::get<0>(hv));
-        Long npts = box.numPts();
-        if (nfluid == 0) {
-            return allcovered;
-        } else if (nfluid == npts) {
-            return allregular;
-        } else {
-            return mixedcells;
-        }
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            AnyCTO(TypeList<CompileTimeOptions<no_bvh, yes_bvh>>{},
+                   {bvh_opt_runtime_option},
+                   [&] (auto cto_func) { reduce_op.eval(lattice, reduce_data, cto_func); },
+                   [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) -> ReduceTuple
+            {
+                Real coords[3];
+                coords[0]=node_coord(plo[0], lo[0]+stride*i, dx[0]);
+                coords[1]=node_coord(plo[1], lo[1]+stride*j, dx[1]);
+#if (AMREX_SPACEDIM == 2)
+                amrex::ignore_unused(k);
+                coords[2]=Real(0.);
+#else
+                coords[2]=node_coord(plo[2], lo[2]+stride*k, dx[2]);
 #endif
+                int parity = 0;
+                if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
+                    coords[1] >= ptmin.y && coords[1] <= ptmax.y &&
+                    coords[2] >= ptmin.z && coords[2] <= ptmax.z)
+                {
+                    parity = crossing_parity<control == yes_bvh>(coords, ptref, bvh_root,
+                                                                 tri_pts, num_triangles, bbmin, bbmax);
+                }
+
+                return (parity == 2) ? 0 : ((parity == 0) ? ref_value : 1-ref_value);
+            });
+            ReduceTuple hv = reduce_data.value(reduce_op);
+            nfluid = static_cast<Long>(amrex::get<0>(hv));
+            if (nfluid != 0 && nfluid != lattice.numPts()) {
+                return mixedcells;
+            }
+        }
+        return nfluid == 0 ? allcovered : allregular;
     }
 }
 

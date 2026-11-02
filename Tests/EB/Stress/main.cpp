@@ -8,6 +8,7 @@
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
+#include <AMReX_EB_STL_utils.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_Math.H>
 #include <AMReX_MultiFab.H>
@@ -621,6 +622,7 @@ struct Result
     Real max_dist = 0;
     Real max_vf_err = 0;
     Real layout_diff = 0;
+    Long nbad_box_types = 0;
 };
 
 // Build the EB again with another grid layout and compare the EB data,
@@ -722,6 +724,35 @@ Real layout_diff (Geometry const& geom, BoxArray const& ba, DistributionMapping 
         diff = amrex::max(diff, lsdiff);
     }
     return diff;
+}
+
+// STLtools::getBoxType must agree with the sign of every node of the box as
+// given by STLtools::fill, which casts a ray from each one.
+Long check_box_types (Case const& c, Geometry const& geom, std::string const& stl_file)
+{
+    STLtools stl;
+    stl.setBVHOptimization(c.use_bvh);
+    stl.read_stl_file(stl_file, 1.0_rt, {0.0_rt,0.0_rt,0.0_rt}, 0);
+
+    Long nbad = 0;
+    for (int max_grid_size : {8, c.eb_max_grid_size}) {
+        BoxArray nba(c.domain);
+        nba.maxSize(max_grid_size);
+        nba.surroundingNodes();
+        DistributionMapping const ndm(nba);
+        MultiFab sign(nba, ndm, 1, 0);
+        stl.fill(sign, IntVect(0), geom); // negative outside the body
+        for (MFIter mfi(sign); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.validbox();
+            Real const smin = sign[mfi].min<RunOn::Device>();
+            Real const smax = sign[mfi].max<RunOn::Device>();
+            int const expected = (smax < 0.0_rt) ? STLtools::allregular
+                : ((smin > 0.0_rt) ? STLtools::allcovered : STLtools::mixedcells);
+            if (stl.getBoxType(bx, geom, RunOn::Device, bx) != expected) { ++nbad; }
+        }
+    }
+    ParallelDescriptor::ReduceLongSum(nbad);
+    return nbad;
 }
 
 Result check (Case const& c, Geometry const& geom, BoxArray const& ba,
@@ -1080,15 +1111,17 @@ int main (int argc, char* argv[])
                 r.layout_diff = layout_diff(geom, ba, dm, build,
                                             (c.eb_max_grid_size == 16) ? 28 : 20, verbose);
             }
+            if (c.stl) { r.nbad_box_types = check_box_types(c, geom, stl_file); }
             EB2::IndexSpace::pop();
 
             bool const ok = r.nbad_nodes == 0 && r.nbad_data == 0 && r.max_dist <= c.dist_tol
-                && r.max_vf_err <= c.vf_tol && r.layout_diff == 0.0_rt;
+                && r.max_vf_err <= c.vf_tol && r.layout_diff == 0.0_rt && r.nbad_box_types == 0;
             std::ostringstream line;
             line << "case " << icase << " " << (ok ? "ok  " : "FAIL") << " [" << c.desc
                  << "] cut=" << r.ncut << " vf_err=" << std::setprecision(3) << r.max_vf_err
                  << " dist=" << r.max_dist << " bad_nodes=" << r.nbad_nodes
-                 << " bad_data=" << r.nbad_data << " layout=" << r.layout_diff;
+                 << " bad_data=" << r.nbad_data << " layout=" << r.layout_diff
+                 << " bad_box_types=" << r.nbad_box_types;
             if (verbose > 0 || !ok) { amrex::Print() << line.str() << "\n"; }
 
             // Log a failure right away and keep its STL file; nothing is

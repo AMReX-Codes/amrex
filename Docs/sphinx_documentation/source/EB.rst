@@ -223,7 +223,9 @@ an STL file using:
 This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
 ``eb2.stl_file`` to specify the STL file path. Because an STL file is expected
 to describe a water-tight object, the embedded boundary outside the domain is
-always taken from the STL mesh itself, and ``extend_domain_face`` is ignored.
+always taken from the STL mesh itself, and ``extend_domain_face`` is ignored. A
+grid box that no triangle touches is classified as entirely regular or entirely
+covered from a single point, which is correct only for a water-tight mesh.
 
 **Managing IndexSpace Objects**
 
