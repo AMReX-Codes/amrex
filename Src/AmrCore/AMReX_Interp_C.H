@@ -341,9 +341,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cell_quartic_interp_x (int i, int j, int k, int n, Array4<Real> const& fine,
                             Array4<Real const> const& crse) noexcept
 {
-    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
-                                      Real(0.92285156), Real(0.20507812),
-                                      Real(-0.02197266)};
+    // Quartic interpolation weights (exact in binary; they sum to 1)
+    constexpr Array1D<Real,-2,2> c = {Real(35./2048.), Real(-252./2048.),
+                                      Real(1890./2048.), Real(420./2048.),
+                                      Real(-45./2048.)};
     int ii = amrex::coarsen(i,2);
     int s = 2*(i-ii*2) - 1;  // if i == ii*2, s = -1; if i == ii*2+1, s = 1;
     fine(i,j,k,n) = c(-2*s)*crse(ii-2,j,k,n)
@@ -357,9 +358,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cell_quartic_interp_y (int i, int j, int k, int n, Array4<Real> const& fine,
                             Array4<Real const> const& crse) noexcept
 {
-    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
-                                      Real(0.92285156), Real(0.20507812),
-                                      Real(-0.02197266)};
+    // Quartic interpolation weights (exact in binary; they sum to 1)
+    constexpr Array1D<Real,-2,2> c = {Real(35./2048.), Real(-252./2048.),
+                                      Real(1890./2048.), Real(420./2048.),
+                                      Real(-45./2048.)};
     int jj = amrex::coarsen(j,2);
     int s = 2*(j-jj*2) - 1;  // if j == jj*2, s = -1; if j == jj*2+1, s = 1;
     fine(i,j,k,n) = c(-2*s)*crse(i,jj-2,k,n)
@@ -373,9 +375,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cell_quartic_interp_z (int i, int j, int k, int n, Array4<Real> const& fine,
                             Array4<Real const> const& crse) noexcept
 {
-    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
-                                      Real(0.92285156), Real(0.20507812),
-                                      Real(-0.02197266)};
+    // Quartic interpolation weights (exact in binary; they sum to 1)
+    constexpr Array1D<Real,-2,2> c = {Real(35./2048.), Real(-252./2048.),
+                                      Real(1890./2048.), Real(420./2048.),
+                                      Real(-45./2048.)};
     int kk = amrex::coarsen(k,2);
     int s = 2*(k-kk*2) - 1;  // if k == kk*2, s = -1; if k == kk*2+1, s = 1;
     fine(i,j,k,n) = c(-2*s)*crse(i,j,kk-2,n)
