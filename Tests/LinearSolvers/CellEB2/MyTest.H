@@ -26,7 +26,7 @@ private:
     void initGrids ();
     void addFineGrids ();
     void compareWithMLHypre (amrex::MLEBABecLap& mleb, amrex::MLMG& mlmg,
-                             amrex::Vector<amrex::MultiFab>& hphi,
+                             amrex::Vector<amrex::MultiFab> const& bcdata,
                              amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& lobc,
                              amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& hibc);
 
@@ -59,7 +59,6 @@ private:
     int composite_solve = 0;
     bool eb_neumann = false;    // homogeneous Neumann on the EB instead of Dirichlet
     amrex::Real acoef_value = 0.0;
-    bool avg_down_b = false;    // average the fine b down onto the coarse faces
     amrex::Real ghost_value = 0.0; // in phi's ghost cells off the domain boundary
     amrex::Vector<int> is_periodic{AMREX_D_DECL(0,0,0)};
     // Region of level l: [fine_lo + (l-1)*fine_shrink, fine_hi - (l-1)*fine_shrink]

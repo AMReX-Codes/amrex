@@ -37,8 +37,8 @@ struct HypMLABecLapEB
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> b;
     Array4<EBCellFlag const> flag;
     Array4<Real const> vfrac, barea, bcent;
-    Array4<Real const> crse_vfrac; // on the coarsened box
-    bool scaling = false;          // unknowns scaled by hypmlabeclap_eb_scale
+    Array4<Real const> scale;      // of the unknowns (null: 1)
+    Array4<Real const> crse_scale; // of the coarser level's, on the coarsened box
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> apert, fcent;
     GpuArray<int,2*AMREX_SPACEDIM> bct{};
     GpuArray<Real,2*AMREX_SPACEDIM> bcl{};
@@ -46,13 +46,6 @@ struct HypMLABecLapEB
     GpuArray<Array4<int const>,2*AMREX_SPACEDIM> bmask;
     GpuArray<Array4<Real const>,2*AMREX_SPACEDIM> bval;
 };
-
-//! Scaling of the unknown of a cell with volume fraction \p kappa
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real hypmlabeclap_eb_scale (Real kappa)
-{
-    return (kappa > Real(0.0)) ? Real(1.0)/std::sqrt(kappa) : Real(1.0);
-}
 
 //! A ghost cell's value: the sum of c[m]*phi(g+m*s) for m = 1..n-1, where s
 //! points from \p face into the box, plus c[0] times the boundary value
@@ -184,8 +177,8 @@ int hypmlabeclap_eb_crse_interp (HypMLABecLapEB const& e, IntVect const& g, Orie
  * and other boundary values moved to the right-hand side (\p bcrhs).  A cell
  * covered by the finer level has the average-down row of EB_average_down;
  * the fine cells add their weights to it.  The same-level entries of the
- * cell's own row are summed first.  With scaling, an entry (i,j) is
- * multiplied by s_i*s_j, s = hypmlabeclap_eb_scale(volume fraction).
+ * cell's own row are summed first.  With the scaling s of the unknowns, an
+ * entry (i,j) is multiplied by s_i*s_j.
  */
 template <typename F>
 AMREX_GPU_HOST_DEVICE
@@ -196,13 +189,12 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     bool const pinned = (c == e.fixed_pt);
     bcrhs = Real(0.0);
 
-    // Scaling of the unknown of cell q of vf (this level's or the coarser)
-    auto scale = [&] (Array4<Real const> const& vf, IntVect const& q)
+    auto scale = [&] (Array4<Real const> const& s, IntVect const& q)
     {
-        return e.scaling ? hypmlabeclap_eb_scale(vf(q)) : Real(1.0);
+        return s ? s(q) : Real(1.0);
     };
     Real const kappa = e.vfrac(c);
-    Real const sc = scale(e.vfrac, c);
+    Real const sc = scale(e.scale, c);
     if (e.level > 0 && kappa > Real(0.0)) {
         IntVect const pc = amrex::coarsen(c, e.rr);
         Real vtot = Real(0.0);
@@ -210,7 +202,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         {
             vtot += e.vfrac(i,j,k);
         });
-        put(e.crse_id(pc), row, -kappa/vtot*scale(e.crse_vfrac, pc)*sc);
+        put(e.crse_id(pc), row, -kappa/vtot*scale(e.crse_scale, pc)*sc);
     }
 
     if (kappa == Real(0.0) || (e.fine_mask && e.fine_mask(c))) {
@@ -218,29 +210,29 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         return;
     }
 
-    // A row r with scaling rs.  The cell's own row sums its same-level
+    // A row with id and scaling s.  The cell's own row sums its same-level
     // entries in sten.  put_crse adds a coarse cell's entry except to the
     // off-diagonals of a pinned row, put_cell maps a cell of this level to
     // sten or to another row, put_phi also expands ghost cells.
-    struct Row { Long r; Real rs; };
+    struct Row { Long id; Real s; };
     Row const own{row, sc};
     Real sten[nsten] = {};
     bool used[nsten] = {};
     auto put_crse = [&] (Row const& t, IntVect const& cq, Real v)
     {
-        if (t.r != row || !pinned) {
-            put(t.r, e.crse_id(cq), t.rs*v*scale(e.crse_vfrac, cq));
+        if (t.id != row || !pinned) {
+            put(t.id, e.crse_id(cq), t.s*v*scale(e.crse_scale, cq));
         }
     };
     auto put_cell = [&] (Row const& t, IntVect const& q, Real v)
     {
-        if (t.r == row) {
+        if (t.id == row) {
             IntVect const o = q-c+1;
             int const m = AMREX_D_TERM(o[0], +3*o[1], +9*o[2]);
             sten[m] += v;
             used[m] = true;
         } else {
-            put(t.r, e.cid(q), t.rs*v*scale(e.vfrac, q));
+            put(t.id, e.cid(q), t.s*v*scale(e.scale, q));
         }
     };
     auto put_phi = [&] (Row const& t, IntVect const& q, Real v)
@@ -266,7 +258,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             for (int m = 0; m < nc; ++m) {
                 put_crse(t, civ[m], v*f.c[0]*w[m]);
             }
-        } else if (t.r == row) {
+        } else if (t.id == row) {
             bcrhs -= v*f.c[0]*e.bval[f.face](q);
         }
     };
@@ -285,7 +277,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             // The coarse neighbor across a coarse/fine face
             IntVect const cnb = amrex::coarsen(nb, e.rr);
             Row const crow = (e.cid(nb) < 0 && e.cf_face[face])
-                ? Row{e.crse_id(cnb), scale(e.crse_vfrac, cnb)} : Row{-1, Real(0.0)};
+                ? Row{e.crse_id(cnb), scale(e.crse_scale, cnb)} : Row{-1, Real(0.0)};
             // b*(phi(f)-phi(f-ed)) on a cut face is interpolated toward its
             // centroid from the neighboring faces
             IntVect off[AMREX_SPACEDIM-1];
@@ -319,7 +311,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                 if (e.b[d]) { v *= e.b[d](fp); }
                 put_phi(own, fp, v);
                 put_phi(own, fp-ed, -v);
-                if (crow.r >= 0) {
+                if (crow.id >= 0) {
                     put_phi(crow, fp, -v/rrvol);
                     put_phi(crow, fp-ed, v/rrvol);
                 }
@@ -376,7 +368,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     for (int m = 0; m < nsten; ++m) {
         if (used[m] && (!pinned || m == nsten/2)) {
             IntVect const o(AMREX_D_DECL(m%3-1, (m/3)%3-1, m/9-1));
-            put(row, e.cid(c+o), sc*sten[m]*scale(e.vfrac, c+o));
+            put(row, e.cid(c+o), sc*sten[m]*scale(e.scale, c+o));
         }
     }
     if (pinned) { bcrhs = Real(0.0); }

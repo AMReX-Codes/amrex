@@ -223,8 +223,8 @@ void localize_triplets (Gpu::DeviceVector<I>& rows, Gpu::DeviceVector<I>& cols,
             c[nloc+i] = I(pt[i].col);
             v[nloc+i] = pt[i].val;
         });
+        Gpu::streamSynchronize(); // before drecv is freed
     }
-    Gpu::streamSynchronize();
 }
 
 /**

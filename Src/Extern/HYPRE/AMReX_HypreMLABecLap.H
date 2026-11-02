@@ -30,7 +30,9 @@
  * composite operator is conservative also where the EB crosses the
  * coarse/fine boundary (MLMG's reflux treats the cells there as regular).
  * The rows are weighted by the volume fraction, as is the right-hand side;
- * cells covered by a finer level are the EB average of their fine cells.
+ * cells covered by a finer level are the EB average of their fine cells,
+ * and b on coarse faces covered by a finer level is the area-weighted
+ * average of the fine b, as in MLEBABecLap.
  *
  * Like MLMG with maxorder 3 and an interpolation half width of 1 (which
  * matters in 2D only), both with and without EB; Dirichlet or Neumann
@@ -205,14 +207,20 @@ public:
     };
 
     //! EB operator: the triplets of level ilev's cells (see
-    //! hypmlabeclap_eb_row); public for cuda
+    //! hypmlabeclap_eb_row), with b from ebBCoefs; public for cuda
     void buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar, MultiFab const* a_acoef,
-                          Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoef,
+                          Array<MultiFab,AMREX_SPACEDIM> const& a_bcoef,
                           Vector<Triplets>& chunks);
 
 private:
 
     void addNonStencilEntriesToGraph ();
+
+    //! EB operator: b with ghost faces, averaged down as MLEBABecLap does
+    [[nodiscard]] Vector<Array<MultiFab,AMREX_SPACEDIM>>
+    ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a_bcoefs) const;
+    //! Scaling of the local rows' unknowns (one without EB scaling)
+    [[nodiscard]] Vector<Real> rowScaling () const;
 
     //! Global row id of cell iv on level lev in the IJ system (-1 if the
     //! cell is not on the level's grids); periodic images are wrapped.
@@ -314,14 +322,15 @@ private:
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
     Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
 
-    //! EB operator (IJ mode): the coarser level's row ids and volume
-    //! fractions on the coarsened grids of each level, the right-hand side
-    //! terms of the boundary values from the last setup, and the EB
-    //! Dirichlet data for the next one
+    //! EB operator (IJ mode): the scaling of the unknowns (with one ghost
+    //! cell), the coarser level's row ids and scaling on the coarsened grids
+    //! of each level, the right-hand side terms of the boundary values from
+    //! the last setup, and the EB Dirichlet data for the next one
     bool m_eb = false;
     bool m_eb_scaling = true;
+    Vector<MultiFab> m_eb_scale;
     Vector<std::unique_ptr<FabArray<BaseFab<Long>>>> m_crse_id;
-    Vector<MultiFab> m_crse_vfrac;
+    Vector<MultiFab> m_crse_scale;
     Vector<MultiFab> m_eb_bcrhs;
     Vector<MultiFab> m_eb_beta;
     Vector<MultiFab> m_eb_phi;

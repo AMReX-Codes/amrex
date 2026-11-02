@@ -81,11 +81,6 @@ MyTest::solve ()
 
         mleb.setScalars(scalars[0], scalars[1]);
 
-        for (int ilev = max_level; ilev > 0 && avg_down_b; --ilev) {
-            amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(bcoef[ilev]),
-                                         amrex::GetArrOfPtrs(bcoef[ilev-1]),
-                                         IntVect(ref_ratio), geom[ilev-1]);
-        }
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             mleb.setACoeffs(ilev, acoef[ilev]);
             mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
@@ -111,11 +106,11 @@ MyTest::solve ()
             mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
         }
 
-        // The solve overwrites the boundary values in the ghost cells
-        Vector<MultiFab> phi0(max_level+1);
+        // The boundary values, which the solve overwrites
+        Vector<MultiFab> bcdata(max_level+1);
         for (int ilev = 0; ilev <= max_level && use_mlhypre; ++ilev) {
-            phi0[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
-            MultiFab::Copy(phi0[ilev], phi[ilev], 0, 0, 1, 1);
+            bcdata[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+            MultiFab::Copy(bcdata[ilev], phi[ilev], 0, 0, 1, 1);
         }
 
         const Real tol_rel = reltol;
@@ -126,7 +121,7 @@ MyTest::solve ()
         mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
 
 #ifdef AMREX_USE_HYPRE
-        if (use_mlhypre) { compareWithMLHypre(mleb, mlmg, phi0, mlmg_lobc, mlmg_hibc); }
+        if (use_mlhypre) { compareWithMLHypre(mleb, mlmg, bcdata, mlmg_lobc, mlmg_hibc); }
 #endif
     }
     else
@@ -141,7 +136,7 @@ MyTest::solve ()
             mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
 
             if (ilev > 0) {
-                mleb.setCoarseFineBC(&phi[ilev-1], 2);
+                mleb.setCoarseFineBC(&phi[ilev-1], ref_ratio);
             }
             mleb.setLevelBC(0, &phi[ilev]);
 
@@ -150,7 +145,7 @@ MyTest::solve ()
             mleb.setACoeffs(0, acoef[ilev]);
             mleb.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef[ilev]));
 
-            if (true) { // In this test we assume EB is Dirichlet.
+            if (!eb_neumann) {
                 mleb.setEBDirichlet(0, phieb[ilev], bcoef_eb[ilev]);
             }
 
@@ -213,7 +208,7 @@ MyTest::solve ()
 
 #ifdef AMREX_USE_HYPRE
 void
-MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab>& hphi,
+MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> const& bcdata,
                             Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                             Array<LinOpBCType,AMREX_SPACEDIM> const& hibc)
 {
@@ -250,11 +245,10 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab>& hph
         b[ilev] = amrex::GetArrOfConstPtrs(bcoef[ilev]);
     }
 
-    // Boundary values; MLMG's residual overwrites hphi's ghost cells
-    Vector<MultiFab> bcdata(nlevels), srhs(nlevels), res(nlevels), diff(nlevels);
+    Vector<MultiFab> hphi(nlevels), srhs(nlevels), res(nlevels), diff(nlevels);
     for (int ilev = 0; ilev < nlevels; ++ilev) {
-        bcdata[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
-        MultiFab::Copy(bcdata[ilev], hphi[ilev], 0, 0, 1, 1);
+        hphi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+        MultiFab::Copy(hphi[ilev], bcdata[ilev], 0, 0, 1, 1);
         srhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
         res[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
         diff[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
@@ -418,13 +412,17 @@ MyTest::readParameters ()
     pp.query("composite_solve", composite_solve);
     pp.query("eb_neumann", eb_neumann);
     pp.query("acoef", acoef_value);
-    pp.query("avg_down_b", avg_down_b);
     pp.query("ghost_value", ghost_value);
     pp.queryarr("is_periodic", is_periodic);
     pp.queryarr("fine_lo", fine_lo);
     pp.queryarr("fine_hi", fine_hi);
     pp.query("fine_shrink", fine_shrink);
     pp.query("use_mlhypre", use_mlhypre);
+#ifndef AMREX_USE_HYPRE
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre, "use_mlhypre needs USE_HYPRE=TRUE");
+#endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre || composite_solve,
+                                     "use_mlhypre needs composite_solve");
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
