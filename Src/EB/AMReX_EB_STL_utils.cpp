@@ -1058,13 +1058,14 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
            [&] (auto cto_func) { ParallelFor(mf, nghost, cto_func); },
            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, auto control) noexcept
     {
+        // Same rounding as node_coord so nodal results match fillFab.
         Real coords[3];
-        coords[0]=plo[0]+(static_cast<Real>(i)+offset[0])*dx[0];
-        coords[1]=plo[1]+(static_cast<Real>(j)+offset[1])*dx[1];
+        coords[0]=std::fma(static_cast<Real>(i)+offset[0], dx[0], plo[0]);
+        coords[1]=std::fma(static_cast<Real>(j)+offset[1], dx[1], plo[1]);
 #if (AMREX_SPACEDIM == 2)
         coords[2]=Real(0.);
 #else
-        coords[2]=plo[2]+(static_cast<Real>(k)+offset[2])*dx[2];
+        coords[2]=std::fma(static_cast<Real>(k)+offset[2], dx[2], plo[2]);
 #endif
         int parity = 0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
