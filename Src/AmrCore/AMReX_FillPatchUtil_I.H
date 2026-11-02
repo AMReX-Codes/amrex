@@ -104,6 +104,9 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
         const Real t0 = stime[0];
         const Real t1 = stime[1];
+        const bool interp_in_time = (time != t0 && time != t1 &&
+                                     !amrex::almostEqual(t0,t1));
+        const bool use_src1 = (time != t0 && time == t1);
         MF raii;
         MF * dmf;
         int destcomp;
@@ -117,9 +120,9 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             sameba = true;
             fill_dmf = (&mf != smf[0] && &mf != smf[1]) || scomp != dcomp;
         }
-        else if (time == t0 || time == t1 || amrex::almostEqual(t0,t1))
+        else if (!interp_in_time)
         {
-            dmf = smf[(time != t0 && time == t1) ? 1 : 0];
+            dmf = smf[use_src1 ? 1 : 0];
             destcomp = scomp;
             sameba = false;
             fill_dmf = false;
@@ -168,17 +171,10 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                 }
             }
 
-            // Divide only when needed. Inside the loop, clang hoists the
-            // division out even if the branch is not taken; 0/0 traps.
-            const bool interp_in_time = (time != t0 && time != t1 &&
-                                         !amrex::almostEqual(t0,t1));
-            const bool use_src1 = (time != t0 && time == t1);
-            Real alpha = Real(1.0);
-            Real beta = Real(0.0);
-            if (interp_in_time) {
-                alpha = (t1-time)/(t1-t0);
-                beta = (time-t0)/(t1-t0);
-            }
+            // Keep the denominator nonzero; 0/0 would trap under fpe_trap_invalid.
+            const Real dt = interp_in_time ? (t1-t0) : Real(1.0);
+            const Real alpha = (t1-time)/dt;
+            const Real beta = (time-t0)/dt;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
