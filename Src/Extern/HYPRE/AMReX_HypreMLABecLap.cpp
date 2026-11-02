@@ -6,6 +6,13 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelReduce.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_MultiCutFab.H>
+#include <AMReX_HypreMLABecLap_EB_K.H>
+#endif
+
 #include <_hypre_parcsr_mv.h>
 
 #include <algorithm>
@@ -44,10 +51,22 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
                                 Vector<DistributionMapping> a_dmap,
                                 HypreSolverID a_hypre_solver_id,
                                 std::string a_parmparse_prefix)
+    : HypreMLABecLap(std::move(a_geom), std::move(a_grids), std::move(a_dmap),
+                     a_hypre_solver_id, Vector<FabFactory<FArrayBox> const*>{},
+                     std::move(a_parmparse_prefix))
+{}
+
+HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
+                                Vector<BoxArray> a_grids,
+                                Vector<DistributionMapping> a_dmap,
+                                HypreSolverID a_hypre_solver_id,
+                                Vector<FabFactory<FArrayBox> const*> a_factory,
+                                std::string a_parmparse_prefix)
     : m_geom(std::move(a_geom)),
       m_grids(std::move(a_grids)),
       m_dmap(std::move(a_dmap)),
       m_parmparse_prefix(std::move(a_parmparse_prefix)),
+      m_factory(std::move(a_factory)),
       m_nlevels(int(m_grids.size())),
       m_comm(ParallelContext::CommunicatorSub()),
       m_hypre_solver_id(a_hypre_solver_id),
@@ -140,10 +159,39 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
         pp.query("reuse_setup_max_iter", m_reuse_max_iter);
+        pp.query("eb_scaling", m_eb_scaling);
         m_use_ij = pp.contains("hypre_solver") || (m_backend == Backend::algmg);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij || m_dump_max == 0,
             "HypreMLABecLap: dump_matrix requires IJ mode (hypre_solver or backend = algmg)");
     }
+#ifdef AMREX_USE_EB
+    for (auto const* f : m_factory) {
+        auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
+        m_eb = m_eb || (ebf && !ebf->isAllRegular());
+    }
+    if (m_eb) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij,
+            "HypreMLABecLap: EB requires IJ mode (hypre_solver or backend = algmg)");
+        AMREX_ALWAYS_ASSERT(int(m_factory.size()) == m_nlevels);
+        for (auto const* f : m_factory) {
+            auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ebf && ebf->getAreaFrac()[0] &&
+                                             ebf->getAreaFrac()[0]->nGrow() >= 1,
+                "HypreMLABecLap: EB needs factories with EBSupport::full and at least one "
+                "ghost cell on all levels");
+        }
+        // The coarser level's volume fractions on each level's coarsened grids
+        m_crse_vfrac.resize(m_nlevels);
+        for (int flev = 1; flev < m_nlevels && m_eb_scaling; ++flev) {
+            m_crse_vfrac[flev].define(amrex::coarsen(m_grids[flev], m_ref_ratio[flev-1]),
+                                      m_dmap[flev], 1, 2);
+            m_crse_vfrac[flev].setVal(Real(0.0));
+            m_crse_vfrac[flev].ParallelCopy(
+                static_cast<EBFArrayBoxFactory const*>(m_factory[flev-1])->getVolFrac(),
+                0, 0, 1, IntVect(0), IntVect(2), m_geom[flev-1].periodicity());
+        }
+    }
+#endif
     if (m_use_ij) {
         // Ranks of m_comm (the sub-communicator); the DistributionMappings
         // hold global ranks
@@ -257,7 +305,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         HYPRE_SStructGraphSetStencil(m_ss_graph, ilev, ivar, m_ss_stencil);
     }
 
-    addNonStencilEntriesToGraph();
+    if (!m_eb) { addNonStencilEntriesToGraph(); }
     if (m_use_ij) { buildIJMaps(); }
 
     HYPRE_SStructGraphAssemble(m_ss_graph);
@@ -705,11 +753,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     std::iota(nonstencil_indices.begin(), nonstencil_indices.end(), stencil_size);
 
     HYPRE_IJMatrix ij_A = nullptr;
-    // Per-box (row, column, value) triplets, concatenated after the level loop
-    struct Triplets {
-        Gpu::DeviceVector<HYPRE_BigInt> rows, cols;
-        Gpu::DeviceVector<Real> vals;
-    };
+    // Per-box triplets, concatenated after the level loop.
     // Kernels may still write into the chunks when ij_chunks grows
     static_assert(std::is_nothrow_move_constructible_v<Triplets>);
     Vector<Triplets> ij_chunks;
@@ -753,6 +797,15 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         ij_A = m_ij_solver->A();
     }
     for (int ilev = m_nlevels-1; ilev >= 0; --ilev) {
+        if (m_eb) {
+            buildEBTriplets(ilev, a_ascalar, a_bscalar,
+                            (ilev < a_acoefs.size()) ? a_acoefs[ilev] : nullptr,
+                            (ilev < a_bcoefs.size()) ? a_bcoefs[ilev]
+                            : Array<MultiFab const*,AMREX_SPACEDIM>{},
+                            ij_chunks);
+            continue;
+        }
+
         auto dx = m_geom[ilev].CellSizeArray();
 
         for (MFIter mfi(m_grids[ilev], m_dmap[ilev]); mfi.isValid(); ++mfi) {
@@ -1128,11 +1181,18 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             }
             Gpu::streamSynchronize();
             ij_chunks.clear();
+            if (m_eb) {
+                // Fine cells add to the rows of their coarse neighbors
+                composite::localize_triplets(rows, cols, vals, m_ij_lower, nrows,
+                                             m_rank_offset, m_comm);
+                ntot = Long(rows.size());
+            }
         }
         // In-place update of the assembled matrix (setup reuse)
         const bool direct = (m_backend == Backend::hypre) && !m_ij_gather.empty();
         if (direct) {
-            AMREX_ALWAYS_ASSERT(m_ij_gather.numTriplets() == ntot);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_ij_gather.numTriplets() == ntot,
+                "HypreMLABecLap: the matrix pattern changed between setups with reuse");
             updateIJValues(vals);
         }
         if (m_backend == Backend::hypre && ntot > 0 && !direct) {
@@ -1190,7 +1250,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             auto spA = std::make_unique<SpMatrix<Real>>();
             if (alg_direct) {
                 BL_PROFILE("HypreMLABecLap::algmg_matrix");
-                AMREX_ALWAYS_ASSERT(m_alg_gather.numTriplets() == ntot);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_alg_gather.numTriplets() == ntot,
+                    "HypreMLABecLap: the matrix pattern changed between setups with reuse");
                 SpMatrix<Real>::csr_type csr;
                 csr.nnz = Long(m_alg_col_index.size());
                 csr.mat.resize(csr.nnz);
@@ -1581,6 +1642,19 @@ void HypreMLABecLap::buildIJMaps ()
         m_cell_id[ilev]->FillBoundary(m_geom[ilev].periodicity());
     }
 
+    if (m_eb) {
+        m_eb_bcrhs.resize(m_nlevels);
+        m_crse_id.resize(m_nlevels);
+        for (int flev = 1; flev < m_nlevels; ++flev) {
+            BoxArray const cba = amrex::coarsen(m_grids[flev], m_ref_ratio[flev-1]);
+            m_crse_id[flev] = std::make_unique<FabArray<BaseFab<Long>>>(cba, m_dmap[flev], 1, 2);
+            m_crse_id[flev]->setVal(Long(-1));
+            m_crse_id[flev]->ParallelCopy(*m_cell_id[flev-1], 0, 0, 1, IntVect(0), IntVect(2),
+                                          m_geom[flev-1].periodicity());
+        }
+        return;
+    }
+
     // Coarse-to-fine targets, aligned with the values of hypmlabeclap_c2f
     m_c2f_targets.resize(m_nlevels-1);
     for (int clev = 0; clev < m_nlevels-1; ++clev) {
@@ -1638,6 +1712,179 @@ void HypreMLABecLap::buildIJMaps ()
         Gpu::streamSynchronize();
     }
     m_ns_targets.clear();
+#endif
+}
+
+void HypreMLABecLap::setEBDirichlet (Vector<MultiFab const*> const& a_beta,
+                                     Vector<MultiFab const*> const& a_phi)
+{
+    auto copy = [&] (Vector<MultiFab const*> const& src, Vector<MultiFab>& dst)
+    {
+        dst.clear();
+        dst.resize(m_nlevels);
+        for (int ilev = 0; ilev < m_nlevels && ilev < src.size(); ++ilev) {
+            if (src[ilev]) {
+                dst[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 0);
+                MultiFab::Copy(dst[ilev], *src[ilev], 0, 0, 1, 0);
+            }
+        }
+    };
+    copy(a_beta, m_eb_beta);
+    copy(a_phi, m_eb_phi);
+}
+
+void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
+                                      MultiFab const* a_acoef,
+                                      Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoef,
+                                      Vector<Triplets>& chunks)
+{
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    BL_PROFILE("HypreMLABecLap::buildEBTriplets()");
+    auto const& factory = static_cast<EBFArrayBoxFactory const&>(*m_factory[ilev]);
+    auto const& flags = factory.getMultiEBCellFlagFab();
+    auto const& vfrac = factory.getVolFrac();
+    auto const& barea = factory.getBndryArea();
+    auto const& bcent = factory.getBndryCent();
+    auto const area = factory.getAreaFrac();
+    auto const fcent = factory.getFaceCent();
+
+    // The fluxes of cut faces use b on the neighboring faces, whose ghost
+    // values the caller may not have filled
+    Array<MultiFab,AMREX_SPACEDIM> bcoef;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (a_bcoef[idim]) {
+            bcoef[idim].define(a_bcoef[idim]->boxArray(), m_dmap[ilev], 1, 1);
+            MultiFab::Copy(bcoef[idim], *a_bcoef[idim], 0, 0, 1, 0);
+            bcoef[idim].FillBoundary(m_geom[ilev].periodicity());
+        }
+    }
+    MultiFab const* beb = (ilev < m_eb_beta.size() && m_eb_beta[ilev].ok())
+        ? &m_eb_beta[ilev] : nullptr;
+    MultiFab const* phieb = (ilev < m_eb_phi.size() && m_eb_phi[ilev].ok())
+        ? &m_eb_phi[ilev] : nullptr;
+
+    m_eb_bcrhs[ilev] = MultiFab(m_grids[ilev], m_dmap[ilev], 1, 0);
+    Box const& domain = m_geom[ilev].Domain();
+
+    // Singular: the first fluid cell of the finest level's lowest-numbered
+    // box that has one gets a diagonal-only row
+    IntVect fixed_pt = IntVect::TheMaxVector();
+    if (m_is_singular && ilev == m_nlevels-1) {
+        int fixed_box = std::numeric_limits<int>::max();
+        for (MFIter mfi(vfrac); mfi.isValid(); ++mfi) {
+            if (mfi.index() > fixed_box) { continue; }
+            Box const& vbx = mfi.validbox();
+            auto const& vf = vfrac.const_array(mfi);
+            const auto lo = amrex::lbound(vbx);
+            const auto len = amrex::length(vbx);
+            ReduceOps<ReduceOpMin> reduce_op;
+            ReduceData<Long> reduce_data(reduce_op);
+            reduce_op.eval(vbx, reduce_data, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                -> GpuTuple<Long>
+            {
+                return (vf(i,j,k) > Real(0.0))
+                    ? (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)
+                    : std::numeric_limits<Long>::max();
+            });
+            Long const idx = amrex::get<0>(reduce_data.value(reduce_op));
+            if (idx < vbx.numPts()) {
+                fixed_box = mfi.index();
+                fixed_pt = vbx.atOffset(idx);
+            }
+        }
+        int global_box = fixed_box;
+        ParallelAllReduce::Min(global_box, m_comm);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_box < std::numeric_limits<int>::max(),
+            "HypreMLABecLap: no fluid cell on the finest level to fix the singular system");
+        if (global_box != fixed_box) { fixed_pt = IntVect::TheMaxVector(); }
+    }
+
+    for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
+        Box const& vbx = mfi.validbox();
+        auto const fabtyp = flags[mfi].getType(vbx);
+        HypMLABecLapEB e;
+        e.vbx = vbx;
+        e.irregular = (fabtyp != FabType::regular);
+        e.level = ilev;
+        e.dxinv = m_geom[ilev].InvCellSizeArray();
+        e.sa = a_ascalar;
+        e.sb = a_bscalar;
+        e.cid = m_cell_id[ilev]->const_array(mfi);
+        if (ilev > 0) {
+            e.rr = m_ref_ratio[ilev-1];
+            e.crse_id = m_crse_id[ilev]->const_array(mfi);
+        }
+        if (ilev < m_nlevels-1) { e.fine_mask = m_fine_masks[ilev].const_array(mfi); }
+        if (a_acoef) { e.a = a_acoef->const_array(mfi); }
+        if (beb) { e.beb = beb->const_array(mfi); }
+        if (phieb) { e.phieb = phieb->const_array(mfi); }
+        e.flag = flags.const_array(mfi);
+        e.vfrac = vfrac.const_array(mfi);
+        e.scaling = m_eb_scaling;
+        if (ilev > 0 && m_eb_scaling) { e.crse_vfrac = m_crse_vfrac[ilev].const_array(mfi); }
+        if (fabtyp == FabType::singlevalued) {
+            e.barea = barea.const_array(mfi);
+            e.bcent = bcent.const_array(mfi);
+        }
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (a_bcoef[idim]) { e.b[idim] = bcoef[idim].const_array(mfi); }
+            if (fabtyp == FabType::singlevalued) {
+                e.apert[idim] = area[idim]->const_array(mfi);
+                e.fcent[idim] = fcent[idim]->const_array(mfi);
+            }
+        }
+        for (OrientationIter oit; oit; ++oit) {
+            Orientation const face = oit();
+            e.bct[face] = m_bndry[ilev]->bndryConds(mfi)[face][0];
+            e.bcl[face] = m_bndry[ilev]->bndryLocs(mfi)[face];
+            e.bmask[face] = m_bndry[ilev]->bndryMasks(face)[mfi].const_array();
+            e.bval[face] = m_bndry[ilev]->bndryValues(face)[mfi].const_array();
+            bool const physical = vbx[face] == domain[face]
+                && !m_geom[ilev].isPeriodic(face.coordDir());
+            e.cf_face[face] = (ilev > 0 && !physical);
+        }
+
+        e.fixed_pt = fixed_pt;
+
+        const auto lo = amrex::lbound(vbx);
+        const auto len = amrex::length(vbx);
+
+        // Pass 1: number of triplets per cell; pass 2: the triplets
+        const Long ncells = vbx.numPts();
+        Gpu::DeviceVector<Long> count(ncells), offset(ncells);
+        Long* pcount = count.data();
+        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Long n = 0;
+            Real bcrhs;
+            hypmlabeclap_eb_row(e, IntVect(AMREX_D_DECL(i,j,k)),
+                                [&] (Long, Long, Real) { ++n; }, bcrhs);
+            pcount[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)] = n;
+        });
+        const Long ntrip = Scan::ExclusiveSum(ncells, pcount, offset.data(), Scan::retSum);
+        Triplets& t = chunks.emplace_back();
+        t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
+        auto* prows = t.rows.data();
+        auto* pcols = t.cols.data();
+        auto* pvals = t.vals.data();
+        Long const* poff = offset.data();
+        auto const& bcrhs = m_eb_bcrhs[ilev].array(mfi);
+        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Long n = poff[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)];
+            hypmlabeclap_eb_row(e, IntVect(AMREX_D_DECL(i,j,k)),
+                                [&] (Long r, Long c, Real v)
+                                {
+                                    prows[n] = HYPRE_BigInt(r);
+                                    pcols[n] = HYPRE_BigInt(c);
+                                    pvals[n] = v;
+                                    ++n;
+                                }, bcrhs(i,j,k));
+        });
+        Gpu::streamSynchronize(); // count and offset are freed (boxes run in turn)
+    }
+#else
+    amrex::ignore_unused(this, ilev, a_ascalar, a_bscalar, a_acoef, a_bcoef, chunks);
 #endif
 }
 
@@ -1785,6 +2032,27 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
 
             Array4<Real> const rhs1(bvec.data()+off, amrex::begin(vbx), amrex::end(vbx), ncomp);
             auto const& rhs0 = a_rhs[ilev]->const_array(mfi);
+#ifdef AMREX_USE_EB
+            if (m_eb) {
+                // Volume-weighted; zero in the average-down rows of covered
+                // cells.  Scaled system: b' = s*b, x' = x/s.
+                auto const& vfrac = static_cast<EBFArrayBoxFactory const*>(m_factory[ilev])
+                    ->getVolFrac().const_array(mfi);
+                auto const& bcrhs = m_eb_bcrhs[ilev].const_array(mfi);
+                Array4<int const> fmsk;
+                if (ilev < m_nlevels-1) { fmsk = m_fine_masks[ilev].const_array(mfi); }
+                Array4<Real> const x1(xvec.data()+off, amrex::begin(vbx), amrex::end(vbx), ncomp);
+                bool const scaling = m_eb_scaling;
+                amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    Real const s = scaling ? hypmlabeclap_eb_scale(vfrac(i,j,k)) : Real(1.0);
+                    rhs1(i,j,k) = (fmsk && fmsk(i,j,k)) ? Real(0.0)
+                        : s*(vfrac(i,j,k)*rhs0(i,j,k) + bcrhs(i,j,k));
+                    x1(i,j,k) /= s;
+                });
+                continue;
+            }
+#endif
             GpuArray<Array4<int const>, AMREX_SPACEDIM*2> bcmsk;
             GpuArray<Array4<Real const>, AMREX_SPACEDIM*2> bcrhs;
             for (OrientationIter oit; oit; oit++) {
@@ -1934,12 +2202,23 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
             Box const& vbx = mfi.validbox();
             Long const off = m_box_offset[ilev][mfi.index()] - m_ij_lower;
+#ifdef AMREX_USE_EB
+            if (m_eb && m_eb_scaling) {
+                auto const& vfrac = static_cast<EBFArrayBoxFactory const*>(m_factory[ilev])
+                    ->getVolFrac().const_array(mfi);
+                Array4<Real> const x1(xvec.data()+off, amrex::begin(vbx), amrex::end(vbx), ncomp);
+                amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    x1(i,j,k) *= hypmlabeclap_eb_scale(vfrac(i,j,k));
+                });
+            }
+#endif
             (*a_sol[ilev])[mfi].template copyFromMem<RunOn::Device>(vbx, 0, ncomp, xvec.data()+off);
         }
     }
     Gpu::streamSynchronize(); // xvec is freed on return
 
-    for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
+    for (int ilev = m_nlevels-2; ilev >= 0 && !m_eb; --ilev) {
         amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
     }
 #else

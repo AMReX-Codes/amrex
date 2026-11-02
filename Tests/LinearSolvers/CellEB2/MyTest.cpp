@@ -7,6 +7,9 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreMLABecLap.H>
+#endif
 
 #include <cmath>
 
@@ -78,16 +81,22 @@ MyTest::solve ()
 
         mleb.setScalars(scalars[0], scalars[1]);
 
+        for (int ilev = max_level; ilev > 0 && avg_down_b; --ilev) {
+            amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(bcoef[ilev]),
+                                         amrex::GetArrOfPtrs(bcoef[ilev-1]),
+                                         IntVect(ref_ratio), geom[ilev-1]);
+        }
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             mleb.setACoeffs(ilev, acoef[ilev]);
             mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
         }
 
-        if (true) { // In this test we assume EB is Dirichlet.
+        if (!eb_neumann) {
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 mleb.setEBDirichlet(ilev, phieb[ilev], bcoef_eb[ilev]);
             }
         }
+        if (use_mlhypre) { mleb.setInterpBndryHalfWidth(1); }
 
         MLMG mlmg(mleb);
         mlmg.setMaxIter(max_iter);
@@ -102,12 +111,23 @@ MyTest::solve ()
             mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
         }
 
+        // The solve overwrites the boundary values in the ghost cells
+        Vector<MultiFab> phi0(max_level+1);
+        for (int ilev = 0; ilev <= max_level && use_mlhypre; ++ilev) {
+            phi0[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+            MultiFab::Copy(phi0[ilev], phi[ilev], 0, 0, 1, 1);
+        }
+
         const Real tol_rel = reltol;
         const Real tol_abs = 0.0;
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
         // Test getEBFluxes
         mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
+
+#ifdef AMREX_USE_HYPRE
+        if (use_mlhypre) { compareWithMLHypre(mleb, mlmg, phi0, mlmg_lobc, mlmg_hibc); }
+#endif
     }
     else
     {
@@ -191,6 +211,101 @@ MyTest::solve ()
     }
 }
 
+#ifdef AMREX_USE_HYPRE
+void
+MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab>& hphi,
+                            Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                            Array<LinOpBCType,AMREX_SPACEDIM> const& hibc)
+{
+    int const nlevels = max_level+1;
+    bool const singular = mleb.isSingular(0);
+
+    // A singular problem gets MLMG's consistent rhs
+    Vector<MultiFab> hrhs(nlevels);
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        hrhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        MultiFab::Copy(hrhs[ilev], rhs[ilev], 0, 0, 1, 0);
+    }
+    if (singular) {
+        for (int ilev = max_level; ilev > 0; --ilev) {
+            amrex::EB_average_down(hrhs[ilev], hrhs[ilev-1], 0, 1, ref_ratio);
+        }
+        auto const offset = mleb.getSolvabilityOffset(0, 0, hrhs[0]);
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            mleb.fixSolvabilityByOffset(ilev, 0, hrhs[ilev], offset);
+        }
+    }
+
+    Vector<FabFactory<FArrayBox> const*> fact;
+    for (auto const& f : factory) { fact.push_back(f.get()); }
+    HypreMLABecLap hmleb(geom, grids, dmap, HypreSolverID::BoomerAMG, fact);
+    hmleb.setVerbose(verbose);
+    hmleb.setIsSingular(singular);
+    hmleb.setReuseSolverSetup(mlhypre_num_setups > 1);
+    if (!eb_neumann) {
+        hmleb.setEBDirichlet(amrex::GetVecOfConstPtrs(bcoef_eb), amrex::GetVecOfConstPtrs(phieb));
+    }
+    Vector<Array<MultiFab const*,AMREX_SPACEDIM>> b(nlevels);
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        b[ilev] = amrex::GetArrOfConstPtrs(bcoef[ilev]);
+    }
+
+    // Boundary values; MLMG's residual overwrites hphi's ghost cells
+    Vector<MultiFab> bcdata(nlevels), srhs(nlevels), res(nlevels), diff(nlevels);
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        bcdata[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+        MultiFab::Copy(bcdata[ilev], hphi[ilev], 0, 0, 1, 1);
+        srhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        res[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        diff[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+    }
+    for (int isetup = 0; isetup < mlhypre_num_setups; ++isetup) {
+        // Scaled operator and rhs, same solution
+        Real const s = isetup+1;
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            MultiFab::Copy(srhs[ilev], hrhs[ilev], 0, 0, 1, 0);
+            srhs[ilev].mult(s);
+            hphi[ilev].setVal(0.0, 0, 1, 0);
+        }
+        hmleb.setup(s*scalars[0], s*scalars[1], amrex::GetVecOfConstPtrs(acoef), b,
+                    lobc, hibc, amrex::GetVecOfConstPtrs(bcdata));
+        hmleb.solve(amrex::GetVecOfPtrs(hphi), amrex::GetVecOfConstPtrs(srhs), reltol, 0.0);
+
+        // Volume-weighted, as the rows of HypreMLABecLap's system
+        mlmg.compResidual(amrex::GetVecOfPtrs(res), amrex::GetVecOfPtrs(hphi),
+                          amrex::GetVecOfConstPtrs(hrhs));
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            MultiFab::Multiply(res[ilev], factory[ilev]->getVolFrac(), 0, 0, 1, 0);
+        }
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            MultiFab::LinComb(diff[ilev], 1.0, hphi[ilev], 0, -1.0, phi[ilev], 0, 0, 1, 0);
+        }
+        if (singular) { // up to a constant
+            auto const& vfrac = factory[max_level]->getVolFrac();
+            Real const mean = MultiFab::Dot(diff[max_level], 0, vfrac, 0, 1, 0)
+                / vfrac.sum(0);
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                diff[ilev].plus(-mean, 0, 1);
+                amrex::EB_set_covered(diff[ilev], 0.0);
+            }
+        }
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            Real const dmax = diff[ilev].norm0();
+            Real const rmax = res[ilev].norm0();
+            amrex::Print() << "Setup " << isetup << ", level " << ilev
+                           << ": max |phi_hypre - phi_mlmg| = " << dmax
+                           << ", max |MLMG residual of phi_hypre| * vfrac = " << rmax << '\n';
+            if (mlhypre_max_diff >= 0.0 && !(dmax <= mlhypre_max_diff)) {
+                amrex::Abort("mlhypre: the solutions differ by more than mlhypre_max_diff");
+            }
+            if (mlhypre_max_fine_res >= 0.0 && ilev == max_level && !(rmax <= mlhypre_max_fine_res)) {
+                amrex::Abort("mlhypre: the finest level's residual exceeds mlhypre_max_fine_res");
+            }
+        }
+    }
+}
+#endif
+
 void
 MyTest::writePlotfile ()
 {
@@ -216,7 +331,7 @@ MyTest::writePlotfile ()
                                 amrex::GetVecOfConstPtrs(plotmf),
                                 {"phi","exact","vfrac","eb flux","eb flux exact","barea"},
                                 geom, 0.0, Vector<int>(max_level+1,0),
-                                Vector<IntVect>(max_level,IntVect{2}));
+                                Vector<IntVect>(max_level,IntVect{ref_ratio}));
     } else {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
@@ -257,7 +372,7 @@ MyTest::writePlotfile ()
                                     "eb flux", "eb flux exact", "flux error", "(flux error)*barea", "barea"
                                 },
                                 geom, 0.0, Vector<int>(max_level+1,0),
-                                Vector<IntVect>(max_level,IntVect{2}));
+                                Vector<IntVect>(max_level,IntVect{ref_ratio}));
     }
 
 }
@@ -270,9 +385,9 @@ MyTest::readParameters ()
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
     pp.query("prob_type", prob_type);
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_level == 0 || max_level == 1,
-                                     "max_level must be either 0 or 1");
+    pp.query("ref_ratio", ref_ratio);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ref_ratio == 2 || ref_ratio == 4,
+                                     "ref_ratio must be either 2 or 4");
 
     pp.query("plot_file", plot_file_name);
 
@@ -301,6 +416,18 @@ MyTest::readParameters ()
     pp.query("con_grid_size", con_grid_size);
 
     pp.query("composite_solve", composite_solve);
+    pp.query("eb_neumann", eb_neumann);
+    pp.query("acoef", acoef_value);
+    pp.query("avg_down_b", avg_down_b);
+    pp.query("ghost_value", ghost_value);
+    pp.queryarr("is_periodic", is_periodic);
+    pp.queryarr("fine_lo", fine_lo);
+    pp.queryarr("fine_hi", fine_hi);
+    pp.query("fine_shrink", fine_shrink);
+    pp.query("use_mlhypre", use_mlhypre);
+    pp.query("mlhypre_num_setups", mlhypre_num_setups);
+    pp.query("mlhypre_max_diff", mlhypre_max_diff);
+    pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
 }
 
 void
@@ -311,8 +438,7 @@ MyTest::initGrids ()
     grids.resize(nlevels);
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    std::array<int,AMREX_SPACEDIM> isperiodic{AMREX_D_DECL(0,0,0)};
-    Geometry::Setup(&rb, 0, isperiodic.data());
+    Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -334,11 +460,20 @@ MyTest::addFineGrids ()
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
         BoxList bl = eb_level.boxArray().boxList();
-        const Box& domain = geom[ilev].Domain();
+        if (bl.isEmpty()) { bl.push_back(geom[ilev].Domain()); } // all regular
+        Box domain = geom[ilev].Domain();
+        auto const dx = geom[ilev].CellSizeArray();
+        Real const shrink = (ilev-1)*fine_shrink;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            domain.setSmall(idim, int(std::round((fine_lo[idim]+shrink)/dx[idim])));
+            domain.setBig(idim, int(std::round((fine_hi[idim]-shrink)/dx[idim]))-1);
+        }
         for (Box& b : bl) {
             b &= domain;
         }
+        bl.simplify();
         grids[ilev].define(bl);
+        grids[ilev].maxSize(max_grid_size);
     }
 }
 
@@ -380,9 +515,9 @@ MyTest::initData ()
         fluxeb_sol[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         fluxeb_exact[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
 
-        phi[ilev].setVal(0.0);
+        phi[ilev].setVal(ghost_value); // the valid and domain boundary values are set below
         rhs[ilev].setVal(0.0);
-        acoef[ilev].setVal(0.0);
+        acoef[ilev].setVal(acoef_value);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].setVal(1.0);
         }

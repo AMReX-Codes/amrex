@@ -2,6 +2,7 @@
 #define MY_TEST_H_
 
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_MLEBABecLap.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_Array.H>
 #include <string>
@@ -24,6 +25,10 @@ private:
     void readParameters ();
     void initGrids ();
     void addFineGrids ();
+    void compareWithMLHypre (amrex::MLEBABecLap& mleb, amrex::MLMG& mlmg,
+                             amrex::Vector<amrex::MultiFab>& hphi,
+                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& hibc);
 
     int max_level = 0;
     int ref_ratio = 2;
@@ -52,6 +57,24 @@ private:
     int con_grid_size = -1;
 
     int composite_solve = 0;
+    bool eb_neumann = false;    // homogeneous Neumann on the EB instead of Dirichlet
+    amrex::Real acoef_value = 0.0;
+    bool avg_down_b = false;    // average the fine b down onto the coarse faces
+    amrex::Real ghost_value = 0.0; // in phi's ghost cells off the domain boundary
+    amrex::Vector<int> is_periodic{AMREX_D_DECL(0,0,0)};
+    // Region of level l: [fine_lo + (l-1)*fine_shrink, fine_hi - (l-1)*fine_shrink]
+    amrex::Vector<amrex::Real> fine_lo{AMREX_D_DECL(0.,0.,0.)};
+    amrex::Vector<amrex::Real> fine_hi{AMREX_D_DECL(1.,1.,1.)};
+    amrex::Real fine_shrink = 0.0;
+    // Also solve with HypreMLABecLap (composite_solve): mlhypre_num_setups
+    // setups with reuse and scaled coefficients and rhs (same solution), each
+    // compared with MLMG's solution (all levels, mlhypre_max_diff) and
+    // checked with MLMG's composite residual times the volume fraction
+    // (finest level, mlhypre_max_fine_res); negative bounds are not checked
+    bool use_mlhypre = false;
+    int mlhypre_num_setups = 1;
+    amrex::Real mlhypre_max_diff = -1.0;
+    amrex::Real mlhypre_max_fine_res = -1.0;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

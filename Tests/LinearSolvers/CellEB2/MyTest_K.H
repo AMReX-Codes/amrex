@@ -34,14 +34,12 @@ void mytest_set_phi_reg (int i, int j, int k, amrex::Array4<amrex::Real> const& 
         if (amrex::surroundingNodes(vbx,0).contains(iv)) {
             amrex::Real x = (i    )*dx[0] - 0.5;
             amrex::Real y = (j+0.5)*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             bx(i,j,k) = 1.0 - r2;
         }
         if (amrex::surroundingNodes(vbx,1).contains(iv)) {
             amrex::Real x = (i+0.5)*dx[0] - 0.5;
             amrex::Real y = (j    )*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             by(i,j,k) = 1.0 - r2;
         }
@@ -49,7 +47,6 @@ void mytest_set_phi_reg (int i, int j, int k, amrex::Array4<amrex::Real> const& 
         if (amrex::surroundingNodes(vbx,2).contains(iv)) {
             amrex::Real x = (i+0.5)*dx[0] - 0.5;
             amrex::Real y = (j+0.5)*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             bz(i,j,k) = 1.0 - r2;
         }
@@ -114,14 +111,12 @@ void mytest_set_phi_eb (int i, int j, int k, amrex::Array4<amrex::Real> const& p
         if (amrex::surroundingNodes(vbx,0).contains(iv)) {
             amrex::Real x = (i    )*dx[0] - 0.5;
             amrex::Real y = (j+0.5)*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             bx(i,j,k) = 1.0 - r2;
         }
         if (amrex::surroundingNodes(vbx,1).contains(iv)) {
             amrex::Real x = (i+0.5)*dx[0] - 0.5;
             amrex::Real y = (j    )*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             by(i,j,k) = 1.0 - r2;
         }
@@ -129,7 +124,6 @@ void mytest_set_phi_eb (int i, int j, int k, amrex::Array4<amrex::Real> const& p
         if (amrex::surroundingNodes(vbx,2).contains(iv)) {
             amrex::Real x = (i+0.5)*dx[0] - 0.5;
             amrex::Real y = (j+0.5)*dx[1] - 0.5;
-            amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
             bz(i,j,k) = 1.0 - r2;
         }
@@ -146,7 +140,7 @@ void mytest_set_fluxeb_exact (
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
     int prob_type, amrex::Box const& vbx)
 {
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
     if (vbx.contains(iv)) {
