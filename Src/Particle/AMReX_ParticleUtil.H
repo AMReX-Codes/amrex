@@ -17,6 +17,7 @@
 #include <AMReX_Scan.H>
 
 #include <limits>
+#include <type_traits>
 
 namespace amrex {
 
@@ -760,6 +761,119 @@ void clearEmptyEntries (C& c)
         if (c_it->second.empty()) { c.erase(c_it++); }
         else { ++c_it; }
     }
+}
+
+/**
+ * \brief Where the GPU Redistribute() puts the particles of a single box on a single process.
+ *
+ * A valid particle stays in the box if, after the periodic shift, it is within nGrow
+ * cells of the box. Otherwise, it is removed, unless the unshifted particle is within
+ * nGrow cells of the box: then the full Redistribute() keeps it unshifted.
+ */
+template <typename CellAssignor>
+struct SingleBoxLocator
+{
+    GpuArray<Real, AMREX_SPACEDIM> plo;
+    GpuArray<Real, AMREX_SPACEDIM> phi;
+    GpuArray<Real, AMREX_SPACEDIM> dxi;
+    GpuArray<ParticleReal, AMREX_SPACEDIM> rlo;
+    GpuArray<ParticleReal, AMREX_SPACEDIM> rhi;
+    GpuArray<int, AMREX_SPACEDIM> is_per;
+    Box domain;
+    Box grown_box;
+
+    SingleBoxLocator (Geometry const& geom, Box const& box, IntVect const& nGrow)
+        : plo(geom.ProbLoArray()), phi(geom.ProbHiArray()), dxi(geom.InvCellSizeArray()),
+          rlo(geom.ProbLoArrayInParticleReal()), rhi(geom.ProbHiArrayInParticleReal()),
+          is_per(geom.isPeriodicArray()), domain(geom.Domain()), grown_box(amrex::grow(box, nGrow))
+    {}
+
+    //! the data the cell assignor reads: only the position for the default assignor
+    template <typename PTD>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static auto particle (PTD const& ptd, int i) noexcept
+    {
+        if constexpr (std::is_same_v<CellAssignor, DefaultAssignor>) {
+            Particle<0, 0> p;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = ptd.pos(idim, i); }
+            return p;
+        } else {
+            return ptd.getSuperParticle(i);
+        }
+    }
+
+    //! whether a valid particle stays; shifts p periodically
+    template <typename P>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool stays (P& p, bool& shifted) const noexcept
+    {
+        shifted = enforcePeriodic(p, plo, phi, rlo, rhi, is_per);
+        return grown_box.contains(CellAssignor{}(p, plo, dxi, domain));
+    }
+
+    //! whether the full Redistribute() keeps a valid particle that does not stay
+    template <typename P>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool staysUnshifted (P const& p) const noexcept
+    {
+        return grown_box.contains(CellAssignor{}(p, plo, dxi, domain));
+    }
+};
+
+/**
+ * \brief Locate the particles of a single box as Redistribute() does: store which stay,
+ * shift those periodically, and count the others.
+ *
+ * \param ptile the particles of the box
+ * \param loc the box
+ * \param remove_negative whether invalid particles are removed
+ * \param stays stores whether each particle stays, as partitionParticlesByDest()
+ * \return the numbers of removed valid particles, of invalid particles, and of particles
+ *         that the full Redistribute() keeps unshifted
+ */
+template <typename CellAssignor, typename PTile>
+GpuTuple<int, int, int>
+singleBoxRedistributeLocate (PTile& ptile, SingleBoxLocator<CellAssignor> const& loc,
+                             bool remove_negative, uint8_t* stays)
+{
+    auto ptd = ptile.getParticleTileData();
+
+    ReduceOps<ReduceOpSum, ReduceOpSum, ReduceOpSum> reduce_op;
+    ReduceData<int, int, int> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    reduce_op.eval(ptile.numParticles(), reduce_data,
+    [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+    {
+        if (!ptd.id(i).is_valid()) {
+            stays[i] = uint8_t(!remove_negative);
+            return {0, 1, 0};
+        }
+
+        auto p = loc.particle(ptd, i);
+        bool shifted = false;
+        if (loc.stays(p, shifted)) {
+            stays[i] = 1;
+            if (shifted) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { ptd.pos(idim, i) = p.pos(idim); }
+            }
+            return {0, 0, 0};
+        }
+
+        stays[i] = 0;
+        const bool kept_unshifted = shifted && loc.staysUnshifted(loc.particle(ptd, i));
+        return {kept_unshifted ? 0 : 1, 0, kept_unshifted ? 1 : 0};
+    });
+
+    return reduce_data.value(reduce_op);
+}
+
+//! Partition particles by stored flags, as partitionParticlesByDest() does.
+template <typename PTile>
+int partitionParticlesByFlag (PTile& ptile, uint8_t const* flags)
+{
+    return partitionParticles(ptile,
+        [=] AMREX_GPU_DEVICE (auto& /* ptd */, int i) -> bool { return flags[i]; });
 }
 }
 /// \endcond

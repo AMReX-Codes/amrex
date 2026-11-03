@@ -285,6 +285,9 @@ public:
     static AMREX_EXPORT IntVect tile_size;
     static AMREX_EXPORT bool memEfficientSort;
     static AMREX_EXPORT bool use_comms_arena;
+    //! Let Redistribute() work in place on a single process with a single box,
+    //! runtime parameter ``particles.redistribute_early_out``
+    static AMREX_EXPORT bool redistribute_early_out;
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:

@@ -275,6 +275,13 @@ falls back to a box search. The mask policy can be controlled with
 ``particles.redistribute_use_mask``, ``particles.redistribute_mask_max_ratio``,
 and ``particles.redistribute_mask_max_bytes``.
 
+On a single process with a single level, box and tile, no particle can move to
+another box. :cpp:`Redistribute()` then works in place: it shifts particles
+periodically and removes those that left the domain, together with the invalid
+ones (unless :cpp:`remove_negative` is :cpp:`false`), without building
+communication buffers. The result is the same as that of the full algorithm.
+This can be turned off with ``particles.redistribute_early_out = 0``.
+
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
