@@ -3,6 +3,8 @@
 #include <AMReX_ParticleContainer.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_ParIter.H>
+#include <AMReX_ParticleHeader.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuContainers.H>
@@ -10,6 +12,30 @@
 #include <array>
 
 using namespace amrex;
+
+// Read back the component names written to <dir>/<name>/Header and compare
+// them against the expected names.
+void checkHeaderNames (std::string const& dir, std::string const& name,
+                       Vector<std::string> const& real_names,
+                       Vector<std::string> const& int_names)
+{
+    std::string const hdr = dir + "/" + name + "/Header";
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(hdr, fileCharPtr);
+    std::istringstream is(std::string(fileCharPtr.dataPtr()), std::istringstream::in);
+    ParticleHeader header;
+    header.parse(is);
+
+    amrex::Print() << "Component names in " << hdr << ": ";
+    for (auto const& n : header.real_comp_names) { amrex::Print() << n << ", "; }
+    for (auto const& n : header.int_comp_names) { amrex::Print() << n << ", "; }
+    amrex::Print() << "\n";
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(header.real_comp_names == real_names,
+                                     "Unexpected real component names in particle header");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(header.int_comp_names == int_names,
+                                     "Unexpected int component names in particle header");
+}
 
 void addParticles ()
 {
@@ -53,7 +79,7 @@ void addParticles ()
     amrex::Print() << "Adding runtime comps. \n";
     pc.AddRealComp("real_comp1");
     pc.AddRealComp(); // without name - should be real_comp2
-    pc.AddIntComp(); // without name - should be int_comp0
+    pc.AddIntComp(); // without name - should be int_comp2
 
     amrex::Print() << "New Real SoA component names are: ";
     for (auto& n : pc.GetRealSoANames()) {
@@ -127,6 +153,22 @@ void addParticles ()
                                              "pos attribute expected to be 1.2");
         });
     }
+
+    // Plotfiles and checkpoints written without explicit names should use
+    // the names stored in the container (positions are not listed).
+    Vector<std::string> const real_names{"w", "real_comp1", "real_comp2"};
+    Vector<std::string> const int_names{"i1", "i2", "int_comp2"};
+
+    pc.WritePlotFile("plt_named", "particles");
+    checkHeaderNames("plt_named", "particles", real_names, int_names);
+
+    pc.Checkpoint("chk_named", "particles");
+    checkHeaderNames("chk_named", "particles", real_names, int_names);
+
+    Vector<int> const write_real(real_names.size(), 1);
+    Vector<int> const write_int(int_names.size(), 1);
+    pc.WritePlotFile("plt_named_flags", "particles", write_real, write_int);
+    checkHeaderNames("plt_named_flags", "particles", real_names, int_names);
 }
 
 int main (int argc, char* argv[])
