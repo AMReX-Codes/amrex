@@ -241,6 +241,15 @@ public:
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 
+    /**
+     * \brief With CUDA and HIP, the average number of items per GPU thread from which
+     * ParallelForRNG keeps a local copy of the random number state in each thread.
+     *
+     * Set with the runtime parameter amrex.rng.local_state_threshold.  It does not
+     * change the random numbers.  0 always uses the copy, and a large value never does.
+     */
+    static int rngLocalStateThreshold () noexcept { return rng_local_state_threshold; }
+
 #ifdef AMREX_USE_SYCL
     static Long maxMemAllocSize () noexcept { return device_prop.maxMemAllocSize; }
     static sycl::context& syclContext () { return *sycl_context; }
@@ -269,6 +278,7 @@ private:
     static AMREX_EXPORT gpuDeviceProp_t device_prop;
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;
+    static AMREX_EXPORT int rng_local_state_threshold;
 
     struct ExternalStream
     {

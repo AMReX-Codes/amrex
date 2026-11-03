@@ -138,13 +138,16 @@ namespace amrex
     *
     *  \note If all you need is a normally distributed value, use
     *  amrex::RandomNormal rather than a hand-rolled Box-Muller transform on
-    *  top of this function.  It is faster (on GPU it is the vendor's own
-    *  normal generator, and it does not consume two uniforms per deviate) and
-    *  it never touches std::log, so it is unaffected by the endpoint issue
-    *  described above.  Box-Muller written out by hand is only worthwhile
-    *  when the radial variable itself is needed, for instance to truncate a
-    *  Gaussian at a given number of sigma by inverting the radial CDF, or to
-    *  draw an isotropic direction by normalizing a vector of deviates.
+    *  top of this function.  It never touches std::log, so it is unaffected by
+    *  the endpoint issue described above.  With CUDA, its cost is close to the
+    *  hand-written transform in a ParallelForRNG with several items per GPU
+    *  thread.  In smaller launches it can be several times slower, because it
+    *  caches the second deviate of each pair in the state in global memory; see
+    *  the runtime parameter amrex.rng.local_state_threshold.  Box-Muller written
+    *  out by hand is otherwise only worthwhile when the radial variable itself
+    *  is needed, for instance to truncate a Gaussian at a given number of sigma
+    *  by inverting the radial CDF, or to draw an isotropic direction by
+    *  normalizing a vector of deviates.
     *
     *
     *  There is no accuracy or performance penalty for choosing this interval
