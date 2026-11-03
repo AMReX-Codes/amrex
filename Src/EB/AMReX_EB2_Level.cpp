@@ -435,10 +435,13 @@ Level::buildCellFlag ()
 
 namespace {
     template <typename MF>
-    MF extrudeFabArray (MF const& src, BoxArray const& ba, DistributionMapping const& dm)
+    MF extrudeFabArray (MF& src, BoxArray const& ba, DistributionMapping const& dm)
     {
         const int ncomp = src.nComp();
         MF dst(amrex::convert(ba, src.ixType()), dm, ncomp, src.nGrowVect());
+
+        // A fab in a single chunk points into memory owned by src, so it cannot outlive src.
+        bool const can_swap = (src.singleChunkPtr() == nullptr);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -447,6 +450,10 @@ namespace {
         {
             Box const& sbx = src.box(mfi.index());
             Box const& dbx = mfi.validbox();
+            if (can_swap && sbx == dbx) {
+                std::swap(dst[mfi], src[mfi]);
+                continue;
+            }
             IntVect const slo = sbx.smallEnd();
             IntVect const shi = sbx.bigEnd();
             IntVect grew_lo(0), grew_hi(0);
