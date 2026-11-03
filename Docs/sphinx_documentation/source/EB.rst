@@ -732,6 +732,10 @@ outside a spherical obstacle with the cell-centered solver
 embedded boundary with a conservative finite-volume method and
 redistribution for the small cut cells.
 
+``amrex/Tests/EB/CNS`` is an AMR code for the compressible Navier-Stokes
+equations with embedded boundaries. It uses :cpp:`EBFluxRegister` for
+refluxing.
+
 .. _`EB/Geometry`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-geometry
 
 .. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-poisson

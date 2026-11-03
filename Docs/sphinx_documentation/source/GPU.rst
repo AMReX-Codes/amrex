@@ -175,6 +175,7 @@ can run it and that will generate results like:
 ::
 
    $ ./main3d.gnu.CUDA.ex
+   Initializing AMReX (26.11-6-gb33ab585fb22)...
    Initializing CUDA...
    CUDA initialized with 1 device.
    AMReX (26.11-6-gb33ab585fb22) initialized

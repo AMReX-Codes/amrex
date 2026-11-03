@@ -124,6 +124,7 @@ The result may look like:
 
 ::
 
+      Initializing AMReX (26.11-6-gb33ab585fb22)...
       AMReX (26.11-6-gb33ab585fb22) initialized
       Hello world from AMReX version 26.11-6-gb33ab585fb22
         MPI ranks:      1
@@ -161,6 +162,7 @@ The result may look like:
 
 ::
 
+      Initializing AMReX (26.11-6-gb33ab585fb22)...
       MPI initialized with 4 MPI processes
       MPI initialized with thread support level 0
       AMReX (26.11-6-gb33ab585fb22) initialized
@@ -200,6 +202,7 @@ The result may look like:
 
 ::
 
+      Initializing AMReX (26.11-6-gb33ab585fb22)...
       OMP initialized with 4 OMP threads
       AMReX (26.11-6-gb33ab585fb22) initialized
       Hello world from AMReX version 26.11-6-gb33ab585fb22
@@ -224,6 +227,7 @@ The result may look like:
 
 ::
 
+      Initializing AMReX (26.11-6-gb33ab585fb22)...
       MPI initialized with 2 MPI processes
       MPI initialized with thread support level 0
       OMP initialized with 4 OMP threads

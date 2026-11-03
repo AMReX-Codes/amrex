@@ -324,7 +324,7 @@ The velocity field is a specified divergence-free (so the flow field is incompre
 function of space and time. The initial scalar field is a
 Gaussian profile. To integrate these equations on a given level, we use a simple conservative update,
 
-.. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
+.. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = -\frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} - \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
 
 where the velocities on faces are prescribed functions of space and time, and the scalars on faces
 are computed by upwinding with limited slopes. The fluxes in this case are the face-centered
@@ -570,9 +570,10 @@ advanced a number of times equal to a multiple of :cpp:`regrid_int`, we call the
 Central to the regridding process is the concept of "tagging" cells that need refinement.
 :cpp:`ErrorEst` is a pure virtual function of :cpp:`AmrCore`, so each application code must
 contain an implementation. In this example, the refinement criterion is an
-:cpp:`AMRErrorTag` built from the ``adv.phierr`` runtime parameter, which gives one
-threshold per level; a cell is tagged where :math:`\phi` is greater than the threshold
-of its level. :cpp:`ErrorEst` applies it to the :cpp:`TagBoxArray`:
+:cpp:`AMRErrorTag` built from the ``adv.phierr`` runtime parameter, a list of
+thresholds starting at level 0; levels beyond the end of the list use its last value.
+A cell is tagged where :math:`\phi` is greater than the threshold of its level.
+:cpp:`ErrorEst` applies it to the :cpp:`TagBoxArray`:
 
 .. highlight:: c++
 

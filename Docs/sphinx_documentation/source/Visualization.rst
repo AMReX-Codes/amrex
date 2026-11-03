@@ -178,8 +178,7 @@ VisIt
 
 AMReX data can also be visualized by VisIt, an open source visualization and
 analysis software. To follow along with this example, first build and run the
-first heat equation tutorial code (see the section on :ref:`sec:heat
-equation`).
+heat equation example (see the section on :ref:`sec:heat equation`).
 
 Next, download and install VisIt from
 https://wci.llnl.gov/simulation/computer-codes/visit.  To open a single
@@ -200,7 +199,8 @@ for making a simple plot:
 -  To save the image, select "File" :math:`\rightarrow` "Set save options",
    then customize the image format to your liking, then click "Save".
 
-Your image should look similar to the left side of :numref:`Fig:VisIt`.
+:numref:`Fig:VisIt` shows images made this way from an older heat
+equation example, so your images will look different.
 
 .. raw:: latex
 
@@ -227,9 +227,9 @@ Your image should look similar to the left side of :numref:`Fig:VisIt`.
 
 In 3D, you must apply the "Operators" :math:`\rightarrow` "Slicing"
 :math:`\rightarrow` "ThreeSlice", with the "ThreeSlice operator attribute" set
-to ``x=0.25``, ``y=0.25``, and ``z=0.25``. You can left-click and drag over the
-image to rotate the image to generate something similar to right side of
-:numref:`Fig:VisIt`.
+to the point where the slices intersect, e.g., ``x=0.25``, ``y=0.25``, and
+``z=0.25``. You can left-click and drag over the image to rotate it, as in the
+right side of :numref:`Fig:VisIt`.
 
 To make a movie, you must first create a text file named ``movie.visit`` with a
 list of the Header files for the individual frames. This can most easily be

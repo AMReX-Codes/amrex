@@ -175,10 +175,10 @@ Particles
 =========
 
 ``amrex/Tests/Amr/Advection_AmrLevel`` is another :cpp:`AmrLevel` code, with an
-option to turn on passively advected particles. In the
-``GNUmakefile``, add the line ``USE_PARTICLES = TRUE`` and build the code
-(run ``make realclean`` first).
-In the inputs file, add the line ``adv.do_tracers = 1``.
+option to turn on passively advected particles. Its
+``Exec/SingleVortex/GNUmakefile`` builds with ``USE_PARTICLES = TRUE``, and
+the ``inputs.tracers`` file there turns the particles on with
+``adv.do_tracers = 1``.
 When you run the code, within each plotfile directory there will be a
 subdirectory called "Tracer". These can be visualized using either yt or
 ParaView (refer to the chapter on :ref:`Chap:Visualization`).
