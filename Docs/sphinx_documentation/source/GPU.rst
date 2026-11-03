@@ -2412,13 +2412,6 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | communication. With fewer bytes, the messages are unpacked together   |             |                |
 |                            | after all of them have arrived.                                       |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
-| rng.local_state_threshold  | With CUDA and HIP, the average number of items per GPU thread from    | Int         | 2              |
-|                            | which :cpp:`ParallelForRNG` keeps a local copy of the random number   |             |                |
-|                            | state in each thread. This avoids going through global memory for     |             |                |
-|                            | every draw, but costs a load and store of the whole state per thread. |             |                |
-|                            | It does not change the random numbers. 0 always uses the copy, and a  |             |                |
-|                            | large value never does.                                               |             |                |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
 |                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |
 |                            | an error describing how much free memory there is and what was        |             |                |

@@ -1107,9 +1107,10 @@ namespace detail {
     // state, so kernels that draw for every item break even at about two items per thread.
     inline bool useLocalRandState (Long n_items, Gpu::ExecutionConfig const& ec) noexcept
     {
+        constexpr Long min_items_per_thread = 2;
         Long const nthreads = Long(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()))
             * Long(ec.numThreads.x);
-        return n_items/nthreads >= Gpu::Device::rngLocalStateThreshold();
+        return n_items/nthreads >= min_items_per_thread;
     }
 
     template <bool LocalState, std::integral T, typename L>

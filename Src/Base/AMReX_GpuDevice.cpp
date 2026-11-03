@@ -102,7 +102,6 @@ dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 unsigned int Device::max_blocks_per_launch = 2560;
-int Device::rng_local_state_threshold = 2;
 
 Vector<StreamManager>   Device::gpu_stream_pool;
 Vector<int>             Device::gpu_stream_index;
@@ -356,8 +355,6 @@ Device::Initialize (bool minimal, int a_device_id)
     ppamrex.queryAdd("max_gpu_streams", max_gpu_streams);
     max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
     max_gpu_streams = std::max(max_gpu_streams, 1);
-
-    ppamrex.queryAdd("rng.local_state_threshold", rng_local_state_threshold);
 
     ParmParse pp("device");
     if (! pp.query("verbose", "v", verbose)) {
