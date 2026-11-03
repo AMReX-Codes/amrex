@@ -1076,10 +1076,14 @@ ParallelForRNG (T n, L const& f)
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         Long tid = Long(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
-        RandomEngine engine{&(rand_state[tid])};
+        // Work on a local copy, as on SYCL, so that the state does not go
+        // through global memory on every draw.
+        randState_t local_state = rand_state[tid];
+        RandomEngine engine{&local_state};
         for (Long i = tid, stride = Long(AMREX_GPU_MAX_THREADS)*gridDim.x; i < Long(n); i += stride) {
             f(T(i),engine);
         }
+        rand_state[tid] = local_state;
     });
     Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
@@ -1104,11 +1108,15 @@ ParallelForRNG (BoxND<dim> const& box, L const& f)
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
-        RandomEngine engine{&(rand_state[tid])};
+        // Work on a local copy, as on SYCL, so that the state does not go
+        // through global memory on every draw.
+        randState_t local_state = rand_state[tid];
+        RandomEngine engine{&local_state};
         for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_engine(f, iv, engine);
         }
+        rand_state[tid] = local_state;
     });
     Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
@@ -1133,11 +1141,15 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
-        RandomEngine engine{&(rand_state[tid])};
+        // Work on a local copy, as on SYCL, so that the state does not go
+        // through global memory on every draw.
+        randState_t local_state = rand_state[tid];
+        RandomEngine engine{&local_state};
         for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_ncomp_engine(f, iv, ncomp, engine);
         }
+        rand_state[tid] = local_state;
     });
     Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
