@@ -1,8 +1,8 @@
 The build system requires GNU make >= 3.81 and python >= 2.7.
 
 Typically an application will have its own `GNUmakefile`.  (See
-`Tutorials/HelloWorld_C/` for a simple example, or
-`Tutorials/AMR_Adv_C_v2/Exec/SingleVortex/` for a lightly more
+`amrex-tutorials/Base/HelloWorld/` for a simple example, or
+`amrex-tutorials/Applications/CNS/Exec/Sod/` for a slightly more
 complicated example.)  `Make.defs` is included near the beginning, and
 `Make.rules` is included in the end.  Depending the need,
 `GNUmakefile` includes a number of

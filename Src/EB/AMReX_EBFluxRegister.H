@@ -20,7 +20,7 @@ namespace amrex {
 
 /**
   EBFluxRegister is used for refluxing, re-redistribution,
-  re-refluxing, and re-re-redistribution.  See `Tutorials/EB/CNS` for
+  re-refluxing, and re-re-redistribution.  See `Tests/EB/CNS` for
   an example of using this class.
 
   Reflux for EB is somewhat similar to non-EB.  At the beginning of a

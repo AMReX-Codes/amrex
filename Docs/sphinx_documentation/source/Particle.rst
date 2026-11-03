@@ -286,7 +286,7 @@ Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
 particles, etc. See the `particle tutorials`_ for examples of this.
-.. _`particle tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
+.. _`particle tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html
 
 .. _sec:Particles:Initializing:
 
@@ -353,10 +353,8 @@ outside their parent grid).
    For GPU codes, one can either generate particles on the host and copy them
    to the device, or generate the particles directly on the GPU. For the first
    approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`__.
-   For an example of generating a variable number of particles in each cell
-   directly on the GPU, please see
-   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
-   Electromagnetic Particle-in-Cell tutorial
+   For an example of generating particles in each cell directly on the GPU,
+   please see the `ElectrostaticPIC`_ tutorial.
 
 .. _sec:Particles:Runtime:
 
@@ -728,11 +726,13 @@ of particles in each cell (i.e. to deposit using "nearest neighbor" interpolatio
               });
       });
 
-For more complex examples of interacting with mesh data, we refer readers to
-our `Electromagnetic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectromagneticPIC>`_
+For more examples of interacting with mesh data, we refer readers to
+the `ParticleMesh`_ tutorial, or, for a complete example of an electrostatic
+PIC calculation, to the `ElectrostaticPIC`_ tutorial.
 
-Or, for a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see the `Electrostatic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectrostaticPIC>`_.
+.. _`ParticleMesh`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-particlemesh
+
+.. _`ElectrostaticPIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-electrostaticpic
 
 .. _sec:Particles:ShortRange:
 
@@ -783,12 +783,12 @@ For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`NeighborParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at `NeighborList`_. In this tutorial the function
-:cpp:`void MDParticleContainer:computeForces()`
-computes the forces on a given tile via direct summation over the real
-and neighbor particles, as follows:
+available at `NeighborList`_. For example, a function
+:cpp:`void MDParticleContainer:computeForces()` can compute the forces on a
+given tile via direct summation over the real and neighbor particles, as
+follows:
 
-.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
+.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-neighborlist
 
 .. highlight:: c++
 
@@ -878,7 +878,7 @@ scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
 that have their own collision criteria by overloading the virtual
 :cpp:`check_pair` function.
 
-.. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
+.. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-neighborlist
 
 .. _sec:Particles:IO:
 
@@ -974,4 +974,4 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
-   see ``amrex-tutorials/ExampleCodes/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+   see ``amrex-tutorials/Particles/ElectrostaticPIC/PICParticleContainer.H`` for an example of this.
