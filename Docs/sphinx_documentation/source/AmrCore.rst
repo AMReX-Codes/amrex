@@ -478,8 +478,9 @@ The AmrCoreAdv Class
 --------------------
 
 This example uses the class :cpp:`AmrCoreAdv`, which is derived from the class :cpp:`AmrCore`
-(which is derived from :cpp:`AmrMesh`). The function definitions/implementations
-are given in AmrCoreAdv.H/cpp.
+(which is derived from :cpp:`AmrMesh`). It is declared in ``AmrCoreAdv.H``, and its
+member functions are implemented in the source files listed in the Code Structure
+section above.
 
 FluxRegisters
 -------------

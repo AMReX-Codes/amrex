@@ -1245,8 +1245,9 @@ function is executed.
 
 The available launch schema are presented here in three categories: launching
 nested loops over Boxes or 1D arrays, launching generic work and launching using
-OpenACC or  OpenMP pragmas. Examples of these launches can be found in the `Base`_
-tutorials, e.g., `MultiFab`_ and `GpuContainers`_.
+OpenACC or  OpenMP pragmas. Examples of launching nested loops with
+:cpp:`ParallelFor` can be found in the `Base`_ tutorials, e.g., `MultiFab`_ and
+`GpuContainers`_.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
 
