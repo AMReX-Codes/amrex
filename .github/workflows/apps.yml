@@ -173,3 +173,58 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
+
+  tutorials:
+    name: amrex-tutorials
+    runs-on: ubuntu-26.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    env:
+      OMP_NUM_THREADS: 2
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Checkout amrex-tutorials
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: 'AMReX-Codes/amrex-tutorials'
+        ref: 'main'
+        path: 'amrex-tutorials'
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang.sh 22
+        sudo apt-get install -y --no-install-recommends libomp-22-dev
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Test
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=60M
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        cmake -S amrex-tutorials -B amrex-tutorials/build  \
+            -DFETCHCONTENT_SOURCE_DIR_AMREX=${PWD}         \
+            -DAMReX_TESTING=ON                             \
+            -DAMReX_OMP=ON                                 \
+            -DAMReX_FORTRAN_INTERFACES=ON                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DCMAKE_CXX_STANDARD=20                        \
+            -DCMAKE_C_COMPILER=$(which clang-22)           \
+            -DCMAKE_CXX_COMPILER=$(which clang++-22)       \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)     \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DMPIEXEC_PREFLAGS=--oversubscribe
+        cmake --build amrex-tutorials/build -j 4
+
+        ctest --test-dir amrex-tutorials/build --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
