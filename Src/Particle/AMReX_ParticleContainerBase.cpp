@@ -15,6 +15,8 @@ bool    ParticleContainerBase::redistribute_early_out = true;
 
 namespace {
 
+bool s_parameters_read = false;
+
 struct RedistributeMaskParameters
 {
     int use_mask = 1;
@@ -40,6 +42,31 @@ RedistributeMaskParams ()
     return params;
 }
 
+}
+
+void ParticleContainerBase::ReadParameters ()
+{
+    if (s_parameters_read) { return; }
+    s_parameters_read = true;
+
+    amrex::ExecOnFinalize([] () {
+        s_parameters_read = false;
+        do_tiling = false;
+        tile_size = IntVect(AMREX_D_DECL(1024000,8,8));
+        memEfficientSort = true;
+        use_comms_arena = false;
+        redistribute_early_out = true;
+    });
+
+    ParmParse pp("particles");
+    pp.queryAdd("do_tiling", do_tiling);
+    Vector<int> tilesize(AMREX_SPACEDIM);
+    if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
+    }
+    pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
+    pp.queryAdd("use_comms_arena", use_comms_arena);
+    pp.queryAdd("redistribute_early_out", redistribute_early_out);
 }
 
 void ParticleContainerBase::Define (const Geometry            & geom,
