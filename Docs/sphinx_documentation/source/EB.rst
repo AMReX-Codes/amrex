@@ -720,19 +720,20 @@ as living at face centroids, modify the setBCoeffs command to be
 Tutorials
 =========
 
-`EB/CNS`_ is an AMR code for solving compressible
-Navier-Stokes equations with the embedded boundary approach.
+`EB/Geometry`_ builds embedded boundary geometries from implicit
+functions, constructive solid geometry, the parser and STL files, and
+queries the cut-cell data.
 
-`EB/Poisson`_ is a single-level code that is a proxy for
-solving the electrostatic Poisson equation for a grounded sphere with a point
-charge inside.
+`EB/Poisson`_ is a single-level code that solves the Poisson equation
+outside a spherical obstacle with the cell-centered solver
+:cpp:`MLEBABecLap` and Dirichlet conditions on the embedded boundary.
 
-`EB/MacProj`_ is a single-level code that computes a divergence-free
-flow field around a sphere.  A MAC projection is performed on an initial velocity
-field of (1,0,0).
+`EB/Advection`_ is a single-level code that advects a scalar around an
+embedded boundary with a conservative finite-volume method and
+redistribution for the small cut cells.
 
-.. _`EB/CNS`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+.. _`EB/Geometry`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-geometry
 
-.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-poisson
 
-.. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+.. _`EB/Advection`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-advection

@@ -25,7 +25,7 @@
 
 .. _fig:Adv:
 
-.. table:: Time sequence (:math:`t=0, 0.5, 1, 1.5, 2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to its original configuration. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.
+.. table:: Time sequence (:math:`t=0, 0.5, 1, 1.5, 2` s) of advection of a Gaussian profile using the AdvectionAmrCore tutorial. The analytic velocity field distorts the profile, and then restores the profile to its original configuration. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.
    :align: center
 
    +-----+-----+-----+-----+-----+
@@ -47,7 +47,7 @@ AmrMesh and AmrCore
 -------------------
 
 For single-level simulations
-(see e.g., ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/main.cpp``)
+(see e.g., ``amrex-tutorials/Base/HeatEquation/main.cpp``)
 the user needs to build :cpp:`Geometry`, :cpp:`DistributionMapping`,
 and :cpp:`BoxArray` objects associated with the simulation. For simulations
 with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
@@ -129,7 +129,7 @@ the base class AmrMesh.
 There are no pure virtual functions in :cpp:`AmrMesh`, but
 there are five pure virtual functions in the :cpp:`AmrCore` class. Any applications
 you create must implement these functions. The tutorial code
-Amr/Advection_AmrCore provides a sample implementation in the derived
+``amrex-tutorials/AMR/AdvectionAmrCore`` provides a sample implementation in the derived
 class :cpp:`AmrCoreAdv`.
 
 .. highlight:: c++
@@ -158,9 +158,9 @@ class :cpp:`AmrCoreAdv`.
     //! Delete level data
     virtual void ClearLevel (int lev) = 0;
 
-Refer to the :cpp:`AmrCoreAdv` class in the
-``amrex-tutorials/ExampleCodes/Amr/AmrCore_Advection/Source``
-code for a sample implementation.
+Refer to the :cpp:`AmrCoreAdv` class in
+``amrex-tutorials/AMR/AdvectionAmrCore``
+for a sample implementation.
 
 TagBox and Cluster
 ------------------
@@ -186,13 +186,13 @@ FillPatchUtil and Interpolater
    up since the :cpp:`FillPatch` routines call them.  In fact it is possible to
    avoid using the single-level calls directly if you fill all your grids and
    ghost cells using the :cpp:`FillPatch` routines.  Refer to
-   ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrCore/`` for an example.  The class
+   ``amrex-tutorials/AMR/AdvectionAmrCore/`` for an example.  The class
    :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp``
    contains a :cpp:`Vector<BCRec>`, :cpp:`Geometry`, and a functor
    handling external Dirichlet boundaries, and provides an
    :cpp:`operator()` that fills domain boundaries for a :cpp:`MultiFab`.
 
-Many codes, including the Advection_AmrCore example, contain an array of MultiFabs
+Many codes, including the AdvectionAmrCore example, contain an array of MultiFabs
 (one for each level of refinement), and then use FillPatch operations to fill temporary
 MultiFabs that may include a different number of ghost cells. FillPatch operations fill
 all cells, valid and ghost, using actual valid data at that level, space-time interpolated data
@@ -310,8 +310,8 @@ and :cpp:`TracerParticleContainer` (in ``amrex/Src/Particle/AMReX_TracerParticle
 AMReX_AmrParGDB.cpp/H contains the class :cpp:`AmrParGDB`, which is derived from
 the class :cpp:`ParGDBBase` (in ``amrex/Src/Particle/AMReX_ParGDB``).
 
-Example: Advection_AmrCore
-==========================
+Example: AdvectionAmrCore
+=========================
 
 The Advection Equation
 ----------------------
@@ -327,8 +327,10 @@ Gaussian profile. To integrate these equations on a given level, we use a simple
 .. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
 
 where the velocities on faces are prescribed functions of space and time, and the scalars on faces
-are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
-time-centered ":math:`\phi u`" and ":math:`\phi v`" terms.
+are computed by upwinding with limited slopes. The fluxes in this case are the face-centered
+":math:`\phi u`" and ":math:`\phi v`" terms. Each level is advanced with Heun's method
+(a two-stage Runge-Kutta method), and the fluxes of the two stages are averaged, so that
+they are time-centered.
 
 We use a subcycling-in-time approach where finer levels are advanced with smaller
 time steps than coarser levels, and then synchronization is later performed between levels.
@@ -409,37 +411,23 @@ mismatch in the composite solution:
 Code Structure
 --------------
 
-.. _fig:AmrAdvection_AmrCore_flowchart:
+The source code of the example is in ``amrex-tutorials/AMR/AdvectionAmrCore``.
 
-.. figure:: ./AmrCore/figs/flowchart.png
-   :width: 4in
+-  ``main.cpp`` sets defaults for the parameters :cpp:`AmrCore` requires, runs the
+   simulation, and checks that the total mass is conserved.
 
-   Source code tree for the AmrAdvection_AmrCore example.
+-  ``AmrCoreAdv.H`` and ``AmrCoreAdv.cpp`` contain the :cpp:`AmrCoreAdv` class, which is
+   derived from :cpp:`AmrCore`: the level data, the :cpp:`AmrCore` callbacks,
+   :cpp:`FillPatch`, and the time stepping.
 
+-  ``Advance.cpp`` advances a single level, computes the fluxes and estimates the time step.
 
-The figure above shows the source tree for the example.
+-  ``IO.cpp`` writes plotfiles and checkpoints, and reads a checkpoint for restart.
 
+-  ``Kernels.H`` contains the initial data, the velocity field and the upwind flux.
 
--  ``amrex/Src/``
-
-   -  ``Base/`` Base AMReX library.
-
-   -  ``Boundary/`` An assortment of classes for handling boundary data.
-
-   -  ``AmrCore/`` AMR data management classes, described in more detail above.
-
-
--  ``Advection_AmrCore/Src`` contains source code specific to this example. Most notably,
-   it includes the :cpp:`AmrCoreAdv` class, which is derived from :cpp:`AmrCore`. The subdirectories ``Src_2d``
-   and ``Src_3d`` contain dimension-specific routines. ``Src_nd`` contains dimension-independent routines.
-
-
--  ``Exec`` contains a makefile so that users can write other examples besides ``SingleVortex``.
-
-
--  ``SingleVortex`` builds the code by editing the ``GNUmakefile`` and running ``make``. There
-   is also problem-specific source code here for initialization and for specifying the velocity field used in this
-   simulation.
+The code is built with the ``GNUmakefile`` or ``CMakeLists.txt`` in that directory and
+run with the ``inputs`` file there.
 
 Here is a high-level pseudo-code of the flow of the program:
 
@@ -447,44 +435,43 @@ Here is a high-level pseudo-code of the flow of the program:
 
 ::
 
-    /* Advection_AmrCore Pseudocode */
+    /* AdvectionAmrCore Pseudocode */
     main()
       AmrCoreAdv amr_core_adv; // build an AmrCoreAdv object
       amr_core_adv.InitData()  // initialize data on all levels
         AmrCore::InitFromScratch()
-        AmrMesh::MakeNewGrids()
-        AmrMesh::MakeBaseGrids() // define level 0 grids
-        AmrCoreAdv::MakeNewLevelFromScratch()
-        /* allocate phi_old, phi_new, t_new, and flux registers */
-        initdata()  // fill phi
-        if (max_level > 0) {
-              do {
-            AmrMesh::MakeNewGrids()
-              /* construct next finer grid based on tagging criteria */
+          AmrMesh::MakeNewGrids()
+            AmrMesh::MakeBaseGrids() // define level 0 grids
             AmrCoreAdv::MakeNewLevelFromScratch()
-                  /* allocate phi_old, phi_new, t_new, and flux registers */
-                  initdata()  // fill phi
-          } while (finest_level < max_level);
-        }
+              /* allocate phi_old, phi_new and flux registers, fill phi */
+            if (max_level > 0) {
+              do {
+                AmrMesh::MakeNewGrids()
+                  /* construct next finer grid based on tagging criteria */
+                AmrCoreAdv::MakeNewLevelFromScratch()
+                  /* allocate phi_old, phi_new and flux registers, fill phi */
+              } while (finest_level < max_level);
+            }
       amr_core_adv.Evolve()
-        loop over time steps {
+        loop over coarse time steps {
           ComputeDt()
-          timeStep() // advance a level
+          TimeStepWithSubcycling(lev=0) // advance a level
             /* check regrid conditions and regrid if necessary */
-            Advance()
+            AdvanceLevel()
               /* copy phi into a MultiFab and fill ghost cells */
               /* advance phi */
               /* update flux registers */
             if (lev < finest_level) {
-              timeStep() // recursive call to advance the next-finer level "r" times
+              TimeStepWithSubcycling(lev+1) // recursive call to advance the next-finer level "r" times
                 /* check regrid conditions and regrid if necessary */
-                Advance()
+                AdvanceLevel()
                   /* copy phi into a MultiFab and fill ghost cells */
                   /* advance phi */
                   /* update flux registers */
-              reflux() // synchronize lev and lev+1 using FluxRegister divergence
-              AverageDown() // set covered coarse cells to be the average of fine
+              Reflux()        // synchronize lev and lev+1 using FluxRegister divergence
+              AverageDownTo() // set covered coarse cells to be the average of fine
             }
+          /* write plotfile and checkpoint */
         }
 
 The AmrCoreAdv Class
@@ -497,47 +484,43 @@ are given in AmrCoreAdv.H/cpp.
 FluxRegisters
 -------------
 
-The function :cpp:`AmrCoreAdv::Advance()` calls the Fortran
-subroutine, :fortran:`advect` (in ``./Src_xd/Adv_xd.f90``). :fortran:`advect` computes
-and returns the time-advanced state as well as the fluxes used to update the state.
-These fluxes are used to set or increment the flux registers.
+The function :cpp:`AmrCoreAdv::AdvanceLevel()` computes the fluxes on all faces of a
+level (in :cpp:`AmrCoreAdv::ComputeFluxes()`) and uses them to update the state.
+The same fluxes are then used to set or increment the flux registers. Note that the
+flux register ``flux_reg[lev]`` is associated with the interface between levels
+``lev`` and ``lev-1``.
 
 .. highlight:: c++
 
 ::
 
-    // increment or decrement the flux registers by area and time-weighted fluxes
-    // Note that the fluxes have already been scaled by dt and area
-    // In this example we are solving phi_t = -div(+F)
-    // The fluxes contain, e.g., F_{i+1/2,j} = (phi*u)_{i+1/2,j}
-    // Keep this in mind when considering the different sign convention for updating
-    // the flux registers from the coarse or fine grid perspective
-    // NOTE: the flux register associated with flux_reg[lev] is associated
-    // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
     if (do_reflux) {
-       if (flux_reg[lev+1]) {
-          for (int i = 0; i < BL_SPACEDIM; ++i) {
-              flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
-          }
-       }
-       if (flux_reg[lev]) {
-          for (int i = 0; i < BL_SPACEDIM; ++i) {
-              flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
-          }
-       }
+        // The registers hold flux * area * dt. The coarse level of an
+        // interface subtracts its flux, and the fine level adds its fluxes.
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            Real area = 1.0_rt;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                if (d != idim) { area *= geom[lev].CellSize(d); }
+            }
+            if (lev < finest_level) {
+                flux_reg[lev+1]->CrseInit(flux[idim], idim, 0, 0, 1, -dt_lev*area);
+            }
+            if (lev > 0) {
+                flux_reg[lev]->FineAdd(flux[idim], idim, 0, 0, 1, dt_lev*area);
+            }
+        }
     }
 
-The synchronization is performed at the end of :cpp:`AmrCoreAdv::timeStep`:
+The synchronization is performed at the end of :cpp:`AmrCoreAdv::TimeStepWithSubcycling`:
 
 .. highlight:: c++
 
 ::
 
-    if (do_reflux)
-    {
-        // update lev based on coarse-fine flux mismatch
-        flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(),
-                                geom[lev]);
+    if (do_reflux) {
+        // Replace the coarse flux with the time and area averaged fine flux
+        // on the coarse/fine boundary.
+        flux_reg[lev+1]->Reflux(phi_new[lev], 1.0_rt, 0, 0, 1, geom[lev]);
     }
 
     AverageDownTo(lev); // average lev+1 down to lev
@@ -561,152 +544,51 @@ advanced a number of times equal to a multiple of :cpp:`regrid_int`, we call the
 ::
 
     void
-    AmrCoreAdv::timeStep (int lev, Real time, int iteration)
+    AmrCoreAdv::TimeStepWithSubcycling (int lev, Real time)
     {
-        if (regrid_int > 0)  // We may need to regrid
+        // Regrid levels finer than lev every regrid_int steps of lev, unless a
+        // coarser level has just done it.
+        if (regrid_int > 0 && lev < max_level && istep[lev] > last_regrid_step[lev]
+            && istep[lev] % regrid_int == 0)
         {
-            // regrid changes level "lev+1" so we don't regrid on max_level
-            if (lev < max_level && istep[lev])
-            {
-                if (istep[lev] % regrid_int == 0)
-                {
-                    // regrid could add newly refined levels
-                    // (if finest_level < max_level)
-                    // so we save the previous finest level index
-            int old_finest = finest_level;
+            // regrid could add newly refined levels
+            // (if finest_level < max_level)
+            // so we save the previous finest level index
+            int const old_finest = finest_level;
             regrid(lev, time);
-
-                    // if there are newly created levels, set the time step
+            for (int k = lev; k <= finest_level; ++k) {
+                last_regrid_step[k] = istep[k];
+            }
+            // if there are newly created levels, set the time step
             for (int k = old_finest+1; k <= finest_level; ++k) {
-                dt[k] = dt[k-1] / MaxRefRatio(k-1);
-            }
+                dt[k] = dt[k-1] / nsubsteps[k];
             }
         }
-        }
+        ...
+    }
 
 Central to the regridding process is the concept of "tagging" cells that need refinement.
 :cpp:`ErrorEst` is a pure virtual function of :cpp:`AmrCore`, so each application code must
-contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
-interface to a Fortran routine that tags cells (in this case, :fortran:`state_error` in
-``Src_nd/Tagging_nd.f90``). Note that this code uses tiling.
+contain an implementation. In this example, the refinement criterion is an
+:cpp:`AMRErrorTag` built from the ``adv.phierr`` runtime parameter, which gives one
+threshold per level; a cell is tagged where :math:`\phi` is greater than the threshold
+of its level. :cpp:`ErrorEst` applies it to the :cpp:`TagBoxArray`:
 
 .. highlight:: c++
 
 ::
 
-    // tag all cells for refinement
-    // overrides the pure virtual function in AmrCore
     void
-    AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+    AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
     {
-        static bool first = true;
-        static Vector<Real> phierr;
-
-        // only do this during the first call to ErrorEst
-        if (first)
-        {
-        first = false;
-            // read in an array of "phierr", which is the tagging threshold
-            // in this example, we tag values of "phi" which are greater than phierr
-            // for that particular level
-            // in subroutine state_error, you could use more elaborate tagging, such
-            // as more advanced logical expressions, or gradients, etc.
-        ParmParse pp("adv");
-        int n = pp.countval("phierr");
-        if (n > 0) {
-            pp.getarr("phierr", phierr, 0, n);
-        }
-        }
-
-        if (lev >= phierr.size()) return;
-
-        const int clearval = TagBox::CLEAR;
-        const int   tagval = TagBox::SET;
-
-        const Real* dx      = geom[lev].CellSize();
-        const Real* prob_lo = geom[lev].ProbLo();
-
-        const MultiFab& state = *phi_new[lev];
-
-    #ifdef AMREX_USE_OMP
-    #pragma omp parallel
-    #endif
-        {
-            Vector<int>  itags;
-
-        for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
-        {
-            const Box& tilebox  = mfi.tilebox();
-
-                TagBox&     tagfab  = tags[mfi];
-
-            // We cannot pass tagfab to Fortran because it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-                // set itags initially to 'untagged' everywhere
-                // we define itags over the tilebox region
-            tagfab.get_itags(itags, tilebox);
-
-                // data pointer and index space
-            int*        tptr    = itags.dataPtr();
-            const int*  tlo     = tilebox.loVect();
-            const int*  thi     = tilebox.hiVect();
-
-                // tag cells for refinement
-            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                BL_TO_FORTRAN_3D(state[mfi]),
-                &tagval, &clearval,
-                AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
-                AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
-            //
-            // Now update the tags in the TagBox in the tilebox region
-                // to be equal to itags
-            //
-            tagfab.tags_and_untags(itags, tilebox);
-        }
+        for (auto const& tag : error_tags) {
+            tag(tags, &phi_new[lev], TagBox::CLEAR, TagBox::SET, time, lev, Geom(lev));
         }
     }
 
-The :fortran:`state_error` subroutine in ``Src_nd/Tagging_nd.f90`` in this example
-is simple:
-
-.. highlight:: fortran
-
-::
-
-    subroutine state_error(tag,tag_lo,tag_hi, &
-                           state,state_lo,state_hi, &
-                           set,clear,&
-                           lo,hi,&
-                           dx,problo,time,phierr) bind(C, name="state_error")
-
-      implicit none
-
-      integer          :: lo(3),hi(3)
-      integer          :: state_lo(3),state_hi(3)
-      integer          :: tag_lo(3),tag_hi(3)
-      double precision :: state(state_lo(1):state_hi(1), &
-                                state_lo(2):state_hi(2), &
-                                state_lo(3):state_hi(3))
-      integer          :: tag(tag_lo(1):tag_hi(1), &
-                              tag_lo(2):tag_hi(2), &
-                              tag_lo(3):tag_hi(3))
-      double precision :: problo(3),dx(3),time,phierr
-      integer          :: set,clear
-
-      integer          :: i, j, k
-
-      ! Tag on regions of high phi
-      do       k = lo(3), hi(3)
-         do    j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               if (state(i,j,k) .ge. phierr) then
-                  tag(i,j,k) = set
-               endif
-            enddo
-         enddo
-      enddo
-
-    end subroutine state_error
+An application can also tag cells directly in :cpp:`ErrorEst`, for example with a
+:cpp:`ParallelFor` over the :cpp:`TagBoxArray`, to implement more elaborate criteria such as
+gradients or logical expressions.
 
 
 .. _ss:fillpatch:
@@ -714,10 +596,10 @@ is simple:
 FillPatch
 ---------
 
-This example has two functions, :cpp:`AmrCoreAdv::FillPatch` and :cpp:`AmrCoreAdv::CoarseFillPatch`,
+This example has two functions, :cpp:`AmrCoreAdv::FillPatch` and :cpp:`AmrCoreAdv::FillCoarsePatch`,
 that make use of functions in AmrCore/AMReX_FillPatchUtil.
 
-In :cpp:`AmrCoreAdv::Advance`, we create a temporary :cpp:`MultiFab` called :cpp:`Sborder`, which
+In :cpp:`AmrCoreAdv::AdvanceLevel`, we create a temporary :cpp:`MultiFab` called :cpp:`Sborder`, which
 is essentially :math:`\phi` but with ghost cells filled in. The valid and ghost cells are filled in from
 actual valid data at that level, space-time interpolated data from the next-coarser level,
 neighboring grids at the same level, or domain boundary conditions
@@ -727,7 +609,7 @@ neighboring grids at the same level, or domain boundary conditions
 
 ::
 
-    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
-    FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+    MultiFab Sborder(grids[lev], dmap[lev], 1, 2);
+    FillPatch(lev, stage_time, Sborder);
 
 Several other calls to fillpatch routines are hidden from the user in the regridding process.

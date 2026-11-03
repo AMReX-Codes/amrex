@@ -239,18 +239,12 @@ done using the command:
 
 ::
 
-    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1v plt*/Header | tee movie.visit
+    ~/amrex-tutorials/Base/HeatEquation> ls -1v plt*/Header | tee movie.visit
     plt00000/Header
-    plt01000/Header
-    plt02000/Header
-    plt03000/Header
-    plt04000/Header
-    plt05000/Header
-    plt06000/Header
-    plt07000/Header
-    plt08000/Header
-    plt09000/Header
-    plt10000/Header
+    plt00010/Header
+    plt00020/Header
+    plt00030/Header
+    plt00040/Header
 
 The next step is to run VisIt, select "File" :math:`\rightarrow` "Open file...",
 then select movie.visit. Create an image to your liking and press the
@@ -288,8 +282,8 @@ The open source visualization package ParaView v5.7 and later can be used to vie
 plotfiles, as well as particle data. Download the package at
 https://www.paraview.org/.
 
-To open a plotfile (for example, you could run the
-``HeatEquation_EX1_C`` in 3D):
+To open a plotfile (for example, you could run the ``HeatEquation``
+tutorial in 3D with ``plot_int=100 stop_time=0.15``):
 
 #. Run ParaView v5.7, then select "File" :math:`\rightarrow` "Open".
 
@@ -403,11 +397,11 @@ Visualizing Particle Data
 -------------------------
 
 To visualize particle data within plotfile directories (for example, you could
-run the `NeighborList`_ example in `Tutorials/Particles`_):
+run the `NeighborList`_ example in the `Particles`_ tutorials):
 
-.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
+.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-neighborlist
 
-.. _`Tutorials/Particles`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
+.. _`Particles`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html
 
 .. raw:: latex
 
@@ -541,7 +535,7 @@ __ https://docs.paraview.org/en/v5.8/UsersGuide/savingResults.html#saving-state
 
 There are two file formats available for saving and loading state: ``.pvsm`` (XML) and ``.py`` (Python).
 Examples of both methods are given below. For these examples, we will be working with the data stored
-in the folder ``plt..`` that results from running ``HeatEquation_EX1_C`` in 3D, as in the example at the
+in the folder ``plt..`` that results from running the ``HeatEquation`` tutorial in 3D, as in the example at the
 `beginning of this section`__.
 
 __ https://amrex-codes.github.io/amrex/docs_html/Visualization.html#paraview
@@ -566,7 +560,7 @@ Loading from a ParaView state file (.pvsm)
 
 #. Select ``Search files under specified directory``, and click the ``...`` button to the right of the ``Data Directory`` line.
 
-#. Navigate to ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec`` and click ``OK``. This is where the plotfiles will have been saved by default if you've built and run the example code ``HeatEquation_EX1_C``.
+#. Navigate to ``amrex-tutorials/Base/HeatEquation`` and click ``OK``. This is where the plotfiles will have been saved if you've built and run the ``HeatEquation`` tutorial there.
 
 What you see displayed should be a 2D slice of the solution to the 3D equation.
 

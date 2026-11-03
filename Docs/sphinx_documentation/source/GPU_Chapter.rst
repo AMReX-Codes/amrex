@@ -19,9 +19,12 @@ languages, see their respective documentation.
 Note that this documentation is currently focused on CUDA and HIP. SYCL documentation
 is forthcoming.
 
-A number of tutorials can be found at `Tutorials/GPU`_.
+The `AMReX Tutorials`_ run on GPUs; the `GpuContainers`_ tutorial covers
+GPU memory, containers and asynchronous copies.
 
-.. _`Tutorials/GPU`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html
+.. _`AMReX Tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/
+
+.. _`GpuContainers`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-gpucontainers
 
 .. toctree::
    :maxdepth: 1

@@ -16,16 +16,15 @@ subdirectories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 (see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
 support for octree-type AMR grids. Each directory has a "Make.package" file
-that can be included in make files (see `HelloWorld_F`_ and
-`Advection_F`_ in the tutorials for examples). The libamrex approach includes the
+that can be included in make files (see the `HeatEquation`_ tutorial and
+``amrex/Tests/FortranInterface/Advection_F`` for examples). The libamrex approach includes the
 Fortran interface by default.
 
-.. _`HelloWorld_F`: https://amrex-codes.github.io/amrex/tutorials_html/Basic_Tutorial.html#helloworld
+.. _`HeatEquation`: https://amrex-codes.github.io/amrex/tutorials_html/Fortran.html#fortran-heatequation
 
-.. _`Advection_F`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-f
-
-A simple example can be found at ``amrex-tutorials/Basic/HelloWorld_F/``. The source code
-is shown below in its entirety.
+A minimal program is shown below in its entirety. The `HeatEquation`_
+tutorial is a complete example that solves the heat equation with the
+Fortran interfaces.
 
 .. highlight:: fortran
 
@@ -384,7 +383,7 @@ interfaces:
         character(c_char), intent(in), value :: tagval, clearval
       end subroutine amrex_error_est_proc
 
-``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/my_amr_mod.F90`` shows an
+``amrex/Tests/FortranInterface/Advection_F/Source/my_amr_mod.F90`` shows an
 example of the setup process. The user provided
 :fortran:`procedure(amrex_error_est_proc)` has a tags argument that
 is of type :fortran:`c_ptr` and its value is a pointer to a
@@ -400,11 +399,11 @@ The module :fortran:`amrex_fillpatch_module` provides an interface to
 C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
-``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/fillpatch_mod.F90`` for an example.
+``amrex/Tests/FortranInterface/Advection_F/Source/fillpatch_mod.F90`` for an example.
 
 Module :fortran:`amrex_fluxregister_module` provides an interface to
 :cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
-is demonstrated in the tutorial at `Advection_F`_.
+is demonstrated in ``amrex/Tests/FortranInterface/Advection_F``.
 
 
 .. _sec:fi:octree:
@@ -418,7 +417,7 @@ between levels. Therefore, grids in AMReX in general cannot be represented by
 trees. Nevertheless, octree-type grids are supported via the Fortran interface,
 because grids are more general than octree grids. A tutorial example using
 amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
-available at ``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Advection_octree_F/``. Procedures
+available at ``amrex/Tests/FortranInterface/Advection_octree_F/``. Procedures
 :fortran:`amrex_octree_init` and :fortran:`amrex_octree_finalize` must be
 called as follows,
 
