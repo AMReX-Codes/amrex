@@ -443,13 +443,15 @@ int main (int argc, char* argv[])
         test_min_max<double>();
 
         // Random seeds, printed so that a failure can be reproduced with
-        // the runtime parameter "seed".
+        // the runtime parameter "seed", which then runs a single round.
         std::random_device rd;
-        for (int round = 0; round < 8; ++round) {
-            long long seed_in = static_cast<long long>(((std::uint64_t(rd()) << 32) | rd()) >> 1);
-            ParmParse pp;
-            pp.query("seed", seed_in);
-            auto const seed = static_cast<std::uint64_t>(seed_in);
+        long long seed_in = -1;
+        ParmParse pp;
+        pp.query("seed", seed_in);
+        int const nrounds = (seed_in >= 0) ? 1 : 8;
+        for (int round = 0; round < nrounds; ++round) {
+            auto const seed = (seed_in >= 0) ? static_cast<std::uint64_t>(seed_in)
+                                             : (((std::uint64_t(rd()) << 32) | rd()) >> 1);
             amrex::Print() << "seed = " << seed << "\n";
             test_min_max_random<int>(seed);
             test_min_max_random<unsigned int>(seed);

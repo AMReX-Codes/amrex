@@ -9,12 +9,17 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)
+#error "AMReX requires CUDA compute capability 6.0 or newer"
+#endif
+
 namespace amrex {
 
 namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
-// The result of Min and Max is unspecified if any input is NaN.
+// The result of Min and Max is unspecified if any input is NaN, and so is
+// the sign of a zero result.
 // For Multiply and Divide, we support generic types provided they are the same size as int or unsigned long long
 // and have *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.
