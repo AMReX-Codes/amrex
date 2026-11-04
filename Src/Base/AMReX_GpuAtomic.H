@@ -13,6 +13,7 @@ namespace amrex {
 namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
+// The result of Min and Max is unspecified if any input is NaN.
 // For Multiply and Divide, we support generic types provided they are the same size as int or unsigned long long
 // and have *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.

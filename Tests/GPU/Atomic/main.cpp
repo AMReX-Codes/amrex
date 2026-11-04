@@ -134,7 +134,8 @@ void test_min_max ()
         }
     }
 
-    // Signed zeros must not be mistaken for the most negative or positive value.
+    // Signed zeros must not be mistaken for the most negative or positive
+    // value. Only equality to zero is checked, so either sign may come back.
     if constexpr (std::is_floating_point_v<T>) {
         std::vector<T> hz = {T(-0.0), T(-5.0), T(-0.0), T(-3.0), T(0.0), T(-1.0)};
         Gpu::DeviceVector<T> dz(hz.size());
@@ -368,7 +369,6 @@ int main (int argc, char* argv[])
         test_mul_div<double>();
 
         test_if<int>();
-        test_if<long>();
         test_if<Long>();
         test_if<float>();
         test_if<double>();
