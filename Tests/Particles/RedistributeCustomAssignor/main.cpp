@@ -124,7 +124,7 @@ void test (Layout layout, bool periodic)
         });
     }
     auto const hv = reduce_data.value(reduce_op);
-    Counts c{amrex::get<0>(hv), amrex::get<1>(hv)};
+    Counts c{.n = amrex::get<0>(hv), .n_kept = amrex::get<1>(hv)};
     ParallelDescriptor::ReduceLongSum(c.n);
     ParallelDescriptor::ReduceLongSum(c.n_kept);
 
@@ -164,9 +164,12 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
     {
-        for (bool periodic : {true, false}) {
-            test(Layout::OneBox, periodic);
-            test(Layout::Boxes, periodic);
+        // The stored-cell direction must differ from the one moved across the boundary
+        if constexpr (AMREX_SPACEDIM > 1) {
+            for (bool periodic : {true, false}) {
+                test(Layout::OneBox, periodic);
+                test(Layout::Boxes, periodic);
+            }
         }
         amrex::Print() << "PASSED\n";
     }
