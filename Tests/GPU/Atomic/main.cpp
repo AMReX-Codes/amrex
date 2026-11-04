@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
 #include <algorithm>
@@ -441,7 +442,15 @@ int main (int argc, char* argv[])
         test_min_max<float>();
         test_min_max<double>();
 
-        for (std::uint64_t seed = 0; seed < 8; ++seed) {
+        // Random seeds, printed so that a failure can be reproduced with
+        // the runtime parameter "seed".
+        std::random_device rd;
+        for (int round = 0; round < 8; ++round) {
+            long long seed_in = static_cast<long long>(((std::uint64_t(rd()) << 32) | rd()) >> 1);
+            ParmParse pp;
+            pp.query("seed", seed_in);
+            auto const seed = static_cast<std::uint64_t>(seed_in);
+            amrex::Print() << "seed = " << seed << "\n";
             test_min_max_random<int>(seed);
             test_min_max_random<unsigned int>(seed);
             test_min_max_random<Long>(seed);
