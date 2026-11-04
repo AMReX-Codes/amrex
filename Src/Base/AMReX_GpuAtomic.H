@@ -167,24 +167,18 @@ namespace detail {
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
-    // https://rocmdocs.amd.com/en/latest/Programming_Guides/Kernel_language.html?#atomic-functions
-    // CUDA and HIP support int, unsigned int, and unsigned long long.
-
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Add_device (Long* const sum, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long>(sum, value, amrex::Plus<Long>());
-    }
-
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_add(sum, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        // No 64-bit signed overload. Two's complement makes the unsigned add
+        // bitwise identical.
+        static_assert(sizeof(Long) == sizeof(unsigned long long));
+        return static_cast<Long>(atomicAdd(reinterpret_cast<unsigned long long*>(sum),
+                                           static_cast<unsigned long long>(value)));
 #endif
-
-#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Add_device (double* const sum, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
     }
 
 #endif
@@ -290,18 +284,6 @@ namespace detail {
 #endif
     }
 
-#if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 5)
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void AddNoRet (float* const sum, float const value) noexcept
-    {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        AMREX_IF_ON_DEVICE((atomicAddNoRet(sum, value);))
-#pragma clang diagnostic pop
-        AMREX_IF_ON_HOST((*sum += value;))
-    }
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 //  Min
 ////////////////////////////////////////////////////////////////////////
@@ -330,13 +312,43 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Min_device (float* const m, float const value) noexcept
     {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // Sign bit clear: floats order like signed ints. Sign bit set: the
+        // reverse order of unsigned ints. So one integer atomic suffices.
+        // NaNs are ordered by their bit pattern.
+        int const iv = __float_as_int(value);
+        int old;
+        if (iv >= 0) {
+            old = atomicMin(reinterpret_cast<int*>(m), iv);
+        } else {
+            old = static_cast<int>(atomicMax(reinterpret_cast<unsigned int*>(m),
+                                                 static_cast<unsigned int>(iv)));
+        }
+        return __int_as_float(old);
+#else
         return detail::atomic_op<float,int>(m,value,amrex::Minimum<float>());
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Min_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Minimum<double>());
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // Sign bit clear: doubles order like signed ints. Sign bit set: the
+        // reverse order of unsigned ints. So one integer atomic suffices.
+        // NaNs are ordered by their bit pattern.
+        long long const iv = __double_as_longlong(value);
+        long long old;
+        if (iv >= 0) {
+            old = atomicMin(reinterpret_cast<long long*>(m), iv);
+        } else {
+            old = static_cast<long long>(atomicMax(reinterpret_cast<unsigned long long*>(m),
+                                                 static_cast<unsigned long long>(iv)));
+        }
+        return __longlong_as_double(old);
+#else
+        return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Minimum<double>());
+#endif
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -344,7 +356,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Min_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Minimum<Long>());
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_min(m, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        static_assert(sizeof(Long) == sizeof(long long));
+        return static_cast<Long>(atomicMin(reinterpret_cast<long long*>(m),
+                                           static_cast<long long>(value)));
+#endif
     }
 
 #endif
@@ -393,13 +411,43 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Max_device (float* const m, float const value) noexcept
     {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // Sign bit clear: floats order like signed ints. Sign bit set: the
+        // reverse order of unsigned ints. So one integer atomic suffices.
+        // NaNs are ordered by their bit pattern.
+        int const iv = __float_as_int(value);
+        int old;
+        if (iv >= 0) {
+            old = atomicMax(reinterpret_cast<int*>(m), iv);
+        } else {
+            old = static_cast<int>(atomicMin(reinterpret_cast<unsigned int*>(m),
+                                                 static_cast<unsigned int>(iv)));
+        }
+        return __int_as_float(old);
+#else
         return detail::atomic_op<float,int>(m,value,amrex::Maximum<float>());
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Max_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Maximum<double>());
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // Sign bit clear: doubles order like signed ints. Sign bit set: the
+        // reverse order of unsigned ints. So one integer atomic suffices.
+        // NaNs are ordered by their bit pattern.
+        long long const iv = __double_as_longlong(value);
+        long long old;
+        if (iv >= 0) {
+            old = atomicMax(reinterpret_cast<long long*>(m), iv);
+        } else {
+            old = static_cast<long long>(atomicMin(reinterpret_cast<unsigned long long*>(m),
+                                                 static_cast<unsigned long long>(iv)));
+        }
+        return __longlong_as_double(old);
+#else
+        return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Maximum<double>());
+#endif
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -407,7 +455,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Max_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Maximum<Long>());
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_max(m, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        static_assert(sizeof(Long) == sizeof(long long));
+        return static_cast<Long>(atomicMax(reinterpret_cast<long long*>(m),
+                                           static_cast<long long>(value)));
+#endif
     }
 
 #endif
