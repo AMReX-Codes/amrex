@@ -6,6 +6,7 @@
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
 
+#include <type_traits>
 #include <utility>
 
 namespace amrex {
@@ -83,6 +84,44 @@ namespace detail {
     }
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    // Min (IS_MIN) or Max of float or double with one integer atomic.
+    // Sign bit clear: the values order like signed ints. Sign bit set: the
+    // reverse order of unsigned ints. NaNs are ordered by their bit pattern.
+    template <bool IS_MIN, typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T atomic_fp_min_max (T* const m, T const value) noexcept
+    {
+        using I = std::conditional_t<sizeof(T) == 4, int, long long>;
+        using U = std::make_unsigned_t<I>;
+        I iv, old;
+        if constexpr (sizeof(T) == 4) {
+            iv = __float_as_int(value);
+        } else {
+            iv = __double_as_longlong(value);
+        }
+        if (iv >= 0) {
+            auto* im = reinterpret_cast<I*>(m);
+            if constexpr (IS_MIN) {
+                old = atomicMin(im, iv);
+            } else {
+                old = atomicMax(im, iv);
+            }
+        } else {
+            auto* um = reinterpret_cast<U*>(m);
+            auto const uv = static_cast<U>(iv);
+            if constexpr (IS_MIN) {
+                old = static_cast<I>(atomicMax(um, uv));
+            } else {
+                old = static_cast<I>(atomicMin(um, uv));
+            }
+        }
+        if constexpr (sizeof(T) == 4) {
+            return __int_as_float(old);
+        } else {
+            return __longlong_as_double(old);
+        }
+    }
 
     template <typename R, typename Int, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -314,18 +353,7 @@ namespace detail {
     float Min_device (float* const m, float const value) noexcept
     {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-        // Sign bit clear: floats order like signed ints. Sign bit set: the
-        // reverse order of unsigned ints. So one integer atomic suffices.
-        // NaNs are ordered by their bit pattern.
-        int const iv = __float_as_int(value);
-        int old;
-        if (iv >= 0) {
-            old = atomicMin(reinterpret_cast<int*>(m), iv);
-        } else {
-            old = static_cast<int>(atomicMax(reinterpret_cast<unsigned int*>(m),
-                                                 static_cast<unsigned int>(iv)));
-        }
-        return __int_as_float(old);
+        return detail::atomic_fp_min_max<true>(m, value);
 #else
         return detail::atomic_op<float,int>(m,value,amrex::Minimum<float>());
 #endif
@@ -335,18 +363,7 @@ namespace detail {
     double Min_device (double* const m, double const value) noexcept
     {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-        // Sign bit clear: doubles order like signed ints. Sign bit set: the
-        // reverse order of unsigned ints. So one integer atomic suffices.
-        // NaNs are ordered by their bit pattern.
-        long long const iv = __double_as_longlong(value);
-        long long old;
-        if (iv >= 0) {
-            old = atomicMin(reinterpret_cast<long long*>(m), iv);
-        } else {
-            old = static_cast<long long>(atomicMax(reinterpret_cast<unsigned long long*>(m),
-                                                 static_cast<unsigned long long>(iv)));
-        }
-        return __longlong_as_double(old);
+        return detail::atomic_fp_min_max<true>(m, value);
 #else
         return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Minimum<double>());
 #endif
@@ -413,18 +430,7 @@ namespace detail {
     float Max_device (float* const m, float const value) noexcept
     {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-        // Sign bit clear: floats order like signed ints. Sign bit set: the
-        // reverse order of unsigned ints. So one integer atomic suffices.
-        // NaNs are ordered by their bit pattern.
-        int const iv = __float_as_int(value);
-        int old;
-        if (iv >= 0) {
-            old = atomicMax(reinterpret_cast<int*>(m), iv);
-        } else {
-            old = static_cast<int>(atomicMin(reinterpret_cast<unsigned int*>(m),
-                                                 static_cast<unsigned int>(iv)));
-        }
-        return __int_as_float(old);
+        return detail::atomic_fp_min_max<false>(m, value);
 #else
         return detail::atomic_op<float,int>(m,value,amrex::Maximum<float>());
 #endif
@@ -434,18 +440,7 @@ namespace detail {
     double Max_device (double* const m, double const value) noexcept
     {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-        // Sign bit clear: doubles order like signed ints. Sign bit set: the
-        // reverse order of unsigned ints. So one integer atomic suffices.
-        // NaNs are ordered by their bit pattern.
-        long long const iv = __double_as_longlong(value);
-        long long old;
-        if (iv >= 0) {
-            old = atomicMax(reinterpret_cast<long long*>(m), iv);
-        } else {
-            old = static_cast<long long>(atomicMin(reinterpret_cast<unsigned long long*>(m),
-                                                 static_cast<unsigned long long>(iv)));
-        }
-        return __longlong_as_double(old);
+        return detail::atomic_fp_min_max<false>(m, value);
 #else
         return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Maximum<double>());
 #endif
