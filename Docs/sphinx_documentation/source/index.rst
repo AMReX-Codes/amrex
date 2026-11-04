@@ -26,6 +26,8 @@ etc.  To obtain help, simply post a
 `discussion <https://github.com/AMReX-Codes/amrex/discussions>`_
 or an `issue <https://github.com/AMReX-Codes/amrex/issues>`_
 on the AMReX GitHub webpage.
+All participation in the AMReX community is subject to our
+:ref:`Code of Conduct <code_of_conduct>`.
 
 To learn AMReX, there are small stand-alone tutorial codes that
 demonstrate how to use different parts of the AMReX functionality. Their documentation
@@ -42,6 +44,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    :maxdepth: 1
    :caption: Contents:
 
+   CodeOfConduct
    Introduction
    GettingStarted_Chapter
    BuildingAMReX_Chapter
