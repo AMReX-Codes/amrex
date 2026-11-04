@@ -101,7 +101,12 @@ public:
      * \param flag True selects Gauss–Seidel; false selects Jacobi.
      *             (Gauss–Seidel is the default.)
      */
-    void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
+    void setGaussSeidel (bool flag) noexcept {
+        m_use_gauss_seidel = flag;
+        if (this->m_sp_linop) {
+            static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setGaussSeidel(flag);
+        }
+    }
 
     //! Whether the stencil is the cross shape.
     virtual bool isCrossStencil () const { return true; }
@@ -817,6 +822,26 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
     AMREX_ALWAYS_ASSERT(amrlev >= 0 && amrlev < this->m_num_amr_levels);
 
     const int ncomp = this->getNComp();
+
+    // The single precision copy solves the correction equation: homogeneous
+    // BC, Robin a and b with f = 0.
+    if (this->m_sp_linop && !this->m_precond_mode) {
+        if (this->hasRobinBC()) {
+            AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr);
+            fMultiFab ra(robinbc_a->boxArray(), robinbc_a->DistributionMap(),
+                         robinbc_a->nComp(), robinbc_a->nGrowVect());
+            fMultiFab rb(robinbc_b->boxArray(), robinbc_b->DistributionMap(),
+                         robinbc_b->nComp(), robinbc_b->nGrowVect());
+            fMultiFab rf(robinbc_b->boxArray(), robinbc_b->DistributionMap(),
+                         robinbc_b->nComp(), robinbc_b->nGrowVect());
+            ra.LocalCopy(*robinbc_a, 0, 0, ra.nComp(), ra.nGrowVect());
+            rb.LocalCopy(*robinbc_b, 0, 0, rb.nComp(), rb.nGrowVect());
+            rf.setVal(0.0F);
+            this->m_sp_linop->setLevelBC(amrlev, nullptr, &ra, &rb, &rf);
+        } else {
+            this->m_sp_linop->setLevelBC(amrlev, nullptr);
+        }
+    }
 
     MF zero;
     IntVect ng(1);

@@ -27,6 +27,7 @@ public:
     void initProbPoisson ();
     void initProbABecLaplacian ();
     void initProbABecLaplacianInhomNeumann ();
+    void initProbABecLaplacianRobin ();
     void initProbNodeABecLaplacian ();
 
 private:
@@ -34,7 +35,7 @@ private:
     void readParameters ();
     void solvePoisson ();
     void solveABecLaplacian ();
-    void solveABecLaplacianInhomNeumann ();
+    void solveABecLaplacianInhomNeumann (); // also Robin (prob_type 5)
     void solveNodeABecLaplacian ();
     void solveABecLaplacianGMRES ();
     void configureMLMG (amrex::MLMG& mlmg) const;
@@ -76,6 +77,7 @@ private:
     bool agglomeration = true;
     bool consolidation = true;
     bool deterministic = false;
+    bool mixed_precision = false;
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
@@ -107,6 +109,9 @@ private:
     amrex::Vector<amrex::MultiFab> solution;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> exact_solution;
+    amrex::Vector<amrex::MultiFab> robin_a; // prob_type 5
+    amrex::Vector<amrex::MultiFab> robin_b;
+    amrex::Vector<amrex::MultiFab> robin_f;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 

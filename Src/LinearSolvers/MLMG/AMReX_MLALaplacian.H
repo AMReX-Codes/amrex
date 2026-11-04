@@ -77,6 +77,10 @@ public:
     void setScalars (RT a, RT b) noexcept;
     //! Provide per-cell `a` coefficients on AMR level \p amrlev (stored directly in \p alpha).
     void setACoeffs (int amrlev, const MF& alpha);
+    //! Same as above, with \p alpha of a different precision.
+    template <typename AMF>
+    requires (!std::same_as<MF,AMF>)
+    void setACoeffs (int amrlev, const AMF& alpha);
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
@@ -179,6 +183,14 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+        if (a_info.mixed_precision) {
+            LPInfo sp_info = a_info;
+            sp_info.mixed_precision = false;
+            this->m_sp_linop = std::make_unique<MLALaplacianT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
+        }
+    }
+
     const int ncomp = this->getNComp();
 
     m_a_coeffs.resize(this->m_num_amr_levels);
@@ -210,11 +222,28 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
         }
     }
     m_needs_update = true;
+    if (this->m_sp_linop) {
+        static_cast<MLALaplacianT<fMultiFab>*>(this->m_sp_linop.get())->setScalars(float(a), float(b));
+    }
 }
 
 template <typename MF>
 void
 MLALaplacianT<MF>::setACoeffs (int amrlev, const MF& alpha)
+{
+    const int ncomp = this->getNComp();
+    m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
+    m_needs_update = true;
+    if (this->m_sp_linop) {
+        static_cast<MLALaplacianT<fMultiFab>*>(this->m_sp_linop.get())->setACoeffs(amrlev, alpha);
+    }
+}
+
+template <typename MF>
+template <typename AMF>
+requires (!std::same_as<MF,AMF>)
+void
+MLALaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 {
     const int ncomp = this->getNComp();
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));

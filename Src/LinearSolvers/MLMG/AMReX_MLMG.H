@@ -48,6 +48,7 @@ public:
 
     template <typename T> friend class MLCGSolverT;
     template <typename M> friend class GMRESMLMGT;
+    template <typename T> friend class MLMGT;
 
     using MFType = MF;
     using FAB = typename MLLinOpT<MF>::FAB;
@@ -529,6 +530,11 @@ public:
      */
     void oneIter (int iter);
 
+    //! Mixed precision: one multigrid iteration on the single precision copy.
+    void spIter (int iter);
+    //! Mixed precision: set up the single precision multigrid solver.
+    void prepareForSPSolve (IntVect const& ng_sol);
+
     /**
      * \brief Execute a per-level mini cycle.
      *
@@ -783,6 +789,11 @@ private:
     std::unique_ptr<MF> ns_sol;
     std::unique_ptr<MF> ns_rhs;
 
+    //! Mixed precision: multigrid on the operator's single precision copy
+    std::unique_ptr<MLMGT<fMultiFab>> m_sp_mlmg;
+    Vector<fMultiFab> m_sp_cor;
+    Vector<fMultiFab> m_sp_res;
+
     std::string print_ident;
 
     bool do_no_sync_gpu = false;
@@ -966,6 +977,23 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(hybrid && do_fixed_number_of_iters != 0),
         "MLMG: the hybrid multigrid type needs a convergence test; as a preconditioner or with a fixed number of iterations use geometric or algebraic");
 
+    // Mixed precision: the residual and the solution update are in double,
+    // the multigrid cycles run on the operator's single precision copy.
+    const bool mixed = (linop.m_sp_linop != nullptr);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!linop.info.mixed_precision || mixed,
+                                     "MLMG: this operator does not support mixed precision");
+    if (mixed) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(multigrid_type == MultigridType::geometric
+                                         && cf_strategy != CFStrategy::ghostnodes
+                                         && linop.isCellCentered(),
+            "MLMG: mixed precision needs geometric multigrid on a cell-centered operator");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bottom_solver != BottomSolver::hypre
+                                         && bottom_solver != BottomSolver::petsc
+                                         && bottom_solver != BottomSolver::algmg
+                                         && bottom_solver != BottomSolver::custom,
+            "MLMG: mixed precision supports the smoother, CG and BiCGStab bottom solvers only");
+    }
+
     auto solve_start_time = amrex::second();
 
     RT& composite_norminf = m_final_resnorm0;
@@ -1064,12 +1092,20 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 m_algmg_reltol = std::max(bottom_reltol, (namrlevs == 1) ? res_target/resnorm : RT(1.e-2));
             }
 
-            oneIter(iter);
+            if (mixed) {
+                spIter(iter);
+            } else {
+                oneIter(iter);
+            }
 
             converged = false;
 
             // Test convergence on the fine amr level
-            computeResidual(finest_amr_lev);
+            if (mixed) {
+                computeMLResidual(finest_amr_lev); // the next spIter needs every level
+            } else {
+                computeResidual(finest_amr_lev);
+            }
 
             if (is_nsolve) { continue; }
 
@@ -1086,7 +1122,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 converged = true;
             } else if (fine_converged) {
                 // finest level is converged, but we still need to test the coarse levels
-                computeMLResidual(finest_amr_lev-1);
+                if (!mixed) { computeMLResidual(finest_amr_lev-1); }
                 RT crse_norminf = MLResNormInf(finest_amr_lev-1);
                 if (verbose >= 2) {
                     amrex::Print() << print_ident << "MLMG: Iteration " << std::setw(3) << iter+1
@@ -1188,6 +1224,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
+
+    if (mixed) { timer[bottom_time] = m_sp_mlmg->timer[bottom_time]; }
 
     linop.postSolve(GetVecOfPtrs(sol));
 
@@ -1761,27 +1799,35 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         makeSolvable();
     }
 
+    // Mixed precision: this solver needs only res; the single precision
+    // multigrid has its own work arrays.
+    const bool mixed = (linop.m_sp_linop != nullptr);
+
     IntVect ng = linop.getNGrowVectRestriction();
     if (cf_strategy == CFStrategy::ghostnodes) { ng = ng_rhs; }
     if (!solve_called) {
         linop.make(res, ng);
-        linop.make(rescor, ng);
+        if (!mixed) { linop.make(rescor, ng); }
     }
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
         const int nmglevs = linop.NMGLevels(alev);
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
-            setVal(res   [alev][mglev], RT(0.0));
-            setVal(rescor[alev][mglev], RT(0.0));
+            setVal(res[alev][mglev], RT(0.0));
+            if (!mixed) { setVal(rescor[alev][mglev], RT(0.0)); }
         }
+    }
+
+    if (mixed) {
+        prepareForSPSolve(ng_sol);
     }
 
     if (cf_strategy != CFStrategy::ghostnodes) { ng = ng_sol; }
     cor.resize(namrlevs);
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
-        const int nmglevs = linop.NMGLevels(alev);
+        const int nmglevs = mixed ? 0 : linop.NMGLevels(alev);
         cor[alev].resize(nmglevs);
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
@@ -1797,7 +1843,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     cor_hold.resize(std::max(namrlevs-1,1));
     {
         const int alev = 0;
-        const int nmglevs = linop.NMGLevels(alev);
+        const int nmglevs = mixed ? 0 : linop.NMGLevels(alev);
         cor_hold[alev].resize(nmglevs);
         for (int mglev = 0; mglev < nmglevs-1; ++mglev)
         {
@@ -1809,7 +1855,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             setVal(cor_hold[alev][mglev], RT(0.0));
         }
     }
-    for (int alev = 1; alev < finest_amr_lev; ++alev)
+    for (int alev = 1; alev < finest_amr_lev && !mixed; ++alev)
     {
         cor_hold[alev].resize(1);
         if (!solve_called) {
@@ -1821,7 +1867,8 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     }
 
     if (linop.m_parent // no embedded N-Solve
-        || !linop.supportNSolve())
+        || !linop.supportNSolve()
+        || mixed) // the single precision multigrid does it
     {
         do_nsolve = false;
     }
@@ -1986,6 +2033,154 @@ void MLMGT<MF>::oneIter (int iter)
     }
 
     linop.averageDownAndSync(sol);
+}
+
+// Mixed precision: set up the multigrid solver on the single precision copy
+// of the operator.  Its work arrays are kept across solves.
+template <typename MF>
+void
+MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
+{
+    if constexpr (std::is_same_v<MF,MultiFab>) {
+        auto& splinop = *linop.m_sp_linop;
+        if (!m_sp_mlmg) {
+            m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(splinop);
+            m_sp_cor.resize(namrlevs);
+            m_sp_res.resize(namrlevs);
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                m_sp_cor[alev] = splinop.make(alev, 0, ng_sol);
+                m_sp_res[alev] = splinop.make(alev, 0, IntVect(0));
+                m_sp_res[alev].setVal(0.0F);
+            }
+        }
+        auto& sp = *m_sp_mlmg;
+        sp.setVerbose(std::max(0, verbose-2));
+        sp.setBottomVerbose(bottom_verbose);
+        sp.setBottomSolver(bottom_solver);
+        sp.setBottomMaxIter(bottom_maxiter);
+        sp.setBottomTolerance(static_cast<float>(bottom_reltol));
+        sp.setBottomToleranceAbs(static_cast<float>(bottom_abstol));
+        sp.setPreSmooth(nu1);
+        sp.setPostSmooth(nu2);
+        sp.setFinalSmooth(nuf);
+        sp.setBottomSmooth(nub);
+        sp.setMaxFmgIter(max_fmg_iters);
+        sp.setCFStrategy(static_cast<typename MLMGT<fMultiFab>::CFStrategy>(cf_strategy));
+        sp.setNSolve(do_nsolve);
+        sp.setNSolveGridSize(nsolve_grid_size);
+        sp.setThrowException(throw_exception);
+        sp.print_ident = print_ident + "  ";
+        // Allocates the work arrays and prepares the operator; the rhs is
+        // overwritten by spIter.
+        sp.prepareForSolve(GetVecOfPtrs(m_sp_cor), GetVecOfConstPtrs(m_sp_res));
+        if (!sp.solve_called) { sp.solve_called = 1; } // keep the work arrays
+        // The coarse/fine BC data of the copy come from its solution, which
+        // is zero whenever spIter needs them.
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            setVal(sp.sol[alev], 0.0F);
+        }
+        sp.computeMLResidual(finest_amr_lev);
+    } else {
+        amrex::ignore_unused(ng_sol);
+        amrex::Abort("MLMG::prepareForSPSolve: MultiFab only");
+    }
+}
+
+// Mixed precision: the composite residual (res) in single precision is the
+// rhs of the correction equation, which the single precision multigrid
+// solves with one cycle.  The residual is scaled to O(1) before the
+// conversion, and the correction is added to sol in double precision.
+template <typename MF>
+void
+MLMGT<MF>::spIter (int iter)
+{
+    BL_PROFILE("MLMG::spIter()");
+
+    if constexpr (std::is_same_v<MF,MultiFab>) {
+        auto& sp = *m_sp_mlmg;
+
+        RT s = (iter == 0) ? m_init_resnorm0 : m_final_resnorm0;
+        if (!(s > RT(0.0))) { s = RT(1.0); }
+        RT const invs = RT(1.0)/s;
+
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            setVal(sp.sol[alev], 0.0F);
+            auto& dmf = sp.rhs[alev];
+            auto const& smf = res[alev][0];
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && dmf.isFusingCandidate()) {
+                auto const& dma = dmf.arrays();
+                auto const& sma = smf.const_arrays();
+                ParallelFor(dmf, IntVect(0), ncomp,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    dma[box_no](i,j,k,n) = static_cast<float>(sma[box_no](i,j,k,n) * invs);
+                });
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
+            } else
+#endif
+            {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    auto const& dfab = dmf.array(mfi);
+                    auto const& sfab = smf.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) = static_cast<float>(sfab(i,j,k,n) * invs);
+                    });
+                }
+            }
+        }
+        // oneIter recomputes the coarse AMR level residuals from sol and rhs.
+        LocalCopy(sp.res[finest_amr_lev][0], sp.rhs[finest_amr_lev], 0, 0, ncomp, IntVect(0));
+
+        sp.oneIter(iter);
+
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            auto& dmf = sol[alev];
+            auto const& smf = sp.sol[alev];
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && dmf.isFusingCandidate()) {
+                auto const& dma = dmf.arrays();
+                auto const& sma = smf.const_arrays();
+                ParallelFor(dmf, IntVect(0), ncomp,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    dma[box_no](i,j,k,n) += s * static_cast<RT>(sma[box_no](i,j,k,n));
+                });
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
+            } else
+#endif
+            {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    auto const& dfab = dmf.array(mfi);
+                    auto const& sfab = smf.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n) += s * static_cast<RT>(sfab(i,j,k,n));
+                    });
+                }
+            }
+        }
+
+        linop.averageDownAndSync(sol);
+    } else {
+        amrex::ignore_unused(iter);
+        amrex::Abort("MLMG::spIter: MultiFab only");
+    }
 }
 
 template <typename MF>

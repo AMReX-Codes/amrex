@@ -187,6 +187,13 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLPoisson::define()");
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+        if (a_info.mixed_precision) {
+            LPInfo sp_info = a_info;
+            sp_info.mixed_precision = false;
+            this->m_sp_linop = std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
+        }
+    }
 }
 
 template <typename MF>
@@ -202,6 +209,14 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
         "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+        if (a_info.mixed_precision) {
+            LPInfo sp_info = a_info;
+            sp_info.mixed_precision = false;
+            this->m_sp_linop = std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap,
+                                                                       a_overset_mask, sp_info);
+        }
+    }
 }
 
 template <typename MF>

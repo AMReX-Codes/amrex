@@ -406,4 +406,44 @@ void actual_init_nodeabeclap(int i, int j, int k,
     }
 }
 
+// Robin BC data in the ghost cell (i,j,k) outside face idim (side 0: lo,
+// 1: hi): a*phi + b*dphi/dn = f on the face, n the outward normal.
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void actual_init_robin (int i, int j, int k, int idim, int side,
+                        amrex::Array4<amrex::Real> const& ra,
+                        amrex::Array4<amrex::Real> const& rb,
+                        amrex::Array4<amrex::Real> const& rf,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
+{
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
+    constexpr amrex::Real tpi =  2.*pi;
+    constexpr amrex::Real fpi =  4.*pi;
+
+    amrex::GpuArray<int,3> ijk{i,j,k};
+    amrex::GpuArray<amrex::Real,3> xyz{amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0)};
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        xyz[d] = prob_lo[d] + dx[d] * (amrex::Real(ijk[d]) + amrex::Real(0.5));
+    }
+    xyz[idim] = prob_lo[idim] + dx[idim] * (amrex::Real(ijk[idim]) + ((side == 0) ? amrex::Real(1.0) : amrex::Real(0.0)));
+    amrex::Real x = xyz[0];
+    amrex::Real y = xyz[1];
+    amrex::Real z = xyz[2];
+
+    amrex::Real phi = std::sin(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
+        + amrex::Real(0.25) * std::cos(fpi*x) * std::sin(fpi*y) * std::cos(fpi*z);
+    amrex::GpuArray<amrex::Real,3> grad
+        { tpi * std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
+          - amrex::Real(0.25) * fpi * std::sin(fpi*x) * std::sin(fpi*y) * std::cos(fpi*z),
+         -tpi * std::sin(tpi*x) * std::sin(tpi*y) * std::cos(tpi*z)
+          + amrex::Real(0.25) * fpi * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z),
+         -tpi * std::sin(tpi*x) * std::cos(tpi*y) * std::sin(tpi*z)
+          - amrex::Real(0.25) * fpi * std::cos(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z) };
+    amrex::Real dphidn = (side == 0) ? -grad[idim] : grad[idim];
+
+    ra(i,j,k) = amrex::Real(1.0) + amrex::Real(0.25) * (x + y);
+    rb(i,j,k) = amrex::Real(1.0) + amrex::Real(0.25) * z;
+    rf(i,j,k) = ra(i,j,k) * phi + rb(i,j,k) * dphidn;
+}
+
 #endif

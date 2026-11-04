@@ -64,6 +64,7 @@ struct LPInfo
     int semicoarsening_direction = -1;
     int hidden_direction = -1;
     bool deterministic = false;   //!< Enable deterministic mode for GPU operations
+    bool mixed_precision = false; //!< Run the multigrid cycles in single precision
 
     //! Enable or disable grid agglomeration on the coarsest MLMG levels (\p x = true enables it).
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
@@ -92,6 +93,9 @@ struct LPInfo
     //! Enable deterministic reductions even on GPUs (slower but reproducible) by toggling \p x.
     //! This also makes the GPU Gauss-Seidel smoother of MLEBABecLap race-free at cut cells.
     LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
+    //! Run the multigrid cycles in single precision while the solution and
+    //! residual stay in double precision (\p x = true enables it).
+    LPInfo& setMixedPrecision (bool x) noexcept { mixed_precision = x; return *this; }
 
     //! True if a hidden dimension was configured via setHiddenDirection().
     [[nodiscard]] bool hasHiddenDimension () const noexcept {
@@ -306,7 +310,10 @@ public:
      *
      * \param v Verbosity level forwarded to MLMG logs.
      */
-    void setVerbose (int v) noexcept { verbose = v; }
+    void setVerbose (int v) noexcept {
+        verbose = v;
+        if (m_sp_linop) { m_sp_linop->setVerbose(v); }
+    }
 
     /**
      * \brief Prefix printed messages (e.g., to indent per level).
@@ -320,7 +327,10 @@ public:
      *
      * \param o Polynomial order (2, 3, or 4).
      */
-    void setMaxOrder (int o) noexcept { maxorder = o; }
+    void setMaxOrder (int o) noexcept {
+        maxorder = o;
+        if (m_sp_linop) { m_sp_linop->setMaxOrder(o); }
+    }
     //! Get order of interpolation at coarse/fine boundary
     [[nodiscard]] int getMaxOrder () const noexcept { return maxorder; }
 
@@ -329,7 +339,10 @@ public:
      *
      * \param o True (default) enables solvability enforcement; false leaves RHS untouched.
      */
-    void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
+    void setEnforceSingularSolvable (bool o) noexcept {
+        enforceSingularSolvable = o;
+        if (m_sp_linop) { m_sp_linop->setEnforceSingularSolvable(o); }
+    }
     //! Get the flag for whether the solver should try to make singular
     //! problem solvable.
     [[nodiscard]] bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
@@ -1010,6 +1023,12 @@ protected:
 
     bool m_precond_mode = false;
 
+    //! Mixed precision: this operator keeps only MG level 0 and the single
+    //! precision copy, built by the concrete operator, holds the MG hierarchy.
+    static constexpr bool mixed_precision_capable =
+        std::is_same_v<MF,MultiFab> && !std::is_same_v<MF,fMultiFab>;
+    std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
+
     //! Return AMR refinement ratios
     [[nodiscard]] const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
 
@@ -1199,6 +1218,19 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
         }
     }
 #endif
+    if (info.mixed_precision) {
+        if constexpr (mixed_precision_capable) {
+            info.max_coarsening_level = 0; // the float copy has the MG hierarchy
+#ifdef AMREX_USE_EB
+            for (auto const* f : a_factory) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dynamic_cast<EBFArrayBoxFactory const*>(f) == nullptr,
+                                                 "MLLinOp: mixed precision does not support EB");
+            }
+#endif
+        } else {
+            info.mixed_precision = false; // Real is float or MF is not MultiFab
+        }
+    }
     m_mg_deferred = supportsAnisotropicCoarsening();
     m_mg_built = false;
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
@@ -1826,6 +1858,8 @@ MLLinOpT<MF>::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
     if (hasRobinBC() && !supportRobinBC()) {
         amrex::Abort("Robin BC not supported");
     }
+
+    if (m_sp_linop) { m_sp_linop->setDomainBC(a_lobc, a_hibc); }
 }
 
 template <typename MF>
@@ -2010,6 +2044,7 @@ MLLinOpT<MF>::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
 {
     m_domain_bloc_lo = lo_bcloc;
     m_domain_bloc_hi = hi_bcloc;
+    if (m_sp_linop) { m_sp_linop->setDomainBCLoc(lo_bcloc, hi_bcloc); }
 }
 
 template <typename MF>
@@ -2028,6 +2063,9 @@ MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
+    if (m_sp_linop) { // the correction equation has homogeneous coarse/fine BC
+        m_sp_linop->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr), crse_ratio, bc_type);
+    }
 }
 
 template <typename MF>
@@ -2058,6 +2096,9 @@ MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
     }
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
+    if (m_sp_linop) {
+        m_sp_linop->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr), crse_ratio, bc_type);
+    }
 }
 
 template <typename MF>
