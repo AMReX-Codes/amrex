@@ -374,18 +374,18 @@ int main(int argc, char* argv[])
     testTruncatedIntegerIO();
     testFailedIntegerWrite();
 
-    testRealIO(FPC::NativeRealDescriptor());
+    testRealIO(FPC::NativeRealFileDescriptor());
     testRealIO(FPC::Native32RealDescriptor());
     testRealIO(FPC::Ieee32NormalRealDescriptor());
     testRealIO(FPC::Ieee64NormalRealDescriptor());
 
     testFloatIO(FPC::Native32RealDescriptor());
-    testFloatIO(FPC::NativeRealDescriptor());
+    testFloatIO(FPC::NativeRealFileDescriptor());
     testFloatIO(FPC::Ieee32NormalRealDescriptor());
     testFloatIO(FPC::Ieee64NormalRealDescriptor());
 
     testDoubleIO(FPC::Native32RealDescriptor());
-    testDoubleIO(FPC::NativeRealDescriptor());
+    testDoubleIO(FPC::NativeRealFileDescriptor());
     testDoubleIO(FPC::Ieee32NormalRealDescriptor());
     testDoubleIO(FPC::Ieee64NormalRealDescriptor());
 

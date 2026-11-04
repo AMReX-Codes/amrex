@@ -948,6 +948,13 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
+#ifdef AMREX_USE_GPU
+        // On GPUs, AlgMG's sparse matrix products use the vendor libraries,
+        // which support float and double only.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!IsFPMP2_v<RT>,
+            "MLMG: AlgMG (algebraic and hybrid multigrid types, AlgMG bottom solver) "
+            "is not supported on GPUs with AMReX_PRECISION=FP32MP2");
+#endif
         // The algebraic correction has zero ghost cells.
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cf_strategy != CFStrategy::ghostnodes || linop.getNGrow() == 0,
             "MLMG: AlgMG does not support the ghostnodes strategy with ghost cells");

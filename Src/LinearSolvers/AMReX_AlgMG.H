@@ -891,8 +891,8 @@ std::pair<T,T> AlgMG<T>::compute_rbnorms (SpMatrix<T> const& mat,
         bnorm = Math::powi<2>(bnorm);
         rnorm = Math::powi<2>(rnorm);
         ParallelAllReduce::Sum<T>({bnorm,rnorm}, ParallelContext::CommunicatorSub());
-        bnorm = std::sqrt(bnorm);
-        rnorm = std::sqrt(rnorm);
+        bnorm = amrex::Math::sqrt(bnorm);
+        rnorm = amrex::Math::sqrt(rnorm);
     }
 
     return {bnorm, rnorm};
@@ -1213,7 +1213,7 @@ void AlgMG<T>::build_direct_bottom ()
     // their mean removed, so the added term never acts on them.
     if (m_singular) {
         double dsum = 0.0;
-        for (Long i = 0; i < n; ++i) { dsum += std::abs(dense[i*n+i]); }
+        for (Long i = 0; i < n; ++i) { dsum += amrex::Math::abs(dense[i*n+i]); }
         double const w = (dsum/double(n))/double(n);
         for (auto& v : dense) { v += w; }
     }
@@ -1221,15 +1221,15 @@ void AlgMG<T>::build_direct_bottom ()
     // LU with partial pivoting, in place (Doolittle). A pivot at roundoff
     // level relative to the matrix means a singular matrix.
     double amat = 0.0;
-    for (auto v : dense) { amat = std::max(amat, std::abs(v)); }
+    for (auto v : dense) { amat = std::max(amat, amrex::Math::abs(v)); }
     double const pivot_tol = double(n) * std::numeric_limits<double>::epsilon() * amat;
     Vector<int> piv(n);
     std::iota(piv.begin(), piv.end(), 0);
     for (Long i = 0; i < n; ++i) {
         Long imax = i;
-        double amax = std::abs(dense[i*n+i]);
+        double amax = amrex::Math::abs(dense[i*n+i]);
         for (Long k = i+1; k < n; ++k) {
-            double const a = std::abs(dense[k*n+i]);
+            double const a = amrex::Math::abs(dense[k*n+i]);
             if (a > amax) { amax = a; imax = k; }
         }
         if (amax <= pivot_tol) {
@@ -1499,7 +1499,7 @@ T AlgMG<T>::strength_scale (SpMatrix<T> const& A)
     auto const& Ad = A.diagonalVector();
     auto const* AMREX_RESTRICT p = Ad.data();
     T dmax = Reduce::Max<T>(Ad.numLocalRows(),
-        [=] AMREX_GPU_DEVICE (Long i) -> T { return std::abs(p[i]); });
+        [=] AMREX_GPU_DEVICE (Long i) -> T { return amrex::Math::abs(p[i]); });
     ParallelAllReduce::Max(dmax, ParallelContext::CommunicatorSub());
     return (dmax > T(0)) ? dmax : T(1);
 }
@@ -1543,7 +1543,7 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
                 Long const e = c0.row_offset[i+1];
                 Long const n1 = rlen1(i);
                 Long const b1 = (n1 > 0) ? Long(c1.row_offset[a.row_map[i]]) : 0;
-                T const sgn = std::copysign(T(1), A_ii[i]);
+                T const sgn = amrex::Math::copysign(T(1), A_ii[i]);
                 T rs = T(0);
                 T amin = std::numeric_limits<T>::max();
                 for (Long idx = b; idx < e; ++idx) {
@@ -1555,7 +1555,7 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
                     amin = std::min(amin, sgn*c1.mat[idx]);
                 }
                 Long n = 0;
-                if (!(std::abs(rs) > T(0.9)*std::abs(A_ii[i])) && amin < T(0)) {
+                if (!(amrex::Math::abs(rs) > T(0.9)*amrex::Math::abs(A_ii[i])) && amin < T(0)) {
                     T const thr = amin * threshold * (T(1) - tol);
                     if (Long(col.size()) < e-b+n1) {
                         col.resize(e-b+n1);
@@ -1590,11 +1590,11 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
     auto const rsA = A.rowSum();
     auto const* AMREX_RESTRICT prs = rsA.data();
     auto row_thresh = [=] AMREX_GPU_DEVICE (Long i) -> T {
-        if (std::abs(prs[i]) > T(0.9)*std::abs(A_ii[i])) {
+        if (amrex::Math::abs(prs[i]) > T(0.9)*amrex::Math::abs(A_ii[i])) {
             return std::numeric_limits<T>::lowest();
         }
         auto const& c0 = a.csr0;
-        T const sgn = std::copysign(T(1), A_ii[i]);
+        T const sgn = amrex::Math::copysign(T(1), A_ii[i]);
         T amin = std::numeric_limits<T>::max();
         for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
             if (c0.col_index[idx] != i) {
@@ -1624,7 +1624,7 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
          [=] AMREX_GPU_DEVICE (Long i) -> Long {
              if (i >= nrows) { return 0; }
              T const thr = pthr[i];
-             T const sgn = std::copysign(T(1), A_ii[i]);
+             T const sgn = amrex::Math::copysign(T(1), A_ii[i]);
              Long n = 0;
              auto const& c0 = a.csr0;
              for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
@@ -1648,7 +1648,7 @@ SpMatrix<typename AlgMG<T>::TS> AlgMG<T>::create_soc (SpMatrix<T> const& A, T sc
     ParallelForOMP(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
         T const thr = pthr[i];
-        T const sgn = std::copysign(T(1), A_ii[i]);
+        T const sgn = amrex::Math::copysign(T(1), A_ii[i]);
         Long p = psrow[i];
         auto const& c0 = a.csr0;
         for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
@@ -1977,7 +1977,7 @@ struct TruncRow
         sum_pos = T(0);
         sum_neg = T(0);
         walk(i, [&] (int, T v) {
-            amax = std::max(amax, std::abs(v));
+            amax = std::max(amax, amrex::Math::abs(v));
             if (v > T(0)) { sum_pos += v; } else { sum_neg += v; }
         });
         return trunc_factor * amax;
@@ -1987,7 +1987,7 @@ struct TruncRow
     [[nodiscard]] AMREX_GPU_HOST_DEVICE int count (Long i, T thresh) const
     {
         int n = 0;
-        walk(i, [&] (int, T v) { if (std::abs(v) >= thresh) { ++n; } });
+        walk(i, [&] (int, T v) { if (amrex::Math::abs(v) >= thresh) { ++n; } });
         return n;
     }
 
@@ -2000,11 +2000,11 @@ struct TruncRow
         int const kmax = std::min(max_elmts, KMAX);
         int n = 0;
         walk(i, [&] (int col, T v) {
-            T const av = std::abs(v);
+            T const av = amrex::Math::abs(v);
             if (av < thresh) { return; }
-            if (n == kmax && av <= std::abs(vals[n-1])) { return; }
+            if (n == kmax && av <= amrex::Math::abs(vals[n-1])) { return; }
             int pos = (n < kmax) ? n : n-1;
-            while (pos > 0 && std::abs(vals[pos-1]) < av) {
+            while (pos > 0 && amrex::Math::abs(vals[pos-1]) < av) {
                 cols[pos] = cols[pos-1];
                 vals[pos] = vals[pos-1];
                 --pos;
@@ -2041,7 +2041,7 @@ Long truncate_row_host (int* col, T* val, Long n, int max_elmts, T trunc_factor,
         }
     } else {
         for (Long k = 0; k < n; ++k) {
-            if (std::abs(val[k]) >= thresh) {
+            if (amrex::Math::abs(val[k]) >= thresh) {
                 if (val[k] > T(0)) { kept_pos += val[k]; } else { kept_neg += val[k]; }
             }
         }
@@ -2061,7 +2061,7 @@ Long truncate_row_host (int* col, T* val, Long n, int max_elmts, T trunc_factor,
         }
     } else {
         for (Long k = 0; k < n; ++k) {
-            if (std::abs(val[k]) >= thresh) {
+            if (amrex::Math::abs(val[k]) >= thresh) {
                 col[nk] = col[k];
                 val[nk] = val[k] * ((val[k] > T(0)) ? fpos : fneg);
                 ++nk;
@@ -2362,14 +2362,14 @@ SpMatrix<T> AlgMG<T>::truncate_interp (SpMatrix<T>& P, AlgPartition const& cpart
         } else { // threshold only, no limit on the count
             T kept_pos = T(0), kept_neg = T(0);
             tr.walk(i, [&] (int, T v) {
-                if (std::abs(v) >= thresh) {
+                if (amrex::Math::abs(v) >= thresh) {
                     if (v > T(0)) { kept_pos += v; } else { kept_neg += v; }
                 }
             });
             T const fpos = (kept_pos != T(0)) ? sum_pos/kept_pos : T(1);
             T const fneg = (kept_neg != T(0)) ? sum_neg/kept_neg : T(1);
             tr.walk(i, [&] (int col, T v) {
-                if (std::abs(v) >= thresh) {
+                if (amrex::Math::abs(v) >= thresh) {
                     pcol[q] = col;
                     pmat[q] = v * ((v > T(0)) ? fpos : fneg);
                     ++q;

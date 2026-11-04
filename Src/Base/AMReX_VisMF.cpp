@@ -293,7 +293,7 @@ operator>> (std::istream&         is,
 {
     char ch;
     Long i(0), N, M;
-#ifdef BL_USE_FLOAT
+#if defined(BL_USE_FLOAT) || defined(AMREX_USE_FP32MP2)
     double dtemp;
 #endif
 
@@ -315,7 +315,7 @@ operator>> (std::istream&         is,
         ar[i].resize(M);
 
         for(Long j = 0; j < M; ++j) {
-#ifdef BL_USE_FLOAT
+#if defined(BL_USE_FLOAT) || defined(AMREX_USE_FP32MP2)
             is >> dtemp >> ch;
             ar[i][j] = static_cast<Real>(dtemp);
 #else
@@ -386,7 +386,7 @@ operator<< (std::ostream        &os,
        hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
     {
       if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        os << FPC::NativeRealDescriptor() << '\n';
+        os << FPC::NativeRealFileDescriptor() << '\n';
       } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
         os << FPC::Native32RealDescriptor() << '\n';
       } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
@@ -2401,7 +2401,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     const int nprocs = ParallelDescriptor::NProcs();
     const int io_proc = nprocs - 1;
 
-    RealDescriptor const& whichRD = FPC::NativeRealDescriptor();
+    RealDescriptor const& whichRD = FPC::NativeRealFileDescriptor();
 
     auto hdr = std::make_shared<VisMF::Header>(mf, VisMF::NFiles, VisMF::Header::Version_v1, false);
     if (valid_cells_only) { hdr->m_ngrow = IntVect(0); }
@@ -2423,7 +2423,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     // Note that AsyncWrite always writes in the native format, ignoring fab.format.
-    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealFileDescriptor().clone()));
 
     int64_t total_bytes = 0;
     if (localdata.size() > 1) {

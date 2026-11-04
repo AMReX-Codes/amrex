@@ -100,7 +100,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr std::uint32_t code_offset = (1U << 10);
-    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    const Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
     Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
     return (std::uint32_t)(r * code_offset);
 }
@@ -123,7 +123,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr std::uint32_t code_offset = (1U << 16);
-    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    const Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
     Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
     return (std::uint32_t)(r * code_offset);
 }
@@ -144,9 +144,18 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
     constexpr unsigned long long code_offset = (1ULL << 32);
-    constexpr Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
+    const Real rmax = Real(1.0) - std::numeric_limits<Real>::epsilon();
     Real r = amrex::Clamp((x - xmin)/(xmax - xmin), Real(0.0), rmax);
-    return (std::uint32_t)(r * Real(code_offset));
+    if constexpr (IsFPMP2_v<Real>) {
+        // CCCL truncates a float pair >= 2^24 incorrectly if its low limb is
+        // a negative fraction, and the high limb of a value just below 2^32
+        // rounds to 2^32.  Make the value integral first and go through a
+        // 64-bit integer.
+        return static_cast<std::uint32_t>(
+            static_cast<std::uint64_t>(amrex::Math::floor(r * Real(code_offset))));
+    } else {
+        return (std::uint32_t)(r * Real(code_offset));
+    }
 }
 
 /**

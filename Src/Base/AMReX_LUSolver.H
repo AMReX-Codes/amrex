@@ -105,7 +105,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void LUSolver<N,T>::define_innard ()
 {
     static_assert(N > 1);
-    static_assert(std::is_floating_point_v<T>);
+    static_assert(FloatingPointLike<T>);
 
     for (int i = 0; i < N; ++i) { m_piv(i) = i; }
     m_npivs = 0;
@@ -115,7 +115,7 @@ void LUSolver<N,T>::define_innard ()
         int imax = i;
 
         for (int k = i; k < N; ++k) {
-            auto const absA = std::abs(m_mat(k,i));
+            auto const absA = amrex::Math::abs(m_mat(k,i));
             if (absA > maxA) {
                 maxA = absA;
                 imax = k;

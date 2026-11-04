@@ -43,12 +43,19 @@ namespace amrex
         // than one, and the midpoint between it and one already rounds to one,
         // so no Real lies in between.  Tests/Base/Random additionally checks it
         // against std::nextafter itself on the host.
+#ifdef AMREX_USE_FP32MP2
+        // A float pair can hold values arbitrarily close below one (hi = 1,
+        // lo < 0), so one has no immediate predecessor.  Clamp to 1 - eps/2,
+        // eps = 2^-45, which is representable exactly as (1, -2^-46).
+        constexpr Real almost_one(1.0F, -0x1p-46F);
+#else
         constexpr Real almost_one
             = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
         constexpr Real midpoint
             = Real(1) - Real(0.25)*std::numeric_limits<Real>::epsilon();
         static_assert(almost_one < Real(1));
         static_assert(midpoint == Real(1));
+#endif
         // No generator produces NaN, but note this maps it to almost_one
         // rather than propagating it, since the comparison is false for NaN.
         return (v < almost_one) ? v : almost_one;
@@ -97,6 +104,12 @@ namespace amrex
                         return random_util::one_to_zero(hiprand_uniform(random_engine.rand_state)); ,
                         return random_util::one_to_zero(curand_uniform(random_engine.rand_state));
                 )
+        ))
+#elif defined(AMREX_USE_FP32MP2)
+        // the split of a double d < 1 into a pair is < 1, so one_to_zero
+        // still maps the generator's (0,1] onto [0,1) exactly
+        AMREX_IF_ON_DEVICE((
+                return random_util::one_to_zero(Real(curand_uniform_double(random_engine.rand_state)));
         ))
 #else
         AMREX_IF_ON_DEVICE((
@@ -190,6 +203,10 @@ namespace amrex
                         return curand_uniform(random_engine.rand_state);
                 )
         ))
+#elif defined(AMREX_USE_FP32MP2)
+        AMREX_IF_ON_DEVICE((
+                return Real(curand_uniform_double(random_engine.rand_state));
+        ))
 #else
         AMREX_IF_ON_DEVICE((
                 AMREX_HIP_OR_CUDA(
@@ -229,6 +246,10 @@ namespace amrex
                         return stddev * hiprand_normal(random_engine.rand_state) + mean; ,
                         return stddev * curand_normal(random_engine.rand_state) + mean;
                 )
+        ))
+#elif defined(AMREX_USE_FP32MP2)
+        AMREX_IF_ON_DEVICE((
+                return stddev * Real(curand_normal_double(random_engine.rand_state)) + mean;
         ))
 #else
         AMREX_IF_ON_DEVICE((
@@ -289,7 +310,7 @@ namespace amrex
 
         Real x, v, u;
         Real d = alpha - 1.0_rt / 3.0_rt;
-        Real c = (1.0_rt / 3.0_rt) / std::sqrt(d);
+        Real c = (1.0_rt / 3.0_rt) / amrex::Math::sqrt(d);
 
         while (true) {
             do {
@@ -304,7 +325,7 @@ namespace amrex
                 break;
             }
 
-            if (std::log(u) < 0.5_rt * x * x + d * (1.0_rt - v + std::log(v))) {
+            if (amrex::Math::log(u) < 0.5_rt * x * x + d * (1.0_rt - v + amrex::Math::log(v))) {
                 break;
             }
         }
@@ -338,7 +359,7 @@ namespace amrex
         if (alpha < 1)
         {
             Real u = amrex::RandomPositive(random_engine); // std::pow(u, 1/alpha) below
-            return amrex::random_util::RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
+            return amrex::random_util::RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * amrex::Math::pow(u, 1.0_rt / alpha);
         } else {
             return amrex::random_util::RandomGamma_alpha_ge_1(alpha, beta, random_engine);
         }

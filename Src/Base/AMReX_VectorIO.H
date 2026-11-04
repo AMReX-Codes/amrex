@@ -50,7 +50,7 @@ namespace amrex {
     //! RealDescriptor is provided, the data will be written using the native
     //! format for your machine.
     void writeRealData (const Real* data, std::size_t size, std::ostream& os,
-                        const RealDescriptor& rd = FPC::NativeRealDescriptor());
+                        const RealDescriptor& rd = FPC::NativeRealFileDescriptor());
 
     //! Read Real data from the istream. The arguments are a pointer to data buffer
     //! to read into, the size of that buffer, the istream, and a RealDescriptor

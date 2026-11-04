@@ -48,7 +48,9 @@ Real
 AMReX can be compiled to use either double precision (which is the default) or
 single precision. :cpp:`amrex::Real` is typedef'd to either :cpp:`double` or
 :cpp:`float`. C codes can use :cpp:`amrex_real`. They are defined in
-:cpp:`AMReX_REAL.H`. The data type is accessible in Fortran codes via
+:cpp:`AMReX_REAL.H`.  With CMake, AMReX can also be built with
+:cpp:`amrex::Real` being a float-float pair type with about 13 decimal digits
+(see :ref:`sec:build:cmake:fp32mp2`). The data type is accessible in Fortran codes via
 
 .. highlight:: fortran
 
@@ -57,7 +59,10 @@ single precision. :cpp:`amrex::Real` is typedef'd to either :cpp:`double` or
         use amrex_fort_module, only : amrex_real
 
 In C++, AMReX also provides a user literal :cpp:`_rt` so that one can
-have a proper type for constants (e.g., :cpp:`2.7_rt`).
+have a proper type for constants (e.g., :cpp:`2.7_rt`).  For math on
+:cpp:`amrex::Real`, prefer the functions in :cpp:`amrex::Math` (e.g.,
+:cpp:`amrex::Math::abs`) over those in ``std``, so that the computation
+stays in the precision of :cpp:`amrex::Real` in all precision modes.
 
 Long
 ====

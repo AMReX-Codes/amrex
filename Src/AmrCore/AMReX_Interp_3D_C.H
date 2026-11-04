@@ -727,7 +727,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
             }
 
-            if ( (crseTot > 0) && (crseTot > std::abs(SumN)) ) {
+            if ( (crseTot > 0) && (crseTot > amrex::Math::abs(SumN)) ) {
 
                 /*
                  * Special case 1:
@@ -751,11 +751,11 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                             // Then, add the remaining positive proportionally.
                             if (SumP > Real(0.0)) {
                                 if (fine_state(i,j,k,n) > Real(0.0)) {
-                                    Real alpha = (crseTot - std::abs(SumN)) / SumP;
+                                    Real alpha = (crseTot - amrex::Math::abs(SumN)) / SumP;
                                     fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
                                 }
                             } else { /* (SumP < 0) */
-                                Real posVal = (crseTot - std::abs(SumN)) / (Real)numFineCells;
+                                Real posVal = (crseTot - amrex::Math::abs(SumN)) / (Real)numFineCells;
                                 fine(i,j,k,n) += posVal;
                             }
 
@@ -763,7 +763,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot > 0) && (crseTot < std::abs(SumN)) ) {
+            } else if ( (crseTot > 0) && (crseTot < amrex::Math::abs(SumN)) ) {
 
                 /*
                  * Special case 2:
@@ -778,10 +778,10 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 for         (int k = klo; k <= khi; ++k) {
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
-                            Real alpha = crseTot / std::abs(SumN);
+                            Real alpha = crseTot / amrex::Math::abs(SumN);
                             if (fine_state(i,j,k,n) < Real(0.0)) {
                                 // Add correction to negative cells proportionally.
-                                fine(i,j,k,n) = alpha * std::abs(fine_state(i,j,k,n));
+                                fine(i,j,k,n) = alpha * amrex::Math::abs(fine_state(i,j,k,n));
                             } else {
                                 // Don't touch the positive states.
                                 fine(i,j,k,n) = Real(0.0);
@@ -791,7 +791,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (std::abs(crseTot) > SumP) ) {
+            } else if ( (crseTot < 0) && (amrex::Math::abs(crseTot) > SumP) ) {
 
                 /*
                  * Special case 3:
@@ -814,7 +814,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (amrex::Math::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) > Real(0.0)) )  {
 
                 /*
@@ -842,7 +842,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (amrex::Math::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) < Real(0.0)) )  {
                 /*
                  * Special case 5:
@@ -898,7 +898,7 @@ void ccquartic_interp (int i, int j, int k, int n,
     // Note: there are asserts in CellConservativeQuartic::interp()
     //       to check whether ratio is all equal to 2.
 
-    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+    constexpr Array1D<Real, -2, 2> cL = { Real(-0.01171875),  0.0859375_rt, 0.5_rt, Real(-0.0859375), 0.01171875_rt };
 
     int ic = amrex::coarsen(i,2);
     int jc = amrex::coarsen(j,2);

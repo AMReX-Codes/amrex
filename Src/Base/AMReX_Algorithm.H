@@ -134,7 +134,7 @@ namespace amrex
     /// \ingroup amrex_utilities
     //! Return true when the difference between \p x and \p y is small, as measured by
     //! the given \p ulp (units in the last place).
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool
     almostEqual (T x, T y, int ulp = 2)
@@ -142,9 +142,9 @@ namespace amrex
         // Reference: https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
         // The machine epsilon has to be scaled to the magnitude of the values used
         // and multiplied by the desired precision in ULPs (units in the last place)
-        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * T(ulp)
+        return amrex::Math::abs(x-y) <= std::numeric_limits<T>::epsilon() * amrex::Math::abs(x+y) * T(ulp)
         // unless the result is subnormal
-        || std::abs(x-y) < std::numeric_limits<T>::min();
+        || amrex::Math::abs(x-y) < std::numeric_limits<T>::min();
     }
 
     /**
@@ -165,7 +165,7 @@ namespace amrex
      * \param max_iter maximum number of bisection iterations allowed.
      * \return an approximate root found using bisection.
      */
-    template <std::floating_point T, class F>
+    template <FloatingPointLike T, class F>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
     {
@@ -339,8 +339,8 @@ namespace amrex
      * \param start start value.
      * \param stop stop value.
      */
-    template<typename ItType, std::floating_point ValType>
-    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
+    template<typename ItType, FloatingPointLike ValType>
+    requires (FloatingPointLike<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
     {
@@ -373,8 +373,8 @@ namespace amrex
      * \param stop stop value.
      * \param base base of the exponential.
      */
-    template<typename ItType, std::floating_point ValType>
-    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
+    template<typename ItType, FloatingPointLike ValType>
+    requires (FloatingPointLike<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void logspace (ItType first, const ItType& last,
         const ValType& start, const ValType& stop, const ValType& base)
@@ -383,9 +383,9 @@ namespace amrex
         if (count >= 2){
             const auto delta = (stop - start)/(count - 1);
             for (std::ptrdiff_t i = 0; i < count-1; ++i){
-                *(first++) = std::pow(base, start + i*delta);
+                *(first++) = amrex::Math::pow(base, start + i*delta);
             }
-            *first = std::pow(base, stop);
+            *first = amrex::Math::pow(base, stop);
         }
     }
 }

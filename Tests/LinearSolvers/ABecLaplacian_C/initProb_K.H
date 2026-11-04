@@ -13,9 +13,9 @@ void actual_init_poisson (int i, int j, int k,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi = 2.*pi;
-    constexpr amrex::Real fpi = 4.*pi;
-    constexpr amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
+    const amrex::Real tpi = 2.*pi;
+    const amrex::Real fpi = 4.*pi;
+    const amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.5));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.5));
 
@@ -90,9 +90,9 @@ void actual_init_abeclap (int i, int j, int k,
     const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / (w + amrex::Real(1.e-30));
 
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
+    const amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*amrex::Real(0.5);
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*amrex::Real(0.5);
@@ -167,9 +167,9 @@ void actual_init_abeclap_in (int i, int j, int k,
     const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / (w + amrex::Real(1.e-30));
 
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
+    const amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*amrex::Real(0.5);
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*amrex::Real(0.5);
@@ -215,8 +215,8 @@ void actual_init_dphi_dx_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(1.0));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.5));
@@ -236,8 +236,8 @@ void actual_init_dphi_dx_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.0));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.5));
@@ -257,8 +257,8 @@ void actual_init_dphi_dy_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.5));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(1.0));
@@ -278,8 +278,8 @@ void actual_init_dphi_dy_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.5));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.0));
@@ -299,8 +299,8 @@ void actual_init_dphi_dz_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.5));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.5));
@@ -320,8 +320,8 @@ void actual_init_dphi_dz_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (amrex::Real(i) + amrex::Real(0.5));
     amrex::Real y = prob_lo[1] + dx[1] * (amrex::Real(j) + amrex::Real(0.5));
@@ -353,9 +353,9 @@ void actual_init_nodeabeclap(int i, int j, int k,
     const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / (w + amrex::Real(1.e-30));
 
     constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
+    const amrex::Real tpi =  2.*pi;
+    const amrex::Real fpi =  4.*pi;
+    const amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
 
     // bcoef is at cell center, whereas the rest at nodes.
     if (bcoef.contains(i,j,k)) {

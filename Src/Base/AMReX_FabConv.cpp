@@ -878,6 +878,11 @@ std::ostream&
 operator<< (std::ostream&         os,
             const RealDescriptor& rd)
 {
+#ifdef AMREX_USE_FP32MP2
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rd != FPC::NativeRealDescriptor(),
+      "operator<<(ostream,RealDescriptor): the in-memory format of cuda::fp32mp2 "
+      "cannot be written to a file; use FPC::NativeRealFileDescriptor()");
+#endif
   amrex::StreamRetry sr(os, "opRD", 4);
 
   while(sr.TryOutput()) {
@@ -930,6 +935,34 @@ PD_convert (void*                 out,
             int                   onescmp = 0)
 {
 //    BL_PROFILE("PD_convert");
+#ifdef AMREX_USE_FP32MP2
+    // Native cuda::fp32mp2 data are not in an IEEE format: convert them
+    // through IEEE double, which holds every pair to within double rounding.
+    if (!(ord == ird && boffs == 0) &&
+        (ird == FPC::NativeRealDescriptor() || ord == FPC::NativeRealDescriptor()))
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(boffs == 0 && !onescmp,
+            "PD_convert: unsupported conversion of native fp32mp2 data");
+        std::vector<double> tmp(nitems);
+        if (ird == FPC::NativeRealDescriptor()) {
+            const auto *rIn = static_cast<const char*>(in);
+            for (Long i = 0; i < nitems; ++i) {
+                Real x;
+                std::memcpy(&x, rIn + i*sizeof(Real), sizeof(Real));
+                tmp[i] = static_cast<double>(x);
+            }
+            PD_convert(out, tmp.data(), nitems, 0, ord, FPC::Native64RealDescriptor(), iid);
+        } else {
+            PD_convert(tmp.data(), in, nitems, 0, FPC::Native64RealDescriptor(), ird, iid);
+            auto *rOut = static_cast<char*>(out);
+            for (Long i = 0; i < nitems; ++i) {
+                Real const x(tmp[i]);
+                std::memcpy(rOut + i*sizeof(Real), &x, sizeof(Real));
+            }
+        }
+        return;
+    }
+#endif
     if (ord == ird && boffs == 0)
     {
         auto n = size_t(nitems);
@@ -983,10 +1016,12 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                id,
                FPC::NativeLongDescriptor());
 
+#ifndef AMREX_USE_FP32MP2 // the in-memory pair has no IEEE layout to fix
     if(bAlwaysFixDenormals) {
       PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
                       FPC::NativeRealDescriptor().order());
     }
+#endif
 }
 
 //
@@ -1016,10 +1051,12 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                    id,
                    FPC::NativeLongDescriptor());
 
+#ifndef AMREX_USE_FP32MP2 // the in-memory pair has no IEEE layout to fix
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
                           FPC::NativeRealDescriptor().order());
         }
+#endif
         nitems -= get;
         out    += get;
     }

@@ -52,6 +52,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BLassert.H
        AMReX_ArrayLim.H
        AMReX_REAL.H
+       AMReX_FPMP.H
+       AMReX_FPMP.cpp
        AMReX_INT.H
        AMReX_CONSTANTS.H
        AMReX_SPACE.H

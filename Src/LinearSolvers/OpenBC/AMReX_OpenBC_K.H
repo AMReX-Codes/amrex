@@ -47,12 +47,17 @@ void scale_moments (openbc::Moments::array_type& mom)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Real block_potential (openbc::Moments const& mom, Real xb, Real yb, Real zb)
 {
+#ifdef AMREX_USE_FP32MP2
+    // cuda::fp32mp2 arithmetic is not constexpr; its double constructor is
+    constexpr Real oneover4pi = Real(1. / (4. * std::numbers::pi));
+#else
     constexpr Real oneover4pi = Real(1.) / (Real(4.) * std::numbers::pi_v<Real>);
+#endif
 
     xb -= mom.x;
     yb -= mom.y;
     zb -= mom.z;
-    Real ri = Real(1.)/std::sqrt(xb*xb+yb*yb+zb*zb);
+    Real ri = Real(1.)/amrex::Math::sqrt(xb*xb+yb*yb+zb*zb);
     Real ri2 = ri*ri;
     Real ri3 = ri2*ri;
     Real ri4 = ri3*ri;
@@ -116,7 +121,7 @@ void interp_coef (int i, int ii, Real* AMREX_RESTRICT c, int crse_ratio)
 {
     static_assert(openbc::P == 3, "openbc::P is assumed to be 3 here");
     Real xint = (static_cast<Real>(ii-i*crse_ratio) + Real(0.5))/static_cast<Real>(crse_ratio);
-    constexpr Real x[] = {-3._rt, -2._rt, -1._rt, 0._rt, 1._rt, 2._rt, 3._rt, 4._rt};
+    constexpr Real x[] = {Real(-3.), Real(-2.), Real(-1.), 0._rt, 1._rt, 2._rt, 3._rt, 4._rt};
     poly_interp_coeff<8>(xint, x, c);
 }
 

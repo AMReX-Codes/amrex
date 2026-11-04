@@ -20,10 +20,29 @@ extern "C" {
 
 namespace amrex {
     template <RunOn run_on, typename T>
-    requires (std::is_same_v<T,double> || std::is_same_v<T,float>)
+    requires (std::is_same_v<T,double> || std::is_same_v<T,float> || IsFPMP2_v<T>)
     void fill_snan (T* p, std::size_t nelems)
     {
         if (p == nullptr || nelems == 0) { return; }
+        if constexpr (IsFPMP2_v<T>) {
+            // A pair is NaN if its leading limb is: signaling NaN in hi, 0 in lo
+            static_assert(sizeof(T) == 2*sizeof(float), "MemPool: sizeof fp32mp2 != 2 * sizeof float");
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && run_on == RunOn::Device) {
+                amrex::ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                {
+                    p[i] = T(std::numeric_limits<float>::signaling_NaN(), 0.0F);
+                });
+            } else
+#endif
+            {
+                const uint32_t snan[2] = {UINT32_C(0x7fa00000), UINT32_C(0)};
+                for (size_t i = 0; i < nelems; ++i) {
+                    std::memcpy(p++, snan, sizeof(T));
+                }
+            }
+            return;
+        }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && run_on == RunOn::Device) {
             amrex::ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long i) noexcept

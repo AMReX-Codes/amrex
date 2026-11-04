@@ -3146,4 +3146,124 @@ int ParmParse::queryarr (std::string_view name, std::vector<std::vector<std::str
     return r;
 }
 
+
+#ifdef AMREX_USE_FP32MP2
+// cuda::fp32mp2: parse and store the value as a double, which has more
+// significand bits (53) than the pair (46).
+
+void
+ParmParse::getkth (std::string_view name, int k, cuda::fp32mp2& ref, int ival) const
+{
+    double d = 0.0;
+    getkth(name, k, d, ival);
+    ref = cuda::fp32mp2(d);
+}
+
+void
+ParmParse::get (std::string_view name, cuda::fp32mp2& ref, int ival) const
+{
+    double d = 0.0;
+    get(name, d, ival);
+    ref = cuda::fp32mp2(d);
+}
+
+int
+ParmParse::querykth (std::string_view name, int k, cuda::fp32mp2& ref, int ival) const
+{
+    double d = 0.0;
+    int const exist = querykth(name, k, d, ival);
+    if (exist) { ref = cuda::fp32mp2(d); }
+    return exist;
+}
+
+int
+ParmParse::query (std::string_view name, cuda::fp32mp2& ref, int ival) const
+{
+    double d = 0.0;
+    int const exist = query(name, d, ival);
+    if (exist) { ref = cuda::fp32mp2(d); }
+    return exist;
+}
+
+void
+ParmParse::add (std::string_view name, cuda::fp32mp2 val)
+{
+    add(name, static_cast<double>(val));
+}
+
+namespace {
+    std::vector<cuda::fp32mp2> fp32mp2_from_double (std::vector<double> const& d)
+    {
+        std::vector<cuda::fp32mp2> r(d.size());
+        for (std::size_t i = 0; i < d.size(); ++i) { r[i] = cuda::fp32mp2(d[i]); }
+        return r;
+    }
+}
+
+void
+ParmParse::getktharr (std::string_view name, int k, std::vector<cuda::fp32mp2>& ref,
+                      int start_ix, int num_val) const
+{
+    std::vector<double> d;
+    getktharr(name, k, d, start_ix, num_val);
+    ref = fp32mp2_from_double(d);
+}
+
+void
+ParmParse::getarr (std::string_view name, std::vector<cuda::fp32mp2>& ref,
+                   int start_ix, int num_val) const
+{
+    std::vector<double> d;
+    getarr(name, d, start_ix, num_val);
+    ref = fp32mp2_from_double(d);
+}
+
+int
+ParmParse::queryktharr (std::string_view name, int k, std::vector<cuda::fp32mp2>& ref,
+                        int start_ix, int num_val) const
+{
+    std::vector<double> d;
+    int const exist = queryktharr(name, k, d, start_ix, num_val);
+    if (exist) { ref = fp32mp2_from_double(d); }
+    return exist;
+}
+
+int
+ParmParse::queryarr (std::string_view name, std::vector<cuda::fp32mp2>& ref,
+                     int start_ix, int num_val) const
+{
+    std::vector<double> d;
+    int const exist = queryarr(name, d, start_ix, num_val);
+    if (exist) { ref = fp32mp2_from_double(d); }
+    return exist;
+}
+
+void
+ParmParse::addarr (std::string_view name, const std::vector<cuda::fp32mp2>& ref)
+{
+    std::vector<double> d(ref.begin(), ref.end());
+    addarr(name, d);
+}
+
+int
+ParmParse::queryWithParser (std::string_view name, cuda::fp32mp2& ref) const
+{
+    double d = 0.0;
+    int const exist = queryWithParser(name, d);
+    if (exist) { ref = cuda::fp32mp2(d); }
+    return exist;
+}
+
+int
+ParmParse::queryarrWithParser (std::string_view name, int nvals, cuda::fp32mp2* ptr) const
+{
+    std::vector<double> d(nvals);
+    int const exist = queryarrWithParser(name, nvals, d.data());
+    if (exist) {
+        for (int i = 0; i < nvals; ++i) { ptr[i] = cuda::fp32mp2(d[i]); }
+    }
+    return exist;
+}
+#endif
+
 }

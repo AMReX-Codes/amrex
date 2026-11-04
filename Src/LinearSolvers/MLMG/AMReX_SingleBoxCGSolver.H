@@ -99,7 +99,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     lp.normalize(cell, n, v);
                     a(cell,i_r *ncomp+n) = v;
                     a(cell,i_rh*ncomp+n) = v;
-                    rnorm = std::max(rnorm, std::abs(v));
+                    rnorm = std::max(rnorm, amrex::Math::abs(v));
                 }
             }
             rnorm = Gpu::blockReduceMax<MT>(rnorm);
@@ -255,7 +255,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     for (int n = 0; n < ncomp; ++n) {
                         sol(cell,n) += scalar[s_alpha]*a(cell,i_p*ncomp+n);
                         a(cell,i_r*ncomp+n) -= scalar[s_alpha]*a(cell,i_v*ncomp+n);
-                        rnorm = std::max(rnorm, std::abs(a(cell,i_r*ncomp+n)));
+                        rnorm = std::max(rnorm, amrex::Math::abs(a(cell,i_r*ncomp+n)));
                     }
                 }
                 rnorm = Gpu::blockReduceMax<MT>(rnorm);
@@ -352,7 +352,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     for (int n = 0; n < ncomp; ++n) {
                         sol(cell,n) += scalar[s_omega]*a(cell,i_r*ncomp+n);
                         a(cell,i_r*ncomp+n) -= scalar[s_omega]*a(cell,i_t*ncomp+n);
-                        rnorm = std::max(rnorm, std::abs(a(cell,i_r*ncomp+n)));
+                        rnorm = std::max(rnorm, amrex::Math::abs(a(cell,i_r*ncomp+n)));
                     }
                 }
                 rnorm = Gpu::blockReduceMax<MT>(rnorm);
@@ -442,7 +442,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     lp.normalize(cell, n, v);
                     a(cell,i_r *ncomp+n) = v;
                     a(cell,i_rh*ncomp+n) = v;
-                    rnorm = std::max(rnorm, std::abs(v));
+                    rnorm = std::max(rnorm, amrex::Math::abs(v));
                 }
             }
 
@@ -534,7 +534,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     for (int n = 0; n < ncomp; ++n) {
                         sol(cell,n) += alpha * a(cell,i_p*ncomp+n);
                         a(cell,i_r*ncomp+n) -= alpha * a(cell,i_v*ncomp+n);
-                        rnorm = std::max(rnorm, std::abs(a(cell,i_r*ncomp+n)));
+                        rnorm = std::max(rnorm, amrex::Math::abs(a(cell,i_r*ncomp+n)));
                     }
                 }
                 rnorm = Gpu::blockReduceMax<MT>(rnorm);
@@ -579,7 +579,7 @@ int bicgstab_solve (Box const& box, BaseFab<T>& x, BaseFab<T> const& b, LP const
                     for (int n = 0; n < ncomp; ++n) {
                         sol(cell,n) += omega * a(cell,i_r*ncomp+n);
                         a(cell,i_r*ncomp+n) -= omega * a(cell,i_t*ncomp+n);
-                        rnorm = std::max(rnorm, std::abs(a(cell,i_r*ncomp+n)));
+                        rnorm = std::max(rnorm, amrex::Math::abs(a(cell,i_r*ncomp+n)));
                     }
                 }
                 rnorm = Gpu::blockReduceMax<MT>(rnorm);

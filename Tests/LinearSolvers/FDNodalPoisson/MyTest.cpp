@@ -20,8 +20,8 @@ struct ExactSolution
     AMREX_GPU_HOST_DEVICE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-        constexpr Real tpi = 2.0_rt * std::numbers::pi_v<Real>;
-        constexpr Real fpi = 4.0_rt * std::numbers::pi_v<Real>;
+        const Real tpi = 2.0_rt * amrex::Math::pi<Real>();
+        const Real fpi = 4.0_rt * amrex::Math::pi<Real>();
 
         Real phi_two_pi = std::cos(tpi*x);
         Real phi_four_pi = std::cos(fpi*x);
@@ -287,7 +287,7 @@ MyTest::initData ()
         Array4<Real> const sig = sigma.array(mfi);
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            constexpr Real tpi = 2.0_rt * std::numbers::pi_v<Real>;
+            const Real tpi = 2.0_rt * amrex::Math::pi<Real>();
 
             Real variation = std::cos(tpi * (problo[0] + (Real(i)+0.5_rt)*dx[0]));
 #if (AMREX_SPACEDIM > 1)

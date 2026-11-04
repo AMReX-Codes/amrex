@@ -14,7 +14,7 @@ struct CheckPair
                      amrex::ParticleReal d1 = (p1.pos(1) - p2.pos(1));,
                      amrex::ParticleReal d2 = (p1.pos(2) - p2.pos(2));)
         amrex::ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
-        return (dsquared <= amrex::ParticleReal(25.0)*Params::cutoff*Params::cutoff);
+        return (dsquared <= amrex::ParticleReal(25.0)*Params::cutoff()*Params::cutoff());
     }
 };
 

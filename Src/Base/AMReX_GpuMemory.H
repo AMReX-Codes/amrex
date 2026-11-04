@@ -153,6 +153,17 @@ struct SharedMemory<float>
     }
 };
 
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+template <>
+struct SharedMemory<cuda::fp32mp2>
+{
+    [[nodiscard]] AMREX_GPU_DEVICE cuda::fp32mp2* dataPtr () noexcept {
+        extern __shared__ cuda::fp32mp2 amrex_sm_fp32mp2[];
+        return amrex_sm_fp32mp2;
+    }
+};
+#endif
+
 template <>
 struct SharedMemory<long>
 {

@@ -29,6 +29,8 @@
 #cmakedefine AMREX_USE_FLOAT
 #cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
 #cmakedefine BL_USE_FLOAT
+#cmakedefine AMREX_USE_FP32MP2
+#cmakedefine AMREX_FP32MP2_PARTICLES
 #ifndef AMREX_SPACEDIM
 #cmakedefine AMREX_SPACEDIM @D@
 #endif

@@ -2315,7 +2315,7 @@ MLCellLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
     }
     result += amrex::Dot(*x[this->NAMRLevels()-1], 0, ncomp, nghost, true);
     ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
-    return std::sqrt(result);
+    return amrex::Math::sqrt(result);
 }
 
 template <typename MF>

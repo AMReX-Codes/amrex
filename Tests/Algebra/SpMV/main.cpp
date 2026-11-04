@@ -4,8 +4,25 @@
 #include <AMReX.H>
 
 #include <cmath>
+#include <limits>
 
 using namespace amrex;
+
+namespace {
+    // Tolerance of a check calibrated at sp in single and at dp in double
+    // precision.  cuda::fp32mp2 (8 bytes, like double) has a larger machine
+    // epsilon than double: scale dp by the ratio of the epsilons.
+    template <typename T>
+    T tolerance (double sp, double dp)
+    {
+        if constexpr (IsFPMP2_v<T>) {
+            return T(dp * (static_cast<double>(std::numeric_limits<T>::epsilon())
+                           / std::numeric_limits<double>::epsilon()));
+        } else {
+            return (sizeof(T) == 4) ? T(sp) : T(dp);
+        }
+    }
+}
 
 int main(int argc, char *argv[]) {
   amrex::Initialize(argc, argv);
@@ -76,10 +93,10 @@ int main(int argc, char *argv[]) {
     }
 
     // GMRES relative residual target.
-    auto eps = (sizeof(Real) == 4) ? Real(1.e-5) : Real(1.e-12);
+    auto eps = tolerance<Real>(1.e-5, 1.e-12);
     // The conditioning of the matrix amplifies the residual, so the error in
     // the solution needs a looser bound than the residual target itself.
-    auto solve_eps = (sizeof(Real) == 4) ? Real(1.e-4) : Real(1.e-12);
+    auto solve_eps = tolerance<Real>(1.e-4, 1.e-12);
     amrex::SpMV(xvec, mat, exact);
 
     // Check the multiplication
@@ -161,7 +178,7 @@ int main(int argc, char *argv[]) {
 
       auto error = cvec.norminf();
       amrex::Print() << " Max norm error of restriction: " << error << "\n\n";
-      auto eps = (sizeof(T) == 4) ? T(1.e-5) : T(1.e-14);
+      auto eps = tolerance<T>(1.e-5, 1.e-14);
       AMREX_ALWAYS_ASSERT(error < eps);
   }
 
@@ -289,7 +306,7 @@ int main(int argc, char *argv[]) {
 
       auto error = fvec.norminf();
       amrex::Print() << " Max norm error of interpolation: " << error << "\n\n";
-      auto eps = (sizeof(T) == 4) ? T(1.e-5) : T(1.e-14);
+      auto eps = tolerance<T>(1.e-5, 1.e-14);
       AMREX_ALWAYS_ASSERT(error < eps);
   }
 

@@ -23,6 +23,8 @@ namespace {
     {
         if constexpr (std::is_same_v<double,Real>) {
             return Real(1.0e-10);
+        } else if constexpr (IsFPMP2_v<Real>) {
+            return Real(1.0e-10);
         } else {
             return Real(1.0e-4);
         }

@@ -212,6 +212,18 @@ endif ()
 #
 # Third party libraries
 #
+if ("@AMReX_PRECISION@" STREQUAL "FP32MP2")
+   # amrex::Real is a CCCL type: default to the CCCL that AMReX was built with
+   if (NOT CCCL_DIR)
+      set(CCCL_DIR "@CCCL_DIR@")
+   endif ()
+   if (@AMReX_CUDA@)
+      find_dependency(CCCL 3.6 CONFIG REQUIRED COMPONENTS libcudacxx CUB Thrust)
+   else ()
+      find_dependency(CCCL 3.6 CONFIG REQUIRED COMPONENTS libcudacxx)
+   endif ()
+endif ()
+
 if (@AMReX_SIMD@)
    find_dependency(vir-simd REQUIRED)
 endif ()

@@ -383,7 +383,7 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         // m_alpha is a negative sentinel when alpha was given as a
         // MultiFab, in which case adxinv is never read.
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            adxinv[idim] *= std::sqrt(m_alpha);
+            adxinv[idim] *= amrex::Math::sqrt(m_alpha);
         }
     }
     auto const b = m_beta;
@@ -580,7 +580,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         // m_alpha is a negative sentinel when alpha was given as a
         // MultiFab, in which case adxinv is never read.
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            adxinv[idim] *= std::sqrt(m_alpha);
+            adxinv[idim] *= amrex::Math::sqrt(m_alpha);
         }
     }
 
@@ -675,7 +675,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         // m_alpha is a negative sentinel when alpha was given as a
         // MultiFab, in which case adxinv is never read.
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            adxinv[idim] *= std::sqrt(m_alpha);
+            adxinv[idim] *= amrex::Math::sqrt(m_alpha);
         }
     }
 

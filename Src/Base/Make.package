@@ -37,8 +37,9 @@ C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
+C$(AMREX_BASE)_sources += AMReX_FPMP.cpp
 
-C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_FPMP.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H

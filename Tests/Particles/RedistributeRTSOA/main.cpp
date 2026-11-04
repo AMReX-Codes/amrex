@@ -258,7 +258,7 @@ public:
                     ConstParticleType p(ptd, i);
                     for (int j = AMREX_SPACEDIM; j < ptd.m_n_real; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.rdata(j)[i] == ParticleReal(p.id()));
+                        AMREX_ALWAYS_ASSERT(ptd.rdata(j)[i] == ParticleReal(Long(p.id())));
                     }
                     for (int j = 2; j < ptd.m_n_int; ++j)
                     {

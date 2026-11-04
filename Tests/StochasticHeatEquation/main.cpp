@@ -387,7 +387,7 @@ void compute_flux (MultiFab& flux, MultiFab const& ranflux, MultiFab& u, Geometr
     Real const uleft = p.uleft;
     Real const uright = p.uright;
     Real const dorand = p.dorand;
-    Real const sqrt_two = std::numbers::sqrt2_v<Real>;
+    Real const sqrt_two = Real(std::numbers::sqrt2);
     Real const noise_scale = dorand / std::sqrt(dx*dt);
 
     for (MFIter mfi(u); mfi.isValid(); ++mfi) {

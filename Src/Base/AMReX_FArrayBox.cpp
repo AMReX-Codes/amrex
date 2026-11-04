@@ -206,13 +206,13 @@ FArrayBox::getDataDescriptor ()
 {
     RealDescriptor *whichRD = nullptr;
     if (FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        whichRD = FPC::NativeRealDescriptor().clone();
+        whichRD = FPC::NativeRealFileDescriptor().clone();
     } else if (FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
         whichRD = FPC::Native32RealDescriptor().clone();
     } else if (FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
         whichRD = FPC::Ieee32NormalRealDescriptor().clone();
     } else {
-        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
+        whichRD = FPC::NativeRealFileDescriptor().clone(); // to quiet clang static analyzer
         Abort("FArrayBox::getDataDescriptor(): format not supported. Use NATIVE, NATIVE_32 or IEEE_32");
     }
     return std::unique_ptr<RealDescriptor>(whichRD);
@@ -251,7 +251,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_8bit;
         break;
     case FABio::FAB_NATIVE:
-        fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+        fio = new FABio_binary(FPC::NativeRealFileDescriptor().clone());
         break;
     case FABio::FAB_IEEE:
         //amrex::Warning("FABio::FAB_IEEE has been deprecated");
@@ -360,7 +360,7 @@ FArrayBox::Initialize ()
         else if (fmt == "NATIVE")
         {
             FArrayBox::format = FABio::FAB_NATIVE;
-            fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+            fio = new FABio_binary(FPC::NativeRealFileDescriptor().clone());
         }
         else if (fmt == "NATIVE_32")
         {
@@ -395,7 +395,7 @@ FArrayBox::Initialize ()
         //
         FArrayBox::format = FABio::FAB_NATIVE;
 
-        setFABio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+        setFABio(new FABio_binary(FPC::NativeRealFileDescriptor().clone()));
     }
     //
     // This block sets ordering which doesn't affect output format.
@@ -794,7 +794,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real mn   = f.min<RunOn::Host>(k+comp);
         const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
-        Real rng = std::abs(mx-mn);
+        Real rng = amrex::Math::abs(mx-mn);
         rng = (rng < eps) ? 0.0_rt : 255.0_rt/(mx-mn);
         for(Long i(0); i < siz; ++i) {
             Real v = rng*(dat[i]-mn);

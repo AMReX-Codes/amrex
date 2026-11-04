@@ -14,6 +14,18 @@
   defined when compiling and using AMReX.
 */
 #  define BL_USE_FLOAT 1
+#elif defined(AMREX_USE_FP32MP2)
+#  undef  BL_USE_FLOAT
+#  undef  BL_USE_DOUBLE
+/*
+  The macro AMREX_USE_FP32MP2 indicates that C++ floating-point calculations
+  use cuda::fp32mp2, a pair of floats from NVIDIA CCCL (<cuda/fpmp>).  Neither
+  BL_USE_FLOAT nor BL_USE_DOUBLE is defined in this mode, and only C++ is
+  supported.
+*/
+#  if defined(BL_LANG_FORT) || !defined(__cplusplus)
+#    error "AMREX_USE_FP32MP2 (amrex::Real = cuda::fp32mp2) is only supported in C++"
+#  endif
 #else
 #  undef  BL_USE_FLOAT
 #  undef  BL_USE_DOUBLE
@@ -28,6 +40,7 @@
 
 #if !defined(BL_LANG_FORT)
 #ifdef __cplusplus
+#include <AMReX_FPMP.H>
 #include <cfloat>
 #include <type_traits>
 #else
@@ -38,7 +51,8 @@
   Real is a typedef specifying the precision of the floating-point
   calculations in C++ code.  It will be either float or double
   depending upon which of the macros BL_USE_FLOAT or
-  BL_USE_DOUBLE, respectively, is defined during compilations.  For
+  BL_USE_DOUBLE, respectively, is defined during compilations, or
+  cuda::fp32mp2 if AMREX_USE_FP32MP2 is defined.  For
   portability, you should write floating-point code in terms of this
   typedef, instead of using float or double directly.
 
@@ -52,6 +66,11 @@ typedef float amrex_real; // NOLINT(modernize-use-using)
 #define AMREX_REAL_MIN     FLT_MIN
 #define AMREX_REAL_MAX     FLT_MAX
 #define AMREX_REAL_LOWEST (-FLT_MAX)
+#elif defined(AMREX_USE_FP32MP2)
+typedef cuda::fp32mp2 amrex_real; // NOLINT(modernize-use-using)
+#define AMREX_REAL_MIN    (std::numeric_limits<amrex_real>::min())
+#define AMREX_REAL_MAX    (std::numeric_limits<amrex_real>::max())
+#define AMREX_REAL_LOWEST (std::numeric_limits<amrex_real>::lowest())
 #else
 typedef double amrex_real; // NOLINT(modernize-use-using)
 #define AMREX_REAL_MIN     DBL_MIN
@@ -61,6 +80,8 @@ typedef double amrex_real; // NOLINT(modernize-use-using)
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
 typedef float amrex_particle_real; // NOLINT(modernize-use-using)
+#elif defined(AMREX_FP32MP2_PARTICLES)
+typedef cuda::fp32mp2 amrex_particle_real; // NOLINT(modernize-use-using)
 #else
 typedef double amrex_particle_real; // NOLINT(modernize-use-using)
 #endif
@@ -116,6 +137,23 @@ inline namespace literals {
       auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
       \endcode
     */
+#ifdef AMREX_USE_FP32MP2
+    // cuda::fp32mp2 has no unambiguous constructor from long double and no
+    // constexpr constructor from 64-bit integers.  Go through double, which
+    // carries more significand bits (53) than fp32mp2 (46).  consteval makes
+    // sure that no long double arithmetic is left in device code.
+    consteval Real
+    operator""_rt( long double x )
+    {
+        return Real( static_cast<double>(x) );
+    }
+
+    consteval Real
+    operator""_rt( unsigned long long int x )
+    {
+        return Real( static_cast<double>(x) );
+    }
+#else
     constexpr Real
     operator""_rt( long double x )
     {
@@ -127,7 +165,21 @@ inline namespace literals {
     {
         return Real( x );
     }
+#endif
 
+#ifdef AMREX_FP32MP2_PARTICLES
+    consteval ParticleReal
+    operator""_prt( long double x )
+    {
+        return ParticleReal( static_cast<double>(x) );
+    }
+
+    consteval ParticleReal
+    operator""_prt( unsigned long long int x )
+    {
+        return ParticleReal( static_cast<double>(x) );
+    }
+#else
     constexpr ParticleReal
     operator""_prt( long double x )
     {
@@ -139,6 +191,7 @@ inline namespace literals {
     {
         return ParticleReal( x );
     }
+#endif
     /// @}
 } // namespace literals
 } // namespace amrex

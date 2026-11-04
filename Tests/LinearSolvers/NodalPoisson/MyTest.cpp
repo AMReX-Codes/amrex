@@ -380,9 +380,9 @@ MyTest::initData ()
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 constexpr Real pi = std::numbers::pi_v<Real>;
-                constexpr Real tpi = 2.*pi;
-                constexpr Real fpi = 4.*pi;
-                constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
+                const Real tpi = 2.*pi;
+                const Real fpi = 4.*pi;
+                const Real fac = tpi*tpi*AMREX_SPACEDIM;
 
                 Real x = Real(i)*dx[0];
 #if (AMREX_SPACEDIM > 1)

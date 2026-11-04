@@ -603,7 +603,7 @@ public:
     void getVal (T* data, const IntVect& pos) const noexcept;
 
     template <RunOn run_on AMREX_DEFAULT_RUNON>
-    requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
+    requires (std::is_same_v<T,float> || std::is_same_v<T,double> || IsFPMP2_v<T>)
     void fill_snan () noexcept;
 
     /**
@@ -1509,7 +1509,7 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 
 template <class T>
 template <RunOn run_on>
-requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
+requires (std::is_same_v<T,float> || std::is_same_v<T,double> || IsFPMP2_v<T>)
 void
 BaseFab<T>::fill_snan () noexcept
 {
@@ -1614,7 +1614,7 @@ BaseFab<T>::define ()
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
 
-    if constexpr (std::is_same_v<T,float> || std::is_same_v<T,double>) {
+    if constexpr (std::is_same_v<T,float> || std::is_same_v<T,double> || IsFPMP2_v<T>) {
         if (amrex::InitSNaN() && this->truesize > 0) {
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
@@ -2003,7 +2003,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
     Array4<T> const& a = this->array();
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, subbox, numcomp, i, j, k, n,
     {
-        a(i,j,k,n+comp) = std::abs(a(i,j,k,n+comp));
+        a(i,j,k,n+comp) = amrex::Math::abs(a(i,j,k,n+comp));
     });
 }
 
@@ -2056,7 +2056,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
             Real t = 0.0;
             if (m(i,j,k)) {
                 for (int n = 0; n < ncomp; ++n) {
-                    t = amrex::max(t,static_cast<Real>(std::abs(a(i,j,k,n+scomp))));
+                    t = amrex::max(t,static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp))));
                 }
             }
             return {t};
@@ -2070,7 +2070,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
         [=] (int i, int j, int k, int n) noexcept
         {
             auto const t = a(i,j,k,n+scomp);
-            return static_cast<Real>(m(i,j,k) ? std::abs(t) : T(0));
+            return static_cast<Real>(m(i,j,k) ? amrex::Math::abs(t) : T(0));
         });
     }
     return r;
@@ -2105,7 +2105,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
             {
                 Real t = 0.0;
                 for (int n = 0; n < numcomp; ++n) {
-                    t = amrex::max(t, static_cast<Real>(std::abs(a(i,j,k,n+comp))));
+                    t = amrex::max(t, static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp))));
                 }
                 return {t};
             });
@@ -2120,7 +2120,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
             {
                 Real t = 0.0;
                 for (int n = 0; n < numcomp; ++n) {
-                    t += static_cast<Real>(std::abs(a(i,j,k,n+comp)));
+                    t += static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
                 }
                 return {t};
             });
@@ -2151,13 +2151,13 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
             nrm = detail::basefab_reduce_cpu<ReduceOpMax>(subbox, numcomp, Real(0.0),
             [=] (int i, int j, int k, int n) noexcept
             {
-                return static_cast<Real>(std::abs(a(i,j,k,n+comp)));
+                return static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
             });
         } else if (p == 1) {
             nrm = detail::basefab_reduce_cpu<ReduceOpSum>(subbox, numcomp, Real(0.0),
             [=] (int i, int j, int k, int n) noexcept
             {
-                return static_cast<Real>(std::abs(a(i,j,k,n+comp)));
+                return static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
             });
         } else if (p == 2) {
             nrm = detail::basefab_reduce_cpu<ReduceOpSum>(subbox, numcomp, Real(0.0),
@@ -2315,7 +2315,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         reduce_op.eval(subbox, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { std::abs(a(i,j,k)) };
+            return { amrex::Math::abs(a(i,j,k)) };
         });
         ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
@@ -2325,7 +2325,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         return detail::basefab_reduce_cpu<ReduceOpMax>(subbox, 1, T(0),
         [=] (int i, int j, int k, int) noexcept
         {
-            return std::abs(a(i,j,k));
+            return amrex::Math::abs(a(i,j,k));
         });
     }
 }

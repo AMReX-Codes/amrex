@@ -25,7 +25,9 @@ namespace
     constexpr int PayloadRealComp = AMREX_SPACEDIM + 1;
     constexpr int GridIntComp = 0;
     constexpr int MarkerIntComp = 1;
-    constexpr ParticleReal Cutoff = 0.2_prt;
+    // A function, not a variable, so that it can be used in device code also
+    // if ParticleReal is a class type (AMReX_PRECISION=FP32MP2).
+    AMREX_GPU_HOST_DEVICE constexpr ParticleReal Cutoff () { return ParticleReal(0.2); }
 
     struct TestParams
     {
@@ -45,7 +47,7 @@ namespace
                          ParticleReal d1 = p1.pos(1) - p2.pos(1);,
                          ParticleReal d2 = p1.pos(2) - p2.pos(2);)
             ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
-            return dsquared <= 25.0_rt*Cutoff*Cutoff;
+            return dsquared <= 25.0_rt*Cutoff()*Cutoff();
         }
     };
 
@@ -444,7 +446,7 @@ public:
     {
         const int lev = 0;
         auto const& plev = GetParticles(lev);
-        Real const cutoff_sq = 25.0_rt*Cutoff*Cutoff;
+        Real const cutoff_sq = 25.0_rt*Cutoff()*Cutoff();
 
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {

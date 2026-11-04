@@ -328,7 +328,7 @@ MLEBNodeFDLaplacian::anisotropicCoarseningCellSize (Geometry const& geom) const
     if (m_has_sigma_mf) { return dx; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (m_sigma[idim] > Real(0.0)) { // 0 means 1 in RZ
-            dx[idim] /= std::sqrt(m_sigma[idim]);
+            dx[idim] /= amrex::Math::sqrt(m_sigma[idim]);
         }
     }
     return dx;

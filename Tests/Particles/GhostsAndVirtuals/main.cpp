@@ -33,8 +33,8 @@ void test_ghosts_and_virtuals (TestParams& parms)
     RealBox fine_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-       fine_box.setLo(n,0.25);
-       fine_box.setHi(n,0.75);
+       fine_box.setLo(n, 0.25_rt);
+       fine_box.setHi(n, 0.75_rt);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
@@ -368,8 +368,8 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     RealBox fine_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-       fine_box.setLo(n,0.25);
-       fine_box.setHi(n,0.75);
+       fine_box.setLo(n, 0.25_rt);
+       fine_box.setHi(n, 0.75_rt);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
@@ -563,8 +563,8 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
     RealBox fine_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-       fine_box.setLo(n,0.25);
-       fine_box.setHi(n,0.75);
+       fine_box.setLo(n, 0.25_rt);
+       fine_box.setHi(n, 0.75_rt);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));

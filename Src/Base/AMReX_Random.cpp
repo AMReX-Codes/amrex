@@ -136,9 +136,16 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 #endif
 }
 
+namespace {
+    // The std distributions require a builtin floating-point type.  For
+    // cuda::fp32mp2, draw in double, which has more significand bits (53)
+    // than the pair (46).  In all other modes, this is Real itself.
+    using RandomReal = std::conditional_t<IsFPMP2_v<Real>, double, Real>;
+}
+
 Real RandomNormal (Real mean, Real stddev)
 {
-    std::normal_distribution<Real> distribution(mean, stddev);
+    std::normal_distribution<RandomReal> distribution(static_cast<RandomReal>(mean), static_cast<RandomReal>(stddev));
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
@@ -154,7 +161,7 @@ Real RandomNormal (Real mean, Real stddev)
 // library happens to be in use.
 Real Random ()
 {
-    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
+    std::uniform_real_distribution<RandomReal> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
     return random_util::clamp_below_one(distribution(generators[tid]));
 }
@@ -164,21 +171,21 @@ Real RandomPositive ()
     // Relocating the zero endpoint converts [0,1) to (0,1] with no arithmetic.
     // Note this needs no clamp: unlike Random(), it stays correct even when the
     // distribution reaches 1.0 as described above, because 1.0 is in range here.
-    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
+    std::uniform_real_distribution<RandomReal> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
     return random_util::zero_to_one(distribution(generators[tid]));
 }
 
 unsigned int RandomPoisson (Real lambda)
 {
-    std::poisson_distribution<unsigned int> distribution(lambda);
+    std::poisson_distribution<unsigned int> distribution(static_cast<double>(lambda));
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
 Real RandomGamma (Real alpha, Real beta)
 {
-    std::gamma_distribution<Real> distribution(alpha, beta);
+    std::gamma_distribution<RandomReal> distribution(static_cast<RandomReal>(alpha), static_cast<RandomReal>(beta));
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
@@ -307,6 +314,14 @@ void FillRandom (Real* p, Long N)
 
 #  ifdef BL_USE_FLOAT
     AMREX_CURAND_SAFE_CALL(curandGenerateUniform(gpu_rand_generator, p, N));
+#  elif defined(AMREX_USE_FP32MP2)
+    // curand has no generator for cuda::fp32mp2: draw doubles, then split
+    auto* tmp = static_cast<double*>(The_Arena()->alloc(N*sizeof(double)));
+    AMREX_CURAND_SAFE_CALL(curandGenerateUniformDouble(gpu_rand_generator, tmp, N));
+    Gpu::synchronize();
+    amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] = Real(tmp[i]); });
+    Gpu::streamSynchronize();
+    The_Arena()->free(tmp);
 #  else
     AMREX_CURAND_SAFE_CALL(curandGenerateUniformDouble(gpu_rand_generator, p, N));
 #  endif
@@ -330,7 +345,7 @@ void FillRandom (Real* p, Long N)
 #else
     // clamped for the same reason as Random(): std::uniform_real_distribution
     // may reach its upper bound (LWG 2524), so [0,1) is not free here either
-    std::uniform_real_distribution<Real> distribution(Real(0.0), Real(1.0));
+    std::uniform_real_distribution<RandomReal> distribution(0.0, 1.0);
     auto& gen = generators[OpenMP::get_thread_num()];
     for (Long i = 0; i < N; ++i) {
         p[i] = random_util::clamp_below_one(distribution(gen));
@@ -357,6 +372,15 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 
 #  ifdef BL_USE_FLOAT
     AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
+#  elif defined(AMREX_USE_FP32MP2)
+    // curand has no generator for cuda::fp32mp2: draw doubles, then split
+    auto* tmp = static_cast<double*>(The_Arena()->alloc(Neven*sizeof(double)));
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, tmp, Neven,
+                                                      double(mean), double(stddev)));
+    Gpu::synchronize();
+    amrex::ParallelFor(Neven, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] = Real(tmp[i]); });
+    Gpu::streamSynchronize();
+    The_Arena()->free(tmp);
 #  else
     AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
 #  endif
@@ -377,7 +401,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 
 #else
 
-    std::normal_distribution<Real> distribution(mean, stddev);
+    std::normal_distribution<RandomReal> distribution(static_cast<RandomReal>(mean), static_cast<RandomReal>(stddev));
     auto& gen = generators[OpenMP::get_thread_num()];
     for (Long i = 0; i < N; ++i) {
         p[i] = distribution(gen);

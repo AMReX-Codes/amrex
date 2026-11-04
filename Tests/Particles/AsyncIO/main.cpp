@@ -104,7 +104,7 @@ public:
 
                     if constexpr (NSR > 0) {
                         for (int i = 0; i < NSR; ++i) {
-                            p.rdata(i) = ParticleReal(p.id());
+                            p.rdata(i) = ParticleReal(Long(p.id()));
                         }
                     }
                     if constexpr (NSI > 0) {
@@ -117,7 +117,7 @@ public:
 
                     if constexpr (NAR > 0) {
                         for (int i = 0; i < NAR; ++i) {
-                            host_real[i].push_back(ParticleReal(p.id()));
+                            host_real[i].push_back(ParticleReal(Long(p.id())));
                         }
                     }
                     if constexpr (NAI > 0) {
@@ -126,7 +126,7 @@ public:
                         }
                     }
                     for (int i = 0; i < NumRuntimeRealComps(); ++i) {
-                        host_runtime_real[i].push_back(ParticleReal(p.id()));
+                        host_runtime_real[i].push_back(ParticleReal(Long(p.id())));
                     }
                     for (int i = 0; i < NumRuntimeIntComps(); ++i) {
                         host_runtime_int[i].push_back(int(p.id()));

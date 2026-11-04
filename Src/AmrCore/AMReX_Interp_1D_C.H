@@ -115,7 +115,7 @@ void ccquartic_interp (int i, int /*j*/, int /*k*/, int n,
     // Note: there are asserts in CellConservativeQuartic::interp()
     //       to check whether ratio is all equal to 2.
 
-    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+    constexpr Array1D<Real, -2, 2> cL = { Real(-0.01171875),  0.0859375_rt, 0.5_rt, Real(-0.0859375), 0.01171875_rt };
 
     int ic = amrex::coarsen(i,2);
     int irx = i - 2*ic; // = abs(i % 2)

@@ -219,7 +219,7 @@ MLNodeLinOp::norm2Precond (Vector<MultiFab const*> const& x) const
                              *x[ilev],0,ncomp,IntVect(0),true);
     }
     ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
-    return std::sqrt(result);
+    return amrex::Math::sqrt(result);
 }
 
 Vector<Real>

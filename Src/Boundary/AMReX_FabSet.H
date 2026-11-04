@@ -458,7 +458,8 @@ FabSetT<MF>::linComb (value_type a, const MF& mfa, int a_comp,
     MF bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo());
     MF bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo());
 
-    const auto huge = static_cast<value_type>(sizeof(value_type) == 8 ? 1.e200 : 1.e30);
+    const auto huge = static_cast<value_type>(
+        (std::numeric_limits<value_type>::max_exponent10 > 200) ? 1.e200 : 1.e30);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

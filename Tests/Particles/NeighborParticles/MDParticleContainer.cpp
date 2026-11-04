@@ -97,7 +97,7 @@ namespace
 
     bool almost_equal (ParticleReal lhs, ParticleReal rhs)
     {
-        auto const scale = std::max({ParticleReal(1.0), std::abs(lhs), std::abs(rhs)});
+        auto const scale = std::max({ParticleReal(1.0), amrex::Math::abs(lhs), amrex::Math::abs(rhs)});
         auto const tol = std::max(ParticleReal(1.0e-12),
                                   ParticleReal(64.0) * std::numeric_limits<ParticleReal>::epsilon());
         return std::abs(lhs - rhs) <= tol * scale;
@@ -299,7 +299,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
                                             ParticleReal dz = p1.pos(2) - p2.pos(2);)
 
                                ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
-                               r2 = amrex::max(r2, Params::min_r*Params::min_r);
+                               r2 = amrex::max(r2, Params::min_r()*Params::min_r());
                                auto r = ParticleReal(std::sqrt(r2));
 
                                min_d = std::min(min_d, r);
@@ -579,7 +579,7 @@ void MDParticleContainer::checkNeighborList()
 
                 ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
 
-                ParticleReal cutoff_sq = ParticleReal(25.0)*Params::cutoff*Params::cutoff;
+                ParticleReal cutoff_sq = ParticleReal(25.0)*Params::cutoff()*Params::cutoff();
 
                 if (r2 <= cutoff_sq)
                 {

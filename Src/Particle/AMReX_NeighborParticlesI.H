@@ -174,7 +174,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             for (int d = 1; d < AMREX_SPACEDIM; ++d) {
                 dx_min = std::min(dx_min, dx_lev[d]);
             }
-            int required = static_cast<int>(std::ceil(search_radius / dx_min));
+            int required = static_cast<int>(amrex::Math::ceil(search_radius / dx_min));
             if (mask_ptr[lev]->nGrow(0) < required) { return false; }
         }
     }
@@ -213,7 +213,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                 dx_min = std::min(dx_min, dx_lev[d]);
             }
             mask_ncells = std::max(mask_ncells,
-                                   static_cast<int>(std::ceil(search_radius / dx_min)));
+                                   static_cast<int>(amrex::Math::ceil(search_radius / dx_min)));
         }
 
         mask_ptr[lev] = std::make_unique<iMultiFab>(ba, dmap, int(num_mask_comps), mask_ncells);
@@ -339,7 +339,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             IntVect grow_cells;
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 grow_cells[d] = std::max(1, static_cast<int>(
-                    std::ceil(search_radius / dx_lev[d])));
+                    amrex::Math::ceil(search_radius / dx_lev[d])));
             }
             box.grow(grow_cells);
         } else {
@@ -706,7 +706,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const P& p,
                     IntVect grow_cells;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                         grow_cells[d] = std::max(1, static_cast<int>(
-                            std::ceil(search_radius / dx_lev[d])));
+                            amrex::Math::ceil(search_radius / dx_lev[d])));
                     }
                     pbox = amrex::grow(Box(iv, iv), grow_cells) + pshift;
                 } else {
@@ -956,7 +956,7 @@ buildNeighborList (CheckPair const& check_pair, amrex::Real bin_size, bool /*sor
                 phys_lo[d] = plo_arr[d] + (tile_box.smallEnd(d) - ng) * dx_arr[d];
                 phys_hi[d] = plo_arr[d] + (tile_box.bigEnd(d) + 1 + ng) * dx_arr[d];
                 nbins[d] = std::max(1, static_cast<int>(
-                    std::ceil(static_cast<amrex::Real>(phys_hi[d] - phys_lo[d]) / bin_size)));
+                    amrex::Math::ceil(static_cast<amrex::Real>(phys_hi[d] - phys_lo[d]) / bin_size)));
             }
 
             GpuArray<Real, AMREX_SPACEDIM> fine_dxi;
@@ -1139,7 +1139,7 @@ buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                 phys_lo[d] = plo_arr[d] + (tile_box.smallEnd(d) - ng) * dx_arr[d];
                 phys_hi[d] = plo_arr[d] + (tile_box.bigEnd(d) + 1 + ng) * dx_arr[d];
                 nbins[d] = std::max(1, static_cast<int>(
-                    std::ceil(static_cast<amrex::Real>(phys_hi[d] - phys_lo[d]) / bin_size)));
+                    amrex::Math::ceil(static_cast<amrex::Real>(phys_hi[d] - phys_lo[d]) / bin_size)));
             }
 
             GpuArray<Real, AMREX_SPACEDIM> fine_dxi;

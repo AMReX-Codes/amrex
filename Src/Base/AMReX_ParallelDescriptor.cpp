@@ -50,6 +50,9 @@ namespace
     MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
     MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
     MPI_Datatype mpi_type_lull_t    = MPI_DATATYPE_NULL;
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    MPI_Datatype mpi_type_fp32mp2   = MPI_DATATYPE_NULL;
+#endif
 }
 #endif
 
@@ -426,6 +429,11 @@ EndParallel ()
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_lull_t) );
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+        if (mpi_type_fp32mp2 != MPI_DATATYPE_NULL) {
+            BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_fp32mp2) );
+        }
+#endif
         for (auto *t : m_mpi_types) {
             BL_MPI_REQUIRE( MPI_Type_free(t) );
             *t = MPI_DATATYPE_NULL;
@@ -439,6 +447,9 @@ EndParallel ()
         mpi_type_indextype = MPI_DATATYPE_NULL;
         mpi_type_box       = MPI_DATATYPE_NULL;
         mpi_type_lull_t    = MPI_DATATYPE_NULL;
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+        mpi_type_fp32mp2   = MPI_DATATYPE_NULL;
+#endif
         m_mpi_types.clear();
         m_mpi_ops.clear();
     }
@@ -1088,6 +1099,21 @@ Mpi_typemap<ParallelDescriptor::lull_t>::type ()
     }
     return mpi_type_lull_t;
 }
+
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+template <>
+MPI_Datatype
+Mpi_typemap<cuda::fp32mp2>::type ()
+{
+    static_assert(sizeof(cuda::fp32mp2) == 2*sizeof(float));
+    if (mpi_type_fp32mp2 == MPI_DATATYPE_NULL)
+    {
+        BL_MPI_REQUIRE( MPI_Type_contiguous(2, MPI_FLOAT, &mpi_type_fp32mp2) );
+        BL_MPI_REQUIRE( MPI_Type_commit(&mpi_type_fp32mp2) );
+    }
+    return mpi_type_fp32mp2;
+}
+#endif
 
 void
 Wait (MPI_Request& req, MPI_Status& status)

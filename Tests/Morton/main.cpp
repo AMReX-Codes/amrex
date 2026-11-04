@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 using namespace amrex;
 
@@ -16,7 +17,13 @@ int main (int argc, char* argv[])
         const Real xmin = Real(-1.0);
         const Real xmax = Real( 1.0);
         const Real xmid = Real( 0.5);
+#ifdef AMREX_USE_FP32MP2
+        // A float pair has no next representable value below xmax: use a
+        // value half an epsilon below it.
+        const Real xhi  = xmax - Real(0.5)*std::numeric_limits<Real>::epsilon();
+#else
         const Real xhi  = std::nextafter(xmax, xmin);
+#endif
         AMREX_ALWAYS_ASSERT(xhi < xmax);
         amrex::Print() << "(xhi-xmin)/(xmax-xmin) == 1: "
                        << ((xhi-xmin)/(xmax-xmin) == Real(1.0)) << '\n';

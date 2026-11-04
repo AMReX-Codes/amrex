@@ -43,8 +43,9 @@ namespace ppdetail {
     template <class T, class Enable = void>
     struct ArithmeticOptional_TT : std::false_type {};
 
+    // amrex::Real is cuda::fp32mp2, not an arithmetic type, with AMReX_PRECISION=FP32MP2.
     template <class T>
-    requires (std::is_arithmetic_v<T>)
+    requires (std::is_arithmetic_v<T> || IsFPMP2_v<T>)
     struct ArithmeticOptional_TT<T>
         : std::true_type
     {
@@ -52,7 +53,7 @@ namespace ppdetail {
     };
 
     template <class T>
-    requires (std::is_arithmetic_v<T>)
+    requires (std::is_arithmetic_v<T> || IsFPMP2_v<T>)
     struct ArithmeticOptional_TT<std::optional<T>>
         : std::true_type
     {
@@ -584,6 +585,20 @@ public:
                int              ival = FIRST) const;
     //! Add a key 'name' with value 'val' to the end of the PP table.
     void add (std::string_view name, double val);
+#ifdef AMREX_USE_FP32MP2
+    /**
+    * \brief Overloads for cuda::fp32mp2 (AMReX_PRECISION=FP32MP2).  The value
+    * is parsed and stored as a double, which has more significand bits (53)
+    * than cuda::fp32mp2 (46), and then converted.
+    */
+    void getkth (std::string_view name, int k, cuda::fp32mp2& ref,
+                 int ival = FIRST) const;
+    void get (std::string_view name, cuda::fp32mp2& ref, int ival = FIRST) const;
+    int querykth (std::string_view name, int k, cuda::fp32mp2& ref,
+                  int ival = FIRST) const;
+    int query (std::string_view name, cuda::fp32mp2& ref, int ival = FIRST) const;
+    void add (std::string_view name, cuda::fp32mp2 val);
+#endif
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a std::string and stored
@@ -894,6 +909,18 @@ public:
                   int                  num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (std::string_view name, const std::vector<double>& ref);
+#ifdef AMREX_USE_FP32MP2
+    //! Overloads for cuda::fp32mp2, parsed and stored as double (see get()).
+    void getktharr (std::string_view name, int k, std::vector<cuda::fp32mp2>& ref,
+                    int start_ix = FIRST, int num_val = ALL) const;
+    void getarr (std::string_view name, std::vector<cuda::fp32mp2>& ref,
+                 int start_ix = FIRST, int num_val = ALL) const;
+    int queryktharr (std::string_view name, int k, std::vector<cuda::fp32mp2>& ref,
+                     int start_ix = FIRST, int num_val = ALL) const;
+    int queryarr (std::string_view name, std::vector<cuda::fp32mp2>& ref,
+                  int start_ix = FIRST, int num_val = ALL) const;
+    void addarr (std::string_view name, const std::vector<cuda::fp32mp2>& ref);
+#endif
     /**
     * \brief Gets an std::vector<std::string> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -1153,6 +1180,10 @@ public:
     int queryWithParser (std::string_view name, long long& ref) const;
     int queryWithParser (std::string_view name, float& ref) const;
     int queryWithParser (std::string_view name, double& ref) const;
+#ifdef AMREX_USE_FP32MP2
+    //! cuda::fp32mp2 overload, evaluated in double precision (see get()).
+    int queryWithParser (std::string_view name, cuda::fp32mp2& ref) const;
+#endif
 
     /**
      * \brief Query with Parser. The return value indicates whether it's
@@ -1166,13 +1197,17 @@ public:
     int queryarrWithParser (std::string_view name, int nvals, long long* ptr) const;
     int queryarrWithParser (std::string_view name, int nvals, float* ptr) const;
     int queryarrWithParser (std::string_view name, int nvals, double* ptr) const;
+#ifdef AMREX_USE_FP32MP2
+    int queryarrWithParser (std::string_view name, int nvals, cuda::fp32mp2* ptr) const;
+#endif
     template <typename T>
     requires (std::same_as<T,bool> ||
               std::same_as<T,int> ||
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     int queryarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         if (this->contains(name)) {
@@ -1195,7 +1230,8 @@ public:
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     int queryAddWithParser (std::string_view name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
@@ -1216,7 +1252,8 @@ public:
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     void getWithParser (std::string_view name, T& ref) const
     {
         int exist = this->queryWithParser(name, ref);
@@ -1236,7 +1273,8 @@ public:
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     void getarrWithParser (std::string_view name, int nvals, T* ptr) const
     {
         int exist = this->queryarrWithParser(name, nvals, ptr);
@@ -1256,7 +1294,8 @@ public:
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     void getarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         int exist = this->queryarrWithParser(name, nvals, ref);
@@ -1276,7 +1315,8 @@ public:
               std::same_as<T,long> ||
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
-              std::same_as<T,double>)
+              std::same_as<T,double> ||
+              IsFPMP2_v<T>)
     T eval (std::string const& expr) const
     {
         if constexpr (std::is_integral_v<T>) {
@@ -1556,8 +1596,8 @@ public:
      * during parsing.
      *
      * The final result is cast to T. It may result in a runtime error if
-     * the conversion is not safe. T is either arithmetic type or
-     * std::optional of arithmetic type.
+     * the conversion is not safe. T is an arithmetic type or amrex::Real,
+     * or std::optional of one of those.
      */
     template <typename T>
     requires (ppdetail::IsArithmeticOptional_v<T>)
@@ -1589,8 +1629,8 @@ public:
      * precision during parsing.
      *
      * The final result is cast to T's. It may result in a runtime error if
-     * the conversion is not safe. T is either arithmetic type or
-     * std::optional of arithmetic type.
+     * the conversion is not safe. T is an arithmetic type or amrex::Real,
+     * or std::optional of one of those.
      */
     template <typename T>
     requires (ppdetail::IsArithmeticOptional_v<T>)
@@ -1623,8 +1663,8 @@ public:
      * during parsing.
      *
      * The final result is cast to T. It may result in a runtime error if
-     * the conversion is not safe. T is either arithmetic type or
-     * std::optional of arithmetic type.
+     * the conversion is not safe. T is an arithmetic type or amrex::Real,
+     * or std::optional of one of those.
      */
     template <typename T>
     requires (ppdetail::IsArithmeticOptional_v<T>)
@@ -1641,8 +1681,8 @@ public:
      * precision during parsing.
      *
      * The final result is cast to T's. It may result in a runtime error if
-     * the conversion is not safe. T is either arithmetic type or
-     * std::optional of arithmetic type.
+     * the conversion is not safe. T is an arithmetic type or amrex::Real,
+     * or std::optional of one of those.
      */
     template <typename T>
     requires (ppdetail::IsArithmeticOptional_v<T>)

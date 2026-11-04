@@ -16,10 +16,16 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteParticleRealData (void* data, size_t size, std::ostream& os) const
 {
-    if (sizeof(typename ParticleType::RealType) == 4) {
+    using RT = typename ParticleType::RealType;
+    if constexpr (IsFPMP2_v<RT>) {
+        // cuda::fp32mp2 is written as IEEE double (ParticleRealDescriptor)
+        auto const* p = static_cast<RT const*>(data);
+        std::vector<double> d(p, p+size);
+        writeDoubleData(d.data(), size, os, ParticleRealDescriptor);
+    } else if (sizeof(RT) == 4) {
         writeFloatData((float*) data, size, os, ParticleRealDescriptor);
     }
-    else if (sizeof(typename ParticleType::RealType) == 8) {
+    else if (sizeof(RT) == 8) {
         writeDoubleData((double*) data, size, os, ParticleRealDescriptor);
     }
 }
@@ -30,10 +36,17 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::ReadParticleRealData (void* data, size_t size, std::istream& is)
 {
-    if (sizeof(typename ParticleType::RealType) == 4) {
+    using RT = typename ParticleType::RealType;
+    if constexpr (IsFPMP2_v<RT>) {
+        // cuda::fp32mp2 is read from IEEE double (ParticleRealDescriptor)
+        std::vector<double> d(size);
+        readDoubleData(d.data(), size, is, ParticleRealDescriptor);
+        auto* p = static_cast<RT*>(data);
+        for (size_t i = 0; i < size; ++i) { p[i] = RT(d[i]); }
+    } else if (sizeof(RT) == 4) {
         readFloatData((float*) data, size, is, ParticleRealDescriptor);
     }
-    else if (sizeof(typename ParticleType::RealType) == 8) {
+    else if (sizeof(RT) == 8) {
         readDoubleData((double*) data, size, is, ParticleRealDescriptor);
     }
 }
@@ -797,7 +810,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 }
             }
             else if (how == "double") {
-                if constexpr (std::is_same_v<ParticleReal, double>) {
+                // cuda::fp32mp2 particle data are written as double
+                if constexpr (std::is_same_v<ParticleReal, double> || IsFPMP2_v<ParticleReal>) {
                     ReadParticles<double>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
                 } else {
                     amrex::Error("File contains double-precision data, while AMReX is compiled with ParticleReal==float");
@@ -850,8 +864,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     // Then the real data in binary.
     const int rChunkSize = ParticleType::is_soa_particle ? NStructReal + NumRealComps() : AMREX_SPACEDIM + NStructReal + NumRealComps();
+    // RTYPE is the type in the file, which may differ from ParticleReal
+    // (cuda::fp32mp2 is written as double)
     Vector<RTYPE> rstuff(std::size_t(cnt)*rChunkSize);
-    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs);
+    if constexpr (std::is_same_v<RTYPE, float>) {
+        readFloatData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
+    } else {
+        readDoubleData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
+    }
 
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
@@ -865,7 +885,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     host_particles.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Gpu::HostVector<RTYPE> > > > host_real_attribs;
+                    std::vector<Gpu::HostVector<ParticleReal> > > > host_real_attribs;
     host_real_attribs.reserve(15);
     host_real_attribs.resize(finest_level_in_file+1);
 

@@ -19,7 +19,7 @@ void slopex2(int i, int j, int k,
     Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-    dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
+    dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
 }
 
 AMREX_GPU_DEVICE
@@ -39,7 +39,7 @@ void slopex4(int i, int j, int k,
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
     Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i+1,j,k) + dq(i-1,j,k));
-    dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
+    dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
 }
 
 // ***********************************************************
@@ -59,7 +59,7 @@ void slopey2(int i, int j, int k,
     Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-    dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
+    dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
 }
 
 AMREX_GPU_DEVICE
@@ -79,7 +79,7 @@ void slopey4(int i, int j, int k,
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
     Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i,j+1,k) + dq(i,j-1,k));
-    dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
+    dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
 }
 
 // ***********************************************************
@@ -99,7 +99,7 @@ void slopez2(int i, int j, int k,
     Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-    dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
+    dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
 }
 
 AMREX_GPU_DEVICE
@@ -119,7 +119,7 @@ void slopez4(int i, int j, int k,
                                 std::abs(dlft) : std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
     Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i,j,k+1) + dq(i,j,k-1));
-    dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
+    dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
 }
 
 #endif

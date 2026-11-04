@@ -478,12 +478,12 @@ void particle_interp_decomp (Array2D<Real,1,7,1,7>& a, Array1D<int,1,7>& ip, int
         int ip1=i+1;
         int k=i;
         int ipi = ip(i);
-        apm  = std::abs(a(ipi,i));
+        apm  = amrex::Math::abs(a(ipi,i));
 
         for (int j=ip1; j<neq+1; j++)
         {
             int ipj = ip(j);
-            apn=std::abs(a(ipj,i));
+            apn=amrex::Math::abs(a(ipj,i));
             if(apm < apn){
                 apm = apn;
                 k=j;

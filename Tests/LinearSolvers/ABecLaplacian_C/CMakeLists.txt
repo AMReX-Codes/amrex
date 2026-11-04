@@ -19,7 +19,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     setup_test(${D} _sources _input_files
-       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params})
+       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} ${AMREX_TEST_MLMG_TYPE_PARAMS})
 
     # Semi-coarsening exercises the line-solve smoother, which is CPU only.
     set(_input_files  inputs-rt-abeclap-semicoarsening )

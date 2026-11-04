@@ -84,9 +84,9 @@ int main(int argc, char* argv[])
                 auto const& m = mma[b];
                 for (int n = 0; n < ncomp; ++n) {
                     auto v = value(i,j,k,n);
-                    r1 = std::max(r1, std::abs(a1(i,j,k)[n] - v));
-                    r2 = std::max(r2, std::abs(a2(i,j,k)[n] - v));
-                    r3 = std::max(r3, std::abs(a3(i,j,k)[n] - v*Real(m(i,j,k))));
+                    r1 = std::max(r1, amrex::Math::abs(a1(i,j,k)[n] - v));
+                    r2 = std::max(r2, amrex::Math::abs(a2(i,j,k)[n] - v));
+                    r3 = std::max(r3, amrex::Math::abs(a3(i,j,k)[n] - v*Real(m(i,j,k))));
                 }
                 return {r1, r2, r3};
             });

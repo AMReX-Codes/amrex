@@ -132,15 +132,15 @@ public: // NOLINT  Private, but public for CUDA
             {
                 T s = T(0);
                 for (auto idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
-                    s += std::abs(a.csr0.mat[idx]);
+                    s += amrex::Math::abs(a.csr0.mat[idx]);
                 }
                 if (detail::has_remote_row(a, i)) {
                     auto ii = a.row_map[i];
                     for (auto idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
-                        s += std::abs(a.csr1.mat[idx]);
+                        s += amrex::Math::abs(a.csr1.mat[idx]);
                     }
                 }
-                p[i] = std::copysign(s, pd[i]);
+                p[i] = amrex::Math::copysign(s, pd[i]);
             });
             Gpu::streamSynchronize();
         }
@@ -286,15 +286,15 @@ public: // NOLINT  Private, but public for CUDA
             if (pd[i] == T(0)) { return T(0); }
             T s = T(0); // sum_j |a_ij|
             for (auto idx = a.csr0.row_offset[i]; idx < a.csr0.row_offset[i+1]; ++idx) {
-                s += std::abs(a.csr0.mat[idx]);
+                s += amrex::Math::abs(a.csr0.mat[idx]);
             }
             if (detail::has_remote_row(a, i)) {
                 auto ii = a.row_map[i];
                 for (auto idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
-                    s += std::abs(a.csr1.mat[idx]);
+                    s += amrex::Math::abs(a.csr1.mat[idx]);
                 }
             }
-            return s / std::abs(pd[i]);
+            return s / amrex::Math::abs(pd[i]);
         });
         ParallelAllReduce::Max(lmax, ParallelContext::CommunicatorSub());
         m_lambda_max = (lmax > T(0)) ? lmax : T(1);
@@ -480,16 +480,16 @@ private:
                     for (Long idx = c0.row_offset[i]; idx < c0.row_offset[i+1]; ++idx) {
                         Long const j = c0.col_index[idx];
                         if (j != i && (j < rlo || j >= rhi)) {
-                            l1 += std::abs(c0.mat[idx]);
+                            l1 += amrex::Math::abs(c0.mat[idx]);
                         }
                     }
                     if (detail::has_remote_row(a, i)) {
                         Long const ii = a.row_map[i];
                         for (Long idx = a.csr1.row_offset[ii]; idx < a.csr1.row_offset[ii+1]; ++idx) {
-                            l1 += std::abs(a.csr1.mat[idx]);
+                            l1 += amrex::Math::abs(a.csr1.mat[idx]);
                         }
                     }
-                    p[i] = aii + std::copysign(l1, aii);
+                    p[i] = aii + amrex::Math::copysign(l1, aii);
                 }
             }
         }

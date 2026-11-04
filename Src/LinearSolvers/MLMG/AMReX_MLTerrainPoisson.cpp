@@ -639,7 +639,7 @@ MLTerrainPoisson::interpolation (int amrlev, int fmglev, MultiFab& fine, const M
         for (int d = 0; d < 2; ++d) {
             ic[d] = amrex::coarsen(iv[d], ratio[d]);
             Real const t = (Real(iv[d] - ratio[d]*ic[d]) + Real(0.5)) / Real(ratio[d]) - Real(0.5);
-            w[d] = std::abs(t);
+            w[d] = amrex::Math::abs(t);
             in[d] = ic[d] + ((t < Real(0.0)) ? -1 : 1);
             s[d] = Real(1.0);
             // Reflect at non-periodic domain faces: even (Neumann), odd (Dirichlet).

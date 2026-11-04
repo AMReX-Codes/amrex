@@ -36,7 +36,8 @@ namespace detail {
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
-        auto mpi_op = mpi_ops[static_cast<int>(op)]; // NOLINT
+        auto mpi_op = ParallelDescriptor::detail::mpi_op_for_type<T>(
+            mpi_ops[static_cast<int>(op)]); // NOLINT
         if (root == -1) {
             // TODO: add BL_COMM_PROFILE commands
             MPI_Allreduce(MPI_IN_PLACE, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),

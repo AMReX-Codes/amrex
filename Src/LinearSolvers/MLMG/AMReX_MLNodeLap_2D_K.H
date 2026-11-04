@@ -939,8 +939,8 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int, Box const& ccbx,
 
         for (int joff = jlo; joff <= jhi; ++joff) {
         for (int ioff = ilo; ioff <= ihi; ++ioff) {
-            Real scale = (static_cast<Real>(rr)-std::abs(static_cast<Real>(ioff-ii)+Real(0.5)))
-                *        (static_cast<Real>(rr)-std::abs(static_cast<Real>(joff-jj)+Real(0.5)));
+            Real scale = (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(ioff-ii)+Real(0.5)))
+                *        (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(joff-jj)+Real(0.5)));
             tmp += cc(ioff,joff,0) * scale;
         }}
 
@@ -1438,10 +1438,10 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
                     + sten(i  ,j-1,k,2) + sten(i  ,j  ,k,2)
                     + sten(i-1,j-1,k,3) + sten(i  ,j-1,k,3)
                     + sten(i-1,j  ,k,3) + sten(i  ,j  ,k,3));
-    sten(i,j,k,4) = Real(1.0) / (std::abs(sten(i-1,j  ,k,1)) + std::abs(sten(i,j  ,k,1))
-                               + std::abs(sten(i  ,j-1,k,2)) + std::abs(sten(i,j  ,k,2))
-                               + std::abs(sten(i-1,j-1,k,3)) + std::abs(sten(i,j-1,k,3))
-                               + std::abs(sten(i-1,j  ,k,3)) + std::abs(sten(i,j  ,k,3)) + eps);
+    sten(i,j,k,4) = Real(1.0) / (amrex::Math::abs(sten(i-1,j  ,k,1)) + amrex::Math::abs(sten(i,j  ,k,1))
+                               + amrex::Math::abs(sten(i  ,j-1,k,2)) + amrex::Math::abs(sten(i,j  ,k,2))
+                               + amrex::Math::abs(sten(i-1,j-1,k,3)) + amrex::Math::abs(sten(i,j-1,k,3))
+                               + amrex::Math::abs(sten(i-1,j  ,k,3)) + amrex::Math::abs(sten(i,j  ,k,3)) + Real(eps));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1454,48 +1454,48 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
 
 #if 0
     auto interp_from_mm_to = [&fsten] (int i_, int j_) -> Real {
-        Real wxm = std::abs(fsten(i_-1,j_  ,0,1))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_-1,j_  ,0,3))+eps);
-        Real wym = std::abs(fsten(i_  ,j_-1,0,2))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_  ,j_-1,0,3))+eps);
-        Real wmm = std::abs(fsten(i_-1,j_-1,0,3)) * (Real(1.) + wxm + wym);
+        Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+Real(eps));
+        Real wym = amrex::Math::abs(fsten(i_  ,j_-1,0,2))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_-1,0,3))+Real(eps));
+        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,0,3)) * (Real(1.) + wxm + wym);
         return wmm * fsten(i_,j_,0,4);
     };
 #endif
 
     auto interp_from_mp_to = [&fsten] (int i_, int j_) -> Real {
-        Real wxm = std::abs(fsten(i_-1,j_  ,0,1))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_-1,j_  ,0,3))+eps);
-        Real wyp = std::abs(fsten(i_  ,j_  ,0,2))/(std::abs(fsten(i_-1,j_  ,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wmp = std::abs(fsten(i_-1,j_  ,0,3)) *(Real(1.) + wxm + wyp);
+        Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+Real(eps));
+        Real wyp = amrex::Math::abs(fsten(i_  ,j_  ,0,2))/(amrex::Math::abs(fsten(i_-1,j_  ,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+Real(eps));
+        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,0,3)) *(Real(1.) + wxm + wyp);
         return wmp * fsten(i_,j_,0,4);
     };
 
     auto interp_from_pm_to = [&fsten] (int i_, int j_) -> Real {
-        Real wxp = std::abs(fsten(i_  ,j_  ,0,1))/(std::abs(fsten(i_  ,j_-1,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wym = std::abs(fsten(i_  ,j_-1,0,2))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_  ,j_-1,0,3))+eps);
-        Real wpm = std::abs(fsten(i_  ,j_-1,0,3)) * (Real(1.) + wxp + wym);
+        Real wxp = amrex::Math::abs(fsten(i_  ,j_  ,0,1))/(amrex::Math::abs(fsten(i_  ,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+Real(eps));
+        Real wym = amrex::Math::abs(fsten(i_  ,j_-1,0,2))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_-1,0,3))+Real(eps));
+        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,0,3)) * (Real(1.) + wxp + wym);
         return wpm * fsten(i_,j_,0,4);
     };
 
     auto interp_from_pp_to = [&fsten] (int i_, int j_) -> Real {
-        Real wxp = std::abs(fsten(i_  ,j_  ,0,1))/(std::abs(fsten(i_  ,j_-1,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wyp = std::abs(fsten(i_  ,j_  ,0,2))/(std::abs(fsten(i_-1,j_  ,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wpp = std::abs(fsten(i_  ,j_  ,0,3)) * (Real(1.) + wxp + wyp);
+        Real wxp = amrex::Math::abs(fsten(i_  ,j_  ,0,1))/(amrex::Math::abs(fsten(i_  ,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+Real(eps));
+        Real wyp = amrex::Math::abs(fsten(i_  ,j_  ,0,2))/(amrex::Math::abs(fsten(i_-1,j_  ,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+Real(eps));
+        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,0,3)) * (Real(1.) + wxp + wyp);
         return wpp * fsten(i_,j_,0,4);
     };
 
     auto interp_from_m0_to = [&fsten] (int i_, int j_) -> Real {
-        return std::abs(fsten(i_-1,j_,0,1))/(std::abs(fsten(i_-1,j_,0,1))+std::abs(fsten(i_,j_,0,1))+eps);
+        return amrex::Math::abs(fsten(i_-1,j_,0,1))/(amrex::Math::abs(fsten(i_-1,j_,0,1))+amrex::Math::abs(fsten(i_,j_,0,1))+Real(eps));
     };
 
     auto interp_from_p0_to = [&fsten] (int i_, int j_) -> Real {
-        return std::abs(fsten(i_,j_,0,1))/(std::abs(fsten(i_-1,j_,0,1))+std::abs(fsten(i_,j_,0,1))+eps);
+        return amrex::Math::abs(fsten(i_,j_,0,1))/(amrex::Math::abs(fsten(i_-1,j_,0,1))+amrex::Math::abs(fsten(i_,j_,0,1))+Real(eps));
     };
 
     auto interp_from_0m_to = [&fsten] (int i_, int j_) -> Real {
-        return std::abs(fsten(i_,j_-1,0,2))/(std::abs(fsten(i_,j_-1,0,2))+std::abs(fsten(i_,j_,0,2))+eps);
+        return amrex::Math::abs(fsten(i_,j_-1,0,2))/(amrex::Math::abs(fsten(i_,j_-1,0,2))+amrex::Math::abs(fsten(i_,j_,0,2))+Real(eps));
     };
 
     auto interp_from_0p_to = [&fsten] (int i_, int j_) -> Real {
-        return std::abs(fsten(i_,j_,0,2))/(std::abs(fsten(i_,j_-1,0,2))+std::abs(fsten(i_,j_,0,2))+eps);
+        return amrex::Math::abs(fsten(i_,j_,0,2))/(amrex::Math::abs(fsten(i_,j_-1,0,2))+amrex::Math::abs(fsten(i_,j_,0,2))+Real(eps));
     };
 
 #if 0
@@ -1538,47 +1538,47 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
 
 #if 0
     auto restrict_from_mm_to = [&fsten] (int ii_, int jj_) -> Real {
-        Real wxp = std::abs(fsten(ii_-1,jj_-1,0,1))/(std::abs(fsten(ii_-1,jj_-2,0,3))+std::abs(fsten(ii_-1,jj_-1,0,3))+eps);
-        Real wyp = std::abs(fsten(ii_-1,jj_-1,0,2))/(std::abs(fsten(ii_-2,jj_-1,0,3))+std::abs(fsten(ii_-1,jj_-1,0,3))+eps);
-        Real wpp = std::abs(fsten(ii_-1,jj_-1,0,3))*(Real(1.)+wxp+wyp);
+        Real wxp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,1))/(amrex::Math::abs(fsten(ii_-1,jj_-2,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+Real(eps));
+        Real wyp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_-2,jj_-1,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+Real(eps));
+        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))*(Real(1.)+wxp+wyp);
         return wpp * fsten(ii_-1,jj_-1,0,4);
     };
 #endif
 
     auto restrict_from_0m_to = [&fsten] (int ii_, int jj_) -> Real {
-        return std::abs(fsten(ii_,jj_-1,0,2))/(std::abs(fsten(ii_,jj_-2,0,2))+std::abs(fsten(ii_,jj_-1,0,2))+eps);
+        return amrex::Math::abs(fsten(ii_,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_,jj_-2,0,2))+amrex::Math::abs(fsten(ii_,jj_-1,0,2))+Real(eps));
     };
 
     auto restrict_from_pm_to = [&fsten] (int ii_, int jj_) -> Real {
-        Real wxm = std::abs(fsten(ii_  ,jj_-1,0,1))/(std::abs(fsten(ii_,jj_-2,0,3))+std::abs(fsten(ii_  ,jj_-1,0,3))+eps);
-        Real wyp = std::abs(fsten(ii_+1,jj_-1,0,2))/(std::abs(fsten(ii_,jj_-1,0,3))+std::abs(fsten(ii_+1,jj_-1,0,3))+eps);
-        Real wmp = std::abs(fsten(ii_  ,jj_-1,0,3)) *(Real(1.) + wxm + wyp);
+        Real wxm = amrex::Math::abs(fsten(ii_  ,jj_-1,0,1))/(amrex::Math::abs(fsten(ii_,jj_-2,0,3))+amrex::Math::abs(fsten(ii_  ,jj_-1,0,3))+Real(eps));
+        Real wyp = amrex::Math::abs(fsten(ii_+1,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_,jj_-1,0,3))+amrex::Math::abs(fsten(ii_+1,jj_-1,0,3))+Real(eps));
+        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_-1,0,3)) *(Real(1.) + wxm + wyp);
         return wmp * fsten(ii_+1,jj_-1,0,4);
     };
 
     auto restrict_from_m0_to = [&fsten] (int ii_, int jj_) -> Real {
-        return std::abs(fsten(ii_-1,jj_,0,1))/(std::abs(fsten(ii_-2,jj_,0,1))+std::abs(fsten(ii_-1,jj_,0,1))+eps);
+        return amrex::Math::abs(fsten(ii_-1,jj_,0,1))/(amrex::Math::abs(fsten(ii_-2,jj_,0,1))+amrex::Math::abs(fsten(ii_-1,jj_,0,1))+Real(eps));
     };
 
     auto restrict_from_p0_to = [&fsten] (int ii_, int jj_) -> Real {
-        return std::abs(fsten(ii_,jj_,0,1))/(std::abs(fsten(ii_,jj_,0,1))+std::abs(fsten(ii_+1,jj_,0,1))+eps);
+        return amrex::Math::abs(fsten(ii_,jj_,0,1))/(amrex::Math::abs(fsten(ii_,jj_,0,1))+amrex::Math::abs(fsten(ii_+1,jj_,0,1))+Real(eps));
     };
 
     auto restrict_from_mp_to = [&fsten] (int ii_, int jj_) -> Real {
-        Real wxp = std::abs(fsten(ii_-1,jj_+1,0,1))/(std::abs(fsten(ii_-1,jj_,0,3))+std::abs(fsten(ii_-1,jj_+1,0,3))+eps);
-        Real wym = std::abs(fsten(ii_-1,jj_  ,0,2))/(std::abs(fsten(ii_-2,jj_,0,3))+std::abs(fsten(ii_-1,jj_  ,0,3))+eps);
-        Real wpm = std::abs(fsten(ii_-1,jj_  ,0,3)) * (Real(1.) + wxp + wym);
+        Real wxp = amrex::Math::abs(fsten(ii_-1,jj_+1,0,1))/(amrex::Math::abs(fsten(ii_-1,jj_,0,3))+amrex::Math::abs(fsten(ii_-1,jj_+1,0,3))+Real(eps));
+        Real wym = amrex::Math::abs(fsten(ii_-1,jj_  ,0,2))/(amrex::Math::abs(fsten(ii_-2,jj_,0,3))+amrex::Math::abs(fsten(ii_-1,jj_  ,0,3))+Real(eps));
+        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_  ,0,3)) * (Real(1.) + wxp + wym);
         return wpm * fsten(ii_-1,jj_+1,0,4);
     };
 
     auto restrict_from_0p_to = [&fsten] (int ii_, int jj_) -> Real {
-        return std::abs(fsten(ii_,jj_,0,2))/(std::abs(fsten(ii_,jj_,0,2))+std::abs(fsten(ii_,jj_+1,0,2))+eps);
+        return amrex::Math::abs(fsten(ii_,jj_,0,2))/(amrex::Math::abs(fsten(ii_,jj_,0,2))+amrex::Math::abs(fsten(ii_,jj_+1,0,2))+Real(eps));
     };
 
     auto restrict_from_pp_to = [&fsten] (int ii_, int jj_) -> Real {
-        Real wxm = std::abs(fsten(ii_  ,jj_+1,0,1))/(std::abs(fsten(ii_  ,jj_  ,0,3))+std::abs(fsten(ii_  ,jj_+1,0,3))+eps);
-        Real wym = std::abs(fsten(ii_+1,jj_  ,0,2))/(std::abs(fsten(ii_  ,jj_  ,0,3))+std::abs(fsten(ii_+1,jj_  ,0,3))+eps);
-        Real wmm = std::abs(fsten(ii_  ,jj_  ,0,3)) * (Real(1.) + wxm + wym);
+        Real wxm = amrex::Math::abs(fsten(ii_  ,jj_+1,0,1))/(amrex::Math::abs(fsten(ii_  ,jj_  ,0,3))+amrex::Math::abs(fsten(ii_  ,jj_+1,0,3))+Real(eps));
+        Real wym = amrex::Math::abs(fsten(ii_+1,jj_  ,0,2))/(amrex::Math::abs(fsten(ii_  ,jj_  ,0,3))+amrex::Math::abs(fsten(ii_+1,jj_  ,0,3))+Real(eps));
+        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_  ,0,3)) * (Real(1.) + wxm + wym);
         return wmm * fsten(ii_+1,jj_+1,0,4);
     };
 
@@ -1741,29 +1741,29 @@ void mlndlap_interpadd_rap (int i, int j, int, Array4<Real> const& fine,
         if (ieven && jeven) {
             fv = crse(ic,jc,0);
         } else if (ieven) {
-            Real wym = std::abs(sten(i,j-1,0,2));
-            Real wyp = std::abs(sten(i,j  ,0,2));
-            fv = (wym*crse(ic,jc,0) + wyp*crse(ic,jc+1,0)) / (wym+wyp+eps);
+            Real wym = amrex::Math::abs(sten(i,j-1,0,2));
+            Real wyp = amrex::Math::abs(sten(i,j  ,0,2));
+            fv = (wym*crse(ic,jc,0) + wyp*crse(ic,jc+1,0)) / (wym+wyp+Real(eps));
         } else if (jeven) {
-            Real wxm = std::abs(sten(i-1,j,0,1));
-            Real wxp = std::abs(sten(i  ,j,0,1));
-            fv = (wxm*crse(ic,jc,0) + wxp*crse(ic+1,jc,0)) / (wxm+wxp+eps);
+            Real wxm = amrex::Math::abs(sten(i-1,j,0,1));
+            Real wxp = amrex::Math::abs(sten(i  ,j,0,1));
+            fv = (wxm*crse(ic,jc,0) + wxp*crse(ic+1,jc,0)) / (wxm+wxp+Real(eps));
         } else {
-            Real wxm = std::abs(sten(i-1,j  ,0,1)) /
-                (std::abs(sten(i-1,j-1,0,3))+std::abs(sten(i-1,j  ,0,3))+eps);
-            Real wxp = std::abs(sten(i  ,j  ,0,1)) /
-                (std::abs(sten(i  ,j-1,0,3))+std::abs(sten(i  ,j  ,0,3))+eps);
-            Real wym = std::abs(sten(i  ,j-1,0,2)) /
-                (std::abs(sten(i-1,j-1,0,3))+std::abs(sten(i  ,j-1,0,3))+eps);
-            Real wyp = std::abs(sten(i  ,j  ,0,2)) /
-                (std::abs(sten(i-1,j  ,0,3))+std::abs(sten(i  ,j  ,0,3))+eps);
-            Real wmm = std::abs(sten(i-1,j-1,0,3)) * (Real(1.0) + wxm + wym);
-            Real wpm = std::abs(sten(i,j-1,0,3)) * (Real(1.0) + wxp + wym);
-            Real wmp = std::abs(sten(i-1,j,0,3)) *(Real(1.0) + wxm + wyp);
-            Real wpp = std::abs(sten(i,j,0,3)) * (Real(1.0) + wxp + wyp);
+            Real wxm = amrex::Math::abs(sten(i-1,j  ,0,1)) /
+                (amrex::Math::abs(sten(i-1,j-1,0,3))+amrex::Math::abs(sten(i-1,j  ,0,3))+Real(eps));
+            Real wxp = amrex::Math::abs(sten(i  ,j  ,0,1)) /
+                (amrex::Math::abs(sten(i  ,j-1,0,3))+amrex::Math::abs(sten(i  ,j  ,0,3))+Real(eps));
+            Real wym = amrex::Math::abs(sten(i  ,j-1,0,2)) /
+                (amrex::Math::abs(sten(i-1,j-1,0,3))+amrex::Math::abs(sten(i  ,j-1,0,3))+Real(eps));
+            Real wyp = amrex::Math::abs(sten(i  ,j  ,0,2)) /
+                (amrex::Math::abs(sten(i-1,j  ,0,3))+amrex::Math::abs(sten(i  ,j  ,0,3))+Real(eps));
+            Real wmm = amrex::Math::abs(sten(i-1,j-1,0,3)) * (Real(1.0) + wxm + wym);
+            Real wpm = amrex::Math::abs(sten(i,j-1,0,3)) * (Real(1.0) + wxp + wym);
+            Real wmp = amrex::Math::abs(sten(i-1,j,0,3)) *(Real(1.0) + wxm + wyp);
+            Real wpp = amrex::Math::abs(sten(i,j,0,3)) * (Real(1.0) + wxp + wyp);
             fv = (wmm*crse(ic,jc,0) + wpm*crse(ic+1,jc,0)
                   + wmp*crse(ic,jc+1,0) + wpp*crse(ic+1,jc+1,0))
-                / (wmm+wpm+wmp+wpp+eps);
+                / (wmm+wpm+wmp+wpp+Real(eps));
         }
 
         fine(i,j,0) += fv;
@@ -1784,53 +1784,53 @@ void mlndlap_restriction_rap (int i, int j, int /*k*/, Array4<Real> const& crse,
     } else {
 
         Real cv = fine(ii,jj,0)
-            + fine(ii-1,jj  ,0)*std::abs(sten(ii-1,jj  ,0,1))
-            /                  (std::abs(sten(ii-2,jj  ,0,1))
-                               +std::abs(sten(ii-1,jj  ,0,1))+eps)
-            + fine(ii+1,jj  ,0)*std::abs(sten(ii  ,jj  ,0,1))
-            /                  (std::abs(sten(ii  ,jj  ,0,1))
-                               +std::abs(sten(ii+1,jj  ,0,1))+eps)
-            + fine(ii  ,jj-1,0)*std::abs(sten(ii  ,jj-1,0,2))
-            /                  (std::abs(sten(ii  ,jj-2,0,2))
-                               +std::abs(sten(ii  ,jj-1,0,2))+eps)
-            + fine(ii  ,jj+1,0)*std::abs(sten(ii  ,jj  ,0,2))
-            /                  (std::abs(sten(ii  ,jj  ,0,2))
-                               +std::abs(sten(ii  ,jj+1,0,2))+eps);
+            + fine(ii-1,jj  ,0)*amrex::Math::abs(sten(ii-1,jj  ,0,1))
+            /                  (amrex::Math::abs(sten(ii-2,jj  ,0,1))
+                               +amrex::Math::abs(sten(ii-1,jj  ,0,1))+Real(eps))
+            + fine(ii+1,jj  ,0)*amrex::Math::abs(sten(ii  ,jj  ,0,1))
+            /                  (amrex::Math::abs(sten(ii  ,jj  ,0,1))
+                               +amrex::Math::abs(sten(ii+1,jj  ,0,1))+Real(eps))
+            + fine(ii  ,jj-1,0)*amrex::Math::abs(sten(ii  ,jj-1,0,2))
+            /                  (amrex::Math::abs(sten(ii  ,jj-2,0,2))
+                               +amrex::Math::abs(sten(ii  ,jj-1,0,2))+Real(eps))
+            + fine(ii  ,jj+1,0)*amrex::Math::abs(sten(ii  ,jj  ,0,2))
+            /                  (amrex::Math::abs(sten(ii  ,jj  ,0,2))
+                               +amrex::Math::abs(sten(ii  ,jj+1,0,2))+Real(eps));
 
-        Real wxp = std::abs(sten(ii-1,jj-1,0,1))
-            /     (std::abs(sten(ii-1,jj-2,0,3))
-                  +std::abs(sten(ii-1,jj-1,0,3))+eps);
-        Real wyp = std::abs(sten(ii-1,jj-1,0,2))
-            /     (std::abs(sten(ii-2,jj-1,0,3))
-                  +std::abs(sten(ii-1,jj-1,0,3))+eps);
-        Real wpp = std::abs(sten(ii-1,jj-1,0,3))*(Real(1.0) + wxp + wyp);
+        Real wxp = amrex::Math::abs(sten(ii-1,jj-1,0,1))
+            /     (amrex::Math::abs(sten(ii-1,jj-2,0,3))
+                  +amrex::Math::abs(sten(ii-1,jj-1,0,3))+Real(eps));
+        Real wyp = amrex::Math::abs(sten(ii-1,jj-1,0,2))
+            /     (amrex::Math::abs(sten(ii-2,jj-1,0,3))
+                  +amrex::Math::abs(sten(ii-1,jj-1,0,3))+Real(eps));
+        Real wpp = amrex::Math::abs(sten(ii-1,jj-1,0,3))*(Real(1.0) + wxp + wyp);
         cv +=           wpp*sten(ii-1,jj-1,0,4)*fine(ii-1,jj-1,0);
 
-        Real wxm = std::abs(sten(ii  ,jj-1,0,1))
-            /     (std::abs(sten(ii  ,jj-2,0,3))
-                  +std::abs(sten(ii  ,jj-1,0,3))+eps);
-        wyp      = std::abs(sten(ii+1,jj-1,0,2))
-            /     (std::abs(sten(ii  ,jj-1,0,3))
-                  +std::abs(sten(ii+1,jj-1,0,3))+eps);
-        Real wmp = std::abs(sten(ii  ,jj-1,0,3))*(Real(1.0) + wxm + wyp);
+        Real wxm = amrex::Math::abs(sten(ii  ,jj-1,0,1))
+            /     (amrex::Math::abs(sten(ii  ,jj-2,0,3))
+                  +amrex::Math::abs(sten(ii  ,jj-1,0,3))+Real(eps));
+        wyp      = amrex::Math::abs(sten(ii+1,jj-1,0,2))
+            /     (amrex::Math::abs(sten(ii  ,jj-1,0,3))
+                  +amrex::Math::abs(sten(ii+1,jj-1,0,3))+Real(eps));
+        Real wmp = amrex::Math::abs(sten(ii  ,jj-1,0,3))*(Real(1.0) + wxm + wyp);
         cv +=           wmp*sten(ii+1,jj-1,0,4)*fine(ii+1,jj-1,0);
 
-        wxp      = std::abs(sten(ii-1,jj+1,0,1))
-            /     (std::abs(sten(ii-1,jj  ,0,3))
-                  +std::abs(sten(ii-1,jj+1,0,3))+eps);
-        Real wym = std::abs(sten(ii-1,jj  ,0,2))
-            /     (std::abs(sten(ii-2,jj  ,0,3))
-                  +std::abs(sten(ii-1,jj  ,0,3))+eps);
-        Real wpm = std::abs(sten(ii-1,jj  ,0,3)) * (Real(1.0) + wxp + wym);
+        wxp      = amrex::Math::abs(sten(ii-1,jj+1,0,1))
+            /     (amrex::Math::abs(sten(ii-1,jj  ,0,3))
+                  +amrex::Math::abs(sten(ii-1,jj+1,0,3))+Real(eps));
+        Real wym = amrex::Math::abs(sten(ii-1,jj  ,0,2))
+            /     (amrex::Math::abs(sten(ii-2,jj  ,0,3))
+                  +amrex::Math::abs(sten(ii-1,jj  ,0,3))+Real(eps));
+        Real wpm = amrex::Math::abs(sten(ii-1,jj  ,0,3)) * (Real(1.0) + wxp + wym);
         cv +=           wpm*sten(ii-1,jj+1,0,4)*fine(ii-1,jj+1,0);
 
-        wxm      = std::abs(sten(ii  ,jj+1,0,1))
-            /     (std::abs(sten(ii  ,jj  ,0,3))
-                  +std::abs(sten(ii  ,jj+1,0,3))+eps);
-        wym      = std::abs(sten(ii+1,jj  ,0,2))
-            /     (std::abs(sten(ii  ,jj  ,0,3))
-                  +std::abs(sten(ii+1,jj  ,0,3))+eps);
-        Real wmm = std::abs(sten(ii  ,jj  ,0,3)) * (Real(1.0) + wxm + wym);
+        wxm      = amrex::Math::abs(sten(ii  ,jj+1,0,1))
+            /     (amrex::Math::abs(sten(ii  ,jj  ,0,3))
+                  +amrex::Math::abs(sten(ii  ,jj+1,0,3))+Real(eps));
+        wym      = amrex::Math::abs(sten(ii+1,jj  ,0,2))
+            /     (amrex::Math::abs(sten(ii  ,jj  ,0,3))
+                  +amrex::Math::abs(sten(ii+1,jj  ,0,3))+Real(eps));
+        Real wmm = amrex::Math::abs(sten(ii  ,jj  ,0,3)) * (Real(1.0) + wxm + wym);
         cv +=           wmm*sten(ii+1,jj+1,0,4)*fine(ii+1,jj+1,0);
 
         crse(i,j,0) = cv * Real(0.25);
@@ -2094,7 +2094,7 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real aym = ay(i,j,0);
         Real ayp = ay(i,j+1,0);
 
-        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+        Real apnorm = amrex::Math::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
         if (apnorm == Real(0.)) {
             amrex::Abort("amrex_mlndlap_set_integral: we are in trouble");
         }
@@ -2107,11 +2107,11 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real bcy = bcen(i,j,0,1);
 
         Real Sx, Sy, Sx2, Sy2, Sxy;
-        if (std::abs(anrmx) <= almostzero) {
+        if (amrex::Math::abs(anrmx) <= almostzero) {
             Sx = Real(0.);
             Sx2 = Real(1./24.)*(axm+axp);
             Sxy = Real(0.);
-        } else if (std::abs(anrmy) <= almostzero) {
+        } else if (amrex::Math::abs(anrmy) <= almostzero) {
             Sx  = Real(1./8.) *(axp-axm) + anrmx*Real(0.5)*(bcx*bcx);
             Sx2 = Real(1./24.)*(axp+axm) + anrmx*Real(1./3.)*(bcx*bcx*bcx);
             Sxy = Real(0.);
@@ -2128,8 +2128,8 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Real xmin4 = xmin3*xmin;
             Real xmax3 = xmax*xmax*xmax;
             Real xmax4 = xmax3*xmax;
-            Sx  = Real(1./8.) *(axp-axm) + (anrmx/std::abs(anrmy))*Real(1./6.) *(xmax3-xmin3);
-            Sx2 = Real(1./24.)*(axp+axm) + (anrmx/std::abs(anrmy))*Real(1./12.)*(xmax4-xmin4);
+            Sx  = Real(1./8.) *(axp-axm) + (anrmx/amrex::Math::abs(anrmy))*Real(1./6.) *(xmax3-xmin3);
+            Sx2 = Real(1./24.)*(axp+axm) + (anrmx/amrex::Math::abs(anrmy))*Real(1./12.)*(xmax4-xmin4);
 
             Real kk = -anrmx/anrmy;
             Real bb = bcy-kk*bcx;
@@ -2138,10 +2138,10 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             if (anrmy < Real(0.)) { Sxy = -Sxy; }
         }
 
-        if (std::abs(anrmy) <= almostzero) {
+        if (amrex::Math::abs(anrmy) <= almostzero) {
             Sy = Real(0.);
             Sy2 = Real(1./24.)*(aym+ayp);
-        } else if (std::abs(anrmx) <= almostzero) {
+        } else if (amrex::Math::abs(anrmx) <= almostzero) {
             Sy  = Real(1./8.) *(ayp-aym) + anrmy*Real(0.5)*(bcy*bcy);
             Sy2 = Real(1./24.)*(ayp+aym) + anrmy*Real(1./3.)*(bcy*bcy*bcy);
         } else {
@@ -2157,8 +2157,8 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Real ymin4 = ymin3*ymin;
             Real ymax3 = ymax*ymax*ymax;
             Real ymax4 = ymax3*ymax;
-            Sy  = Real(1./8.) *(ayp-aym) + (anrmy/std::abs(anrmx))*Real(1./6.) *(ymax3-ymin3);
-            Sy2 = Real(1./24.)*(ayp+aym) + (anrmy/std::abs(anrmx))*Real(1./12.)*(ymax4-ymin4);
+            Sy  = Real(1./8.) *(ayp-aym) + (anrmy/amrex::Math::abs(anrmx))*Real(1./6.) *(ymax3-ymin3);
+            Sy2 = Real(1./24.)*(ayp+aym) + (anrmy/amrex::Math::abs(anrmx))*Real(1./12.)*(ymax4-ymin4);
         }
 
         intg(i,j,0,i_S_x ) = Sx;

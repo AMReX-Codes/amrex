@@ -391,7 +391,7 @@ T AlgVector<T,Allocator>::norm2 (bool local) const
     if (!local) {
         ParallelAllReduce::Sum(r, ParallelContext::CommunicatorSub());
     }
-    return std::sqrt(r);
+    return amrex::Math::sqrt(r);
 }
 
 template <typename T, typename Allocator>

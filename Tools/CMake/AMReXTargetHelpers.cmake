@@ -53,6 +53,10 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
        return()
    else()
         set(${_ltgts} ${${_ltgts}} ${_target} PARENT_SCOPE)
+        # Also record it in this scope, which the recursive calls below
+        # inherit: targets that depend on each other (e.g., the CCCL
+        # targets) would otherwise recurse forever.
+        list(APPEND ${_ltgts} ${_target})
    endif()
 
    # defines

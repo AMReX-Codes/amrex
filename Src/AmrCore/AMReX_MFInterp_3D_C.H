@@ -28,8 +28,8 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
             dcx = mf_compute_slopes_x(i, j, k, u, nu, domain, bc[ns]);
             Real df  = Real(2.0) * (u(i+1,j,k,nu) - u(i  ,j,k,nu));
             Real db  = Real(2.0) * (u(i  ,j,k,nu) - u(i-1,j,k,nu));
-            sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sx = std::copysign(Real(1.),dcx)*amrex::min(sx,std::abs(dcx));
+            sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sx = amrex::Math::copysign(Real(1.),dcx)*amrex::min(sx,amrex::Math::abs(dcx));
             slope(i,j,k,ns        ) = dcx;  // unlimited slope
         } else {
             slope(i,j,k,ns        ) = Real(0.0);
@@ -40,8 +40,8 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
             dcy = mf_compute_slopes_y(i, j, k, u, nu, domain, bc[ns]);
             Real df  = Real(2.0) * (u(i,j+1,k,nu) - u(i,j  ,k,nu));
             Real db  = Real(2.0) * (u(i,j  ,k,nu) - u(i,j-1,k,nu));
-            sy = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sy = std::copysign(Real(1.),dcy)*amrex::min(sy,std::abs(dcy));
+            sy = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sy = amrex::Math::copysign(Real(1.),dcy)*amrex::min(sy,amrex::Math::abs(dcy));
             slope(i,j,k,ns+  ncomp) = dcy;  // unlimited slope
         } else {
             slope(i,j,k,ns+  ncomp) = Real(0.0);
@@ -52,8 +52,8 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
             dcz = mf_compute_slopes_z(i, j, k, u, nu, domain, bc[ns]);
             Real df  = Real(2.0) * (u(i,j,k+1,nu) - u(i,j,k  ,nu));
             Real db  = Real(2.0) * (u(i,j,k  ,nu) - u(i,j,k-1,nu));
-            sz = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sz = std::copysign(Real(1.),dcz)*amrex::min(sz,std::abs(dcz));
+            sz = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sz = amrex::Math::copysign(Real(1.),dcz)*amrex::min(sz,amrex::Math::abs(dcz));
             slope(i,j,k,ns+2*ncomp) = dcz;  // unlimited slope
         } else {
             slope(i,j,k,ns+2*ncomp) = Real(0.0);
@@ -62,9 +62,9 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
         // adjust limited slopes to prevent new min/max for this component
         Real alpha = 1.0;
         if (sx != Real(0.0) || sy != Real(0.0) || sz != Real(0.0)) {
-            Real dumax = std::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
-                +        std::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
-                +        std::abs(sz) * Real(ratio[2]-1)/Real(2*ratio[2]);
+            Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
+                +        amrex::Math::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
+                +        amrex::Math::abs(sz) * Real(ratio[2]-1)/Real(2*ratio[2]);
             Real umax = u(i,j,k,nu);
             Real umin = u(i,j,k,nu);
             int ilim = ratio[0] > 1 ? 1 : 0;
@@ -126,8 +126,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<Real> const& s
             Real dc = mf_compute_slopes_x(i, j, k, u, nu, domain, bc[ns]);
             Real df = Real(2.0) * (u(i+1,j,k,nu) - u(i  ,j,k,nu));
             Real db = Real(2.0) * (u(i  ,j,k,nu) - u(i-1,j,k,nu));
-            Real sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+            Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
             if (dc != Real(0.0)) {
                 sfx = amrex::min(sfx, sx / dc);
             }
@@ -141,8 +141,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<Real> const& s
             Real dc = mf_compute_slopes_y(i, j, k, u, nu, domain, bc[ns]);
             Real df = Real(2.0) * (u(i,j+1,k,nu) - u(i,j  ,k,nu));
             Real db = Real(2.0) * (u(i,j  ,k,nu) - u(i,j-1,k,nu));
-            Real sy = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sy = std::copysign(Real(1.),dc)*amrex::min(sy,std::abs(dc));
+            Real sy = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sy = amrex::Math::copysign(Real(1.),dc)*amrex::min(sy,amrex::Math::abs(dc));
             if (dc != Real(0.0)) {
                 sfy = amrex::min(sfy, sy / dc);
             }
@@ -157,8 +157,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<Real> const& s
             Real dc = mf_compute_slopes_z(i, j, k, u, nu, domain, bc[ns]);
             Real df = Real(2.0) * (u(i,j,k+1,nu) - u(i,j,k  ,nu));
             Real db = Real(2.0) * (u(i,j,k  ,nu) - u(i,j,k-1,nu));
-            Real sz = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-            sz = std::copysign(Real(1.),dc)*amrex::min(sz,std::abs(dc));
+            Real sz = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+            sz = amrex::Math::copysign(Real(1.),dc)*amrex::min(sz,amrex::Math::abs(dc));
             if (dc != Real(0.0)) {
                 sfz = amrex::min(sfz, sz / dc);
             }
@@ -193,8 +193,8 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
         Real dc = mf_compute_slopes_x(i, j, k, u, nu, domain, bc[ns]);
         Real df = Real(2.0) * (u(i+1,j,k,nu) - u(i  ,j,k,nu));
         Real db = Real(2.0) * (u(i  ,j,k,nu) - u(i-1,j,k,nu));
-        sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-        sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+        sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+        sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
     }
 
     // y-direction
@@ -202,8 +202,8 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
         Real dc = mf_compute_slopes_y(i, j, k, u, nu, domain, bc[ns]);
         Real df = Real(2.0) * (u(i,j+1,k,nu) - u(i,j  ,k,nu));
         Real db = Real(2.0) * (u(i,j  ,k,nu) - u(i,j-1,k,nu));
-        sy = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-        sy = std::copysign(Real(1.),dc)*amrex::min(sy,std::abs(dc));
+        sy = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+        sy = amrex::Math::copysign(Real(1.),dc)*amrex::min(sy,amrex::Math::abs(dc));
     }
 
     // z-direction
@@ -211,15 +211,15 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
         Real dc = mf_compute_slopes_z(i, j, k, u, nu, domain, bc[ns]);
         Real df = Real(2.0) * (u(i,j,k+1,nu) - u(i,j,k  ,nu));
         Real db = Real(2.0) * (u(i,j,k  ,nu) - u(i,j,k-1,nu));
-        sz = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
-        sz = std::copysign(Real(1.),dc)*amrex::min(sz,std::abs(dc));
+        sz = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+        sz = amrex::Math::copysign(Real(1.),dc)*amrex::min(sz,amrex::Math::abs(dc));
     }
 
     Real alpha = 1.0;
     if (sx != Real(0.0) || sy != Real(0.0) || sz != Real(0.0)) {
-        Real dumax = std::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
-            +        std::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
-            +        std::abs(sz) * Real(ratio[2]-1)/Real(2*ratio[2]);
+        Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
+            +        amrex::Math::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
+            +        amrex::Math::abs(sz) * Real(ratio[2]-1)/Real(2*ratio[2]);
         Real umax = u(i,j,k,nu);
         Real umin = u(i,j,k,nu);
         int ilim = ratio[0] > 1 ? 1 : 0;

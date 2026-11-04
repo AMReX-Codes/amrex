@@ -443,7 +443,7 @@ void test_fillpatch (TestMesh const& mesh, int lev, IndexType ityp,
         auto const& a = host.const_array();
         amrex::LoopOnCpu(mfi.fabbox() & check_region, [&] (int i, int j, int k)
         {
-            maxerr = std::max(maxerr, std::abs(a(i,j,k) - ffield(i,j,k)));
+            maxerr = std::max(maxerr, amrex::Math::abs(a(i,j,k) - ffield(i,j,k)));
         });
     }
     ParallelDescriptor::ReduceRealMax(maxerr);

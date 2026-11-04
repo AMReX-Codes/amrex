@@ -56,7 +56,7 @@ class AdvectionAmrCore : public AmrCore {
                 Real x[] = {problo[0] + (0.5_rt+Real(i))*dx[0],
                             problo[1] + (0.5_rt+Real(j))*dx[1]};
                 const Real r2 = x[0] * x[0] + x[1] * x[1];
-                constexpr Real R = 0.1_rt * 0.1_rt;
+                const Real R = 0.1_rt * 0.1_rt;
                 m(i, j, k) = r2 < R ? 1_rt : 0_rt;
                 vx(i, j, k) = r2 < R ? 1_rt : 0_rt;
                 vy(i, j, k) = 0_rt;
@@ -234,7 +234,7 @@ void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core
 void MyMain() {
     Box domain(IntVect{}, IntVect{AMREX_D_DECL(63, 63, 0)});
     RealBox real_box1{{AMREX_D_DECL(-0.5_rt, -0.3_rt, 0_rt)}, {AMREX_D_DECL(0.5_rt, 0.7_rt, 1_rt)}};
-    RealBox real_box2{{AMREX_D_DECL(+0.55_rt, -0.3_rt, 0_rt)}, {AMREX_D_DECL(1.55_rt, 0.7_rt, 1_rt)}};
+    RealBox real_box2{{AMREX_D_DECL(0.55_rt, -0.3_rt, 0_rt)}, {AMREX_D_DECL(1.55_rt, 0.7_rt, 1_rt)}};
 
     Array<int, AMREX_SPACEDIM> is_periodic1{AMREX_D_DECL(0, 1, 0)};
     Geometry geom1{domain, real_box1, CoordSys::cartesian, is_periodic1};

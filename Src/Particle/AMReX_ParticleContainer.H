@@ -178,6 +178,7 @@ public:
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
     RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
 #else
+    // double; cuda::fp32mp2 (AMREX_FP32MP2_PARTICLES) is also written as double
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 

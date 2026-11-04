@@ -81,6 +81,18 @@ public:
     static const RealDescriptor& NativeRealDescriptor ();
 
     /**
+    * \brief Returns a constant reference to a RealDescriptor describing
+    * the format in which native Real data are written to files (the
+    * NATIVE format of FArrayBox and VisMF).  This is NativeRealDescriptor()
+    * if Real is float or double.  If Real is cuda::fp32mp2
+    * (AMReX_PRECISION=FP32MP2), which is not an IEEE format, the data are
+    * written as IEEE 64-bit doubles and this is Native64RealDescriptor(),
+    * while NativeRealDescriptor() describes the in-memory pair and never
+    * compares equal to a descriptor read from a file.
+    */
+    static const RealDescriptor& NativeRealFileDescriptor ();
+
+    /**
     * \brief NativeRealDescriptor is equivalent to Native32RealDescriptor
     * if BL_FLOAT is used. Otherwise, it is equivalent to Native64RealDescriptor.
     */

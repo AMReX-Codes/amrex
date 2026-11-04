@@ -245,7 +245,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         Omega () noexcept
-            requires (NRows==NCols && NRows%2==0 && std::is_floating_point_v<T>)
+            requires (NRows==NCols && NRows%2==0 && FloatingPointLike<T>)
         {
             static_assert(StartIndex == 0 || StartIndex == 1);
             SmallMatrix<T,NRows,NCols,ORDER,StartIndex> omega{};

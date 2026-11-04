@@ -57,6 +57,22 @@ struct FPBits
     static constexpr U quiet = U(1) << (nman-1);
 };
 
+#ifdef AMREX_USE_FP32MP2
+// cuda::fp32mp2 is classified by its leading limb hi, a float stored before
+// lo.  On a little-endian machine, hi is the low 32 bits of the 64-bit
+// pattern, so these bits describe a pair (hi, lo = 0).
+static_assert(std::endian::native == std::endian::little);
+template <>
+struct FPBits<cuda::fp32mp2>
+{
+    using U = std::uint64_t;
+    static constexpr int nman = std::numeric_limits<float>::digits - 1;
+    static constexpr U sign = U(1) << 31;
+    static constexpr U expo = ((U(1) << (31-nman)) - 1) << nman;
+    static constexpr U quiet = U(1) << (nman-1);
+};
+#endif
+
 template <typename T>
 AMREX_FORCE_INLINE bool is_pos_inf (T x)
 {

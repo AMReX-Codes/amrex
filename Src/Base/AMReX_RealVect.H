@@ -685,7 +685,7 @@ IntVectND<dim>
 RealVectND<dim>::floor () const noexcept {
     IntVectND<dim> retval;
     for (int i=0; i<dim; ++i) {
-        retval[i] = static_cast<int>(std::floor(vect[i]));
+        retval[i] = static_cast<int>(amrex::Math::floor(vect[i]));
     }
     return retval;
 }
@@ -696,7 +696,7 @@ IntVectND<dim>
 RealVectND<dim>::ceil () const noexcept {
     IntVectND<dim> retval;
     for (int i=0; i<dim; ++i) {
-        retval[i] = static_cast<int>(std::ceil(vect[i]));
+        retval[i] = static_cast<int>(amrex::Math::ceil(vect[i]));
     }
     return retval;
 }
@@ -707,7 +707,7 @@ IntVectND<dim>
 RealVectND<dim>::round () const noexcept {
     IntVectND<dim> retval;
     for (int i=0; i<dim; ++i) {
-        retval[i] = static_cast<int>(std::round(vect[i]));
+        retval[i] = static_cast<int>(amrex::Math::round(vect[i]));
     }
     return retval;
 }
@@ -728,7 +728,7 @@ AMREX_GPU_HOST_DEVICE inline
 Real
 RealVectND<dim>::vectorLength () const noexcept {
     Real len = this->radSquared();
-    len = std::sqrt(len);
+    len = amrex::Math::sqrt(len);
     return len;
 }
 
@@ -964,7 +964,7 @@ RealVectND<dim>::minDir (const bool& a_doAbs) const noexcept {
     int mDir = 0;
     for (int idir = 0; idir < dim; idir++) {
         if (a_doAbs) {
-            if (std::abs(vect[idir]) < std::abs(vect[mDir])) {
+            if (amrex::Math::abs(vect[idir]) < amrex::Math::abs(vect[mDir])) {
                 mDir = idir;
             }
         } else {
@@ -983,7 +983,7 @@ RealVectND<dim>::maxDir (const bool& a_doAbs) const noexcept {
     int mDir = 0;
     for (int idir = 0; idir < dim; idir++) {
         if (a_doAbs) {
-            if (std::abs(vect[idir]) > std::abs(vect[mDir])) {
+            if (amrex::Math::abs(vect[idir]) > amrex::Math::abs(vect[mDir])) {
                 mDir = idir;
             }
         } else {

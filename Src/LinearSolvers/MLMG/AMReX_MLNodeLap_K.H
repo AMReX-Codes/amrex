@@ -16,11 +16,24 @@ namespace nodelap_detail {
 
 #if (BL_USE_FLOAT)
     constexpr float eps = 1.e-30_rt;
+#elif defined(AMREX_USE_FP32MP2)
+    // cuda::fp32mp2 has the exponent range of float.  Use as Real(eps): the
+    // mixed-type operators of cuda::fp32mp2 take their operands by reference,
+    // which a namespace-scope constant does not allow in device code.
+    constexpr float eps = 1.e-30F;
 #else
     constexpr double eps = 1.e-100_rt;
 #endif
+#ifdef AMREX_USE_FP32MP2
+    // Namespace-scope constexpr objects of class type cannot be used in
+    // device code, so hold these values, which are exact in double, as double.
+    static_assert(std::numeric_limits<Real>::digits == 46, "epsilon of cuda::fp32mp2 is 2^-45");
+    constexpr double almostone  = 1. - 100.*0x1p-45;
+    constexpr double almostzero = 1. - almostone;
+#else
     constexpr Real almostone  = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
     constexpr Real almostzero = Real(1.) - almostone;
+#endif
 
 }
 /// \endcond
@@ -85,7 +98,7 @@ void mlndlap_normalize_sten (int i, int j, int k, Array4<Real> const& x,
                              Array4<Real const> const& sten,
                              Array4<int const> const& msk, Real s0_norm0) noexcept
 {
-    if (!msk(i,j,k) && std::abs(sten(i,j,k,0)) > s0_norm0) {
+    if (!msk(i,j,k) && amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
         x(i,j,k) /= sten(i,j,k,0);
     }
 }

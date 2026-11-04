@@ -11,6 +11,7 @@
 
 #ifdef BL_USE_MPI
 
+#include <AMReX_FPMP.H>
 #include <mpi.h>
 
 namespace amrex::ParallelDescriptor
@@ -39,6 +40,11 @@ namespace amrex::ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<float>::type();
     template <> MPI_Datatype Mpi_typemap<double>::type();
     template <> MPI_Datatype Mpi_typemap<lull_t>::type();
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    //! A contiguous pair of MPI_FLOAT (hi, lo). Note that MPI's predefined
+    //! reduction operations are not defined for it.
+    template <> MPI_Datatype Mpi_typemap<cuda::fp32mp2>::type();
+#endif
 }
 
 namespace amrex::mpidatatypes {}

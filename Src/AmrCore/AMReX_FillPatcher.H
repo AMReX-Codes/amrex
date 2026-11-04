@@ -357,7 +357,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         if (m_cf_crse_data.size() == 1) {
             idata = 0;
         } else if (m_cf_crse_data.size() == 2) {
-            Real const teps = std::abs(m_cf_crse_data[1].first -
+            Real const teps = amrex::Math::abs(m_cf_crse_data[1].first -
                                        m_cf_crse_data[0].first) * 1.e-3_rt;
             if (time > m_cf_crse_data[0].first - teps &&
                 time < m_cf_crse_data[0].first + teps) {

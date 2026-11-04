@@ -389,7 +389,7 @@ Amr::InitAmr ()
     {
 
         // Something nonzero so old & new will differ
-#ifdef AMREX_USE_FLOAT
+#if defined(AMREX_USE_FLOAT) || defined(AMREX_USE_FP32MP2)
         dt_level[i]    = 1.e30F;
 #else
         dt_level[i]    = 1.e200;
@@ -3498,7 +3498,7 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
     // internally these represent the total number of steps at a level,
     // not the number of cycles
     std::vector<int> cycles(n);
-#ifdef AMREX_USE_FLOAT
+#if defined(AMREX_USE_FLOAT) || defined(AMREX_USE_FP32MP2)
     Real best_ratio = 1e30F;
 #else
     Real best_ratio = 1e200;

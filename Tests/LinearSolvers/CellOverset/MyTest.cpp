@@ -274,9 +274,9 @@ MyTest::initData ()
                 const amrex::Real theta = amrex::Real(0.5)*std::log(amrex::Real(3.)) / w;
 
                 constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
-                constexpr amrex::Real tpi =  amrex::Real(2.)*pi;
-                constexpr amrex::Real fpi =  amrex::Real(4.)*pi;
-                constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM)*amrex::Real(4.)*pi*pi;
+                const amrex::Real tpi =  amrex::Real(2.)*pi;
+                const amrex::Real fpi =  amrex::Real(4.)*pi;
+                const amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM)*amrex::Real(4.)*pi*pi;
 
                 amrex::Real xc = (prob_hi[0] + prob_lo[0])*amrex::Real(0.5);
                 amrex::Real yc = (prob_hi[1] + prob_lo[1])*amrex::Real(0.5);

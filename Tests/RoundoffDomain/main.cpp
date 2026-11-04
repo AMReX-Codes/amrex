@@ -51,11 +51,11 @@ int main(int argc, char* argv[])
                     return int(std::floor((x - plo[idim])*dxinv[idim]));
                 };
                 auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
-                    * std::max(ParticleReal(geom.CellSize(idim)),std::abs(rlo[idim]))
+                    * std::max(ParticleReal(geom.CellSize(idim)),amrex::Math::abs(rlo[idim]))
                     * ParticleReal(2.5);
                 auto rlom = rlo[idim] - epsilon;
                 epsilon = std::numeric_limits<ParticleReal>::epsilon()
-                    * std::max(ParticleReal(geom.CellSize(idim)),std::abs(rhi[idim]))
+                    * std::max(ParticleReal(geom.CellSize(idim)),amrex::Math::abs(rhi[idim]))
                     * ParticleReal(2.5);
                 auto rhip = rhi[idim] + epsilon;
                 bool pass = (index(rlom)      == -1)

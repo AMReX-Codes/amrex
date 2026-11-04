@@ -498,7 +498,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
+   | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE,       |
+   |                              |  (see :ref:`sec:build:cmake:fp32mp2`)           |                         | FP32MP2               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PIC                    |  Build Position Independent Code                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -535,7 +536,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES              |  Build particle classes                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_PARTICLES_PRECISION    |  Set reals precision in particle classes        | Same as AMReX_PRECISION | DOUBLE, SINGLE        |
+   | AMReX_PARTICLES_PRECISION    |  Set reals precision in particle classes        | Same as AMReX_PRECISION | DOUBLE, SINGLE,       |
+   |                              |                                                 |                         | FP32MP2               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BASE_PROFILE           |  Build with basic profiling support             | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -628,6 +630,93 @@ they will be initialized with the value of the environment variables ``FFLAGS``/
 are defined, AMReX default flags are used.
 
 For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
+
+.. _sec:build:cmake:fp32mp2:
+
+Float-float precision (FP32MP2)
+-------------------------------
+
+With ``-DAMReX_PRECISION=FP32MP2 -DAMReX_PARTICLES_PRECISION=FP32MP2``,
+:cpp:`amrex::Real` and :cpp:`amrex::ParticleReal` are ``cuda::fp32mp2``, a
+pair of single precision floats from the
+`NVIDIA CCCL <https://github.com/NVIDIA/cccl>`__ multi-precision library
+(``<cuda/fpmp>``).  A value is stored as the unevaluated sum of two floats,
+which gives a 46-bit significand (about 13 decimal digits, compared with 7
+for ``float`` and 15 for ``double``) with the exponent range of ``float``.
+Its arithmetic uses single precision operations only.  On GPUs with low
+double precision throughput, this can be considerably faster than double
+precision while being far more accurate than single precision.
+
+This mode requires CCCL 3.6 or newer, which is not yet part of the CUDA
+Toolkit.  Obtain it from GitHub and point CMake to it:
+
+.. highlight:: console
+
+::
+
+    git clone --branch branch/3.6.x https://github.com/NVIDIA/cccl.git
+    cmake -S . -B build -DAMReX_PRECISION=FP32MP2 -DAMReX_PARTICLES_PRECISION=FP32MP2 \
+          -DCCCL_DIR=$PWD/cccl/lib/cmake/cccl
+
+Projects that use an installed AMReX built in this mode also find CCCL
+through ``CCCL_DIR``; by default, the CCCL that AMReX was built with is used.
+
+The following applies in this mode:
+
+* It is supported with ``AMReX_GPU_BACKEND=NONE`` and ``CUDA``, and only with
+  CMake.  ``AMReX_PRECISION`` and ``AMReX_PARTICLES_PRECISION`` must both be
+  ``FP32MP2``.
+* These options are not supported and are rejected at configure time:
+  ``AMReX_OMP``, ``AMReX_FORTRAN``, ``AMReX_FORTRAN_INTERFACES``,
+  ``AMReX_EB``, ``AMReX_FFT``, ``AMReX_HYPRE``, ``AMReX_PETSC``,
+  ``AMReX_SUNDIALS``, ``AMReX_HDF5``, ``AMReX_CONDUIT``, ``AMReX_ASCENT``,
+  ``AMReX_CATALYST``, ``AMReX_SENSEI``, ``AMReX_SIMD``, ``AMReX_FASTMATH``
+  (``-ffast-math`` breaks the pair arithmetic; AMReX headers also stop with
+  an error if it is set in other ways) and the basic, trace and
+  communication profilers.  ``AMReX_TINY_PROFILE`` can be used.
+* ``AMReX_CUDA_FASTMATH`` (on by default) gives the same results on the GPU
+  for magnitudes above about :math:`2^{-100}` (:math:`10^{-30}`).  Below
+  that, it flushes the low float of the pair to zero, which reduces the
+  accuracy to that of ``float``, and values below :math:`2^{-126}`
+  (``FLT_MIN``) become zero.  Turn it off if your data has such values.
+* Plotfiles and checkpoint files store real data as IEEE double precision,
+  so they can be read by the usual tools.  A restart reproduces each value
+  to double precision, which exceeds the 46-bit precision of the pair, but
+  not necessarily bit for bit.
+* ``cuda::fp32mp2`` is a class type.  AMReX compiles everything with
+  ``CCCL_FPMP_EXPLICIT_CASTS=0`` (set on the CMake target), so it converts
+  implicitly from ``double`` and integers like a builtin type, e.g.,
+  ``amrex::Real x = 0.5;``.  This setting must be the same in all
+  translation units of a program.  Some code still needs changes:
+
+  - A conditional expression mixing the two types, such as
+    ``b ? x : 0.0``, is ambiguous; write ``0.0_rt``.
+  - Its arithmetic and unary minus are not ``constexpr``.
+    ``constexpr amrex::Real c = -0.5;`` works, but ``-0.5_rt`` does not.
+  - In device code, ``constexpr`` variables of type :cpp:`amrex::Real` are
+    only usable if they are local.
+  - Its mixed-type operators take a builtin operand by reference.  In device
+    code that combines a namespace-scope ``constexpr`` constant ``c`` of a
+    builtin type with a :cpp:`amrex::Real`, write it as
+    ``amrex::Real(c)``.
+* Math functions from ``std`` (e.g., ``std::sqrt(x)``) convert the argument
+  to ``double`` and compute in double precision; with the implicit
+  conversions, the result silently converts back.  This is accurate, but on
+  GPUs with low double precision throughput, it is slow.  Use the AMReX
+  versions (e.g., ``amrex::Math::sqrt(x)``, ``amrex::Math::abs(x)``), which
+  compute with the float pair and also work for ``float`` and ``double``.
+  ``std::numeric_limits<amrex::Real>`` is available.
+* Values can be written with ``<<``.  For reading with ``>>`` outside of
+  namespace ``amrex``, add ``using amrex::operator>>;``.
+* A store of the pair is not a single atomic operation.  On GPUs,
+  ``FabArray::BuildMask`` and ``FabArray::setVal`` with communication
+  metadata abort for :cpp:`amrex::Real` data if the target cells overlap;
+  use them with integer masks (``iMultiFab``), as AMReX does.
+* In CCCL 3.6, converting a ``cuda::fp32mp2`` with a magnitude of
+  :math:`2^{24}` or more to an integer type can be off by one.  For such
+  values, round first and convert the result, e.g., with
+  ``amrex::Math::trunc``, which keeps the rounding toward zero of the
+  conversion.
 
 CMake and macOS
 ---------------
@@ -729,7 +818,8 @@ A list of AMReX component names and related configure options are shown in the t
    +==============================+=================+
    | AMReX_SPACEDIM               | 1D, 2D, 3D      |
    +------------------------------+-----------------+
-   | AMReX_PRECISION              | DOUBLE, SINGLE  |
+   | AMReX_PRECISION              | DOUBLE, SINGLE, |
+   |                              | FP32MP2         |
    +------------------------------+-----------------+
    | AMReX_FORTRAN                | FORTRAN         |
    +------------------------------+-----------------+
@@ -762,6 +852,7 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_PARTICLES              | PARTICLES       |
    +------------------------------+-----------------+
    | AMReX_PARTICLES_PRECISION    | PDOUBLE, PSINGLE|
+   |                              | PFP32MP2        |
    +------------------------------+-----------------+
    | AMReX_BASE_PROFILE           | BASEP           |
    +------------------------------+-----------------+

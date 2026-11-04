@@ -1147,13 +1147,13 @@ Real get_dx_eb (Real kappa) noexcept {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real get_eb_area (Real ba, Real nx, Real ny, Real ry) noexcept {
     if (ry == Real(1.0)) { return ba; } // exact for isotropic cells
-    return ba * std::sqrt((nx*ry)*(nx*ry) + ny*ny);
+    return ba * amrex::Math::sqrt((nx*ry)*(nx*ry) + ny*ny);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real get_eb_area (Real ba, Real nx, Real ny, Real nz, Real ry, Real rz) noexcept {
     if (ry == Real(1.0) && rz == Real(1.0)) { return ba; } // exact for isotropic cells
-    return ba * std::sqrt((nx*ry*rz)*(nx*ry*rz) + (ny*rz)*(ny*rz) + (nz*ry)*(nz*ry));
+    return ba * amrex::Math::sqrt((nx*ry*rz)*(nx*ry*rz) + (ny*rz)*(ny*rz) + (nz*ry)*(nz*ry));
 }
 
 #endif

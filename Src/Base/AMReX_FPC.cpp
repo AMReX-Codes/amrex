@@ -98,10 +98,24 @@ FPC::NativeLongDescriptor ()
     return nld;
 }
 
+#ifdef AMREX_USE_FP32MP2
+namespace {
+    // In-memory format of cuda::fp32mp2: a pair of floats, which is not an
+    // IEEE format.  The zero exponent and mantissa widths make sure this
+    // never compares equal to any descriptor of IEEE data read from a file.
+    const Long fp32mp2_pair[] = { 64L, 0L, 0L, 0L, 0L, 0L, 0L, 0L };
+    const int  fp32mp2_pair_order[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+}
+#endif
+
 const
 RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
+#ifdef AMREX_USE_FP32MP2
+    static const RealDescriptor nrd(fp32mp2_pair, fp32mp2_pair_order, 8);
+    return nrd;
+#else
 #ifdef AMREX_LITTLE_ENDIAN
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
@@ -117,6 +131,18 @@ FPC::NativeRealDescriptor ()
 #endif
 
     return nrd;
+#endif
+}
+
+const
+RealDescriptor&
+FPC::NativeRealFileDescriptor ()
+{
+#ifdef AMREX_USE_FP32MP2
+    return FPC::Native64RealDescriptor();
+#else
+    return FPC::NativeRealDescriptor();
+#endif
 }
 
 const

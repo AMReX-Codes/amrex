@@ -41,7 +41,7 @@ int main (int argc, char* argv[])
         auto const& u = vel.arrays();
         ParallelFor(vel, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            constexpr Real tpi = Real(2.)*Math::pi<Real>();
+            const Real tpi = Real(2.)*Math::pi<Real>();
             Real x = (Real(i)+0.5_rt) * dx[0] / plen[0] - 0.5_rt;
             Real y = (Real(j)+0.5_rt) * dx[1] / plen[1] - 0.5_rt;
             // Plus a checkerboard, which the cross stencil barely sees.

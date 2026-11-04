@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Extension.H>
+#include <AMReX_FPMP.H>
 #include <vector>
 #include <type_traits>
 
@@ -55,6 +56,9 @@ namespace amrex
     template <> struct HasAtomicAdd<unsigned long long> : std::true_type {};
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    template <> struct HasAtomicAdd<cuda::fp32mp2> : std::true_type {};
+#endif
 
     // support +=?
     template <class T, class Enable = void>

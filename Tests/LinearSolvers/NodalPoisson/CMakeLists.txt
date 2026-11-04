@@ -17,12 +17,13 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     setup_test(${D} _sources _input_files
-       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params})
+       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} ${AMREX_TEST_MLMG_TYPE_PARAMS})
 
     set(_input_files inputs-sigma-update)
 
     setup_test(${D} _sources _input_files
-       BASE_NAME LinearSolvers_NodalPoisson_SigmaUpdate)
+       BASE_NAME LinearSolvers_NodalPoisson_SigmaUpdate
+       CMDLINE_PARAMS_AFTER_INPUTS ${AMREX_TEST_MLMG_TYPE_PARAMS})
 
     unset(_sources)
     unset(_ctest_params)

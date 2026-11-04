@@ -17,6 +17,9 @@ namespace amrex {
 
 #ifdef AMREX_USE_FLOAT
 static constexpr Real INVALID_TIME = -1.0e30_rt;
+#elif defined(AMREX_USE_FP32MP2)
+// float exponent range; unary minus of cuda::fp32mp2 is not constexpr
+static constexpr Real INVALID_TIME = -1.0e30;
 #else
 static constexpr Real INVALID_TIME = -1.0e200_rt;
 #endif

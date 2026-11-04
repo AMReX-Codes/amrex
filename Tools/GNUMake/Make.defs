@@ -896,6 +896,10 @@ else
   amrex_particle_real = double
 endif
 
+ifeq ($(PRECISION),FP32MP2)
+  $(error PRECISION=FP32MP2 is only supported by the CMake build (-DAMReX_PRECISION=FP32MP2))
+endif
+
 ifeq ($(PRECISION),FLOAT)
     DEFINES += -DBL_USE_FLOAT -DAMREX_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)

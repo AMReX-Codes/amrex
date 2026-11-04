@@ -35,11 +35,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int pcg_solve (T* AMREX_RESTRICT x, T* AMREX_RESTRICT r,
                M const& mat, P const& precond, int maxiter, T rel_tol)
 {
-    static_assert(std::is_floating_point_v<T>);
+    static_assert(FloatingPointLike<T>);
 
     T rnorm0 = 0;
     for (int i = 0; i < N; ++i) {
-        rnorm0 = std::max(rnorm0, std::abs(r[i]));
+        rnorm0 = std::max(rnorm0, amrex::Math::abs(r[i]));
     }
     if (rnorm0 == 0) { return 0; }
 
@@ -70,7 +70,7 @@ int pcg_solve (T* AMREX_RESTRICT x, T* AMREX_RESTRICT r,
         for (int i = 0; i < N; ++i) {
             x[i] += alpha * p[i];
             r[i] -= alpha * q[i];
-            rnorm = std::max(rnorm, std::abs(r[i]));
+            rnorm = std::max(rnorm, amrex::Math::abs(r[i]));
         }
         if (rnorm <= rnorm0*rel_tol) { break; }
         rho_prev = rho;

@@ -37,8 +37,15 @@ void test_endpoint_guard ()
     // Whatever the standard library hands back for the hardest input, the
     // guard must leave it inside [0,1).
     MaxEngine engine;
+#ifdef AMREX_USE_FP32MP2
+    // The std distributions require a builtin floating-point type: draw in
+    // double and split, as amrex::Random does.
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    Real const raw = Real(distribution(engine));
+#else
     std::uniform_real_distribution<Real> distribution(0.0, 1.0);
     Real const raw = distribution(engine);
+#endif
     Real const guarded = random_util::clamp_below_one(raw);
     AMREX_ALWAYS_ASSERT(guarded < Real(1));
     AMREX_ALWAYS_ASSERT(guarded >= Real(0));
@@ -51,7 +58,13 @@ void test_endpoint_guard ()
     // this here rather than in the header is the point: it is an independent
     // check on every platform CI builds for, not the same expression twice.
     Real const below_one = Real(1) - Real(0.5)*std::numeric_limits<Real>::epsilon();
+#ifdef AMREX_USE_FP32MP2
+    // A float pair has no next representable value below one; the clamp uses
+    // 1 - eps/2, which is exactly the pair (1, -2^-46).
+    AMREX_ALWAYS_ASSERT(below_one == Real(1.0F, -0x1p-46F) && below_one < Real(1));
+#else
     AMREX_ALWAYS_ASSERT(below_one == std::nextafter(Real(1), Real(0)));
+#endif
 
     AMREX_ALWAYS_ASSERT(random_util::clamp_below_one(below_one) == below_one);
 

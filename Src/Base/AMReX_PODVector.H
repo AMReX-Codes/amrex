@@ -223,7 +223,8 @@ namespace amrex
         {
             amrex::ignore_unused(data, count, allocator);
             if constexpr (std::is_same_v<float,  std::remove_cv_t<T>> ||
-                          std::is_same_v<double, std::remove_cv_t<T>>) {
+                          std::is_same_v<double, std::remove_cv_t<T>> ||
+                          IsFPMP2_v<T>) {
                 if (amrex::InitSNaN()) {
 #ifdef AMREX_USE_GPU
                    if constexpr (RunOnGpu<Allocator<T>>::value) {

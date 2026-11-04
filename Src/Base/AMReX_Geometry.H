@@ -335,8 +335,8 @@ public:
             Real theta_l = geomdata.ProbLo()[1] + static_cast<Real>(point[1]) * dx[1];
             Real theta_r = geomdata.ProbLo()[1] + static_cast<Real>(point[1]+1) * dx[1];
 
-            constexpr Real twoThirdsPi = static_cast<Real>((2.0 / 3.0) * std::numbers::pi_v<Real>);
-            vol = twoThirdsPi * (std::cos(theta_l) - std::cos(theta_r)) * dx[0] *
+            const Real twoThirdsPi = static_cast<Real>((2.0 / 3.0) * amrex::Math::pi<Real>());
+            vol = twoThirdsPi * (amrex::Math::cos(theta_l) - amrex::Math::cos(theta_r)) * dx[0] *
                 (r_r*r_r + r_r*r_l + r_l*r_l);
         }
 
@@ -620,11 +620,11 @@ refine (Geometry const& crse, int rr) { return refine(crse, IntVect(rr)); }
  * The explicit fma makes the result the same in every kernel, so a point
  * placed at a node by one code path equals the node recomputed by another.
  */
-template <std::floating_point T>
+template <FloatingPointLike T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T node_coord (T problo, int i, T dx) noexcept
 {
-    return std::fma(T(i), dx, problo);
+    return amrex::Math::fma(T(i), dx, problo);
 }
 
 /**

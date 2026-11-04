@@ -968,7 +968,8 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
 .. [1]
-   Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
+   Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``
+   (``-DAMReX_PARTICLES_PRECISION=SINGLE`` with CMake).  With CMake, a float-float pair type can be used as well; see :ref:`sec:build:cmake:fp32mp2`.
 
 .. [2]
    Note that for the extra particle components, which component refers to which

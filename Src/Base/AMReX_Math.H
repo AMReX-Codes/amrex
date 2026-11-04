@@ -51,6 +51,137 @@ using std::copysign;
 using std::floor;
 using std::round;
 
+// The following are provided so that code can be written in terms of
+// amrex::Math:: for any amrex::Real, including cuda::fp32mp2 (see below).
+using std::acos;
+using std::asin;
+using std::atan;
+using std::atan2;
+using std::cbrt;
+using std::cos;
+using std::cosh;
+using std::exp;
+using std::fma;
+using std::fmod;
+using std::hypot;
+using std::log;
+using std::log10;
+using std::pow;
+using std::sin;
+using std::sinh;
+using std::sqrt;
+using std::tan;
+using std::tanh;
+using std::trunc;
+
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+// Overloads for cuda::fp32mp2.  CCCL provides its math functions in namespace
+// cuda (found by ADL) and cuda::std, but not in std.  A call such as
+// std::sqrt(x) would therefore convert x to double, compute in FP64 and
+// return a double.  Call these fully qualified, e.g., amrex::Math::sqrt(x).
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    template <typename U>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr cuda::fp32mp2 to_fp32mp2 (U x) noexcept
+    {
+        if constexpr (std::is_floating_point_v<U>) {
+            return cuda::fp32mp2(static_cast<double>(x));
+        } else {
+            return cuda::fp32mp2(x);
+        }
+    }
+}
+/// \endcond
+
+#define AMREX_MATH_FP32MP2_UNARY(NAME, CCCL_NAME)                           \
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE                  \
+    cuda::fp32mp2 NAME (cuda::fp32mp2 const& x) noexcept                    \
+    {                                                                       \
+        return cuda::CCCL_NAME(x);                                          \
+    }
+
+// Binary functions also accept one builtin arithmetic operand, which would
+// otherwise make the call ambiguous with the std overloads.
+#define AMREX_MATH_FP32MP2_BINARY(NAME)                                     \
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE                  \
+    cuda::fp32mp2 NAME (cuda::fp32mp2 const& x,                             \
+                        cuda::fp32mp2 const& y) noexcept                    \
+    {                                                                       \
+        return cuda::NAME(x, y);                                            \
+    }                                                                       \
+    template <typename U> requires std::is_arithmetic_v<U>                  \
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE                  \
+    cuda::fp32mp2 NAME (cuda::fp32mp2 const& x, U y) noexcept               \
+    {                                                                       \
+        return cuda::NAME(x, detail::to_fp32mp2(y));                        \
+    }                                                                       \
+    template <typename U> requires std::is_arithmetic_v<U>                  \
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE                  \
+    cuda::fp32mp2 NAME (U x, cuda::fp32mp2 const& y) noexcept               \
+    {                                                                       \
+        return cuda::NAME(detail::to_fp32mp2(x), y);                        \
+    }
+
+AMREX_MATH_FP32MP2_UNARY(abs, fabs)
+AMREX_MATH_FP32MP2_UNARY(ceil, ceil)
+AMREX_MATH_FP32MP2_UNARY(floor, floor)
+AMREX_MATH_FP32MP2_UNARY(round, round)
+AMREX_MATH_FP32MP2_UNARY(trunc, trunc)
+AMREX_MATH_FP32MP2_UNARY(sqrt, sqrt)
+AMREX_MATH_FP32MP2_UNARY(cbrt, cbrt)
+AMREX_MATH_FP32MP2_UNARY(exp, exp)
+AMREX_MATH_FP32MP2_UNARY(log, log)
+AMREX_MATH_FP32MP2_UNARY(log10, log10)
+AMREX_MATH_FP32MP2_UNARY(sin, sin)
+AMREX_MATH_FP32MP2_UNARY(cos, cos)
+AMREX_MATH_FP32MP2_UNARY(tan, tan)
+AMREX_MATH_FP32MP2_UNARY(asin, asin)
+AMREX_MATH_FP32MP2_UNARY(acos, acos)
+AMREX_MATH_FP32MP2_UNARY(atan, atan)
+AMREX_MATH_FP32MP2_UNARY(sinh, sinh)
+AMREX_MATH_FP32MP2_UNARY(cosh, cosh)
+AMREX_MATH_FP32MP2_UNARY(tanh, tanh)
+AMREX_MATH_FP32MP2_BINARY(pow)
+AMREX_MATH_FP32MP2_BINARY(atan2)
+AMREX_MATH_FP32MP2_BINARY(fmod)
+AMREX_MATH_FP32MP2_BINARY(hypot)
+
+#undef AMREX_MATH_FP32MP2_UNARY
+#undef AMREX_MATH_FP32MP2_BINARY
+
+//! Return x with the sign of y.  The sign of a pair is the sign of its
+//! leading limb, which is tested directly in single precision.
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 copysign (cuda::fp32mp2 const& x, cuda::fp32mp2 const& y) noexcept
+{
+    return (std::signbit(x.hi()) != std::signbit(y.hi())) ? -x : x;
+}
+
+template <typename U> requires std::is_arithmetic_v<U>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 copysign (cuda::fp32mp2 const& x, U y) noexcept
+{
+    return (std::signbit(x.hi()) != std::signbit(y)) ? -x : x;
+}
+
+template <typename U> requires std::is_arithmetic_v<U>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 copysign (U x, cuda::fp32mp2 const& y) noexcept
+{
+    auto const px = detail::to_fp32mp2(x);
+    return (std::signbit(px.hi()) != std::signbit(y.hi())) ? -px : px;
+}
+
+//! Return x*y+z with a single rounding of the pair arithmetic
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 fma (cuda::fp32mp2 const& x, cuda::fp32mp2 const& y,
+                   cuda::fp32mp2 const& z) noexcept
+{
+    return cuda::fma(x, y, z);
+}
+#endif
+
 // Under fast math (e.g., -ffast-math, -ffinite-math-only, /fp:fast, and Intel's
 // SYCL compiler by default), std::isnan etc. may always evaluate to false.  The
 // functions below work in all modes.  In fast-math modes, they test the bit
@@ -116,18 +247,23 @@ template <typename T>
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool isnan (T x) noexcept
 {
+    if constexpr (IsFPMP2_v<T>) {
+        // A pair is classified by its leading limb (as in CCCL).
+        return amrex::Math::isnan(x.hi());
+    } else {
 #if defined(AMREX_USE_SYCL)
-    return sycl::isnan(x);
+        return sycl::isnan(x);
 #else
 #if defined(AMREX_MATH_ISNAN_BITS)
-    if constexpr (detail::FloatOrDouble<T>) {
-        return detail::fp_abs_bits(x) > detail::fp_exp_mask<T>();
-    } else
+        if constexpr (detail::FloatOrDouble<T>) {
+            return detail::fp_abs_bits(x) > detail::fp_exp_mask<T>();
+        } else
 #endif
-    {
-        return std::isnan(x);
+        {
+            return std::isnan(x);
+        }
+#endif
     }
-#endif
 }
 
 //! Return true if x is +/-infinity.  Works under fast math.
@@ -135,18 +271,23 @@ template <typename T>
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool isinf (T x) noexcept
 {
+    if constexpr (IsFPMP2_v<T>) {
+        // A pair is classified by its leading limb (as in CCCL).
+        return amrex::Math::isinf(x.hi());
+    } else {
 #if defined(AMREX_USE_SYCL)
-    return sycl::isinf(x);
+        return sycl::isinf(x);
 #else
 #if defined(AMREX_MATH_ISNAN_BITS)
-    if constexpr (detail::FloatOrDouble<T>) {
-        return detail::fp_abs_bits(x) == detail::fp_exp_mask<T>();
-    } else
+        if constexpr (detail::FloatOrDouble<T>) {
+            return detail::fp_abs_bits(x) == detail::fp_exp_mask<T>();
+        } else
 #endif
-    {
-        return std::isinf(x);
+        {
+            return std::isinf(x);
+        }
+#endif
     }
-#endif
 }
 
 //! Return true if x is neither NaN nor infinity.  Works under fast math.
@@ -154,18 +295,23 @@ template <typename T>
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool isfinite (T x) noexcept
 {
+    if constexpr (IsFPMP2_v<T>) {
+        // A pair is classified by its leading limb (as in CCCL).
+        return amrex::Math::isfinite(x.hi());
+    } else {
 #if defined(AMREX_USE_SYCL)
-    return sycl::isfinite(x);
+        return sycl::isfinite(x);
 #else
 #if defined(AMREX_MATH_ISNAN_BITS)
-    if constexpr (detail::FloatOrDouble<T>) {
-        return detail::fp_abs_bits(x) < detail::fp_exp_mask<T>();
-    } else
+        if constexpr (detail::FloatOrDouble<T>) {
+            return detail::fp_abs_bits(x) < detail::fp_exp_mask<T>();
+        } else
 #endif
-    {
-        return std::isfinite(x);
+        {
+            return std::isfinite(x);
+        }
+#endif
     }
-#endif
 }
 
 /// \cond DOXYGEN_IGNORE
@@ -184,6 +330,8 @@ namespace detail {
             if constexpr (FloatOrDouble<T>) {
                 auto const a = fp_abs_bits<false>(x);
                 return (a < fp_exp_mask<T>()) ? std::bit_cast<T>(a) : inf;
+            } else if constexpr (IsFPMP2_v<T>) {
+                return amrex::Math::isnan(x) ? inf : amrex::Math::abs(x);
             } else if constexpr (std::is_floating_point_v<T>) {
                 return amrex::Math::isnan(x) ? inf : std::abs(x);
             } else {
@@ -197,6 +345,8 @@ namespace detail {
         {
             if constexpr (FloatOrDouble<T>) {
                 return std::bit_cast<T>(fp_opaque(fp_exp_mask<T>()));
+            } else if constexpr (IsFPMP2_v<T>) {
+                return T(std::bit_cast<float>(fp_opaque(fp_exp_mask<float>())), 0.0F);
             } else if constexpr (std::is_floating_point_v<T>) {
                 return std::numeric_limits<T>::infinity();
             } else {
@@ -207,7 +357,7 @@ namespace detail {
 }
 /// \endcond
 
-template <std::floating_point T>
+template <FloatingPointLike T>
 constexpr T pi ()
 {
     return std::numbers::pi_v<T>;
@@ -370,6 +520,38 @@ std::pair<float,float> sincospi (float x)
     return r;
 }
 
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+//! Return cos(x*pi) given x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 cospi (cuda::fp32mp2 const& x) noexcept
+{
+    return cuda::cospi(x);
+}
+
+//! Return sin(x*pi) given x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 sinpi (cuda::fp32mp2 const& x) noexcept
+{
+    return cuda::sinpi(x);
+}
+
+//! Return sin(x) and cos(x) given x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<cuda::fp32mp2,cuda::fp32mp2> sincos (cuda::fp32mp2 const& x) noexcept
+{
+    std::pair<cuda::fp32mp2,cuda::fp32mp2> r;
+    cuda::sincos(x, &r.first, &r.second);
+    return r;
+}
+
+//! Return sin(pi*x) and cos(pi*x) given x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<cuda::fp32mp2,cuda::fp32mp2> sincospi (cuda::fp32mp2 const& x) noexcept
+{
+    return {cuda::sinpi(x), cuda::cospi(x)};
+}
+#endif
+
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T>
 requires (!std::integral<T> || Power >= 0)
@@ -446,6 +628,23 @@ double powi (double x, int n) noexcept
 #endif
 }
 
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+//! Return pow(x, n) with a runtime integer exponent, by repeated squaring in
+//! pair arithmetic.
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 powi (cuda::fp32mp2 x, int n) noexcept
+{
+    auto m = (n < 0) ? 0U - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    cuda::fp32mp2 r(1.0F);
+    while (m != 0U) {
+        if ((m & 1U) != 0U) { r *= x; }
+        x *= x;
+        m >>= 1;
+    }
+    return (n < 0) ? cuda::fp32mp2(1.0F) / r : r;
+}
+#endif
+
 #if defined(AMREX_INT128_SUPPORTED)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
@@ -466,7 +665,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_1 (T k)
 {
-    if (std::abs(k) == T(1)) {
+    if (amrex::Math::abs(k) == T(1)) {
         return std::numeric_limits<T>::infinity();
     }
     // Computing K based on DLMF
@@ -474,14 +673,14 @@ T comp_ellint_1 (T k)
     T tol = std::numeric_limits<T>::epsilon();
 
     T a0 = T(1);
-    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
+    T g0 = amrex::Math::sqrt((T(1)+k)*(T(1)-k));
     T a = a0;
     T g = g0;
 
     // Find Arithmetic Geometric mean
-    while(std::abs(a0 - g0) > tol) {
+    while(amrex::Math::abs(a0 - g0) > tol) {
         a = T(0.5)*(a0 + g0);
-        g = std::sqrt(a0 * g0);
+        g = amrex::Math::sqrt(a0 * g0);
 
         a0 = a;
         g0 = g;
@@ -494,7 +693,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_2 (T k)
 {
-    if (std::abs(k) == T(1)) {
+    if (amrex::Math::abs(k) == T(1)) {
         return T(1);
     }
     // Computing E based on DLMF
@@ -504,23 +703,23 @@ T comp_ellint_2 (T k)
 
     // Step Zero
     T a0 = T(1);
-    T g0 = std::sqrt((T(1)+k)*(T(1)-k));
-    T cn = std::sqrt(a0*a0 - g0*g0);
+    T g0 = amrex::Math::sqrt((T(1)+k)*(T(1)-k));
+    T cn = amrex::Math::sqrt(a0*a0 - g0*g0);
 
     // Step 1
     int n = 1;
     T a = T(0.5) * (a0 + g0);
-    T g = std::sqrt(a0*g0);
+    T g = amrex::Math::sqrt(a0*g0);
     cn = T(0.25)*cn*cn/a;
 
     T sum_val = a*a;
     a0 = a;
     g0 = g;
 
-    while(std::abs(cn*cn) > tol) {
+    while(amrex::Math::abs(cn*cn) > tol) {
         // Compute coefficients for this iteration
         a = T(0.5) * (a0 + g0);
-        g = std::sqrt(a0*g0);
+        g = amrex::Math::sqrt(a0*g0);
         cn = T(0.25)*cn*cn/a;
 
         n++;
@@ -562,6 +761,15 @@ float rsqrt (float x)
     return r;
 }
 
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+//! Return inverse square root of x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 rsqrt (cuda::fp32mp2 const& x) noexcept
+{
+    return cuda::rsqrt(x);
+}
+#endif
+
 //! Return 10**x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double exp10 (double x)
@@ -589,6 +797,15 @@ float exp10 (float x)
     AMREX_IF_ON_HOST(( r = std::pow(10.0F, x); ))
     return r;
 }
+
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+//! Return 10**x
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+cuda::fp32mp2 exp10 (cuda::fp32mp2 const& x) noexcept
+{
+    return cuda::exp10(x);
+}
+#endif
 
 /***************************************************************************************************
  * Copyright (c) 2017 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.

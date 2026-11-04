@@ -75,6 +75,8 @@ endif()
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
    add_amrex_define(AMREX_USE_FLOAT)
+elseif (AMReX_PRECISION STREQUAL "FP32MP2")
+   add_amrex_define(AMREX_USE_FP32MP2 NO_LEGACY)
 endif ()
 
 # Dimensionality

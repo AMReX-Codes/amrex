@@ -2277,7 +2277,7 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 {
     AMREX_ALWAYS_ASSERT(NAMRLevels() == 1);
     auto r = xdoty(0,0,*x[0],*x[0],false);
-    return std::sqrt(r);
+    return amrex::Math::sqrt(r);
 }
 
 extern template class MLLinOpT<MultiFab>;

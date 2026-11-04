@@ -8,6 +8,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
+#include <AMReX_Functional.H>
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 #include <AMReX_GpuComplex.H>
@@ -469,98 +470,98 @@ while ( false )
 
     /// \ingroup amrex_mpi
     //! Real sum reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T& rvar);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T* rvar, int cnt);
 
     // Having this for backward compatibility
     void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar);
 
     /// \ingroup amrex_mpi
     //! Real sum reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T& rvar, int cpu);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
     void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     /// \ingroup amrex_mpi
     //! Real max reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T& rvar);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T* rvar, int cnt);
 
     // Having this for backward compatibility
     void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar);
 
     /// \ingroup amrex_mpi
     //! Real max reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T& rvar, int cpu);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
     void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     /// \ingroup amrex_mpi
     //! Real min reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T& rvar);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T* rvar, int cnt);
 
     // Having this for backward compatibility
     void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar);
 
     /// \ingroup amrex_mpi
     //! Real min reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T& rvar, int cpu);
 
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
     void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     /// \ingroup amrex_mpi
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     /// \ingroup amrex_mpi
@@ -1307,7 +1308,26 @@ namespace ParallelDescriptor {
 #ifdef AMREX_USE_MPI
 
 /// \cond DOXYGEN_IGNORE
+template <typename T, typename F>
+MPI_Op Mpi_op ();
+
 namespace detail {
+
+//! MPI's predefined reduction operations are not defined for derived
+//! datatypes, such as the one used for cuda::fp32mp2.  Map them to
+//! equivalent user-defined operations for such types.
+template <typename T>
+MPI_Op mpi_op_for_type (MPI_Op op)
+{
+    if constexpr (IsFPMP2_v<T>) {
+        if (op == MPI_SUM) { return Mpi_op<T, amrex::Plus<T>>(); }
+        if (op == MPI_MAX) { return Mpi_op<T, amrex::Maximum<T>>(); }
+        if (op == MPI_MIN) { return Mpi_op<T, amrex::Minimum<T>>(); }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
+            "ParallelDescriptor: MPI_Op not supported for this type");
+    }
+    return op;
+}
 
 template<typename T>
 void DoAllReduce (T* r, MPI_Op op, int cnt)
@@ -1319,7 +1339,7 @@ void DoAllReduce (T* r, MPI_Op op, int cnt)
     BL_ASSERT(cnt > 0);
 
     BL_MPI_REQUIRE( MPI_Allreduce(MPI_IN_PLACE, r, cnt,
-                                  Mpi_typemap<T>::type(), op,
+                                  Mpi_typemap<T>::type(), mpi_op_for_type<T>(op),
                                   Communicator()) );
 }
 
@@ -1334,11 +1354,11 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     if (MyProc() == cpu) {
         BL_MPI_REQUIRE( MPI_Reduce(MPI_IN_PLACE, r, cnt,
-                                   Mpi_typemap<T>::type(), op,
+                                   Mpi_typemap<T>::type(), mpi_op_for_type<T>(op),
                                    cpu, Communicator()) );
     } else {
         BL_MPI_REQUIRE( MPI_Reduce(r, r, cnt,
-                                   Mpi_typemap<T>::type(), op,
+                                   Mpi_typemap<T>::type(), mpi_op_for_type<T>(op),
                                    cpu, Communicator()) );
     }
 }
@@ -1347,17 +1367,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 /// \endcond
 
     //! Real sum reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_SUM,1);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_SUM,cnt);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
@@ -1369,17 +1389,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
     }
 
     //! Real sum reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_SUM,1,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_SUM,cnt,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
@@ -1391,17 +1411,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
     }
 
     //! Real max reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MAX,1);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MAX,cnt);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
@@ -1413,17 +1433,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
     }
 
     //! Real max reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MAX,1,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MAX,cnt,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
@@ -1435,17 +1455,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
     }
 
     //! Real min reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MIN,1);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MIN,cnt);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
@@ -1457,17 +1477,17 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
     }
 
     //! Real min reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MIN,1,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MIN,cnt,cpu);
     }
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
@@ -1481,63 +1501,63 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 #else
 
     //! Real sum reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T& ) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T*, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real sum reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T&, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (T*, int, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealSum (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real max reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T&) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T*, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real max reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T&, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (T*, int, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMax (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real min reduction.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T&) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T*, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real min reduction to specified cpu.
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T&, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (T*, int, int) {}
 
-    template <std::floating_point T>
+    template <FloatingPointLike T>
     void ReduceRealMin (Vector<std::reference_wrapper<T> > const&, int) {}
 
 #endif

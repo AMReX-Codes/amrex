@@ -5,7 +5,9 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
+#include <AMReX_FPMP.H>
 
+#include <bit>
 #include <utility>
 
 namespace amrex {
@@ -347,6 +349,14 @@ namespace detail {
         return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Minimum<Long>());
     }
 
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    cuda::fp32mp2 Min_device (cuda::fp32mp2* const m, cuda::fp32mp2 const value) noexcept
+    {
+        return detail::atomic_op<cuda::fp32mp2, unsigned long long int>(m,value,amrex::Minimum<cuda::fp32mp2>());
+    }
+#endif
+
 #endif
 
 #endif
@@ -409,6 +419,14 @@ namespace detail {
     {
         return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Maximum<Long>());
     }
+
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    cuda::fp32mp2 Max_device (cuda::fp32mp2* const m, cuda::fp32mp2 const value) noexcept
+    {
+        return detail::atomic_op<cuda::fp32mp2, unsigned long long int>(m,value,amrex::Maximum<cuda::fp32mp2>());
+    }
+#endif
 
 #endif
 
@@ -530,6 +548,44 @@ namespace detail {
         ))
 #endif
     }
+
+#if defined(AMREX_USE_FP32MP2) || defined(AMREX_FP32MP2_PARTICLES)
+    // There are no atomicExch and atomicCAS for cuda::fp32mp2.  Operate on
+    // its 64-bit pattern instead.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    cuda::fp32mp2 Exch (cuda::fp32mp2* address, cuda::fp32mp2 val) noexcept
+    {
+        static_assert(sizeof(cuda::fp32mp2) == sizeof(unsigned long long));
+        AMREX_IF_ON_DEVICE((
+            return std::bit_cast<cuda::fp32mp2>(
+                atomicExch(reinterpret_cast<unsigned long long*>(address),
+                           std::bit_cast<unsigned long long>(val)));
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *address;
+            *address = val;
+            return old;
+        ))
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    cuda::fp32mp2 CAS (cuda::fp32mp2* const address, cuda::fp32mp2 compare,
+                       cuda::fp32mp2 const val) noexcept
+    {
+        static_assert(sizeof(cuda::fp32mp2) == sizeof(unsigned long long));
+        AMREX_IF_ON_DEVICE((
+            return std::bit_cast<cuda::fp32mp2>(
+                atomicCAS(reinterpret_cast<unsigned long long*>(address),
+                          std::bit_cast<unsigned long long>(compare),
+                          std::bit_cast<unsigned long long>(val)));
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *address;
+            *address = (old == compare ? val : old);
+            return old;
+        ))
+    }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //  Multiply

@@ -127,9 +127,9 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
 #endif
 
     const auto *const dx = m_geom[0].CellSize();
-    Real dmax = amrex::max(std::sqrt(dx[0]*dx[0]+dx[1]*dx[1]),
-                           std::sqrt(dx[0]*dx[0]+dx[2]*dx[2]),
-                           std::sqrt(dx[1]*dx[1]+dx[2]*dx[2]));
+    Real dmax = amrex::max(amrex::Math::sqrt(dx[0]*dx[0]+dx[1]*dx[1]),
+                           amrex::Math::sqrt(dx[0]*dx[0]+dx[2]*dx[2]),
+                           amrex::Math::sqrt(dx[1]*dx[1]+dx[2]*dx[2]));
     m_ngrowdomain[0] = static_cast<int>(std::ceil(dmax/dx[0])) * m_coarsen_ratio;
     m_ngrowdomain[1] = static_cast<int>(std::ceil(dmax/dx[1])) * m_coarsen_ratio;
     m_ngrowdomain[2] = static_cast<int>(std::ceil(dmax/dx[2])) * m_coarsen_ratio;

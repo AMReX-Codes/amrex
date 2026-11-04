@@ -101,15 +101,15 @@ print_option( AMReX_FORTRAN )
 # Option to control precision of the build  ==================================
 #
 if ( USE_XSDK_DEFAULTS )
-   set( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
+   set( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE,FP32MP2>" )
    set( AMReX_PRECISION ${XSDK_PRECISION})
    set( AMReX_PARTICLES_PRECISION ${XSDK_PRECISION})
    message( STATUS "   XSDK_PRECISION = ${XSDK_PRECISION}")
 endif ()
 
 
-set(AMReX_PRECISION_VALUES SINGLE DOUBLE)
-set(AMReX_PRECISION DOUBLE CACHE STRING "Precision of AMReX build: <SINGLE,DOUBLE>")
+set(AMReX_PRECISION_VALUES SINGLE DOUBLE FP32MP2)
+set(AMReX_PRECISION DOUBLE CACHE STRING "Precision of AMReX build: <SINGLE,DOUBLE,FP32MP2>")
 set_property(CACHE AMReX_PRECISION PROPERTY STRINGS ${AMReX_PRECISION_VALUES})
 if(NOT AMReX_PRECISION IN_LIST AMReX_PRECISION_VALUES)
    message(FATAL_ERROR "AMReX_PRECISION=${AMReX_PRECISION} not supported."
@@ -319,12 +319,12 @@ option( AMReX_PARTICLES "Build particle classes" ON)
 print_option( AMReX_PARTICLES )
 
 if (AMReX_PARTICLES)
-   set(AMReX_PARTICLES_PRECISION_VALUES SINGLE DOUBLE)
+   set(AMReX_PARTICLES_PRECISION_VALUES SINGLE DOUBLE FP32MP2)
    set(AMReX_PARTICLES_PRECISION ${AMReX_PRECISION}
-      CACHE STRING "Precision of reals in particle classes: <SINGLE,DOUBLE>")
+      CACHE STRING "Precision of reals in particle classes: <SINGLE,DOUBLE,FP32MP2>")
    set_property(CACHE AMReX_PARTICLES_PRECISION PROPERTY STRINGS ${AMReX_PARTICLES_PRECISION_VALUES})
    if(NOT AMReX_PARTICLES_PRECISION IN_LIST AMReX_PARTICLES_PRECISION_VALUES)
-      message(FATAL_ERROR "AMReX_PARTICLES_PRECISION=${AMReX_PRECISION} not supported."
+      message(FATAL_ERROR "AMReX_PARTICLES_PRECISION=${AMReX_PARTICLES_PRECISION} not supported."
          " Must be one of ${AMReX_PARTICLES_PRECISION_VALUES}")
    endif()
    message( STATUS "   AMReX_PARTICLES_PRECISION = ${AMReX_PARTICLES_PRECISION}")
@@ -531,3 +531,38 @@ if (AMReX_ENABLE_TESTS)
    message(STATUS "   AMReX_TEST_TYPE = ${AMReX_TEST_TYPE}")
 endif()
 
+
+#
+# FP32MP2 precision  ===========================================================
+#
+# amrex::Real and amrex::ParticleReal become cuda::fp32mp2, a float-float pair
+# from NVIDIA CCCL (>= 3.6, <cuda/fpmp>).  It is a class type, not an IEEE
+# float or double, so components that hand Real data to Fortran or to third
+# party libraries cannot work in this mode.
+#
+if (AMReX_PRECISION STREQUAL "FP32MP2" OR
+    (AMReX_PARTICLES AND AMReX_PARTICLES_PRECISION STREQUAL "FP32MP2"))
+   if (NOT AMReX_PRECISION STREQUAL "FP32MP2" OR
+       (AMReX_PARTICLES AND NOT AMReX_PARTICLES_PRECISION STREQUAL "FP32MP2"))
+      message(FATAL_ERROR "FP32MP2 precision requires both AMReX_PRECISION=FP32MP2 and "
+         "AMReX_PARTICLES_PRECISION=FP32MP2 (mixing with SINGLE or DOUBLE is not supported)")
+   endif ()
+
+   set(_amrex_fp32mp2_unsupported
+      AMReX_FORTRAN AMReX_FORTRAN_INTERFACES AMReX_EB AMReX_FFT
+      AMReX_HYPRE AMReX_PETSC AMReX_SUNDIALS AMReX_HDF5
+      AMReX_CONDUIT AMReX_ASCENT AMReX_CATALYST AMReX_SENSEI
+      AMReX_SIMD AMReX_OMP AMReX_FASTMATH
+      AMReX_BASE_PROFILE AMReX_TRACE_PROFILE AMReX_COMM_PROFILE)
+   foreach (_opt IN LISTS _amrex_fp32mp2_unsupported)
+      if (${_opt})
+         message(FATAL_ERROR "${_opt}=ON is not supported with AMReX_PRECISION=FP32MP2")
+      endif ()
+   endforeach ()
+   unset(_amrex_fp32mp2_unsupported)
+
+   if (NOT AMReX_GPU_BACKEND STREQUAL "NONE" AND NOT AMReX_GPU_BACKEND STREQUAL "CUDA")
+      message(FATAL_ERROR "AMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is not supported with "
+         "AMReX_PRECISION=FP32MP2 (supported: NONE, CUDA)")
+   endif ()
+endif ()

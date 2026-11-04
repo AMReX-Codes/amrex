@@ -1,4 +1,46 @@
 #
+# CCCL: provides cuda::fp32mp2 (<cuda/fpmp>) for AMReX_PRECISION=FP32MP2
+#
+if (AMReX_PRECISION STREQUAL "FP32MP2")
+    # In CUDA builds, CUB and Thrust must come from the same CCCL release as
+    # libcudacxx, ahead of the (older) copy bundled with the CUDA toolkit.
+    # CCCL's package config uses -I (not -isystem) so that it takes priority.
+    if (AMReX_CUDA)
+        set(_amrex_cccl_components libcudacxx CUB Thrust)
+    else ()
+        set(_amrex_cccl_components libcudacxx)
+    endif ()
+    find_package(CCCL 3.6 CONFIG REQUIRED COMPONENTS ${_amrex_cccl_components})
+    unset(_amrex_cccl_components)
+
+    include(CheckCXXSourceCompiles)
+    get_target_property(_amrex_cccl_includes CCCL::libcudacxx INTERFACE_INCLUDE_DIRECTORIES)
+    set(CMAKE_REQUIRED_INCLUDES ${_amrex_cccl_includes})
+    # AMReX uses the implicit conversion mode of <cuda/fpmp> (e.g., Real x = 0.5;).
+    # It changes declarations, so every translation unit needs the same value.
+    set(CMAKE_REQUIRED_DEFINITIONS -DCCCL_FPMP_EXPLICIT_CASTS=0)
+    unset(AMReX_CCCL_HAS_FPMP CACHE)  # re-check if CCCL_DIR changed
+    check_cxx_source_compiles("
+        #include <cuda/fpmp>
+        int main () { cuda::fp32mp2 x = 1.0; x += x; return static_cast<int>(x) - 2; }"
+        AMReX_CCCL_HAS_FPMP)
+    unset(CMAKE_REQUIRED_DEFINITIONS)
+    unset(CMAKE_REQUIRED_INCLUDES)
+    unset(_amrex_cccl_includes)
+    if (NOT AMReX_CCCL_HAS_FPMP)
+        message(FATAL_ERROR "AMReX_PRECISION=FP32MP2: CCCL ${CCCL_VERSION} found in "
+            "${CCCL_DIR} does not provide <cuda/fpmp> with cuda::fp32mp2 and "
+            "CCCL_FPMP_EXPLICIT_CASTS=0. "
+            "Point CCCL_DIR to a CCCL >= 3.6 checkout (<cccl>/lib/cmake/cccl).")
+    endif ()
+
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_link_libraries(amrex_${D}d PUBLIC CCCL::CCCL)
+        target_compile_definitions(amrex_${D}d PUBLIC CCCL_FPMP_EXPLICIT_CASTS=0)
+    endforeach()
+endif ()
+
+#
 # FFT
 #
 if (AMReX_FFT)

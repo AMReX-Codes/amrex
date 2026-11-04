@@ -108,6 +108,17 @@ function (setup_test _dim _srcs  _inputs)
 
 endfunction ()
 
+#
+# For the tests that loop over the MLMG multigrid types: on GPUs, AlgMG
+# supports float and double only, so run the geometric type alone with
+# AMReX_PRECISION=FP32MP2.  Use as CMDLINE_PARAMS_AFTER_INPUTS of setup_test.
+#
+if (AMReX_PRECISION STREQUAL "FP32MP2" AND NOT AMReX_GPU_BACKEND STREQUAL NONE)
+   set(AMREX_TEST_MLMG_TYPE_PARAMS multigrid_types=geometric use_algmg_bottom=0)
+else ()
+   set(AMREX_TEST_MLMG_TYPE_PARAMS)
+endif ()
+
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
    # Let's keep only a small set of tests here.
@@ -157,7 +168,13 @@ else()
    endif ()
 
    if (AMReX_LINEAR_SOLVERS)
-      list(APPEND AMREX_TESTS_SUBDIRS Algebra LinearSolvers)
+      # On GPUs, the sparse linear algebra (SpMV, SpGEMM) supports float and
+      # double only, so the Algebra tests do not apply with FP32MP2.
+      if (AMReX_PRECISION STREQUAL "FP32MP2" AND NOT AMReX_GPU_BACKEND STREQUAL NONE)
+         list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+      else ()
+         list(APPEND AMREX_TESTS_SUBDIRS Algebra LinearSolvers)
+      endif ()
    endif ()
 
    if (AMReX_FFT)

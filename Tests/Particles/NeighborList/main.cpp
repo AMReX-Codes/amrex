@@ -35,7 +35,9 @@ void get_test_params(TestParams& params, const std::string& prefix)
 
 namespace Params
 {
-    static constexpr amrex::Real cutoff = Real(0.2);
+    // A function, not a variable, so that it can be used in device code also
+    // if Real is a class type (AMReX_PRECISION=FP32MP2).
+    AMREX_GPU_HOST_DEVICE constexpr amrex::Real cutoff () { return amrex::Real(0.2); }
 }
 
 struct CheckPair
@@ -48,7 +50,7 @@ struct CheckPair
                      amrex::ParticleReal d1 = (p1.pos(1) - p2.pos(1));,
                      amrex::ParticleReal d2 = (p1.pos(2) - p2.pos(2));)
         amrex::ParticleReal dsquared = AMREX_D_TERM(d0*d0, + d1*d1, + d2*d2);
-        return (dsquared <= 25.0*Params::cutoff*Params::cutoff);
+        return (dsquared <= Real(25.0)*Params::cutoff()*Params::cutoff());
     }
 };
 

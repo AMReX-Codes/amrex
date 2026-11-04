@@ -1158,7 +1158,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     }
                 }
 
-                if (sizeof(typename PC::ParticleType::RealType) == 4) {
+                if constexpr (IsFPMP2_v<typename PC::ParticleType::RealType>) {
+                    // cuda::fp32mp2 is written as IEEE double (RD)
+                    std::vector<double> d(rstuff.begin(), rstuff.end());
+                    writeDoubleData(d.data(), d.size(), ofs, RD);
+                } else if (sizeof(typename PC::ParticleType::RealType) == 4) {
                     writeFloatData((float*) rstuff.dataPtr(), rstuff.size(), ofs, RD);
                 }
                 else if (sizeof(typename PC::ParticleType::RealType) == 8) {

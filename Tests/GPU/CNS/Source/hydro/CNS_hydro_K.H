@@ -63,7 +63,7 @@ amrex::Real cns_limiter (amrex::Real dlft, amrex::Real drgt) noexcept
     Real dsgn = std::copysign(Real(1.0), dcen);
     Real slop = Real(2.0) * amrex::min(std::abs(dlft),std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? slop : Real(0.0);
-    return dsgn * amrex::min(dlim,std::abs(dcen));
+    return dsgn * amrex::min(dlim,amrex::Math::abs(dcen));
 }
 
 AMREX_GPU_DEVICE
