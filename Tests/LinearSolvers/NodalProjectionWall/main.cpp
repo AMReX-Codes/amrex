@@ -61,6 +61,7 @@ struct Result
 {
     Real e_max = 0;                       // max |u_projected - u| over all cells
     std::array<Real,4> e_delta{};         // wall-normal error / delta, cells 0-3 from the wall
+    std::array<Real,4> e_corner{};        // |u_projected - u| / h^2 in the corner cells: (0,0), (n,0), (0,n), (n,n)
     Vector<Real> c_exact;                 // c for L_h applied to the exact velocity
     Vector<Real> c_proj;                  // c for L_h applied to the projected velocity
 };
@@ -143,7 +144,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab sigma(ba, dm, 1, 0);
         sigma.setVal(1.0);
         linop.setSigma(0, sigma);
-        linop.setWallDivuCorrection(wall_corr != 0);
+        linop.setWallDivuCorrection(wall_corr);
 
         BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
         MultiFab rhs(nba, dm, 1, 0);
@@ -154,6 +155,33 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         MLMG mlmg(linop);
         mlmg.setVerbose(verbose);
         mlmg.solve({&phi}, {&rhs}, rtol, Real(0));
+
+        // Residual of the solve at the (0,n) lid corner node, its two neighbours, and
+        // over all nodes: a converged solve leaves them all at the tolerance.  A corner
+        // node that the solve does not act on shows up as a residual equal to its rhs.
+        {
+            MultiFab res(nba, dm, 1, 0);
+            mlmg.compResidual({&res}, {&phi}, {&rhs});
+            Box const cbox(IntVect(AMREX_D_DECL(0, n-1, 0)), IntVect(AMREX_D_DECL(1, n, 0)));
+            BoxArray const cba(cbox);
+            DistributionMapping const cdm(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
+            MultiFab cres(cba, cdm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
+            MultiFab crhs(cba, cdm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
+            cres.ParallelCopy(res, 0, 0, 1);
+            crhs.ParallelCopy(rhs, 0, 0, 1);
+            Gpu::streamSynchronize();
+            Real const rmax = res.norminf();
+            for (MFIter mfi(cres); mfi.isValid(); ++mfi) {
+                auto const& a = cres.const_array(mfi);
+                auto const& b = crhs.const_array(mfi);
+                char line[256];
+                std::snprintf(line, sizeof(line),
+                    "  n = %4d  residual: max %9.2e  corner (0,n) %9.2e (rhs %9.2e)  (1,n) %9.2e (rhs %9.2e)  (0,n-1) %9.2e (rhs %9.2e)\n",
+                    n, double(rmax), double(a(0,n,0)), double(b(0,n,0)), double(a(1,n,0)), double(b(1,n,0)),
+                    double(a(0,n-1,0)), double(b(0,n-1,0)));
+                amrex::Print() << line;
+            }
+        }
 
         MultiFab flux(ba, dm, AMREX_SPACEDIM, 0);
         mlmg.getFluxes({&flux});
@@ -261,6 +289,16 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         for (int m = 0; m < 4; ++m) {
             r.e_delta[m] = wall_fit(a, 0, n, m, h*h/Real(8));
         }
+        int q = 0;
+        for (int cj : {0, n-1}) {
+            for (int ci : {0, n-1}) {
+                Real e = 0;
+                for (int comp = 0; comp < AMREX_SPACEDIM; ++comp) {
+                    e = std::max(e, std::abs(a(ci,cj,0,comp)) / (h*h));
+                }
+                r.e_corner[q++] = e;
+            }
+        }
         for (int op = 0; op < nops(); ++op) {
             r.c_exact[op] = -wall_fit(a, AMREX_SPACEDIM*(1+2*op), n, 0, Real(1));
             r.c_proj[op]  = -wall_fit(a, AMREX_SPACEDIM*(2+2*op), n, 0, Real(1));
@@ -315,7 +353,7 @@ void divu_wall_check (int n, int max_grid_size)
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr != 0);
+    linop.setWallDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {});
@@ -354,6 +392,158 @@ void divu_wall_check (int n, int max_grid_size)
     amrex::Print() << line;
 }
 
+// Consistency of the nodal divergence with a cell-centred source, no solve: u = (x (y+y^2),
+// y (x+x^2)) has div u = S = x + x^2 + y + y^2, so compRHS({u}, rhcc = -S) is zero exactly;
+// what it returns is the discretisation's inconsistency between how it averages div u and
+// S over each node's control volume.  The tangential velocity grows linearly (then
+// quadratically) away from each wall, as a no-slip profile does.  Prints max |rhs| / h^2
+// at interior nodes, on the x = 0 and y = 0 wall nodes away from the other walls, and at
+// the (0,0) corner node: O(1) in these units is second order, O(1/h) is first.
+void source_wall_check (int n, int max_grid_size)
+{
+    Real const h = Real(1)/Real(n);
+#if (AMREX_SPACEDIM == 3)
+    int const nz = 8;
+#endif
+    Box const domain(IntVect(0), IntVect(AMREX_D_DECL(n-1, n-1, nz-1)));
+    RealBox const rb({AMREX_D_DECL(Real(0), Real(0), Real(0))},
+                     {AMREX_D_DECL(Real(1), Real(1), Real(nz)*h)});
+    Array<int,AMREX_SPACEDIM> const is_periodic{AMREX_D_DECL(0, 0, 1)};
+    Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
+    BoxArray ba(domain);
+    ba.maxSize(max_grid_size);
+    DistributionMapping const dm(ba);
+
+    MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
+    MultiFab src(ba, dm, 1, 1);
+    vel.setVal(0.0);
+    src.setVal(0.0);
+    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.validbox();
+        auto const& v = vel.array(mfi);
+        auto const& sa = src.array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const x = (Real(i)+Real(0.5))*h;
+            Real const y = (Real(j)+Real(0.5))*h;
+            v(i,j,k,0) = x*(y + y*y);
+            v(i,j,k,1) = y*(x + x*x);
+            sa(i,j,k) = -(x + x*x + y + y*y);
+        });
+    }
+    vel.FillBoundary(geom.periodicity());
+    src.FillBoundary(geom.periodicity());
+
+    Array<LinOpBCType,AMREX_SPACEDIM> const bc{AMREX_D_DECL(LinOpBCType::Neumann,
+                                                            LinOpBCType::Neumann,
+                                                            LinOpBCType::Periodic)};
+    MLNodeLaplacian linop({geom}, {ba}, {dm});
+    linop.setDomainBC(bc, bc);
+    MultiFab sigma(ba, dm, 1, 0);
+    sigma.setVal(1.0);
+    linop.setSigma(0, sigma);
+    linop.setWallDivuCorrection(wall_corr);
+    BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
+    MultiFab rhs(nba, dm, 1, 0);
+    linop.compRHS({&rhs}, {&vel}, {}, {&src});
+
+    Real max_int = 0, max_wall = 0, corner = 0;
+    int const e = n/8;
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.validbox();
+        auto const& r = rhs.const_array(mfi);
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
+        {
+#if (AMREX_SPACEDIM == 3)
+            if (k != 0) { return; }
+#endif
+            Real const a = std::abs(r(i,j,k)) / (h*h);
+            if (i > 0 && i < n && j > 0 && j < n) {
+                max_int = std::max(max_int, a);
+            } else if ((j == 0 && i >= e && i <= n-e) || (i == 0 && j >= e && j <= n-e)) {
+                max_wall = std::max(max_wall, a);
+            } else if (i == 0 && j == 0) {
+                corner = a;
+            }
+        });
+    }
+    ParallelDescriptor::ReduceRealMax(max_int);
+    ParallelDescriptor::ReduceRealMax(max_wall);
+    ParallelDescriptor::ReduceRealMax(corner);
+    char line[256];
+    std::snprintf(line, sizeof(line), "  %4d   %12.4f   %12.4f   %12.4f\n",
+                  n, double(max_int), double(max_wall), double(corner));
+    amrex::Print() << line;
+}
+
+// Where the divergence error sits near a corner: the Burggraf velocity is divergence-free,
+// so compRHS should return zero; prints rhs / h^2 on the 3x3 nodes at the (0,0) corner
+// (node (0,0) is the corner, (i,0) are on the y = 0 wall, (0,j) on the x = 0 wall).
+void burggraf_corner_rhs (int n, int max_grid_size)
+{
+    Real const h = Real(1)/Real(n);
+#if (AMREX_SPACEDIM == 3)
+    int const nz = 8;
+#endif
+    Box const domain(IntVect(0), IntVect(AMREX_D_DECL(n-1, n-1, nz-1)));
+    RealBox const rb({AMREX_D_DECL(Real(0), Real(0), Real(0))},
+                     {AMREX_D_DECL(Real(1), Real(1), Real(nz)*h)});
+    Array<int,AMREX_SPACEDIM> const is_periodic{AMREX_D_DECL(0, 0, 1)};
+    Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
+    BoxArray ba(domain);
+    ba.maxSize(max_grid_size);
+    DistributionMapping const dm(ba);
+
+    MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
+    vel.setVal(0.0);
+    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.validbox();
+        auto const& v = vel.array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const x = (Real(i)+Real(0.5))*h;
+            Real const y = (Real(j)+Real(0.5))*h;
+            v(i,j,k,0) =  Real(8) * bf(x) * bg1(y);
+            v(i,j,k,1) = -Real(8) * bf1(x) * bg(y);
+        });
+    }
+    vel.FillBoundary(geom.periodicity());
+
+    Array<LinOpBCType,AMREX_SPACEDIM> const bc{AMREX_D_DECL(LinOpBCType::Neumann,
+                                                            LinOpBCType::Neumann,
+                                                            LinOpBCType::Periodic)};
+    MLNodeLaplacian linop({geom}, {ba}, {dm});
+    linop.setDomainBC(bc, bc);
+    MultiFab sigma(ba, dm, 1, 0);
+    sigma.setVal(1.0);
+    linop.setSigma(0, sigma);
+    linop.setWallDivuCorrection(wall_corr);
+    BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
+    MultiFab rhs(nba, dm, 1, 0);
+    linop.compRHS({&rhs}, {&vel}, {}, {});
+
+    // Gather the corner blocks on the I/O rank: (0,0) and the lid corner (0,n)
+    for (int cj0 : {0, n-2}) {
+    Box const cbox(IntVect(AMREX_D_DECL(0, cj0, 0)), IntVect(AMREX_D_DECL(2, cj0+2, 0)));
+    BoxArray const cba(cbox);
+    DistributionMapping const cdm(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
+    MultiFab cmf(cba, cdm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
+    cmf.ParallelCopy(rhs, 0, 0, 1);
+    Gpu::streamSynchronize();
+    for (MFIter mfi(cmf); mfi.isValid(); ++mfi) {
+        auto const& r = cmf.const_array(mfi);
+        amrex::Print() << "  n = " << n << ((cj0 == 0) ? "  corner (0,0)" : "  lid corner (0,n)") << "\n";
+        for (int j = cj0+2; j >= cj0; --j) {
+            char line[256];
+            std::snprintf(line, sizeof(line), "    j=%-4d  %12.4f  %12.4f  %12.4f\n", j,
+                          double(r(0,j,0)/(h*h)), double(r(1,j,0)/(h*h)), double(r(2,j,0)/(h*h)));
+            amrex::Print() << line;
+        }
+        amrex::Print() << "              i=0           i=1           i=2\n";
+    }
+    }
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -384,6 +574,17 @@ int main (int argc, char* argv[])
             for (int n : n_cell) {
                 divu_wall_check(n, max_grid_size);
             }
+            amrex::Print() << "\nNodal divergence with a cell-centred source, u = (x(y+y^2), y(x+x^2)),\n"
+                           << "S = x+x^2+y+y^2 (div u - S = 0): max |rhs| / h^2 at interior nodes, on the\n"
+                           << "x = 0 and y = 0 wall nodes away from the other walls, and at the (0,0) corner\n"
+                           << "     n       interior           wall         corner\n";
+            for (int n : n_cell) {
+                source_wall_check(n, max_grid_size);
+            }
+            amrex::Print() << "\nBurggraf (div u = 0): rhs / h^2 on the 3x3 nodes at the (0,0) corner\n";
+            for (int n : n_cell) {
+                burggraf_corner_rhs(n, max_grid_size);
+            }
             amrex::Print() << '\n';
         }
 
@@ -395,12 +596,13 @@ int main (int argc, char* argv[])
         char line[256];
         amrex::Print() << "\nProjected Burggraf velocity: max error, and the wall-normal error in the\n"
                        << "cells 0-3 from the wall divided by delta = (h^2/8) u_n''\n"
-                       << "     n   max |u_P - u|   cell 0   cell 1   cell 2   cell 3\n";
+                       << "     n   max |u_P - u|   cell 0   cell 1   cell 2   cell 3   corner cells / h^2: (0,0) (n,0) (0,n) (n,n)\n";
         for (int s = 0; s < n_cell.size(); ++s) {
             auto const& r = results[s];
-            std::snprintf(line, sizeof(line), "  %4d   %13.3e   %6.3f   %6.3f   %6.3f   %6.3f\n",
+            std::snprintf(line, sizeof(line), "  %4d   %13.3e   %6.3f   %6.3f   %6.3f   %6.3f   %8.4f %8.4f %8.4f %8.4f\n",
                           n_cell[s], double(r.e_max), double(r.e_delta[0]), double(r.e_delta[1]),
-                          double(r.e_delta[2]), double(r.e_delta[3]));
+                          double(r.e_delta[2]), double(r.e_delta[3]), double(r.e_corner[0]),
+                          double(r.e_corner[1]), double(r.e_corner[2]), double(r.e_corner[3]));
             amrex::Print() << line;
         }
 
