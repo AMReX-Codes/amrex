@@ -34,6 +34,13 @@ void Initialize ();
 void Finalize ();
 
 /**
+ * \brief Whether the calling thread is the output thread, e.g., in a
+ * submitted job.
+ * \ingroup amrex_io
+ */
+bool OnOutputThread ();
+
+/**
  * \brief Query whether asynchronous output is enabled at runtime.
  * \ingroup amrex_io
  */

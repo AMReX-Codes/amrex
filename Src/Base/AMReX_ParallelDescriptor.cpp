@@ -226,7 +226,7 @@ void
 Abort (int errorcode, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
-        BLBackTrace::handler(errorcode);
+        BLBackTrace::handle_error(errorcode);
     } else {
         MPI_Abort(Communicator(), errorcode);
     }
@@ -1208,7 +1208,7 @@ void
 Abort (int errorcode, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
-        BLBackTrace::handler(errorcode);
+        BLBackTrace::handle_error(errorcode);
     } else {
         std::_Exit(EXIT_FAILURE);
     }

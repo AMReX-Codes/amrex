@@ -95,9 +95,6 @@ add_amrex_define( AMREX_USE_FLATTEN_FOR NO_LEGACY IF AMReX_FLATTEN_FOR )
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
 
-# Backtraces on macOS
-add_amrex_define( AMREX_EXPORT_DYNAMIC NO_LEGACY IF AMReX_EXPORT_DYNAMIC )
-
 if (AMReX_FORTRAN)
 
    # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get

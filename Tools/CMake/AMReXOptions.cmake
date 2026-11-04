@@ -429,13 +429,15 @@ print_option( AMReX_FLATTEN_FOR )
 option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
 print_option( AMReX_BOUND_CHECK )
 
-if("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
-    set(AMReX_EXPORT_DYNAMIC_DEFAULT ON)
-else()
-    set(AMReX_EXPORT_DYNAMIC_DEFAULT OFF)
-endif()
-option( AMReX_EXPORT_DYNAMIC "Enable Backtrace for macOS/Darwin" ${AMReX_EXPORT_DYNAMIC_DEFAULT})
-print_option( AMReX_EXPORT_DYNAMIC )
+# AMReX_EXPORT_DYNAMIC (default: ON on macOS) turned macOS backtraces on or off.
+if (DEFINED AMReX_EXPORT_DYNAMIC)
+    if ("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin" AND NOT AMReX_EXPORT_DYNAMIC)
+        message(WARNING "AMReX_EXPORT_DYNAMIC has no effect anymore. The runtime "
+                "parameter amrex.call_addr2line=0 turns off looking up the "
+                "frames of backtraces.")
+    endif ()
+    unset(AMReX_EXPORT_DYNAMIC CACHE)
+endif ()
 
 #
 # Profiling options  =========================================================
