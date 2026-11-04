@@ -91,6 +91,10 @@ public:
 
     //! Complete per-level setup (averaging, singularity flags) before solving.
     void prepareForSolve () final;
+
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLALaplacianT<MF>);
+    }
     //! True if level \p amrlev is singular.
     [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     //! Shortcut for the coarsest level singular flag.
@@ -181,7 +185,11 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    LPInfo dp_info = a_info;
+    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
+        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
+    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
 
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         if (a_info.mixed_precision) {
@@ -248,6 +256,9 @@ MLALaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
     const int ncomp = this->getNComp();
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
     m_needs_update = true;
+    if (this->m_sp_linop) {
+        static_cast<MLALaplacianT<fMultiFab>*>(this->m_sp_linop.get())->setACoeffs(amrlev, alpha);
+    }
 }
 
 template <typename MF>

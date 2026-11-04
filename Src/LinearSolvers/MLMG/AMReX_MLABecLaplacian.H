@@ -175,6 +175,10 @@ public:
 
     //! Finalize singular flags and metric/Robin adjustments prior to calling MLMG.
     void prepareForSolve () override;
+
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLABecLaplacianT<MF>);
+    }
     //! Query whether AMR level \p amrlev is singular (null space present).
     [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
     //! Convenience helper for the coarsest level singularity flag.
@@ -324,7 +328,11 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define()");
     this->m_ncomp = a_ncomp;
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    LPInfo dp_info = a_info;
+    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
+        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
+    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
     define_ab_coeffs();
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         if (a_info.mixed_precision) {
@@ -348,7 +356,11 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
     this->m_ncomp = a_ncomp;
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    LPInfo dp_info = a_info;
+    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
+        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
+    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, dp_info, a_factory);
     define_ab_coeffs();
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         if (a_info.mixed_precision) {

@@ -432,7 +432,12 @@ public:
      *
      * \param w Half-width (in cells) for the interpolation boundary stencil.
      */
-    void setInterpBndryHalfWidth (int w) { m_interpbndry_halfwidth = w; }
+    void setInterpBndryHalfWidth (int w) {
+        m_interpbndry_halfwidth = w;
+        if (this->m_sp_linop) {
+            static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setInterpBndryHalfWidth(w);
+        }
+    }
 
 protected:
 

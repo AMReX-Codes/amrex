@@ -980,7 +980,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     // Mixed precision: the residual and the solution update are in double,
     // the multigrid cycles run on the operator's single precision copy.
     const bool mixed = (linop.m_sp_linop != nullptr);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!linop.info.mixed_precision || mixed,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!linop.info.mixed_precision || (mixed && linop.supportsMixedPrecision()),
                                      "MLMG: this operator does not support mixed precision");
     if (mixed) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(multigrid_type == MultigridType::geometric
@@ -2043,7 +2043,8 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
 {
     if constexpr (std::is_same_v<MF,MultiFab>) {
         auto& splinop = *linop.m_sp_linop;
-        if (!m_sp_mlmg) {
+        const bool first = !m_sp_mlmg;
+        if (first) {
             m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(splinop);
             m_sp_cor.resize(namrlevs);
             m_sp_res.resize(namrlevs);
@@ -2052,6 +2053,9 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
                 m_sp_res[alev] = splinop.make(alev, 0, IntVect(0));
                 m_sp_res[alev].setVal(0.0F);
             }
+            // The user's N-Solve setting, before it is turned off for this solver.
+            m_sp_mlmg->setNSolve(do_nsolve);
+            m_sp_mlmg->setNSolveGridSize(nsolve_grid_size);
         }
         auto& sp = *m_sp_mlmg;
         sp.setVerbose(std::max(0, verbose-2));
@@ -2066,20 +2070,20 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
         sp.setBottomSmooth(nub);
         sp.setMaxFmgIter(max_fmg_iters);
         sp.setCFStrategy(static_cast<typename MLMGT<fMultiFab>::CFStrategy>(cf_strategy));
-        sp.setNSolve(do_nsolve);
-        sp.setNSolveGridSize(nsolve_grid_size);
         sp.setThrowException(throw_exception);
         sp.print_ident = print_ident + "  ";
         // Allocates the work arrays and prepares the operator; the rhs is
         // overwritten by spIter.
         sp.prepareForSolve(GetVecOfPtrs(m_sp_cor), GetVecOfConstPtrs(m_sp_res));
-        if (!sp.solve_called) { sp.solve_called = 1; } // keep the work arrays
-        // The coarse/fine BC data of the copy come from its solution, which
-        // is zero whenever spIter needs them.
-        for (int alev = 0; alev < namrlevs; ++alev) {
-            setVal(sp.sol[alev], 0.0F);
+        if (first) {
+            sp.solve_called = 1; // keep the work arrays
+            // The coarse/fine BC data of the copy come from its solution,
+            // which is zero whenever spIter needs them.
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                setVal(sp.sol[alev], 0.0F);
+            }
+            sp.computeMLResidual(finest_amr_lev);
         }
-        sp.computeMLResidual(finest_amr_lev);
     } else {
         amrex::ignore_unused(ng_sol);
         amrex::Abort("MLMG::prepareForSPSolve: MultiFab only");

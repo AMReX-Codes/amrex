@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <typeinfo>
 #include <limits>
 #include <string>
 
@@ -146,6 +147,7 @@ class MLLinOpT
 {
 public:
 
+    template <typename T> friend class MLLinOpT;
     template <typename T> friend class MLMGT;
     template <typename T> friend class MLCGSolverT;
     template <typename T> friend class MLPoissonT;
@@ -861,6 +863,10 @@ public:
      */
     [[nodiscard]] virtual bool supportNSolve () const { return false; }
 
+    //! Mixed precision: true only for the exact operator types that build
+    //! a single precision copy of themselves, not for classes derived from them.
+    [[nodiscard]] virtual bool supportsMixedPrecision () const { return false; }
+
     /**
      * \brief Copy an NSolve solution from \p src to \p dst.
      *
@@ -1024,7 +1030,8 @@ protected:
     bool m_precond_mode = false;
 
     //! Mixed precision: this operator keeps only MG level 0 and the single
-    //! precision copy, built by the concrete operator, holds the MG hierarchy.
+    //! precision copy, built in the concrete operator's define, holds the
+    //! MG hierarchy.
     static constexpr bool mixed_precision_capable =
         std::is_same_v<MF,MultiFab> && !std::is_same_v<MF,fMultiFab>;
     std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
@@ -1072,7 +1079,10 @@ protected:
     [[nodiscard]] MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
     [[nodiscard]] MPI_Comm Communicator () const noexcept { return m_default_comm; }
 
-    void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
+    void setCoarseFineBCLocation (const RealVect& cloc) noexcept {
+        m_coarse_bc_loc = cloc;
+        if (m_sp_linop) { m_sp_linop->setCoarseFineBCLocation(cloc); }
+    }
 
     [[nodiscard]] bool doAgglomeration () const noexcept { return m_do_agglomeration; }
     [[nodiscard]] bool doConsolidation () const noexcept { return m_do_consolidation; }
@@ -1220,7 +1230,6 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 #endif
     if (info.mixed_precision) {
         if constexpr (mixed_precision_capable) {
-            info.max_coarsening_level = 0; // the float copy has the MG hierarchy
 #ifdef AMREX_USE_EB
             for (auto const* f : a_factory) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dynamic_cast<EBFArrayBoxFactory const*>(f) == nullptr,

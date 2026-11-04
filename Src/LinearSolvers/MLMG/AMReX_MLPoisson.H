@@ -104,6 +104,10 @@ public:
 
     //! Prepare coefficients and singularity flags before entering MLMG.
     void prepareForSolve () final;
+
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLPoissonT<MF>);
+    }
     //! True if the operator is singular on AMR level \p amrlev.
     [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     //! True if the coarsest level is singular (e.g., pure Neumann BCs).
@@ -186,7 +190,11 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
                         const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    LPInfo dp_info = a_info;
+    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
+        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
+    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         if (a_info.mixed_precision) {
             LPInfo sp_info = a_info;
@@ -206,7 +214,11 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
                         const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define(overset)");
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    LPInfo dp_info = a_info;
+    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
+        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
+    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, dp_info, a_factory);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
         "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
