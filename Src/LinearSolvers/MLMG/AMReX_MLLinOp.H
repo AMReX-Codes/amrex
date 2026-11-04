@@ -1031,9 +1031,14 @@ protected:
 
     //! Mixed precision: this operator keeps only MG level 0 and the single
     //! precision copy, built in the concrete operator's define, holds the
-    //! MG hierarchy.
+    //! MG hierarchy.  nvcc on Windows cannot compile the EB code of
+    //! MLCellLinOp for float (see the if constexpr workarounds there).
     static constexpr bool mixed_precision_capable =
-        std::is_same_v<MF,MultiFab> && !std::is_same_v<MF,fMultiFab>;
+        std::is_same_v<MF,MultiFab> && !std::is_same_v<MF,fMultiFab>
+#if defined(AMREX_USE_CUDA) && defined(_WIN32) && defined(AMREX_USE_EB)
+        && false
+#endif
+        ;
     std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
 
     //! Return AMR refinement ratios
