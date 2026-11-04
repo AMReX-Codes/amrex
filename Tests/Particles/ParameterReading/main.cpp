@@ -12,7 +12,7 @@ namespace {
 
 Geometry make_geometry ()
 {
-    RealBox rb({AMREX_D_DECL(0.0, 0.0, 0.0)}, {AMREX_D_DECL(1.0, 1.0, 1.0)});
+    RealBox rb(AMREX_D_DECL(0.0, 0.0, 0.0), AMREX_D_DECL(1.0, 1.0, 1.0));
     Box domain(IntVect(0), IntVect(15));
     return Geometry(domain, rb, CoordSys::cartesian, {AMREX_D_DECL(0, 0, 0)});
 }
