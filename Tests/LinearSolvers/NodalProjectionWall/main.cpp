@@ -357,15 +357,19 @@ void divu_wall_check (int n, int max_grid_size)
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {});
+    // Host copy for the loops below (rhs is in device memory on GPU builds)
+    MultiFab rhs_h(nba, dm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
+    rhs_h.ParallelCopy(rhs, 0, 0, 1);
+    Gpu::streamSynchronize();
 
     // Interior nodes: max |rhs|.  Bottom-wall nodes (j = 0), corners left out: mean and
     // spread of rhs / (h/4).
     Real max_int = 0, sum_wall = 0, min_wall = 1.e30, max_wall = -1.e30;
     int nwall = 0;
     int const e = n/8;
-    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rhs_h); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.validbox();
-        auto const& r = rhs.const_array(mfi);
+        auto const& r = rhs_h.const_array(mfi);
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
         {
             if (i > 0 && i < n && j > 0 && j < n) {
@@ -446,12 +450,15 @@ void source_wall_check (int n, int max_grid_size)
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {&src});
+    MultiFab rhs_h(nba, dm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
+    rhs_h.ParallelCopy(rhs, 0, 0, 1);
+    Gpu::streamSynchronize();
 
     Real max_int = 0, max_wall = 0, corner = 0;
     int const e = n/8;
-    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rhs_h); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.validbox();
-        auto const& r = rhs.const_array(mfi);
+        auto const& r = rhs_h.const_array(mfi);
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
         {
 #if (AMREX_SPACEDIM == 3)
