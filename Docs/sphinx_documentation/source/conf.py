@@ -38,7 +38,8 @@ def get_amrex_version():
 extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx']
+              'sphinx.ext.intersphinx',
+              'myst_parser']
 
 intersphinx_mapping = {
     'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None),
