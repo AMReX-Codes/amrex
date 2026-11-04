@@ -1276,6 +1276,19 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
             mlndlap_impose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
 
+            if (m_wall_divu_corr && !m_is_rz
+#ifdef AMREX_USE_EB
+                && typ == FabType::regular
+#endif
+                )
+            {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                {
+                    mlndlap_divu_wall_corr(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,
+                                           nddom,lobc,hibc);
+                });
+            }
+
             if (rhcc[ilev])
             {
                 Array4<RT> const& rhs_cc_a = rhs_cc[ilev]->array(mfi);
@@ -1307,6 +1320,19 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
                 }
 
                 mlndlap_impose_neumann_bc(bx, rhs_cc_a, nddom, lobc, hibc);
+
+                if (m_wall_divu_corr && !m_is_rz
+#ifdef AMREX_USE_EB
+                    && typ == FabType::regular
+#endif
+                    )
+                {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                    {
+                        mlndlap_rhcc_wall_corr(i,j,k,rhs_cc_a,rhccarr,dmskarr,
+                                               nddom,lobc,hibc);
+                    });
+                }
             }
         }
     }

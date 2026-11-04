@@ -121,6 +121,12 @@ public :
         this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setRZCorrection(rz); });
     }
 
+    //! Second-order nodal divergence at Neumann (wall) domain faces: the tangential
+    //! derivatives and the cell-centred source are taken a quarter cell from the wall,
+    //! the centre of the wall node's half-cell control volume, instead of at the first
+    //! cell centres.  Nodes on two or more walls keep the original stencil.
+    void setWallDivuCorrection (bool on) noexcept { m_wall_divu_corr = on; }
+
     /**
      * \brief Threshold for normalization (prevents dividing by tiny averages).
      *
@@ -440,6 +446,7 @@ protected:
 private:
 
     int m_is_rz = 0;
+    bool m_wall_divu_corr = false;
 
     RT m_const_sigma = RT(0.0);
     RT m_sp_sigma_scale = RT(1.0);

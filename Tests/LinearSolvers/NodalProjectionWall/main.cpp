@@ -43,18 +43,26 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real bg1 (Real y) { return Real(4)*y*y*
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real bg2 (Real y) { return Real(12)*y*y - Real(2); }
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real bg3 (Real y) { return Real(24)*y; }
 
-constexpr int nops = 4;
-const std::array<std::string,nops> op_names{"MLABecLaplacian, maxorder 2",
-                                            "MLABecLaplacian, maxorder 3",
-                                            "MLTensorOp,      maxorder 2",
-                                            "MLTensorOp,      maxorder 3"};
+// The viscous operators tested: MLABecLaplacian then MLTensorOp, each at every maxorder in
+// the `maxorders` input (default 2 3).  Operator op uses maxorders[op % nmo], with the
+// tensor operator for op >= nmo.
+Vector<int> maxorders{2, 3};
+int nops () { return 2 * int(maxorders.size()); }
+std::string op_name (int op)
+{
+    int const nmo = int(maxorders.size());
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%-16s maxorder %d",
+                  (op < nmo) ? "MLABecLaplacian," : "MLTensorOp,", maxorders[op % nmo]);
+    return std::string(buf);
+}
 
 struct Result
 {
     Real e_max = 0;                       // max |u_projected - u| over all cells
     std::array<Real,4> e_delta{};         // wall-normal error / delta, cells 0-3 from the wall
-    std::array<Real,nops> c_exact{};      // c for L_h applied to the exact velocity
-    std::array<Real,nops> c_proj{};       // c for L_h applied to the projected velocity
+    Vector<Real> c_exact;                 // c for L_h applied to the exact velocity
+    Vector<Real> c_proj;                  // c for L_h applied to the projected velocity
 };
 
 // Least-squares fit of a(normal component) = coef * scale * u_n'' over the cells m cells from
@@ -81,6 +89,8 @@ Real wall_fit (Array4<Real const> const& a, int comp0, int n, int m, Real scale)
     }
     return num/den;
 }
+
+int wall_corr = 0;   // 1: MLNodeLaplacian::setWallDivuCorrection(true) for the projection
 
 Result run (int n, int max_grid_size, Real rtol, int verbose)
 {
@@ -133,6 +143,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab sigma(ba, dm, 1, 0);
         sigma.setVal(1.0);
         linop.setSigma(0, sigma);
+        linop.setWallDivuCorrection(wall_corr != 0);
 
         BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
         MultiFab rhs(nba, dm, 1, 0);
@@ -186,8 +197,9 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab::Copy(vin, in, 0, 0, AMREX_SPACEDIM, 0);
         set_wall_values(vin);
 
-        int const maxorder = (op % 2 == 0) ? 2 : 3;
-        if (op < 2) {
+        int const nmo = int(maxorders.size());
+        int const maxorder = maxorders[op % nmo];
+        if (op < nmo) {
             MLABecLaplacian lap({geom}, {ba}, {dm}, info);
             lap.setMaxOrder(maxorder);
             lap.setDomainBC(vbc, vbc);
@@ -220,10 +232,10 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
 
     // All errors in one MultiFab: the projection error, then L_h u - lap u for each operator
     // on the exact and on the projected velocity
-    int const ncomp = AMREX_SPACEDIM * (1 + 2*nops);
+    int const ncomp = AMREX_SPACEDIM * (1 + 2*nops());
     MultiFab err(ba, dm, ncomp, 0);
     MultiFab::LinComb(err, Real(1), vel, 0, Real(-1), vel_exact, 0, 0, AMREX_SPACEDIM, 0);
-    for (int op = 0; op < nops; ++op) {
+    for (int op = 0; op < nops(); ++op) {
         MultiFab tmp(ba, dm, AMREX_SPACEDIM, 0);
         apply_op(op, tmp, vel_exact);
         MultiFab::Copy(err, tmp, 0, AMREX_SPACEDIM*(1+2*op), AMREX_SPACEDIM, 0);
@@ -232,6 +244,8 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
     }
 
     Result r;
+    r.c_exact.resize(nops(), Real(0));
+    r.c_proj.resize(nops(), Real(0));
     for (int comp = 0; comp < AMREX_SPACEDIM; ++comp) {
         r.e_max = std::max(r.e_max, err.norminf(comp, 0));
     }
@@ -247,7 +261,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         for (int m = 0; m < 4; ++m) {
             r.e_delta[m] = wall_fit(a, 0, n, m, h*h/Real(8));
         }
-        for (int op = 0; op < nops; ++op) {
+        for (int op = 0; op < nops(); ++op) {
             r.c_exact[op] = -wall_fit(a, AMREX_SPACEDIM*(1+2*op), n, 0, Real(1));
             r.c_proj[op]  = -wall_fit(a, AMREX_SPACEDIM*(2+2*op), n, 0, Real(1));
         }
@@ -255,6 +269,89 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
     return r;
 }
 
+}
+
+// Direct check of the nodal divergence stencil at a wall, with no solve: u = (x y, -y^2/2) is
+// divergence-free with u_n'' = -1 on the bottom wall.  compRHS should give 0 at interior
+// nodes (the stencil is exact for quadratics there).  On the bottom-wall nodes, if the
+// tangential derivative is taken at the cell centres (y = h/2) instead of averaged over the
+// half-cell control volume (mean h/4), the divergence comes out as h/4 instead of 0, i.e.
+// (h/4) |u_n''|.  Prints rhs/(h/4) on the wall nodes away from the corners.
+void divu_wall_check (int n, int max_grid_size)
+{
+    Real const h = Real(1)/Real(n);
+#if (AMREX_SPACEDIM == 3)
+    int const nz = 8;
+#endif
+    Box const domain(IntVect(0), IntVect(AMREX_D_DECL(n-1, n-1, nz-1)));
+    RealBox const rb({AMREX_D_DECL(Real(0), Real(0), Real(0))},
+                     {AMREX_D_DECL(Real(1), Real(1), Real(nz)*h)});
+    Array<int,AMREX_SPACEDIM> const is_periodic{AMREX_D_DECL(0, 0, 1)};
+    Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
+    BoxArray ba(domain);
+    ba.maxSize(max_grid_size);
+    DistributionMapping const dm(ba);
+
+    MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
+    vel.setVal(0.0);
+    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.validbox();
+        auto const& v = vel.array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real const x = (Real(i)+Real(0.5))*h;
+            Real const y = (Real(j)+Real(0.5))*h;
+            v(i,j,k,0) = x*y;
+            v(i,j,k,1) = -Real(0.5)*y*y;
+        });
+    }
+    vel.FillBoundary(geom.periodicity());
+
+    Array<LinOpBCType,AMREX_SPACEDIM> const bc{AMREX_D_DECL(LinOpBCType::Neumann,
+                                                            LinOpBCType::Neumann,
+                                                            LinOpBCType::Periodic)};
+    MLNodeLaplacian linop({geom}, {ba}, {dm});
+    linop.setDomainBC(bc, bc);
+    MultiFab sigma(ba, dm, 1, 0);
+    sigma.setVal(1.0);
+    linop.setSigma(0, sigma);
+    linop.setWallDivuCorrection(wall_corr != 0);
+    BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
+    MultiFab rhs(nba, dm, 1, 0);
+    linop.compRHS({&rhs}, {&vel}, {}, {});
+
+    // Interior nodes: max |rhs|.  Bottom-wall nodes (j = 0), corners left out: mean and
+    // spread of rhs / (h/4).
+    Real max_int = 0, sum_wall = 0, min_wall = 1.e30, max_wall = -1.e30;
+    int nwall = 0;
+    int const e = n/8;
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.validbox();
+        auto const& r = rhs.const_array(mfi);
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
+        {
+            if (i > 0 && i < n && j > 0 && j < n) {
+                max_int = std::max(max_int, std::abs(r(i,j,k)));
+            } else if (j == 0 && i >= e && i <= n-e
+#if (AMREX_SPACEDIM == 3)
+                       && k == 0
+#endif
+                       ) {
+                Real const q = r(i,j,k) / (Real(0.25)*h);
+                sum_wall += q; min_wall = std::min(min_wall, q); max_wall = std::max(max_wall, q);
+                ++nwall;
+            }
+        });
+    }
+    ParallelDescriptor::ReduceRealMax(max_int);
+    ParallelDescriptor::ReduceRealSum(sum_wall);
+    ParallelDescriptor::ReduceRealMin(min_wall);
+    ParallelDescriptor::ReduceRealMax(max_wall);
+    ParallelDescriptor::ReduceIntSum(nwall);
+    char line[256];
+    std::snprintf(line, sizeof(line), "  %4d   %12.3e   %10.4f   %10.4f   %10.4f\n",
+                  n, double(max_int), double(sum_wall/nwall), double(min_wall), double(max_wall));
+    amrex::Print() << line;
 }
 
 int main (int argc, char* argv[])
@@ -273,6 +370,22 @@ int main (int argc, char* argv[])
         pp.query("rtol", rtol);
         int verbose = 0;
         pp.query("verbose", verbose);
+        pp.queryarr("maxorders", maxorders);
+        pp.query("wall_corr", wall_corr);
+        amrex::Print() << "\nNodal projection wall correction (wall_corr): " << wall_corr << "\n";
+
+        int divu_check = 0;
+        pp.query("divu_check", divu_check);
+        if (divu_check != 0) {
+            amrex::Print() << "\nNodal divergence of u = (x y, -y^2/2) (div u = 0, u_n'' = -1 on the bottom\n"
+                           << "wall): max |rhs| at interior nodes, and rhs / (h/4) on the bottom-wall\n"
+                           << "nodes away from the corners (mean, min, max)\n"
+                           << "     n   max interior         mean          min          max\n";
+            for (int n : n_cell) {
+                divu_wall_check(n, max_grid_size);
+            }
+            amrex::Print() << '\n';
+        }
 
         Vector<Result> results;
         for (int n : n_cell) {
@@ -293,11 +406,11 @@ int main (int argc, char* argv[])
 
         amrex::Print() << "\nViscous operator in the wall cells: (L_h u - lap u)_n = -c u_n''\n"
                        << "  operator                         n   c, exact u   c, projected u\n";
-        for (int op = 0; op < nops; ++op) {
+        for (int op = 0; op < nops(); ++op) {
             for (int s = 0; s < n_cell.size(); ++s) {
                 auto const& r = results[s];
                 std::snprintf(line, sizeof(line), "  %-28s  %4d   %10.4f   %14.4f\n",
-                              (s == 0) ? op_names[op].c_str() : "", n_cell[s],
+                              (s == 0) ? op_name(op).c_str() : "", n_cell[s],
                               double(r.c_exact[op]), double(r.c_proj[op]));
                 amrex::Print() << line;
             }

@@ -80,6 +80,117 @@ mlndlap_unimpose_neumann_bc (Box const& bx, Array4<T> const& rhs, Box const& ndd
     mlndlap_scale_neumann_bc(0.5, bx, rhs, nddom, lobc, hibc);
 }
 
+namespace nodelap_detail {
+
+// A node on exactly one Neumann (wall) domain face: returns the normal direction and sets
+// side (0 lo, 1 hi); -1 if the node is on no wall, or on two or more (corners/edges).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int mlndlap_single_wall (IntVect const& iv, Box const& nddom,
+                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc, int& side) noexcept
+{
+    int nwall = 0, nd = -1;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (lobc[d] == LinOpBCType::Neumann && iv[d] == nddom.smallEnd(d)) { ++nwall; nd = d; side = 0; }
+        if (hibc[d] == LinOpBCType::Neumann && iv[d] == nddom.bigEnd(d))   { ++nwall; nd = d; side = 1; }
+    }
+    return (nwall == 1) ? nd : -1;
+}
+
+}
+
+// Second-order nodal divergence at a wall.  The control volume of a wall node is half a
+// cell, 0 < n < h/2.  mlndlap_divu takes the tangential derivatives of the tangential
+// velocity at the first cell centres, n = h/2, for the whole half volume; their mean over
+// it is their value at n = h/4 to second order, which differs by (h/4) d/dn.  This adds,
+// after the Neumann doubling, the linear extrapolation from the first two rows of cells:
+// D(h/4) = 5/4 D(h/2) - 1/4 D(3h/2), i.e. the correction 1/4 [D(h/2) - D(3h/2)].  Nodes
+// on two or more walls are left alone.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
+                             Array4<Real const> const& vel, Array4<int const> const& msk,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
+                             GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                             GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+{
+    if (msk(i,j,k)) { return; }
+    IntVect const iv(AMREX_D_DECL(i,j,k));
+    int side = 0;
+    int const nd = nodelap_detail::mlndlap_single_wall(iv, nddom, lobc, hibc, side);
+    if (nd < 0) { return; }
+    Real corr = Real(0.0);
+    for (int td = 0; td < AMREX_SPACEDIM; ++td) {
+        if (td == nd) { continue; }
+        Real D[2];
+        for (int m = 0; m < 2; ++m) {
+            int const cn = (side == 0) ? iv[nd] + m : iv[nd] - 1 - m;
+            Real sum = Real(0.0);
+            int cnt = 0;
+#if (AMREX_SPACEDIM == 3)
+            int const od = 3 - nd - td;
+            for (int co = iv[od]-1; co <= iv[od]; ++co) {
+#else
+            {
+#endif
+                IntVect chi(iv), clo(iv);
+                chi[nd] = cn; clo[nd] = cn;
+                chi[td] = iv[td]; clo[td] = iv[td] - 1;
+#if (AMREX_SPACEDIM == 3)
+                chi[od] = co; clo[od] = co;
+#endif
+                sum += (vel(chi,td) - vel(clo,td)) * dxinv[td];
+                ++cnt;
+            }
+            D[m] = sum / Real(cnt);
+        }
+        corr += Real(0.25) * (D[0] - D[1]);
+    }
+    rhs(i,j,k) += corr;
+}
+
+// The same for a cell-centred source: its half-cell mean is its value at n = h/4, while
+// mlndlap_rhcc (after the Neumann doubling) uses the first-row mean, n = h/2.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
+                             Array4<Real const> const& rhcc, Array4<int const> const& msk,
+                             Box const& nddom,
+                             GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                             GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+{
+    if (msk(i,j,k)) { return; }
+    IntVect const iv(AMREX_D_DECL(i,j,k));
+    int side = 0;
+    int const nd = nodelap_detail::mlndlap_single_wall(iv, nddom, lobc, hibc, side);
+    if (nd < 0) { return; }
+    Real S[2];
+    for (int m = 0; m < 2; ++m) {
+        int const cn = (side == 0) ? iv[nd] + m : iv[nd] - 1 - m;
+        Real sum = Real(0.0);
+        int cnt = 0;
+        // All cells of row m touching the node: 2 in 2D, 4 in 3D.
+        IntVect c(iv);
+        c[nd] = cn;
+#if (AMREX_SPACEDIM == 3)
+        int const t1 = (nd == 0) ? 1 : 0;
+        int const t2 = (nd == 2) ? 1 : 2;
+        for (int a = iv[t1]-1; a <= iv[t1]; ++a) {
+            for (int b = iv[t2]-1; b <= iv[t2]; ++b) {
+                c[t1] = a; c[t2] = b;
+                sum += rhcc(c); ++cnt;
+            }
+        }
+#else
+        int const t1 = 1 - nd;
+        for (int a = iv[t1]-1; a <= iv[t1]; ++a) {
+            c[t1] = a;
+            sum += rhcc(c); ++cnt;
+        }
+#endif
+        S[m] = sum / Real(cnt);
+    }
+    rhs(i,j,k) += Real(0.25) * (S[0] - S[1]);
+}
+
 }
 
 #if (AMREX_SPACEDIM == 1)
