@@ -365,6 +365,19 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 template <typename P>
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::OutsidePeriodic (const P& p) const
+{
+    if (!Geom(0).isAnyPeriodic()) { return false; }
+    Particle<0, 0> pos_only;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_only.pos(idim) = p.pos(idim); }
+    return PeriodicShift(pos_only);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+template <typename P>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::PeriodicShift (P& p) const
 {
     const auto& geom = Geom(0);
@@ -438,16 +451,28 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::locateParticle (P& p, ParticleLocData& pld,
                                                                                         int lev_min, int lev_max, IntVect nGrow, int local_grid) const
 {
+    // The same order as the GPU path (partitionParticlesByDest): a position outside the
+    // domain in a periodic direction is wrapped first, then the particle is placed with the
+    // container's cell assignor, and it has left the domain if that cell is outside. With the
+    // default assignor this is the same as testing the position against the roundoff domain,
+    // but a custom assignor may place a particle in the domain whatever its position, e.g.
+    // from its vertical cell index on a terrain-following grid.
     bool success;
-    // Outside the domain by the container's cell assignor, as on the GPU path: with the
-    // default assignor this is the same as being outside the roundoff domain, but a custom
-    // assignor may place a particle in the domain whatever its position, e.g. from its
-    // vertical cell index on a terrain-following grid.
-    if (!Geom(0).Domain().contains(Index(p, 0)))
+    if (OutsidePeriodic(p))
     {
         // Note that EnforcePeriodicWhere may shift the particle if it is successful.
         success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
         if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            p.id().make_invalid();
+            success = true;
+        }
+    }
+    else if (!Geom(0).Domain().contains(Index(p, 0)))
+    {
+        success = false;
+        if (lev_min == 0)
         {
             // The particle has left the domain; invalidate it.
             p.id().make_invalid();
@@ -1384,7 +1409,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         // Fast path: if on the finest level, try the last good location first
         // If not on finest level, we need to do the full locate because even if
         // the last assignment works, the particle might belong on a finer level.
-        if (lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev && who == myproc)  {
+        // A particle past a periodic boundary is wrapped first, as on the GPU path, even if
+        // the cell assignor still puts it in this tile.
+        if (lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev && who == myproc
+            && !OutsidePeriodic(p))  {
             const auto iv = Index(p, lev);
             if (pld.m_tilebox.contains(iv)) {
                 ++pindex;
@@ -1495,21 +1523,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             bool stays = true;
             if (!ptd.id(pindex).is_valid()) {
                 stays = !remove_negative;
+            } else if (OutsidePeriodic(p)) {
+                // wrapped first, as on the GPU path; stays if then in the box
+                stays = false;
+                GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
+                if (PeriodicShift(p) && box.contains(Index(p, 0))) {
+                    stays = true;
+                    located = true;
+                } else {
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
+                }
             } else if (located && box.contains(Index(p, 0))) {
                 stays = true;
             } else if (!geom.Domain().contains(Index(p, 0))) {
-                // shifted periodically into the box, otherwise it left the domain
+                // left the domain
                 stays = false;
-                if (geom.isAnyPeriodic()) {
-                    GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
-                    if (PeriodicShift(p) && box.contains(Index(p, 0))) {
-                        stays = true;
-                        located = true;
-                    } else {
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
-                    }
-                }
             } else if (grown_box.contains(Index(p, 0))) {
                 located = true;
             } else {

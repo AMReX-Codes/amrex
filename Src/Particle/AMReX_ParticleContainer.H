@@ -1281,6 +1281,15 @@ public:
     template <typename P>
     bool PeriodicShift (P& p) const;
 
+    /**
+    * \brief Returns true if PeriodicShift would shift the particle, i.e. if its position is
+    * outside the domain in a periodic direction. The particle is not changed.
+    *
+    * \param p
+    */
+    template <typename P>
+    bool OutsidePeriodic (const P& p) const;
+
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
     bool GetLevelDirectoriesCreated () const { return levelDirectoriesCreated; }
