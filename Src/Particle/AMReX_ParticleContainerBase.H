@@ -281,6 +281,18 @@ public:
     static const std::string& AggregationType ();
     static int AggregationBuffer ();
 
+    /**
+     * \brief Read the process-wide ``particles.*`` runtime parameters.
+     *
+     * This sets do_tiling, tile_size, memEfficientSort, use_comms_arena and
+     * redistribute_early_out from ParmParse. Every particle container calls it
+     * when it is constructed, but the parameters are read only the first time
+     * after amrex::Initialize. A value assigned in code after the first
+     * container is built is therefore kept for all containers built later.
+     * amrex::Finalize restores the defaults.
+     */
+    static void ReadParameters ();
+
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
     static AMREX_EXPORT bool memEfficientSort;
