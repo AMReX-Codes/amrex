@@ -452,7 +452,8 @@ int main (int argc, char* argv[])
         for (int round = 0; round < nrounds; ++round) {
             auto const seed = (seed_in >= 0) ? static_cast<std::uint64_t>(seed_in)
                                              : (((std::uint64_t(rd()) << 32) | rd()) >> 1);
-            amrex::Print() << "seed = " << seed << "\n";
+            amrex::AllPrint() << "Proc " << ParallelDescriptor::MyProc()
+                              << ": seed = " << seed << "\n";
             test_min_max_random<int>(seed);
             test_min_max_random<unsigned int>(seed);
             test_min_max_random<Long>(seed);
