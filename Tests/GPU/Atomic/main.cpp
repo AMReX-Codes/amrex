@@ -4,7 +4,10 @@
 #include <AMReX_Print.H>
 
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <limits>
+#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -248,6 +251,92 @@ void test_mul_div ()
     }
 }
 
+// A value with random bits. For floating-point types NaNs are skipped, since
+// Min/Max are unspecified for them, and so are denormals, so that the host
+// comparison does not depend on flush-to-zero settings. Zeros of both signs
+// and infinities are included.
+template <typename T>
+T random_value (std::mt19937_64& rng)
+{
+    using U = std::conditional_t<sizeof(T) == 4, std::uint32_t, std::uint64_t>;
+    constexpr int ebits = (sizeof(T) == 4) ? 8 : 11;
+    constexpr int mbits = (sizeof(T) == 4) ? 23 : 52;
+    for (;;) {
+        U const u = U(rng());
+        if constexpr (std::is_floating_point_v<T>) {
+            U const e = (u >> mbits) & ((U(1) << ebits) - 1);
+            U const m = u & ((U(1) << mbits) - 1);
+            if (m != 0 && (e == 0 || e == ((U(1) << ebits) - 1))) { continue; }
+            T x;
+            std::memcpy(&x, &u, sizeof(T));
+            return x;
+        } else {
+            return T(u);
+        }
+    }
+}
+
+template <typename T>
+void test_min_max_random (std::uint64_t seed)
+{
+    std::mt19937_64 rng(seed);
+    std::vector<T> hv(N), emin(nbins), emax(nbins);
+    for (auto& x : hv) { x = random_value<T>(rng); }
+    for (int b = 0; b < nbins; ++b) {
+        emin[b] = random_value<T>(rng);   // random starting contents too
+        emax[b] = random_value<T>(rng);
+    }
+    Gpu::DeviceVector<T> dv(N), dmin(nbins), dmax(nbins);
+    Gpu::copyAsync(Gpu::hostToDevice, hv.begin(), hv.end(), dv.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, emin.begin(), emin.end(), dmin.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, emax.begin(), emax.end(), dmax.begin());
+    T const* pv = dv.data();
+    T* pmin = dmin.data();
+    T* pmax = dmax.data();
+    amrex::For(N, [=] AMREX_GPU_DEVICE (int i) noexcept
+    {
+        Gpu::Atomic::Min(pmin + i%nbins, pv[i]);
+        Gpu::Atomic::Max(pmax + i%nbins, pv[i]);
+    });
+    auto hmin = to_host(dmin);
+    auto hmax = to_host(dmax);
+    for (int i = 0; i < N; ++i) {
+        emin[i%nbins] = std::min(emin[i%nbins], hv[i]);
+        emax[i%nbins] = std::max(emax[i%nbins], hv[i]);
+    }
+    for (int b = 0; b < nbins; ++b) {
+        AMREX_ALWAYS_ASSERT(hmin[b] == emin[b]);
+        AMREX_ALWAYS_ASSERT(hmax[b] == emax[b]);
+    }
+}
+
+// Random integers, mixed sign, small enough that the sums cannot overflow.
+template <typename T>
+void test_add_random (std::uint64_t seed)
+{
+    std::mt19937_64 rng(seed);
+    std::vector<T> hv(N), expected(nbins, T(0));
+    for (int i = 0; i < N; ++i) {
+        std::uint64_t const u = rng();
+        auto v = T(u >> ((sizeof(T) == 4) ? 50 : 24));
+        if constexpr (std::is_signed_v<T>) { if (u & 1) { v = -v; } }
+        hv[i] = v;
+        expected[i%nbins] += v;
+    }
+    Gpu::DeviceVector<T> dv(N), d(nbins, T(0));
+    Gpu::copyAsync(Gpu::hostToDevice, hv.begin(), hv.end(), dv.begin());
+    T const* pv = dv.data();
+    T* p = d.data();
+    amrex::For(N, [=] AMREX_GPU_DEVICE (int i) noexcept
+    {
+        Gpu::Atomic::AddNoRet(p + i%nbins, pv[i]);
+    });
+    auto h = to_host(d);
+    for (int b = 0; b < nbins; ++b) {
+        AMREX_ALWAYS_ASSERT(h[b] == expected[b]);
+    }
+}
+
 template <typename T>
 struct IsNonnegative {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -351,6 +440,20 @@ int main (int argc, char* argv[])
         test_min_max<unsigned long long>();
         test_min_max<float>();
         test_min_max<double>();
+
+        for (std::uint64_t seed = 0; seed < 8; ++seed) {
+            test_min_max_random<int>(seed);
+            test_min_max_random<unsigned int>(seed);
+            test_min_max_random<Long>(seed);
+            test_min_max_random<unsigned long long>(seed);
+            test_min_max_random<float>(seed);
+            test_min_max_random<double>(seed);
+
+            test_add_random<int>(seed);
+            test_add_random<unsigned int>(seed);
+            test_add_random<Long>(seed);
+            test_add_random<unsigned long long>(seed);
+        }
 
         test_logical();
 
