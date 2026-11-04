@@ -300,12 +300,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     AMREX_ASSERT(lev_max <= finestLevel());
 
-    // Create a copy "dummy" particle to check for periodic outs.
-    Particle<0, 0> p_prime;
-    AMREX_D_TERM(p_prime.pos(0) = p.pos(0);,
-                 p_prime.pos(1) = p.pos(1);,
-                 p_prime.pos(2) = p.pos(2));
-    if (PeriodicShift(p_prime)) {
+    // Shift the particle itself, so that the container's cell assignor, which may read more
+    // than the position, places it; the position is restored if no grid takes it.
+    GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
+    if (PeriodicShift(p)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
 
@@ -315,11 +314,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             AMREX_ASSERT(ba.ixType().cellCentered());
 
             if (local_grid < 0) {
-                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
+                iv = Index(p, lev);
                 ba.intersections(Box(iv, iv), isects, true, 0);
                 grid = isects.empty() ? -1 : isects[0].first;
             } else {
-                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
+                iv = Index(p, lev);
                 if (ba[local_grid].contains(iv))
                 {
                     grid = local_grid;
@@ -330,16 +329,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     grid = isects.empty() ? -1 : isects[0].first;
                     if(grid == -1)
                     {
+                        // the mask is indexed by the unshifted cell
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            std::swap(p.pos(idim), pos_unshifted[idim]);
+                        }
                         grid = (*redistribute_mask_ptr)[local_grid](Index(p, lev), 0);
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            std::swap(p.pos(idim), pos_unshifted[idim]);
+                        }
                     }
                 }
             }
 
             if (grid >= 0) {
-                AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
-                             p.pos(1) = p_prime.pos(1);,
-                             p.pos(2) = p_prime.pos(2););
-
                 const Box& bx = ba.getCellCenteredBox(grid);
 
                 pld.m_lev  = lev;
@@ -353,6 +355,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
     return false;
 }
 
@@ -436,7 +439,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                                                                         int lev_min, int lev_max, IntVect nGrow, int local_grid) const
 {
     bool success;
-    if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+    // Outside the domain by the container's cell assignor, as on the GPU path: with the
+    // default assignor this is the same as being outside the roundoff domain, but a custom
+    // assignor may place a particle in the domain whatever its position, e.g. from its
+    // vertical cell index on a terrain-following grid.
+    if (!Geom(0).Domain().contains(Index(p, 0)))
     {
         // Note that EnforcePeriodicWhere may shift the particle if it is successful.
         success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
@@ -1490,17 +1497,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 stays = !remove_negative;
             } else if (located && box.contains(Index(p, 0))) {
                 stays = true;
-            } else if (geom.outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2)))) {
+            } else if (!geom.Domain().contains(Index(p, 0))) {
                 // shifted periodically into the box, otherwise it left the domain
                 stays = false;
                 if (geom.isAnyPeriodic()) {
-                    Particle<0, 0> p_prime;
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p_prime.pos(idim) = p.pos(idim); }
-                    if (PeriodicShift(p_prime) &&
-                        box.contains(Index<Particle<0, 0>, DefaultAssignor>(p_prime, 0))) {
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = p_prime.pos(idim); }
+                    GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
+                    if (PeriodicShift(p) && box.contains(Index(p, 0))) {
                         stays = true;
                         located = true;
+                    } else {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
                     }
                 }
             } else if (grown_box.contains(Index(p, 0))) {
