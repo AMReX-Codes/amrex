@@ -66,8 +66,6 @@ class DistributionMapping
         //! Constructors to match those in DistributionMapping ....
         Ref () = default;
 
-        explicit Ref (int len) : m_pmap(len) {}
-
         explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
 
         explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
