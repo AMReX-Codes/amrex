@@ -302,7 +302,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-DistributionMapping::DistributionMapping () noexcept
+DistributionMapping::DistributionMapping ()
     :
     m_ref(std::make_shared<Ref>())
 {
@@ -314,7 +314,7 @@ DistributionMapping::DistributionMapping (const Vector<int>& pmap)
 {
 }
 
-DistributionMapping::DistributionMapping (Vector<int>&& pmap) noexcept
+DistributionMapping::DistributionMapping (Vector<int>&& pmap)
     :
     m_ref(std::make_shared<Ref>(std::move(pmap)))
 {

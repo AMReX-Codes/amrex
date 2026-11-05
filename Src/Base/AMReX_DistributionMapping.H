@@ -78,7 +78,7 @@ class DistributionMapping
     };
 
     //! The default constructor.
-    DistributionMapping () noexcept;
+    DistributionMapping ();
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;
@@ -106,7 +106,7 @@ class DistributionMapping
      *
      * \param pmap Processor id for each box in the underlying BoxArray.
      */
-    explicit DistributionMapping (Vector<int>&& pmap) noexcept;
+    explicit DistributionMapping (Vector<int>&& pmap);
     /**
      * \brief Build a mapping from a BoxArray using the current strategy.
      *
