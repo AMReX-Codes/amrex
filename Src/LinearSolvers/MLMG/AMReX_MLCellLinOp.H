@@ -103,8 +103,10 @@ public:
      */
     void setGaussSeidel (bool flag) noexcept {
         m_use_gauss_seidel = flag;
-        if (this->m_sp_linop) {
-            static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setGaussSeidel(flag);
+        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+            if (this->m_sp_linop) {
+                static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setGaussSeidel(flag);
+            }
         }
     }
 
@@ -434,8 +436,10 @@ public:
      */
     void setInterpBndryHalfWidth (int w) {
         m_interpbndry_halfwidth = w;
-        if (this->m_sp_linop) {
-            static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setInterpBndryHalfWidth(w);
+        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+            if (this->m_sp_linop) {
+                static_cast<MLCellLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setInterpBndryHalfWidth(w);
+            }
         }
     }
 

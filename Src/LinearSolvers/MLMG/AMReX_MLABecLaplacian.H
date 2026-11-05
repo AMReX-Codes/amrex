@@ -284,9 +284,19 @@ private:
 
     void define_ab_coeffs ();
 
-    //! The single precision copy (mixed precision), or null.
-    MLABecLaplacianT<fMultiFab>* spLinOp () noexcept {
-        return static_cast<MLABecLaplacianT<fMultiFab>*>(this->m_sp_linop.get());
+    //! Call f on the single precision copy (mixed precision) if there is
+    //! one.  Where mixed precision is unavailable the float type is not
+    //! named (MSVC instantiates every virtual function of a complete class
+    //! template).
+    template <typename F>
+    void spForward (F&& f) {
+        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+            if (this->m_sp_linop) {
+                f(static_cast<MLABecLaplacianT<fMultiFab>*>(this->m_sp_linop.get()));
+            }
+        } else {
+            amrex::ignore_unused(f);
+        }
     }
 
     void update_singular_flags ();
@@ -418,7 +428,7 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
     }
     m_needs_update = true;
     m_scalars_set = true;
-    if (this->m_sp_linop) { spLinOp()->setScalars(a, b); }
+    spForward([&] (auto* sp) { sp->setScalars(a, b); });
 }
 
 template <typename MF>
@@ -433,7 +443,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
     m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
-    if (this->m_sp_linop) { spLinOp()->setACoeffs(amrlev, alpha); }
+    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 template <typename MF>
@@ -446,7 +456,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
     m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
-    if (this->m_sp_linop) { spLinOp()->setACoeffs(amrlev, alpha); }
+    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 
@@ -474,7 +484,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    if (this->m_sp_linop) { spLinOp()->setBCoeffs(amrlev, beta); }
+    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>
@@ -489,7 +499,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    if (this->m_sp_linop) { spLinOp()->setBCoeffs(amrlev, beta); }
+    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>
@@ -507,7 +517,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    if (this->m_sp_linop) { spLinOp()->setBCoeffs(amrlev, beta); }
+    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>

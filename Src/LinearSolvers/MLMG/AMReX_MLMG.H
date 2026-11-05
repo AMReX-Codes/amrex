@@ -2041,7 +2041,7 @@ template <typename MF>
 void
 MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
 {
-    if constexpr (std::is_same_v<MF,MultiFab>) {
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         auto& splinop = *linop.m_sp_linop;
         const bool first = !m_sp_mlmg;
         if (first) {
@@ -2100,7 +2100,7 @@ MLMGT<MF>::spIter (int iter)
 {
     BL_PROFILE("MLMG::spIter()");
 
-    if constexpr (std::is_same_v<MF,MultiFab>) {
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
         auto& sp = *m_sp_mlmg;
 
         RT s = (iter == 0) ? m_init_resnorm0 : m_final_resnorm0;
