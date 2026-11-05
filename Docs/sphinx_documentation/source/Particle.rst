@@ -196,6 +196,13 @@ Or, if you have multiple levels, you can use following constructor instead:
                            const Vector<BoxArray>            & ba,
                            const Vector<int>                 & rr);
 
+The `MultiLevel`_ tutorial uses this constructor on a two-level hierarchy.
+It initializes and redistributes particles across the levels, deposits them
+on every level with the multi-level :cpp:`ParticleToMesh` from
+``AMReX_AmrParticles.H``, and regrids a level.
+
+.. _`MultiLevel`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-multilevel
+
 Note the set of grids used to define the :cpp:`ParticleContainer` doesn't have
 to be the same set used to define the simulation's mesh data. However, it is
 often desirable to have the two hierarchies track each other. If you are using

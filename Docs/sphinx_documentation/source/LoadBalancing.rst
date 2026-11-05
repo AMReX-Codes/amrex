@@ -54,3 +54,10 @@ Distribution options supported by AMReX include the following; the default is SF
 
 - Round-robin: sort grids and assign them to ranks in round-robin fashion -- specifically
   FAB i is owned by CPU i%N where N is the total number of MPI ranks.
+
+The `LoadBalance`_ tutorial measures the cost of each box, builds a new
+:cpp:`DistributionMapping` from these costs with
+:cpp:`DistributionMapping::makeKnapSack` or :cpp:`DistributionMapping::makeSFC`,
+and moves the data to it with :cpp:`ParallelCopy`.
+
+.. _`LoadBalance`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-loadbalance

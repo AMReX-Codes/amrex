@@ -1589,6 +1589,53 @@ the GPU in each launch, which substantially improves performance.
 When tiling is off, :cpp:`tilebox()` returns the :cpp:`validbox()` of
 the :cpp:`FArrayBox` for that iteration.
 
+Launching over many small boxes
+-------------------------------
+
+Some operations touch many small boxes of different sizes, for example
+the ghost cells outside the domain boundary of every box, and none of
+them has enough cells to fill the GPU.  :cpp:`ParallelFor` can take a
+:cpp:`Vector` of tags instead of a single :cpp:`Box` and run all of them
+in one kernel launch.  A tag is a small struct with a :cpp:`box()` member
+(or :cpp:`size()` for 1D work) and whatever else the kernel needs, such as
+an :cpp:`Array4`; AMReX provides :cpp:`Array4BoxTag` and others, and
+user-defined tags work too.  The kernel receives the cell index and the
+tag,
+
+.. highlight:: c++
+
+::
+
+    Vector<Array4BoxTag<Real>> tags;
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        tags.push_back({mf.array(mfi), some_box(mfi)});
+    }
+    ParallelFor(tags, ncomp,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag)
+    {
+        tag.dfab(i,j,k,n) = ...;
+    });
+
+This copies the tags to the device and synchronizes the stream on every
+call.  When the same tags are used repeatedly, build a :cpp:`TagVector`
+from them once and pass it to :cpp:`ParallelFor` instead.  See the
+`TagParallelFor`_ tutorial.
+
+.. _`TagParallelFor`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-tagparallelfor
+
+Launching with shared memory
+----------------------------
+
+:cpp:`amrex::launch<nthreads>(nblocks, stream, f)` runs ``f`` on a given
+number of thread blocks.  The kernel body is written in the native
+programming model, so it differs between CUDA/HIP and SYCL, and there is
+no CPU version; a separate CPU path is needed.  It is for performance hot
+spots that benefit from shared memory or block-wide synchronization among
+the threads of a block.  The `SharedMemory`_ tutorial uses it for a binned
+sum with block-private partial sums, with a CPU implementation alongside.
+
+.. _`SharedMemory`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-sharedmemory
+
 Offloading work using OpenACC or OpenMP pragmas
 -----------------------------------------------
 
