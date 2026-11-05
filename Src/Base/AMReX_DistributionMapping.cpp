@@ -890,17 +890,20 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
     const int nprocs = ParallelDescriptor::NProcs();
     BL_ASSERT( ! wgts.empty());
 
+    // Keep the old mapping alive in case olddm is *this.
+    DistributionMapping const old(olddm);
+
     m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size(), -1);
 
-    ComputeDistributionMappingEfficiency(olddm, wgts, &old_efficiency);
+    ComputeDistributionMappingEfficiency(old, wgts, &old_efficiency);
 
     if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         // Not enough boxes to reshuffle meaningfully; keep the existing
         // mapping so keep_ratio is honored and the reported efficiency
         // reflects reality.
-        *this = olddm;
+        *this = old;
         new_efficiency = old_efficiency;
         return;
     }
@@ -909,7 +912,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
         Vector<Vector<WeightedBox>> keep_balls(nprocs);
         Long sum_weight = 0;
         for (int i = 0, N = static_cast<int>(wgts.size()); i < N; ++i) {
-            keep_balls[olddm[i]].emplace_back(i, wgts[i]);
+            keep_balls[old[i]].emplace_back(i, wgts[i]);
             sum_weight += wgts[i];
         }
 
@@ -939,7 +942,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
         }
 
         if (lb.empty()) {
-            *this = olddm;
+            *this = old;
             new_efficiency = old_efficiency;
             return;
         } else {
