@@ -6,13 +6,20 @@
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
 
+#include <type_traits>
 #include <utility>
+
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)
+#error "AMReX requires CUDA compute capability 6.0 or newer"
+#endif
 
 namespace amrex {
 
 namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
+// The result of Min and Max is unspecified if any input is NaN, and so is
+// the sign of a zero result.
 // For Multiply and Divide, we support generic types provided they are the same size as int or unsigned long long
 // and have *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.
@@ -82,6 +89,44 @@ namespace detail {
     }
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    // Min (IS_MIN) or Max of float or double with one integer atomic.
+    // Sign bit clear: the values order like signed ints. Sign bit set: the
+    // reverse order of unsigned ints. NaNs are ordered by their bit pattern.
+    template <bool IS_MIN, typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T atomic_fp_min_max (T* const m, T const value) noexcept
+    {
+        using I = std::conditional_t<sizeof(T) == 4, int, long long>;
+        using U = std::make_unsigned_t<I>;
+        I iv, old;
+        if constexpr (sizeof(T) == 4) {
+            iv = __float_as_int(value);
+        } else {
+            iv = __double_as_longlong(value);
+        }
+        if (iv >= 0) {
+            auto* im = reinterpret_cast<I*>(m);
+            if constexpr (IS_MIN) {
+                old = atomicMin(im, iv);
+            } else {
+                old = atomicMax(im, iv);
+            }
+        } else {
+            auto* um = reinterpret_cast<U*>(m);
+            auto const uv = static_cast<U>(iv);
+            if constexpr (IS_MIN) {
+                old = static_cast<I>(atomicMax(um, uv));
+            } else {
+                old = static_cast<I>(atomicMin(um, uv));
+            }
+        }
+        if constexpr (sizeof(T) == 4) {
+            return __int_as_float(old);
+        } else {
+            return __longlong_as_double(old);
+        }
+    }
 
     template <typename R, typename Int, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -167,24 +212,18 @@ namespace detail {
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
-    // https://rocmdocs.amd.com/en/latest/Programming_Guides/Kernel_language.html?#atomic-functions
-    // CUDA and HIP support int, unsigned int, and unsigned long long.
-
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Add_device (Long* const sum, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long>(sum, value, amrex::Plus<Long>());
-    }
-
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_add(sum, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        // No 64-bit signed overload. Two's complement makes the unsigned add
+        // bitwise identical.
+        static_assert(sizeof(Long) == sizeof(unsigned long long));
+        return static_cast<Long>(atomicAdd(reinterpret_cast<unsigned long long*>(sum),
+                                           static_cast<unsigned long long>(value)));
 #endif
-
-#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Add_device (double* const sum, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
     }
 
 #endif
@@ -290,18 +329,6 @@ namespace detail {
 #endif
     }
 
-#if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 5)
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void AddNoRet (float* const sum, float const value) noexcept
-    {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        AMREX_IF_ON_DEVICE((atomicAddNoRet(sum, value);))
-#pragma clang diagnostic pop
-        AMREX_IF_ON_HOST((*sum += value;))
-    }
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 //  Min
 ////////////////////////////////////////////////////////////////////////
@@ -330,13 +357,21 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Min_device (float* const m, float const value) noexcept
     {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        return detail::atomic_fp_min_max<true>(m, value);
+#else
         return detail::atomic_op<float,int>(m,value,amrex::Minimum<float>());
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Min_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Minimum<double>());
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        return detail::atomic_fp_min_max<true>(m, value);
+#else
+        return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Minimum<double>());
+#endif
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -344,7 +379,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Min_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Minimum<Long>());
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_min(m, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        static_assert(sizeof(Long) == sizeof(long long));
+        return static_cast<Long>(atomicMin(reinterpret_cast<long long*>(m),
+                                           static_cast<long long>(value)));
+#endif
     }
 
 #endif
@@ -393,13 +434,21 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Max_device (float* const m, float const value) noexcept
     {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        return detail::atomic_fp_min_max<false>(m, value);
+#else
         return detail::atomic_op<float,int>(m,value,amrex::Maximum<float>());
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Max_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Maximum<double>());
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        return detail::atomic_fp_min_max<false>(m, value);
+#else
+        return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Maximum<double>());
+#endif
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -407,7 +456,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Max_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Maximum<Long>());
+#ifdef AMREX_USE_HIP
+        return __hip_atomic_fetch_max(m, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
+#else
+        static_assert(sizeof(Long) == sizeof(long long));
+        return static_cast<Long>(atomicMax(reinterpret_cast<long long*>(m),
+                                           static_cast<long long>(value)));
+#endif
     }
 
 #endif

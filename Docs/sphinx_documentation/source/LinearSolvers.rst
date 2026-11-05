@@ -758,11 +758,8 @@ To use HYPRE with CUDA, the `nvcc` compiler is needed along with all other requi
 
 To use HYPRE, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
 For examples of using HYPRE, we refer the reader to
-`ABecLaplacian`_ or `NodeTensorLap`_.
-
-.. _`ABecLaplacian`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
-
-.. _`NodeTensorLap`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
+``amrex/Tests/LinearSolvers/ABecLaplacian_C`` and
+``amrex/Tests/LinearSolvers/NodeTensorLap``.
 
 The following parameter should be set to true if the problem to be solved has a singular matrix.
 In this case, the solution is only defined to within a constant.  Setting this parameter to true
@@ -848,7 +845,7 @@ problems. To build PETSc, follow the next steps:
 
 To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
-reader to the tutorial, `ABecLaplacian`_.
+reader to ``amrex/Tests/LinearSolvers/ABecLaplacian_C``.
 
 Composite multi-level solves with HypreMLABecLap
 ------------------------------------------------
@@ -1085,7 +1082,7 @@ Multi-Component Operators
 =========================
 
 This section discusses solving linear systems in which the solution variable :math:`\mathbf{\phi}` has multiple components.
-An example (implemented in the ``MultiComponent`` tutorial) might be:
+An example (implemented in the `CustomLinOp`_ tutorial) might be:
 
 .. math::
 
@@ -1132,7 +1129,10 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
 
-See ``amrex-tutorials/ExampleCodes/LinearSolvers/MultiComponent`` for a complete working example.
+See the `CustomLinOp`_ tutorial for a complete working example of a
+single-level multi-component nodal operator.
+
+.. _`CustomLinOp`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html#linearsolvers-customlinop
 
 
 Curl-Curl
@@ -1156,7 +1156,9 @@ on edges shared by multiple :cpp:`Box`\ es.  If needed, you can call
 
 The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
 :math:`\vec{E}` still has three components, one for each spatial
-direction.
+direction. See the `CurlCurl`_ tutorial for an example.
+
+.. _`CurlCurl`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html#linearsolvers-curlcurl
 
 .. _sec:linearsolver:terrain:
 
@@ -1322,14 +1324,15 @@ linear operator in every iteration. If it is not, for example an inner
 iterative solve stopped by a tolerance, call :cpp:`setFlexible(true)` to use
 flexible GMRES (FGMRES). It stores one more vector per iteration.
 
-An example of using GMRES combined with a Jacobi preconditioner to solve
-Poisson's equation can be found at
-https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
+An example of using GMRES with a user-defined operator and a multigrid
+preconditioner can be found in the `GMRES tutorial`_.
+
+.. _`GMRES tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html#linearsolvers-gmres
 
 AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
 linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
 the preconditioner. Like :cpp:`MLMG`, its :cpp:`solve` uses the solution
-passed in as the initial guess.
+passed in as the initial guess. The `GMRES tutorial`_ also shows its usage.
 
 BiCGStab
 ========
@@ -1468,8 +1471,8 @@ are rebuilt, and the V-cycle then approximates the new matrix. That is much
 cheaper than a new setup when the matrix changes little between solves.
 The solver runs on CPUs and GPUs with any number of MPI processes.
 :cpp:`MLMG` can use it on the coarsest AMR level or as its bottom solver
-(see :ref:`sec:linearsolver:pars`). The
-enumerations below are ``AMREX_ENUM`` types, so they can be read from an
+(see :ref:`sec:linearsolver:pars`). The `AlgMG tutorial`_ uses it on its own and in :cpp:`MLMG`.
+The enumerations below are ``AMREX_ENUM`` types, so they can be read from an
 inputs file with :cpp:`ParmParse::query_enum_case_insensitive`.
 The following can be tuned:
 
@@ -1530,6 +1533,8 @@ The following can be tuned:
   the operator complexity at the price of more cycles.
 - :cpp:`setAggressiveDirectInterp(true)`: makes the setup of the aggressive
   levels cheaper but costs further cycles, so it is off by default.
+
+.. _`AlgMG tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html#linearsolvers-algmg
 
 .. [Ruge1987] J. W. Ruge and K. Stüben, Algebraic multigrid, in
    *Multigrid Methods*, S. F. McCormick, ed., SIAM, Philadelphia, 1987,

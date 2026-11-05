@@ -49,12 +49,13 @@ cell-centered velocity. AMReX also supports the curl-curl operator, with
 solutions defined on cell edges.
 
 The tutorials in `Linear Solvers`_ show examples of
-using the solvers.  The tutorial
-``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX3_C`` shows how to solve the
+using the solvers.  The `ImplicitHeat`_ tutorial shows how to solve the
 heat equation implicitly using the solver.  The tutorials also show
 how to add linear solvers into the build system.
 
-.. _`Linear Solvers`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
+.. _`Linear Solvers`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html
+
+.. _`ImplicitHeat`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers.html#linearsolvers-implicitheat
 
 .. toctree::
    :maxdepth: 1

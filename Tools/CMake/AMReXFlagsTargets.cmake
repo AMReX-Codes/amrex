@@ -163,23 +163,54 @@ endif ()
 add_library(Flags_FPE INTERFACE)
 add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
-if (NOT AMReX_HIP)
-target_compile_options ( Flags_FPE
-   INTERFACE
-   $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
-   $<${_cxx_gnu}:-ftrapv>
-   $<${_fortran_intel}:-fpe3>
-   $<${_cxx_intel}:-fpe3>
-   $<${_fortran_pgi}:-Ktrap=divz,inv>
-   $<${_cxx_pgi}:>
-   $<${_fortran_cray}:-K trap=fp>
-   $<${_cxx_cray}:-K trap=fp>
-   # Flang has no FPE trapping option.
-   $<${_fortran_llvmflang}:>
-   $<${_cxx_clang}:-ftrapv>
-   $<${_cxx_appleclang}:-ftrapv>	
-   )
-endif()
+if (AMReX_HIP)
+   # Only the host pass gets -ftrapv. SHELL: keeps -Xarch_host paired
+   # with its flag when CMake de-duplicates options.
+   target_compile_options ( Flags_FPE
+      INTERFACE
+      $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
+      "$<${_cxx_clang}:SHELL:-Xarch_host -ftrapv>"
+      )
+else ()
+   target_compile_options ( Flags_FPE
+      INTERFACE
+      $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
+      $<${_cxx_gnu}:-ftrapv>
+      $<${_fortran_intel}:-fpe3>
+      $<${_cxx_intel}:-fpe3>
+      $<${_fortran_pgi}:-Ktrap=divz,inv>
+      $<${_cxx_pgi}:>
+      $<${_fortran_cray}:-K trap=fp>
+      $<${_cxx_cray}:-K trap=fp>
+      # Flang has no FPE trapping option.
+      $<${_fortran_llvmflang}:>
+      $<${_cxx_clang}:-ftrapv>
+      $<${_cxx_appleclang}:-ftrapv>
+      )
+endif ()
+
+#
+# Keep clang from raising FP exceptions in unused vector lanes, so that
+# trapping them at run time works.
+#
+add_library(Flags_FP_EXCEPTIONS INTERFACE)
+add_library(AMReX::Flags_FP_EXCEPTIONS ALIAS Flags_FP_EXCEPTIONS)
+
+if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+   if (AMReX_HIP)
+      # The AMDGPU device pass does not support the flag.
+      target_compile_options ( Flags_FP_EXCEPTIONS
+         INTERFACE
+         "$<${_cxx_clang}:SHELL:-Xarch_host -ffp-exception-behavior=maytrap>"
+         )
+   else ()
+      target_compile_options ( Flags_FP_EXCEPTIONS
+         INTERFACE
+         $<${_cxx_clang}:-ffp-exception-behavior=maytrap>
+         $<${_cxx_appleclang}:-ffp-exception-behavior=maytrap>
+         )
+   endif ()
+endif ()
 
 #
 # Unset all the variables defined in this module

@@ -441,6 +441,13 @@ struct CommData {
     Vector<MPI_Status> stats{};
     //! \brief For each request the copy comm tags for the corresponding data FABs.
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
+    //! \brief rank translated into the communicator used by Alltoall and Alltoallv.
+    Vector<int> comm_rank{};
+    //! \brief size and offset per rank of that communicator, as MPI_Alltoallv wants them.
+    Vector<int> counts{};
+    Vector<int> displs{};
+    //! \brief Size of the_data in bytes, so that it can be released and reacquired.
+    std::size_t total_bytes = 0;
     std::uint64_t id = std::numeric_limits<std::uint64_t>::max();
 #endif
 };
@@ -455,6 +462,44 @@ void PostRecvs(CommData& recv, int mpi_tag);
 
 //! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
 void PostSends(CommData& send, int mpi_tag);
+
+//! \brief Fill comm.comm_rank with the ranks of comm.rank (global ranks) in communicator c.
+//!
+//! c must contain all processes in comm.rank. It may be a subset of the current
+//! ParallelContext communicator, e.g. the processes that own data.
+void TranslateRanks(CommData& comm, MPI_Comm c);
+
+//! \brief Fill comm.counts and comm.displs for MPI_Alltoallv on communicator c.
+//!
+//! comm must have been prepared by PrepareCommBuffers and TranslateRanks with c. The whole
+//! buffer must fit in 2^31-1 bytes.
+void PrepareAlltoallvCounts(CommData& comm, MPI_Comm c);
+
+//! \brief Exchange all send buffers for all recv buffers with one MPI_Alltoallv.
+//!
+//! Both CommData objects must have been prepared by PrepareCommBuffers, TranslateRanks and
+//! PrepareAlltoallvCounts with the same communicator c. All processes in c must call this
+//! function.
+void Alltoallv(CommData const& send, CommData& recv, MPI_Comm c);
+
+//! \brief Like PrepareCommBuffers, but every process in communicator c gets a block of
+//! block_size bytes in the buffer, in rank order, as MPI_Alltoall requires. Also fills
+//! comm.comm_rank.
+void PrepareCommBuffersUniform(CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc,
+                               int n_components, std::size_t object_size, std::size_t block_size,
+                               MPI_Comm c);
+
+//! \brief Exchange uniform blocks of block_size bytes with one MPI_Alltoall.
+//!
+//! Both CommData objects must have been prepared by PrepareCommBuffersUniform with the same
+//! block_size and communicator c. All processes in c must call this function.
+void Alltoall(CommData const& send, CommData& recv, std::size_t block_size, MPI_Comm c);
+
+//! \brief Free the_data of a prepared CommData, keeping the rest of the meta-data.
+void ReleaseCommBuffer(CommData& comm);
+
+//! \brief Allocate the_data of a prepared CommData again after ReleaseCommBuffer.
+void AcquireCommBuffer(CommData& comm);
 #endif
 
 //! \brief This class stores both recv and send buffers with an associated MPI tag.
@@ -879,6 +924,213 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
     ParallelCopy_finish(dest, std::move(handler), cmd, data_packing); // NOLINT
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+//                                                          [ParallelCopy_alltoallv]
+
+//! \brief ParallelCopy that exchanges all messages with a single MPI_Alltoallv.
+//!
+//! This is an alternative to ParallelCopy_nowait followed by ParallelCopy_finish for
+//! communication patterns in which most processes exchange data with most other
+//! processes, such as the transposes in a distributed FFT. All processes in comm
+//! must call this function.
+//!
+//! \param[out] dest     The FabArray that is going to be filled with received data.
+//!
+//! \param[in]  src      The FabArray that is used to fill the send buffers.
+//!
+//! \param[in]  cmd      The communication meta data object.
+//!
+//! \param[in]  data_packing A CPO that controls packing and unpacking of the buffers.
+//!
+//! \param[in,out] cached If not null, the communication meta-data prepared in the first
+//!                       call is kept in this handler and reused in later calls. The data
+//!                       buffers are released between calls. This requires that cmd,
+//!                       data_packing and the memory of src and dest do not change
+//!                       between calls.
+//!
+//! \param[in]  comm     Communicator for the collective. MPI_COMM_NULL means the current
+//!                      ParallelContext communicator. It must contain every process that
+//!                      owns data in dest or src.
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
+void
+ParallelCopy_alltoallv (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                        const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing,
+                        CommHandler* cached = nullptr, MPI_Comm comm = MPI_COMM_NULL)
+{
+    if (dest.empty()) { return; }
+
+#ifdef AMREX_USE_MPI
+    if (comm == MPI_COMM_NULL) { comm = ParallelContext::CommunicatorSub(); }
+    int nprocs_comm;
+    MPI_Comm_size(comm, &nprocs_comm);
+    if (nprocs_comm > 1)
+    {
+        CommHandler local_handler{};
+        CommHandler& handler = cached ? *cached : local_handler;
+
+        static const FabArrayBase::MapOfCopyComTagContainers no_tags{};
+        auto const& rcv_tags = cmd.m_RcvTags ? *cmd.m_RcvTags : no_tags;
+        auto const& snd_tags = cmd.m_SndTags ? *cmd.m_SndTags : no_tags;
+
+        // PrepareCommBuffers sets the id even when there is nothing to communicate.
+        if (handler.send.id == std::numeric_limits<std::uint64_t>::max()) {
+            PrepareRecvBuffers(data_packing, dest, src, handler.recv, rcv_tags);
+            PrepareSendBuffers(data_packing, dest, src, handler.send, snd_tags);
+            TranslateRanks(handler.recv, comm);
+            TranslateRanks(handler.send, comm);
+            PrepareAlltoallvCounts(handler.recv, comm);
+            PrepareAlltoallvCounts(handler.send, comm);
+        } else {
+            AcquireCommBuffer(handler.recv);
+            AcquireCommBuffer(handler.send);
+        }
+
+        if (!snd_tags.empty()) {
+            PackSendBuffers(data_packing, src, handler.send);
+        }
+
+        // The local copy comes first. MPI_Ialltoallv would allow overlapping
+        // it, but it was slower than the blocking call on the systems tested.
+        if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
+            LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+        }
+
+        Alltoallv(handler.send, handler.recv, comm);
+
+        if (!rcv_tags.empty()) {
+            UnpackRecvBuffers(data_packing, dest, handler.recv);
+        }
+        if (cached) {
+            ReleaseCommBuffer(handler.send);
+            ReleaseCommBuffer(handler.recv);
+        }
+        return;
+    }
+#else
+    amrex::ignore_unused(cached, comm);
+#endif
+
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
+        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+    }
+}
+
+//! \brief ParallelCopy that exchanges all messages with a single MPI_Alltoallv.
+//!
+//! See the DataPacking version for details. Note that cmd must be compatible with the
+//! specified DTOS and projection.
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
+ParallelCopy_alltoallv (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                        const FabArrayBase::CommMetaData& cmd,
+                        int srccomp, int destcomp, int numcomp,
+                        DTOS const& dtos = DTOS{}, Proj const& proj = Proj{},
+                        CommHandler* cached = nullptr, MPI_Comm comm = MPI_COMM_NULL)
+{
+    PackComponents components{};
+    components.dest_component = destcomp;
+    components.src_component = srccomp;
+    components.n_components = numcomp;
+    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, dtos, proj};
+    ParallelCopy_alltoallv(dest, src, cmd, packing, cached, comm);
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+//                                                           [ParallelCopy_alltoall]
+
+//! \brief ParallelCopy that exchanges uniform blocks with a single MPI_Alltoall.
+//!
+//! Every pair of processes exchanges a block of block_size bytes, padded if the actual
+//! message is smaller. This suits small messages, for which MPI libraries have
+//! logarithmic algorithms for MPI_Alltoall but not for MPI_Alltoallv. block_size must
+//! be the same on all processes and at least as large as the largest message. Other
+//! arguments are as in ParallelCopy_alltoallv.
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
+void
+ParallelCopy_alltoall (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                       const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing,
+                       std::size_t block_size, CommHandler* cached = nullptr,
+                       MPI_Comm comm = MPI_COMM_NULL)
+{
+    if (dest.empty()) { return; }
+
+#ifdef AMREX_USE_MPI
+    if (comm == MPI_COMM_NULL) { comm = ParallelContext::CommunicatorSub(); }
+    int nprocs_comm;
+    MPI_Comm_size(comm, &nprocs_comm);
+    if (nprocs_comm > 1)
+    {
+        using T = typename FAB::value_type;
+
+        CommHandler local_handler{};
+        CommHandler& handler = cached ? *cached : local_handler;
+
+        static const FabArrayBase::MapOfCopyComTagContainers no_tags{};
+        auto const& rcv_tags = cmd.m_RcvTags ? *cmd.m_RcvTags : no_tags;
+        auto const& snd_tags = cmd.m_SndTags ? *cmd.m_SndTags : no_tags;
+
+        if (handler.send.id == std::numeric_limits<std::uint64_t>::max()) {
+            PrepareCommBuffersUniform(handler.recv, rcv_tags, data_packing.n_components,
+                                      sizeof(T), block_size, comm);
+            PrepareCommBuffersUniform(handler.send, snd_tags, data_packing.n_components,
+                                      sizeof(T), block_size, comm);
+        } else {
+            AcquireCommBuffer(handler.recv);
+            AcquireCommBuffer(handler.send);
+        }
+
+        if (!snd_tags.empty()) {
+            PackSendBuffers(data_packing, src, handler.send);
+        }
+
+        if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
+            LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+        }
+
+        Alltoall(handler.send, handler.recv, block_size, comm);
+
+        if (!rcv_tags.empty()) {
+            UnpackRecvBuffers(data_packing, dest, handler.recv);
+        }
+        if (cached) {
+            ReleaseCommBuffer(handler.send);
+            ReleaseCommBuffer(handler.recv);
+        }
+        return;
+    }
+#else
+    amrex::ignore_unused(block_size, cached, comm);
+#endif
+
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
+        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+    }
+}
+
+//! \brief ParallelCopy that exchanges uniform blocks with a single MPI_Alltoall.
+//!
+//! See the DataPacking version for details.
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
+ParallelCopy_alltoall (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                       const FabArrayBase::CommMetaData& cmd,
+                       int srccomp, int destcomp, int numcomp,
+                       DTOS const& dtos, Proj const& proj,
+                       std::size_t block_size, CommHandler* cached = nullptr,
+                       MPI_Comm comm = MPI_COMM_NULL)
+{
+    PackComponents components{};
+    components.dest_component = destcomp;
+    components.src_component = srccomp;
+    components.n_components = numcomp;
+    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, dtos, proj};
+    ParallelCopy_alltoall(dest, src, cmd, packing, block_size, cached, comm);
+}
+
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
 //!
 //! This function overload uses an already cached CommMetaData. This CommMetaData needs to be
@@ -1232,6 +1484,8 @@ namespace amrex {
     using NonLocalBC::ParallelCopy;
     using NonLocalBC::ParallelCopy_nowait;
     using NonLocalBC::ParallelCopy_finish;
+    using NonLocalBC::ParallelCopy_alltoallv;
+    using NonLocalBC::ParallelCopy_alltoall;
     using NonLocalBC::MultiBlockIndexMapping;
     using NonLocalBC::MultiBlockCommMetaData;
     using NonLocalBC::CommHandler;

@@ -8,7 +8,7 @@ Amr Source Code
 The source code in ``amrex/Src/Amr`` contains a number of classes, most notably
 :cpp:`Amr`, :cpp:`AmrLevel`, and :cpp:`LevelBld`.
 These classes provide a more well-developed set of tools for writing AMR codes
-than the classes created for the Advection_AmrCore tutorial.
+than the classes created for the AdvectionAmrCore tutorial.
 
 -  The :cpp:`Amr` class is derived from :cpp:`AmrCore`, and manages data across the
    entire AMR hierarchy of grids.
@@ -38,17 +38,18 @@ inherit directly from :cpp:`AmrLevel`. These include:
    contains a derived class :cpp:`PeleLM` that also inherits from
    :cpp:`NavierStokesBase` (but does not use :cpp:`NavierStokes`).
 
-The tutorial code in ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel`` gives a simple
-example of a class derived from :cpp:`AmrLevel` that can be used to solve the
-advection equation on a subcycling-in-time AMR hierarchy. Note that this example is
-essentially the same as the `Advection AmrCore`_ tutorial and
-documentation in the chapter on :ref:`Chap:AmrCore`, except now we use the
-provided libraries in ``amrex/Src/Amr``.
+The tutorial code in ``amrex-tutorials/AMR/WaveAmrLevel`` gives a simple
+example of a class derived from :cpp:`AmrLevel` that solves the wave
+equation on a subcycling-in-time AMR hierarchy, and
+``amrex-tutorials/Applications/CNS`` is a complete compressible flow code
+built on these classes. Compare them with the `AdvectionAmrCore`_ tutorial
+and the chapter on :ref:`Chap:AmrCore`, which build the same kind of
+simulation directly on :cpp:`AmrCore` without the classes in ``amrex/Src/Amr``.
 
-.. _`Advection AmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html
+.. _`AdvectionAmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR.html#amr-advectionamrcore
 
-The tutorial code also contains a :cpp:`LevelBldAdv` class (derived from
-:cpp:`LevelBld` in the Source/Amr directory). This class is used to define
+The tutorial codes also contain a class derived from :cpp:`LevelBld` (in
+``amrex/Src/Amr``). This class is used to define
 variable types (how many, nodality, interlevel interpolation stencils, etc.).
 
 

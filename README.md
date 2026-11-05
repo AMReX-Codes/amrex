@@ -96,7 +96,7 @@ workflow.
 ## Usage
 
 The quickest way to start is to build one of the
-[guided tutorials](https://amrex-codes.github.io/amrex/tutorials_html/GuidedTutorials.html),
+[tutorials](https://amrex-codes.github.io/amrex/tutorials_html/),
 which introduce `MultiFab` data, parallel iteration and the AMR hierarchy one
 step at a time. To use an installed AMReX from your own CMake project:
 
@@ -107,18 +107,17 @@ target_link_libraries(my_app PUBLIC AMReX::amrex)
 
 ## Examples
 
-Runnable example codes covering basic usage, linear solvers, particles,
-embedded boundaries and GPU offloading live in the
+Runnable tutorial codes covering basic usage, AMR, linear solvers, particles,
+embedded boundaries, FFT and time integration, on CPUs and GPUs, live in the
 [amrex-tutorials](https://github.com/AMReX-Codes/amrex-tutorials) repository and
-are published as
-[Example Codes](https://amrex-codes.github.io/amrex/tutorials_html/#example-codes).
+are documented at
+[AMReX Tutorials](https://amrex-codes.github.io/amrex/tutorials_html/).
 
 ## Documentation
 
 Four types of documentation are available:
 - [User's Guide](https://amrex-codes.github.io/amrex/docs_html/) -- For more information about AMReX features and functions
-- [Example Codes](https://amrex-codes.github.io/amrex/tutorials_html/#example-codes) -- The fastest way to start your own project
-- [Guided Tutorials](https://amrex-codes.github.io/amrex/tutorials_html/GuidedTutorials.html) -- Learn basic AMReX topics in a progressive way
+- [Tutorials](https://amrex-codes.github.io/amrex/tutorials_html/) -- Small stand-alone codes, from introductory examples to complete applications to start your own project from
 - [Technical Reference](https://amrex-codes.github.io/amrex/doxygen/) -- Conveniently searchable code documentation via Doxygen
 - [Slides](https://drive.google.com/file/d/1-Fn6peoPj6zRc-iV-j1_Zc3YHoKZM2C9/view?usp=sharing) and [video recordings](https://youtube.com/playlist?list=PL20S5EeApOSs7JV6dMJnpduaznAoR2Cpr&feature=shared) -- From the [AMReX tutorial](https://www.nersc.gov/performance-portability-series-amrex-mar2024/) organized by NERSC/OLCF/ALCF on March 14, 2024
 

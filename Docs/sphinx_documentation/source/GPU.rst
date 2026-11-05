@@ -158,33 +158,33 @@ gives higher occupancy but can cause register spilling. Keep ``B`` times
 ``GPU_MAX_THREADS`` within the GPU's limit of resident threads per
 multiprocessor.
 
-You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
+You can use ``amrex-tutorials/Base/HelloWorld/``
 to test your programming environment.  For example, building with:
 
 .. highlight:: console
 
 ::
 
-   make COMP=gnu USE_CUDA=TRUE
+   make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
 
-should produce an executable named ``main3d.gnu.DEBUG.CUDA.ex``.  You
+should produce an executable named ``main3d.gnu.CUDA.ex``.  You
 can run it and that will generate results like:
 
 .. highlight:: console
 
 ::
 
-   $ ./main3d.gnu.DEBUG.CUDA.ex
+   $ ./main3d.gnu.CUDA.ex
+   Initializing AMReX (26.11-6-gb33ab585fb22)...
    Initializing CUDA...
-   CUDA initialized with 1 GPU
-   AMReX (19.06-404-g0455b168b69c-dirty) initialized
-   Hello world from AMReX version 19.06-404-g0455b168b69c-dirty
-   Total GPU global memory (MB): 6069
-   Free  GPU global memory (MB): 5896
-   [The         Arena] space (MB): 4552
-   [The Managed Arena] space (MB): 8
-   [The  Pinned Arena] space (MB): 8
-   AMReX (19.06-404-g0455b168b69c-dirty) finalized
+   CUDA initialized with 1 device.
+   AMReX (26.11-6-gb33ab585fb22) initialized
+   Hello world from AMReX version 26.11-6-gb33ab585fb22
+     MPI ranks:      1
+     OpenMP threads: 1
+     GPU backend:    CUDA
+     Rank 0 says hello
+   AMReX (26.11-6-gb33ab585fb22) finalized
 
 SYCL configuration variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1245,12 +1245,17 @@ function is executed.
 
 The available launch schema are presented here in three categories: launching
 nested loops over Boxes or 1D arrays, launching generic work and launching using
-OpenACC or  OpenMP pragmas. The latest versions of the examples used in this section
-of the documentation can be found in the AMReX source code in the `Launch`_ tutorials.
+OpenACC or  OpenMP pragmas. Examples of launching nested loops with
+:cpp:`ParallelFor` can be found in the `Base`_ tutorials, e.g., `MultiFab`_ and
+`GpuContainers`_.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
 
-.. _`Launch`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html#launch
+.. _`Base`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html
+
+.. _`MultiFab`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-multifab
+
+.. _`GpuContainers`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-gpucontainers
 
 
 AMReX also recommends writing primary floating point operation kernels
@@ -1891,8 +1896,10 @@ safe depends on the backend (CUDA and HIP synchronize the whole device
 before releasing memory, SYCL does not), so it must not be relied upon.
 The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
-stream-ordered fashion.  Host code that needs to read the results of GPU
-work must still synchronize explicitly (reductions such as
+stream-ordered fashion.  Communication functions such as
+:cpp:`FillBoundary` and :cpp:`ParallelCopy` may return with their unpack
+kernels still queued on the stream.  Host code that needs to read the
+results of GPU work must still synchronize explicitly (reductions such as
 :cpp:`MultiFab::sum` do this internally), and so must code that hands GPU
 data to a library that runs on its own stream (e.g., HYPRE).
 
@@ -2200,10 +2207,10 @@ An example Fortran particle subroutine offloaded via OpenACC might look like the
 
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in device memory. This instructs OpenACC to treat those variables as if they already live on
-the device, bypassing the usual copies. For complete examples of a particle code that has been ported
-to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
+the device, bypassing the usual copies. For a complete example of a particle code that runs
+on GPUs, please see the `ElectrostaticPIC`_ tutorial.
 
-.. _`Electromagnetic PIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electromagneticpic
+.. _`ElectrostaticPIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-electrostaticpic
 
 GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
 construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
@@ -2351,8 +2358,7 @@ AMReX for GPUs:
   resources to perform other tasks. This increases parallel
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
-  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found
-  in the `Launch`_ tutorial. For example:
+  the ``AMREX_FORCE_INLINE`` AMReX macro.  For example:
 
 .. highlight:: cpp
 
@@ -2403,6 +2409,12 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | will use pinned memory. It will be activated if AMReX detects that    |             |                |
 |                            | GPU-aware MPI is supported by the MPI library (MPICH, OpenMPI, and    |             |                |
 |                            | derivative implementations).                                          |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| fb.on_arrival_min_bytes    | With GPU-aware MPI, :cpp:`FillBoundary` and :cpp:`SumBoundary` unpack | Long        | 65536          |
+|                            | each message as soon as it arrives when a rank receives at least this |             |                |
+|                            | many bytes in one call, overlapping the unpacking with the remaining  |             |                |
+|                            | communication. With fewer bytes, the messages are unpacked together   |             |                |
+|                            | after all of them have arrived.                                       |             |                |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------------+
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
 |                            | requested allocation, AMReX will throw amrex::OutOfMemoryError with   |             |                |

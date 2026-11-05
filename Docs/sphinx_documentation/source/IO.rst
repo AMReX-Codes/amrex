@@ -292,12 +292,14 @@ data structures like :cpp:`MultiFab` and :cpp:`BoxArray`. These
 functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
 requirements, there is no standard AMReX checkpoint format.
-However, we have provided an example restart capability in the tutorial
-`Advection AmrCore`_.
+However, we have provided an example restart capability in the tutorials
+`CheckpointRestart`_ (single level) and `AdvectionAmrCore`_ (multi-level).
 Refer to the functions :cpp:`ReadCheckpointFile()` and
-:cpp:`WriteCheckpointFile()` in this tutorial.
+:cpp:`WriteCheckpointFile()` in the latter.
 
-.. _`Advection AmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrcore
+.. _`CheckpointRestart`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-checkpointrestart
+
+.. _`AdvectionAmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR.html#amr-advectionamrcore
 
 A checkpoint file is actually a directory with a name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with

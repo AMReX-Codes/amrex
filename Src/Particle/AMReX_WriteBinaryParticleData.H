@@ -492,7 +492,9 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   F const& f, bool is_checkpoint)
 {
     BL_PROFILE("WriteBinaryParticleData()");
-    AMREX_ASSERT(pc.OK());
+    // Particles are written under the grids that hold them, without mapping their positions
+    // to cells, so pc.OK() is not required: positions may be in a frame other than the
+    // geometry's, e.g. physical coordinates on a mapped grid.
 
     AMREX_ASSERT(sizeof(typename PC::ParticleType::RealType) == 4 ||
                  sizeof(typename PC::ParticleType::RealType) == 8);
@@ -791,7 +793,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                    const Vector<std::string>& int_comp_names, bool is_checkpoint)
 {
     BL_PROFILE("WriteBinaryParticleDataAsync");
-    AMREX_ASSERT(pc.OK());
+    // Particles are written under the grids that hold them, without mapping their positions
+    // to cells, so pc.OK() is not required: positions may be in a frame other than the
+    // geometry's, e.g. physical coordinates on a mapped grid.
 
     AMREX_ASSERT(sizeof(typename PC::ParticleType::RealType) == 4 ||
                  sizeof(typename PC::ParticleType::RealType) == 8);

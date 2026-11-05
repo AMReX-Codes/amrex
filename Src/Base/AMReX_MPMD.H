@@ -179,6 +179,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
     if (Gpu::inLaunchRegion() && (mf.arena()->isDevice() || mf.arena()->isManaged())) {
         mf.unpack_recv_buffer_gpu(mf, icomp, ncomp, recv_data, recv_size, recv_cctc,
                                   FabArrayBase::COPY, m_is_thread_safe, m_recv_id, false);
+        Gpu::streamSynchronize(); // recv_buffer is freed on return
     } else
 #endif
     {

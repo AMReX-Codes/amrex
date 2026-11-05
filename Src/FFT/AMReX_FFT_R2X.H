@@ -171,15 +171,15 @@ private:
     Plan<T> m_fft_fwd_z{};
     Plan<T> m_fft_bwd_z{};
 
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_cx2cy;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_rx2ry;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_cy2cz;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_ry2rz;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_cx2cy;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_rx2ry;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_cy2cz;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_ry2rz;
 
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_cy2cx;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_ry2rx;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_cz2cy;
-    std::unique_ptr<MultiBlockCommMetaData> m_cmd_rz2ry;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_cy2cx;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_ry2rx;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_cz2cy;
+    std::unique_ptr<detail::TransposeMetaData> m_cmd_rz2ry;
 
     Swap01 m_dtos_x2y{};
     Swap01 m_dtos_y2x{};
@@ -205,6 +205,11 @@ private:
 
     std::unique_ptr<R2X<T>> m_r2x_sub;
     detail::SubHelper m_sub_helper;
+
+    //! Processes that own data, used by the collective strategies only.
+    //! MPI_COMM_NULL on processes that own none.
+    MPI_Comm m_comm_active = MPI_COMM_NULL;
+    bool m_owns_comm_active = false; // true if it must be freed
 
     Info m_info;
 };
@@ -420,20 +425,22 @@ R2X<T>::R2X (Box const& domain,
     // make copiers
     //
 
+    int const nprocs_active = detail::count_active_procs({&m_rx, &m_ry, &m_rz, &m_cx, &m_cy, &m_cz});
+
 #if (AMREX_SPACEDIM >= 2)
     if (!m_cy.empty() || !m_ry.empty()) {
         if (! m_cx.empty()) {
             // copy(m_cx->m_cy)
-            m_cmd_cx2cy = std::make_unique<MultiBlockCommMetaData>
-                (m_cy, m_dom_cy, m_cx, IntVect(0), m_dtos_x2y);
-            m_cmd_cy2cx = std::make_unique<MultiBlockCommMetaData>
-                (m_cx, m_dom_cx, m_cy, IntVect(0), m_dtos_y2x);
+            m_cmd_cx2cy = detail::make_transpose
+                (nprocs_active, m_cy, m_dom_cy, m_cx, IntVect(0), m_dtos_x2y);
+            m_cmd_cy2cx = detail::make_transpose
+                (nprocs_active, m_cx, m_dom_cx, m_cy, IntVect(0), m_dtos_y2x);
         } else {
             // copy(m_rx->m_ry)
-            m_cmd_rx2ry = std::make_unique<MultiBlockCommMetaData>
-                (m_ry, m_dom_ry, m_rx, IntVect(0), m_dtos_x2y);
-            m_cmd_ry2rx = std::make_unique<MultiBlockCommMetaData>
-                (m_rx, m_dom_rx, m_ry, IntVect(0), m_dtos_y2x);
+            m_cmd_rx2ry = detail::make_transpose
+                (nprocs_active, m_ry, m_dom_ry, m_rx, IntVect(0), m_dtos_x2y);
+            m_cmd_ry2rx = detail::make_transpose
+                (nprocs_active, m_rx, m_dom_rx, m_ry, IntVect(0), m_dtos_y2x);
         }
     }
 #endif
@@ -442,19 +449,36 @@ R2X<T>::R2X (Box const& domain,
     if (!m_cz.empty() || !m_rz.empty()) {
         if (! m_cy.empty()) {
             // copy(m_cy, m_cz)
-            m_cmd_cy2cz = std::make_unique<MultiBlockCommMetaData>
-                (m_cz, m_dom_cz, m_cy, IntVect(0), m_dtos_y2z);
-            m_cmd_cz2cy = std::make_unique<MultiBlockCommMetaData>
-                (m_cy, m_dom_cy, m_cz, IntVect(0), m_dtos_z2y);
+            m_cmd_cy2cz = detail::make_transpose
+                (nprocs_active, m_cz, m_dom_cz, m_cy, IntVect(0), m_dtos_y2z);
+            m_cmd_cz2cy = detail::make_transpose
+                (nprocs_active, m_cy, m_dom_cy, m_cz, IntVect(0), m_dtos_z2y);
         } else {
             // copy(m_ry, m_rz)
-            m_cmd_ry2rz = std::make_unique<MultiBlockCommMetaData>
-                (m_rz, m_dom_rz, m_ry, IntVect(0), m_dtos_y2z);
-            m_cmd_rz2ry = std::make_unique<MultiBlockCommMetaData>
-                (m_ry, m_dom_ry, m_rz, IntVect(0), m_dtos_z2y);
+            m_cmd_ry2rz = detail::make_transpose
+                (nprocs_active, m_rz, m_dom_rz, m_ry, IntVect(0), m_dtos_y2z);
+            m_cmd_rz2ry = detail::make_transpose
+                (nprocs_active, m_ry, m_dom_ry, m_rz, IntVect(0), m_dtos_z2y);
         }
     }
 #endif
+
+    m_info.comm_strategy = detail::resolve_comm_strategy
+        (m_info.comm_strategy, std::max({detail::max_fab_bytes(m_rx),
+                                         detail::max_fab_bytes(m_ry),
+                                         detail::max_fab_bytes(m_rz),
+                                         detail::max_fab_bytes(m_cx),
+                                         detail::max_fab_bytes(m_cy),
+                                         detail::max_fab_bytes(m_cz)}),
+         detail::max_block_bytes({&m_cmd_cx2cy, &m_cmd_rx2ry, &m_cmd_cy2cz,
+                                  &m_cmd_ry2rz, &m_cmd_cy2cx, &m_cmd_ry2rx,
+                                  &m_cmd_cz2cy, &m_cmd_rz2ry}),
+         detail::transposes_dense({&m_cmd_cx2cy, &m_cmd_rx2ry, &m_cmd_cy2cz,
+                                   &m_cmd_ry2rz, &m_cmd_cy2cx, &m_cmd_ry2rx,
+                                   &m_cmd_cz2cy, &m_cmd_rz2ry}));
+    if (m_info.comm_strategy != CommStrategy::pointtopoint) {
+        m_comm_active = detail::make_active_comm(nprocs_active, m_owns_comm_active);
+    }
 
     //
     // make plans
@@ -618,6 +642,7 @@ R2X<T>::~R2X ()
     m_fft_fwd_x.destroy();
     m_fft_fwd_y.destroy();
     m_fft_fwd_z.destroy();
+    detail::free_active_comm(m_comm_active, m_owns_comm_active);
 }
 
 template <typename T>
@@ -786,9 +811,9 @@ void R2X<T>::forward (MF const& inmf)
 
 #if (AMREX_SPACEDIM >= 2)
     if (                          m_cmd_cx2cy) {
-        ParallelCopy(m_cy, m_cx, *m_cmd_cx2cy, 0, 0, 1, m_dtos_x2y);
+        detail::transpose(m_cy, m_cx, *m_cmd_cx2cy, 1, m_dtos_x2y, m_info.comm_strategy, m_comm_active);
     } else if (                   m_cmd_rx2ry) {
-        ParallelCopy(m_ry, m_rx, *m_cmd_rx2ry, 0, 0, 1, m_dtos_x2y);
+        detail::transpose(m_ry, m_rx, *m_cmd_rx2ry, 1, m_dtos_x2y, m_info.comm_strategy, m_comm_active);
     }
     if (m_bc[1].first != Boundary::periodic)
     {
@@ -806,9 +831,9 @@ void R2X<T>::forward (MF const& inmf)
 
 #if (AMREX_SPACEDIM == 3)
     if (                          m_cmd_cy2cz) {
-        ParallelCopy(m_cz, m_cy, *m_cmd_cy2cz, 0, 0, 1, m_dtos_y2z);
+        detail::transpose(m_cz, m_cy, *m_cmd_cy2cz, 1, m_dtos_y2z, m_info.comm_strategy, m_comm_active);
     } else if (                   m_cmd_ry2rz) {
-        ParallelCopy(m_rz, m_ry, *m_cmd_ry2rz, 0, 0, 1, m_dtos_y2z);
+        detail::transpose(m_rz, m_ry, *m_cmd_ry2rz, 1, m_dtos_y2z, m_info.comm_strategy, m_comm_active);
     }
     if (m_bc[2].first != Boundary::periodic)
     {
@@ -957,9 +982,9 @@ void R2X<T>::backward ()
         m_fft_bwd_z.template compute_r2c<Direction::backward>();
     }
     if (                          m_cmd_cz2cy) {
-        ParallelCopy(m_cy, m_cz, *m_cmd_cz2cy, 0, 0, 1, m_dtos_z2y);
+        detail::transpose(m_cy, m_cz, *m_cmd_cz2cy, 1, m_dtos_z2y, m_info.comm_strategy, m_comm_active);
     } else if (                   m_cmd_rz2ry) {
-        ParallelCopy(m_ry, m_rz, *m_cmd_rz2ry, 0, 0, 1, m_dtos_z2y);
+        detail::transpose(m_ry, m_rz, *m_cmd_rz2ry, 1, m_dtos_z2y, m_info.comm_strategy, m_comm_active);
     }
 #endif
 
@@ -977,9 +1002,9 @@ void R2X<T>::backward ()
         m_fft_bwd_y.template compute_r2c<Direction::backward>();
     }
     if (                          m_cmd_cy2cx) {
-        ParallelCopy(m_cx, m_cy, *m_cmd_cy2cx, 0, 0, 1, m_dtos_y2x);
+        detail::transpose(m_cx, m_cy, *m_cmd_cy2cx, 1, m_dtos_y2x, m_info.comm_strategy, m_comm_active);
     } else if (                   m_cmd_ry2rx) {
-        ParallelCopy(m_rx, m_ry, *m_cmd_ry2rx, 0, 0, 1, m_dtos_y2x);
+        detail::transpose(m_rx, m_ry, *m_cmd_ry2rx, 1, m_dtos_y2x, m_info.comm_strategy, m_comm_active);
     }
 #endif
 

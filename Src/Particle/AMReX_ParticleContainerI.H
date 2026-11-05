@@ -72,31 +72,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
-    static bool initialized = false;
-    if ( ! initialized)
-    {
-        static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
-                      "sizeof ParticleType is not a multiple of sizeof RealType");
+    static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
+                  "sizeof ParticleType is not a multiple of sizeof RealType");
+    static_assert(std::is_standard_layout_v<ParticleType>,
+                  "Particle type must be standard layout");
 
-        ParmParse pp("particles");
-        pp.queryAdd("do_tiling", do_tiling);
-        Vector<int> tilesize(AMREX_SPACEDIM);
-        if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
-            for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
-        }
+    // Process-wide parameters are read only once, so that building another
+    // container type does not override values that were changed in code.
+    ReadParameters();
 
-        static_assert(std::is_standard_layout_v<ParticleType>,
-                      "Particle type must be standard layout");
-        //                   && std::is_trivial<ParticleType>::value,
-        //                      "Particle type must be standard layout and trivial.");
-
-        pp.query("use_prepost", usePrePost);
-        pp.query("do_unlink", doUnlink);
-        pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
-        pp.queryAdd("use_comms_arena", use_comms_arena);
-
-        initialized = true;
-    }
+    // usePrePost and doUnlink belong to this container, so read them for every one.
+    ParmParse pp("particles");
+    pp.query("use_prepost", usePrePost);
+    pp.query("do_unlink", doUnlink);
 }
 
 template<
@@ -312,12 +300,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     AMREX_ASSERT(lev_max <= finestLevel());
 
-    // Create a copy "dummy" particle to check for periodic outs.
-    Particle<0, 0> p_prime;
-    AMREX_D_TERM(p_prime.pos(0) = p.pos(0);,
-                 p_prime.pos(1) = p.pos(1);,
-                 p_prime.pos(2) = p.pos(2));
-    if (PeriodicShift(p_prime)) {
+    // Shift the particle itself, so that the container's cell assignor, which may read more
+    // than the position, places it; the position is restored if no grid takes it.
+    GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
+    if (PeriodicShift(p)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
 
@@ -327,11 +314,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             AMREX_ASSERT(ba.ixType().cellCentered());
 
             if (local_grid < 0) {
-                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
+                iv = Index(p, lev);
                 ba.intersections(Box(iv, iv), isects, true, 0);
                 grid = isects.empty() ? -1 : isects[0].first;
             } else {
-                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
+                iv = Index(p, lev);
                 if (ba[local_grid].contains(iv))
                 {
                     grid = local_grid;
@@ -342,16 +329,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     grid = isects.empty() ? -1 : isects[0].first;
                     if(grid == -1)
                     {
+                        // the mask is indexed by the unshifted cell
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            std::swap(p.pos(idim), pos_unshifted[idim]);
+                        }
                         grid = (*redistribute_mask_ptr)[local_grid](Index(p, lev), 0);
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            std::swap(p.pos(idim), pos_unshifted[idim]);
+                        }
                     }
                 }
             }
 
             if (grid >= 0) {
-                AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
-                             p.pos(1) = p_prime.pos(1);,
-                             p.pos(2) = p_prime.pos(2););
-
                 const Box& bx = ba.getCellCenteredBox(grid);
 
                 pld.m_lev  = lev;
@@ -365,9 +355,23 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
     return false;
 }
 
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+template <typename P>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::OutsidePeriodic (const P& p) const
+{
+    if (!Geom(0).isAnyPeriodic()) { return false; }
+    Particle<0, 0> pos_only;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_only.pos(idim) = p.pos(idim); }
+    return PeriodicShift(pos_only);
+}
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
@@ -447,12 +451,28 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::locateParticle (P& p, ParticleLocData& pld,
                                                                                         int lev_min, int lev_max, IntVect nGrow, int local_grid) const
 {
+    // The same order as the GPU path (partitionParticlesByDest): a position outside the
+    // domain in a periodic direction is wrapped first, then the particle is placed with the
+    // container's cell assignor, and it has left the domain if that cell is outside. With the
+    // default assignor this is the same as testing the position against the roundoff domain,
+    // but a custom assignor may place a particle in the domain whatever its position, e.g.
+    // from its vertical cell index on a terrain-following grid.
     bool success;
-    if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+    if (OutsidePeriodic(p))
     {
         // Note that EnforcePeriodicWhere may shift the particle if it is successful.
         success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
         if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            p.id().make_invalid();
+            success = true;
+        }
+    }
+    else if (!Geom(0).Domain().contains(Index(p, 0)))
+    {
+        success = false;
+        if (lev_min == 0)
         {
             // The particle has left the domain; invalidate it.
             p.id().make_invalid();
@@ -1389,7 +1409,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         // Fast path: if on the finest level, try the last good location first
         // If not on finest level, we need to do the full locate because even if
         // the last assignment works, the particle might belong on a finer level.
-        if (lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev && who == myproc)  {
+        // A particle past a periodic boundary is wrapped first, as on the GPU path, even if
+        // the cell assignor still puts it in this tile.
+        if (lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev && who == myproc
+            && !OutsidePeriodic(p))  {
             const auto iv = Index(p, lev);
             if (pld.m_tilebox.contains(iv)) {
                 ++pindex;
@@ -1436,6 +1459,114 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     return static_cast<int>(pindex);
 }
 
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::RedistributeInPlace (int lev_min, int lev_max, IntVect nGrow, bool remove_negative)
+{
+    if (!redistribute_early_out) { return false; }
+
+    // a single process, level, box and tile: there is nowhere else a particle could go
+    if (ParallelContext::NProcsSub() != 1) { return false; }
+    if (lev_min != 0 || lev_max != 0 || std::ssize(m_particles) != 1) { return false; }
+
+    const BoxArray& ba = ParticleBoxArray(0);
+    if (ba.size() != 1) { return false; }
+    const Box box = ba.getCellCenteredBox(0);
+    if (numTilesInBox(box, do_tiling, tile_size) != 1) { return false; }
+
+    const int gid = 0;
+    const int tid = 0;
+    ParticleTileType* ptile = nullptr;
+    for (auto& kv : m_particles[0]) {
+        // the full Redistribute drops neighbor particles
+        if (kv.second.numNeighborParticles() > 0) { return false; }
+        if (kv.second.numParticles() == 0) { continue; }
+        if (kv.first != std::make_pair(gid, tid)) { return false; }
+        ptile = &kv.second;
+    }
+
+    BL_PROFILE("ParticleContainer::RedistributeInPlace()");
+
+    if (ptile != nullptr)
+    {
+#ifdef AMREX_USE_GPU
+        // the same particles stay, shifted the same way and in the same order, as in
+        // partitionParticlesByDest()
+        const particle_detail::SingleBoxLocator<CellAssignor> loc(Geom(0), box, nGrow);
+        Gpu::DeviceVector<uint8_t> stays(ptile->numParticles());
+        const auto counts = particle_detail::singleBoxRedistributeLocate(
+            *ptile, loc, remove_negative, stays.dataPtr());
+        const int num_removed = amrex::get<0>(counts);
+        const int num_invalid = amrex::get<1>(counts);
+        const int num_kept_unshifted = amrex::get<2>(counts);
+
+        // the shifts are the same in the full Redistribute
+        if (num_kept_unshifted > 0) { return false; }
+
+        if (num_removed > 0 || (remove_negative && num_invalid > 0)) {
+            ptile->resize(particle_detail::partitionParticlesByFlag(*ptile, stays.dataPtr()));
+            Gpu::streamSynchronize();
+        }
+#else
+        // the same steps, in the same order, as hostPartitionTile() with locateParticle()
+        const Geometry& geom = Geom(0);
+        const Box grown_box = amrex::grow(box, nGrow);
+        auto ptd = ptile->getParticleTileData();
+        Long last = ptile->numParticles() - 1;
+        Long pindex = 0;
+        bool located = false;  // after the first locate, the box is tested first
+        while (pindex <= last) {
+            decltype(auto) p = ptd[pindex];
+
+            bool stays = true;
+            if (!ptd.id(pindex).is_valid()) {
+                stays = !remove_negative;
+            } else if (OutsidePeriodic(p)) {
+                // wrapped first, as on the GPU path; stays if then in the box
+                stays = false;
+                GpuArray<ParticleReal, AMREX_SPACEDIM> pos_unshifted;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { pos_unshifted[idim] = p.pos(idim); }
+                if (PeriodicShift(p) && box.contains(Index(p, 0))) {
+                    stays = true;
+                    located = true;
+                } else {
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { p.pos(idim) = pos_unshifted[idim]; }
+                }
+            } else if (located && box.contains(Index(p, 0))) {
+                stays = true;
+            } else if (!geom.Domain().contains(Index(p, 0))) {
+                // left the domain
+                stays = false;
+            } else if (grown_box.contains(Index(p, 0))) {
+                located = true;
+            } else {
+                // in no box: the full Redistribute aborts
+                return false;
+            }
+
+            if (!stays) {
+                copyParticle(ptd, ptd, last, pindex);
+                correctCellVectors(static_cast<int>(last), static_cast<int>(pindex), gid, p);
+                --last;
+                continue;
+            }
+            ++pindex;
+        }
+        ptile->resize(pindex);
+#endif
+    }
+
+    // leave the same tiles as the full Redistribute: none but the local one, also if empty
+    particle_detail::clearEmptyEntries(m_particles[0]);
+    DefineAndReturnParticleTile(0, gid, tid);
+
+    AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+
+    return true;
+}
+
 //
 // Shared implementation of Redistribute
 //
@@ -1480,6 +1611,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     this->defineBufferMap();
+
+    if (RedistributeInPlace(lev_min, lev_max, nGrow, remove_negative)) { return; }
 
 #ifndef AMREX_USE_GPU
     const bool use_mask_lookup = local && lev_min == 0 && lev_max == 0

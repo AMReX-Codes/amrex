@@ -223,7 +223,9 @@ an STL file using:
 This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
 ``eb2.stl_file`` to specify the STL file path. Because an STL file is expected
 to describe a water-tight object, the embedded boundary outside the domain is
-always taken from the STL mesh itself, and ``extend_domain_face`` is ignored.
+always taken from the STL mesh itself, and ``extend_domain_face`` is ignored. A
+grid box that no triangle touches is classified as entirely regular or entirely
+covered from a single point, which is correct only for a water-tight mesh.
 
 **Managing IndexSpace Objects**
 
@@ -718,19 +720,24 @@ as living at face centroids, modify the setBCoeffs command to be
 Tutorials
 =========
 
-`EB/CNS`_ is an AMR code for solving compressible
-Navier-Stokes equations with the embedded boundary approach.
+`EB/Geometry`_ builds embedded boundary geometries from implicit
+functions, constructive solid geometry, the parser and STL files, and
+queries the cut-cell data.
 
-`EB/Poisson`_ is a single-level code that is a proxy for
-solving the electrostatic Poisson equation for a grounded sphere with a point
-charge inside.
+`EB/Poisson`_ is a single-level code that solves the Poisson equation
+outside a spherical obstacle with the cell-centered solver
+:cpp:`MLEBABecLap` and Dirichlet conditions on the embedded boundary.
 
-`EB/MacProj`_ is a single-level code that computes a divergence-free
-flow field around a sphere.  A MAC projection is performed on an initial velocity
-field of (1,0,0).
+`EB/Advection`_ is a single-level code that advects a scalar around an
+embedded boundary with a conservative finite-volume method and
+redistribution for the small cut cells.
 
-.. _`EB/CNS`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+``amrex/Tests/EB/CNS`` is an AMR code for the compressible Navier-Stokes
+equations with embedded boundaries. It uses :cpp:`EBFluxRegister` for
+refluxing.
 
-.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+.. _`EB/Geometry`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-geometry
 
-.. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-poisson
+
+.. _`EB/Advection`: https://amrex-codes.github.io/amrex/tutorials_html/EB.html#eb-advection

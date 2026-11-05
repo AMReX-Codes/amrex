@@ -12,6 +12,7 @@
 #include <AMReX_GpuComplex.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Math.H>
+#include <AMReX_NonLocalBC.H>
 #include <AMReX_Periodicity.H>
 
 /**
@@ -43,6 +44,7 @@
 
 #include <algorithm>
 #include <complex>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <tuple>
@@ -55,6 +57,9 @@ namespace amrex::FFT
 enum struct Direction { forward, backward, both, none };
 
 enum struct DomainStrategy { automatic, slab, pencil };
+
+//! How the distributed transposes exchange data between processes.
+AMREX_ENUM( CommStrategy, automatic, pointtopoint, alltoallv, alltoall );
 
 AMREX_ENUM( Boundary, periodic, even, odd );
 
@@ -107,6 +112,9 @@ struct Info
 
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
+
+    //! Communication strategy for the distributed transposes.
+    CommStrategy comm_strategy = CommStrategy::automatic;
 
     //! Whether OpenBCSolver pads internal FFT lengths for better performance.
     bool openbc_padding = true;
@@ -161,6 +169,15 @@ struct Info
      * \return Reference to this Info.
      */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
+    /**
+     * \brief Select how the distributed transposes communicate.
+     *
+     * AMReX may use another strategy when the requested one does not apply.
+     *
+     * \param s Strategy (automatic|pointtopoint|alltoallv|alltoall).
+     * \return Reference to this Info.
+     */
+    Info& setCommStrategy (CommStrategy s) { comm_strategy = s; return *this; }
     /**
      * \brief Enable or disable OpenBCSolver internal FFT padding.
      *
@@ -1708,6 +1725,214 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 namespace detail
 {
     DistributionMapping make_iota_distromap (Long n);
+
+    //! Strategy used for the transposes. Any strategy becomes pointtopoint
+    //! on one process, without messages, or if byte counts could overflow
+    //! int; automatic is resolved by density and message size.
+    //! max_fab_bytes is the largest FAB in any FabArray taking part in the
+    //! transposes, max_block_bytes an upper bound on any message between
+    //! two processes, and dense whether at least half of the process pairs
+    //! exchange data in every transpose. All must be the same on all
+    //! processes.
+    CommStrategy resolve_comm_strategy (CommStrategy s, Long max_fab_bytes,
+                                        std::size_t max_block_bytes, bool dense);
+
+    struct TransposeMetaData;
+
+    //! Upper bound on the messages of the given transposes (null pointers
+    //! are skipped).
+    inline std::size_t max_block_bytes
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds);
+
+    //! Whether all the given transposes have a dense exchange pattern.
+    inline bool transposes_dense
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds);
+
+    template <typename FA>
+    Long max_fab_bytes (FA const& fa)
+    {
+        using T = typename FA::FABType::value_type::value_type;
+        Long n = 0;
+        if (!fa.empty()) {
+            auto const& ba = fa.boxArray();
+            for (int i = 0, nb = int(ba.size()); i < nb; ++i) {
+                n = std::max(n, ba[i].numPts());
+            }
+        }
+        return n * fa.nComp() * Long(sizeof(T));
+    }
+
+    //! Message pattern of a transpose: upper bound on any message between
+    //! two processes and whether at least half of the process pairs
+    //! exchange data.
+    struct TransposePattern
+    {
+        std::size_t block_bytes = 0;
+        bool dense = true;
+    };
+
+    //! Communication meta-data for a transpose. The collective strategies
+    //! also cache the buffer layout in handler; the buffers themselves are
+    //! released after each transpose.
+    struct TransposeMetaData
+    {
+        template <typename... Args>
+        explicit TransposeMetaData (TransposePattern pattern_, Args&&... args)
+            : cmd(std::forward<Args>(args)...), pattern(pattern_) {}
+
+        MultiBlockCommMetaData cmd;
+        NonLocalBC::CommHandler handler;
+        TransposePattern pattern;
+    };
+
+    //! Number of processes that own data in any of the given FabArrays.
+    //! Layouts use make_iota_distromap, so these are the first n local ranks.
+    int count_active_procs (std::initializer_list<FabArrayBase const*> fas);
+
+    //! Communicator of the first n_active processes. Returns the current
+    //! communicator if all processes are active. Processes that are not
+    //! active get MPI_COMM_NULL. owned is set to true if a new communicator
+    //! was created, which the caller must free.
+    MPI_Comm make_active_comm (int n_active, bool& owned);
+
+    //! Free a communicator made by make_active_comm if it is owned.
+    void free_active_comm (MPI_Comm comm, bool owned);
+
+    //! Sorted distinct intervals [lo,hi] of the boxes in direction dir.
+    inline Vector<std::pair<int,int>> box_intervals (Vector<Box> const& boxes, int dir)
+    {
+        Vector<std::pair<int,int>> iv;
+        iv.reserve(boxes.size());
+        for (auto const& b : boxes) {
+            iv.emplace_back(b.smallEnd(dir), b.bigEnd(dir));
+        }
+        std::sort(iv.begin(), iv.end());
+        iv.erase(std::unique(iv.begin(), iv.end()), iv.end());
+        return iv;
+    }
+
+    //! Message pattern of the given transpose. n_active is the size of
+    //! the communicator the collectives would use.
+    //!
+    //! Both layouts are slabs or pencils from amrex::decompose. Mapped into
+    //! the source index space by dtos, two boxes overlap iff their intervals
+    //! overlap in every direction. Slab to slab (2D) and slab to/from pencil
+    //! (3D) split different directions, so every pair overlaps. Pencil to
+    //! pencil shares one split direction.
+    template <typename FA, typename DTOS>
+    TransposePattern transpose_pattern (FA const& dst, Box const& dstbox, FA const& src,
+                                        DTOS const& dtos, int n_active)
+    {
+        using T = typename FA::FABType::value_type::value_type;
+        auto const& dstba = dst.boxArray();
+        auto const& srcba = src.boxArray();
+
+        // Destination boxes clipped and mapped into the source index space,
+        // and their indices.
+        Vector<Box> dboxes;
+        Vector<int> dindex;
+        for (int i = 0, n = int(dstba.size()); i < n; ++i) {
+            Box const b = dstba[i] & dstbox;
+            if (b.ok()) {
+                dboxes.push_back(NonLocalBC::Image(dtos, b).setType(srcba.ixType()));
+                dindex.push_back(i);
+            }
+        }
+        Vector<Box> sboxes;
+        for (int k = 0, n = int(srcba.size()); k < n; ++k) {
+            sboxes.push_back(srcba[k]);
+        }
+
+        // Per direction, count the overlapping (dst,src) interval pairs and
+        // find the longest overlap. Their products are the number of
+        // overlapping box pairs and the largest overlap.
+        Long npairs = 1;
+        Long maxpts = 1;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            auto const div = box_intervals(dboxes, idim);
+            auto const siv = box_intervals(sboxes, idim);
+            Long nover = 0;
+            int maxlen = 0;
+            Long j0 = 0;
+            for (auto const& a : div) {
+                while (j0 < siv.size() && siv[j0].second < a.first) { ++j0; }
+                for (auto j = j0; j < siv.size() && siv[j].first <= a.second; ++j) {
+                    ++nover;
+                    maxlen = std::max(maxlen, std::min(a.second, siv[j].second)
+                                            - std::max(a.first, siv[j].first) + 1);
+                }
+            }
+            npairs *= nover;
+            maxpts *= maxlen;
+        }
+
+        // Both layouts put box j on local rank j, so pairs (j,j) are local
+        // copies, not messages.
+        for (Long i = 0; i < dboxes.size(); ++i) {
+            int const j = dindex[i];
+            if (j < sboxes.size() && dboxes[i].intersects(sboxes[j])) { --npairs; }
+        }
+        if (npairs <= 0) { npairs = 0; maxpts = 0; }
+
+        TransposePattern p;
+        p.block_bytes = amrex::aligned_size(alignof(T), std::size_t(maxpts) * dst.nComp() * sizeof(T));
+        // Dense if at least half of all pairs in the communicator exchange
+        // data. Alltoall pads every pair to the largest message.
+        p.dense = (2*npairs >= Long(n_active) * Long(n_active));
+        return p;
+    }
+
+    inline std::size_t max_block_bytes
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds)
+    {
+        std::size_t n = 0;
+        for (auto const* md : mds) {
+            if (*md) { n = std::max(n, (*md)->pattern.block_bytes); }
+        }
+        return n;
+    }
+
+    inline bool transposes_dense
+        (std::initializer_list<std::unique_ptr<TransposeMetaData> const*> mds)
+    {
+        bool dense = true;
+        for (auto const* md : mds) {
+            if (*md) { dense = dense && (*md)->pattern.dense; }
+        }
+        return dense;
+    }
+
+    template <typename FA, typename DTOS>
+    std::unique_ptr<TransposeMetaData>
+    make_transpose (int n_active, FA& dst, Box const& dstbox, FA const& src,
+                    IntVect const& ngrow, DTOS const& dtos)
+    {
+        return std::make_unique<TransposeMetaData>
+            (transpose_pattern(dst, dstbox, src, dtos, n_active), dst, dstbox, src, ngrow, dtos);
+    }
+
+    //! comm is the communicator of the active processes (see
+    //! make_active_comm). It is not used by the point-to-point strategy.
+    template <typename FA, typename DTOS>
+    void transpose (FA& dst, FA const& src, TransposeMetaData& md, int ncomp,
+                    DTOS const& dtos, CommStrategy strategy, MPI_Comm comm)
+    {
+        BL_PROFILE("FFT::transpose");
+        if (strategy == CommStrategy::pointtopoint) {
+            NonLocalBC::ParallelCopy(dst, src, md.cmd, 0, 0, ncomp, dtos);
+        } else if (comm == MPI_COMM_NULL) {
+            return; // this process owns no data
+        } else if (strategy == CommStrategy::alltoall && md.pattern.dense) {
+            // With a sparse pattern the padded buffer would be much larger
+            // than the data, so alltoallv is used instead.
+            NonLocalBC::ParallelCopy_alltoall(dst, src, md.cmd, 0, 0, ncomp, dtos,
+                                              NonLocalBC::Identity{}, md.pattern.block_bytes,
+                                              &md.handler, comm);
+        } else {
+            NonLocalBC::ParallelCopy_alltoallv(dst, src, md.cmd, 0, 0, ncomp, dtos,
+                                               NonLocalBC::Identity{}, &md.handler, comm);
+        }
+    }
 
     template <typename FA>
     typename FA::FABType::value_type * get_fab (FA& fa)

@@ -8,12 +8,13 @@ if (WIN32)
    return()
 endif()
 
-foreach(D IN LISTS AMReX_SPACEDIM)
-    set(_sources     main.cpp global_vars.cpp init.cpp work.cpp)
-    set(_input_files)
+# The test does not depend on the dimension, so build it once.
+list(GET AMReX_SPACEDIM 0 D)
+set(_sources     main.cpp global_vars.cpp init.cpp work.cpp)
+set(_input_files)
 
-    setup_test(${D} _sources _input_files)
+setup_test(${D} _sources _input_files)
 
-    unset(_sources)
-    unset(_input_files)
-endforeach()
+unset(_sources)
+unset(_input_files)
+unset(D)

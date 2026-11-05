@@ -5718,20 +5718,20 @@
     </Proxy>
     <Proxy group="sources" type="AMReXGridReader" id="10112" servers="1">
       <Property name="FileNameInfo" id="10112.FileNameInfo" number_of_elements="1">
-        <Element index="0" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00000"/>
+        <Element index="0" value="amrex-tutorials/Base/HeatEquation/plt00000"/>
       </Property>
       <Property name="FileNames" id="10112.FileNames" number_of_elements="11">
-        <Element index="0" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00000"/>
-        <Element index="1" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00100"/>
-        <Element index="2" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00200"/>
-        <Element index="3" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00300"/>
-        <Element index="4" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00400"/>
-        <Element index="5" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00500"/>
-        <Element index="6" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00600"/>
-        <Element index="7" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00700"/>
-        <Element index="8" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00800"/>
-        <Element index="9" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00900"/>
-        <Element index="10" value="amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt01000"/>
+        <Element index="0" value="amrex-tutorials/Base/HeatEquation/plt00000"/>
+        <Element index="1" value="amrex-tutorials/Base/HeatEquation/plt00100"/>
+        <Element index="2" value="amrex-tutorials/Base/HeatEquation/plt00200"/>
+        <Element index="3" value="amrex-tutorials/Base/HeatEquation/plt00300"/>
+        <Element index="4" value="amrex-tutorials/Base/HeatEquation/plt00400"/>
+        <Element index="5" value="amrex-tutorials/Base/HeatEquation/plt00500"/>
+        <Element index="6" value="amrex-tutorials/Base/HeatEquation/plt00600"/>
+        <Element index="7" value="amrex-tutorials/Base/HeatEquation/plt00700"/>
+        <Element index="8" value="amrex-tutorials/Base/HeatEquation/plt00800"/>
+        <Element index="9" value="amrex-tutorials/Base/HeatEquation/plt00900"/>
+        <Element index="10" value="amrex-tutorials/Base/HeatEquation/plt01000"/>
         <Domain name="files" id="10112.FileNames.files"/>
       </Property>
       <Property name="TimestepValues" id="10112.TimestepValues" number_of_elements="11">

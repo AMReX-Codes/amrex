@@ -139,6 +139,11 @@ class ParIterBase_impl;
  * \tparam T_NStructInt The number of extra integer components in the particle struct
  * \tparam T_NArrayReal The number of extra Real components stored in struct-of-array form
  * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
+ * \tparam T_CellAssignor Maps a particle to the index of the cell it belongs to on a level.
+ * Redistribute() places particles with it, and removes a particle only if its cell, after
+ * any periodic shift of its position, is outside the domain. A custom assignor may read more
+ * than the position, e.g. a stored vertical cell index on a terrain-following grid, so a
+ * particle can be kept although its position lies outside the problem domain.
  *
  */
 template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
@@ -1276,6 +1281,15 @@ public:
     template <typename P>
     bool PeriodicShift (P& p) const;
 
+    /**
+    * \brief Returns true if PeriodicShift would shift the particle, i.e. if its position is
+    * outside the domain in a periodic direction. The particle is not changed.
+    *
+    * \param p
+    */
+    template <typename P>
+    bool OutsidePeriodic (const P& p) const;
+
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
     bool GetLevelDirectoriesCreated () const { return levelDirectoriesCreated; }
@@ -1557,6 +1571,20 @@ protected:
     void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file, bool convert_ids);
 
     void SetParticleSize ();
+
+    /** Redistribute in place, on a single process with a single level, box and tile.
+     *
+     * No particle can move to another box, so no communication buffers are needed:
+     * particles are shifted periodically, and those that left the domain are removed
+     * together with the invalid ones (if remove_negative is true). The result is the same
+     * as that of the full Redistribute(), including the order of the particles.
+     * particlePostLocate() is not called. With neighbor particles, or a particle that the
+     * full Redistribute() keeps outside the box, this returns false without changes.
+     *
+     * \param lev_min, lev_max, nGrow, remove_negative see Redistribute()
+     * \return true if the Redistribute is done, false if the full Redistribute is needed
+     */
+    bool RedistributeInPlace (int lev_min, int lev_max, IntVect nGrow, bool remove_negative);
 
     DenseBins<typename ParticleTileType::ParticleTileDataType> m_bins;
 

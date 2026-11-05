@@ -4,8 +4,23 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <string>
 
 using namespace amrex;
+
+namespace {
+// Communication strategy for the transposes, from the input comm_strategy.
+FFT::Info test_info ()
+{
+    FFT::Info info{};
+    ParmParse pp;
+    std::string s;
+    if (pp.query("comm_strategy", s)) {
+        info.setCommStrategy(amrex::getEnumCaseInsensitive<FFT::CommStrategy>(s));
+    }
+    return info;
+}
+}
 
 int main (int argc, char* argv[])
 {
@@ -71,7 +86,7 @@ int main (int argc, char* argv[])
         auto scaling = Real(1) / Real(geom.Domain().d_numPts());
 
         {
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setDomainStrategy(FFT::DomainStrategy::slab);
             FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
             c2c.forward(mf);
@@ -102,7 +117,7 @@ int main (int argc, char* argv[])
         mf2.setVal(0);
 
         {
-            FFT::Info info{};
+            FFT::Info info = test_info();
             info.setDomainStrategy(FFT::DomainStrategy::pencil);
             FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
             c2c.forward(mf);

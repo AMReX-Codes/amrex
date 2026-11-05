@@ -37,9 +37,11 @@ public:
      *
      * \param geom Geometry describing the domain and metric information.
      * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
+     * \param info Only the communication strategy is used.
      */
     Poisson (Geometry const& geom,
-             Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+             Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
+             Info const& info = Info{})
         requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
@@ -52,9 +54,11 @@ public:
                 && (bc[idim].second == Boundary::periodic);
         }
         if (all_periodic) {
-            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>
+                (m_geom.Domain(), make_solver_info(info));
         } else {
-            m_r2x = std::make_unique<R2X<typename MF::value_type>> (m_geom.Domain(), m_bc);
+            m_r2x = std::make_unique<R2X<typename MF::value_type>>
+                (m_geom.Domain(), m_bc, make_solver_info(info));
         }
     }
 
@@ -62,8 +66,9 @@ public:
      * \brief Construct a purely periodic Poisson solver.
      *
      * \param geom Periodic geometry (all directions must be periodic).
+     * \param info Only the communication strategy is used.
      */
-    explicit Poisson (Geometry const& geom)
+    explicit Poisson (Geometry const& geom, Info const& info = Info{})
         requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
@@ -72,7 +77,8 @@ public:
                             std::make_pair(Boundary::periodic,Boundary::periodic))}
     {
         if (m_geom.isAllPeriodic()) {
-            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>
+                (m_geom.Domain(), make_solver_info(info));
         } else {
             amrex::Abort("FFT::Poisson: wrong BC");
         }
@@ -91,6 +97,10 @@ public:
     void solve (MF& a_soln, MF const& a_rhs);
 
 private:
+    static Info make_solver_info (Info const& info) {
+        return Info{}.setCommStrategy(info.comm_strategy);
+    }
+
     IntVect m_domain_lo;
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
@@ -170,9 +180,11 @@ public:
      *
      * \param geom Geometry describing domain and spacing.
      * \param bc   Boundary descriptors for each direction.
+     * \param a_info Only the communication strategy is used.
      */
     PoissonHybrid (Geometry const& geom,
-                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
+                   Info const& a_info = Info{})
         requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
@@ -196,6 +208,7 @@ public:
                             bc[2].second != Boundary::periodic);
         Info info{};
         info.setTwoDMode(true);
+        info.setCommStrategy(a_info.comm_strategy);
         if (m_geom.Domain().length(0) == 1 || m_geom.Domain().length(1) == 1) {
             info.setOneDMode(true);
         }
@@ -391,6 +404,7 @@ Info PoissonOpenBC<MF>::make_solver_info (Info const& info)
     Info solver_info;
     solver_info.openbc_padding = info.openbc_padding;
     solver_info.openbc_padding_nfactors = info.openbc_padding_nfactors;
+    solver_info.comm_strategy = info.comm_strategy;
     return solver_info;
 }
 
