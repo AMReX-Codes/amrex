@@ -863,9 +863,6 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 {
     BL_ASSERT( ! wgts.empty());
 
-    m_ref = std::make_shared<Ref>();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
@@ -874,6 +871,9 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         Real eff = 0;
         KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax, sort);
         if (efficiency) { *efficiency = eff; }
@@ -1512,15 +1512,15 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref = std::make_shared<Ref>();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs,nullptr,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         SFCProcessorMapDoIt(boxes,wgts,nprocs,sort);
     }
 }
@@ -1535,15 +1535,15 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref = std::make_shared<Ref>();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs,&eff,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         SFCProcessorMapDoIt(boxes,wgts,nprocs,sort,&eff);
     }
 }
