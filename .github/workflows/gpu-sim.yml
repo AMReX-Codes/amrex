@@ -1,0 +1,85 @@
+name: gpu-sim
+
+# Optional, non-required check. The runners have no GPU, so this builds a
+# small set of tests with the CUDA backend and runs them on a simulated
+# NVIDIA H100 (https://github.com/pantheongpu/pantheonsim). A simulator cannot
+# reproduce hardware-specific behavior or timing, so it complements
+# real-GPU testing and does not replace it.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-gpu-sim
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
+  # Build a few GPU-kernel tests with CUDA and run them on a simulated H100
+  tests-gpu-sim:
+    name: CUDA@13.0 Simulated H100 [tests]
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Set up the simulated GPU and CUDA toolkit
+      uses: pantheongpu/setup-pantheonsim@dda0c8df8d72627c295edbae525354ba2bcb1687 # v0.1.4
+      with:
+        gpu: nvidia/h100
+        cuda-toolkit: "13.0"
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=200M
+        ccache -z
+
+        # CMAKE_CUDA_ARCHITECTURES=80-virtual embeds PTX only: the simulator
+        # JIT-compiles PTX and does not run SASS. It also needs a shared
+        # CUDA runtime.
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=OFF                 \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_MPI=OFF                              \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_PARTICLES=OFF                        \
+            -DAMReX_LINEAR_SOLVERS=OFF                   \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DAMReX_GPU_RDC=OFF                          \
+            -DCMAKE_CUDA_ARCHITECTURES=80-virtual        \
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared          \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+        cmake --build build -j 4 --target \
+            Test_Reducer_3d Test_GpuParallelReduce_3d Test_Scan_3d \
+            Test_CTOParFor_3d Test_SumBoundary_3d Test_CallNoinline_3d \
+            Test_FillPatchCache_3d
+
+        ccache -s
+    - name: Test
+      run: |
+        # These tests check their results with AMREX_ALWAYS_ASSERT or
+        # amrex::Abort, so a wrong result on the simulated GPU fails the test.
+        vgpu run ctest --test-dir build --output-on-failure \
+            -R '^(Reducer|GpuParallelReduce|Scan|CTOParFor|SumBoundary|CallNoinline|FillPatchCache)_3d$'
