@@ -347,7 +347,7 @@ void
 DistributionMapping::define (const BoxArray& boxes,
                              int nprocs)
 {
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != nullptr);
@@ -358,14 +358,14 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Vector<int>& pmap)
 {
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap = pmap;
 }
 
 void
-DistributionMapping::define (Vector<int>&& pmap) noexcept
+DistributionMapping::define (Vector<int>&& pmap)
 {
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap = std::move(pmap);
 }
 
@@ -457,7 +457,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs, bool sort)
 {
     BL_ASSERT(nboxes > 0);
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(nboxes);
 
     RoundRobinDoIt(nboxes, nprocs, nullptr, sort);
@@ -501,7 +501,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
 {
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size());
 
     //
@@ -865,7 +865,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 {
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size());
 
     if (std::ssize(wgts) <= nprocs || nprocs < 2)
@@ -893,7 +893,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
     const int nprocs = ParallelDescriptor::NProcs();
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size(), -1);
 
     ComputeDistributionMappingEfficiency(olddm, wgts, &old_efficiency);
@@ -1481,7 +1481,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT( ! boxes.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
@@ -1512,7 +1512,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size());
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
@@ -1535,7 +1535,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size());
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
@@ -1590,7 +1590,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 {
     BL_ASSERT( ! boxes.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
     RRSFCDoIt(boxes,nprocs);
@@ -1987,7 +1987,7 @@ std::istream&
 DistributionMapping::readFrom (std::istream& is)
 {
     AMREX_ASSERT(size() == 0);
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     auto& pmap = m_ref->m_pmap;
 
     int n;

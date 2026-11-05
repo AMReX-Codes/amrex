@@ -136,7 +136,8 @@ class DistributionMapping
      * \brief Build a mapping from a BoxArray using the current strategy.
      *
      * This overload can be used to initialize a default-constructed
-     * DistributionMapping.
+     * DistributionMapping. Like BoxArray::define, it gives this object a
+     * new mapping; copies made earlier keep the old one.
      *
      * \param boxes Boxes to distribute.
      * \param nprocs Number of processes requested for the mapping.
@@ -155,7 +156,7 @@ class DistributionMapping
      * This overload can be used to initialize a default-constructed
      * DistributionMapping.
      */
-    void define (Vector<int>&& pmap) noexcept;
+    void define (Vector<int>&& pmap);
     /**
      * \brief Returns a constant reference to the mapping of boxes in the
      * underlying BoxArray to the CPU that holds the FAB on that Box.
