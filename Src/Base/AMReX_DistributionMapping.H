@@ -46,6 +46,10 @@ class FabArrayBase;
  *  based on a space filling curve.  The RRSFC distribution orders boxes using
  *  an SFC and then assigns them in round-robin order to CPUs ordered from least
  *  to most FAB memory use.
+ *
+ *  Copies of a DistributionMapping share the mapping.  Like BoxArray::define,
+ *  the define overloads and the ProcessorMap builders give the object a new
+ *  mapping; copies made earlier keep the old one.
  */
 class DistributionMapping
 {
@@ -69,8 +73,6 @@ class DistributionMapping
         explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
 
         //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-
-        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
 
         Vector<int> m_pmap; //!< index array for all boxes
         Vector<int> m_index_array;  //!< index array for local boxes owned by the team
@@ -136,8 +138,7 @@ class DistributionMapping
      * \brief Build a mapping from a BoxArray using the current strategy.
      *
      * This overload can be used to initialize a default-constructed
-     * DistributionMapping. Like BoxArray::define, it gives this object a
-     * new mapping; copies made earlier keep the old one.
+     * DistributionMapping.
      *
      * \param boxes Boxes to distribute.
      * \param nprocs Number of processes requested for the mapping.

@@ -322,8 +322,6 @@ DistributionMapping::DistributionMapping (Vector<int>&& pmap) noexcept
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
                                           int nprocs)
-    :
-    m_ref(std::make_shared<Ref>(boxes.size()))
 {
     define(boxes,nprocs);
 }
@@ -358,15 +356,14 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Vector<int>& pmap)
 {
-    m_ref = std::make_shared<Ref>();
-    m_ref->m_pmap = pmap;
+    // Build the new Ref before releasing the old one: pmap may alias our own map.
+    m_ref = std::make_shared<Ref>(pmap);
 }
 
 void
 DistributionMapping::define (Vector<int>&& pmap)
 {
-    m_ref = std::make_shared<Ref>();
-    m_ref->m_pmap = std::move(pmap);
+    m_ref = std::make_shared<Ref>(std::move(pmap));
 }
 
 void
@@ -1069,6 +1066,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 {
     BL_ASSERT( ! boxes.empty());
 
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() <= nprocs || nprocs < 2)
