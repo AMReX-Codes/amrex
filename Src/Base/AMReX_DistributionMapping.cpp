@@ -345,6 +345,7 @@ void
 DistributionMapping::define (const BoxArray& boxes,
                              int nprocs)
 {
+    // The private BoxArray builders fill this fresh Ref in place.
     m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
@@ -464,7 +465,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
+    BL_ASSERT(m_ref.use_count() == 1 && m_ref->m_pmap.size() == boxes.size());
     //
     // Create ordering of boxes from largest to smallest.
     // When we round-robin the boxes we want to go from largest
@@ -1068,8 +1069,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
                                            int             nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
-    m_ref = std::make_shared<Ref>();
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() <= nprocs || nprocs < 2)
@@ -1481,8 +1481,7 @@ void
 DistributionMapping::SFCProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
-    m_ref = std::make_shared<Ref>();
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
@@ -1590,8 +1589,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
                                         int                      nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
-    m_ref = std::make_shared<Ref>();
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     RRSFCDoIt(boxes,nprocs);
