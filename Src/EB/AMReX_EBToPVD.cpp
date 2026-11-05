@@ -12,6 +12,8 @@
 namespace amrex {
 
 namespace {
+constexpr Real intersection_tol = Real(16)*std::numeric_limits<Real>::epsilon();
+
 amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b)
 {
    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
@@ -19,7 +21,6 @@ amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amr
 
 bool intersects(amrex::Real val)
 {
-   constexpr Real intersection_tol = Real(16)*std::numeric_limits<Real>::epsilon();
    // alpha is dimensionless; allow roundoff at both ends of a cell edge.
    return (val >= -intersection_tol && val <= Real(1) + intersection_tol);
 }
@@ -70,20 +71,19 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                normal[1] = ady * apnorminv;
                normal[2] = adz * apnorminv;
 
-               // convert bcent to global coordinate system centered at plo
-               centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (static_cast<Real>(i) + Real(0.5))*dx[0];
-               centroid[1] = problo[1] + bcent(i,j,k,1)*dx[1] + (static_cast<Real>(j) + Real(0.5))*dx[1];
-               centroid[2] = problo[2] + bcent(i,j,k,2)*dx[2] + (static_cast<Real>(k) + Real(0.5))*dx[2];
+               // Work relative to vertex 0 to avoid cancellation in calc_alpha.
+               centroid[0] = (bcent(i,j,k,0) + Real(0.5))*dx[0];
+               centroid[1] = (bcent(i,j,k,1) + Real(0.5))*dx[1];
+               centroid[2] = (bcent(i,j,k,2) + Real(0.5))*dx[2];
 
-               // vertices of bounding cell (i,j,k)
-               vertex[0] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
-               vertex[1] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
-               vertex[2] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
-               vertex[3] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
-               vertex[4] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
-               vertex[5] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
-               vertex[6] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
-               vertex[7] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[0] = {0,     0,     0    };
+               vertex[1] = {dx[0], 0,     0    };
+               vertex[2] = {0,     dx[1], 0    };
+               vertex[3] = {dx[0], dx[1], 0    };
+               vertex[4] = {0,     0,     dx[2]};
+               vertex[5] = {dx[0], 0,     dx[2]};
+               vertex[6] = {0,     dx[1], dx[2]};
+               vertex[7] = {dx[0], dx[1], dx[2]};
 
                // NOTE: this seems to be unnecessary:
                // skip cells that have a tiny intersection and cells that have
@@ -129,6 +129,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
+                     alpha = alpha_d;
                      alpha_intersect = alpha_d_intersect;
                   }
 
@@ -141,6 +142,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
+                     alpha = alpha_d;
                      alpha_intersect = alpha_d_intersect;
                   }
                }
@@ -255,6 +257,17 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                            conn[0] = n+1;
                            conn[n+1] = static_cast<int>(m_points.size()-1);
                         }
+                     }
+                  }
+
+                  // Translate the completed polygon to physical coordinates.
+                  std::array<Real,3> const origin = {
+                     problo[0] + static_cast<Real>(i)*dx[0],
+                     problo[1] + static_cast<Real>(j)*dx[1],
+                     problo[2] + static_cast<Real>(k)*dx[2]};
+                  for(int n = 1; n <= conn[0]; ++n) {
+                     for(int idim = 0; idim < 3; ++idim) {
+                        m_points[conn[n]][idim] += origin[idim];
                      }
                   }
                }
@@ -408,12 +421,11 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
    distance = -dot_product(normal, centroid);
 
    // Get the sign of the distance
-   sign_of_dist = -distance / std::abs(distance);
+   sign_of_dist = std::copysign(Real(1), -distance);
 
-   // Get the Hessian form
-   Real fac = sign_of_dist/dot_product(normal, normal);
+   // normal is already normalized; apply the same sign to it and the offset.
    for(int idim = 0; idim < 3; ++idim) {
-      n0[idim] = fac*normal[idim];
+      n0[idim] = sign_of_dist*normal[idim];
    }
    p = sign_of_dist*(-distance);
 }
@@ -452,13 +464,34 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
 }
 
 void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-      const std::array<Real,12>& alpha)
+      std::array<Real,12>& alpha)
 {
    int_count = 0;
    std::ranges::fill(intersects_flags, false);
 
+   // Endpoints of the edges used by calc_alpha and the point reconstruction.
+   constexpr std::array<std::array<int,2>,12> edge_vertices = {{
+      {0,1}, {1,3}, {2,3}, {0,2}, {0,4}, {1,5},
+      {3,7}, {2,6}, {4,5}, {5,7}, {6,7}, {4,6}
+   }};
+   std::array<bool,8> corner_seen{};
+
    for(int lc1 = 0; lc1 < 12; ++lc1) {
       if(intersects(alpha[lc1])) {
+         int corner = -1;
+         if(std::abs(alpha[lc1]) <= intersection_tol) {
+            alpha[lc1] = Real(0);
+            corner = edge_vertices[lc1][0];
+         } else if(std::abs(alpha[lc1] - Real(1)) <= intersection_tol) {
+            alpha[lc1] = Real(1);
+            corner = edge_vertices[lc1][1];
+         }
+         // Several edges can intersect the same corner. Count it only once
+         // so a valid polygon is not rejected for having more than six points.
+         if(corner >= 0) {
+            if(corner_seen[corner]) { continue; }
+            corner_seen[corner] = true;
+         }
          ++int_count;
          intersects_flags[lc1] = true;
       }
