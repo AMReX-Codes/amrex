@@ -289,7 +289,7 @@ private:
     //! named (MSVC instantiates every virtual function of a complete class
     //! template).
     template <typename F>
-    void spForward (F&& f) {
+    void spForward (F const& f) {
         if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
             if (this->m_sp_linop) {
                 f(static_cast<MLABecLaplacianT<fMultiFab>*>(this->m_sp_linop.get()));

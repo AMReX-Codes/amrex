@@ -165,7 +165,7 @@ private:
     //! Call f on the single precision copy (mixed precision) if there is
     //! one; see MLABecLaplacian.
     template <typename F>
-    void spForward (F&& f) {
+    void spForward (F const& f) {
         if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
             if (this->m_sp_linop) {
                 f(static_cast<MLALaplacianT<fMultiFab>*>(this->m_sp_linop.get()));
