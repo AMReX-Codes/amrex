@@ -2092,7 +2092,7 @@ MLMGT<MF>::prepareForSPSolve ()
         sp.prepareWorkArrays();
         if (first) {
             sp.solve_called = 1; // keep the work arrays
-            sp.computeMLResidual(finest_amr_lev);
+            sp.computeMLResidual(finest_amr_lev); // fills the copy's coarse/fine BC data (zeros)
         }
     } else {
         amrex::Abort("MLMG::prepareForSPSolve: MultiFab only");
