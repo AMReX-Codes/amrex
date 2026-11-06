@@ -514,6 +514,13 @@ public:
     template <typename AMF>
     void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
 
+    //! Set up sol and rhs from the user's data.
+    template <typename AMF>
+    void prepareSolRHS (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
+
+    //! Allocate (first solve) and zero the work arrays.
+    void prepareWorkArrays ();
+
     //! Prepare the NSolve path.
     void prepareForNSolve ();
 
@@ -533,7 +540,7 @@ public:
     //! Mixed precision: one multigrid iteration on the single precision copy.
     void spIter (int iter);
     //! Mixed precision: set up the single precision multigrid solver.
-    void prepareForSPSolve (IntVect const& ng_sol);
+    void prepareForSPSolve ();
 
     /**
      * \brief Execute a per-level mini cycle.
@@ -791,8 +798,12 @@ private:
 
     //! Mixed precision: multigrid on the operator's single precision copy
     std::unique_ptr<MLMGT<fMultiFab>> m_sp_mlmg;
-    Vector<fMultiFab> m_sp_cor;
-    Vector<fMultiFab> m_sp_res;
+
+    [[nodiscard]] IntVect ngSol () const {
+        IntVect ng(1);
+        if (linop.hasHiddenDimension()) { ng[linop.hiddenDirection()] = 0; }
+        return ng;
+    }
 
     std::string print_ident;
 
@@ -1693,32 +1704,18 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
 
     timer.assign(ntimers, 0.0);
 
+    prepareLinOp();
+    prepareSolRHS(a_sol, a_rhs);
+    prepareWorkArrays();
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::prepareSolRHS (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs)
+{
     IntVect ng_rhs(0);
-    IntVect ng_sol(1);
-    if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
-
-    linop.setPrintIndentation(print_ident);
-    if (!linop_prepared) {
-        linop.prepareForSolve();
-        AMREX_ASSERT(!linop.m_mg_deferred || linop.m_mg_built);
-        linop_prepared = true;
-    } else if (linop.needsUpdate()) {
-        linop.update();
-
-        m_algmg_bottom.reset();
-        m_algmg_level0.reset();
-
-#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-        hypre_solver.reset();
-        hypre_bndry.reset();
-        hypre_node_solver.reset();
-#endif
-
-#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-        petsc_solver.reset();
-        petsc_bndry.reset();
-#endif
-    }
+    IntVect const ng_sol = ngSol();
 
     sol.resize(namrlevs);
     sol_is_alias.resize(namrlevs,false);
@@ -1801,13 +1798,18 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     {
         makeSolvable();
     }
+}
 
+template <typename MF>
+void
+MLMGT<MF>::prepareWorkArrays ()
+{
     // Mixed precision: this solver needs only res; the single precision
     // multigrid has its own work arrays.
     const bool mixed = (linop.m_sp_linop != nullptr);
 
     IntVect ng = linop.getNGrowVectRestriction();
-    if (cf_strategy == CFStrategy::ghostnodes) { ng = ng_rhs; }
+    if (cf_strategy == CFStrategy::ghostnodes) { ng = IntVect(linop.getNGrow(finest_amr_lev)); }
     if (!solve_called) {
         linop.make(res, ng);
         if (!mixed) { linop.make(rescor, ng); }
@@ -1823,10 +1825,10 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     }
 
     if (mixed) {
-        prepareForSPSolve(ng_sol);
+        prepareForSPSolve();
     }
 
-    if (cf_strategy != CFStrategy::ghostnodes) { ng = ng_sol; }
+    if (cf_strategy != CFStrategy::ghostnodes) { ng = ngSol(); }
     cor.resize(namrlevs);
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
@@ -2042,23 +2044,12 @@ void MLMGT<MF>::oneIter (int iter)
 // of the operator.  Its work arrays are kept across solves.
 template <typename MF>
 void
-MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
+MLMGT<MF>::prepareForSPSolve ()
 {
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        auto& splinop = *linop.m_sp_linop;
         const bool first = !m_sp_mlmg;
         if (first) {
-            m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(splinop);
-            m_sp_cor.resize(namrlevs);
-            m_sp_res.resize(namrlevs);
-            for (int alev = 0; alev < namrlevs; ++alev) {
-                // The coarse/fine BC data of the copy come from its solution,
-                // which is zero whenever spIter needs them.
-                m_sp_cor[alev] = splinop.make(alev, 0, ng_sol);
-                m_sp_cor[alev].setVal(0.0F);
-                m_sp_res[alev] = splinop.make(alev, 0, IntVect(0));
-                m_sp_res[alev].setVal(0.0F);
-            }
+            m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(*linop.m_sp_linop);
             // The user's N-Solve setting, before it is turned off for this solver.
             m_sp_mlmg->setNSolve(do_nsolve);
             m_sp_mlmg->setNSolveGridSize(nsolve_grid_size);
@@ -2078,16 +2069,30 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
         sp.setCFStrategy(static_cast<typename MLMGT<fMultiFab>::CFStrategy>(cf_strategy));
         sp.setThrowException(throw_exception);
         sp.print_ident = print_ident + "  ";
-        sp.m_niters_cg.clear(); // sp.solve is never called
-        // Allocates the work arrays and prepares the operator; the rhs is
-        // overwritten by spIter.
-        sp.prepareForSolve(GetVecOfPtrs(m_sp_cor), GetVecOfConstPtrs(m_sp_res));
+        // sp.solve is never called
+        sp.m_niters_cg.clear();
+        sp.timer.assign(ntimers, 0.0);
+        sp.prepareLinOp();
+        if (first) {
+            // spIter overwrites sol and rhs.  The coarse/fine BC data of
+            // the copy come from its solution, which is zero whenever
+            // spIter needs them.
+            sp.sol.resize(namrlevs);
+            sp.sol_is_alias.resize(namrlevs, false);
+            sp.rhs.resize(namrlevs);
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                sp.sol[alev] = sp.linop.make(alev, 0, ngSol());
+                sp.sol[alev].setVal(0.0F);
+                sp.rhs[alev] = sp.linop.make(alev, 0, IntVect(0));
+                sp.rhs[alev].setVal(0.0F);
+            }
+        }
+        sp.prepareWorkArrays();
         if (first) {
             sp.solve_called = 1; // keep the work arrays
             sp.computeMLResidual(finest_amr_lev);
         }
     } else {
-        amrex::ignore_unused(ng_sol);
         amrex::Abort("MLMG::prepareForSPSolve: MultiFab only");
     }
 }
