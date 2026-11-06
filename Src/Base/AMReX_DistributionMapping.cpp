@@ -1414,7 +1414,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                 m_ref->m_pmap[vi[j]] = ParallelContext::local_to_global_rank(tid);
             }
         }
-        else   // We would like to do knapsack within the team workers
+        else if (Nbx > 0) // knapsack within the team workers; skip teams with no boxes
         {
             std::vector<Long> local_wgts;
             local_wgts.reserve(Nbx);
