@@ -1225,7 +1225,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
-    if (mixed) { timer[bottom_time] = m_sp_mlmg->timer[bottom_time]; }
+    if (mixed) {
+        timer[bottom_time] = m_sp_mlmg->timer[bottom_time];
+        m_niters_cg = m_sp_mlmg->m_niters_cg;
+    }
 
     linop.postSolve(GetVecOfPtrs(sol));
 
@@ -2075,6 +2078,7 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
         sp.setCFStrategy(static_cast<typename MLMGT<fMultiFab>::CFStrategy>(cf_strategy));
         sp.setThrowException(throw_exception);
         sp.print_ident = print_ident + "  ";
+        sp.m_niters_cg.clear(); // sp.solve is never called
         // Allocates the work arrays and prepares the operator; the rhs is
         // overwritten by spIter.
         sp.prepareForSolve(GetVecOfPtrs(m_sp_cor), GetVecOfConstPtrs(m_sp_res));
