@@ -1041,6 +1041,52 @@ protected:
         ;
     std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
 
+    //! Mixed precision: the LPInfo for this operator, which keeps only MG
+    //! level 0 when the single precision copy is built.
+    [[nodiscard]] LPInfo dpInfo (LPInfo const& a_info) const
+    {
+        LPInfo dp_info = a_info;
+        if constexpr (mixed_precision_capable) {
+            if (a_info.mixed_precision) {
+                dp_info.max_coarsening_level = 0;
+            }
+        }
+        return dp_info;
+    }
+
+    //! Mixed precision: build the single precision copy with f(sp_info),
+    //! where sp_info is a_info without the mixed precision flag.  f is a
+    //! generic lambda so that the float operator type is not instantiated
+    //! where mixed precision is unavailable (MSVC instantiates every
+    //! virtual function of a complete class template).
+    template <typename F>
+    void makeSPLinOp (LPInfo const& a_info, F const& f)
+    {
+        if constexpr (mixed_precision_capable) {
+            if (a_info.mixed_precision) {
+                LPInfo sp_info = a_info;
+                sp_info.mixed_precision = false;
+                m_sp_linop = f(sp_info);
+            }
+        } else {
+            amrex::ignore_unused(a_info, f);
+        }
+    }
+
+    //! Mixed precision: call f on the single precision copy, an
+    //! Op<fMultiFab>, if there is one.
+    template <template <typename> class Op, typename F>
+    void spForward (F const& f)
+    {
+        if constexpr (mixed_precision_capable) {
+            if (m_sp_linop) {
+                f(static_cast<Op<fMultiFab>*>(m_sp_linop.get()));
+            }
+        } else {
+            amrex::ignore_unused(f);
+        }
+    }
+
     //! Return AMR refinement ratios
     [[nodiscard]] const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
 

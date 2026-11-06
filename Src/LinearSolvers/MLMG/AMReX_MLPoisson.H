@@ -190,18 +190,10 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
                         const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define()");
-    LPInfo dp_info = a_info;
-    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
-        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
-    }
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
-    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        if (a_info.mixed_precision) {
-            LPInfo sp_info = a_info;
-            sp_info.mixed_precision = false;
-            this->m_sp_linop = std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
-        }
-    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
+    });
 }
 
 template <typename MF>
@@ -214,21 +206,12 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
                         const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define(overset)");
-    LPInfo dp_info = a_info;
-    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
-        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
-    }
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, dp_info, a_factory);
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, this->dpInfo(a_info), a_factory);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
         "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
-    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        if (a_info.mixed_precision) {
-            LPInfo sp_info = a_info;
-            sp_info.mixed_precision = false;
-            this->m_sp_linop = std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap,
-                                                                       a_overset_mask, sp_info);
-        }
-    }
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, a_overset_mask, sp_info);
+    });
 }
 
 template <typename MF>

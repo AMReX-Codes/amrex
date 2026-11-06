@@ -284,21 +284,6 @@ private:
 
     void define_ab_coeffs ();
 
-    //! Call f on the single precision copy (mixed precision) if there is
-    //! one.  Where mixed precision is unavailable the float type is not
-    //! named (MSVC instantiates every virtual function of a complete class
-    //! template).
-    template <typename F>
-    void spForward (F const& f) {
-        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-            if (this->m_sp_linop) {
-                f(static_cast<MLABecLaplacianT<fMultiFab>*>(this->m_sp_linop.get()));
-            }
-        } else {
-            amrex::ignore_unused(f);
-        }
-    }
-
     void update_singular_flags ();
 };
 
@@ -338,20 +323,12 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define()");
     this->m_ncomp = a_ncomp;
-    LPInfo dp_info = a_info;
-    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
-        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
-    }
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
     define_ab_coeffs();
-    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        if (a_info.mixed_precision) {
-            LPInfo sp_info = a_info;
-            sp_info.mixed_precision = false;
-            this->m_sp_linop = std::make_unique<MLABecLaplacianT<fMultiFab>>
-                (a_geom, a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
-        }
-    }
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLABecLaplacianT<fMultiFab>>
+            (a_geom, a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
+    });
 }
 
 template <typename MF>
@@ -366,21 +343,13 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
     this->m_ncomp = a_ncomp;
-    LPInfo dp_info = a_info;
-    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
-        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
-    }
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, dp_info, a_factory);
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, this->dpInfo(a_info), a_factory);
     define_ab_coeffs();
-    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        if (a_info.mixed_precision) {
-            LPInfo sp_info = a_info;
-            sp_info.mixed_precision = false;
-            this->m_sp_linop = std::make_unique<MLABecLaplacianT<fMultiFab>>
-                (a_geom, a_grids, a_dmap, a_overset_mask, sp_info,
-                 Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
-        }
-    }
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLABecLaplacianT<fMultiFab>>
+            (a_geom, a_grids, a_dmap, a_overset_mask, sp_info,
+             Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
+    });
 }
 
 template <typename MF>
@@ -428,7 +397,7 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
     }
     m_needs_update = true;
     m_scalars_set = true;
-    spForward([&] (auto* sp) { sp->setScalars(a, b); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setScalars(a, b); });
 }
 
 template <typename MF>
@@ -443,7 +412,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
     m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
-    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 template <typename MF>
@@ -456,7 +425,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
     m_a_metric_applied[amrlev] = 0;
     m_needs_update = true;
     m_acoef_set = true;
-    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 
@@ -484,7 +453,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>
@@ -499,7 +468,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>
@@ -517,7 +486,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
     }
     m_b_metric_applied[amrlev] = 0;
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setBCoeffs(amrlev, beta); });
 }
 
 template <typename MF>

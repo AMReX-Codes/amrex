@@ -161,19 +161,6 @@ private:
     int m_ncomp = 1;
 
     void updateSingularFlag ();
-
-    //! Call f on the single precision copy (mixed precision) if there is
-    //! one; see MLABecLaplacian.
-    template <typename F>
-    void spForward (F const& f) {
-        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-            if (this->m_sp_linop) {
-                f(static_cast<MLALaplacianT<fMultiFab>*>(this->m_sp_linop.get()));
-            }
-        } else {
-            amrex::ignore_unused(f);
-        }
-    }
 };
 
 template <typename MF>
@@ -198,19 +185,10 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    LPInfo dp_info = a_info;
-    if (MLLinOpT<MF>::mixed_precision_capable && a_info.mixed_precision) {
-        dp_info.max_coarsening_level = 0; // the single precision copy has the MG hierarchy
-    }
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, dp_info, a_factory);
-
-    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        if (a_info.mixed_precision) {
-            LPInfo sp_info = a_info;
-            sp_info.mixed_precision = false;
-            this->m_sp_linop = std::make_unique<MLALaplacianT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
-        }
-    }
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLALaplacianT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
+    });
 
     const int ncomp = this->getNComp();
 
@@ -243,7 +221,7 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
         }
     }
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setScalars(float(a), float(b)); });
+    this->template spForward<MLALaplacianT>([&] (auto* sp) { sp->setScalars(float(a), float(b)); });
 }
 
 template <typename MF>
@@ -253,7 +231,7 @@ MLALaplacianT<MF>::setACoeffs (int amrlev, const MF& alpha)
     const int ncomp = this->getNComp();
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
+    this->template spForward<MLALaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 template <typename MF>
@@ -265,7 +243,7 @@ MLALaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
     const int ncomp = this->getNComp();
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
     m_needs_update = true;
-    spForward([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
+    this->template spForward<MLALaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 template <typename MF>
