@@ -192,7 +192,7 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLPoisson::define()");
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
-        return std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, sp_info);
+        return std::make_unique<MLPoissonT<fMultiFab>>(this->spGeom(a_geom), a_grids, a_dmap, sp_info);
     });
 }
 
@@ -210,7 +210,7 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_has_metric_term,
         "MLPoisson: overset mask does not support metric terms.  Use MLABecLaplacian or LPInfo::setMetricTerm(false).");
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
-        return std::make_unique<MLPoissonT<fMultiFab>>(a_geom, a_grids, a_dmap, a_overset_mask, sp_info);
+        return std::make_unique<MLPoissonT<fMultiFab>>(this->spGeom(a_geom), a_grids, a_dmap, a_overset_mask, sp_info);
     });
 }
 

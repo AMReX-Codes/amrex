@@ -2103,7 +2103,8 @@ MLMGT<MF>::prepareForSPSolve ()
 // Mixed precision: the composite residual (res) in single precision is the
 // rhs of the correction equation, which the single precision multigrid
 // solves with one cycle.  The residual is scaled to O(1) before the
-// conversion, and the correction is added to sol in double precision.
+// conversion, and the correction, scaled back and by the copy's operator
+// scale, is added to sol in double precision.
 template <typename MF>
 void
 MLMGT<MF>::spIter (int iter)
@@ -2116,6 +2117,7 @@ MLMGT<MF>::spIter (int iter)
         RT s = (iter == 0) ? m_init_resnorm0 : m_final_resnorm0;
         if (!(s > RT(0.0))) { s = RT(1.0); }
         RT const invs = RT(1.0)/s;
+        RT const ss = s * linop.m_sp_scale; // the copy solves (m_sp_scale L) c = r/s
 
         for (int alev = 0; alev < namrlevs; ++alev) {
             setVal(sp.sol[alev], 0.0F);
@@ -2166,7 +2168,7 @@ MLMGT<MF>::spIter (int iter)
                 ParallelFor(dmf, IntVect(0), ncomp,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                 {
-                    dma[box_no](i,j,k,n) += s * static_cast<RT>(sma[box_no](i,j,k,n));
+                    dma[box_no](i,j,k,n) += ss * static_cast<RT>(sma[box_no](i,j,k,n));
                 });
                 if (!Gpu::inNoSyncRegion()) {
                     Gpu::streamSynchronize();
@@ -2184,7 +2186,7 @@ MLMGT<MF>::spIter (int iter)
                     auto const& sfab = smf.const_array(mfi);
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                     {
-                        dfab(i,j,k,n) += s * static_cast<RT>(sfab(i,j,k,n));
+                        dfab(i,j,k,n) += ss * static_cast<RT>(sfab(i,j,k,n));
                     });
                 }
             }

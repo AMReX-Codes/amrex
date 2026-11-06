@@ -285,6 +285,10 @@ private:
     void define_ab_coeffs ();
 
     void update_singular_flags ();
+
+    //! Mixed precision: give the single precision copy scalars scaled so
+    //! that its diagonal is O(1).
+    void setSPScale ();
 };
 
 template <typename MF>
@@ -327,7 +331,7 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     define_ab_coeffs();
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
         return std::make_unique<MLABecLaplacianT<fMultiFab>>
-            (a_geom, a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
+            (this->spGeom(a_geom), a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
     });
 }
 
@@ -347,7 +351,7 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     define_ab_coeffs();
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
         return std::make_unique<MLABecLaplacianT<fMultiFab>>
-            (a_geom, a_grids, a_dmap, a_overset_mask, sp_info,
+            (this->spGeom(a_geom), a_grids, a_dmap, a_overset_mask, sp_info,
              Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
     });
 }
@@ -397,7 +401,7 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
     }
     m_needs_update = true;
     m_scalars_set = true;
-    this->template spForward<MLABecLaplacianT>([&] (auto* sp) { sp->setScalars(a, b); });
+    // The single precision copy gets the scalars, scaled, in setSPScale.
 }
 
 template <typename MF>
@@ -507,6 +511,8 @@ MLABecLaplacianT<MF>::update ()
 
     update_singular_flags();
 
+    setSPScale();
+
     m_needs_update = false;
 }
 
@@ -528,7 +534,34 @@ MLABecLaplacianT<MF>::prepareForSolve ()
 
     update_singular_flags();
 
+    setSPScale();
+
     m_needs_update = false;
+}
+
+template <typename MF>
+void
+MLABecLaplacianT<MF>::setSPScale ()
+{
+    this->template spForward<MLABecLaplacianT>([&] (auto* sp) {
+        // Estimate of the max diagonal on the AMR levels
+        RT diag = RT(0.0);
+        for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
+            RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(0, 1, IntVect(0));
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
+                d += std::abs(m_b_scalar) * m_b_coeffs[alev][0][idim].norminf(0, 1, IntVect(0))
+                    * RT(2.0)*dxinv*dxinv;
+            }
+            diag = std::max(diag, d);
+        }
+        // The copy's lengths are lambda times ours, which scales its b
+        // term by lambda^-2 and its metric term by lambda^p.
+        RT const sigma = this->spScaleFor(diag);
+        auto const lambda = static_cast<RT>(this->m_sp_length_scale);
+        this->m_sp_scale = sigma * static_cast<RT>(std::pow(lambda, this->spMetricExponent()));
+        sp->setScalars(sigma * m_a_scalar, sigma * lambda*lambda * m_b_scalar);
+    });
 }
 
 template <typename MF>
@@ -1030,9 +1063,10 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
     const int nc = this->getNComp();
     const Real* h = this->m_geom[amrlev][mglev].CellSize();
-    AMREX_D_TERM(const RT dhx = m_b_scalar/static_cast<RT>(h[0]*h[0]);,
-                 const RT dhy = m_b_scalar/static_cast<RT>(h[1]*h[1]);,
-                 const RT dhz = m_b_scalar/static_cast<RT>(h[2]*h[2]));
+    // Divide in double: h*h can overflow float.
+    AMREX_D_TERM(const RT dhx = static_cast<RT>(m_b_scalar/(h[0]*h[0]));,
+                 const RT dhy = static_cast<RT>(m_b_scalar/(h[1]*h[1]));,
+                 const RT dhz = static_cast<RT>(m_b_scalar/(h[2]*h[2])));
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU

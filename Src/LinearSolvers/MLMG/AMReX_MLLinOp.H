@@ -1044,6 +1044,57 @@ protected:
         ;
     std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
 
+    //! Mixed precision: the single precision copy lives in a geometry
+    //! whose lengths are m_sp_length_scale times this operator's, and it
+    //! represents m_sp_scale times this operator.  Both are powers of two,
+    //! chosen so that the copy's stencil is inside the single precision
+    //! range whatever the user's units; MLMG multiplies the correction by
+    //! m_sp_scale.
+    RT m_sp_scale = RT(1.0);
+    Real m_sp_length_scale = Real(1.0);
+
+    //! The power of two p with p*x in [0.5,1), or 1 if x is zero or not finite.
+    static RT spScaleFor (RT x) noexcept {
+        int e = 0;
+        if (x > RT(0.0) && std::isfinite(x)) { std::frexp(x, &e); }
+        return std::ldexp(RT(1.0), -e);
+    }
+
+    //! The power of the length by which the metric term scales the
+    //! operator: r^2 in 1D, r in 2D.
+    [[nodiscard]] int spMetricExponent () const noexcept {
+        if (!m_geom[0][0].IsCartesian() && info.has_metric_term) {
+            return (AMREX_SPACEDIM == 1) ? 2 : 1;
+        } else {
+            return 0;
+        }
+    }
+
+    //! Mixed precision: the single precision copy's geometry, with the
+    //! finest cell size scaled to [0.5,1).  Sets m_sp_length_scale, and
+    //! m_sp_scale for an operator with unit coefficients.
+    Vector<Geometry> spGeom (const Vector<Geometry>& a_geom)
+    {
+        Real dxmin = std::numeric_limits<Real>::max();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            dxmin = std::min(dxmin, a_geom.back().CellSize(idim));
+        }
+        m_sp_length_scale = static_cast<Real>(spScaleFor(static_cast<RT>(dxmin)));
+        // L ~ 1/dx^2 times the metric term
+        m_sp_scale = static_cast<RT>(std::pow(m_sp_length_scale, spMetricExponent()-2));
+        Vector<Geometry> sp_geom;
+        sp_geom.reserve(a_geom.size());
+        for (auto const& g : a_geom) {
+            Array<Real,AMREX_SPACEDIM> lo, hi;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                lo[idim] = g.ProbLo(idim) * m_sp_length_scale;
+                hi[idim] = g.ProbHi(idim) * m_sp_length_scale;
+            }
+            sp_geom.emplace_back(g.Domain(), RealBox(lo, hi), g.Coord(), g.isPeriodic());
+        }
+        return sp_geom;
+    }
+
     //! Mixed precision: the LPInfo for this operator, which keeps only MG
     //! level 0 when the single precision copy is built.
     [[nodiscard]] LPInfo dpInfo (LPInfo const& a_info) const
@@ -1137,7 +1188,7 @@ protected:
 
     void setCoarseFineBCLocation (const RealVect& cloc) noexcept {
         m_coarse_bc_loc = cloc;
-        if (m_sp_linop) { m_sp_linop->setCoarseFineBCLocation(cloc); }
+        if (m_sp_linop) { m_sp_linop->setCoarseFineBCLocation(cloc*m_sp_length_scale); }
     }
 
     [[nodiscard]] bool doAgglomeration () const noexcept { return m_do_agglomeration; }
@@ -2109,7 +2160,13 @@ MLLinOpT<MF>::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
 {
     m_domain_bloc_lo = lo_bcloc;
     m_domain_bloc_hi = hi_bcloc;
-    if (m_sp_linop) { m_sp_linop->setDomainBCLoc(lo_bcloc, hi_bcloc); }
+    if (m_sp_linop) {
+        auto lo = lo_bcloc;
+        auto hi = hi_bcloc;
+        for (auto& x : lo) { x *= m_sp_length_scale; }
+        for (auto& x : hi) { x *= m_sp_length_scale; }
+        m_sp_linop->setDomainBCLoc(lo, hi);
+    }
 }
 
 template <typename MF>
