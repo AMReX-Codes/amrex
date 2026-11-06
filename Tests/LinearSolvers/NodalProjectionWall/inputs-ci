@@ -1,0 +1,7 @@
+# CTest: the checks of compRHS without a solve (checks.cpp), with the wall correction on.
+# Resolutions (cells per side of the unit square, multiples of 8); h = 1/n
+n_cell = 32 64
+max_grid_size = 16
+# MLNodeLaplacian::setWallDivuCorrection: 0 off, 1 on
+wall_corr = 1
+checks = 1

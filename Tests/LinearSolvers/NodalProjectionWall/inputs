@@ -1,10 +1,19 @@
-# Resolutions (cells per side of the unit square); h = 1/n
+# The checks and the convergence study (README.md)
+# Resolutions (cells per side of the unit square, multiples of 8); h = 1/n
 n_cell = 32 64 128 256
 max_grid_size = 32
-# Relative tolerance of the nodal projection solve
-rtol = 1.e-12
-# MLMG verbosity of the projection solve
+# MLNodeLaplacian::setWallDivuCorrection: 0 off, 1 on
+wall_corr = 1
+# The checks of compRHS without a solve
+checks = 1
+# The convergence study: Burggraf cavity, channel and uniform inflow, and (3D only) a closed box
+study = 1
+burggraf = 1
+channel = 1
+box3d = 1
+box3d_n_cell = 16 32 64
+# Relative tolerance of the nodal projection solves, and MLMG verbosity
+rtol = 1.e-11
 verbose = 0
+# maxorder of the viscous operators applied to the projected velocity
 maxorders = 2 3 4
-divu_check = 1
-wall_corr = 2

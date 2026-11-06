@@ -1,155 +1,170 @@
-# Nodal projection next to a no-slip wall: O(1) error in the viscous term
+# NodalProjectionWall
 
-This test reproduces, with AMReX alone, an error that incflo shows in every viscous run with
-no-slip walls: in the cells next to the wall, the wall-normal pressure gradient has an O(1)
-error that does not converge. The incflo side, which shows the error with the unchanged
-Burggraf benchmark, is in `test_no_eb_2d/wall_gp_error/` on the `wall_gp_error` branch of
-https://github.com/cgilet/incflo.
+Tests `MLNodeLaplacian::setWallDivuCorrection`, the second-order nodal divergence at walls
+(Neumann domain faces) and inflow faces.
 
-## What it does
+## The problem
 
-`main.cpp` takes the Burggraf velocity on the unit square, which is divergence-free and zero
-on the walls except for the lid's tangential velocity. In 3D the velocity does not depend on
-z, w = 0, and z is periodic. For n = 32, 64, 128 and 256 cells per side it:
+`MLNodeLaplacian::compRHS` computes, at each node, the divergence of the cell-centred velocity
+over the node's control volume. At a node on a wall the control volume is cut in half, and the
+stencil takes the tangential velocity of the first layer of cells, h/2 from the wall, as constant
+over it instead of at its mean height, h/4. That makes the divergence first order there. After a
+projection, the wall-normal velocity in the cells next to a no-slip wall is then off by
 
-1. projects the velocity once with `MLNodeLaplacian`, as AMReX-Hydro's `NodalProjector` does
-   in incflo (walls are Neumann for phi, sigma = 1, zero velocity in the ghost cells), and
-2. applies the viscous operators incflo uses, with Dirichlet walls and maxorder 2 or 3, to
-   the exact velocity and to the projected one. The operators are `MLABecLaplacian` on each
-   component (incflo's scalar solve) and `MLTensorOp` (incflo's default tensor solve).
+    delta = (h^2/8) u_n''
 
-It prints, in the wall cells and leaving out n/8 cells next to each corner:
+where u_n'' is the second normal derivative of the normal velocity at the wall. The offset is
+nearly the same in each of the first few cells, a step from 0 at the wall, so a viscous operator
+(which divides by h^2) sees an O(1) error in the wall cells, and the wall-normal pressure
+gradient takes it: the pressure is only first order at the wall. The cell-centred source of
+div(u) = S is integrated over the same half control volume, with the same error.
 
-- **The projected wall-normal velocity error** in the first four cells from the wall, divided
-  by delta = (h^2/8) u_n''. Here u_n'' is the second normal derivative of the normal velocity
-  at the wall.
-- **The operator's wall error,** as the c in (L_h u - lap u)_n = -c u_n''.
+`setWallDivuCorrection(true)` takes these terms a quarter cell from the wall, extrapolated
+linearly from the first two layers of cells, (5/4) layer 1 - (1/4) layer 2, in each wall direction
+at domain edges and corners. Inflow faces are treated like walls.
 
 ## Build and run
 
-```shell
-make -j4 AMREX_HOME=/path/to/amrex       # DIM=3 for 3D
-mpiexec -n 2 ./main2d.gnu.MPI.ex inputs
-```
+    make -j4 DIM=2          # or DIM=3
+    mpiexec -n 4 ./main2d.gnu.MPI.ex inputs-ci              # the checks, correction on
+    mpiexec -n 4 ./main2d.gnu.MPI.ex inputs-ci wall_corr=0  # off
+    mpiexec -n 4 ./main2d.gnu.MPI.ex inputs                 # the checks and the study
 
-`n_cell`, `max_grid_size`, `rtol` and `verbose` can be set in `inputs` or on the command line.
-It takes a few seconds. The output does not depend on `max_grid_size` (checked with 16, 32
-and 1024), and 3D (8 cells in z) prints the same numbers as 2D.
+With CMake, the test is built with `-DAMReX_ENABLE_TESTS=ON` and run by CTest
+(`ctest -R NodalProjectionWall`), with the correction on and off, in 2D and 3D.
 
-## Output (AMReX 1aebac90c)
+Inputs: `n_cell` (resolutions, cells per side of the unit square, multiples of 8),
+`max_grid_size`, `wall_corr` (0 off, 1 on), `checks` (1 to run the checks below), and for the
+convergence study `study`, `burggraf`, `channel`, `box3d` (1 to run each part; `box3d` is 3D
+only), `box3d_n_cell`, `rtol` and `verbose` (of the projection solves) and `maxorders` (of the
+viscous operators).
 
-```
-Projected Burggraf velocity: max error, and the wall-normal error in the
-cells 0-3 from the wall divided by delta = (h^2/8) u_n''
-     n   max |u_P - u|   cell 0   cell 1   cell 2   cell 3
-    32       2.855e-03    0.903    0.735    0.599    0.489
-    64       8.132e-04    0.950    0.858    0.774    0.699
-   128       2.196e-04    0.975    0.926    0.880    0.836
-   256       5.745e-05    0.987    0.962    0.938    0.914
+## The checks
 
-Viscous operator in the wall cells: (L_h u - lap u)_n = -c u_n''
-  operator                         n   c, exact u   c, projected u
-  MLABecLaplacian, maxorder 2     32       0.2495           0.4987
-                                  64       0.2499           0.4997
-                                 128       0.2500           0.4999
-                                 256       0.2500           0.5000
-  MLABecLaplacian, maxorder 3     32       0.0190           0.3505
-                                  64       0.0097           0.3426
-                                 128       0.0049           0.3381
-                                 256       0.0025           0.3358
-  MLTensorOp,      maxorder 2     32       0.3269           0.6573
-                                  64       0.3305           0.6626
-                                 128       0.3320           0.6648
-                                 256       0.3327           0.6658
-  MLTensorOp,      maxorder 3     32       0.0340           0.4724
-                                  64       0.0176           0.4596
-                                 128       0.0090           0.4523
-                                 256       0.0045           0.4485
-```
+These call `compRHS` without a solve. The ones with a known answer stop the test with
+`amrex::Abort` if they fail; it prints `NodalProjectionWall: all checks passed` otherwise. In 3D
+the velocity does not depend on z, and z is periodic, except where noted.
 
-## What it shows
+- **Wall divergence.** u = (x y, -y^2/2) is divergence-free, with u_n'' = -1 on the bottom wall.
+  The stencil is exact for it at interior nodes. On the bottom-wall nodes, rhs / (h/4) is 1
+  without the correction and 0 with it. Checked to round-off.
+- **Source.** u = (x (y+y^2), y (x+x^2)) with the cell-centred source -S = -div u: rhs is 0 if
+  the velocity and the source are integrated over each control volume alike, which they are in
+  both settings. Checked to round-off, at interior, wall and corner nodes.
+- **Volume conservation.** With a random cell velocity, which changes by O(1) from cell to cell,
+  the sum of rhs over the control volumes equals the flux through the domain boundary if the
+  fluxes through the faces of the control volumes telescope. Closed box, and walls with inflow
+  faces at both x ends; in 3D also with walls at both z ends, so that the box has nodes on three
+  walls. Checked to 1e-12, in both settings: the correction redefines each half-cell face flux
+  next to a wall once, and both nodes that share the face use it.
+- **Two levels.** A fine level (ratio 2) over the coarse cells [3n/8, 5n/8) x [0, n/4), on the
+  bottom wall. The correction is added level by level, so the wall nodes of both levels away
+  from the coarse/fine boundary behave as in the first check (checked). At the coarse/fine nodes,
+  `compRHS` rebuilds the rhs from the coarse cells and the fine level without the correction. The
+  test prints them: where the coarse/fine boundary meets the wall, they are corners of the
+  coarse/fine boundary, where the stencil is not exact even for u = (y, 0) (rhs -1/8, 1/8 and 1/16
+  at every resolution, with and without the correction), so the missing O(h) wall correction
+  does not change their order.
+- **Burggraf corners** (printed only): rhs / h^2 at the 3x3 nodes at the (0,0) and lid (0,n)
+  corners of the Burggraf cavity flow, to show where the corner error sits.
 
-1. **The projection.** After the projection the wall-normal velocity is too large by
-   delta = (h^2/8) u_n'' in the first few cells: the ratio in the table tends to 1. This error
-   is second order, but it is nearly the same in each cell, so a 1/h^2 stencil does not see
-   it as smooth. In the wall cell, with the Dirichlet ghost cell, the Laplacian of the offset
-   is -2 delta/h^2 = -u_n''/4 with maxorder 2, and -(8/3) delta/h^2 = -u_n''/3 with
-   maxorder 3. `MLTensorOp` gives 4/3 of these in the wall-normal component.
+## The source and volume conservation
 
-   The cause is `mlndlap_divu` (`AMReX_MLNodeLap_2D_K.H`, `AMReX_MLNodeLap_3D_K.H`). A node
-   on a wall has a control volume of half a cell, 0 < n < h/2. The stencil takes the
-   tangential derivative of the tangential velocity at the first cell centres, n = h/2, for
-   the whole half volume, instead of its average over it (at n = h/4 to second order). The
-   two differ by (h/4) u_n''. Over the half-cell height h/2, the divergence constraint turns
-   this into the offset delta = (h^2/8) u_n''.
+Without a source, the correction keeps the nodal volume conservation exact. The source part does
+not: at a wall node it replaces the source's integral over the half control volume,
+(h/2) S_1 in 2D, by (h/2) ((5/4) S_1 - (1/4) S_2), which is not a difference along the wall and
+does not telescope. The sum over the control volumes then differs from the sum of the cell
+source by O(h^2) for a smooth source. Taking the same amount back from the next node in would
+restore volume conservation but brings back the O(1) wall error, since it recreates the step in
+the normal velocity one cell further in. In a closed domain the solver removes the difference as
+a uniform offset of the rhs; with an outflow, the outflow carries it. Momentum is not affected,
+and neither are quantities transported with separately projected face velocities.
 
-2. **The viscous operator.** With maxorder 2 (incflo's default), the Dirichlet stencil is
-   O(1) wrong in the wall cell even for the exact velocity: c = 1/4 for `MLABecLaplacian` and
-   1/3 for `MLTensorOp`. With maxorder 3 this goes away (O(h)).
+## The convergence study
 
-In the cells next to the wall, the two errors add up:
+With `study = 1` the test projects known divergence-free velocities with `MLNodeLaplacian`, the
+way incflo calls AMReX-Hydro's `NodalProjector` (velocity ghost cells set to 0, sigma = 1), and
+applies the viscous operators incflo uses to the projected velocity: `MLABecLaplacian` per
+component and `MLTensorOp`, with Dirichlet walls and `maxorder` 2, 3 and 4. It prints the errors
+and checks nothing. The numbers below are from `inputs` with 8 MPI ranks, `wall_corr = 0` (off)
+and `1` (on); h = 1/n.
 
-| operator | maxorder | c, exact u | c, projected u |
-|---|---|---|---|
-| `MLABecLaplacian` | 2 | 1/4 | 1/2 |
-| `MLABecLaplacian` | 3 | 0 | 1/3 |
-| `MLTensorOp` | 2 | 1/3 | 2/3 |
-| `MLTensorOp` | 3 | 0 | 4/9 |
+### Burggraf cavity (`burggraf`)
 
-## How it shows up in incflo
+The Burggraf flow on [0,1]^2: zero on the walls except the tangential velocity of the lid at
+y = 1. In 3D it does not depend on z, and z is periodic.
 
-The projection fixes the wall-normal velocity, so the time step cannot correct an O(1) error
-in the wall-normal viscous force with the velocity. The wall-node pressure takes it instead,
-which makes the pressure first order there and the pressure gradient O(1) wrong in the wall
-cells:
+The wall-normal velocity error in the wall cells, divided by delta = (h^2/8) u_n'' (a fit along
+the walls away from the corners), and the largest error in the lid-corner cells, divided by h^2:
 
-gp_n - dp/dn = -c mu u_n''
+| n | wall cell / delta, off | on | lid corner / h^2, off | on |
+|---|---|---|---|---|
+| 32 | 0.903 | 0.067 | 2.92 | 0.498 |
+| 64 | 0.950 | 0.035 | 3.33 | 0.285 |
+| 128 | 0.975 | 0.018 | 3.60 | 0.154 |
+| 256 | 0.987 | 0.009 | 3.77 | 0.080 |
 
-with the c of the last column above. In incflo's Burggraf cavity at n = 128 on stock AMReX,
-the c fitted on the lid is 0.500, 0.336, 0.666 and 0.450 for the four rows, in that order.
-Velocity stays second order.
+The viscous operator's error in the wall cells, (L_h u - lap u)_n = -c u_n'' for the normal
+component, applied to the projected velocity (applied to the exact velocity, c is 0.0025 and
+0.0045 at n = 256 for the two operators with `maxorder = 3`):
 
-## A candidate fix, and what is still open
+| n | `MLABecLaplacian`, maxorder 3, off | on | `MLTensorOp`, maxorder 3, off | on |
+|---|---|---|---|---|
+| 32 | 0.351 | 0.056 | 0.472 | 0.088 |
+| 64 | 0.343 | 0.029 | 0.460 | 0.046 |
+| 128 | 0.338 | 0.015 | 0.452 | 0.023 |
+| 256 | 0.336 | 0.0074 | 0.449 | 0.012 |
 
-A local AMReX branch makes the nodal divergence second order at walls. At nodes on exactly
-one wall, `MLNodeLaplacian::compRHS` adds a correction that takes the tangential velocity
-(and the cell-centred source, if any) a quarter cell from the wall, extrapolated linearly from
-the first two rows of cells. With it and maxorder 3, c goes to 0 at O(h) along the walls:
+With `maxorder = 2` the operator's own wall stencil keeps c at 0.25 (0.33 for `MLTensorOp`) for
+the exact velocity, with or without the correction, so a viscous solve needs `maxorder = 3` as
+well to benefit fully.
 
-```
-Projected Burggraf velocity: max error, and the wall-normal error in the
-cells 0-3 from the wall divided by delta = (h^2/8) u_n''
-     n   max |u_P - u|   cell 0   cell 1   cell 2   cell 3
-    32       1.730e-03    0.071   -0.006   -0.068   -0.118
-    64       4.130e-04    0.036   -0.007   -0.045   -0.080
-   128       9.948e-05    0.018   -0.005   -0.026   -0.046
-   256       2.429e-05    0.009   -0.003   -0.014   -0.025
+The correction does not remove the tangential components' O(1) viscous error in the wall cells:
+the projection leaves an O(h^2) tangential velocity at the wall, which the Dirichlet stencil sees
+over half a cell. Its maximum is 5.3 without the correction and 4.2 with it at n = 256
+(`MLABecLaplacian`, maxorder 3), against 0.03 for the exact velocity. Unlike the normal error,
+which the projection forces into the pressure, a time step can balance it with an O(h^2) change
+of the tangential velocity.
 
-Viscous operator in the wall cells: (L_h u - lap u)_n = -c u_n''
-  operator                         n   c, exact u   c, projected u
-  MLABecLaplacian, maxorder 2     32       0.2495           0.2770
-                                  64       0.2499           0.2642
-                                 128       0.2500           0.2573
-                                 256       0.2500           0.2537
-  MLABecLaplacian, maxorder 3     32       0.0190           0.0556
-                                  64       0.0097           0.0288
-                                 128       0.0049           0.0147
-                                 256       0.0025           0.0074
-  MLTensorOp,      maxorder 2     32       0.3269           0.3662
-                                  64       0.3305           0.3509
-                                 128       0.3320           0.3424
-                                 256       0.3327           0.3380
-  MLTensorOp,      maxorder 3     32       0.0340           0.0882
-                                  64       0.0176           0.0458
-                                 128       0.0090           0.0234
-                                 256       0.0045           0.0118
-```
+### Inflow and outflow (`channel`)
 
-**Corners remain a problem.** The branch keeps the original stencil at corner nodes. That
-leaves a large error in the corner cells wherever u_n'' is not zero at the corner. At
-incflo's Burggraf lid corners, the gp error goes from about 0.25 without the fix to only
-0.165, 0.143 and 0.121 with it, at n = 32, 64 and 128. Applying the extrapolation at
-corners as well makes those converge at first order (0.044, 0.023, 0.011). But in a
-manufactured incflo test with div(u) = S != 0, the corner errors then stop converging. No
-corner treatment found so far handles both cases, so the branch is not proposed yet. This
-test leaves the corners out of its fits.
+A channel with no-slip walls at y = 0 and 1, an inflow face at x = 0 (`LinOpBCType::inflow`, the
+inflow velocity in the ghost cells) and a pressure outflow at x = 1 (phi = 0), with u_n'' != 0 on
+the walls and on the inflow face. The nodal divergence of the exact velocity, max |rhs| / h on
+the walls, and the normal velocity error / delta of the projected velocity in the wall cells
+(away from the ends), in the wall cell next to the outflow, and in the cells next to the inflow
+face:
+
+| n | wall rhs / h, off | on | walls, off | on | next to outflow, off | on | inflow, off | on |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 0.880 | 0.112 | 0.929 | 0.132 | 0.378 | 0.065 | 0.892 | -0.048 |
+| 64 | 0.908 | 0.057 | 0.964 | 0.069 | 0.383 | 0.034 | 0.944 | -0.025 |
+| 128 | 0.923 | 0.029 | 0.982 | 0.035 | 0.385 | 0.018 | 0.972 | -0.013 |
+| 256 | 0.930 | 0.015 | 0.991 | 0.018 | 0.386 | 0.009 | 0.986 | -0.007 |
+
+An inflow face needs the same correction as a wall, and gets it. The outflow nodes are Dirichlet
+and never corrected; the wall nodes next to them are, and converge like the rest of the wall.
+
+Then a uniform inflow, u = 1 in the inflow ghost cells up to the no-slip walls, where the data do
+not match at the wall/inflow corners. The flux of the projected velocity through x = 1/4, 1/2 and
+3/4 minus the inflow flux: measured with the face fluxes each stencil uses, it is the solver
+tolerance, about 1e-12, with and without the correction, so both conserve volume. Measured as
+h sum_j u, the corrected stencil differs from it by its O(h^2) wall terms: 2.0e-4, 5.3e-5,
+1.3e-5, 3.4e-6 at x = 1/2 for n = 32 to 256.
+
+### Closed box in 3D (`box3d`)
+
+u = grad(Phi) x (1,2,3) with Phi = F(x) F(y) H(z), F = 16 s^2 (1-s)^2, H = 8 s^2 (1-s), in a box
+with walls on all six faces, one of them a lid moving tangentially: the case with cells on two
+walls (edges) and three (corners). The nodal divergence of the exact velocity, max |rhs| / h, and
+the wall-normal error / delta of the projected velocity in the face cells:
+
+| n | faces, off | on | edges, off | on | face cell / delta, off | on |
+|---|---|---|---|---|---|---|
+| 16 | 91.5 | 23.7 | 113 | 27.6 | 0.763 | 0.204 |
+| 32 | 107 | 13.6 | 120 | 15.4 | 0.875 | 0.117 |
+| 64 | 117 | 7.35 | 124 | 8.09 | 0.935 | 0.063 |
+
+The divergence is second order on the faces and along the edges with the correction, and first
+order without it. The viscous c in the face cells (`MLABecLaplacian`, maxorder 3) is 0.347 off and
+0.042 on at n = 64. The tangential components keep their O(1) viscous error, as in 2D.
