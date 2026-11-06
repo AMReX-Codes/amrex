@@ -46,6 +46,10 @@ class FabArrayBase;
  *  based on a space filling curve.  The RRSFC distribution orders boxes using
  *  an SFC and then assigns them in round-robin order to CPUs ordered from least
  *  to most FAB memory use.
+ *
+ *  Copies of a DistributionMapping share the mapping.  Like BoxArray::define,
+ *  the define overloads and the ProcessorMap builders give the object a new
+ *  mapping; copies made earlier keep the old one.
  */
 class DistributionMapping
 {
@@ -62,15 +66,11 @@ class DistributionMapping
         //! Constructors to match those in DistributionMapping ....
         Ref () = default;
 
-        explicit Ref (int len) : m_pmap(len) {}
-
         explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
 
         explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
 
         //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-
-        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
 
         Vector<int> m_pmap; //!< index array for all boxes
         Vector<int> m_index_array;  //!< index array for local boxes owned by the team
@@ -78,7 +78,7 @@ class DistributionMapping
     };
 
     //! The default constructor.
-    DistributionMapping () noexcept;
+    DistributionMapping ();
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;
@@ -106,7 +106,7 @@ class DistributionMapping
      *
      * \param pmap Processor id for each box in the underlying BoxArray.
      */
-    explicit DistributionMapping (Vector<int>&& pmap) noexcept;
+    explicit DistributionMapping (Vector<int>&& pmap);
     /**
      * \brief Build a mapping from a BoxArray using the current strategy.
      *
@@ -155,7 +155,7 @@ class DistributionMapping
      * This overload can be used to initialize a default-constructed
      * DistributionMapping.
      */
-    void define (Vector<int>&& pmap) noexcept;
+    void define (Vector<int>&& pmap);
     /**
      * \brief Returns a constant reference to the mapping of boxes in the
      * underlying BoxArray to the CPU that holds the FAB on that Box.

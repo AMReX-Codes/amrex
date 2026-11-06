@@ -302,7 +302,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-DistributionMapping::DistributionMapping () noexcept
+DistributionMapping::DistributionMapping ()
     :
     m_ref(std::make_shared<Ref>())
 {
@@ -314,7 +314,7 @@ DistributionMapping::DistributionMapping (const Vector<int>& pmap)
 {
 }
 
-DistributionMapping::DistributionMapping (Vector<int>&& pmap) noexcept
+DistributionMapping::DistributionMapping (Vector<int>&& pmap)
     :
     m_ref(std::make_shared<Ref>(std::move(pmap)))
 {
@@ -322,8 +322,6 @@ DistributionMapping::DistributionMapping (Vector<int>&& pmap) noexcept
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
                                           int nprocs)
-    :
-    m_ref(std::make_shared<Ref>(boxes.size()))
 {
     define(boxes,nprocs);
 }
@@ -347,7 +345,8 @@ void
 DistributionMapping::define (const BoxArray& boxes,
                              int nprocs)
 {
-    m_ref->clear();
+    // The private BoxArray builders fill this fresh Ref in place.
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != nullptr);
@@ -358,15 +357,14 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Vector<int>& pmap)
 {
-    m_ref->clear();
-    m_ref->m_pmap = pmap;
+    // Build the new Ref before releasing the old one: pmap may alias our own map.
+    m_ref = std::make_shared<Ref>(pmap);
 }
 
 void
-DistributionMapping::define (Vector<int>&& pmap) noexcept
+DistributionMapping::define (Vector<int>&& pmap)
 {
-    m_ref->clear();
-    m_ref->m_pmap = std::move(pmap);
+    m_ref = std::make_shared<Ref>(std::move(pmap));
 }
 
 void
@@ -457,7 +455,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs, bool sort)
 {
     BL_ASSERT(nboxes > 0);
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(nboxes);
 
     RoundRobinDoIt(nboxes, nprocs, nullptr, sort);
@@ -467,7 +465,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
+    BL_ASSERT(m_ref.use_count() == 1 && m_ref->m_pmap.size() == boxes.size());
     //
     // Create ordering of boxes from largest to smallest.
     // When we round-robin the boxes we want to go from largest
@@ -501,7 +499,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
 {
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size());
 
     //
@@ -865,9 +863,6 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 {
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
@@ -876,6 +871,9 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         Real eff = 0;
         KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax, sort);
         if (efficiency) { *efficiency = eff; }
@@ -893,17 +891,20 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
     const int nprocs = ParallelDescriptor::NProcs();
     BL_ASSERT( ! wgts.empty());
 
-    m_ref->clear();
+    // Keep the old mapping alive in case olddm is *this.
+    DistributionMapping const old(olddm); // NOLINT(performance-unnecessary-copy-initialization)
+
+    m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size(), -1);
 
-    ComputeDistributionMappingEfficiency(olddm, wgts, &old_efficiency);
+    ComputeDistributionMappingEfficiency(old, wgts, &old_efficiency);
 
     if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         // Not enough boxes to reshuffle meaningfully; keep the existing
         // mapping so keep_ratio is honored and the reported efficiency
         // reflects reality.
-        *this = olddm;
+        *this = old;
         new_efficiency = old_efficiency;
         return;
     }
@@ -912,7 +913,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
         Vector<Vector<WeightedBox>> keep_balls(nprocs);
         Long sum_weight = 0;
         for (int i = 0, N = static_cast<int>(wgts.size()); i < N; ++i) {
-            keep_balls[olddm[i]].emplace_back(i, wgts[i]);
+            keep_balls[old[i]].emplace_back(i, wgts[i]);
             sum_weight += wgts[i];
         }
 
@@ -942,7 +943,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
         }
 
         if (lb.empty()) {
-            *this = olddm;
+            *this = old;
             new_efficiency = old_efficiency;
             return;
         } else {
@@ -1068,7 +1069,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
                                            int             nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() <= nprocs || nprocs < 2)
@@ -1480,8 +1481,7 @@ void
 DistributionMapping::SFCProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
-    m_ref->clear();
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() < Long(sfc_threshold)*nprocs)
@@ -1512,15 +1512,15 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref->clear();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs,nullptr,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         SFCProcessorMapDoIt(boxes,wgts,nprocs,sort);
     }
 }
@@ -1535,15 +1535,15 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == std::ssize(wgts));
 
-    m_ref->clear();
-    m_ref->m_pmap.resize(wgts.size());
-
     if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs,&eff,true,std::numeric_limits<int>::max(),sort);
     }
     else
     {
+        m_ref = std::make_shared<Ref>();
+        m_ref->m_pmap.resize(wgts.size());
+
         SFCProcessorMapDoIt(boxes,wgts,nprocs,sort,&eff);
     }
 }
@@ -1589,8 +1589,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
                                         int                      nprocs)
 {
     BL_ASSERT( ! boxes.empty());
-
-    m_ref->clear();
+    BL_ASSERT(m_ref.use_count() == 1); // fill in place, nobody else sees it
     m_ref->m_pmap.resize(boxes.size());
 
     RRSFCDoIt(boxes,nprocs);
@@ -1987,7 +1986,7 @@ std::istream&
 DistributionMapping::readFrom (std::istream& is)
 {
     AMREX_ASSERT(size() == 0);
-    m_ref->clear();
+    m_ref = std::make_shared<Ref>();
     auto& pmap = m_ref->m_pmap;
 
     int n;
