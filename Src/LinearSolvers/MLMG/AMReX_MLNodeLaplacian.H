@@ -134,8 +134,9 @@ public :
      * corners, the extrapolation is done in each wall direction.
      *
      * Inflow faces are treated like walls. The correction assumes, as compRHS does, that the
-     * ghost cells hold the normal velocity on the face. It is not applied with RZ coordinates,
-     * at nodes on the coarse/fine boundary, or in the sync residual. With EB, it is applied at
+     * ghost cells hold the normal velocity on the face. It is not supported with RZ
+     * coordinates: compRHS aborts if setRZCorrection(true) is also set. It is not applied at
+     * nodes on the coarse/fine boundary or in the sync residual. With EB, it is applied at
      * the wall nodes whose nearby cells are all regular (the first two layers of cells and the
      * ghost cells, on both sides of the node), so the result does not depend on the box layout.
      * Where the correction stops along a wall, next to the EB, the cells at the transition have

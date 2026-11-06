@@ -625,7 +625,8 @@ before projecting:
 
 Inflow faces are treated like walls: the projection's control volumes are cut in half there
 in the same way, and the ghost cells hold the inflow velocity on the face. The correction is
-not applied with RZ coordinates, at nodes on the coarse/fine boundary, or in the sync residual.
+not supported with RZ coordinates: :cpp:`compRHS` aborts if :cpp:`setRZCorrection(true)` is also
+set. It is not applied at nodes on the coarse/fine boundary or in the sync residual.
 With embedded boundaries, it is applied at the wall nodes whose nearby cells are all regular
 (the first two layers of cells and the ghost cells, on both sides of the node), so the result
 does not depend on the box layout. Where the correction stops along a wall, next to the EB, the

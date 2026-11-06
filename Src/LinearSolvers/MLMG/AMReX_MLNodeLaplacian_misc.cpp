@@ -1188,9 +1188,12 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
         // Second-order divergence at wall and inflow nodes (setWallDivuCorrection; see
         // mlndlap_divu_wall_corr and mlndlap_rhcc_wall_corr), added after the Neumann scaling.
-        // Not for RZ.  With EB, only at wall nodes whose cells are all regular
+        // Not supported with RZ (the RZ stencil weights by r).  With EB, only at wall nodes
+        // whose cells are all regular
         // (mlndlap_wall_corr_regular): mlndlap_divu_eb and mlndlap_rhcc_eb have no correction.
-        const bool wall_corr = m_wall_divu_corr && !m_is_rz;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(m_wall_divu_corr && m_is_rz),
+            "MLNodeLaplacian: setWallDivuCorrection(true) is not supported with setRZCorrection(true)");
+        const bool wall_corr = m_wall_divu_corr;
 
         const iMultiFab& dmsk = *this->m_dirichlet_mask[ilev][0];
 
