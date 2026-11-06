@@ -34,6 +34,14 @@ namespace nodelap_detail {
 }
 /// \endcond
 
+// A domain face that mlndlap_divu and mlndlap_scale_neumann_bc treat as a wall: Neumann or inflow.
+// The control volumes of its nodes are cut in half.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool mlndlap_wall_bc (LinOpBCType t) noexcept
+{
+    return t == LinOpBCType::Neumann || t == LinOpBCType::inflow;
+}
+
 template <typename T>
 inline void
 mlndlap_scale_neumann_bc (std::type_identity_t<T> s, Box const& bx, Array4<T> const& rhs, Box const& nddom,
@@ -41,7 +49,7 @@ mlndlap_scale_neumann_bc (std::type_identity_t<T> s, Box const& bx, Array4<T> co
                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (lobc[idim] == LinOpBCType::Neumann || lobc[idim] == LinOpBCType::inflow) {
+        if (mlndlap_wall_bc(lobc[idim])) {
             Box const& blo = amrex::bdryLo(bx, idim);
             if (blo.smallEnd(idim) == nddom.smallEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
@@ -50,7 +58,7 @@ mlndlap_scale_neumann_bc (std::type_identity_t<T> s, Box const& bx, Array4<T> co
                 });
             }
         }
-        if (hibc[idim] == LinOpBCType::Neumann || hibc[idim] == LinOpBCType::inflow) {
+        if (mlndlap_wall_bc(hibc[idim])) {
             Box const& bhi = amrex::bdryHi(bx, idim);
             if (bhi.bigEnd(idim) == nddom.bigEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
@@ -82,8 +90,9 @@ mlndlap_unimpose_neumann_bc (Box const& bx, Array4<T> const& rhs, Box const& ndd
 
 namespace nodelap_detail {
 
-// The Neumann (wall) domain faces a node lies on: wall[d] = 0 (lo), 1 (hi) or -1 (none).
-// Returns the number of walls.
+// The wall domain faces a node lies on, walls (Neumann) and inflow faces, which mlndlap_divu
+// treats alike (mlndlap_wall_bc): wall[d] = 0 (lo), 1 (hi) or -1 (none).  Returns the number of
+// walls.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int mlndlap_walls (IntVect const& iv, Box const& nddom,
                    GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
@@ -93,8 +102,8 @@ int mlndlap_walls (IntVect const& iv, Box const& nddom,
     int nwall = 0;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         wall[d] = -1;
-        if (lobc[d] == LinOpBCType::Neumann && iv[d] == nddom.smallEnd(d)) { wall[d] = 0; ++nwall; }
-        if (hibc[d] == LinOpBCType::Neumann && iv[d] == nddom.bigEnd(d))   { wall[d] = 1; ++nwall; }
+        if (mlndlap_wall_bc(lobc[d]) && iv[d] == nddom.smallEnd(d)) { wall[d] = 0; ++nwall; }
+        if (mlndlap_wall_bc(hibc[d]) && iv[d] == nddom.bigEnd(d))   { wall[d] = 1; ++nwall; }
     }
     return nwall;
 }
@@ -111,9 +120,10 @@ int mlndlap_cell_index (int ivd, int walld, int m, int s) noexcept
 
 // The stencil's contribution of velocity component d at a wall node (after the Neumann
 // scaling), with wall direction t taken at row mt and every other wall direction at row 0:
-// for d normal to a wall, 2/h times u_d in the first cell; otherwise the derivative
-// (u_d(hi) - u_d(lo))/h across the node; both averaged over the cells in the non-wall
-// directions.
+// for d normal to a wall, 2/h times u_d in the first cell minus u_d in the ghost cell, which
+// holds the normal velocity on the face (zero at a wall, the inflow velocity at an inflow face);
+// otherwise the derivative (u_d(hi) - u_d(lo))/h across the node; both averaged over the cells
+// in the non-wall directions.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
                         GpuArray<int,AMREX_SPACEDIM> const& wall,
@@ -141,7 +151,9 @@ Real mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
             // Flux out of the control volume through its face h/2 from the wall: + at a
             // lo wall, - at a hi wall, as in mlndlap_divu.
             Real const sgn = (wall[d] == 0) ? Real(1.0) : Real(-1.0);
-            sum += sgn * Real(2.0) * dxinv[d] * vel(cell, d);
+            IntVect ghost(cell);
+            ghost[d] += (wall[d] == 0) ? -1 : 1;
+            sum += sgn * Real(2.0) * dxinv[d] * (vel(cell, d) - vel(ghost, d));
         } else {
             IntVect clo(cell), chi(cell);
             clo[d] = iv[d] - 1;
@@ -185,7 +197,8 @@ Real mlndlap_wall_src (IntVect const& iv, int t, int mt,
 
 }
 
-// Second-order nodal divergence at walls.  The control volume of a wall node is half a
+// Second-order nodal divergence at walls and inflow faces (both called walls here, see
+// mlndlap_walls).  The control volume of a wall node is half a
 // cell in each wall direction (a quarter cell at a 2D corner).  mlndlap_divu evaluates
 // the fluxes through its faces, and the tangential derivatives, at the first cell centres,
 // h/2 from each wall; their mean over the control volume is their value at h/4 to second
