@@ -287,8 +287,9 @@ private:
     void update_singular_flags ();
 
     //! Mixed precision: give the single precision copy scalars scaled so
-    //! that its diagonal is O(1).
-    void setSPScale ();
+    //! that its diagonal is O(1).  \p a_scalar is the user's, before the
+    //! Robin BC terms reset it.
+    void setSPScale (RT a_scalar);
 };
 
 template <typename MF>
@@ -501,6 +502,8 @@ MLABecLaplacianT<MF>::update ()
         MLCellABecLapT<MF>::update();
     }
 
+    RT const a_scalar = m_a_scalar;
+
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
@@ -511,7 +514,7 @@ MLABecLaplacianT<MF>::update ()
 
     update_singular_flags();
 
-    setSPScale();
+    setSPScale(a_scalar);
 
     m_needs_update = false;
 }
@@ -524,6 +527,8 @@ MLABecLaplacianT<MF>::prepareForSolve ()
 
     MLCellABecLapT<MF>::prepareForSolve();
 
+    RT const a_scalar = m_a_scalar;
+
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
@@ -534,14 +539,14 @@ MLABecLaplacianT<MF>::prepareForSolve ()
 
     update_singular_flags();
 
-    setSPScale();
+    setSPScale(a_scalar);
 
     m_needs_update = false;
 }
 
 template <typename MF>
 void
-MLABecLaplacianT<MF>::setSPScale ()
+MLABecLaplacianT<MF>::setSPScale (RT a_scalar)
 {
     this->template spForward<MLABecLaplacianT>([&] (auto* sp) {
         // Estimate of the max diagonal on the AMR levels, one reduction
@@ -561,7 +566,7 @@ MLABecLaplacianT<MF>::setSPScale ()
         RT const sigma = this->spScaleFor(diag);
         auto const lambda = static_cast<RT>(this->m_sp_length_scale);
         this->m_sp_scale = sigma * static_cast<RT>(std::pow(lambda, this->spMetricExponent()));
-        sp->setScalars(sigma * m_a_scalar, sigma * lambda*lambda * m_b_scalar);
+        sp->setScalars(sigma * a_scalar, sigma * lambda*lambda * m_b_scalar);
     });
 }
 
