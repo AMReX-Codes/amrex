@@ -544,17 +544,18 @@ void
 MLABecLaplacianT<MF>::setSPScale ()
 {
     this->template spForward<MLABecLaplacianT>([&] (auto* sp) {
-        // Estimate of the max diagonal on the AMR levels
+        // Estimate of the max diagonal on the AMR levels, one reduction
         RT diag = RT(0.0);
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
-            RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(0, 1, IntVect(0));
+            RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(0, 1, IntVect(0), true);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
-                d += std::abs(m_b_scalar) * m_b_coeffs[alev][0][idim].norminf(0, 1, IntVect(0))
+                d += std::abs(m_b_scalar) * m_b_coeffs[alev][0][idim].norminf(0, 1, IntVect(0), true)
                     * RT(2.0)*dxinv*dxinv;
             }
             diag = std::max(diag, d);
         }
+        ParallelAllReduce::Max(diag, ParallelContext::CommunicatorSub());
         // The copy's lengths are lambda times ours, which scales its b
         // term by lambda^-2 and its metric term by lambda^p.
         RT const sigma = this->spScaleFor(diag);
