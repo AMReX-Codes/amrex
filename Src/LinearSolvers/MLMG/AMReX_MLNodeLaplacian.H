@@ -135,8 +135,12 @@ public :
      *
      * Inflow faces are treated like walls. The correction assumes, as compRHS does, that the
      * ghost cells hold the normal velocity on the face. It is not applied with RZ coordinates,
-     * in boxes that contain cut or covered EB cells, at nodes on the coarse/fine boundary, or
-     * in the sync residual.
+     * at nodes on the coarse/fine boundary, or in the sync residual. With EB, it is applied at
+     * the wall nodes whose nearby cells are all regular (the first two layers of cells and the
+     * ghost cells, on both sides of the node), so the result does not depend on the box layout.
+     * Where the correction stops along a wall, next to the EB, the cells at the transition have
+     * an O(1) error in the tangential pressure gradient, about as large as the error that the
+     * uncorrected wall has in the normal one.
      *
      * Volume conservation: the velocity part of the correction keeps it exact, so the sum of
      * the right-hand side over the control volumes still equals the flux through the domain

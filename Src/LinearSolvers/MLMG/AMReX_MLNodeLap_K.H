@@ -252,6 +252,45 @@ void mlndlap_rhcc_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
     rhs(i,j,k) += corr;
 }
 
+#ifdef AMREX_USE_EB
+// With EB, whether the wall corrections apply at the wall node (i,j,k): every cell that its
+// stencils and corrections use is regular, the two layers of cells from each wall and the ghost
+// layer outside it, and the cells on both sides of the node in the other directions.  There
+// mlndlap_divu_eb and mlndlap_rhcc_eb reduce to mlndlap_divu and mlndlap_rhcc, which the
+// corrections assume.  The decision depends on the cells around the node only, so every box
+// that holds the node makes the same one.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool mlndlap_wall_corr_regular (int i, int j, int k, Array4<EBCellFlag const> const& flag,
+                                Box const& nddom,
+                                GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                                GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+{
+    amrex::ignore_unused(i,j,k);
+    IntVect const iv(AMREX_D_DECL(i,j,k));
+    GpuArray<int,AMREX_SPACEDIM> wall;
+    nodelap_detail::mlndlap_walls(iv, nddom, lobc, hibc, wall);
+    IntVect lo, hi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (wall[d] == 0) {
+            lo[d] = iv[d] - 1;
+            hi[d] = iv[d] + 1;
+        } else if (wall[d] == 1) {
+            lo[d] = iv[d] - 2;
+            hi[d] = iv[d];
+        } else {
+            lo[d] = iv[d] - 1;
+            hi[d] = iv[d];
+        }
+    }
+    Box const cells(lo, hi);
+    Long const npts = cells.numPts();
+    for (Long n = 0; n < npts; ++n) {
+        if (!flag(cells.atOffset(n)).isRegular()) { return false; }
+    }
+    return true;
+}
+#endif
+
 // Calls f(i,j,k) once at each node of the nodal box bx on a domain face that is a wall
 // (mlndlap_wall_bc), i.e. on the faces that mlndlap_scale_neumann_bc scales, for the corrections
 // of mlndlap_divu_wall_corr and mlndlap_rhcc_wall_corr.  Only those faces are visited.  A node

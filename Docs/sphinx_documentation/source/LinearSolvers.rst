@@ -625,8 +625,12 @@ before projecting:
 
 Inflow faces are treated like walls: the projection's control volumes are cut in half there
 in the same way, and the ghost cells hold the inflow velocity on the face. The correction is
-not applied with RZ coordinates, in boxes that contain cut or covered EB cells, at nodes on
-the coarse/fine boundary, or in the sync residual.
+not applied with RZ coordinates, at nodes on the coarse/fine boundary, or in the sync residual.
+With embedded boundaries, it is applied at the wall nodes whose nearby cells are all regular
+(the first two layers of cells and the ghost cells, on both sides of the node), so the result
+does not depend on the box layout. Where the correction stops along a wall, next to the EB, the
+cells at the transition have an :math:`O(1)` error in the tangential pressure gradient, about as
+large as the error that the uncorrected wall has in the normal one.
 
 Volume conservation. Without a source, the correction keeps it exact: the sum of the
 right-hand side over the control volumes equals the flux through the domain boundary, as with
