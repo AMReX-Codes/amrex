@@ -1063,10 +1063,9 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
     const int nc = this->getNComp();
     const Real* h = this->m_geom[amrlev][mglev].CellSize();
-    // Divide in double: h*h can overflow float.
-    AMREX_D_TERM(const RT dhx = static_cast<RT>(m_b_scalar/(h[0]*h[0]));,
-                 const RT dhy = static_cast<RT>(m_b_scalar/(h[1]*h[1]));,
-                 const RT dhz = static_cast<RT>(m_b_scalar/(h[2]*h[2])));
+    AMREX_D_TERM(const RT dhx = m_b_scalar/static_cast<RT>(h[0]*h[0]);,
+                 const RT dhy = m_b_scalar/static_cast<RT>(h[1]*h[1]);,
+                 const RT dhz = m_b_scalar/static_cast<RT>(h[2]*h[2]));
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
