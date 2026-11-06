@@ -2063,7 +2063,6 @@ MLMGT<MF>::prepareForSPSolve ()
         // The float default is looser than the double one; a tolerance set
         // by the user is forwarded.
         if (bottom_reltol_set) { sp.setBottomTolerance(static_cast<float>(bottom_reltol)); }
-        sp.setBottomToleranceAbs(static_cast<float>(bottom_abstol));
         sp.setPreSmooth(nu1);
         sp.setPostSmooth(nu2);
         sp.setFinalSmooth(nuf);
@@ -2118,6 +2117,7 @@ MLMGT<MF>::spIter (int iter)
         if (!(s > RT(0.0))) { s = RT(1.0); }
         RT const invs = RT(1.0)/s;
         RT const ss = s * linop.m_sp_scale; // the copy solves (m_sp_scale L) c = r/s
+        sp.setBottomToleranceAbs(static_cast<float>(bottom_abstol * invs)); // in the units of r/s
 
         for (int alev = 0; alev < namrlevs; ++alev) {
             setVal(sp.sol[alev], 0.0F);
