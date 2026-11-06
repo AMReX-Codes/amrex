@@ -3100,7 +3100,10 @@ same memory location, as in scatter-style accumulation with
 the host -- use :cpp:`amrex::For` instead.  It provides the same set
 of signatures (including the :cpp:`CompileTimeOptions` variants) and
 is identical to :cpp:`ParallelFor` on GPU, but does not add the SIMD
-pragma on CPU.
+pragma on CPU.  The `SIMD`_ tutorial shows how to write kernels that the
+compiler vectorizes, and the explicit SIMD version :cpp:`ParallelForSIMD`.
+
+.. _`SIMD`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-simd
 
 To specialize kernels for a small set of runtime choices, see
 :ref:`Compile-time options for ParallelFor <sec:gpu:compile-time-options>`
@@ -3332,6 +3335,10 @@ However, when a custom mask is not needed, we can synchronize the data also with
     mf.OverrideSync(geom.periodicity());
 
 This version of :cpp:`OverrideSync` has better performance than the previous one.
+The `StaggeredGrids`_ tutorial puts cell-centered, face-centered and nodal data
+on the same grids, averages between them and synchronizes the shared faces.
+
+.. _`StaggeredGrids`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-staggeredgrids
 
 To compute the dot product of two nodal :cpp:`MultiFab`\ s, we can use a
 mask to avoid double counting.
