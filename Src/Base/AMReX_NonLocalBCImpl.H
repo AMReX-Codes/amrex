@@ -213,7 +213,8 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 template <BaseFabType FAB, class DTOS, class Proj>
 requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
-unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
+unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp,
+                        Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos, Proj const& proj) noexcept
@@ -244,10 +245,13 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
         for (int itag = 0; itag < N_tags; ++itag) {
             auto const& tag = *tags[itag].second;
             auto const& dfab = mf.array(tag.dstIndex);
-            auto const& sfab = amrex::makeArray4((T const*)(tags[itag].first), tag.sbox, ncomp);
+            // Buffer holds components scomp..scomp+ncomp-1; index them as in local_copy_cpu.
+            auto const& sfab = amrex::makeArray4((T const*)(tags[itag].first)
+                                                 - std::ptrdiff_t(scomp)*tag.sbox.numPts(),
+                                                 tag.sbox, scomp+ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
                 auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
+                dfab(i, j, k, dcomp + n) = proj(sfab, si, scomp + n);
             });
         }
         return;
@@ -259,10 +263,12 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
         auto const& cctc = *recv_cctc[ircv];
         for (auto const& tag : cctc) {
             auto const& dfab = mf.array(tag.dstIndex);
-            auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
+            auto const& sfab = amrex::makeArray4((T const*)(dptr)
+                                                 - std::ptrdiff_t(scomp)*tag.sbox.numPts(),
+                                                 tag.sbox, scomp+ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
                 auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
+                dfab(i, j, k, dcomp + n) = proj(sfab, si, scomp + n);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
             AMREX_ASSERT(dptr <= recv_data[ircv] + recv_size[ircv]);
@@ -310,7 +316,7 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 template <BaseFabType FAB, class DTOS, class Proj>
 requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
-unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
+unpack_recv_buffer_gpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
@@ -347,8 +353,11 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
         auto const& cctc = *recv_cctc[k];
         for (auto const& tag : cctc)
         {
+            // Buffer holds components scomp..scomp+ncomp-1; index them as in local_copy_gpu.
             tags.emplace_back(TagType{mf.array(tag.dstIndex),
-                                      amrex::makeArray4((T const*)dptr, tag.sbox, ncomp),
+                                      amrex::makeArray4((T const*)dptr
+                                                        - std::ptrdiff_t(scomp)*tag.sbox.numPts(),
+                                                        tag.sbox, scomp+ncomp),
                                       tag.dbox});
             dptr += tag.dbox.numPts() * ncomp * sizeof(T);
             BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
@@ -359,7 +368,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-        tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
+        tag.dfab(i,j,k,dcomp+n) = proj(tag.sfab, si, scomp+n);
     });
 
     // There is Gpu::streamSynchronize in ParallelFor above
@@ -546,12 +555,12 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            unpack_recv_buffer_gpu(mf, scomp, ncomp, handler.recv.data,
+            unpack_recv_buffer_gpu(mf, scomp, scomp, ncomp, handler.recv.data,
                                    handler.recv.size, handler.recv.cctc, dtos, proj);
         } else
 #endif
         {
-            unpack_recv_buffer_cpu(mf, scomp, ncomp, handler.recv.data,
+            unpack_recv_buffer_cpu(mf, scomp, scomp, ncomp, handler.recv.data,
                                    handler.recv.size, handler.recv.cctc, dtos, proj);
         }
     }

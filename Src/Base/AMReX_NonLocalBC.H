@@ -559,7 +559,8 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
 requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
-unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
+unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp,
+                        Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) noexcept;
@@ -577,7 +578,7 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
 requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
-unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
+unpack_recv_buffer_gpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
@@ -663,12 +664,14 @@ UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const 
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        unpack_recv_buffer_gpu(dest, components.dest_component, components.n_components, recv.data,
+        unpack_recv_buffer_gpu(dest, components.dest_component, components.src_component,
+                               components.n_components, recv.data,
                                recv.size, recv.cctc);
     } else
 #endif // AMREX_USE_GPU
     {
-        unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, recv.data,
+        unpack_recv_buffer_cpu(dest, components.dest_component, components.src_component,
+                               components.n_components, recv.data,
                                recv.size, recv.cctc);
     }
 }
@@ -726,12 +729,14 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
     static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        unpack_recv_buffer_gpu(dest, packing.dest_component, packing.n_components, recv.data,
+        unpack_recv_buffer_gpu(dest, packing.dest_component, packing.src_component,
+                               packing.n_components, recv.data,
                                recv.size, recv.cctc, packing.dtos, packing.proj);
     } else
 #endif // AMREX_USE_GPU
     {
-        unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, recv.data,
+        unpack_recv_buffer_cpu(dest, packing.dest_component, packing.src_component,
+                               packing.n_components, recv.data,
                                recv.size, recv.cctc, packing.dtos, packing.proj);
     }
 }
