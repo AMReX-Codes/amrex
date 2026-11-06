@@ -21,6 +21,8 @@ ChkptFileLevel::define_fine_chkpt_file (ChkptFile const& chkpt_file,
 {
     BL_PROFILE("EB2::ChkptFileLevel()-define-fine-chkptfile");
 
+    m_extend_domain_face = extend_domain_face;
+
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
 
     Box const& domain = geom.Domain();

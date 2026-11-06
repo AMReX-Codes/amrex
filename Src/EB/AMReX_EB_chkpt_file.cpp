@@ -109,7 +109,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  Array<MultiFab,AMREX_SPACEDIM>& facecent,
                                  Array<MultiFab,AMREX_SPACEDIM>& edgecent,
                                  MultiFab& levelset, int ng_gfab, const Geometry& geom,
-                                 const IntVect& ngrow_finest, bool extend_domain_face,
+                                 IntVect& ngrow_finest, bool extend_domain_face,
                                  int max_grid_size) const
 {
     Real prob_lo[] = {AMREX_D_DECL(std::numeric_limits<Real>::max(),
@@ -181,7 +181,13 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
             ngrow_chkptfile[i++] = std::stoi(word);
         }
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_chkptfile == ngrow_finest, "EB2::ChkptFile cannot read from different ngrow");
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_finest[idim] > 0
+                                         ? ngrow_chkptfile[idim] >= ngrow_finest[idim]
+                                         : ngrow_chkptfile[idim] == ngrow_finest[idim],
+                                         "EB2::ChkptFile cannot read from a smaller or incompatible ngrow");
+    }
+    ngrow_finest = ngrow_chkptfile;
 
     bool edf_chkptfile;
     is >> edf_chkptfile;

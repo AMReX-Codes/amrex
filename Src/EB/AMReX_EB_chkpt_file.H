@@ -56,7 +56,7 @@ public:
                                Array<MultiFab,AMREX_SPACEDIM>& facecent,
                                Array<MultiFab,AMREX_SPACEDIM>& edgecent,
                                MultiFab& levelset, int ng_gfab, const Geometry& geom,
-                               const IntVect& ngrow_finest, bool extend_domain_face, int max_grid_size) const;
+                               IntVect& ngrow_finest, bool extend_domain_face, int max_grid_size) const;
 
     /**
      * \brief Write EB data to disk so the hierarchy can be reconstructed later.
