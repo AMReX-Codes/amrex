@@ -846,7 +846,10 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
             ra.LocalCopy(*robinbc_a, 0, 0, ra.nComp(), ra.nGrowVect());
             rb.LocalCopy(*robinbc_b, 0, 0, rb.nComp(), rb.nGrowVect());
             if (this->m_sp_length_scale != Real(1.0)) { // b multiplies a derivative
-                rb.mult(static_cast<float>(this->m_sp_length_scale), 0, rb.nComp(), rb.nGrowVect().min());
+                auto const lambda = static_cast<float>(this->m_sp_length_scale);
+                for (MFIter mfi(rb); mfi.isValid(); ++mfi) { // the data are in the ghost cells
+                    rb[mfi].template mult<RunOn::Device>(lambda, rb[mfi].box(), 0, rb.nComp());
+                }
             }
             rf.setVal(0.0F);
             this->m_sp_linop->setLevelBC(amrlev, nullptr, &ra, &rb, &rf);
