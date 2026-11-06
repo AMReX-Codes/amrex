@@ -121,12 +121,33 @@ public :
         this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setRZCorrection(rz); });
     }
 
-    //! Second-order nodal divergence at Neumann (wall) and inflow domain faces: the tangential
-    //! derivatives and the cell-centred source are taken a quarter cell from the wall,
-    //! the centre of the wall node's half-cell control volume, instead of at the first
-    //! cell centres.  Nodes on two or more walls keep the original stencil.
-    //! 0: off.  1: nodes on exactly one wall.  2: all wall nodes, corners and edges too.
-    void setWallDivuCorrection (int mode) noexcept { m_wall_divu_corr = mode; }
+    /**
+     * \brief Second-order nodal divergence at walls (Neumann domain faces) and inflow faces.
+     *
+     * By default, the right-hand side built by compRHS is first order at nodes on a wall: it
+     * takes the tangential velocity, and the cell-centered source, of the first layer of cells
+     * as constant over the wall node's half control volume. After the projection, the
+     * wall-normal velocity in the cells next to a no-slip wall is then off by
+     * (h^2/8) d^2u_n/dn^2, which a viscous operator turns into an O(1) error in the wall-normal
+     * pressure gradient. With this option, both are instead taken a quarter cell from the
+     * wall, extrapolated linearly from the first two layers of cells. At domain edges and
+     * corners, the extrapolation is done in each wall direction.
+     *
+     * Inflow faces are treated like walls. The correction assumes, as compRHS does, that the
+     * ghost cells hold the normal velocity on the face. It is not applied with RZ coordinates,
+     * in boxes that contain cut or covered EB cells, at nodes on the coarse/fine boundary, or
+     * in the sync residual.
+     *
+     * Volume conservation: the velocity part of the correction keeps it exact, so the sum of
+     * the right-hand side over the control volumes still equals the flux through the domain
+     * boundary. The source part does not: the sum of the corrected source over the control
+     * volumes differs from the sum of the cell-centered source over the cells by O(h^2) for a
+     * smooth source. In a closed domain the solver removes this difference as a uniform
+     * offset of the right-hand side. Momentum is not affected.
+     *
+     * \param on false (the default): the original stencil. true: the correction.
+     */
+    void setWallDivuCorrection (bool on) noexcept { m_wall_divu_corr = on; }
 
     /**
      * \brief Threshold for normalization (prevents dividing by tiny averages).
@@ -447,7 +468,7 @@ protected:
 private:
 
     int m_is_rz = 0;
-    int m_wall_divu_corr = 0;
+    bool m_wall_divu_corr = false;
 
     RT m_const_sigma = RT(0.0);
     RT m_sp_sigma_scale = RT(1.0);

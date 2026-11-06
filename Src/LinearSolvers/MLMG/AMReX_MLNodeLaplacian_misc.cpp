@@ -1186,7 +1186,11 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
         const auto dxinvarr = this->toRT(geom.InvCellSizeArray());
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
-        const int corner_mode = m_wall_divu_corr;
+        // Second-order divergence at wall and inflow nodes (setWallDivuCorrection; see
+        // mlndlap_divu_wall_corr and mlndlap_rhcc_wall_corr), added after the Neumann scaling.
+        // Not for RZ.  With EB, it is only applied in regular boxes: cut cells use
+        // mlndlap_divu_eb and mlndlap_rhcc_eb, which have no such correction.
+        const bool wall_corr = m_wall_divu_corr && !m_is_rz;
 
         const iMultiFab& dmsk = *this->m_dirichlet_mask[ilev][0];
 
@@ -1277,16 +1281,15 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
             mlndlap_impose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
 
-            if (m_wall_divu_corr != 0 && !m_is_rz
+            bool wall_box = wall_corr;
 #ifdef AMREX_USE_EB
-                && typ == FabType::regular
+            wall_box = wall_box && (typ == FabType::regular);
 #endif
-                )
-            {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            if (wall_box) {
+                mlndlap_for_each_wall_node(bx, nddom, lobc, hibc,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    mlndlap_divu_wall_corr(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,
-                                           nddom,lobc,hibc,corner_mode);
+                    mlndlap_divu_wall_corr(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,nddom,lobc,hibc);
                 });
             }
 
@@ -1322,16 +1325,11 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
                 mlndlap_impose_neumann_bc(bx, rhs_cc_a, nddom, lobc, hibc);
 
-                if (m_wall_divu_corr != 0 && !m_is_rz
-#ifdef AMREX_USE_EB
-                    && typ == FabType::regular
-#endif
-                    )
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                if (wall_box) {
+                    mlndlap_for_each_wall_node(bx, nddom, lobc, hibc,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        mlndlap_rhcc_wall_corr(i,j,k,rhs_cc_a,rhccarr,dmskarr,
-                                               nddom,lobc,hibc,corner_mode);
+                        mlndlap_rhcc_wall_corr(i,j,k,rhs_cc_a,rhccarr,dmskarr,nddom,lobc,hibc);
                     });
                 }
             }
