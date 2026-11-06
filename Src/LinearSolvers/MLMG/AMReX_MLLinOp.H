@@ -1048,6 +1048,8 @@ protected:
         LPInfo dp_info = a_info;
         if constexpr (mixed_precision_capable) {
             if (a_info.mixed_precision) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(supportsMixedPrecision(),
+                    "MLLinOp: this operator does not support mixed precision");
                 dp_info.max_coarsening_level = 0;
             }
         }
