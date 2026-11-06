@@ -191,7 +191,9 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
-        return std::make_unique<MLALaplacianT<fMultiFab>>(this->spGeom(a_geom), a_grids, a_dmap, sp_info);
+        return std::make_unique<MLALaplacianT<fMultiFab>>
+            (this->spGeom(a_geom), a_grids, a_dmap, sp_info,
+             Vector<FabFactory<BaseFab<float>> const*>{}, m_ncomp);
     });
 
     const int ncomp = this->getNComp();
