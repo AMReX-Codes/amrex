@@ -1457,6 +1457,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                         bxsnd.growHi(2,m_ngrow[2]);
                     }
 #endif
+                    bxsnd &= src_boxes[n];
                     Box bxrcv = (n==0) ? amrex::get<0>(src_to_dst)(bxsnd)
                                        : amrex::get<1>(src_to_dst)(bxsnd);
                     const int src_owner = dm[ksnd];
@@ -1623,6 +1624,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                         bxsnd.growHi(idim, m_ngrow[idim]);
                     }
                 }
+                bxsnd &= src_box;
                 Box const& bxrcv = convert(bxsnd);
                 const int src_owner = dm[ksnd];
                 FabArrayBase::CopyComTag cct(bxrcv, bxsnd, krcv, ksnd);
@@ -1808,6 +1810,7 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
                         bxsnd.growHi(2, m_ngrow[2]);
                     }
 #endif
+                    bxsnd &= src_box;
                     const Box bxrcv = (n<4) ? convert(bxsnd) : convert_corner(bxsnd);
                     const int src_owner = dm[ksnd];
                     FabArrayBase::CopyComTag cct(bxrcv, bxsnd, krcv, ksnd);
