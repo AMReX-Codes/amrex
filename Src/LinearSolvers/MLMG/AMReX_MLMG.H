@@ -1886,8 +1886,9 @@ MLMGT<MF>::prepareWorkArrays ()
 
     if (verbose >= 2) {
         amrex::Print() << print_ident << "MLMG: # of AMR levels: " << namrlevs << "\n"
-                       << print_ident << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
-                       << "\n";
+                       << print_ident << "      # of MG levels on the coarsest AMR level: "
+                       << (mixed ? linop.m_sp_linop->NMGLevels(0) : linop.NMGLevels(0))
+                       << (mixed ? " (single precision)\n" : "\n");
         if (ns_linop) {
             amrex::Print() << print_ident << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
                            << print_ident << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
