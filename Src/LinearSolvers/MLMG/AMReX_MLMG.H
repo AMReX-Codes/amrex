@@ -1873,13 +1873,13 @@ MLMGT<MF>::prepareWorkArrays ()
     }
 
     if (linop.m_parent // no embedded N-Solve
-        || !linop.supportNSolve()
-        || mixed) // the single precision multigrid does it
+        || !linop.supportNSolve())
     {
         do_nsolve = false;
     }
 
-    if (do_nsolve && ns_linop == nullptr)
+    // Mixed precision: the single precision multigrid does the N-Solve.
+    if (do_nsolve && ns_linop == nullptr && !mixed)
     {
         prepareForNSolve();
     }
@@ -2052,11 +2052,10 @@ MLMGT<MF>::prepareForSPSolve ()
         const bool first = !m_sp_mlmg;
         if (first) {
             m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(*linop.m_sp_linop);
-            // The user's N-Solve setting, before it is turned off for this solver.
-            m_sp_mlmg->setNSolve(do_nsolve);
-            m_sp_mlmg->setNSolveGridSize(nsolve_grid_size);
         }
         auto& sp = *m_sp_mlmg;
+        sp.setNSolve(do_nsolve);
+        sp.setNSolveGridSize(nsolve_grid_size);
         sp.setVerbose(std::max(0, verbose-2));
         sp.setBottomVerbose(bottom_verbose);
         sp.setBottomSolver(bottom_solver);
