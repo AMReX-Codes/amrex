@@ -2049,7 +2049,10 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
             m_sp_cor.resize(namrlevs);
             m_sp_res.resize(namrlevs);
             for (int alev = 0; alev < namrlevs; ++alev) {
+                // The coarse/fine BC data of the copy come from its solution,
+                // which is zero whenever spIter needs them.
                 m_sp_cor[alev] = splinop.make(alev, 0, ng_sol);
+                m_sp_cor[alev].setVal(0.0F);
                 m_sp_res[alev] = splinop.make(alev, 0, IntVect(0));
                 m_sp_res[alev].setVal(0.0F);
             }
@@ -2077,11 +2080,6 @@ MLMGT<MF>::prepareForSPSolve (IntVect const& ng_sol)
         sp.prepareForSolve(GetVecOfPtrs(m_sp_cor), GetVecOfConstPtrs(m_sp_res));
         if (first) {
             sp.solve_called = 1; // keep the work arrays
-            // The coarse/fine BC data of the copy come from its solution,
-            // which is zero whenever spIter needs them.
-            for (int alev = 0; alev < namrlevs; ++alev) {
-                setVal(sp.sol[alev], 0.0F);
-            }
             sp.computeMLResidual(finest_amr_lev);
         }
     } else {
