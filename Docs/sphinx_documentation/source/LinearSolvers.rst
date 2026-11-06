@@ -388,7 +388,9 @@ the requested tolerance.  This is available for :cpp:`MLPoisson`,
 :cpp:`MLABecLaplacian` and :cpp:`MLALaplacian` without embedded boundaries.
 The bottom solver must be the smoother, CG or BiCGStab, and it runs with
 the single precision default tolerance unless one is set with
-:cpp:`MLMG::setBottomTolerance`.
+:cpp:`MLMG::setBottomTolerance`.  A mixed precision :cpp:`MLMG` used as a
+preconditioner needs a flexible Krylov method; :cpp:`GMRESMLMG` switches to
+flexible GMRES by itself.
 
 At the bottom of the multigrid cycles, we use a ``bottom solver`` which may be
 different than the relaxation used at the other levels. The default bottom solver is the

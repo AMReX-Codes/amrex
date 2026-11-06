@@ -867,6 +867,9 @@ public:
     //! a single precision copy of themselves, not for classes derived from them.
     [[nodiscard]] virtual bool supportsMixedPrecision () const { return false; }
 
+    //! True if this operator has a single precision copy for mixed precision.
+    [[nodiscard]] bool isMixedPrecision () const noexcept { return m_sp_linop != nullptr; }
+
     /**
      * \brief Copy an NSolve solution from \p src to \p dst.
      *
