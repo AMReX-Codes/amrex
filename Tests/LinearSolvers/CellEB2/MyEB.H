@@ -28,11 +28,15 @@ public:
     FlowerIF (FlowerIF&& rhs) noexcept = default;
     FlowerIF& operator= (const FlowerIF& rhs) = delete;
     FlowerIF& operator= (FlowerIF&& rhs) = delete;
+    ~FlowerIF () = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y, amrex::Real z))
         const noexcept
     {
+#if (AMREX_SPACEDIM == 3)
+        amrex::ignore_unused(z);
+#endif
         amrex::Real posx = x - m_center.x;
         amrex::Real posy = y - m_center.y;
         amrex::Real r = std::hypot(posx, posy);

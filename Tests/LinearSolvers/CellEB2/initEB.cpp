@@ -15,6 +15,8 @@ using namespace amrex;
 void
 MyTest::initializeEB ()
 {
+    // EB2 coarsens by 2
+    int const ncoarsen = max_level * (ref_ratio == 4 ? 2 : 1);
     ParmParse pp("eb2");
     std::string geom_type;
     pp.get("geom_type", geom_type);
@@ -28,7 +30,7 @@ MyTest::initializeEB ()
                                            EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
                                            std::atan(1.0)*0.3, 2),
                                        {AMREX_D_DECL(0.5,0.5,0.5)}));
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
+        EB2::Build(gshop, geom.back(), ncoarsen, ncoarsen+max_coarsening_level);
     }
     else if (geom_type == "flower")
     {
@@ -40,7 +42,7 @@ MyTest::initializeEB ()
         EB2::PlaneIF planehi({0.,0.,0.9},{0.,0.,  1.});
         auto gshop = EB2::makeShop(EB2::makeUnion(flower,planelo,planehi));
 #endif
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
+        EB2::Build(gshop, geom.back(), ncoarsen, ncoarsen+max_coarsening_level);
     }
 #if (AMREX_SPACEDIM == 3)
     else if (geom_type == "csg")
@@ -57,11 +59,11 @@ MyTest::initializeEB ()
         auto csg = EB2::makeDifference(cubesphere, three_cylindres);
 
         auto gshop = EB2::makeShop(csg);
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
+        EB2::Build(gshop, geom.back(), ncoarsen, ncoarsen+max_coarsening_level);
     }
 #endif
     else
     {
-        EB2::Build(geom.back(), max_level, max_level+max_coarsening_level);
+        EB2::Build(geom.back(), ncoarsen, ncoarsen+max_coarsening_level);
     }
 }

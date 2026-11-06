@@ -37,6 +37,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_HypreMLNodeLap.cpp
           AMReX_HypreMLABecLap_K.H
           AMReX_HypreMLABecLap_${D}D_K.H
+          AMReX_HypreMLABecLap_EB_K.H
           )
 
     endif ()
