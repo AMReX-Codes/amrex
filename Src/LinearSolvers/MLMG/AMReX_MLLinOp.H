@@ -1119,6 +1119,9 @@ protected:
     void makeSPLinOp (LPInfo const& a_info, F const& f)
     {
         if constexpr (mixed_precision_capable) {
+            m_sp_linop.reset(); // a re-define may turn mixed precision off
+            m_sp_scale = RT(1.0);
+            m_sp_length_scale = Real(1.0);
             if (a_info.mixed_precision) {
                 LPInfo sp_info = a_info;
                 sp_info.mixed_precision = false;
