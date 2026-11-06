@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
 
+#include <cmath>
 #include <iostream>
 #include <numbers>
 
@@ -140,7 +141,7 @@ CoordSys::CellIndex (const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = static_cast<int>(std::floor((point[k]-offset[k])/dx[k]));
     }
     return ix;
 }
@@ -153,7 +154,7 @@ CoordSys::LowerIndex (const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = static_cast<int>(std::floor((point[k]-offset[k])/dx[k]));
     }
     return ix;
 }
@@ -166,7 +167,7 @@ CoordSys::UpperIndex(const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]) + 1;
+        ix[k] = static_cast<int>(std::floor((point[k]-offset[k])/dx[k])) + 1;
     }
     return ix;
 }
