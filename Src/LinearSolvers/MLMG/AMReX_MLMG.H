@@ -398,7 +398,7 @@ public:
      *
      * \param t Relative tolerance.
      */
-    void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
+    void setBottomTolerance (RT t) noexcept { bottom_reltol = t; bottom_reltol_set = true; }
     /**
      * \brief Absolute tolerance for the bottom solver (not used by AlgMG and PETSc).
      *
@@ -764,6 +764,7 @@ private:
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
     RT bottom_reltol = std::is_same<RT,double>() ? RT(1.e-4) : RT(1.e-3);
+    bool bottom_reltol_set = false; // by the user, not the default
     RT bottom_abstol = RT(-1.0);
 
     MLMGNormType norm_type = MLMGNormType::greater;
@@ -2059,7 +2060,9 @@ MLMGT<MF>::prepareForSPSolve ()
         sp.setBottomVerbose(bottom_verbose);
         sp.setBottomSolver(bottom_solver);
         sp.setBottomMaxIter(bottom_maxiter);
-        sp.setBottomTolerance(static_cast<float>(bottom_reltol));
+        // The float default is looser than the double one; a tolerance set
+        // by the user is forwarded.
+        if (bottom_reltol_set) { sp.setBottomTolerance(static_cast<float>(bottom_reltol)); }
         sp.setBottomToleranceAbs(static_cast<float>(bottom_abstol));
         sp.setPreSmooth(nu1);
         sp.setPostSmooth(nu2);
