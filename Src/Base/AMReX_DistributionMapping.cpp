@@ -892,7 +892,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
     BL_ASSERT( ! wgts.empty());
 
     // Keep the old mapping alive in case olddm is *this.
-    DistributionMapping const old(olddm);
+    DistributionMapping const old(olddm); // NOLINT(performance-unnecessary-copy-initialization)
 
     m_ref = std::make_shared<Ref>();
     m_ref->m_pmap.resize(wgts.size(), -1);
