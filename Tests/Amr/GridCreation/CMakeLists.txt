@@ -31,7 +31,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 3)
         list(APPEND _extra inputs-no-box-split inputs-no-box-split-whole inputs-no-box-split-thin
                            inputs-no-box-split-periodic inputs-no-box-split-mgs0
-                           inputs-no-box-split-merge-thin inputs-no-box-split-nesting)
+                           inputs-no-box-split-merge-thin inputs-no-box-split-nesting
+                           inputs-no-box-split-region)
     endif ()
     set(_exe ${CMAKE_CURRENT_BINARY_DIR}/${D}d/Test_Amr_GridCreation_${D}d)
     foreach(_inp IN LISTS _extra)
