@@ -885,6 +885,18 @@ scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
 that have their own collision criteria by overloading the virtual
 :cpp:`check_pair` function.
 
+After the particles have moved, :cpp:`updateNeighbors()` refreshes the neighbor
+buffers. On the CPU, the refresh of a ghost that stays on the same rank copies
+every component by default, including the runtime components that are not
+flagged for ghost communication with :cpp:`setRealCommComp()` and
+:cpp:`setIntCommComp()`, whereas the MPI path sends only the flagged ones.
+:cpp:`setGhostCopyMasked(true)` makes the same-rank refresh copy only the
+flagged components too. If the particles carry per-body slot arrays, such as
+the contact history of a discrete element code, :cpp:`setGhostSlotGroup()`
+declares them (the number of slots, the runtime components that hold the keys,
+and the blocks of payload) so that only the occupied slots are copied. A slot
+is empty when both of its keys are -1. The default is to copy everything.
+
 .. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-neighborlist
 
 .. _sec:Particles:IO:
