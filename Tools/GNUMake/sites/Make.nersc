@@ -131,7 +131,10 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 #   libmpi_gtl_cuda at run time, which can need a different libcudart major version.
 #   The rpaths below are RUNPATH entries: they apply only to the executable's own NEEDED
 #   libraries (which include libcudart and libmpi_gtl_cuda), and LD_LIBRARY_PATH still
-#   takes precedence over them.
+#   takes precedence over them. Libraries that the Cray libraries load themselves still
+#   come from /opt/cray/pe/lib64: e.g. cray-hdf5-parallel and cray-libsci need
+#   libmpi_gnu.so.12, which cray-mpich 9.0.1 does not ship (it has libmpi_gnu_123), so a
+#   9.0.1 build that uses them also loads the default cray-mpich's libmpi_gnu.
 #   CRAY_LD_LIBRARY_PATH lists the library dirs of every loaded Cray module (cray-mpich
 #   and its GTL, netcdf, hdf5, libsci, ...); the generic lib64 dirs are the fallback
 #   this avoids, so they are left out. With MPICH_ROOT or OPENMPI_ROOT the MPI comes
