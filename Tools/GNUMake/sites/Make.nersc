@@ -146,7 +146,9 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       nersc_cuda_dirs := $(nersc_cuda_lib64)
     endif
     NERSC_RPATH_DIRS += $(nersc_cuda_dirs)
-    LIBRARIES += $(addprefix -Xlinker=-rpath=,$(wildcard $(NERSC_RPATH_DIRS)))
+#   -Wl, rather than -Xlinker=: nvcc forwards it to the host compiler
+#   (--forward-unknown-to-host-compiler), and a Fortran or host linker accepts it too.
+    LIBRARIES += $(addprefix -Wl$(comm)-rpath$(comm),$(wildcard $(NERSC_RPATH_DIRS)))
 
   endif
 
