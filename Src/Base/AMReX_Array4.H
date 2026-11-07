@@ -240,17 +240,20 @@ namespace amrex {
             return buf;
         }
 
-        template <std::size_t... idx, std::size_t... idx2x>
+        template <std::size_t... idx, std::size_t... idx2x, std::size_t... ichar>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void device_print_impl2 (std::index_sequence<idx...>,
                                 std::index_sequence<idx2x...>,
+                                std::index_sequence<ichar...>,
                                 IntVectND<sizeof...(idx)> const& iv,
                                 IntVectND<sizeof...(idx)> const& begin,
                                 IntVectND<sizeof...(idx)> const& end)
         {
-            constexpr auto msg = make_oob_message_impl(std::index_sequence<idx...>{});
+            // SYCL printf needs a format it can put in constant memory: a static char array
+            static constexpr auto buf = make_oob_message_impl(std::index_sequence<idx...>{});
+            static constexpr char msg[] = {buf[ichar]...};
 
-            AMREX_DEVICE_PRINTF(msg.data(),
+            AMREX_DEVICE_PRINTF(msg,
                 iv.vect[idx]...,
                 ((idx2x % 2 == 0) ? begin.vect[idx2x / 2] : end.vect[idx2x / 2] - 1)...
             );
@@ -266,6 +269,7 @@ namespace amrex {
             device_print_impl2(
                 std::make_index_sequence<N>{},
                 std::make_index_sequence<N*2>{},
+                std::make_index_sequence<make_oob_message_impl(std::make_index_sequence<N>{}).size()>{},
                 iv, begin, end
             );
         }
