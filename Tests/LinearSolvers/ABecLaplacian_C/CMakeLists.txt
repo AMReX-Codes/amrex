@@ -16,10 +16,31 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     # A smaller 3D problem keeps the ctest short.
     if (D EQUAL 3)
         set(_ctest_params n_cell=48 max_grid_size=24)
+        set(_mixed_max_error 2.5e-3)
+        set(_robin_max_error 4.e-3)
+    else ()
+        set(_mixed_max_error 5.e-4)
+        set(_robin_max_error 7.e-4)
     endif ()
 
     setup_test(${D} _sources _input_files
        CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params})
+
+    # The same multi-level Poisson problem with single precision multigrid
+    # cycles; the error must match the double precision run.
+    setup_test(${D} _sources _input_files
+       BASE_NAME LinearSolvers_ABecLaplacian_C_mixed
+       RUNTIME_SUBDIR mixed
+       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} multigrid_types=geometric
+                                   use_algmg_bottom=0 mixed_precision=1 max_error=${_mixed_max_error})
+
+    # Robin BC with single precision multigrid cycles.
+    set(_input_files  inputs-robin )
+
+    setup_test(${D} _sources _input_files
+       BASE_NAME LinearSolvers_ABecLaplacian_C_robin
+       RUNTIME_SUBDIR robin
+       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} mixed_precision=1 max_error=${_robin_max_error})
 
     # Semi-coarsening exercises the line-solve smoother, which is CPU only.
     set(_input_files  inputs-rt-abeclap-semicoarsening )
@@ -37,5 +58,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     unset(_no_ctest)
     unset(_sources)
     unset(_ctest_params)
+    unset(_mixed_max_error)
+    unset(_robin_max_error)
     unset(_input_files)
 endforeach()
