@@ -136,7 +136,16 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     ifeq ($(MPICH_ROOT)$(OPENMPI_ROOT),)
       NERSC_RPATH_DIRS += $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(patsubst %/,%,$(subst :, ,$(CRAY_LD_LIBRARY_PATH))))
     endif
-    NERSC_RPATH_DIRS += $(filter-out %/stubs,$(patsubst -L%,%,$(filter -L%,$(CRAY_CUDATOOLKIT_POST_LINK_OPTS))))
+#   The cudatoolkit module's dirs (lib64, math_libs, ...) are used only if they belong to
+#   the CUDA this build links against (CUDA_PATH first, as in Make.defs); otherwise
+#   only that CUDA's lib64 is added, and the module's dirs are dropped.
+    nersc_cuda_lib64 := $(patsubst %/,%,$(if $(CUDA_PATH),$(CUDA_PATH),$(SYSTEM_CUDA_PATH)))/lib64
+    nersc_cuda_dirs := $(filter-out %/stubs,$(patsubst -L%,%,$(filter -L%,$(CRAY_CUDATOOLKIT_POST_LINK_OPTS))))
+    ifeq ($(filter $(nersc_cuda_lib64),$(nersc_cuda_dirs)),)
+      NERSC_RPATH_DIRS := $(filter-out $(nersc_cuda_dirs),$(NERSC_RPATH_DIRS))
+      nersc_cuda_dirs := $(nersc_cuda_lib64)
+    endif
+    NERSC_RPATH_DIRS += $(nersc_cuda_dirs)
     LIBRARIES += $(addprefix -Xlinker=-rpath=,$(wildcard $(NERSC_RPATH_DIRS)))
 
   endif
