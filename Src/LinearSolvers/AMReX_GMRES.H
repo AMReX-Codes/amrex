@@ -133,6 +133,8 @@ public:
      * one more vector per iteration.
      */
     void setFlexible (bool flag) { m_flexible = flag; }
+    //! Whether flexible GMRES is in use.
+    [[nodiscard]] bool getFlexible () const { return m_flexible; }
 
     /**
      * \brief Set the Krylov restart length.

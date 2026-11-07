@@ -290,6 +290,7 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
     // The single precision cycles are not a fixed linear operator; standard
     // GMRES then stalls at single precision while its residual estimate
     // keeps decreasing.
+    auto gmres_flexible = m_gmres.getFlexible();
     if (m_use_precond && m_linop->isMixedPrecision()) {
         m_gmres.setFlexible(true);
     }
@@ -337,6 +338,7 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
     m_mlmg->setBottomSolver(mlmg_bottom_solver);
     m_mlmg->setVerbose(mlmg_verbose);
     m_mlmg->setBottomVerbose(mlmg_bottom_verbose);
+    m_gmres.setFlexible(gmres_flexible);
     m_mlmg->decPrintIdentation();
 }
 
