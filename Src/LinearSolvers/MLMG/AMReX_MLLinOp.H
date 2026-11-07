@@ -1340,7 +1340,9 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 #endif
     if (info.mixed_precision) {
         if constexpr (mixed_precision_capable) {
-            // Called from the most derived constructor, so this sees its type.
+            // Sees the type of the class whose constructor calls define; a
+            // class that only delegates to a base constructor is caught in
+            // MLMG::solve.
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(supportsMixedPrecision(),
                                              "MLLinOp: this operator does not support mixed precision");
 #ifdef AMREX_USE_EB
