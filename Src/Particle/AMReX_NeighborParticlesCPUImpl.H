@@ -36,6 +36,57 @@ void shiftNeighborParticlePositions (PTD const& ptd, int index, const IntVect& p
     }
 }
 
+/// Same-rank ghost refresh: copy particle si of src to slot di of dst, but only
+/// the components in the plan (the ones flagged for ghost communication), and
+/// from the slot group only the occupied slots. An occupied slot gets its two
+/// keys and its payload. A slot whose two keys are both -1 is empty: its keys
+/// are set to -1 in dst if they were not already, and its payload is left alone,
+/// since nothing reads the payload of an empty slot before writing it.
+template <typename DTD, typename STD>
+AMREX_FORCE_INLINE
+void copyGhostParticle (DTD const& dst, STD const& src, int si, int di,
+                        GhostCopyPlan const& plan) noexcept
+{
+    using ParticleType = typename std::decay_t<DTD>::ParticleType;
+    constexpr int NAR = std::decay_t<DTD>::NAR;
+    constexpr int NAI = std::decay_t<DTD>::NAI;
+
+    if constexpr (ParticleType::is_soa_particle) {
+        dst.m_idcpu[di] = src.m_idcpu[si];
+    } else {
+        dst.m_aos[di] = src.m_aos[si];
+    }
+    if constexpr (NAR > 0) {
+        for (int j : plan.ct_real) { dst.m_rdata[j][di] = src.m_rdata[j][si]; }
+    }
+    for (int j : plan.rt_real) { dst.m_runtime_rdata[j][di] = src.m_runtime_rdata[j][si]; }
+    if constexpr (NAI > 0) {
+        for (int j : plan.ct_int) { dst.m_idata[j][di] = src.m_idata[j][si]; }
+    }
+    for (int j : plan.rt_int) { dst.m_runtime_idata[j][di] = src.m_runtime_idata[j][si]; }
+
+    int const ns = plan.nslots;
+    for (int s = 0; s < ns; ++s) {
+        int const pid = src.m_runtime_idata[plan.key_id + s][si];
+        int const cpu = src.m_runtime_idata[plan.key_cpu + s][si];
+        int* const dpid = dst.m_runtime_idata[plan.key_id + s] + di;
+        int* const dcpu = dst.m_runtime_idata[plan.key_cpu + s] + di;
+        if (pid == -1 && cpu == -1) {
+            if (*dpid != -1 || *dcpu != -1) {
+                *dpid = -1;
+                *dcpu = -1;
+            }
+        } else {
+            *dpid = pid;
+            *dcpu = cpu;
+            for (int b = 0; b < plan.nblocks; ++b) {
+                int const jr = plan.real0 + b*ns + s;
+                dst.m_runtime_rdata[jr][di] = src.m_runtime_rdata[jr][si];
+            }
+        }
+    }
+}
+
 template <typename PTD>
 AMREX_FORCE_INLINE
 void packNeighborParticleData (char*& dst, PTD const& src, int src_index,
@@ -553,6 +604,12 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
 
     const int MyProc = ParallelContext::MyProcSub();
 
+    // Copy only the flagged components (and the occupied contact slots) for
+    // the ghosts that stay on this rank, as the MPI path does for the others.
+    const bool masked = ghost_copy_masked;
+    const detail::GhostCopyPlan plan = masked ? makeGhostCopyPlan()
+                                              : detail::GhostCopyPlan{};
+
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const RealBox& prob_domain = this->Geom(lev).ProbDomain();
@@ -575,7 +632,11 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                     if (who == MyProc) {
                         PairIndex dst_index(tag.grid, tag.tile);
                         auto dst = neighbors[tag.level][dst_index].getParticleTileData();
-                        copyParticle(dst, src, tag.src_index, tag.dst_index);
+                        if (masked) {
+                            detail::copyGhostParticle(dst, src, tag.src_index, tag.dst_index, plan);
+                        } else {
+                            copyParticle(dst, src, tag.src_index, tag.dst_index);
+                        }
                         if (periodicity.isAnyPeriodic()) {
                             detail::shiftNeighborParticlePositions(dst, tag.dst_index, tag.periodic_shift,
                                                                   periodicity, prob_domain);
@@ -634,8 +695,21 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             auto index = std::make_pair(src_grid, src_tile);
             auto& ptile = this->GetParticles(lev)[index];
             ptile.setNumNeighbors(neighbors[lev][index].size());
-            amrex::copyParticles(ptile, neighbors[lev][index], 0,
-                                 ptile.numRealParticles(), ptile.numNeighborParticles());
+            if (masked) {
+                auto const sdata = neighbors[lev][index].getConstParticleTileData();
+                auto const ddata = ptile.getParticleTileData();
+                const int nrp = ptile.numRealParticles();
+                const int nn = ptile.numNeighborParticles();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+                for (int i = 0; i < nn; ++i) {
+                    detail::copyGhostParticle(ddata, sdata, i, nrp + i, plan);
+                }
+            } else {
+                amrex::copyParticles(ptile, neighbors[lev][index], 0,
+                                     ptile.numRealParticles(), ptile.numNeighborParticles());
+            }
         }
     }
 
