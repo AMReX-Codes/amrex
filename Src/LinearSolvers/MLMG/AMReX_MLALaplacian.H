@@ -397,6 +397,7 @@ MLALaplacianT<MF>::setSPScale ()
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
             RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(0, 1, IntVect(0), true);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (idim == this->info.hidden_direction) { continue; }
                 RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
                 d += std::abs(m_b_scalar) * RT(2.0)*dxinv*dxinv;
             }
