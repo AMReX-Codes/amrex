@@ -128,6 +128,9 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 #   unless CRAY_ADD_RPATH=yes is set (see cray_static_only_libs above). Without these, a build
 #   against a non-default cray-mpich or cudatoolkit loads the default MPICH's
 #   libmpi_gtl_cuda at run time, which can need a different libcudart major version.
+#   The rpaths below are RUNPATH entries: they apply only to the executable's own NEEDED
+#   libraries (which include libcudart and libmpi_gtl_cuda), and LD_LIBRARY_PATH still
+#   takes precedence over them.
 #   CRAY_LD_LIBRARY_PATH lists the library dirs of every loaded Cray module (cray-mpich
 #   and its GTL, netcdf, hdf5, libsci, ...); the generic lib64 dirs are the fallback
 #   this avoids, so they are left out. With MPICH_ROOT or OPENMPI_ROOT the MPI comes
