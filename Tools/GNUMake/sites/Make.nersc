@@ -130,8 +130,12 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 #   libmpi_gtl_cuda at run time, which can need a different libcudart major version.
 #   CRAY_LD_LIBRARY_PATH lists the library dirs of every loaded Cray module (cray-mpich
 #   and its GTL, netcdf, hdf5, libsci, ...); the generic lib64 dirs are the fallback
-#   this avoids, so they are left out.
-    NERSC_RPATH_DIRS := $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(patsubst %/,%,$(subst :, ,$(CRAY_LD_LIBRARY_PATH))))
+#   this avoids, so they are left out. With MPICH_ROOT or OPENMPI_ROOT the MPI comes
+#   from outside the Cray PE, and cray-mpich dirs here would shadow it, so skip them.
+    NERSC_RPATH_DIRS :=
+    ifeq ($(MPICH_ROOT)$(OPENMPI_ROOT),)
+      NERSC_RPATH_DIRS += $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(patsubst %/,%,$(subst :, ,$(CRAY_LD_LIBRARY_PATH))))
+    endif
     NERSC_RPATH_DIRS += $(filter-out %/stubs,$(patsubst -L%,%,$(filter -L%,$(CRAY_CUDATOOLKIT_POST_LINK_OPTS))))
     LIBRARIES += $(addprefix -Xlinker=-rpath=,$(wildcard $(NERSC_RPATH_DIRS)))
 
