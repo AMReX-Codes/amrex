@@ -1342,7 +1342,8 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
         if constexpr (mixed_precision_capable) {
 #ifdef AMREX_USE_EB
             for (auto const* f : a_factory) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dynamic_cast<EBFArrayBoxFactory const*>(f) == nullptr,
+                auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ebf == nullptr || ebf->isAllRegular(),
                                                  "MLLinOp: mixed precision does not support EB");
             }
 #endif
