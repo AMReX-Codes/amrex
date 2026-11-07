@@ -125,7 +125,8 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 #   The Cray PE does not rpath its libraries; at run time they resolve through
 #   LD_LIBRARY_PATH and /opt/cray/pe/lib64, which points at the *default* versions.
 #   nvcc does the link here with flags from --cray-print-opts, which carry no rpaths
-#   unless CRAY_ADD_RPATH=yes is set (see cray_static_only_libs above). Without these, a build
+#   unless CRAY_ADD_RPATH=yes is set (see cray_static_only_libs above); with it, these
+#   dirs overlap the wrapper's and the linker keeps one copy of each. Without these, a build
 #   against a non-default cray-mpich or cudatoolkit loads the default MPICH's
 #   libmpi_gtl_cuda at run time, which can need a different libcudart major version.
 #   The rpaths below are RUNPATH entries: they apply only to the executable's own NEEDED
