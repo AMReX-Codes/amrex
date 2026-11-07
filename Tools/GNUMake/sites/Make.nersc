@@ -131,7 +131,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 #   CRAY_LD_LIBRARY_PATH lists the library dirs of every loaded Cray module (cray-mpich
 #   and its GTL, netcdf, hdf5, libsci, ...); the generic lib64 dirs are the fallback
 #   this avoids, so they are left out.
-    NERSC_RPATH_DIRS := $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(subst :, ,$(CRAY_LD_LIBRARY_PATH)))
+    NERSC_RPATH_DIRS := $(filter-out /opt/cray/pe/lib64 /opt/cray/lib64,$(patsubst %/,%,$(subst :, ,$(CRAY_LD_LIBRARY_PATH))))
     NERSC_RPATH_DIRS += $(filter-out %/stubs,$(patsubst -L%,%,$(filter -L%,$(CRAY_CUDATOOLKIT_POST_LINK_OPTS))))
     LIBRARIES += $(addprefix -Xlinker=-rpath=,$(wildcard $(NERSC_RPATH_DIRS)))
 
