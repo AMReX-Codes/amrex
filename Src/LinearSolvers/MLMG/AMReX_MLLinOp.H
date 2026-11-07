@@ -1077,7 +1077,9 @@ protected:
     {
         Real dxmin = std::numeric_limits<Real>::max();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            dxmin = std::min(dxmin, a_geom.back().CellSize(idim));
+            if (idim != info.hidden_direction) {
+                dxmin = std::min(dxmin, a_geom.back().CellSize(idim));
+            }
         }
         m_sp_length_scale = static_cast<Real>(spScaleFor(static_cast<RT>(dxmin)));
         // L ~ 1/dx^2 times the metric term
