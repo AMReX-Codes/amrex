@@ -1104,8 +1104,6 @@ protected:
         LPInfo dp_info = a_info;
         if constexpr (mixed_precision_capable) {
             if (a_info.mixed_precision) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(supportsMixedPrecision(),
-                    "MLLinOp: this operator does not support mixed precision");
                 dp_info.max_coarsening_level = 0;
             }
         }
@@ -1342,6 +1340,9 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 #endif
     if (info.mixed_precision) {
         if constexpr (mixed_precision_capable) {
+            // Called from the most derived constructor, so this sees its type.
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(supportsMixedPrecision(),
+                                             "MLLinOp: this operator does not support mixed precision");
 #ifdef AMREX_USE_EB
             for (auto const* f : a_factory) {
                 auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
