@@ -1336,21 +1336,21 @@ These parameters are relevant only when :py:data:`integration.type` is
 "RungeKutta".
 
 .. py:data:: integration.rk.type
-   :type: string
+   :type: int
    :value: [none]
 
    This parameter sets the Runge--Kutta method to use. The supported values are:
 
-   * User
-   * ForwardEuler
-   * Trapezoid
-   * SSPRK3
-   * RK4
+   * 0: user-specified Butcher tableau
+   * 1: forward Euler
+   * 2: trapezoid
+   * 3: SSPRK3
+   * 4: classic RK4
 
 User-specified Runge--Kutta Method
 """"""""""""""""""""""""""""""""""
 
-When :py:data:`integration.rk.type` is "User", the following parameters can be
+When :py:data:`integration.rk.type` is 0, the following parameters can be
 used to set a user-specified explicit Butcher tableau,
 
 .. math::
