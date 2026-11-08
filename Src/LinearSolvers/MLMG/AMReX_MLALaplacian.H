@@ -392,21 +392,24 @@ void
 MLALaplacianT<MF>::setSPScale ()
 {
     this->template spForward<MLALaplacianT>([&] (auto* sp) {
-        // Estimate of the max diagonal on the AMR levels, one reduction
-        RT diag = RT(0.0);
+        // Estimate of the max diagonal of each component on the AMR levels,
+        // one reduction
+        Vector<RT> diag(m_ncomp, RT(0.0));
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
-            RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(0, 1, IntVect(0), true);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (idim == this->info.hidden_direction) { continue; }
-                RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
-                d += std::abs(m_b_scalar) * RT(2.0)*dxinv*dxinv;
+            for (int n = 0; n < m_ncomp; ++n) {
+                RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(n, 1, IntVect(0), true);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (idim == this->info.hidden_direction) { continue; }
+                    RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
+                    d += std::abs(m_b_scalar) * RT(2.0)*dxinv*dxinv;
+                }
+                diag[n] = std::max(diag[n], d);
             }
-            diag = std::max(diag, d);
         }
-        ParallelAllReduce::Max(diag, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Max(diag.data(), m_ncomp, ParallelContext::CommunicatorSub());
         // The copy's lengths are lambda times ours, which scales its b
         // term by lambda^-2 and its metric term by lambda^p.
-        RT const sigma = this->spScaleFor(diag);
+        RT const sigma = this->spScaleFor(this->spDiagForScale(diag));
         auto const lambda = static_cast<RT>(this->m_sp_length_scale);
         this->m_sp_scale = sigma * static_cast<RT>(std::pow(lambda, this->spMetricExponent()));
         sp->setScalars(static_cast<float>(sigma * m_a_scalar),

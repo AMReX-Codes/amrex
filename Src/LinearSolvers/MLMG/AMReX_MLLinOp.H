@@ -1070,6 +1070,21 @@ protected:
         return std::ldexp(RT(1.0), -e);
     }
 
+    //! Mixed precision: the diagonal to scale for, given the max diagonal
+    //! of each component.  Components share one scale, so it centers their
+    //! range: the geometric mean of the smallest and largest nonzero ones.
+    static RT spDiagForScale (Vector<RT> const& diag) noexcept {
+        RT dmin = std::numeric_limits<RT>::max();
+        RT dmax = RT(0.0);
+        for (auto d : diag) {
+            if (d > RT(0.0)) {
+                dmin = std::min(dmin, d);
+                dmax = std::max(dmax, d);
+            }
+        }
+        return (dmin < dmax) ? std::sqrt(dmin)*std::sqrt(dmax) : dmax;
+    }
+
     //! The power of the length by which the metric term scales the
     //! operator: r^2 in 1D, r in 2D.
     [[nodiscard]] int spMetricExponent () const noexcept {
