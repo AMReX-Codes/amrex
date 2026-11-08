@@ -1857,8 +1857,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     IntVect fixed_pt = IntVect::TheMaxVector();
     if (m_is_singular && ilev == m_nlevels-1) {
         int fixed_box = std::numeric_limits<int>::max();
-        for (MFIter mfi(vfrac); mfi.isValid(); ++mfi) {
-            if (mfi.index() > fixed_box) { continue; }
+        for (MFIter mfi(vfrac); mfi.isValid() && fixed_box == std::numeric_limits<int>::max(); ++mfi) {
             Box const& vbx = mfi.validbox();
             auto const& vf = vfrac.const_array(mfi);
             const auto lo = amrex::lbound(vbx);
@@ -1901,7 +1900,6 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         cell_offset[mfi.LocalIndex()+1] = vbx.numPts();
         e.vbx = vbx;
         e.irregular = (fabtyp != FabType::regular);
-        e.level = ilev;
         e.dxinv = m_geom[ilev].InvCellSizeArray();
         e.sa = a_ascalar;
         e.sb = a_bscalar;
@@ -2445,10 +2443,12 @@ Vector<Real> HypreMLABecLap::rowScaling () const
 {
     Long const nrows = m_ij_upper - m_ij_lower + 1;
     Gpu::DeviceVector<Real> s(nrows, Real(1.0));
-    for (int ilev = 0; ilev < m_nlevels && m_eb && m_eb_scaling; ++ilev) {
-        for (MFIter mfi(m_eb_scale[ilev]); mfi.isValid(); ++mfi) {
-            Long const off = m_box_offset[ilev][mfi.index()] - m_ij_lower;
-            m_eb_scale[ilev][mfi].copyToMem<RunOn::Device>(mfi.validbox(), 0, 1, s.data()+off);
+    if (m_eb && m_eb_scaling) {
+        for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+            for (MFIter mfi(m_eb_scale[ilev]); mfi.isValid(); ++mfi) {
+                Long const off = m_box_offset[ilev][mfi.index()] - m_ij_lower;
+                m_eb_scale[ilev][mfi].copyToMem<RunOn::Device>(mfi.validbox(), 0, 1, s.data()+off);
+            }
         }
     }
     Vector<Real> hs(nrows);

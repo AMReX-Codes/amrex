@@ -25,13 +25,12 @@ struct HypMLABecLapEB
 {
     Box vbx;
     bool irregular = false; // ghost cells are filled as in an EB fab
-    int level = 0;
     IntVect rr{1};          // ratio to the coarser level
     GpuArray<Real,AMREX_SPACEDIM> dxinv{};
     Real sa = 0.0, sb = 0.0;
     IntVect fixed_pt = IntVect::TheMaxVector();
     Array4<Long const> cid;      // row ids, with the same-level neighbors in the ghost cells
-    Array4<Long const> crse_id;  // row ids of the coarser level, on the coarsened box
+    Array4<Long const> crse_id;  // row ids of the coarser level, on the coarsened box (null on level 0)
     Array4<int const> fine_mask; // covered by the finer level
     Array4<Real const> a, beb, phieb;
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> b;
@@ -169,6 +168,61 @@ int hypmlabeclap_eb_crse_interp (HypMLABecLapEB const& e, IntVect const& g, Orie
 }
 
 /**
+ * \brief The entries of the Dirichlet flux on the EB of cut cell c (b_eb on
+ * the EB, see MLEBABecLap's mlebabeclap_adotx): the gradient between the EB
+ * value and phi interpolated at a point inside the cell along the EB normal,
+ * passed to put(cell, value); the EB value's term goes to \p bcrhs.
+ */
+template <typename P>
+AMREX_GPU_HOST_DEVICE
+void hypmlabeclap_eb_dirichlet (HypMLABecLapEB const& e, IntVect const& c, Real kappa,
+                                P const& put, Real& bcrhs)
+{
+    GpuArray<Real,AMREX_SPACEDIM> nrm;
+    Real anorm = Real(0.0);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        IntVect const ed = IntVect::TheDimensionVector(d);
+        nrm[d] = e.apert[d](c) - e.apert[d](c+ed);
+        for (int t = 0; t < AMREX_SPACEDIM; ++t) {
+            if (t != d) { nrm[d] *= e.dxinv[0]/e.dxinv[t]; }
+        }
+        anorm += nrm[d]*nrm[d];
+    }
+    anorm = std::sqrt(anorm);
+    Real mmax = Real(0.0);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        nrm[d] /= anorm;
+        mmax = amrex::max(mmax, std::abs(nrm[d]*e.dxinv[d]));
+    }
+    Real const dg = get_dx_eb(kappa)/mmax;
+#if (AMREX_SPACEDIM == 2)
+    Real const area = get_eb_area(e.barea(c), nrm[0], nrm[1], e.dxinv[0]/e.dxinv[1]);
+    Real const fb = e.sb*e.dxinv[1]*area*e.beb(c)/dg;
+#else
+    Real const area = get_eb_area(e.barea(c), nrm[0], nrm[1], nrm[2],
+                                  e.dxinv[0]/e.dxinv[1], e.dxinv[0]/e.dxinv[2]);
+    Real const fb = e.sb*e.dxinv[1]*(e.dxinv[2]/e.dxinv[0])*area*e.beb(c)/dg;
+#endif
+    // Multilinear interpolation at the point: the 2^D cells around it
+    for (int m = 0; m < (1 << AMREX_SPACEDIM); ++m) {
+        Real v = fb;
+        IntVect q = c;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            Real const s = std::copysign(Real(1.0), nrm[d]);
+            Real const gs = s*(e.bcent(c,d) - dg*nrm[d]*e.dxinv[d]);
+            if (m & (1 << d)) {
+                v *= -gs;
+                q[d] -= int(s);
+            } else {
+                v *= Real(1.0)+gs;
+            }
+        }
+        put(q, v);
+    }
+    if (e.phieb) { bcrhs += fb*e.phieb(c); }
+}
+
+/**
  * \brief The composite EB row of cell c and the cell's entries in coarser
  * rows, passed to put(row, col, value).
  *
@@ -185,6 +239,10 @@ int hypmlabeclap_eb_crse_interp (HypMLABecLapEB const& e, IntVect const& g, Orie
  * the fine cells add their weights to it.  The same-level entries of the
  * cell's own row are summed first.  With the scaling s of the unknowns, an
  * entry (i,j) is multiplied by s_i*s_j.
+ *
+ * In order: the cell's entry in its parent's average-down row; the trivial
+ * rows (covered cells); the face fluxes (also into coarse neighbors' rows);
+ * the EB flux; the cell's own stencil.
  */
 template <typename F>
 AMREX_GPU_HOST_DEVICE
@@ -216,7 +274,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
 
     Real const kappa = e.vfrac(c);
     Real const sc = scale(e.scale, c);
-    if (e.level > 0 && kappa > Real(0.0)) {
+    if (e.crse_id && kappa > Real(0.0)) {
         // The grids are coarsenable, so the fine cells of pc are in the box
         IntVect const pc = amrex::coarsen(c, e.rr);
         Real vtot = Real(0.0);
@@ -307,7 +365,8 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                 ? Row{crse_row(cnb), scale(e.crse_scale, cnb), int(face)}
                 : Row{-1, Real(0.0), -1};
             // b*(phi(f)-phi(f-ed)) on a cut face is interpolated toward its
-            // centroid from the neighboring faces
+            // centroid from the neighboring faces; as MLEBABecLap's cc_mask,
+            // not toward a face whose two cells are both off the level's grids
             IntVect off[AMREX_SPACEDIM-1];
             Real frac[AMREX_SPACEDIM-1];
             int nt = 0;
@@ -348,49 +407,8 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     }
 
     if (e.beb && e.flag(c).isSingleValued()) {
-        // Dirichlet on the EB: the flux is the gradient between the EB value
-        // and phi interpolated at a point inside, along the EB normal
-        GpuArray<Real,AMREX_SPACEDIM> nrm;
-        Real anorm = Real(0.0);
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            IntVect const ed = IntVect::TheDimensionVector(d);
-            nrm[d] = e.apert[d](c) - e.apert[d](c+ed);
-            for (int t = 0; t < AMREX_SPACEDIM; ++t) {
-                if (t != d) { nrm[d] *= e.dxinv[0]/e.dxinv[t]; }
-            }
-            anorm += nrm[d]*nrm[d];
-        }
-        anorm = std::sqrt(anorm);
-        Real mmax = Real(0.0);
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            nrm[d] /= anorm;
-            mmax = amrex::max(mmax, std::abs(nrm[d]*e.dxinv[d]));
-        }
-        Real const dg = get_dx_eb(kappa)/mmax;
-#if (AMREX_SPACEDIM == 2)
-        Real const area = get_eb_area(e.barea(c), nrm[0], nrm[1], e.dxinv[0]/e.dxinv[1]);
-        Real const fb = e.sb*e.dxinv[1]*area*e.beb(c)/dg;
-#else
-        Real const area = get_eb_area(e.barea(c), nrm[0], nrm[1], nrm[2],
-                                      e.dxinv[0]/e.dxinv[1], e.dxinv[0]/e.dxinv[2]);
-        Real const fb = e.sb*e.dxinv[1]*(e.dxinv[2]/e.dxinv[0])*area*e.beb(c)/dg;
-#endif
-        for (int m = 0; m < (1 << AMREX_SPACEDIM); ++m) {
-            Real v = fb;
-            IntVect q = c;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                Real const s = std::copysign(Real(1.0), nrm[d]);
-                Real const gs = s*(e.bcent(c,d) - dg*nrm[d]*e.dxinv[d]);
-                if (m & (1 << d)) {
-                    v *= -gs;
-                    q[d] -= int(s);
-                } else {
-                    v *= Real(1.0)+gs;
-                }
-            }
-            put_phi(own, q, v);
-        }
-        if (e.phieb) { bcrhs += fb*e.phieb(c); }
+        hypmlabeclap_eb_dirichlet(e, c, kappa, [&] (IntVect const& q, Real v) { put_phi(own, q, v); },
+                                  bcrhs);
     }
 
     for (int m = 0; m < nsten; ++m) {
@@ -399,7 +417,6 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             put(row, e.cid(c+o), sc*sten[m]*scale(e.scale, c+o));
         }
     }
-    if (pinned) { bcrhs = Real(0.0); }
     flush_cf_bcrhs();
 }
 

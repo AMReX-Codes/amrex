@@ -167,8 +167,6 @@ public:
     void solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                 Real a_reltol, Real a_abstol);
 
-    // update? updateDirichleBC? or updateCoeffs?
-
     // public for cuda
 
     /**
