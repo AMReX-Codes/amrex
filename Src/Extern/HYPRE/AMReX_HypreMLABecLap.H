@@ -335,6 +335,9 @@ private:
     Vector<std::unique_ptr<FabArray<BaseFab<Long>>>> m_crse_id;
     Vector<MultiFab> m_crse_scale;
     Vector<MultiFab> m_eb_bcrhs;
+    //! The boundary terms a level adds to the coarser level's rows, on its
+    //! coarsened grids, until that level is built
+    Vector<MultiFab> m_eb_cf_bcrhs;
     Vector<MultiFab> m_eb_beta;
     Vector<MultiFab> m_eb_phi;
     //! With setup reuse, the triplets of later setups are summed directly

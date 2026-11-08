@@ -176,6 +176,11 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
         m_eb = m_eb || (ebf && !ebf->isAllRegular());
     }
+    {   // the same on all ranks: the EB branches are collective
+        int eb = int(m_eb);
+        ParallelAllReduce::Max(eb, m_comm);
+        m_eb = (eb != 0);
+    }
     if (m_eb) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij,
             "HypreMLABecLap: EB requires IJ mode (hypre_solver or backend = algmg)");
@@ -694,6 +699,30 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                  a_lobc[idim] == LinOpBCType::Neumann  ) &&
                                 (a_hibc[idim] == LinOpBCType::Dirichlet ||
                                  a_hibc[idim] == LinOpBCType::Neumann  ));
+        }
+    }
+
+    // The data are paired with the solver's boxes by local box index
+    auto check_grids = [&] (MultiFab const* mf, int ilev, IntVect const& ixtype, char const* what)
+    {
+        if (mf) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf->boxArray() == amrex::convert(m_grids[ilev], ixtype) &&
+                                             mf->DistributionMap() == m_dmap[ilev],
+                std::string("HypreMLABecLap: the ") + what + " must have the grids of the constructor");
+        }
+    };
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        if (ilev < a_acoefs.size()) {
+            check_grids(a_acoefs[ilev], ilev, IntVect(0), "a coefficients");
+        }
+        if (ilev < a_bcoefs.size()) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                check_grids(a_bcoefs[ilev][idim], ilev, IntVect::TheDimensionVector(idim),
+                            "b coefficients");
+            }
+        }
+        if (ilev < a_levelbcdata.size()) {
+            check_grids(a_levelbcdata[ilev], ilev, IntVect(0), "boundary data");
         }
     }
 
@@ -1649,12 +1678,14 @@ void HypreMLABecLap::buildIJMaps ()
         // scaling, the scaling of the unknowns, 1/sqrt(volume fraction), with
         // ghost cells and also the coarser level's on the coarsened grids
         m_eb_bcrhs.resize(m_nlevels);
+        m_eb_cf_bcrhs.resize(m_nlevels);
         m_crse_id.resize(m_nlevels);
         if (m_eb_scaling) {
             m_eb_scale.resize(m_nlevels);
             m_crse_scale.resize(m_nlevels);
         }
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+            m_eb_bcrhs[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 0);
 #ifdef AMREX_USE_EB
             if (m_eb_scaling) {
                 m_eb_scale[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 1);
@@ -1756,6 +1787,9 @@ void HypreMLABecLap::setEBDirichlet (Vector<MultiFab const*> const& a_beta,
         dst.resize(m_nlevels);
         for (int ilev = 0; ilev < m_nlevels && ilev < src.size(); ++ilev) {
             if (src[ilev]) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(src[ilev]->boxArray() == m_grids[ilev] &&
+                                                 src[ilev]->DistributionMap() == m_dmap[ilev],
+                    "HypreMLABecLap::setEBDirichlet: the data must have the grids of the constructor");
                 dst[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 0);
                 MultiFab::Copy(dst[ilev], *src[ilev], 0, 0, 1, 0);
             }
@@ -1778,8 +1812,8 @@ HypreMLABecLap::ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a
         if (ilev >= a_bcoefs.size() || !a_bcoefs[ilev][0]) { continue; }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             auto& b = bcoefs[ilev][idim];
-            b.define(a_bcoefs[ilev][idim]->boxArray(), m_dmap[ilev], 1, 1, MFInfo(),
-                     *m_factory[ilev]);
+            b.define(amrex::convert(m_grids[ilev], IntVect::TheDimensionVector(idim)),
+                     m_dmap[ilev], 1, 1, MFInfo(), *m_factory[ilev]);
             b.setVal(Real(0.0));
             MultiFab::Copy(b, *a_bcoefs[ilev][idim], 0, 0, 1, 0);
         }
@@ -1816,7 +1850,6 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     MultiFab const* phieb = (ilev < m_eb_phi.size() && m_eb_phi[ilev].isDefined())
         ? &m_eb_phi[ilev] : nullptr;
 
-    m_eb_bcrhs[ilev] = MultiFab(m_grids[ilev], m_dmap[ilev], 1, 0);
     Box const& domain = m_geom[ilev].Domain();
 
     // Singular: the first fluid cell of the finest level's lowest-numbered
@@ -1854,14 +1887,16 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
 
     // The data of each box; then one count pass over the cells of the level
     // (numbered box by box), one scan for the offsets and one fill pass into
-    // a single chunk, with one synchronization at the end: the kernels of
-    // consecutive boxes run without waiting for each other.
+    // a single chunk.  The boxes' kernels do not wait for each other; the
+    // loops synchronize the device at their end (MFIter).
     const int nboxes = m_eb_bcrhs[ilev].local_size();
     Vector<HypMLABecLapEB> ebs(nboxes);
     Vector<Long> cell_offset(nboxes+1, 0);
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
         Box const& vbx = mfi.validbox();
         auto const fabtyp = flags[mfi].getType(vbx);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(fabtyp != FabType::multivalued,
+                                         "HypreMLABecLap: multi-valued cells are not supported");
         HypMLABecLapEB& e = ebs[mfi.LocalIndex()];
         cell_offset[mfi.LocalIndex()+1] = vbx.numPts();
         e.vbx = vbx;
@@ -1929,14 +1964,22 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     }
     const Long ntrip = Scan::ExclusiveSum(ncells, count.data(), offset.data(), Scan::retSum);
 
-    // Pass 2: the triplets, at the cells' offsets
+    // Pass 2: the triplets, at the cells' offsets, and the right-hand side
+    // terms of the boundary values: the cell's own, and those of the coarse
+    // neighbors' rows per face (cf_bcrhs, see hypmlabeclap_eb_row)
     Triplets& t = chunks.emplace_back();
     t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
     auto* prows = t.rows.data();
     auto* pcols = t.cols.data();
     auto* pvals = t.vals.data();
+    MultiFab cf_bcrhs;
+    if (ilev > 0) {
+        cf_bcrhs.define(m_grids[ilev], m_dmap[ilev], 2*AMREX_SPACEDIM, 0,
+                        MFInfo().SetArena(The_Async_Arena()));
+    }
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
-        HypMLABecLapEB const e = ebs[mfi.LocalIndex()]; // copied into the kernel
+        HypMLABecLapEB e = ebs[mfi.LocalIndex()]; // copied into the kernel
+        if (ilev > 0) { e.cf_bcrhs = cf_bcrhs.array(mfi); }
         const auto lo = amrex::lbound(e.vbx);
         const auto len = amrex::length(e.vbx);
         Long const* poff = offset.data() + cell_offset[mfi.LocalIndex()];
@@ -1954,7 +1997,30 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                 }, bcrhs(i,j,k));
         });
     }
-    Gpu::streamSynchronize(); // count and offset are freed on return
+
+    // The boundary terms of the coarser level's rows, summed per coarse cell
+    // on the coarsened grids (with the coarse neighbors of the box in one
+    // ghost cell), added to that level's right-hand side terms below, once
+    // its own are built: the levels are built finest first
+    if (ilev > 0) {
+        IntVect const rr = m_ref_ratio[ilev-1];
+        m_eb_cf_bcrhs[ilev].define(amrex::coarsen(m_grids[ilev], rr), m_dmap[ilev], 1, 1);
+        for (MFIter mfi(m_eb_cf_bcrhs[ilev]); mfi.isValid(); ++mfi) {
+            Box const cvbx = mfi.validbox();
+            auto const& dst = m_eb_cf_bcrhs[ilev].array(mfi);
+            auto const& src = cf_bcrhs.const_array(mfi);
+            amrex::ParallelFor(amrex::grow(cvbx, 1), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                dst(i,j,k) = hypmlabeclap_eb_cf_bcrhs(IntVect(AMREX_D_DECL(i,j,k)), src, cvbx, rr);
+            });
+        }
+    }
+    if (ilev < m_nlevels-1) {
+        m_eb_bcrhs[ilev].ParallelAdd(m_eb_cf_bcrhs[ilev+1], 0, 0, 1, IntVect(1), IntVect(0),
+                                     m_geom[ilev].periodicity());
+        m_eb_cf_bcrhs[ilev+1].clear();
+    }
+    Gpu::streamSynchronize(); // count, offset and cf_bcrhs are freed on return
 #else
     amrex::ignore_unused(this, ilev, a_ascalar, a_bscalar, a_acoef, a_bcoef, chunks);
 #endif

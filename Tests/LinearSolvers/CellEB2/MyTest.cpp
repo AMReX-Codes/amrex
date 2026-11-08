@@ -49,6 +49,9 @@ MyTest::solve ()
         if (geom[0].isPeriodic(idim)) {
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
+        } else if (domain_bc == "neumann") {
+            mlmg_lobc[idim] = LinOpBCType::Neumann;
+            mlmg_hibc[idim] = LinOpBCType::Neumann;
         } else {
             mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             mlmg_hibc[idim] = LinOpBCType::Dirichlet;
@@ -455,6 +458,10 @@ MyTest::readParameters ()
     pp.queryarr("fine_hi", fine_hi, 0, AMREX_SPACEDIM);
     pp.query("fine_shrink", fine_shrink);
     pp.query("nan_in_covered", nan_in_covered);
+    pp.query("domain_bc", domain_bc);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(domain_bc == "dirichlet" || domain_bc == "neumann",
+                                     "domain_bc must be dirichlet or neumann");
+    pp.queryarr("prob_hi", prob_hi, 0, AMREX_SPACEDIM);
     pp.query("use_mlhypre", use_mlhypre);
 #ifndef AMREX_USE_HYPRE
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre, "use_mlhypre needs USE_HYPRE=TRUE");
@@ -474,7 +481,7 @@ MyTest::initGrids ()
     geom.resize(nlevels);
     grids.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;

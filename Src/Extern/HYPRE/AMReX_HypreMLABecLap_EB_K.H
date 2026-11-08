@@ -45,6 +45,9 @@ struct HypMLABecLapEB
     GpuArray<bool,2*AMREX_SPACEDIM> cf_face{}; // boundary values from the coarser level's unknowns
     GpuArray<Array4<int const>,2*AMREX_SPACEDIM> bmask;
     GpuArray<Array4<Real const>,2*AMREX_SPACEDIM> bval;
+    //! Output (null: not written): the boundary terms of the coarser level's
+    //! rows across each face of the cell (2*AMREX_SPACEDIM components)
+    Array4<Real> cf_bcrhs;
 };
 
 //! A ghost cell's value: the sum of c[m]*phi(g+m*s) for m = 1..n-1, where s
@@ -174,7 +177,10 @@ int hypmlabeclap_eb_crse_interp (HypMLABecLapEB const& e, IntVect const& g, Orie
  * finer level's: a fine cell adds them to its coarse neighbor's row, which
  * skips that face.  Ghost cells are filled as MLEBABecLap fills them, with
  * coarse/fine boundary values interpolated from the coarser level's unknowns
- * and other boundary values moved to the right-hand side (\p bcrhs).  A cell
+ * and other boundary values moved to the right-hand side: the cell's own in
+ * \p bcrhs, those of the coarse neighbors' rows (a cut coarse/fine face next
+ * to a Dirichlet wall) per face in e.cf_bcrhs, to be summed onto the coarser
+ * level by hypmlabeclap_eb_cf_bcrhs.  A cell
  * covered by the finer level has the average-down row of EB_average_down;
  * the fine cells add their weights to it.  The same-level entries of the
  * cell's own row are summed first.  With the scaling s of the unknowns, an
@@ -193,6 +199,21 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     {
         return s ? s(q) : Real(1.0);
     };
+    // The coarser level must cover the coarse cells the row reaches
+    auto crse_row = [&] (IntVect const& cq)
+    {
+        AMREX_ASSERT(e.crse_id(cq) >= 0);
+        return e.crse_id(cq);
+    };
+    // The boundary terms of the coarse neighbors' rows, per face of the cell
+    Real cfb[2*AMREX_SPACEDIM] = {};
+    auto flush_cf_bcrhs = [&] ()
+    {
+        if (e.cf_bcrhs) {
+            for (int m = 0; m < 2*AMREX_SPACEDIM; ++m) { e.cf_bcrhs(c,m) = cfb[m]; }
+        }
+    };
+
     Real const kappa = e.vfrac(c);
     Real const sc = scale(e.scale, c);
     if (e.level > 0 && kappa > Real(0.0)) {
@@ -203,26 +224,29 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         {
             vtot += e.vfrac(i,j,k);
         });
-        put(e.crse_id(pc), row, -kappa/vtot*scale(e.crse_scale, pc)*sc);
+        put(crse_row(pc), row, -kappa/vtot*scale(e.crse_scale, pc)*sc);
     }
 
     if (kappa == Real(0.0) || (e.fine_mask && e.fine_mask(c))) {
         put(row, row, sc*sc);
+        flush_cf_bcrhs();
         return;
     }
 
-    // A row with id and scaling s.  The cell's own row sums its same-level
-    // entries in sten.  put_crse adds a coarse cell's entry except to the
-    // off-diagonals of a pinned row, put_cell maps a cell of this level to
-    // sten or to another row, put_phi also expands ghost cells.
-    struct Row { Long id; Real s; };
-    Row const own{row, sc};
+    // A row with id and scaling s; face is the face of the cell across which
+    // a coarse neighbor's row is reached (-1 for the cell's own row).  The
+    // cell's own row sums its same-level entries in sten.  put_crse adds a
+    // coarse cell's entry except to the off-diagonals of a pinned row,
+    // put_cell maps a cell of this level to sten or to another row, put_phi
+    // also expands ghost cells.
+    struct Row { Long id; Real s; int face; };
+    Row const own{row, sc, -1};
     Real sten[nsten] = {};
     bool used[nsten] = {};
     auto put_crse = [&] (Row const& t, IntVect const& cq, Real v)
     {
         if (t.id != row || !pinned) {
-            put(t.id, e.crse_id(cq), t.s*v*scale(e.crse_scale, cq));
+            put(t.id, crse_row(cq), t.s*v*scale(e.crse_scale, cq));
         }
     };
     auto put_cell = [&] (Row const& t, IntVect const& q, Real v)
@@ -261,6 +285,8 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             }
         } else if (t.id == row) {
             bcrhs -= v*f.c[0]*e.bval[f.face](q);
+        } else {
+            cfb[t.face] -= v*f.c[0]*e.bval[f.face](q);
         }
     };
 
@@ -278,7 +304,8 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             // The coarse neighbor across a coarse/fine face
             IntVect const cnb = amrex::coarsen(nb, e.rr);
             Row const crow = (e.cid(nb) < 0 && e.cf_face[face])
-                ? Row{e.crse_id(cnb), scale(e.crse_scale, cnb)} : Row{-1, Real(0.0)};
+                ? Row{crse_row(cnb), scale(e.crse_scale, cnb), int(face)}
+                : Row{-1, Real(0.0), -1};
             // b*(phi(f)-phi(f-ed)) on a cut face is interpolated toward its
             // centroid from the neighboring faces
             IntVect off[AMREX_SPACEDIM-1];
@@ -373,6 +400,35 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         }
     }
     if (pinned) { bcrhs = Real(0.0); }
+    flush_cf_bcrhs();
+}
+
+/**
+ * \brief The boundary terms that the fine cells add to the row of coarse cell
+ * cq of the coarsened fine box, grown by one cell: the sum over the
+ * faces of the cell of the terms (hypmlabeclap_eb_row's e.cf_bcrhs) of the
+ * fine cells across that face, if their coarse cell is in \p cvbx (the
+ * coarsened valid box).
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real hypmlabeclap_eb_cf_bcrhs (IntVect const& cq, Array4<Real const> const& cf_bcrhs,
+                               Box const& cvbx, IntVect const& rr)
+{
+    Real sum = Real(0.0);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        for (int side = 0; side < 2; ++side) {
+            // The coarse neighbor on the low side has its fine cells' high
+            // faces toward cq, and vice versa
+            int const s = (side == 0) ? -1 : 1;
+            IntVect const cnb = cq + s*IntVect::TheDimensionVector(d);
+            if (!cvbx.contains(cnb)) { continue; }
+            Box layer(cnb*rr, cnb*rr+rr-1);
+            if (s < 0) { layer.setSmall(d, layer.bigEnd(d)); } else { layer.setBig(d, layer.smallEnd(d)); }
+            int const face = int(Orientation(d, (s < 0) ? Orientation::high : Orientation::low));
+            amrex::Loop(layer, [&] (int ii, int jj, int kk) { sum += cf_bcrhs(ii,jj,kk,face); });
+        }
+    }
+    return sum;
 }
 
 /**

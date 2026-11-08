@@ -67,6 +67,8 @@ private:
     amrex::Vector<amrex::Real> fine_lo{AMREX_D_DECL(0.,0.,0.)};
     amrex::Vector<amrex::Real> fine_hi{AMREX_D_DECL(1.,1.,1.)};
     amrex::Real fine_shrink = 0.0;
+    std::string domain_bc{"dirichlet"}; // or neumann, on the non-periodic domain boundaries
+    amrex::Vector<amrex::Real> prob_hi{AMREX_D_DECL(1.,1.,1.)}; // the domain is [0, prob_hi]
     // Also solve with HypreMLABecLap (composite_solve): mlhypre_num_setups
     // setups with reuse and scaled coefficients and rhs (same solution), each
     // compared with MLMG's solution (all levels, mlhypre_max_diff) and
