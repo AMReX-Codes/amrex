@@ -314,6 +314,37 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
             amrex::Print() << "Setup " << isetup << ", level " << ilev
                            << ": max |phi_hypre - phi_mlmg| = " << dmax
                            << ", max |MLMG residual of phi_hypre| * vfrac = " << rmax << '\n';
+            if (verbose > 0) {
+                // Where: the cell of the largest residual, its volume fraction
+                // and whether it is at the domain boundary or at the
+                // coarse/fine boundary
+                MultiFab absres(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+                MultiFab::Copy(absres, res[ilev], 0, 0, 1, 0);
+                absres.abs(0, 1);
+                IntVect const iv = absres.maxIndex(0);
+                Real vf = -1.0;
+                auto const& vfrac = factory[ilev]->getVolFrac();
+                for (MFIter mfi(vfrac); mfi.isValid(); ++mfi) {
+                    if (mfi.validbox().contains(iv)) {
+                        Gpu::dtoh_memcpy(&vf, vfrac[mfi].dataPtr() + vfrac[mfi].box().index(iv), sizeof(Real));
+                    }
+                }
+                ParallelDescriptor::ReduceRealMax(vf);
+                Box const& domain = geom[ilev].Domain();
+                bool const at_wall = !Box(domain).grow(-1).contains(iv);
+                bool at_cf = false;
+                if (ilev > 0) {
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        for (int s = -1; s <= 1; s += 2) {
+                            IntVect nb = iv; nb[idim] += s;
+                            at_cf = at_cf || (domain.contains(nb) && !grids[ilev].contains(nb));
+                        }
+                    }
+                }
+                amrex::Print() << "    largest residual at cell " << iv << ", vfrac " << vf
+                               << (at_wall ? ", at the domain boundary" : "")
+                               << (at_cf ? ", at the coarse/fine boundary" : "") << '\n';
+            }
             if (mlhypre_max_diff >= 0.0 && !(dmax <= mlhypre_max_diff)) {
                 amrex::Abort("mlhypre: the solutions differ by more than mlhypre_max_diff");
             }
