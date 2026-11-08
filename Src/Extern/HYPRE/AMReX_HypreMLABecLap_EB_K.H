@@ -196,6 +196,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     Real const kappa = e.vfrac(c);
     Real const sc = scale(e.scale, c);
     if (e.level > 0 && kappa > Real(0.0)) {
+        // The grids are coarsenable, so the fine cells of pc are in the box
         IntVect const pc = amrex::coarsen(c, e.rr);
         Real vtot = Real(0.0);
         amrex::Loop(Box(pc*e.rr, pc*e.rr+e.rr-1), [&] (int i, int j, int k)
@@ -372,6 +373,28 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         }
     }
     if (pinned) { bcrhs = Real(0.0); }
+}
+
+/**
+ * \brief The volume-fraction-weighted average of the fine cells of coarse
+ * cell (i,j,k) of the coarsened fine box: the average-down row of a cell
+ * covered by the finer level, solved exactly.  Zero if all the fine cells are
+ * covered by the EB.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void hypmlabeclap_eb_avgdown (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine,
+                              Array4<Real const> const& vfrac, IntVect const& rr)
+{
+    IntVect const lo = IntVect(AMREX_D_DECL(i,j,k))*rr;
+    Real sum = Real(0.0);
+    Real vtot = Real(0.0);
+    amrex::Loop(Box(lo, lo+rr-1), [&] (int ii, int jj, int kk)
+    {
+        sum += vfrac(ii,jj,kk)*fine(ii,jj,kk);
+        vtot += vfrac(ii,jj,kk);
+    });
+    crse(i,j,k) = (vtot > Real(0.0)) ? sum/vtot : Real(0.0);
 }
 
 }

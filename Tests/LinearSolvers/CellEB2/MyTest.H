@@ -69,11 +69,17 @@ private:
     // setups with reuse and scaled coefficients and rhs (same solution), each
     // compared with MLMG's solution (all levels, mlhypre_max_diff) and
     // checked with MLMG's composite residual times the volume fraction
-    // (finest level, mlhypre_max_fine_res); negative bounds are not checked
+    // (finest level, mlhypre_max_fine_res) and with the EB average of the
+    // finer level's solution (coarser levels, mlhypre_max_avg_diff);
+    // negative bounds are not checked
     bool use_mlhypre = false;
     int mlhypre_num_setups = 1;
     amrex::Real mlhypre_max_diff = -1.0;
     amrex::Real mlhypre_max_fine_res = -1.0;
+    amrex::Real mlhypre_max_avg_diff = 1.e-12;
+    // NaN in the cells HypreMLABecLap does not use (EB-covered, covered by
+    // a finer level) of its rhs and initial guess
+    bool nan_in_covered = false;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

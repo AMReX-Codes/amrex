@@ -14,6 +14,7 @@
 #   ref_ratio = 4 n_cell = 32        refinement ratio 4
 #   is_periodic = "1 0 0" fine_lo = "0 0.25 0.25"   periodic, fine level on the periodic boundary
 #   is_periodic = "1 1 1" eb_neumann = 1             singular (compared up to a constant)
+#   nan_in_covered = 1               NaN in the cells the system does not use
 composite_solve = 1
 use_mlhypre = 1
 mlhypre_max_fine_res = 1.e-7

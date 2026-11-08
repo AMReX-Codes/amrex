@@ -3,8 +3,10 @@
 #include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
+#include <AMReX_Math.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelReduce.H>
+#include <AMReX_Reduce.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -93,6 +95,11 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         AMREX_ASSERT(m_geom[ilev+1].Domain() == amrex::refine(m_geom[ilev].Domain(),
                                                               m_ref_ratio[ilev])
                      && m_ref_ratio[ilev].allLE(4));
+        // The fine grids are coarsened (masks, coarse ids, average-down
+        // rows); amrex::coarsen would silently round a non-coarsenable box
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_grids[ilev+1].coarsenable(m_ref_ratio[ilev]),
+            "HypreMLABecLap: the grids of level " + std::to_string(ilev+1) +
+            " are not coarsenable by the refinement ratio");
     }
 
     m_bndry.resize(m_nlevels);
@@ -173,13 +180,17 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij,
             "HypreMLABecLap: EB requires IJ mode (hypre_solver or backend = algmg)");
         AMREX_ALWAYS_ASSERT(int(m_factory.size()) == m_nlevels);
-        for (auto const* f : m_factory) {
-            auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
+        for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+            auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev]);
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ebf && ebf->getAreaFrac()[0] &&
                                              ebf->getAreaFrac()[0]->nGrow() >= 1 &&
                                              ebf->getVolFrac().nGrow() >= 1,
                 "HypreMLABecLap: EB needs factories with EBSupport::full and at least one "
                 "ghost cell on all levels");
+            // The EB data are paired with the solver's boxes by local box index
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ebf->boxArray() == m_grids[ilev] &&
+                                             ebf->DistributionMap() == m_dmap[ilev],
+                "HypreMLABecLap: the EB factories must have the grids of the constructor");
         }
     }
 #endif
@@ -1371,6 +1382,11 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
     BL_PROFILE("HypreMLABecLap::solve()");
 
+    if (m_use_ij) {
+        solveIJ(a_sol, a_rhs, a_reltol, a_abstol); // checks the loaded vectors
+        return;
+    }
+
     // BoomerAMG can report convergence with non-finite data
     auto check_finite = [&] (Vector<MultiFab const*> const& mfs, std::string const& what)
     {
@@ -1382,11 +1398,6 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     };
     check_finite(a_rhs, "right-hand side");
     check_finite(GetVecOfConstPtrs(a_sol), "initial guess");
-
-    if (m_use_ij) {
-        solveIJ(a_sol, a_rhs, a_reltol, a_abstol);
-        return;
-    }
 
     constexpr int ncomp = 1;
     constexpr HYPRE_Int ivar = 0;
@@ -2117,6 +2128,19 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     Gpu::streamSynchronize();
     BL_PROFILE_VAR_STOP(blp_load);
 
+    // BoomerAMG can report convergence with non-finite data.  The loaded
+    // vectors are checked, so that values in cells the system does not use
+    // (EB-covered, covered by a finer level) do not matter.
+    for (auto const& [v, what] : {std::pair{bvec.data(), "right-hand side"},
+                                  std::pair{xvec.data(), "initial guess"}}) {
+        bool bad = (nrows > 0) && Reduce::AnyOf(nrows, v, [=] AMREX_GPU_DEVICE (Real x) noexcept
+        {
+            return amrex::isnan(x) || amrex::isinf(x);
+        });
+        ParallelAllReduce::Or(bad, m_comm);
+        if (bad) { fail(std::string("HypreMLABecLap: ") + what + " is not finite"); }
+    }
+
     const int dump_k = (m_dump_max > 0) ? composite::next_dump_index(m_dump_prefix, m_dump_max) : -1;
     if (dump_k >= 0) { dumpSystem(dump_k, bvec, false); }
 
@@ -2260,8 +2284,30 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     }
     Gpu::streamSynchronize(); // xvec is freed on return
 
-    for (int ilev = m_nlevels-2; ilev >= 0 && !m_eb; --ilev) {
-        amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
+    for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
+        if (!m_eb) {
+            amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
+            continue;
+        }
+#ifdef AMREX_USE_EB
+        // The average-down rows of the cells covered by the finer level hold
+        // only to the solver tolerance: average down exactly, with the
+        // weights of those rows (the volume fractions of the fine cells)
+        IntVect const rr = m_ref_ratio[ilev];
+        MultiFab crse(amrex::coarsen(m_grids[ilev+1], rr), m_dmap[ilev+1], ncomp, 0,
+                      MFInfo().SetArena(The_Async_Arena()));
+        auto const& vfrac = static_cast<EBFArrayBoxFactory const*>(m_factory[ilev+1])->getVolFrac();
+        for (MFIter mfi(crse); mfi.isValid(); ++mfi) {
+            auto const& c = crse.array(mfi);
+            auto const& f = a_sol[ilev+1]->const_array(mfi);
+            auto const& vf = vfrac.const_array(mfi);
+            amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                hypmlabeclap_eb_avgdown(i, j, k, c, f, vf, rr);
+            });
+        }
+        a_sol[ilev]->ParallelCopy(crse, 0, 0, ncomp);
+#endif
     }
 #else
     amrex::ignore_unused(a_sol, a_rhs, a_reltol, a_abstol);

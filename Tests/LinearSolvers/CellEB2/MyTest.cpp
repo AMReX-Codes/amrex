@@ -12,6 +12,7 @@
 #endif
 
 #include <cmath>
+#include <limits>
 
 using namespace amrex;
 
@@ -261,6 +262,27 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
             srhs[ilev].mult(s);
             hphi[ilev].setVal(0.0, 0, 1, 0);
         }
+        if (nan_in_covered) {
+            // The cells the system does not use (EB-covered, covered by a
+            // finer level) must not matter, whatever they hold
+            Real const nan = std::numeric_limits<Real>::quiet_NaN();
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                amrex::EB_set_covered(srhs[ilev], 0, 1, 0, nan);
+                amrex::EB_set_covered(hphi[ilev], 0, 1, 0, nan);
+                if (ilev == max_level) { continue; }
+                auto const fmask = amrex::makeFineMask(grids[ilev], dmap[ilev], grids[ilev+1],
+                                                       IntVect(ref_ratio), 0, 1);
+                for (MFIter mfi(srhs[ilev]); mfi.isValid(); ++mfi) {
+                    auto const& m = fmask.const_array(mfi);
+                    auto const& r = srhs[ilev].array(mfi);
+                    auto const& x = hphi[ilev].array(mfi);
+                    amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                    {
+                        if (m(i,j,k)) { r(i,j,k) = nan; x(i,j,k) = nan; }
+                    });
+                }
+            }
+        }
         hmleb.setup(s*scalars[0], s*scalars[1], amrex::GetVecOfConstPtrs(acoef), b,
                     lobc, hibc, amrex::GetVecOfConstPtrs(bcdata));
         hmleb.solve(amrex::GetVecOfPtrs(hphi), amrex::GetVecOfConstPtrs(srhs), reltol, 0.0);
@@ -294,6 +316,20 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
             }
             if (mlhypre_max_fine_res >= 0.0 && ilev == max_level && !(rmax <= mlhypre_max_fine_res)) {
                 amrex::Abort("mlhypre: the finest level's residual exceeds mlhypre_max_fine_res");
+            }
+        }
+        // The coarse cells under a finer level hold the EB average of the
+        // fine solution (AMReX's), not just the average-down rows' solve
+        for (int ilev = 0; ilev < max_level; ++ilev) {
+            MultiFab avg(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+            MultiFab::Copy(avg, hphi[ilev], 0, 0, 1, 0);
+            amrex::EB_average_down(hphi[ilev+1], avg, 0, 1, ref_ratio);
+            MultiFab::Subtract(avg, hphi[ilev], 0, 0, 1, 0);
+            Real const amax = avg.norm0();
+            amrex::Print() << "Setup " << isetup << ", level " << ilev
+                           << ": max |phi_hypre - EB average of the finer phi_hypre| = " << amax << '\n';
+            if (mlhypre_max_avg_diff >= 0.0 && !(amax <= mlhypre_max_avg_diff)) {
+                amrex::Abort("mlhypre: the coarse solution is not the average of the fine one");
             }
         }
     }
@@ -413,10 +449,12 @@ MyTest::readParameters ()
     pp.query("eb_neumann", eb_neumann);
     pp.query("acoef", acoef_value);
     pp.query("ghost_value", ghost_value);
-    pp.queryarr("is_periodic", is_periodic);
-    pp.queryarr("fine_lo", fine_lo);
-    pp.queryarr("fine_hi", fine_hi);
+    // Exactly AMREX_SPACEDIM values: a shorter list is an error
+    pp.queryarr("is_periodic", is_periodic, 0, AMREX_SPACEDIM);
+    pp.queryarr("fine_lo", fine_lo, 0, AMREX_SPACEDIM);
+    pp.queryarr("fine_hi", fine_hi, 0, AMREX_SPACEDIM);
     pp.query("fine_shrink", fine_shrink);
+    pp.query("nan_in_covered", nan_in_covered);
     pp.query("use_mlhypre", use_mlhypre);
 #ifndef AMREX_USE_HYPRE
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre, "use_mlhypre needs USE_HYPRE=TRUE");
@@ -426,6 +464,7 @@ MyTest::readParameters ()
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
+    pp.query("mlhypre_max_avg_diff", mlhypre_max_avg_diff);
 }
 
 void

@@ -30,9 +30,12 @@
  * composite operator is conservative also where the EB crosses the
  * coarse/fine boundary (MLMG's reflux treats the cells there as regular).
  * The rows are weighted by the volume fraction, as is the right-hand side;
- * cells covered by a finer level are the EB average of their fine cells,
- * and b on coarse faces covered by a finer level is the area-weighted
- * average of the fine b, as in MLEBABecLap.
+ * cells covered by a finer level are the EB average of their fine cells
+ * (recomputed exactly after the solve, as MLMG averages down), and b on
+ * coarse faces covered by a finer level is the area-weighted average of the
+ * fine b, as in MLEBABecLap.  The right-hand side and the initial guess are
+ * not used in EB-covered cells and in cells covered by a finer level.  The
+ * factories must have the grids of the constructor.
  *
  * Like MLMG with maxorder 3 and an interpolation half width of 1 (which
  * matters in 2D only), both with and without EB; Dirichlet or Neumann

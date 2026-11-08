@@ -148,7 +148,8 @@ jobs:
         # Composite EB solve (HypreMLABecLap) against MLMG
         cd ${{github.workspace}}/Tests/LinearSolvers/CellEB2
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 CCACHE=ccache CXXSTD=c++20
-        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 nan_in_covered=1 \
+            amrex.fpe_trap_invalid=0
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 eb_neumann=1 \
             hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
 
@@ -254,7 +255,9 @@ jobs:
             mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.backend=$b \
                 eb_neumann=1 mlhypre_num_setups=3 acoef=1
         done
-        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl max_level=2 fine_shrink=0.03125
+        # three levels; NaN in the cells the system does not use must not matter
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl max_level=2 fine_shrink=0.03125 \
+            nan_in_covered=1 amrex.fpe_trap_invalid=0
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl ref_ratio=4 n_cell=32
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl is_periodic="1 0" fine_lo="0 0.25"
         # singular, and the pinned cell not in box 0 (solid there); no
