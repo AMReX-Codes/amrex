@@ -39,9 +39,11 @@
  *
  * Like MLMG with maxorder 3 and an interpolation half width of 1 (which
  * matters in 2D only), both with and without EB; Dirichlet or Neumann
- * domain boundaries, refinement ratios 2 and 4.  A ghost cell outside two
- * faces of a box with no box in either direction, which MLEBABecLap::applyBC
- * does not fill, is taken as zero (MLMG uses the solution's ghost value).
+ * domain boundaries, refinement ratios 2 and 4.  A ghost cell outside a
+ * physical boundary and the coarse/fine boundary (or in a domain corner),
+ * which MLEBABecLap::applyBC does not fill (MLMG uses the solution's ghost
+ * value there, e.g. in the EB Dirichlet stencil of a cut cell in that
+ * corner), takes the boundary value, or for Neumann the inner cell's.
  * Untested with EB: level 0 with coarse boundary data (a_coarse_bc).
  *
  * `<prefix>.eb_scaling` (default 1): with EB, scale the unknowns by

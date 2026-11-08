@@ -60,9 +60,15 @@ struct HypMLABecLapEBFill
 
 /**
  * \brief How MLEBABecLap::applyBC (MLCellLinOp's for a regular fab, maxorder
- * 3) fills ghost cell g of the box.  A cell outside two faces with no box in
- * either direction is not filled; MLMG uses the solution's ghost value there,
- * the composite operator zero.
+ * 3) fills ghost cell g of the box.
+ *
+ * MLEBABecLap does not fill a cell outside two faces whose inner cell in
+ * either direction is off the level's grids (outside a physical boundary and
+ * the coarse/fine boundary, or a domain corner); MLMG then uses the
+ * solution's ghost value, whatever it holds.  The composite operator fills
+ * such a cell through the physical face at the lowest order: the boundary
+ * value, or for Neumann the inner cell, itself a ghost cell (c[1] applies to
+ * it).  A cell outside two coarse/fine faces is not filled (zero).
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 HypMLABecLapEBFill hypmlabeclap_eb_fill (HypMLABecLapEB const& e, IntVect const& g)
@@ -76,8 +82,23 @@ HypMLABecLapEBFill hypmlabeclap_eb_fill (HypMLABecLapEB const& e, IntVect const&
             int const s = 1-2*side;
             Box gbx = (side == 0) ? amrex::adjCellLo(e.vbx, d) : amrex::adjCellHi(e.vbx, d);
             if (e.irregular) { gbx.grow(IntVect(1)-ed); }
-            if (!gbx.contains(g) || e.cid(g+s*ed) < 0) { continue; }
-            f.face = Orientation(d, (side == 0) ? Orientation::low : Orientation::high);
+            if (!gbx.contains(g)) { continue; }
+            Orientation const face(d, (side == 0) ? Orientation::low : Orientation::high);
+            if (e.cid(g+s*ed) < 0) {
+                if (e.cf_face[face]) { continue; }
+                // The corner case above, through this physical face
+                f.face = face;
+                if (e.bct[face] == AMREX_LO_NEUMANN) {
+                    f.c[0] = Real(0.0);
+                    f.c[1] = Real(1.0);
+                    f.n = 2;
+                } else {
+                    f.c[0] = Real(1.0);
+                    f.n = 1;
+                }
+                continue;
+            }
+            f.face = face;
             if (e.bct[f.face] == AMREX_LO_NEUMANN) {
                 f.c[0] = Real(0.0);
                 f.c[1] = Real(1.0);
@@ -318,33 +339,52 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             put(t.id, e.cid(q), t.s*v*scale(e.scale, q));
         }
     };
-    auto put_phi = [&] (Row const& t, IntVect const& q, Real v)
+    auto put_phi = [&] (Row const& t, IntVect const& q0, Real v0)
     {
-        if (e.cid(q) >= 0) {
-            put_cell(t, q, v);
-            return;
-        }
-        auto const f = hypmlabeclap_eb_fill(e, q);
-        if (f.n == 0) { return; }
-        int const d = f.face.coordDir();
-        int const s = f.face.isLow() ? 1 : -1;
-        for (int m = 1; m < f.n; ++m) {
-            IntVect qm = q;
-            qm[d] += m*s;
-            put_cell(t, qm, v*f.c[m]);
-        }
-        if (e.bct[f.face] == AMREX_LO_NEUMANN) { return; }
-        if (e.cf_face[f.face]) {
-            IntVect civ[9]; // 1 + 2 per transverse direction + 4 cross terms
-            Real w[9];
-            int const nc = hypmlabeclap_eb_crse_interp(e, q, f.face, civ, w);
-            for (int m = 0; m < nc; ++m) {
-                put_crse(t, civ[m], v*f.c[0]*w[m]);
+        // The fill of a ghost cell may use another ghost cell (a corner
+        // ghost cell outside a Neumann wall at the coarse/fine boundary,
+        // see hypmlabeclap_eb_fill), whose own fill uses cells on the grids
+        // or the coarser level: a work list of at most two cells
+        IntVect qs[2];
+        Real vs[2];
+        int ns = 0;
+        qs[ns] = q0;
+        vs[ns++] = v0;
+        while (ns > 0) {
+            IntVect const q = qs[--ns];
+            Real const v = vs[ns];
+            if (e.cid(q) >= 0) {
+                put_cell(t, q, v);
+                continue;
             }
-        } else if (t.id == row) {
-            bcrhs -= v*f.c[0]*e.bval[f.face](q);
-        } else {
-            cfb[t.face] -= v*f.c[0]*e.bval[f.face](q);
+            auto const f = hypmlabeclap_eb_fill(e, q);
+            if (f.n == 0) { continue; }
+            int const d = f.face.coordDir();
+            int const s = f.face.isLow() ? 1 : -1;
+            for (int m = 1; m < f.n; ++m) {
+                IntVect qm = q;
+                qm[d] += m*s;
+                if (e.cid(qm) >= 0) {
+                    put_cell(t, qm, v*f.c[m]);
+                } else {
+                    AMREX_ASSERT(ns < 2);
+                    qs[ns] = qm;
+                    vs[ns++] = v*f.c[m];
+                }
+            }
+            if (e.bct[f.face] == AMREX_LO_NEUMANN) { continue; }
+            if (e.cf_face[f.face]) {
+                IntVect civ[9]; // 1 + 2 per transverse direction + 4 cross terms
+                Real w[9];
+                int const nc = hypmlabeclap_eb_crse_interp(e, q, f.face, civ, w);
+                for (int m = 0; m < nc; ++m) {
+                    put_crse(t, civ[m], v*f.c[0]*w[m]);
+                }
+            } else if (t.id == row) {
+                bcrhs -= v*f.c[0]*e.bval[f.face](q);
+            } else {
+                cfb[t.face] -= v*f.c[0]*e.bval[f.face](q);
+            }
         }
     };
 

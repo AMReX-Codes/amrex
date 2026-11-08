@@ -270,8 +270,10 @@ jobs:
         # the EB cuts the coarse/fine face at a Dirichlet wall
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl \
             eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25"
-        # Neumann domain boundaries; anisotropic cells; no scaling of the unknowns
-        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre domain_bc=neumann
+        # Neumann domain boundaries (fine level everywhere: identical operators);
+        # anisotropic cells; no scaling of the unknowns
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann \
+            fine_lo="0 0 0" fine_hi="1 1 1" mlhypre_max_diff=1.e-9
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann prob_hi="1 2 1"
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.eb_scaling=0 \
             nan_in_covered=1 mlhypre_num_setups=3 amrex.fpe_trap_invalid=0
