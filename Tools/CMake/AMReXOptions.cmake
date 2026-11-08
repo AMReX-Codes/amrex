@@ -121,8 +121,8 @@ message( STATUS "   AMReX_PRECISION = ${AMReX_PRECISION}")
 #
 # GPU backends    =============================================================
 #
-set(AMReX_GPU_BACKEND_VALUES NONE SYCL CUDA HIP)
-set(AMReX_GPU_BACKEND NONE CACHE STRING "On-node, accelerated GPU backend: <NONE,SYCL,CUDA,HIP>")
+set(AMReX_GPU_BACKEND_VALUES NONE SYCL CUDA HIP LOOM)
+set(AMReX_GPU_BACKEND NONE CACHE STRING "On-node, accelerated GPU backend: <NONE,SYCL,CUDA,HIP,LOOM>")
 set_property(CACHE AMReX_GPU_BACKEND PROPERTY STRINGS ${AMReX_GPU_BACKEND_VALUES})
 if (NOT AMReX_GPU_BACKEND IN_LIST AMReX_GPU_BACKEND_VALUES)
    message(FATAL_ERROR "AMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is not allowed."
@@ -152,6 +152,12 @@ elseif (AMReX_GPU_BACKEND STREQUAL HIP)
    set(AMReX_SYCL  OFF)
    set(AMReX_CUDA  OFF)
    set(AMReX_HIP   ON )
+elseif (AMReX_GPU_BACKEND STREQUAL LOOM)
+   # Loom-compiled device code on the native HRX runtime (AMD GPUs).
+   set(AMReX_SYCL  OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
+   set(AMReX_LOOM  ON )
 else ()
    set(AMReX_SYCL  OFF)
    set(AMReX_CUDA  OFF)

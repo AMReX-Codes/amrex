@@ -38,6 +38,11 @@
         amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
+#elif defined(AMREX_USE_LOOM)
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+        ::amrex_loom::launch_fixed<MT>(blocks, threads, sharedMem, stream, __VA_ARGS__)
+#  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
+        ::amrex_loom::launch(blocks, threads, sharedMem, stream, __VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         hipLaunchKernelGGL(amrex::launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
@@ -66,6 +71,17 @@ namespace amrex {
 
     template<class L, class... Lambdas>
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
+
+    namespace detail {
+    //! Function form of AMREX_LAUNCH_KERNEL for call sites whose kernel body
+    //! contains preprocessor conditionals (not allowed inside macro arguments).
+    template <int MT, class B, class T, class L>
+    void launch_kernel_fn (B blocks, T threads, std::size_t sharedMem,
+                           gpuStream_t stream, L const& f)
+    {
+        AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, f);
+    }
+    }
 
 #endif
 

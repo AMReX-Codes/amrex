@@ -72,6 +72,16 @@ if (AMReX_HIP)
    endif ()
 endif()
 
+# LOOM
+if (AMReX_LOOM)
+   add_amrex_define( AMREX_USE_LOOM NO_LEGACY )
+   # LOOM reuses AMReX's HIP source dialect; Tools/Loom/hip supplies the
+   # HIP vocabulary on HRX (host) and Loom (device).
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY )
+   add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )
+   add_amrex_define( NDEBUG )  # as for HIP: device assertions compile out
+endif()
+
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
    add_amrex_define(AMREX_USE_FLOAT)

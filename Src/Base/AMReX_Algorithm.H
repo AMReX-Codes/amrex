@@ -20,6 +20,14 @@
 #include <cstdint>
 #include <climits>
 
+// LOOM: min/max return by value. A `const T&` result aliasing one of two
+// reference parameters needs both in object storage (a select of pointers).
+#ifdef AMREX_USE_LOOM
+#  define AMREX_MINMAX_RESULT(T) T
+#else
+#  define AMREX_MINMAX_RESULT(T) const T&
+#endif
+
 namespace amrex
 {
     /// \ingroup amrex_utilities
@@ -28,9 +36,14 @@ namespace amrex
     //! now be used directly instead.
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE constexpr const T& min (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE constexpr AMREX_MINMAX_RESULT(T) min (const T& a, const T& b) noexcept
     {
+#ifdef AMREX_USE_LOOM
+        if (b < a) { return b; }
+        return a;
+#else
         return std::min(a,b);
+#endif
     }
 
     /// \ingroup amrex_utilities
@@ -51,9 +64,14 @@ namespace amrex
     //! now be used directly instead.
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE constexpr const T& max (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE constexpr AMREX_MINMAX_RESULT(T) max (const T& a, const T& b) noexcept
     {
+#ifdef AMREX_USE_LOOM
+        if (a < b) { return b; }
+        return a;
+#else
         return std::max(a,b);
+#endif
     }
 
     /// \ingroup amrex_utilities

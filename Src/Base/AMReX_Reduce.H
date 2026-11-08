@@ -750,9 +750,8 @@ public:
                 Dim1 blockIdx {gh.blockIdx()};
                 Dim1 threadIdx{gh.threadIdx()};
 #else
-            amrex::launch_global<AMREX_GPU_MAX_THREADS>
-                <<<nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream>>>
-                ([=] AMREX_GPU_DEVICE () noexcept
+            amrex::detail::launch_kernel_fn<AMREX_GPU_MAX_THREADS>(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+                [=] AMREX_GPU_DEVICE () noexcept
             {
 #endif
                 ReduceTuple r;
