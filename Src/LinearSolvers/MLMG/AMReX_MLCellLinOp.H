@@ -444,6 +444,12 @@ public:
     }
 
 protected:
+    void spCopySettings () override
+    {
+        MLLinOpT<MF>::spCopySettings();
+        setGaussSeidel(m_use_gauss_seidel);
+        setInterpBndryHalfWidth(m_interpbndry_halfwidth);
+    }
 
     bool m_has_metric_term = false;
 

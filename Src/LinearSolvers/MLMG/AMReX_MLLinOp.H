@@ -1133,9 +1133,29 @@ protected:
                 LPInfo sp_info = a_info;
                 sp_info.mixed_precision = false;
                 m_sp_linop = f(sp_info);
+                spCopySettings();
             }
         } else {
             amrex::ignore_unused(a_info, f);
+        }
+    }
+
+    //! Mixed precision: give a new single precision copy the settings made
+    //! on this operator before define, which define keeps.
+    virtual void spCopySettings ()
+    {
+        if constexpr (mixed_precision_capable) {
+            auto* sp = m_sp_linop.get();
+            sp->setVerbose(verbose);
+            sp->setMaxOrder(maxorder);
+            sp->setEnforceSingularSolvable(enforceSingularSolvable);
+            if (!m_lobc.empty()) { sp->setDomainBC(m_lobc, m_hibc); }
+            setDomainBCLoc(m_domain_bloc_lo, m_domain_bloc_hi);
+            setCoarseFineBCLocation(m_coarse_bc_loc);
+            if (m_coarse_data_crse_ratio.allGT(0)) {
+                sp->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr),
+                                    m_coarse_data_crse_ratio, m_coarse_fine_bc_type);
+            }
         }
     }
 
