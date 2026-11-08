@@ -152,8 +152,9 @@ jobs:
             amrex.fpe_trap_invalid=0
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 eb_neumann=1 \
             hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
-        # the EB cuts the coarse/fine face at a Dirichlet wall
-        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 \
+        # the EB cuts the coarse/fine face at a Dirichlet wall (the coarse EB
+        # level does not build at 32 cells)
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=64 reltol=1.e-12 \
             eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25"
 
         ccache -s
@@ -268,7 +269,7 @@ jobs:
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl is_periodic="1 1" eb_neumann=1 \
             eb2.sphere_radius=0.15 eb2.sphere_has_fluid_inside=1 mlhypre_max_diff=1.e-10
         # the EB cuts the coarse/fine face at a Dirichlet wall
-        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl \
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 \
             eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25"
         # Neumann domain boundaries (fine level everywhere: identical operators);
         # anisotropic cells; no scaling of the unknowns
