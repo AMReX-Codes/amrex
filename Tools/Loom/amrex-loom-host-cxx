@@ -9,7 +9,7 @@
 #   AMREX_LOOM_LIBCXX_ROOT       libc++ install: include/c++/v1 and lib/
 #   AMREX_LOOM_GCC_INSTALL_DIR   GCC's lib/gcc/<triple>/<version> (compiler
 #                                headers such as stddef.h; glibc crt files)
-#   AMREX_LOOM_LINK_CXX          clang++ used for linking (ROCm's clang++)
+#   AMREX_LOOM_LINK_CXX          clang++ used for linking
 # Optional:
 #   AMREX_LOOM_SYSROOT           sysroot holding glibc's headers and libraries
 #   AMREX_LOOM_HOST_CXX_LOG      file that records flags dropped for cxx
