@@ -6,25 +6,26 @@
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
-                            Array4<Real> const& vel,
+                            Array4<T> const& vel,
                             Array4<int const> const& mxlo,
                             Array4<int const> const& mylo,
                             Array4<int const> const& mxhi,
                             Array4<int const> const& myhi,
-                            Array4<Real const> const& bcvalxlo,
-                            Array4<Real const> const& bcvalylo,
-                            Array4<Real const> const& bcvalxhi,
-                            Array4<Real const> const& bcvalyhi,
+                            Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                            Array4<std::type_identity_t<T> const> const& bcvalylo,
+                            Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                            Array4<std::type_identity_t<T> const> const& bcvalyhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
-                            Array2D<Real,
+                            Array2D<T,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bcl,
                             int inhomog, int maxorder,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     constexpr int k = 0;
@@ -51,7 +52,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -93,7 +94,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -135,7 +136,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -177,7 +178,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -203,159 +204,164 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etax,
-                              Array4<Real const> const& kapx,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& mapfac = {}) noexcept
+void mltensor_cross_terms_fx (Box const& box, Array4<T> const& fx,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etax,
+                              Array4<std::type_identity_t<T> const> const& kapx,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dyi = dxinv[1];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
-            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+            T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             if (mapfac) {
-                const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                const T rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
                 dudy *= rxy; dvdy *= rxy;
             }
-            Real divu = dvdy;
-            Real xif = kapx(i,j,0);
-            Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
-            Real mut =             etax(i,j,0,1);
+            T divu = dvdy;
+            T xif = kapx(i,j,0);
+            T mun = T(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
+            T mut =             etax(i,j,0,1);
             fx(i,j,0,0) = -mun*(-twoThirds*divu) - xif*divu;
             fx(i,j,0,1) = -mut*dudy;
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etay,
-                              Array4<Real const> const& kapy,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& mapfac = {}) noexcept
+void mltensor_cross_terms_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etay,
+                              Array4<std::type_identity_t<T> const> const& kapy,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
+    const T dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
-            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+            T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
             if (mapfac) {
-                const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                const T ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
                 dudx *= ryx; dvdx *= ryx;
             }
-            Real divu = dudx;
-            Real xif = kapy(i,j,0);
-            Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
-            Real mut =             etay(i,j,0,0);
+            T divu = dudx;
+            T xif = kapy(i,j,0);
+            T mun = T(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
+            T mut =             etay(i,j,0,0);
             fy(i,j,0,0) = -mut*dvdx;
             fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etax,
-                              Array4<Real const> const& kapx,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& bvxlo,
-                              Array4<Real const> const& bvxhi,
+void mltensor_cross_terms_fx (Box const& box, Array4<T> const& fx,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etax,
+                              Array4<std::type_identity_t<T> const> const& kapx,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& bvxlo,
+                              Array4<std::type_identity_t<T> const> const& bvxhi,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
                               Dim3 const& dlo, Dim3 const& dhi,
-                              Array4<Real const> const& mapfac = {}) noexcept
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dyi = dxinv[1];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     // Three BC types: reflect odd, neumann, and dirichlet
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
             if (mapfac) {
-                const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                const T rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
                 dudy *= rxy; dvdy *= rxy;
             }
-            Real divu = dvdy;
-            Real xif = kapx(i,j,0);
-            Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
-            Real mut =             etax(i,j,0,1);
+            T divu = dvdy;
+            T xif = kapx(i,j,0);
+            T mun = T(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
+            T mut =             etax(i,j,0,1);
             fx(i,j,0,0) = -mun*(-twoThirds*divu) - xif*divu;
             fx(i,j,0,1) = -mut*dudy;
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etay,
-                              Array4<Real const> const& kapy,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& bvylo,
-                              Array4<Real const> const& bvyhi,
+void mltensor_cross_terms_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etay,
+                              Array4<std::type_identity_t<T> const> const& kapy,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& bvylo,
+                              Array4<std::type_identity_t<T> const> const& bvyhi,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
                               Dim3 const& dlo, Dim3 const& dhi,
-                              Array4<Real const> const& mapfac = {}) noexcept
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
+    const T dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             if (mapfac) {
-                const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                const T ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
                 dudx *= ryx; dvdx *= ryx;
             }
-            Real divu = dudx;
-            Real xif = kapy(i,j,0);
-            Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
-            Real mut =             etay(i,j,0,0);
+            T divu = dudx;
+            T xif = kapy(i,j,0);
+            T mun = T(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
+            T mut =             etay(i,j,0,0);
             fy(i,j,0,0) = -mut*dvdx;
             fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
-                           Array4<Real const> const& fx,
-                           Array4<Real const> const& fy,
-                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                           Real bscalar) noexcept
+void mltensor_cross_terms (Box const& box, Array4<T> const& Ax,
+                           Array4<std::type_identity_t<T> const> const& fx,
+                           Array4<std::type_identity_t<T> const> const& fy,
+                           GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                           T bscalar) noexcept
 {
-    const Real dxi = bscalar * dxinv[0];
-    const Real dyi = bscalar * dxinv[1];
+    const T dxi = bscalar * dxinv[0];
+    const T dyi = bscalar * dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -370,16 +376,17 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
-                              Array4<Real const> const& fx,
-                              Array4<Real const> const& fy,
+void mltensor_cross_terms_os (Box const& box, Array4<T> const& Ax,
+                              Array4<std::type_identity_t<T> const> const& fx,
+                              Array4<std::type_identity_t<T> const> const& fy,
                               Array4<int const> const& osm,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Real bscalar) noexcept
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              T bscalar) noexcept
 {
-    const Real dxi = bscalar * dxinv[0];
-    const Real dyi = bscalar * dxinv[1];
+    const T dxi = bscalar * dxinv[0];
+    const T dyi = bscalar * dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -399,13 +406,14 @@ void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                              Array4<Real const> const& vel,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mltensor_vel_grads_fx (Box const& box, Array4<T> const& fx,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -413,10 +421,10 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
-            Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
-            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+            T dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
+            T dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
+            T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -425,13 +433,14 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mltensor_vel_grads_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -439,10 +448,10 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
-            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
-            Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
-            Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
+            T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+            T dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
+            T dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;
             fy(i,j,0,1) = dvdx;
             fy(i,j,0,2) = dudy;
@@ -451,29 +460,30 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvxlo,
-                            Array4<Real const> const& bvxhi,
+void mltensor_vel_grads_fx (Box const& box, Array4<T> const& fx,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                            Array4<std::type_identity_t<T> const> const& bvxlo,
+                            Array4<std::type_identity_t<T> const> const& bvxhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
-            Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            T dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
+            T dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
+            T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -482,29 +492,30 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvylo,
-                            Array4<Real const> const& bvyhi,
+void mltensor_vel_grads_fy (Box const& box, Array4<T> const& fy,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                            Array4<std::type_identity_t<T> const> const& bvylo,
+                            Array4<std::type_identity_t<T> const> const& bvyhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-            Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
-            Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
+            T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            T dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
+            T dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;
             fy(i,j,0,1) = dvdx;
             fy(i,j,0,2) = dudy;

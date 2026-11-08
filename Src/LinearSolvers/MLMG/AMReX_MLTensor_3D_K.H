@@ -6,21 +6,22 @@
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxlo,
                                   Array4<int const> const& mylo,
-                                  Array4<Real const> const& bcvalxlo,
-                                  Array4<Real const> const& bcvalylo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalylo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool ylo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -39,7 +40,7 @@ void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xlo(), icomp),
                                    bcl(Orientation::xlo(), icomp),
                                    bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
@@ -64,21 +65,22 @@ void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxhi,
                                   Array4<int const> const& mylo,
-                                  Array4<Real const> const& bcvalxhi,
-                                  Array4<Real const> const& bcvalylo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalylo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool ylo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -97,7 +99,7 @@ void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xhi(), icomp),
                                    bcl(Orientation::xhi(), icomp),
                                    bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
@@ -122,21 +124,22 @@ void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxlo,
                                   Array4<int const> const& myhi,
-                                  Array4<Real const> const& bcvalxlo,
-                                  Array4<Real const> const& bcvalyhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalyhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool yhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -155,7 +158,7 @@ void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xlo(), icomp),
                                    bcl(Orientation::xlo(), icomp),
                                    bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
@@ -180,21 +183,22 @@ void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxhi,
                                   Array4<int const> const& myhi,
-                                  Array4<Real const> const& bcvalxhi,
-                                  Array4<Real const> const& bcvalyhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalyhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool yhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -213,7 +217,7 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xhi(), icomp),
                                    bcl(Orientation::xhi(), icomp),
                                    bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
@@ -238,21 +242,22 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxlo,
                                   Array4<int const> const& mzlo,
-                                  Array4<Real const> const& bcvalxlo,
-                                  Array4<Real const> const& bcvalzlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzlo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool zlo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -271,7 +276,7 @@ void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xlo(), icomp),
                                    bcl(Orientation::xlo(), icomp),
                                    bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
@@ -296,21 +301,22 @@ void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxhi,
                                   Array4<int const> const& mzlo,
-                                  Array4<Real const> const& bcvalxhi,
-                                  Array4<Real const> const& bcvalzlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzlo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool zlo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -329,7 +335,7 @@ void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xhi(), icomp),
                                    bcl(Orientation::xhi(), icomp),
                                    bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
@@ -354,21 +360,22 @@ void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxlo,
                                   Array4<int const> const& mzhi,
-                                  Array4<Real const> const& bcvalxlo,
-                                  Array4<Real const> const& bcvalzhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xlo_domain, bool zhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -387,7 +394,7 @@ void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xlo(), icomp),
                                    bcl(Orientation::xlo(), icomp),
                                    bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
@@ -412,21 +419,22 @@ void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mxhi,
                                   Array4<int const> const& mzhi,
-                                  Array4<Real const> const& bcvalxhi,
-                                  Array4<Real const> const& bcvalzhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool xhi_domain, bool zhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -445,7 +453,7 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::xhi(), icomp),
                                    bcl(Orientation::xhi(), icomp),
                                    bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
@@ -470,21 +478,22 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mylo,
                                   Array4<int const> const& mzlo,
-                                  Array4<Real const> const& bcvalylo,
-                                  Array4<Real const> const& bcvalzlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalylo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzlo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool ylo_domain, bool zlo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -503,7 +512,7 @@ void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
                                    bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
@@ -528,21 +537,22 @@ void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& myhi,
                                   Array4<int const> const& mzlo,
-                                  Array4<Real const> const& bcvalyhi,
-                                  Array4<Real const> const& bcvalzlo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalyhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzlo,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool yhi_domain, bool zlo_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -561,7 +571,7 @@ void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
                                    bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
@@ -586,21 +596,22 @@ void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& mylo,
                                   Array4<int const> const& mzhi,
-                                  Array4<Real const> const& bcvalylo,
-                                  Array4<Real const> const& bcvalzhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalylo,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool ylo_domain, bool zhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -619,7 +630,7 @@ void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
                                    bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
@@ -644,21 +655,22 @@ void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 co
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 const& blen,
-                                  Array4<Real> const& vel,
+                                  Array4<T> const& vel,
                                   Array4<int const> const& myhi,
                                   Array4<int const> const& mzhi,
-                                  Array4<Real const> const& bcvalyhi,
-                                  Array4<Real const> const& bcvalzhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalyhi,
+                                  Array4<std::type_identity_t<T> const> const& bcvalzhi,
                                   Array2D<BoundCond,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bct,
-                                  Array2D<Real,
+                                  Array2D<T,
                                           0,2*AMREX_SPACEDIM,
                                           0,AMREX_SPACEDIM> const& bcl,
                                   int inhomog, int maxorder,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                  GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                                   bool yhi_domain, bool zhi_domain) noexcept
 {
     // At a domain edge the boundary value is extrapolated along the face
@@ -677,7 +689,7 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
                                    bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                Real tmp = vel(i,j,k,icomp);
+                T tmp = vel(i,j,k,icomp);
                 mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
@@ -703,29 +715,30 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
 }
 
 #ifdef AMREX_USE_EB
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
-                            Array4<Real> const& vel,
+                            Array4<T> const& vel,
                             Array4<int const> const& mxlo,
                             Array4<int const> const& mylo,
                             Array4<int const> const& mzlo,
                             Array4<int const> const& mxhi,
                             Array4<int const> const& myhi,
                             Array4<int const> const& mzhi,
-                            Array4<Real const> const& bcvalxlo,
-                            Array4<Real const> const& bcvalylo,
-                            Array4<Real const> const& bcvalzlo,
-                            Array4<Real const> const& bcvalxhi,
-                            Array4<Real const> const& bcvalyhi,
-                            Array4<Real const> const& bcvalzhi,
+                            Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                            Array4<std::type_identity_t<T> const> const& bcvalylo,
+                            Array4<std::type_identity_t<T> const> const& bcvalzlo,
+                            Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                            Array4<std::type_identity_t<T> const> const& bcvalyhi,
+                            Array4<std::type_identity_t<T> const> const& bcvalzhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
-                            Array2D<Real,
+                            Array2D<T,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bcl,
                             int inhomog, int maxorder,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const auto blen = amrex::length(vbox);
@@ -764,7 +777,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -774,13 +787,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xlo_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -791,7 +804,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -802,7 +815,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -851,7 +864,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -861,13 +874,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xhi_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -878,7 +891,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -889,7 +902,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -938,7 +951,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -948,13 +961,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xlo_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -965,7 +978,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -976,7 +989,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -1025,7 +1038,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1035,13 +1048,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xhi_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1052,7 +1065,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -1063,7 +1076,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
@@ -1112,7 +1125,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1122,13 +1135,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xlo_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1139,7 +1152,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1150,7 +1163,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1199,7 +1212,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1209,13 +1222,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xhi_domain && ylo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
@@ -1226,7 +1239,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1237,7 +1250,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1286,7 +1299,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1296,13 +1309,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xlo_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1313,7 +1326,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
                                        bcvalxlo, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1324,7 +1337,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1373,7 +1386,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1383,13 +1396,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(1./3.)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && y_interior) || (xhi_domain && yhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
@@ -1400,7 +1413,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
                                        bcvalxhi, maxorder, dxinv[0], inhomog, icomp, shx, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1411,7 +1424,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    Real tmp = vel(i,j,k,icomp);
+                    T tmp = vel(i,j,k,icomp);
                     mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
@@ -1442,29 +1455,30 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 }
 #endif
 
+template <typename T>
 inline
 void mltensor_fill_edges (Box const& vbox, // vbox: the valid box
-                          Array4<Real> const& vel,
+                          Array4<T> const& vel,
                           Array4<int const> const& mxlo,
                           Array4<int const> const& mylo,
                           Array4<int const> const& mzlo,
                           Array4<int const> const& mxhi,
                           Array4<int const> const& myhi,
                           Array4<int const> const& mzhi,
-                          Array4<Real const> const& bcvalxlo,
-                          Array4<Real const> const& bcvalylo,
-                          Array4<Real const> const& bcvalzlo,
-                          Array4<Real const> const& bcvalxhi,
-                          Array4<Real const> const& bcvalyhi,
-                          Array4<Real const> const& bcvalzhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                          Array4<std::type_identity_t<T> const> const& bcvalylo,
+                          Array4<std::type_identity_t<T> const> const& bcvalzlo,
+                          Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalyhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalzhi,
                           Array2D<BoundCond,
                                   0,2*AMREX_SPACEDIM,
                                   0,AMREX_SPACEDIM> const& bct,
-                          Array2D<Real,
+                          Array2D<T,
                                   0,2*AMREX_SPACEDIM,
                                   0,AMREX_SPACEDIM> const& bcl,
                           int inhomog, int maxorder,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                           Dim3 const& dlo, Dim3 const& dhi) noexcept
 
 {
@@ -1513,30 +1527,31 @@ void mltensor_fill_edges (Box const& vbox, // vbox: the valid box
 }
 
 #ifdef AMREX_USE_GPU
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges (int const bid, int const tid, int const bdim,
                           Box const& vbox, // vbox: the valid box
-                          Array4<Real> const& vel,
+                          Array4<T> const& vel,
                           Array4<int const> const& mxlo,
                           Array4<int const> const& mylo,
                           Array4<int const> const& mzlo,
                           Array4<int const> const& mxhi,
                           Array4<int const> const& myhi,
                           Array4<int const> const& mzhi,
-                          Array4<Real const> const& bcvalxlo,
-                          Array4<Real const> const& bcvalylo,
-                          Array4<Real const> const& bcvalzlo,
-                          Array4<Real const> const& bcvalxhi,
-                          Array4<Real const> const& bcvalyhi,
-                          Array4<Real const> const& bcvalzhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalxlo,
+                          Array4<std::type_identity_t<T> const> const& bcvalylo,
+                          Array4<std::type_identity_t<T> const> const& bcvalzlo,
+                          Array4<std::type_identity_t<T> const> const& bcvalxhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalyhi,
+                          Array4<std::type_identity_t<T> const> const& bcvalzhi,
                           Array2D<BoundCond,
                                   0,2*AMREX_SPACEDIM,
                                   0,AMREX_SPACEDIM> const& bct,
-                          Array2D<Real,
+                          Array2D<T,
                                   0,2*AMREX_SPACEDIM,
                                   0,AMREX_SPACEDIM> const& bcl,
                           int inhomog, int maxorder,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
                           Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const auto blen = amrex::length(vbox);
@@ -1612,61 +1627,66 @@ void mltensor_fill_edges (int const bid, int const tid, int const bdim,
 }
 #endif
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dz_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi) noexcept
+T mltensor_dz_on_xface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dzi) noexcept
 {
-    return (vel(i,j,k+1,n)+vel(i-1,j,k+1,n)-vel(i,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dzi);
+    return (vel(i,j,k+1,n)+vel(i-1,j,k+1,n)-vel(i,j,k-1,n)-vel(i-1,j,k-1,n))*(T(0.25)*dzi);
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dz_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi) noexcept
+T mltensor_dz_on_yface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dzi) noexcept
 {
-    return (vel(i,j,k+1,n)+vel(i,j-1,k+1,n)-vel(i,j,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dzi);
+    return (vel(i,j,k+1,n)+vel(i,j-1,k+1,n)-vel(i,j,k-1,n)-vel(i,j-1,k-1,n))*(T(0.25)*dzi);
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dx_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi) noexcept
+T mltensor_dx_on_zface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dxi) noexcept
 {
-    return (vel(i+1,j,k,n)+vel(i+1,j,k-1,n)-vel(i-1,j,k,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dxi);
+    return (vel(i+1,j,k,n)+vel(i+1,j,k-1,n)-vel(i-1,j,k,n)-vel(i-1,j,k-1,n))*(T(0.25)*dxi);
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dy_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi) noexcept
+T mltensor_dy_on_zface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dyi) noexcept
 {
-    return (vel(i,j+1,k,n)+vel(i,j+1,k-1,n)-vel(i,j-1,k,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dyi);
+    return (vel(i,j+1,k,n)+vel(i,j+1,k-1,n)-vel(i,j-1,k,n)-vel(i,j-1,k-1,n))*(T(0.25)*dyi);
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etax,
-                              Array4<Real const> const& kapx,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& mapfac = {}) noexcept
+void mltensor_cross_terms_fx (Box const& box, Array4<T> const& fx,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etax,
+                              Array4<std::type_identity_t<T> const> const& kapx,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
-                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
-                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
-                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
+                T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+                T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+                T dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
+                T dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
                 if (mapfac) {
-                    const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
-                    const Real rxz = mapfac(i,j,k,0)/mapfac(i,j,k,2);
+                    const T rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                    const T rxz = mapfac(i,j,k,0)/mapfac(i,j,k,2);
                     dudy *= rxy; dvdy *= rxy; dudz *= rxz; dwdz *= rxz;
                 }
-                Real divu = dvdy + dwdz;
-                Real xif = kapx(i,j,k);
-                Real mun = Real(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
-                Real mut =             etax(i,j,k,1);
+                T divu = dvdy + dwdz;
+                T xif = kapx(i,j,k);
+                T mun = T(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
+                T mut =             etax(i,j,k,1);
                 fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
                 fx(i,j,k,1) = -mut*(dudy);
                 fx(i,j,k,2) = -mut*(dudz);
@@ -1675,37 +1695,38 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etay,
-                              Array4<Real const> const& kapy,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& mapfac = {}) noexcept
+void mltensor_cross_terms_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etay,
+                              Array4<std::type_identity_t<T> const> const& kapy,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
-                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
-                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
-                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
+                T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+                T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+                T dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
+                T dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
                 if (mapfac) {
-                    const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
-                    const Real ryz = mapfac(i,j,k,1)/mapfac(i,j,k,2);
+                    const T ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                    const T ryz = mapfac(i,j,k,1)/mapfac(i,j,k,2);
                     dudx *= ryx; dvdx *= ryx; dvdz *= ryz; dwdz *= ryz;
                 }
-                Real divu = dudx + dwdz;
-                Real xif = kapy(i,j,k);
-                Real mun = Real(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
-                Real mut =             etay(i,j,k,0);
+                T divu = dudx + dwdz;
+                T xif = kapy(i,j,k);
+                T mun = T(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
+                T mut =             etay(i,j,k,0);
                 fy(i,j,k,0) = -mut*(dvdx);
                 fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
                 fy(i,j,k,2) = -mut*(dvdz);
@@ -1714,37 +1735,38 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etaz,
-                              Array4<Real const> const& kapz,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& mapfac = {}) noexcept
+void mltensor_cross_terms_fz (Box const& box, Array4<T> const& fz,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etaz,
+                              Array4<std::type_identity_t<T> const> const& kapz,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
-                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
-                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
-                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
+                T dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
+                T dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
+                T dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
+                T dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
                 if (mapfac) {
-                    const Real rzx = mapfac(i,j,k,2)/mapfac(i,j,k,0);
-                    const Real rzy = mapfac(i,j,k,2)/mapfac(i,j,k,1);
+                    const T rzx = mapfac(i,j,k,2)/mapfac(i,j,k,0);
+                    const T rzy = mapfac(i,j,k,2)/mapfac(i,j,k,1);
                     dudx *= rzx; dwdx *= rzx; dvdy *= rzy; dwdy *= rzy;
                 }
-                Real divu = dudx + dvdy;
-                Real xif = kapz(i,j,k);
-                Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
-                Real mut =             etaz(i,j,k,0);
+                T divu = dudx + dvdy;
+                T xif = kapz(i,j,k);
+                T mun = T(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
+                T mut =             etaz(i,j,k,0);
                 fz(i,j,k,0) = -mut*(dwdx);
                 fz(i,j,k,1) = -mut*(dwdy);
                 fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
@@ -1753,50 +1775,51 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dz_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi,
-                           Array4<Real const> const& bvxlo, Array4<Real const> const& bvxhi,
+T mltensor_dz_on_xface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dzi,
+                           Array4<std::type_identity_t<T> const> const& bvxlo, Array4<std::type_identity_t<T> const> const& bvxhi,
                            Array2D<BoundCond,
                                    0,2*AMREX_SPACEDIM,
                                    0,AMREX_SPACEDIM> const& bct,
                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    Real ddz;
+    T ddz;
     if (i == dlo.x) {
         if (bct(Orientation::xlo(),n) == AMREX_LO_DIRICHLET && bvxlo) {
             if (k == dlo.z) {
-                ddz = (bvxlo(i-1,j,k  ,n) * Real(-1.5) +
-                       bvxlo(i-1,j,k+1,n) * Real(2.) +
-                       bvxlo(i-1,j,k+2,n) * Real(-0.5)) * dzi;
+                ddz = (bvxlo(i-1,j,k  ,n) * T(-1.5) +
+                       bvxlo(i-1,j,k+1,n) * T(2.) +
+                       bvxlo(i-1,j,k+2,n) * T(-0.5)) * dzi;
             } else if (k == dhi.z) {
-                ddz = -(bvxlo(i-1,j,k  ,n) * Real(-1.5) +
-                        bvxlo(i-1,j,k-1,n) * Real(2.) +
-                        bvxlo(i-1,j,k-2,n) * Real(-0.5)) * dzi;
+                ddz = -(bvxlo(i-1,j,k  ,n) * T(-1.5) +
+                        bvxlo(i-1,j,k-1,n) * T(2.) +
+                        bvxlo(i-1,j,k-2,n) * T(-0.5)) * dzi;
             } else {
-                ddz = (bvxlo(i-1,j,k+1,n)-bvxlo(i-1,j,k-1,n))*(Real(0.5)*dzi);
+                ddz = (bvxlo(i-1,j,k+1,n)-bvxlo(i-1,j,k-1,n))*(T(0.5)*dzi);
             }
         } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
-            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
+            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(T(0.5)*dzi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddz = Real(0.);
+            ddz = T(0.);
         }
     } else if (i == dhi.x+1) {
         if (bct(Orientation::xhi(),n) == AMREX_LO_DIRICHLET && bvxhi) {
             if (k == dlo.z) {
-                ddz = (bvxhi(i,j,k  ,n) * Real(-1.5) +
-                       bvxhi(i,j,k+1,n) * Real(2.) +
-                       bvxhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+                ddz = (bvxhi(i,j,k  ,n) * T(-1.5) +
+                       bvxhi(i,j,k+1,n) * T(2.) +
+                       bvxhi(i,j,k+2,n) * T(-0.5)) * dzi;
             } else if (k == dhi.z) {
-                ddz = -(bvxhi(i,j,k  ,n) * Real(-1.5) +
-                        bvxhi(i,j,k-1,n) * Real(2.) +
-                        bvxhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+                ddz = -(bvxhi(i,j,k  ,n) * T(-1.5) +
+                        bvxhi(i,j,k-1,n) * T(2.) +
+                        bvxhi(i,j,k-2,n) * T(-0.5)) * dzi;
             } else {
-                ddz = (bvxhi(i,j,k+1,n)-bvxhi(i,j,k-1,n))*(Real(0.5)*dzi);
+                ddz = (bvxhi(i,j,k+1,n)-bvxhi(i,j,k-1,n))*(T(0.5)*dzi);
             }
         } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
-            ddz = (vel(i-1,j,k+1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dzi);
+            ddz = (vel(i-1,j,k+1,n)-vel(i-1,j,k-1,n))*(T(0.5)*dzi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddz = Real(0.);
+            ddz = T(0.);
         }
     } else {
         ddz = mltensor_dz_on_xface(i,j,k,n,vel,dzi);
@@ -1804,50 +1827,51 @@ Real mltensor_dz_on_xface (int i, int j, int k, int n, Array4<Real const> const&
     return ddz;
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dz_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi,
-                           Array4<Real const> const& bvylo, Array4<Real const> const& bvyhi,
+T mltensor_dz_on_yface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dzi,
+                           Array4<std::type_identity_t<T> const> const& bvylo, Array4<std::type_identity_t<T> const> const& bvyhi,
                            Array2D<BoundCond,
                                    0,2*AMREX_SPACEDIM,
                                    0,AMREX_SPACEDIM> const& bct,
                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    Real ddz;
+    T ddz;
     if (j == dlo.y) {
         if (bct(Orientation::ylo(),n) == AMREX_LO_DIRICHLET && bvylo) {
             if (k == dlo.z) {
-                ddz = (bvylo(i,j-1,k  ,n) * Real(-1.5) +
-                       bvylo(i,j-1,k+1,n) * Real(2.) +
-                       bvylo(i,j-1,k+2,n) * Real(-0.5)) * dzi;
+                ddz = (bvylo(i,j-1,k  ,n) * T(-1.5) +
+                       bvylo(i,j-1,k+1,n) * T(2.) +
+                       bvylo(i,j-1,k+2,n) * T(-0.5)) * dzi;
             } else if (k == dhi.z) {
-                ddz = -(bvylo(i,j-1,k  ,n) * Real(-1.5) +
-                        bvylo(i,j-1,k-1,n) * Real(2.) +
-                        bvylo(i,j-1,k-2,n) * Real(-0.5)) * dzi;
+                ddz = -(bvylo(i,j-1,k  ,n) * T(-1.5) +
+                        bvylo(i,j-1,k-1,n) * T(2.) +
+                        bvylo(i,j-1,k-2,n) * T(-0.5)) * dzi;
             } else {
-                ddz = (bvylo(i,j-1,k+1,n)-bvylo(i,j-1,k-1,n))*(Real(0.5)*dzi);
+                ddz = (bvylo(i,j-1,k+1,n)-bvylo(i,j-1,k-1,n))*(T(0.5)*dzi);
             }
         } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
-            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
+            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(T(0.5)*dzi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddz = Real(0.);
+            ddz = T(0.);
         }
     } else if (j == dhi.y+1) {
         if (bct(Orientation::yhi(),n) == AMREX_LO_DIRICHLET && bvyhi) {
             if (k == dlo.z) {
-                ddz = (bvyhi(i,j,k  ,n) * Real(-1.5) +
-                       bvyhi(i,j,k+1,n) * Real(2.) +
-                       bvyhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+                ddz = (bvyhi(i,j,k  ,n) * T(-1.5) +
+                       bvyhi(i,j,k+1,n) * T(2.) +
+                       bvyhi(i,j,k+2,n) * T(-0.5)) * dzi;
             } else if (k == dhi.z) {
-                ddz = -(bvyhi(i,j,k  ,n) * Real(-1.5) +
-                        bvyhi(i,j,k-1,n) * Real(2.) +
-                        bvyhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+                ddz = -(bvyhi(i,j,k  ,n) * T(-1.5) +
+                        bvyhi(i,j,k-1,n) * T(2.) +
+                        bvyhi(i,j,k-2,n) * T(-0.5)) * dzi;
             } else {
-                ddz = (bvyhi(i,j,k+1,n)-bvyhi(i,j,k-1,n))*(Real(0.5)*dzi);
+                ddz = (bvyhi(i,j,k+1,n)-bvyhi(i,j,k-1,n))*(T(0.5)*dzi);
             }
         } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
-            ddz = (vel(i,j-1,k+1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dzi);
+            ddz = (vel(i,j-1,k+1,n)-vel(i,j-1,k-1,n))*(T(0.5)*dzi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddz = Real(0.);
+            ddz = T(0.);
         }
     } else {
         ddz = mltensor_dz_on_yface(i,j,k,n,vel,dzi);
@@ -1855,50 +1879,51 @@ Real mltensor_dz_on_yface (int i, int j, int k, int n, Array4<Real const> const&
     return ddz;
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dx_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi,
-                           Array4<Real const> const& bvzlo, Array4<Real const> const& bvzhi,
+T mltensor_dx_on_zface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dxi,
+                           Array4<std::type_identity_t<T> const> const& bvzlo, Array4<std::type_identity_t<T> const> const& bvzhi,
                            Array2D<BoundCond,
                                    0,2*AMREX_SPACEDIM,
                                    0,AMREX_SPACEDIM> const& bct,
                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    Real ddx;
+    T ddx;
     if (k == dlo.z) {
         if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
             if (i == dlo.x) {
-                ddx = (bvzlo(i  ,j,k-1,n) * Real(-1.5) +
-                       bvzlo(i+1,j,k-1,n) * Real(2.) +
-                       bvzlo(i+2,j,k-1,n) * Real(-0.5)) * dxi;
+                ddx = (bvzlo(i  ,j,k-1,n) * T(-1.5) +
+                       bvzlo(i+1,j,k-1,n) * T(2.) +
+                       bvzlo(i+2,j,k-1,n) * T(-0.5)) * dxi;
             } else if (i == dhi.x) {
-                ddx = -(bvzlo(i  ,j,k-1,n) * Real(-1.5) +
-                        bvzlo(i-1,j,k-1,n) * Real(2.) +
-                        bvzlo(i-2,j,k-1,n) * Real(-0.5)) * dxi;
+                ddx = -(bvzlo(i  ,j,k-1,n) * T(-1.5) +
+                        bvzlo(i-1,j,k-1,n) * T(2.) +
+                        bvzlo(i-2,j,k-1,n) * T(-0.5)) * dxi;
             } else {
-                ddx = (bvzlo(i+1,j,k-1,n)-bvzlo(i-1,j,k-1,n))*(Real(0.5)*dxi);
+                ddx = (bvzlo(i+1,j,k-1,n)-bvzlo(i-1,j,k-1,n))*(T(0.5)*dxi);
             }
         } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
-            ddx = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(Real(0.5)*dxi);
+            ddx = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(T(0.5)*dxi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddx = Real(0.);
+            ddx = T(0.);
         }
     } else if (k == dhi.z+1) {
         if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
             if (i == dlo.x) {
-                ddx = (bvzhi(i  ,j,k,n) * Real(-1.5) +
-                       bvzhi(i+1,j,k,n) * Real(2.) +
-                       bvzhi(i+2,j,k,n) * Real(-0.5)) * dxi;
+                ddx = (bvzhi(i  ,j,k,n) * T(-1.5) +
+                       bvzhi(i+1,j,k,n) * T(2.) +
+                       bvzhi(i+2,j,k,n) * T(-0.5)) * dxi;
             } else if (i == dhi.x) {
-                ddx = -(bvzhi(i  ,j,k,n) * Real(-1.5) +
-                        bvzhi(i-1,j,k,n) * Real(2.) +
-                        bvzhi(i-2,j,k,n) * Real(-0.5)) * dxi;
+                ddx = -(bvzhi(i  ,j,k,n) * T(-1.5) +
+                        bvzhi(i-1,j,k,n) * T(2.) +
+                        bvzhi(i-2,j,k,n) * T(-0.5)) * dxi;
             } else {
-                ddx = (bvzhi(i+1,j,k,n)-bvzhi(i-1,j,k,n))*(Real(0.5)*dxi);
+                ddx = (bvzhi(i+1,j,k,n)-bvzhi(i-1,j,k,n))*(T(0.5)*dxi);
             }
         } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
-            ddx = (vel(i+1,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dxi);
+            ddx = (vel(i+1,j,k-1,n)-vel(i-1,j,k-1,n))*(T(0.5)*dxi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddx = Real(0.);
+            ddx = T(0.);
         }
     } else {
         ddx = mltensor_dx_on_zface(i,j,k,n,vel,dxi);
@@ -1906,50 +1931,51 @@ Real mltensor_dx_on_zface (int i, int j, int k, int n, Array4<Real const> const&
     return ddx;
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mltensor_dy_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi,
-                           Array4<Real const> const& bvzlo, Array4<Real const> const& bvzhi,
+T mltensor_dy_on_zface (int i, int j, int k, int n, Array4<std::type_identity_t<T> const> const& vel, T dyi,
+                           Array4<std::type_identity_t<T> const> const& bvzlo, Array4<std::type_identity_t<T> const> const& bvzhi,
                            Array2D<BoundCond,
                                    0,2*AMREX_SPACEDIM,
                                    0,AMREX_SPACEDIM> const& bct,
                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    Real ddy;
+    T ddy;
     if (k == dlo.z) {
         if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
             if (j == dlo.y) {
-                ddy = (bvzlo(i,j  ,k-1,n) * Real(-1.5) +
-                       bvzlo(i,j+1,k-1,n) * Real(2.) +
-                       bvzlo(i,j+2,k-1,n) * Real(-0.5)) * dyi;
+                ddy = (bvzlo(i,j  ,k-1,n) * T(-1.5) +
+                       bvzlo(i,j+1,k-1,n) * T(2.) +
+                       bvzlo(i,j+2,k-1,n) * T(-0.5)) * dyi;
             } else if (j == dhi.y) {
-                ddy = -(bvzlo(i,j  ,k-1,n) * Real(-1.5) +
-                        bvzlo(i,j-1,k-1,n) * Real(2.) +
-                        bvzlo(i,j-2,k-1,n) * Real(-0.5)) * dyi;
+                ddy = -(bvzlo(i,j  ,k-1,n) * T(-1.5) +
+                        bvzlo(i,j-1,k-1,n) * T(2.) +
+                        bvzlo(i,j-2,k-1,n) * T(-0.5)) * dyi;
             } else {
-                ddy = (bvzlo(i,j+1,k-1,n)-bvzlo(i,j-1,k-1,n))*(Real(0.5)*dyi);
+                ddy = (bvzlo(i,j+1,k-1,n)-bvzlo(i,j-1,k-1,n))*(T(0.5)*dyi);
             }
         } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
-            ddy = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(Real(0.5)*dyi);
+            ddy = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(T(0.5)*dyi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddy = Real(0.);
+            ddy = T(0.);
         }
     } else if (k == dhi.z+1) {
         if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
             if (j == dlo.y) {
-                ddy = (bvzhi(i,j  ,k,n) * Real(-1.5) +
-                       bvzhi(i,j+1,k,n) * Real(2.) +
-                       bvzhi(i,j+2,k,n) * Real(-0.5)) * dyi;
+                ddy = (bvzhi(i,j  ,k,n) * T(-1.5) +
+                       bvzhi(i,j+1,k,n) * T(2.) +
+                       bvzhi(i,j+2,k,n) * T(-0.5)) * dyi;
             } else if (j == dhi.y) {
-                ddy = -(bvzhi(i,j  ,k,n) * Real(-1.5) +
-                        bvzhi(i,j-1,k,n) * Real(2.) +
-                        bvzhi(i,j-2,k,n) * Real(-0.5)) * dyi;
+                ddy = -(bvzhi(i,j  ,k,n) * T(-1.5) +
+                        bvzhi(i,j-1,k,n) * T(2.) +
+                        bvzhi(i,j-2,k,n) * T(-0.5)) * dyi;
             } else {
-                ddy = (bvzhi(i,j+1,k,n)-bvzhi(i,j-1,k,n))*(Real(0.5)*dyi);
+                ddy = (bvzhi(i,j+1,k,n)-bvzhi(i,j-1,k,n))*(T(0.5)*dyi);
             }
         } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
-            ddy = (vel(i,j+1,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dyi);
+            ddy = (vel(i,j+1,k-1,n)-vel(i,j-1,k-1,n))*(T(0.5)*dyi);
         } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-            ddy = Real(0.);
+            ddy = T(0.);
         }
     } else {
         ddy = mltensor_dy_on_zface(i,j,k,n,vel,dyi);
@@ -1957,42 +1983,43 @@ Real mltensor_dy_on_zface (int i, int j, int k, int n, Array4<Real const> const&
     return ddy;
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etax,
-                              Array4<Real const> const& kapx,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& bvxlo,
-                              Array4<Real const> const& bvxhi,
+void mltensor_cross_terms_fx (Box const& box, Array4<T> const& fx,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etax,
+                              Array4<std::type_identity_t<T> const> const& kapx,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& bvxlo,
+                              Array4<std::type_identity_t<T> const> const& bvxhi,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
                               Dim3 const& dlo, Dim3 const& dhi,
-                              Array4<Real const> const& mapfac = {}) noexcept
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
                 if (mapfac) {
-                    const Real rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
-                    const Real rxz = mapfac(i,j,k,0)/mapfac(i,j,k,2);
+                    const T rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
+                    const T rxz = mapfac(i,j,k,0)/mapfac(i,j,k,2);
                     dudy *= rxy; dvdy *= rxy; dudz *= rxz; dwdz *= rxz;
                 }
-                Real divu = dvdy + dwdz;
-                Real xif = kapx(i,j,k);
-                Real mun = Real(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
-                Real mut =             etax(i,j,k,1);
+                T divu = dvdy + dwdz;
+                T xif = kapx(i,j,k);
+                T mun = T(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
+                T mut =             etax(i,j,k,1);
                 fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
                 fx(i,j,k,1) = -mut*(dudy);
                 fx(i,j,k,2) = -mut*(dudz);
@@ -2001,42 +2028,43 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etay,
-                              Array4<Real const> const& kapy,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& bvylo,
-                              Array4<Real const> const& bvyhi,
+void mltensor_cross_terms_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etay,
+                              Array4<std::type_identity_t<T> const> const& kapy,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& bvylo,
+                              Array4<std::type_identity_t<T> const> const& bvyhi,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
                               Dim3 const& dlo, Dim3 const& dhi,
-                              Array4<Real const> const& mapfac = {}) noexcept
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                T dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
                 if (mapfac) {
-                    const Real ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
-                    const Real ryz = mapfac(i,j,k,1)/mapfac(i,j,k,2);
+                    const T ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
+                    const T ryz = mapfac(i,j,k,1)/mapfac(i,j,k,2);
                     dudx *= ryx; dvdx *= ryx; dvdz *= ryz; dwdz *= ryz;
                 }
-                Real divu = dudx + dwdz;
-                Real xif = kapy(i,j,k);
-                Real mun = Real(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
-                Real mut =             etay(i,j,k,0);
+                T divu = dudx + dwdz;
+                T xif = kapy(i,j,k);
+                T mun = T(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
+                T mut =             etay(i,j,k,0);
                 fy(i,j,k,0) = -mut*(dvdx);
                 fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
                 fy(i,j,k,2) = -mut*(dvdz);
@@ -2045,42 +2073,43 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
-                              Array4<Real const> const& vel,
-                              Array4<Real const> const& etaz,
-                              Array4<Real const> const& kapz,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Array4<Real const> const& bvzlo,
-                              Array4<Real const> const& bvzhi,
+void mltensor_cross_terms_fz (Box const& box, Array4<T> const& fz,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              Array4<std::type_identity_t<T> const> const& etaz,
+                              Array4<std::type_identity_t<T> const> const& kapz,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              Array4<std::type_identity_t<T> const> const& bvzlo,
+                              Array4<std::type_identity_t<T> const> const& bvzhi,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
                               Dim3 const& dlo, Dim3 const& dhi,
-                              Array4<Real const> const& mapfac = {}) noexcept
+                              Array4<std::type_identity_t<T> const> const& mapfac = {}) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = Real(2./3.);
+    constexpr T twoThirds = T(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
                 if (mapfac) {
-                    const Real rzx = mapfac(i,j,k,2)/mapfac(i,j,k,0);
-                    const Real rzy = mapfac(i,j,k,2)/mapfac(i,j,k,1);
+                    const T rzx = mapfac(i,j,k,2)/mapfac(i,j,k,0);
+                    const T rzy = mapfac(i,j,k,2)/mapfac(i,j,k,1);
                     dudx *= rzx; dwdx *= rzx; dvdy *= rzy; dwdy *= rzy;
                 }
-                Real divu = dudx + dvdy;
-                Real xif = kapz(i,j,k);
-                Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
-                Real mut =             etaz(i,j,k,0);
+                T divu = dudx + dvdy;
+                T xif = kapz(i,j,k);
+                T mun = T(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
+                T mut =             etaz(i,j,k,0);
                 fz(i,j,k,0) = -mut*(dwdx);
                 fz(i,j,k,1) = -mut*(dwdy);
                 fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
@@ -2089,17 +2118,18 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
-                           Array4<Real const> const& fx,
-                           Array4<Real const> const& fy,
-                           Array4<Real const> const& fz,
-                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                           Real bscalar) noexcept
+void mltensor_cross_terms (Box const& box, Array4<T> const& Ax,
+                           Array4<std::type_identity_t<T> const> const& fx,
+                           Array4<std::type_identity_t<T> const> const& fy,
+                           Array4<std::type_identity_t<T> const> const& fz,
+                           GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                           T bscalar) noexcept
 {
-    const Real dxi = bscalar * dxinv[0];
-    const Real dyi = bscalar * dxinv[1];
-    const Real dzi = bscalar * dxinv[2];
+    const T dxi = bscalar * dxinv[0];
+    const T dyi = bscalar * dxinv[1];
+    const T dzi = bscalar * dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -2121,18 +2151,19 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
-                              Array4<Real const> const& fx,
-                              Array4<Real const> const& fy,
-                              Array4<Real const> const& fz,
+void mltensor_cross_terms_os (Box const& box, Array4<T> const& Ax,
+                              Array4<std::type_identity_t<T> const> const& fx,
+                              Array4<std::type_identity_t<T> const> const& fy,
+                              Array4<std::type_identity_t<T> const> const& fz,
                               Array4<int const> const& osm,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              Real bscalar) noexcept
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                              T bscalar) noexcept
 {
-    const Real dxi = bscalar * dxinv[0];
-    const Real dyi = bscalar * dxinv[1];
-    const Real dzi = bscalar * dxinv[2];
+    const T dxi = bscalar * dxinv[0];
+    const T dyi = bscalar * dxinv[1];
+    const T dzi = bscalar * dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -2160,14 +2191,15 @@ void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mltensor_vel_grads_fx (Box const& box, Array4<T> const& fx,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -2176,17 +2208,17 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
 
-                Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
-                Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
-                Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+                T dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                T dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                T dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
 
-                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
-                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
-                Real dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi);
+                T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+                T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+                T dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi);
 
-                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
-                Real dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi);
-                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
+                T dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
+                T dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi);
+                T dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
 
                 fx(i,j,k,0) = dudx;
                 fx(i,j,k,1) = dvdx;
@@ -2203,14 +2235,15 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                              Array4<Real const> const& vel,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mltensor_vel_grads_fy (Box const& box, Array4<T> const& fy,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -2219,17 +2252,17 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
 
-                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
-                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
-                Real dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi);
+                T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+                T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+                T dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi);
 
-                Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
-                Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
-                Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                T dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                T dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                T dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
 
-                Real dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi);
-                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
-                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
+                T dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi);
+                T dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
+                T dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
 
                 fy(i,j,k,0) = dudx;
                 fy(i,j,k,1) = dvdx;
@@ -2246,14 +2279,15 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
-                              Array4<Real const> const& vel,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mltensor_vel_grads_fz (Box const& box, Array4<T> const& fz,
+                              Array4<std::type_identity_t<T> const> const& vel,
+                              GpuArray<T,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
@@ -2262,17 +2296,17 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
 
-                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
-                Real dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi);
-                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
+                T dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
+                T dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi);
+                T dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
 
-                Real dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi);
-                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
-                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
+                T dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi);
+                T dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
+                T dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
 
-                Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
-                Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
-                Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+                T dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                T dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                T dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
 
                 fz(i,j,k,0) = dudx;
                 fz(i,j,k,1) = dvdx;
@@ -2289,35 +2323,36 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvxlo,
-                            Array4<Real const> const& bvxhi,
+void mltensor_vel_grads_fx (Box const& box, Array4<T> const& fx,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                            Array4<std::type_identity_t<T> const> const& bvxlo,
+                            Array4<std::type_identity_t<T> const> const& bvxhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
-                Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
-                Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
-                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
-                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                T dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                T dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+                T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
                 fx(i,j,k,0) = dudx;
                 fx(i,j,k,1) = dvdx;
                 fx(i,j,k,2) = dwdx;
@@ -2333,35 +2368,36 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvylo,
-                            Array4<Real const> const& bvyhi,
+void mltensor_vel_grads_fy (Box const& box, Array4<T> const& fy,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                            Array4<std::type_identity_t<T> const> const& bvylo,
+                            Array4<std::type_identity_t<T> const> const& bvyhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
-                Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
-                Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
-                Real dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
-                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                T dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                T dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                T dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                T dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                T dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
                 fy(i,j,k,0) = dudx;
                 fy(i,j,k,1) = dvdx;
                 fy(i,j,k,2) = dwdx;
@@ -2377,35 +2413,36 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
-                            Array4<Real const> const& vel,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvzlo,
-                            Array4<Real const> const& bvzhi,
+void mltensor_vel_grads_fz (Box const& box, Array4<T> const& fz,
+                            Array4<std::type_identity_t<T> const> const& vel,
+                            GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                            Array4<std::type_identity_t<T> const> const& bvzlo,
+                            Array4<std::type_identity_t<T> const> const& bvzhi,
                             Array2D<BoundCond,
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bct,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
-    const Real dzi = dxinv[2];
+    const T dxi = dxinv[0];
+    const T dyi = dxinv[1];
+    const T dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
-                Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
-                Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
-                Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+                T dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                T dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                T dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
                 fz(i,j,k,0) = dudx;
                 fz(i,j,k,1) = dvdx;
                 fz(i,j,k,2) = dwdx;

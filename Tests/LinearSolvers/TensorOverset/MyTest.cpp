@@ -29,6 +29,7 @@ MyTest::solve ()
 
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMixedPrecision(mixed_precision);
 
     std::unique_ptr<MLTensorOp> mltensor;
     if (do_overset) {
@@ -104,6 +105,7 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 
     pp.query("do_overset", do_overset);
+    pp.query("mixed_precision", mixed_precision);
 }
 
 void
