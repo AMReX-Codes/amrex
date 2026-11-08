@@ -30,6 +30,8 @@ void testNeighborParticles();
 
 void testNeighborList();
 
+void testGhostCopyMasked();
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -39,6 +41,8 @@ int main (int argc, char* argv[])
 
     amrex::PrintToFile("neighbor_test") << "Running neighbor list test \n";
     testNeighborList();
+
+    testGhostCopyMasked();
 
     amrex::Finalize();
 }
