@@ -1178,9 +1178,20 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
 }
 
 int
-STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const
+STLtools::getBoxType (Box const& a_box, Geometry const& geom, RunOn,
+                      Box const& bounding_box) const
 {
     BL_PROFILE("STLtools::getBoxType");
+
+    // Nodes outside the bounding box take the value of the nearest node in
+    // it, as in fillFab.  So the box has the same nodes as its clamp.
+    Box box = a_box;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        box.setSmall(idim, amrex::Clamp(a_box.smallEnd(idim), bounding_box.smallEnd(idim),
+                                        bounding_box.bigEnd(idim)));
+        box.setBig(idim, amrex::Clamp(a_box.bigEnd(idim), bounding_box.smallEnd(idim),
+                                      bounding_box.bigEnd(idim)));
+    }
 
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
@@ -1315,12 +1326,19 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) c
 }
 
 void
-STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box const&) const
+STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
+                   Box const& bounding_box) const
 {
     int num_triangles = m_num_tri;
 
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
+
+    // Nodes outside the bounding box take the value of the nearest node in
+    // it, as in GeometryShop.  With extend_domain_face, the bounding box is
+    // the domain, so the geometry outside is an extrusion of the domain face.
+    const auto blo = amrex::lbound(bounding_box);
+    const auto bhi = amrex::ubound(bounding_box);
 
     const Triangle* tri_pts = m_tri_pts_d.data();
     XDim3 ptmin = m_ptmin;
@@ -1344,12 +1362,13 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
                 bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, auto control) noexcept
     {
         Real coords[3];
-        coords[0]=node_coord(plo[0], i, dx[0]);
-        coords[1]=node_coord(plo[1], j, dx[1]);
+        coords[0]=node_coord(plo[0], amrex::Clamp(i,blo.x,bhi.x), dx[0]);
+        coords[1]=node_coord(plo[1], amrex::Clamp(j,blo.y,bhi.y), dx[1]);
 #if (AMREX_SPACEDIM == 2)
+        amrex::ignore_unused(k);
         coords[2]=Real(0.);
 #else
-        coords[2]=node_coord(plo[2], k, dx[2]);
+        coords[2]=node_coord(plo[2], amrex::Clamp(k,blo.z,bhi.z), dx[2]);
 #endif
         int parity = 0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -1370,12 +1389,17 @@ void
 STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
                         Array4<Real const> const& lst ,Geometry const& geom,
-                        RunOn, Box const&) const
+                        RunOn, Box const& bounding_box) const
 {
     int num_triangles = m_num_tri;
 
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
+
+    // Edges outside the bounding box are evaluated at the nearest edge in it,
+    // as in fillFab.
+    const auto blo = amrex::lbound(bounding_box);
+    const auto bhi = amrex::ubound(bounding_box);
 
     const Triangle* tri_pts = m_tri_pts_d.data();
     const XDim3* tri_norm = m_tri_normals_d.data();
@@ -1402,16 +1426,21 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 #endif
             Real r = EB2::no_intercept;
             if (type(i,j,k) == EB2::Type::irregular) {
-                XDim3 p1{.x = node_coord(plo[0], i, dx[0]),
-                         .y = node_coord(plo[1], j, dx[1]),
+                int const ic = amrex::Clamp(i,blo.x,bhi.x);
+                int const jc = amrex::Clamp(j,blo.y,bhi.y);
+#if (AMREX_SPACEDIM == 3)
+                int const kc = amrex::Clamp(k,blo.z,bhi.z);
+#endif
+                XDim3 p1{.x = node_coord(plo[0], ic, dx[0]),
+                         .y = node_coord(plo[1], jc, dx[1]),
 #if (AMREX_SPACEDIM == 2)
                          .z = Real(0.)
 #else
-                         .z = node_coord(plo[2], k, dx[2])
+                         .z = node_coord(plo[2], kc, dx[2])
 #endif
                 };
                 if (idim == 0) {
-                    Real x2 = node_coord(plo[0], i+1, dx[0]);
+                    Real x2 = node_coord(plo[0], amrex::Clamp(i+1,blo.x,bhi.x), dx[0]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1450,7 +1479,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         r = (lst(i,j,k) >= 0._rt) ? p1.x : x2;
                     }
                 } else if (idim == 1) {
-                    Real y2 = node_coord(plo[1], j+1, dx[1]);
+                    Real y2 = node_coord(plo[1], amrex::Clamp(j+1,blo.y,bhi.y), dx[1]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {
@@ -1497,7 +1526,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                 }
 #if (AMREX_SPACEDIM == 3)
                 else {
-                    Real z2 = node_coord(plo[2], k+1, dx[2]);
+                    Real z2 = node_coord(plo[2], amrex::Clamp(k+1,blo.z,bhi.z), dx[2]);
                     bool found = false;
                     if constexpr (bvh_control == no_bvh) {
                         for (int it=0; it < num_triangles; ++it) {

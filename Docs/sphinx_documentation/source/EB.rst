@@ -180,6 +180,37 @@ ngrow` parameter specifies the number of ghost cells outside the domain on
 required levels. For levels coarser than the required level, no EB data are
 generated for ghost cells outside the domain.
 
+The optional :cpp:`bool extend_domain_face` parameter controls the embedded
+boundary outside the domain. If it is true (the default), the geometry outside
+each non-periodic domain face is an extrusion of the geometry on that face,
+that is, the embedded boundary is extended perpendicularly from the face. This
+holds on every level, including the coarse levels built by coarsening. If it
+is false, the geometry outside the domain comes from the implicit function
+itself. :numref:`fig::extend_domain_face` illustrates the two choices for a
+body that crosses the lower domain face. The parameter has the same effect for
+geometries built from an STL file (see below).
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig::extend_domain_face:
+
+.. figure:: ./EB/extend_domain_face.png
+   :width: 90.0%
+
+   Embedded boundary in the cut cells for a body crossing the lower domain
+   face. The lighter shading marks the ghost cells outside the domain and the
+   body in them. Left: with ``extend_domain_face = true``, the body outside the
+   domain is extended perpendicularly from the domain face, and the actual
+   surface there (dashed) is not used. Right: with
+   ``extend_domain_face = false``, the actual surface is used outside the
+   domain.
+
+.. raw:: latex
+
+   \end{center}
+
 **Build with Explicit Multi-Level Geometry**
 
 For applications requiring explicit control over the geometry at each AMR level:
@@ -221,11 +252,12 @@ an STL file using:
                     int num_coarsen_opt = NumCoarsenOpt());
 
 This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
-``eb2.stl_file`` to specify the STL file path. Because an STL file is expected
-to describe a water-tight object, the embedded boundary outside the domain is
-always taken from the STL mesh itself, and ``extend_domain_face`` is ignored. A
-grid box that no triangle touches is classified as entirely regular or entirely
-covered from a single point, which is correct only for a water-tight mesh.
+``eb2.stl_file`` to specify the STL file path. The embedded boundary outside
+the domain follows ``extend_domain_face`` as for a :cpp:`EB2::GeometryShop`:
+if it is true, the boundary is extended perpendicularly from the domain face;
+if it is false, the boundary is taken from the STL mesh itself. A grid box that
+no triangle touches is classified as entirely regular or entirely covered from
+a single point, which is correct only for a water-tight mesh.
 
 **Managing IndexSpace Objects**
 
