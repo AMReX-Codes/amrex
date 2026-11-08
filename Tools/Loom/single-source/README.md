@@ -19,12 +19,15 @@ strictly single-source.
 ## Requirements
 
 - Linux x86-64 with an AMD gfx90a GPU (MI210, MI250X).
-- ROCm 10.1, for its clang/clang++ and `libhsa-runtime64`. Other ROCm versions
-  have not been tried.
-- GCC 14 (its install directory, for libstdc++ and compiler headers).
+- A recent HSA runtime (ROCr), `libhsa-runtime64.so`, which HRX loads at run
+  time. Tested with ROCm 10.1's; nothing else from ROCm is used (no HIP, no
+  device libraries, no ROCm headers).
+- GCC 14 (its install directory, for libstdc++, glibc crt files and compiler
+  headers).
 - glibc headers (`/usr/include` on most systems).
 - [pixi](https://pixi.sh) for the conda-forge packages in `pixi.toml`:
-  MLIR/LLVM 22.1.8, libc++ 23.1.5, CMake and Ninja.
+  clang 22.1.8 (builds the tools and links), MLIR/LLVM 22.1.8 (cxx's back end),
+  libc++ 23.1.5 (host and device), CMake and Ninja.
 - About 30 GB of disk, and a few GB of memory per build job.
 
 ## Steps
@@ -44,7 +47,8 @@ running the scripts:
 
 | Variable          | Meaning                                  | Default                                  |
 |-------------------|------------------------------------------|------------------------------------------|
-| `ROCM_PATH`       | ROCm 10.1 root                           | `/opt/rocm/core-10.1`                    |
+| `ROCM_PATH`       | ROCm root, used only to find libhsa      | `/opt/rocm/core-10.1`                    |
+| `LIBHSA_PATH`     | `libhsa-runtime64.so` to load            | `$ROCM_PATH/lib/libhsa-runtime64.so.1`   |
 | `GCC_INSTALL_DIR` | GCC 14 `lib/gcc/<triple>/<version>`      | `/usr/lib64/gcc/x86_64-suse-linux/14`    |
 | `GLIBC_INCLUDE`   | glibc headers                            | `/usr/include`                           |
 | `LOOM_WORK`       | directory holding the three clones       | current directory                        |

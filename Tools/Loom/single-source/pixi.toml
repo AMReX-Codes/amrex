@@ -1,5 +1,6 @@
-# Toolchain pieces from conda-forge for single-source LOOM builds:
-# MLIR/LLVM for cxx's back end, libc++ shared by host and device, and build tools.
+# Toolchain pieces from conda-forge for single-source LOOM builds: clang for
+# building the tools and linking, MLIR/LLVM for cxx's back end, libc++ shared
+# by host and device, and build tools.
 # Install with:  pixi install --manifest-path <this file>
 # The environment lands in .pixi/envs/default next to this file.
 [workspace]
@@ -8,6 +9,8 @@ channels = ["conda-forge"]
 platforms = ["linux-64"]
 
 [dependencies]
+clang = "==22.1.8"
+clangxx = "==22.1.8"
 mlir = "==22.1.8"
 llvmdev = "==22.1.8"
 libcxx = "==23.1.5"

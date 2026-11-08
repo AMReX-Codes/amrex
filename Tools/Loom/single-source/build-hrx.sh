@@ -7,7 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 cmake -S "$HRX_SRC" -B "$HRX_BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLOOM_IMPORT_CXX=ON -DLIBHRX_BUILD=ON \
   -DFETCHCONTENT_SOURCE_DIR_CXX="$CXX_SRC" \
-  -DCMAKE_C_COMPILER="$ROCM_CLANG" -DCMAKE_CXX_COMPILER="$ROCM_CLANGXX" \
+  -DCMAKE_C_COMPILER="$CLANG" -DCMAKE_CXX_COMPILER="$CLANGXX" \
   -DCMAKE_C_FLAGS="--gcc-install-dir=$GCC_INSTALL_DIR" -DCMAKE_CXX_FLAGS="--gcc-install-dir=$GCC_INSTALL_DIR"
 cmake --build "$HRX_BUILD" --target loom-import-cxx loom-compile hrx -j "$BUILD_JOBS"
 mkdir -p "$AMREX_LOOM_LOOMCXX_DIR"
