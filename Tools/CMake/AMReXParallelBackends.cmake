@@ -226,6 +226,42 @@ endif ()
 # HIP
 #
 #
+# LOOM: device code is compiled by the amrex-loom-cxx driver (set as the C++
+# compiler); the host runtime is libhrx.
+if (AMReX_LOOM)
+   # NATIVE: AMReX_Loom.cpp implements the HIP runtime subset on libhrx.
+   # HRX_HIP: HRX's HIP compatibility library (libamdhip64.so) supplies the
+   #          runtime; AMReX_Loom.cpp keeps only the Loom kernel registry and
+   #          launches through hipModuleLaunchKernel.
+   set(AMReX_LOOM_RUNTIME "NATIVE" CACHE STRING "LOOM host runtime: NATIVE or HRX_HIP")
+   set_property(CACHE AMReX_LOOM_RUNTIME PROPERTY STRINGS NATIVE HRX_HIP)
+   set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
+   set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
+   set(AMReX_LOOM_HRX_HIP_LIB_DIR "" CACHE PATH "Directory containing HRX's libamdhip64.so")
+   set(AMReX_LOOM_HIP_INCLUDE_DIR "" CACHE PATH "Directory containing hip/hip_runtime_api.h")
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_include_directories(amrex_${D}d BEFORE PUBLIC
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Tools/Loom/hip>)
+      if (AMReX_LOOM_RUNTIME STREQUAL "HRX_HIP")
+         if (NOT AMReX_LOOM_HRX_HIP_LIB_DIR OR NOT AMReX_LOOM_HIP_INCLUDE_DIR)
+            message(FATAL_ERROR "AMReX_LOOM_RUNTIME=HRX_HIP needs AMReX_LOOM_HRX_HIP_LIB_DIR "
+                                "and AMReX_LOOM_HIP_INCLUDE_DIR")
+         endif ()
+         # After Tools/Loom/hip, so <hip/hip_runtime.h> stays the LOOM dialect
+         # while <hip/hip_runtime_api.h> resolves to the real declarations.
+         target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HIP_INCLUDE_DIR})
+         target_compile_definitions(amrex_${D}d PUBLIC AMREX_LOOM_HRX_HIP)
+         target_link_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_HIP_LIB_DIR})
+         target_link_options(amrex_${D}d PUBLIC "-Wl,-rpath,${AMReX_LOOM_HRX_HIP_LIB_DIR}")
+         target_link_libraries(amrex_${D}d PUBLIC amdhip64)
+      else ()
+         target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_INCLUDE_DIR})
+         target_link_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_LIB_DIR})
+         target_link_libraries(amrex_${D}d PUBLIC hrx)
+      endif ()
+   endforeach()
+endif ()
+
 if (AMReX_HIP)
 
    set(_valid_hip_compilers clang++ amdclang++ hipcc nvcc CC)

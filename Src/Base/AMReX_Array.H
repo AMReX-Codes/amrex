@@ -212,7 +212,7 @@ namespace amrex {
 #endif
 
         /// \cond DOXYGEN_IGNORE
-        T arr[amrex::max(N,1U)];
+        T arr[(N > 1U) ? N : 1U];
         /// \endcond
     };
 }

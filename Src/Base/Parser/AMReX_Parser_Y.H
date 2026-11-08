@@ -67,7 +67,7 @@ enum parser_f1_t {  // Built-in functions with one argument
 };
 
 static
-#if defined(__INTEL_COMPILER) && defined(__EDG__)
+#if (defined(__INTEL_COMPILER) && defined(__EDG__)) || defined(__loom__)
     const
 #else
     constexpr
@@ -119,7 +119,7 @@ enum parser_f2_t {  // Built-in functions with two arguments
 };
 
 static
-#if defined(__INTEL_COMPILER) && defined(__EDG__)
+#if (defined(__INTEL_COMPILER) && defined(__EDG__)) || defined(__loom__)
     const
 #else
     constexpr
@@ -150,7 +150,7 @@ enum parser_f3_t { // functions with three arguments
 };
 
 static
-#if defined(__INTEL_COMPILER) && defined(__EDG__)
+#if (defined(__INTEL_COMPILER) && defined(__EDG__)) || defined(__loom__)
     const
 #else
     constexpr
@@ -178,7 +178,7 @@ enum parser_node_t {
 };
 
 static
-#if defined(__INTEL_COMPILER) && defined(__EDG__)
+#if (defined(__INTEL_COMPILER) && defined(__EDG__)) || defined(__loom__)
     const
 #else
     constexpr
