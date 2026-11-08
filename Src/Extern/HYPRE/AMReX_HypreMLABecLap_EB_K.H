@@ -382,7 +382,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                 }
             } else if (t.id == row) {
                 bcrhs -= v*f.c[0]*e.bval[f.face](q);
-            } else {
+            } else if (t.face >= 0) { // a coarse neighbor's row
                 cfb[t.face] -= v*f.c[0]*e.bval[f.face](q);
             }
         }
