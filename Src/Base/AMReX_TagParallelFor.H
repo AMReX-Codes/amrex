@@ -122,6 +122,199 @@ struct CommSendBufTag { // for packing send buffer
     Box const& box () const noexcept { return bx; }
 };
 
+
+#ifdef AMREX_USE_LOOM
+/// \cond DOXYGEN_IGNORE
+// LOOM device code cannot load pointers from memory. Tags are stored on the
+// device with every pointer replaced by its byte offset from one base pointer
+// passed as a kernel argument, and rebuilt by value inside the kernel.
+namespace loomtag {
+
+struct A4 {
+    Long off;
+    detail::Stride<3> stride;
+    IntVectND<4> begin;
+    IntVectND<4> end;
+};
+
+template <class T>
+A4 store (Array4<T> const& a, char const* base) noexcept {
+    return {a.p ? Long((char const*)a.p - base) : 0, a.stride, a.begin, a.end};
+}
+
+template <class T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Array4<T> load (A4 const& s, char* base) noexcept {
+    return Array4<T>(reinterpret_cast<T*>(base + s.off), s.stride, s.begin, s.end);
+}
+
+template <class T>
+void note (Array4<T> const& a, char const*& base) noexcept {
+    auto* q = (char const*)a.p;
+    if (q && (!base || q < base)) { base = q; }
+}
+
+// Default: the original layout (tags without a mapping keep their pointers;
+// kernels that load them are dropped by the device pass).
+template <class Tag> struct Traits {
+    using Stored = Tag;
+    static void bases (Tag const&, char const*&) {}
+    static Stored store (Tag const& t, char const*) { return t; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag const& load (Stored const& s, char*) { return s; }
+};
+// Box (or size) of a stored tag, read without rebuilding its pointers.
+template <class S>
+requires requires (S const& s) { s.dbox; }
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Box stored_box (S const& s) { return s.dbox; }
+template <class S>
+requires (requires (S const& s) { s.bx; } && !requires (S const& s) { s.dbox; })
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Box stored_box (S const& s) { return s.bx; }
+template <class S>
+requires (requires (S const& s) { s.box(); } && !requires (S const& s) { s.bx; } &&
+          !requires (S const& s) { s.dbox; })
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Box stored_box (S const& s) { return s.box(); }
+
+template <class T0, class T1>
+struct Traits<Array4CopyTag<T0,T1>> {
+    using Tag = Array4CopyTag<T0,T1>;
+    struct Stored { A4 dfab; int dindex; A4 sfab; Box dbox; Dim3 offset; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); note(t.sfab,b); }
+    static Stored store (Tag const& t, char const* b) {
+        return {loomtag::store(t.dfab,b), t.dindex, loomtag::store(t.sfab,b), t.dbox, t.offset};
+    }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) {
+        return Tag{loomtag::load<T0>(s.dfab,b), s.dindex, loomtag::load<T1 const>(s.sfab,b),
+                   s.dbox, s.offset};
+    }
+};
+
+template <class T0, class T1>
+struct Traits<Array4MaskCopyTag<T0,T1>> {
+    using Tag = Array4MaskCopyTag<T0,T1>;
+    struct Stored { A4 dfab; A4 sfab; A4 mask; Box dbox; Dim3 offset; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); note(t.sfab,b); note(t.mask,b); }
+    static Stored store (Tag const& t, char const* b) {
+        return {loomtag::store(t.dfab,b), loomtag::store(t.sfab,b), loomtag::store(t.mask,b),
+                t.dbox, t.offset};
+    }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) {
+        return Tag{loomtag::load<T0>(s.dfab,b), loomtag::load<T1 const>(s.sfab,b),
+                   loomtag::load<int>(s.mask,b), s.dbox, s.offset};
+    }
+};
+
+template <class T>
+struct Traits<Array4PairTag<T>> {
+    using Tag = Array4PairTag<T>;
+    struct Stored { A4 dfab; A4 sfab; Box dbox; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); note(t.sfab,b); }
+    static Stored store (Tag const& t, char const* b) {
+        return {loomtag::store(t.dfab,b), loomtag::store(t.sfab,b), t.dbox};
+    }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) {
+        return Tag{loomtag::load<T>(s.dfab,b), loomtag::load<T const>(s.sfab,b), s.dbox};
+    }
+};
+
+template <class T>
+struct Traits<Array4Tag<T>> {
+    using Tag = Array4Tag<T>;
+    struct Stored {
+        A4 dfab;
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Box box () const noexcept {
+            return Box(IntVect(dfab.begin[0], dfab.begin[1], dfab.begin[2]),
+                       IntVect(dfab.end[0]-1, dfab.end[1]-1, dfab.end[2]-1));
+        }
+    };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.dfab,b)}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.dfab,b)}; }
+};
+
+template <class T>
+struct Traits<Array4BoxTag<T>> {
+    using Tag = Array4BoxTag<T>;
+    struct Stored { A4 dfab; Box dbox; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.dfab,b), t.dbox}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.dfab,b), s.dbox}; }
+};
+
+template <class T>
+struct Traits<Array4BoxValTag<T>> {
+    using Tag = Array4BoxValTag<T>;
+    struct Stored { A4 dfab; Box dbox; T val; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.dfab,b), t.dbox, t.val}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.dfab,b), s.dbox, s.val}; }
+};
+
+template <class T>
+struct Traits<Array4BoxOrientationTag<T>> {
+    using Tag = Array4BoxOrientationTag<T>;
+    struct Stored { A4 fab; Box bx; Orientation face; };
+    static void bases (Tag const& t, char const*& b) { note(t.fab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.fab,b), t.bx, t.face}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.fab,b), s.bx, s.face}; }
+};
+
+template <class T>
+struct Traits<Array4BoxOffsetTag<T>> {
+    using Tag = Array4BoxOffsetTag<T>;
+    struct Stored { A4 fab; Box bx; Dim3 offset; };
+    static void bases (Tag const& t, char const*& b) { note(t.fab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.fab,b), t.bx, t.offset}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.fab,b), s.bx, s.offset}; }
+};
+
+template <class T>
+struct Traits<CommRecvBufTag<T>> {
+    using Tag = CommRecvBufTag<T>;
+    struct Stored { A4 dfab; std::ptrdiff_t poff; Box bx; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.dfab,b), t.poff, t.bx}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T>(s.dfab,b), s.poff, s.bx}; }
+};
+
+template <class T>
+struct Traits<CommSendBufTag<T>> {
+    using Tag = CommSendBufTag<T>;
+    struct Stored { A4 sfab; std::ptrdiff_t poff; Box bx; };
+    static void bases (Tag const& t, char const*& b) { note(t.sfab,b); }
+    static Stored store (Tag const& t, char const* b) { return {loomtag::store(t.sfab,b), t.poff, t.bx}; }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{loomtag::load<T const>(s.sfab,b), s.poff, s.bx}; }
+};
+
+template <class T>
+struct Traits<VectorTag<T>> {
+    using Tag = VectorTag<T>;
+    struct Stored { Long off; Long m_size; };
+    static void bases (Tag const& t, char const*& b) {
+        auto* q = (char const*)t.p;
+        if (q && (!b || q < b)) { b = q; }
+    }
+    static Stored store (Tag const& t, char const* b) {
+        return {t.p ? Long((char const*)t.p - b) : 0, t.m_size};
+    }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) { return Tag{reinterpret_cast<T*>(b + s.off), s.m_size}; }
+};
+
+}
+/// \endcond
+#endif
+
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
@@ -159,6 +352,9 @@ struct TagVector {
     char* d_buffer = nullptr;
     TagType* d_tags =  nullptr;
     int* d_nwarps = nullptr;
+#ifdef AMREX_USE_LOOM
+    char* loom_base = nullptr; // tags hold pointer offsets from this base
+#endif
     int ntags = 0;
     int ntotwarps = 0;
     int nblocks = 0;
@@ -184,6 +380,9 @@ struct TagVector {
           d_buffer{other.d_buffer},
           d_tags{other.d_tags},
           d_nwarps{other.d_nwarps},
+#ifdef AMREX_USE_LOOM
+          loom_base{other.loom_base},
+#endif
           ntags{other.ntags},
           ntotwarps{other.ntotwarps},
           nblocks{other.nblocks},
@@ -211,6 +410,9 @@ struct TagVector {
         other.d_tags = nullptr;
         d_nwarps = other.d_nwarps;
         other.d_nwarps = nullptr;
+#ifdef AMREX_USE_LOOM
+        loom_base = other.loom_base;
+#endif
         ntags = other.ntags;
         other.ntags = 0;
         ntotwarps = other.ntotwarps;
@@ -251,7 +453,19 @@ struct TagVector {
         }
         nwarps.push_back(ntotwarps);
 
+#ifdef AMREX_USE_LOOM
+        using LoomTraits = loomtag::Traits<TagType>;
+        using LoomStored = typename LoomTraits::Stored;
+        char const* lbase = nullptr;
+        for (auto const& tag : tags) { LoomTraits::bases(tag, lbase); }
+        loom_base = const_cast<char*>(lbase);
+        Vector<LoomStored> stored;
+        stored.reserve(ntags);
+        for (auto const& tag : tags) { stored.push_back(LoomTraits::store(tag, lbase)); }
+        std::size_t sizeof_tags = ntags*sizeof(LoomStored);
+#else
         std::size_t sizeof_tags = ntags*sizeof(TagType);
+#endif
         std::size_t offset_nwarps = Arena::align(sizeof_tags);
         std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
         std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
@@ -259,7 +473,11 @@ struct TagVector {
         h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
         d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
+#ifdef AMREX_USE_LOOM
+        std::memcpy(h_buffer, stored.data(), sizeof_tags);
+#else
         std::memcpy(h_buffer, tags.data(), sizeof_tags);
+#endif
         std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
         Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
 
@@ -333,6 +551,30 @@ void tagparfor_call_f (int i, T const& tag, F&& f) noexcept
     f(i, N, tag);
 }
 
+#ifdef AMREX_USE_LOOM
+template <class Traits, class S, class F>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void loom_tagparfor_call_f (int icell, S const& s, char* base, F const& f) noexcept
+{
+    if constexpr (requires { loomtag::stored_box(s); }) {
+        const Box bx = loomtag::stored_box(s);
+        int ncells = bx.numPts();
+        const auto len = amrex::length(bx);
+        const auto lo  = amrex::lbound(bx);
+        int k =  icell /   (len.x*len.y);
+        int j = (icell - k*(len.x*len.y)) /   len.x;
+        int i = (icell - k*(len.x*len.y)) - j*len.x;
+        i += lo.x;
+        j += lo.y;
+        k += lo.z;
+        f(icell, ncells, i, j, k, Traits::load(s, base));
+    } else {
+        int N = static_cast<int>(s.m_size);
+        f(icell, N, Traits::load(s, base));
+    }
+}
+#endif
+
 template <class TagType, class F>
 void
 ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
@@ -341,7 +583,13 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 
     if (tv.ntags == 0 || tv.ntotwarps == 0) { return; }
 
+#ifdef AMREX_USE_LOOM
+    using LoomTraits = loomtag::Traits<TagType>;
+    const auto* d_tags = reinterpret_cast<typename LoomTraits::Stored const*>(tv.d_tags);
+    char* loom_base = tv.loom_base;
+#else
     const auto d_tags = tv.d_tags;
+#endif
     const auto d_nwarps = tv.d_nwarps;
     const auto ntags = tv.ntags;
     const auto ntotwarps = tv.ntotwarps;
@@ -374,7 +622,11 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 #endif
         int icell = b_wid*Gpu::Device::warp_size + lane;
 
+#ifdef AMREX_USE_LOOM
+        loom_tagparfor_call_f<LoomTraits>(icell, d_tags[tag_id], loom_base, f);
+#else
         tagparfor_call_f(icell, d_tags[tag_id], f);
+#endif
     });
 }
 

@@ -11,7 +11,7 @@
 #  ifdef AMREX_CUDA_CCCL_VER_GE_2_8
 #  include <thrust/iterator/transform_iterator.h>
 #  endif
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
 #  include <rocprim/rocprim.hpp>
 #elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
 #  include <oneapi/dpl/execution>
@@ -639,6 +639,41 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
     return totalsum;
 }
 
+#elif defined(AMREX_USE_LOOM)
+
+// LOOM: minimal correct device scan (one invocation walks the sequence).
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
+{
+    if (n <= 0) { return 0; }
+    T* dtotal = static_cast<T*>(The_Arena()->alloc(sizeof(T)));
+    constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
+    amrex::launch<1>(1, Gpu::gpuStream(), [=] AMREX_GPU_DEVICE () noexcept
+    {
+        T sum = 0;
+        for (N i = 0; i < n; ++i) {
+            T v = fin(i);
+            if constexpr (is_exclusive) {
+                fout(i, sum);
+                sum += v;
+            } else {
+                sum += v;
+                fout(i, sum);
+            }
+        }
+        *dtotal = sum;
+    });
+    T totalsum = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&totalsum, dtotal, sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    The_Arena()->free(dtotal);
+    return totalsum;
+}
+
 #elif defined(AMREX_USE_HIP)
 
 template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
@@ -989,7 +1024,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return totalsum;
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     void* d_temp = nullptr;
     std::size_t temp_bytes = 0;
     AMREX_GPU_SAFE_CALL(rocprim::inclusive_scan(d_temp, temp_bytes, in, out, n,
@@ -1065,7 +1100,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     T in_last = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));

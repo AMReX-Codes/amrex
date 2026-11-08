@@ -97,9 +97,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-        amrex::launch_global<MT>
-            <<<nblocks, MT, 0, Gpu::gpuStream()>>>
-            ([=] AMREX_GPU_DEVICE () noexcept
+        amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
+                [=] AMREX_GPU_DEVICE () noexcept
              {
                  std::uint32_t ibox, iblock;
                  fdm_box(ibox, iblock, blockIdx.x);
@@ -169,9 +168,8 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    amrex::launch_global<MT>
-        <<<nblocks, MT, 0, Gpu::gpuStream()>>>
-        ([=] AMREX_GPU_DEVICE () noexcept
+    amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
+                [=] AMREX_GPU_DEVICE () noexcept
          {
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdx.x);
@@ -221,9 +219,8 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    amrex::launch_global<MT>
-        <<<nblocks, MT, 0, Gpu::gpuStream()>>>
-        ([=] AMREX_GPU_DEVICE () noexcept
+    amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
+                [=] AMREX_GPU_DEVICE () noexcept
          {
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdx.x);

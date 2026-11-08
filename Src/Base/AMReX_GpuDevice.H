@@ -227,7 +227,12 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+#ifdef AMREX_USE_LOOM
+    // Documented exclusion: no managed memory under LOOM, whatever the runtime reports.
+    static int managedMemorySupported () noexcept { return 0; }
+#else
     static int managedMemorySupported () noexcept { return device_prop.managedMemory; }
+#endif
 
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 

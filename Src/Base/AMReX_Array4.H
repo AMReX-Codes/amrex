@@ -330,11 +330,34 @@ namespace amrex {
          *
          * \param rhs Source accessor.
          */
+#ifndef AMREX_USE_LOOM
         template <class U=T>
         requires (std::is_const_v<U>)
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<std::remove_const_t<T>, N, last_dim_component> const& rhs) noexcept
             : p(rhs.p), stride(rhs.stride), begin(rhs.begin), end(rhs.end) {}
+#else
+        // LOOM: the same implicit conversion as a by-value conversion operator
+        // over the member-wise constructor. A converting constructor runs in
+        // object storage, which cannot hold the pointer member.
+        template <class U=T>
+        requires (!std::is_const_v<U>)
+        AMREX_GPU_HOST_DEVICE
+        constexpr operator ArrayND<T const, N, last_dim_component> () const noexcept {
+            return ArrayND<T const, N, last_dim_component>(p, stride, begin, end);
+        }
+#endif
+
+#ifdef AMREX_USE_LOOM
+        /**
+         * \brief Member-wise constructor (LOOM): rebuilds an accessor whose
+         * layout was stored without its pointer (see MultiArray4).
+         */
+        AMREX_GPU_HOST_DEVICE
+        constexpr ArrayND (T* a_p, detail::Stride<N-1> const& a_stride,
+                           IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
+            : p(a_p), stride(a_stride), begin(a_begin), end(a_end) {}
+#endif
 
         /**
          * \brief Constructor using a BoxND.

@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# Single-source C++ compiler driver for AMReX_GPU_BACKEND=LOOM.
+#
+# Compile (-c): run the host compiler, then the Loom device pass on the same
+# source with the same -I/-isystem/-D/-std flags. If the translation unit
+# launches kernels, compile them for the target GPU and link an embedded HSACO
+# plus its launch manifest into the requested object (registered at startup
+# with amrex_loom_register_executable).
+# Link: run the host compiler and add libhrx.
+#
+# Required environment (normally set by CMake through the launcher):
+#   AMREX_LOOM_HOST_CXX       host C++ compiler
+#   AMREX_LOOM_IMPORT         loom-import-cxx
+#   AMREX_LOOM_COMPILE        loom-compile
+#   AMREX_LOOM_TARGET         e.g. gfx90a
+#   AMREX_LOOM_LOOMCXX_DIR    directory containing loomcxx/ headers
+#   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libstdc++/libc include dirs
+#   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
+# Optional: AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
+#           AMREX_LOOM_LAYOUT_CHECK=0 skips the clang record-layout cross-check;
+#           set it when the host compiler is cxx (one frontend, no -Xclang).
+set -o pipefail
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+: "${AMREX_LOOM_HOST_CXX:?}" "${AMREX_LOOM_IMPORT:?}" "${AMREX_LOOM_COMPILE:?}"
+: "${AMREX_LOOM_TARGET:=gfx90a}"
+
+args=("$@")
+compile=0 src="" out=""
+for ((i = 0; i < ${#args[@]}; ++i)); do
+  a=${args[i]}
+  case "$a" in
+    -c) compile=1 ;;
+    -o) out=${args[i+1]}; ((++i)) ;;
+    -o*) out=${a#-o} ;;
+    *.cpp|*.cc|*.cxx|*.C) [[ "${args[i-1]:-}" != "-o" ]] && src=$a ;;
+  esac
+done
+
+if [[ $compile -eq 0 ]]; then
+  # Link (or preprocessing-only) invocation.
+  extra=()
+  for a in "${args[@]}"; do [[ "$a" == "-shared" || "$a" == *.o || "$a" == *.a ]] && { extra=(-L"$AMREX_LOOM_HRX_LIB_DIR" -lhrx -Wl,-rpath,"$AMREX_LOOM_HRX_LIB_DIR"); break; }; done
+  exec "$AMREX_LOOM_HOST_CXX" "${args[@]}" "${extra[@]}"
+fi
+
+if [[ -z "$src" || -z "$out" ]]; then
+  exec "$AMREX_LOOM_HOST_CXX" "${args[@]}"
+fi
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/amrex-loom.XXXXXX")
+[[ "${AMREX_LOOM_KEEP:-0}" == 1 ]] || trap 'rm -rf "$tmp"' EXIT
+# Host compile. clang's record layouts of launch tags are kept for the layout
+# cross-check against the device pass (amrex-loom-layout-check.py).
+if [[ "${AMREX_LOOM_LAYOUT_CHECK:-1}" == 1 ]]; then
+"$AMREX_LOOM_HOST_CXX" "${args[@]}" -Xclang -fdump-record-layouts |
+  awk '/^\*\*\* Dumping AST Record Layout/ { keep = 0; head = 1; banner = $0; next }
+       head { head = 0; if ($0 ~ /amrex_loom::Tag</) { keep = 1; print banner } }
+       keep && (/^ *[0-9]+(:[0-9]+-[0-9]+)? \| / || /\[sizeof=/) { print }' > "$tmp/layouts.txt" || exit $?
+else
+  "$AMREX_LOOM_HOST_CXX" "${args[@]}" || exit $?
+fi
+
+# ---- Device pass --------------------------------------------------------
+dev=()
+for ((i = 0; i < ${#args[@]}; ++i)); do
+  a=${args[i]}
+  case "$a" in
+    -I) dev+=(--I="${args[i+1]}"); ((++i)) ;;
+    -I*) dev+=(--I="${a#-I}") ;;
+    -isystem) dev+=(--I="${args[i+1]}"); ((++i)) ;;
+    -isystem*) dev+=(--I="${a#-isystem}") ;;
+    -D) dev+=(--D="${args[i+1]}"); ((++i)) ;;
+    -D*) dev+=(--D="${a#-D}") ;;
+    -std=gnu++*) dev+=(--std="c++${a#-std=gnu++}") ;;
+    -std=*) dev+=(--std="${a#-std=}") ;;
+  esac
+done
+IFS=: read -r -a sysdirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
+for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
+
+abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
+# AMREX_LOOM_DEVICE_PRELUDE overrides the prelude header (a path; "none" omits it).
+prelude=${AMREX_LOOM_DEVICE_PRELUDE:-amrex_loom_device_prelude.H}
+if [[ "$prelude" == none ]]; then
+  printf '#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
+else
+  printf '#include <%s>\n#include "%s"\n' "$prelude" "$abs_src" > "$tmp/dev.cpp"
+fi
+# Import, then compile. Kernels the compiler rejects are excluded by export
+# name and the unit is re-imported (best effort: at most four rounds).
+excluded=""
+for round in 1 2 3 4 5; do
+LOOM_CXX_HOSTED=1 LOOM_CXX_TOLERATE_HOST_ERRORS=1 LOOM_CXX_DROP_FAILED_KERNELS=1 LOOM_CXX_AUDIT_STD="${AMREX_LOOM_AUDIT_STD:-0}" \
+LOOM_CXX_EXCLUDE_KERNELS="$excluded" LOOM_CXX_KERNEL_MANIFEST="$tmp/manifest" \
+  "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
+  --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" --D=AMREX_LOOM_DEVICE_PASS=1 \
+  "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
+rc=$?
+# Optional audit: keep the frontend errors tolerant mode demoted (first round).
+if [[ -n "${AMREX_LOOM_FRONTEND_LOG_DIR:-}" && $round == 1 ]]; then
+  mkdir -p "$AMREX_LOOM_FRONTEND_LOG_DIR"
+  grep "deferred error: " "$tmp/import.log" > "$AMREX_LOOM_FRONTEND_LOG_DIR/$(echo "$abs_src" | tr '/' '_').log" || true
+fi
+if [[ $rc -ne 0 ]]; then
+  echo "amrex-loom-cxx: device pass failed for $src ($(grep -c 'warning \[' "$tmp/import.log") frontend warnings in host code)" >&2
+  grep -A3 'error \[' "$tmp/import.log" | sed 's|^|  |' | head -40 >&2
+  # Best effort by default: the host object stands; launching one of this
+  # unit's kernels fails at run time with "no device kernel".
+  [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
+  echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
+  exit 0
+fi
+ndrop=$(grep -c "dropping launched kernel" "$tmp/import.log")
+if [[ $ndrop -gt 0 && $round == 1 ]]; then
+  echo "amrex-loom-cxx: dropped $ndrop launched kernel(s) in $src" >&2
+  grep -A1 'warning \[LOWERING' "$tmp/import.log" | grep 'warning \[LOWERING' | sed 's|^|  dropped: |' | head -40 >&2
+fi
+[[ -s "$tmp/manifest" ]] || exit 0
+
+# Layout cross-check: every kernel's tag fields (offset, size) as the device
+# pass computed them must equal clang's layout of the same host object.
+if [[ "${AMREX_LOOM_LAYOUT_CHECK:-1}" == 1 ]]; then
+  mismatched=$(python3 "$HERE/amrex-loom-layout-check.py" "$tmp/layouts.txt" "$tmp/manifest" 2> "$tmp/layout.log" |
+               tr '\n' ',' | sed 's/,$//')
+  if [[ -n "$mismatched" ]]; then
+    grep "MISMATCH\|NO-HOST-INSTANCE" "$tmp/layout.log" | cut -c1-240 | sed 's|^|  |' >&2
+    if [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && grep -q "MISMATCH" "$tmp/layout.log"; then
+      echo "amrex-loom-cxx: error: launch tag layout mismatch in $src" >&2
+      exit 1
+    fi
+    echo "amrex-loom-cxx: excluding $(echo "$mismatched" | tr ',' '\n' | wc -l) kernel(s) whose launch tag layout could not be verified in $src" >&2
+    excluded="${excluded:+$excluded,}$mismatched"
+    continue
+  fi
+fi
+
+"$AMREX_LOOM_COMPILE" "$tmp/dev.loombc" --target=amdgpu:"$AMREX_LOOM_TARGET" \
+  --format=amdgpu-hsaco --output="$tmp/dev.hsaco" > "$tmp/compile.log" 2>&1
+rc=$?
+[[ $rc -eq 0 ]] && break
+rejected=$(grep -o "export '[^']*'" "$tmp/compile.log" | sed "s/export '//; s/'\$//" | sort -u | tr '\n' ',' | sed 's/,$//')
+if [[ -z "$rejected" || $round == 5 ]]; then
+  echo "amrex-loom-cxx: device compile failed for $src" >&2
+  sed 's|^|  |' "$tmp/compile.log" | head -40 >&2
+  [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
+  echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
+  exit 0
+fi
+echo "amrex-loom-cxx: compile rejected $(echo "$rejected" | tr ',' '\n' | wc -l) kernel(s) in $src; excluding and retrying" >&2
+grep -h "error \[" "$tmp/compile.log" | sed "s/.*config .__loom_target_context_0_0. //" | cut -c1-200 | sort -u | sed 's|^|  compile-dropped: |' | head -10 >&2
+excluded="${excluded:+$excluded,}$rejected"
+done
+
+# Embed the executable and manifest; register them before main().
+# The bytes go in through the assembler (.incbin), so no C++ compiler parses a
+# large initializer. A static initializer registers them; it works with any
+# host compiler, including one that ignores __attribute__((constructor)).
+id=$(printf '%s' "$abs_src" | cksum | cut -d' ' -f1)
+{ cat "$tmp/manifest"; printf '\0'; } > "$tmp/manifest.z"
+cat > "$tmp/blob.s" <<EOS
+  .section .rodata.amrex_loom_$id,"a",@progbits
+  .p2align 4
+  .globl __amrex_loom_hsaco_$id
+  .hidden __amrex_loom_hsaco_$id
+__amrex_loom_hsaco_$id:
+  .incbin "$tmp/dev.hsaco"
+  .globl __amrex_loom_hsaco_end_$id
+  .hidden __amrex_loom_hsaco_end_$id
+__amrex_loom_hsaco_end_$id:
+  .globl __amrex_loom_manifest_$id
+  .hidden __amrex_loom_manifest_$id
+__amrex_loom_manifest_$id:
+  .incbin "$tmp/manifest.z"
+  .section .note.GNU-stack,"",@progbits
+EOS
+as "$tmp/blob.s" -o "$tmp/blob.o" || exit $?
+cat > "$tmp/register.cpp" <<EOS
+#include <cstddef>
+extern "C" void amrex_loom_register_executable(const void*, std::size_t, const char*);
+extern "C" {
+extern const unsigned char __amrex_loom_hsaco_$id[];
+extern const unsigned char __amrex_loom_hsaco_end_$id[];
+extern const char __amrex_loom_manifest_$id[];
+}
+namespace {
+const int amrex_loom_registered_$id =
+    (amrex_loom_register_executable(
+         __amrex_loom_hsaco_$id,
+         static_cast<std::size_t>(__amrex_loom_hsaco_end_$id - __amrex_loom_hsaco_$id),
+         __amrex_loom_manifest_$id),
+     0);
+}  // namespace
+EOS
+"$AMREX_LOOM_HOST_CXX" -c -fPIC "$tmp/register.cpp" -o "$tmp/register.o" || exit $?
+# Optional: keep each unit's final manifest for kernel counts.
+[[ -n "${AMREX_LOOM_STATS_DIR:-}" ]] && { mkdir -p "$AMREX_LOOM_STATS_DIR"; cp "$tmp/manifest" "$AMREX_LOOM_STATS_DIR/$(echo "$abs_src" | tr '/' '_').manifest"; }
+mv "$out" "$tmp/host.o"
+ld -r "$tmp/host.o" "$tmp/register.o" "$tmp/blob.o" -o "$out" || exit $?

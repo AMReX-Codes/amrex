@@ -193,6 +193,32 @@ struct PCData {
 template <typename T>
 struct MultiArray4
 {
+#ifdef AMREX_USE_LOOM
+    // LOOM device code cannot load pointers from memory. The device table
+    // holds each accessor's layout and its element offset from `base`.
+    struct LoomEntry {
+        Long offset;
+        detail::Stride<3> stride;
+        IntVectND<4> begin;
+        IntVectND<4> end;
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array4<T> operator[] (int li) const noexcept {
+        AMREX_IF_ON_DEVICE((
+            LoomEntry const& e = dt[li];
+            return Array4<T>(base + e.offset, e.stride, e.begin, e.end);
+        ))
+        AMREX_IF_ON_HOST((return hp[li];))
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    explicit operator bool() const noexcept { return valid; }
+
+    T* base = nullptr;
+    LoomEntry const* dt = nullptr;
+    bool valid = false;
+#else
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Array4<T> const& operator[] (int li) const noexcept {
         AMREX_IF_ON_DEVICE((return dp[li];))
@@ -204,6 +230,7 @@ struct MultiArray4
         AMREX_IF_ON_DEVICE((return dp != nullptr;))
         AMREX_IF_ON_HOST((return hp != nullptr;))
     }
+#endif
 
 #ifdef AMREX_USE_GPU
     Array4<T> const* AMREX_RESTRICT dp = nullptr;
@@ -1820,6 +1847,9 @@ protected:
 
 #ifdef AMREX_USE_GPU
     mutable void* m_dp_arrays = nullptr;
+#ifdef AMREX_USE_LOOM
+    mutable void* m_dp_loom_entries = nullptr;
+#endif
 #endif
     mutable void* m_hp_arrays = nullptr;
     mutable MultiArray4<value_type> m_arrays;
@@ -2183,6 +2213,34 @@ FabArray<FAB>::build_arrays () const
         m_arrays.dp = (A*)m_dp_arrays;
         m_const_arrays.dp = (AC*)m_dp_arrays + n;
         Gpu::htod_memcpy_async(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+#ifdef AMREX_USE_LOOM
+        {
+            using E = typename MultiArray4<value_type>::LoomEntry;
+            using EC = typename MultiArray4<value_type const>::LoomEntry;
+            static_assert(sizeof(E) == sizeof(EC));
+            value_type* base = nullptr;
+            for (int li = 0; li < n; ++li) {
+                auto* p = ((A*)m_hp_arrays)[li].p;
+                if (p && (!base || p < base)) { base = p; }
+            }
+            std::vector<E> entries(2*n);
+            for (int li = 0; li < n; ++li) {
+                A const& a = ((A*)m_hp_arrays)[li];
+                E e{0, a.stride, a.begin, a.end};
+                if (a.p) { e.offset = static_cast<Long>(a.p - base); }
+                entries[li] = e;
+                entries[li+n] = e;
+            }
+            m_dp_loom_entries = The_Arena()->alloc(2*n*sizeof(E));
+            Gpu::htod_memcpy(m_dp_loom_entries, entries.data(), 2*n*sizeof(E));
+            m_arrays.base = base;
+            m_arrays.dt = (E const*)m_dp_loom_entries;
+            m_arrays.valid = true;
+            m_const_arrays.base = base;
+            m_const_arrays.dt = (EC const*)((E const*)m_dp_loom_entries + n);
+            m_const_arrays.valid = true;
+        }
+#endif
         // The pinned buffer is not modified after this point and is freed
         // in stream order by clear_arrays(), so kernels launched on the
         // current stream are correctly ordered after the copy without a
@@ -2213,6 +2271,14 @@ FabArray<FAB>::clear_arrays ()
         Gpu::freeAsync(The_Arena(), m_dp_arrays);
     }
     m_dp_arrays = nullptr;
+#ifdef AMREX_USE_LOOM
+    if (m_dp_loom_entries) {
+        Gpu::freeAsync(The_Arena(), m_dp_loom_entries);
+        m_dp_loom_entries = nullptr;
+    }
+    m_arrays = MultiArray4<value_type>{};
+    m_const_arrays = MultiArray4<value_type const>{};
+#endif
 #else
     std::free(m_hp_arrays);
 #endif
@@ -2456,6 +2522,9 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_fabs_v     (std::move(rhs.m_fabs_v))
 #ifdef AMREX_USE_GPU
     , m_dp_arrays  (std::exchange(rhs.m_dp_arrays, nullptr))
+#ifdef AMREX_USE_LOOM
+    , m_dp_loom_entries (std::exchange(rhs.m_dp_loom_entries, nullptr))
+#endif
 #endif
     , m_hp_arrays  (std::exchange(rhs.m_hp_arrays, nullptr))
     , m_arrays     (rhs.m_arrays)
@@ -2496,6 +2565,9 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         std::swap(m_fabs_v, rhs.m_fabs_v);
 #ifdef AMREX_USE_GPU
         std::swap(m_dp_arrays, rhs.m_dp_arrays);
+#ifdef AMREX_USE_LOOM
+        std::swap(m_dp_loom_entries, rhs.m_dp_loom_entries);
+#endif
 #endif
         std::swap(m_hp_arrays, rhs.m_hp_arrays);
         m_arrays = rhs.m_arrays;

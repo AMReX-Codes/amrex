@@ -13,6 +13,9 @@
       sycl::ext::oneapi::experimental::printf(__VA_ARGS__);
 #elif defined(AMREX_USE_CUDA)
 #  define AMREX_DEVICE_PRINTF(...) std::printf(__VA_ARGS__);
+#elif defined(AMREX_USE_LOOM) && defined(__loom__)
+// LOOM device code has no printf channel yet.
+#  define AMREX_DEVICE_PRINTF(...) ((void)0);
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_DEVICE_PRINTF(...) ::printf(__VA_ARGS__);
 #else

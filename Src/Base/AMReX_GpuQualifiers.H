@@ -74,6 +74,10 @@
 #ifdef AMREX_USE_SYCL
 # define AMREX_DGV(type,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type> name
 # define AMREX_DGVARR(type,num,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type[num]> name
+#elif defined(AMREX_USE_LOOM)
+// Documented exclusion: the LOOM backend has no device global variables.
+# define AMREX_DGV(type,name) _Pragma("GCC error \"AMReX LOOM backend: device global variables (AMREX_DEVICE_GLOBAL_VARIABLE) are not supported\"") type name
+# define AMREX_DGVARR(type,num,name) _Pragma("GCC error \"AMReX LOOM backend: device global variables (AMREX_DEVICE_GLOBAL_VARIABLE) are not supported\"") type name[num]
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 # define AMREX_DGV(type,name) __device__ type name
 # define AMREX_DGVARR(type,num,name) __device__ type name[num]

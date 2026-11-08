@@ -148,6 +148,11 @@ else()
                             ParserUserFn Profiling Reducer ReduceToPlaneGuards ReduceToPlanePatchy Reinit RoundoffDomain Scan SIMD
                             SmallMatrix StochasticHeatEquation SumBoundary TOML)
 
+   # Documented exclusion: LOOM has no device global variables.
+   if (AMReX_LOOM)
+     list(REMOVE_ITEM AMREX_TESTS_SUBDIRS DeviceGlobal)
+   endif ()
+
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)
    endif ()

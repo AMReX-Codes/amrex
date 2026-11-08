@@ -15,7 +15,7 @@
 #if defined(CCCL_MAJOR_VERSION) && defined(CCCL_MINOR_VERSION) && ((CCCL_MAJOR_VERSION >= 3) || ((CCCL_MAJOR_VERSION >= 2) && (CCCL_MINOR_VERSION >= 8)))
 #define AMREX_CUDA_CCCL_VER_GE_2_8 1
 #endif
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
 #include <rocprim/rocprim.hpp>
 #endif
 
@@ -378,7 +378,7 @@ T blockReduceSum (T source) noexcept
     // we do it always to be safe.
     __syncthreads();
     return BlockReduce(temp_storage).Sum(source);
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
@@ -433,7 +433,7 @@ T blockReduceMin (T source) noexcept
 #else
     return BlockReduce(temp_storage).Reduce(source, cub::Min());
 #endif
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
@@ -487,7 +487,7 @@ T blockReduceMax (T source) noexcept
 #else
     return BlockReduce(temp_storage).Reduce(source, cub::Max());
 #endif
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
@@ -535,7 +535,7 @@ int blockReduceLogicalAnd (int source) noexcept
     // we do it always to be safe.
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, amrex::LogicalAnd<int>());
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     using BlockReduce = rocprim::block_reduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
@@ -583,7 +583,7 @@ int blockReduceLogicalOr (int source) noexcept
     // we do it always to be safe.
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, amrex::LogicalOr<int>());
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     using BlockReduce = rocprim::block_reduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
