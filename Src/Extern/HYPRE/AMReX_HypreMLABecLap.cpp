@@ -1852,10 +1852,18 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         if (global_box != fixed_box) { fixed_pt = IntVect::TheMaxVector(); }
     }
 
+    // The data of each box; then one count pass over the cells of the level
+    // (numbered box by box), one scan for the offsets and one fill pass into
+    // a single chunk, with one synchronization at the end: the kernels of
+    // consecutive boxes run without waiting for each other.
+    const int nboxes = m_eb_bcrhs[ilev].local_size();
+    Vector<HypMLABecLapEB> ebs(nboxes);
+    Vector<Long> cell_offset(nboxes+1, 0);
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
         Box const& vbx = mfi.validbox();
         auto const fabtyp = flags[mfi].getType(vbx);
-        HypMLABecLapEB e;
+        HypMLABecLapEB& e = ebs[mfi.LocalIndex()];
+        cell_offset[mfi.LocalIndex()+1] = vbx.numPts();
         e.vbx = vbx;
         e.irregular = (fabtyp != FabType::regular);
         e.level = ilev;
@@ -1899,15 +1907,18 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                 && !m_geom[ilev].isPeriodic(face.coordDir());
             e.cf_face[face] = (ilev > 0 && !physical);
         }
+    }
+    std::partial_sum(cell_offset.begin(), cell_offset.end(), cell_offset.begin());
+    const Long ncells = cell_offset[nboxes];
 
-        const auto lo = amrex::lbound(vbx);
-        const auto len = amrex::length(vbx);
-
-        // Pass 1: number of triplets per cell; pass 2: the triplets
-        const Long ncells = vbx.numPts();
-        Gpu::DeviceVector<Long> count(ncells), offset(ncells);
-        Long* pcount = count.data();
-        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    // Pass 1: the number of triplets of each cell (cells in memory order)
+    Gpu::DeviceVector<Long> count(ncells), offset(ncells);
+    for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
+        HypMLABecLapEB const e = ebs[mfi.LocalIndex()]; // copied into the kernel
+        const auto lo = amrex::lbound(e.vbx);
+        const auto len = amrex::length(e.vbx);
+        Long* pcount = count.data() + cell_offset[mfi.LocalIndex()];
+        amrex::ParallelFor(e.vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Long n = 0;
             Real bcrhs;
@@ -1915,15 +1926,22 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                 [&] (Long, Long, Real) { ++n; }, bcrhs);
             pcount[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)] = n;
         });
-        const Long ntrip = Scan::ExclusiveSum(ncells, pcount, offset.data(), Scan::retSum);
-        Triplets& t = chunks.emplace_back();
-        t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
-        auto* prows = t.rows.data();
-        auto* pcols = t.cols.data();
-        auto* pvals = t.vals.data();
-        Long const* poff = offset.data();
+    }
+    const Long ntrip = Scan::ExclusiveSum(ncells, count.data(), offset.data(), Scan::retSum);
+
+    // Pass 2: the triplets, at the cells' offsets
+    Triplets& t = chunks.emplace_back();
+    t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
+    auto* prows = t.rows.data();
+    auto* pcols = t.cols.data();
+    auto* pvals = t.vals.data();
+    for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
+        HypMLABecLapEB const e = ebs[mfi.LocalIndex()]; // copied into the kernel
+        const auto lo = amrex::lbound(e.vbx);
+        const auto len = amrex::length(e.vbx);
+        Long const* poff = offset.data() + cell_offset[mfi.LocalIndex()];
         auto const& bcrhs = m_eb_bcrhs[ilev].array(mfi);
-        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(e.vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Long n = poff[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)];
             hypmlabeclap_eb_row(e, IntVect(AMREX_D_DECL(i,j,k)),
@@ -1935,8 +1953,8 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                     ++n;
                                 }, bcrhs(i,j,k));
         });
-        Gpu::streamSynchronize(); // count and offset are freed (boxes run in turn)
     }
+    Gpu::streamSynchronize(); // count and offset are freed on return
 #else
     amrex::ignore_unused(this, ilev, a_ascalar, a_bscalar, a_acoef, a_bcoef, chunks);
 #endif
