@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <typeinfo>
 #include <limits>
 #include <string>
 
@@ -64,6 +65,7 @@ struct LPInfo
     int semicoarsening_direction = -1;
     int hidden_direction = -1;
     bool deterministic = false;   //!< Enable deterministic mode for GPU operations
+    bool mixed_precision = false; //!< Run the multigrid cycles in single precision
 
     //! Enable or disable grid agglomeration on the coarsest MLMG levels (\p x = true enables it).
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
@@ -92,6 +94,9 @@ struct LPInfo
     //! Enable deterministic reductions even on GPUs (slower but reproducible) by toggling \p x.
     //! This also makes the GPU Gauss-Seidel smoother of MLEBABecLap race-free at cut cells.
     LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
+    //! Run the multigrid cycles in single precision while the solution and
+    //! residual stay in double precision (\p x = true enables it).
+    LPInfo& setMixedPrecision (bool x) noexcept { mixed_precision = x; return *this; }
 
     //! True if a hidden dimension was configured via setHiddenDirection().
     [[nodiscard]] bool hasHiddenDimension () const noexcept {
@@ -128,6 +133,14 @@ template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
+// Defined if the single precision operators and solver used by mixed
+// precision are compiled (in AMReX_MLMG_float.cpp).  nvcc on Windows cannot
+// compile the EB code of MLCellLinOp for float (see the if constexpr
+// workarounds there).
+#if !defined(AMREX_USE_FLOAT) && !(defined(AMREX_USE_CUDA) && defined(_WIN32) && defined(AMREX_USE_EB))
+#define AMREX_MLMG_HAS_FLOAT 1
+#endif
+
 /// \ingroup amrex_solver_mlmg
 /**
  * \brief Abstract base class for multilevel linear operators used by MLMG and the bottom solvers.
@@ -142,6 +155,7 @@ class MLLinOpT
 {
 public:
 
+    template <typename T> friend class MLLinOpT;
     template <typename T> friend class MLMGT;
     template <typename T> friend class MLCGSolverT;
     template <typename T> friend class MLPoissonT;
@@ -306,7 +320,10 @@ public:
      *
      * \param v Verbosity level forwarded to MLMG logs.
      */
-    void setVerbose (int v) noexcept { verbose = v; }
+    void setVerbose (int v) noexcept {
+        verbose = v;
+        if (m_sp_linop) { m_sp_linop->setVerbose(v); }
+    }
 
     /**
      * \brief Prefix printed messages (e.g., to indent per level).
@@ -320,7 +337,10 @@ public:
      *
      * \param o Polynomial order (2, 3, or 4).
      */
-    void setMaxOrder (int o) noexcept { maxorder = o; }
+    void setMaxOrder (int o) noexcept {
+        maxorder = o;
+        if (m_sp_linop) { m_sp_linop->setMaxOrder(o); }
+    }
     //! Get order of interpolation at coarse/fine boundary
     [[nodiscard]] int getMaxOrder () const noexcept { return maxorder; }
 
@@ -329,7 +349,10 @@ public:
      *
      * \param o True (default) enables solvability enforcement; false leaves RHS untouched.
      */
-    void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
+    void setEnforceSingularSolvable (bool o) noexcept {
+        enforceSingularSolvable = o;
+        if (m_sp_linop) { m_sp_linop->setEnforceSingularSolvable(o); }
+    }
     //! Get the flag for whether the solver should try to make singular
     //! problem solvable.
     [[nodiscard]] bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
@@ -848,6 +871,13 @@ public:
      */
     [[nodiscard]] virtual bool supportNSolve () const { return false; }
 
+    //! Mixed precision: true only for the exact operator types that build
+    //! a single precision copy of themselves, not for classes derived from them.
+    [[nodiscard]] virtual bool supportsMixedPrecision () const { return false; }
+
+    //! True if this operator has a single precision copy for mixed precision.
+    [[nodiscard]] bool isMixedPrecision () const noexcept { return m_sp_linop != nullptr; }
+
     /**
      * \brief Copy an NSolve solution from \p src to \p dst.
      *
@@ -1010,6 +1040,158 @@ protected:
 
     bool m_precond_mode = false;
 
+    //! Mixed precision: this operator keeps only MG level 0 and the single
+    //! precision copy, built in the concrete operator's define, holds the
+    //! MG hierarchy.
+    static constexpr bool mixed_precision_capable =
+        std::is_same_v<MF,MultiFab>
+#ifndef AMREX_MLMG_HAS_FLOAT
+        && false
+#endif
+        ;
+    std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
+    //! Mixed precision: number of single precision copies built so far, so
+    //! that MLMG can tell that a re-define replaced the copy it uses.
+    int m_sp_linop_count = 0;
+
+    //! Mixed precision: the single precision copy lives in a geometry
+    //! whose lengths are m_sp_length_scale times this operator's, and it
+    //! represents m_sp_scale times this operator.  Both are powers of two,
+    //! chosen so that the copy's stencil is inside the single precision
+    //! range whatever the user's units; MLMG multiplies the correction by
+    //! m_sp_scale.
+    RT m_sp_scale = RT(1.0);
+    Real m_sp_length_scale = Real(1.0);
+
+    //! The power of two p with p*x in [0.5,1), or 1 if x is zero or not finite.
+    static RT spScaleFor (RT x) noexcept {
+        int e = 0;
+        if (x > RT(0.0) && std::isfinite(x)) { std::frexp(x, &e); }
+        return std::ldexp(RT(1.0), -e);
+    }
+
+    //! Mixed precision: the diagonal to scale for, given the max diagonal
+    //! of each component.  Components share one scale, so it centers their
+    //! range: the geometric mean of the smallest and largest nonzero ones.
+    static RT spDiagForScale (Vector<RT> const& diag) noexcept {
+        RT dmin = std::numeric_limits<RT>::max();
+        RT dmax = RT(0.0);
+        for (auto d : diag) {
+            if (d > RT(0.0)) {
+                dmin = std::min(dmin, d);
+                dmax = std::max(dmax, d);
+            }
+        }
+        return (dmin < dmax) ? std::sqrt(dmin)*std::sqrt(dmax) : dmax;
+    }
+
+    //! The power of the length by which the metric term scales the
+    //! operator: r^2 in 1D, r in 2D.
+    [[nodiscard]] int spMetricExponent () const noexcept {
+        if (!m_geom[0][0].IsCartesian() && info.has_metric_term) {
+            return (AMREX_SPACEDIM == 1) ? 2 : 1;
+        } else {
+            return 0;
+        }
+    }
+
+    //! Mixed precision: the single precision copy's geometry, with the
+    //! finest cell size scaled to [0.5,1).  Sets m_sp_length_scale, and
+    //! m_sp_scale for an operator with unit coefficients.
+    Vector<Geometry> spGeom (const Vector<Geometry>& a_geom)
+    {
+        Real dxmin = std::numeric_limits<Real>::max();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (idim != info.hidden_direction) {
+                dxmin = std::min(dxmin, a_geom.back().CellSize(idim));
+            }
+        }
+        m_sp_length_scale = static_cast<Real>(spScaleFor(static_cast<RT>(dxmin)));
+        // L ~ 1/dx^2 times the metric term
+        m_sp_scale = static_cast<RT>(std::pow(m_sp_length_scale, spMetricExponent()-2));
+        Vector<Geometry> sp_geom;
+        sp_geom.reserve(a_geom.size());
+        for (auto const& g : a_geom) {
+            Array<Real,AMREX_SPACEDIM> lo, hi;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                lo[idim] = g.ProbLo(idim) * m_sp_length_scale;
+                hi[idim] = g.ProbHi(idim) * m_sp_length_scale;
+            }
+            sp_geom.emplace_back(g.Domain(), RealBox(lo, hi), g.Coord(), g.isPeriodic());
+        }
+        return sp_geom;
+    }
+
+    //! Mixed precision: the LPInfo for this operator, which keeps only MG
+    //! level 0 when the single precision copy is built.
+    [[nodiscard]] LPInfo dpInfo (LPInfo const& a_info) const
+    {
+        LPInfo dp_info = a_info;
+        if constexpr (mixed_precision_capable) {
+            if (a_info.mixed_precision) {
+                dp_info.max_coarsening_level = 0;
+            }
+        }
+        return dp_info;
+    }
+
+    //! Mixed precision: build the single precision copy with f(sp_info),
+    //! where sp_info is a_info without the mixed precision flag.  f is a
+    //! generic lambda so that the float operator type is not instantiated
+    //! where mixed precision is unavailable (MSVC instantiates every
+    //! virtual function of a complete class template).
+    template <typename F>
+    void makeSPLinOp (LPInfo const& a_info, F const& f)
+    {
+        if constexpr (mixed_precision_capable) {
+            m_sp_linop.reset(); // a re-define may turn mixed precision off
+            m_sp_scale = RT(1.0);
+            m_sp_length_scale = Real(1.0);
+            if (a_info.mixed_precision) {
+                LPInfo sp_info = a_info;
+                sp_info.mixed_precision = false;
+                m_sp_linop = f(sp_info);
+                ++m_sp_linop_count;
+                spCopySettings();
+            }
+        } else {
+            amrex::ignore_unused(a_info, f);
+        }
+    }
+
+    //! Mixed precision: give a new single precision copy the settings made
+    //! on this operator before define, which define keeps.
+    virtual void spCopySettings ()
+    {
+        if constexpr (mixed_precision_capable) {
+            auto* sp = m_sp_linop.get();
+            sp->setVerbose(verbose);
+            sp->setMaxOrder(maxorder);
+            sp->setEnforceSingularSolvable(enforceSingularSolvable);
+            if (!m_lobc.empty()) { sp->setDomainBC(m_lobc, m_hibc); }
+            setDomainBCLoc(m_domain_bloc_lo, m_domain_bloc_hi);
+            setCoarseFineBCLocation(m_coarse_bc_loc);
+            if (m_coarse_data_crse_ratio.allGT(0)) {
+                sp->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr),
+                                    m_coarse_data_crse_ratio, m_coarse_fine_bc_type);
+            }
+        }
+    }
+
+    //! Mixed precision: call f on the single precision copy, an
+    //! Op<fMultiFab>, if there is one.
+    template <template <typename> class Op, typename F>
+    void spForward (F const& f)
+    {
+        if constexpr (mixed_precision_capable) {
+            if (m_sp_linop) {
+                f(static_cast<Op<fMultiFab>*>(m_sp_linop.get()));
+            }
+        } else {
+            amrex::ignore_unused(f);
+        }
+    }
+
     //! Return AMR refinement ratios
     [[nodiscard]] const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
 
@@ -1053,7 +1235,10 @@ protected:
     [[nodiscard]] MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
     [[nodiscard]] MPI_Comm Communicator () const noexcept { return m_default_comm; }
 
-    void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
+    void setCoarseFineBCLocation (const RealVect& cloc) noexcept {
+        m_coarse_bc_loc = cloc;
+        if (m_sp_linop) { m_sp_linop->setCoarseFineBCLocation(cloc*m_sp_length_scale); }
+    }
 
     [[nodiscard]] bool doAgglomeration () const noexcept { return m_do_agglomeration; }
     [[nodiscard]] bool doConsolidation () const noexcept { return m_do_consolidation; }
@@ -1199,6 +1384,24 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
         }
     }
 #endif
+    if (info.mixed_precision) {
+        if constexpr (mixed_precision_capable) {
+            // Sees the type of the class whose constructor calls define; a
+            // class that only delegates to a base constructor is caught in
+            // MLMG::solve.
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(supportsMixedPrecision(),
+                                             "MLLinOp: this operator does not support mixed precision");
+#ifdef AMREX_USE_EB
+            for (auto const* f : a_factory) {
+                auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(f);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ebf == nullptr || ebf->isAllRegular(),
+                                                 "MLLinOp: mixed precision does not support EB");
+            }
+#endif
+        } else {
+            info.mixed_precision = false; // Real is float or MF is not MultiFab
+        }
+    }
     m_mg_deferred = supportsAnisotropicCoarsening();
     m_mg_built = false;
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
@@ -1826,6 +2029,8 @@ MLLinOpT<MF>::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
     if (hasRobinBC() && !supportRobinBC()) {
         amrex::Abort("Robin BC not supported");
     }
+
+    if (m_sp_linop) { m_sp_linop->setDomainBC(a_lobc, a_hibc); }
 }
 
 template <typename MF>
@@ -2010,6 +2215,13 @@ MLLinOpT<MF>::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
 {
     m_domain_bloc_lo = lo_bcloc;
     m_domain_bloc_hi = hi_bcloc;
+    if (m_sp_linop) {
+        auto lo = lo_bcloc;
+        auto hi = hi_bcloc;
+        for (auto& x : lo) { x *= m_sp_length_scale; }
+        for (auto& x : hi) { x *= m_sp_length_scale; }
+        m_sp_linop->setDomainBCLoc(lo, hi);
+    }
 }
 
 template <typename MF>
@@ -2028,6 +2240,9 @@ MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
+    if (m_sp_linop) { // the correction equation has homogeneous coarse/fine BC
+        m_sp_linop->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr), crse_ratio, bc_type);
+    }
 }
 
 template <typename MF>
@@ -2058,6 +2273,9 @@ MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
     }
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
+    if (m_sp_linop) {
+        m_sp_linop->setCoarseFineBC(static_cast<fMultiFab const*>(nullptr), crse_ratio, bc_type);
+    }
 }
 
 template <typename MF>
@@ -2281,6 +2499,9 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 }
 
 extern template class MLLinOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLLinOpT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;

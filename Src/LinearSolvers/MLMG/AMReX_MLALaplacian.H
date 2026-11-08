@@ -77,6 +77,10 @@ public:
     void setScalars (RT a, RT b) noexcept;
     //! Provide per-cell `a` coefficients on AMR level \p amrlev (stored directly in \p alpha).
     void setACoeffs (int amrlev, const MF& alpha);
+    //! Same as above, with \p alpha of a different precision.
+    template <typename AMF>
+    requires (!std::same_as<MF,AMF>)
+    void setACoeffs (int amrlev, const AMF& alpha);
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
@@ -87,6 +91,10 @@ public:
 
     //! Complete per-level setup (averaging, singularity flags) before solving.
     void prepareForSolve () final;
+
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLALaplacianT<MF>);
+    }
     //! True if level \p amrlev is singular.
     [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     //! Shortcut for the coarsest level singular flag.
@@ -153,6 +161,10 @@ private:
     int m_ncomp = 1;
 
     void updateSingularFlag ();
+
+    //! Mixed precision: give the single precision copy scalars scaled so
+    //! that its diagonal is O(1).
+    void setSPScale ();
 };
 
 template <typename MF>
@@ -177,7 +189,12 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLALaplacianT<fMultiFab>>
+            (this->spGeom(a_geom), a_grids, a_dmap, sp_info,
+             Vector<FabFactory<BaseFab<float>> const*>{}, m_ncomp);
+    });
 
     const int ncomp = this->getNComp();
 
@@ -210,6 +227,7 @@ MLALaplacianT<MF>::setScalars (RT a, RT b) noexcept
         }
     }
     m_needs_update = true;
+    // The single precision copy gets the scalars, scaled, in setSPScale.
 }
 
 template <typename MF>
@@ -219,6 +237,19 @@ MLALaplacianT<MF>::setACoeffs (int amrlev, const MF& alpha)
     const int ncomp = this->getNComp();
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
     m_needs_update = true;
+    this->template spForward<MLALaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
+}
+
+template <typename MF>
+template <typename AMF>
+requires (!std::same_as<MF,AMF>)
+void
+MLALaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
+{
+    const int ncomp = this->getNComp();
+    m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, ncomp, IntVect(0));
+    m_needs_update = true;
+    this->template spForward<MLALaplacianT>([&] (auto* sp) { sp->setACoeffs(amrlev, alpha); });
 }
 
 template <typename MF>
@@ -341,6 +372,7 @@ MLALaplacianT<MF>::prepareForSolve ()
     MLCellABecLapT<MF>::prepareForSolve();
     averageDownCoeffs();
     updateSingularFlag();
+    setSPScale();
     m_needs_update = false;
 }
 
@@ -351,7 +383,38 @@ MLALaplacianT<MF>::update ()
     if (MLCellABecLapT<MF>::needsUpdate()) { MLCellABecLapT<MF>::update(); }
     averageDownCoeffs();
     updateSingularFlag();
+    setSPScale();
     m_needs_update = false;
+}
+
+template <typename MF>
+void
+MLALaplacianT<MF>::setSPScale ()
+{
+    this->template spForward<MLALaplacianT>([&] (auto* sp) {
+        // Estimate of the max diagonal of each component on the AMR levels,
+        // one reduction
+        Vector<RT> diag(m_ncomp, RT(0.0));
+        for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
+            for (int n = 0; n < m_ncomp; ++n) {
+                RT d = std::abs(m_a_scalar) * m_a_coeffs[alev][0].norminf(n, 1, IntVect(0), true);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (idim == this->info.hidden_direction) { continue; }
+                    RT const dxinv = RT(1.0) / this->m_geom[alev][0].CellSize(idim);
+                    d += std::abs(m_b_scalar) * RT(2.0)*dxinv*dxinv;
+                }
+                diag[n] = std::max(diag[n], d);
+            }
+        }
+        ParallelAllReduce::Max(diag.data(), m_ncomp, ParallelContext::CommunicatorSub());
+        // The copy's lengths are lambda times ours, which scales its b
+        // term by lambda^-2 and its metric term by lambda^p.
+        RT const sigma = this->spScaleFor(this->spDiagForScale(diag));
+        auto const lambda = static_cast<RT>(this->m_sp_length_scale);
+        this->m_sp_scale = sigma * static_cast<RT>(std::pow(lambda, this->spMetricExponent()));
+        sp->setScalars(static_cast<float>(sigma * m_a_scalar),
+                       static_cast<float>(sigma * lambda*lambda * m_b_scalar));
+    });
 }
 
 template <typename MF>
@@ -940,6 +1003,9 @@ MLALaplacianT<MF>::FFlux (int amrlev, const MFIter& mfi,
 }
 
 extern template class MLALaplacianT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLALaplacianT<fMultiFab>;
+#endif
 
 using MLALaplacian = MLALaplacianT<MultiFab>;
 

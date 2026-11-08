@@ -77,7 +77,7 @@ MyTest::solve ()
         } else {
             solveABecLaplacian();
         }
-    } else if (prob_type == 3) {
+    } else if (prob_type == 3 || prob_type == 5) {
         solveABecLaplacianInhomNeumann();
     } else if (prob_type == 4) {
         solveNodeABecLaplacian();
@@ -106,6 +106,7 @@ MyTest::solvePoisson ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMixedPrecision(mixed_precision);
     info.setDeterministic(deterministic);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
@@ -200,6 +201,7 @@ MyTest::solveABecLaplacian ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMixedPrecision(mixed_precision);
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
@@ -328,12 +330,17 @@ MyTest::solveABecLaplacianInhomNeumann ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMixedPrecision(mixed_precision);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
+
+    // prob_type 3: inhomogeneous Neumann BC; prob_type 5: Robin BC
+    const bool robin = (prob_type == 5);
+    const auto bct = robin ? LinOpBCType::Robin : LinOpBCType::inhomogNeumann;
 
     if (composite_solve)
     {
@@ -344,18 +351,15 @@ MyTest::solveABecLaplacianInhomNeumann ()
 
         mlabec.setMaxOrder(linop_maxorder);
 
-        // This is a 3d problem with inhomogeneous Neumann BC
-        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::inhomogNeumann,
-                                         LinOpBCType::inhomogNeumann,
-                                         LinOpBCType::inhomogNeumann)},
-                           {AMREX_D_DECL(LinOpBCType::inhomogNeumann,
-                                         LinOpBCType::inhomogNeumann,
-                                         LinOpBCType::inhomogNeumann)});
+        mlabec.setDomainBC({AMREX_D_DECL(bct,bct,bct)}, {AMREX_D_DECL(bct,bct,bct)});
 
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            // for problem with inhomogeneous Neumann BC, we need to pass boundary values
-            mlabec.setLevelBC(ilev, &(solution[ilev]));
+            // the boundary values, or the Robin a, b and f
+            mlabec.setLevelBC(ilev, &(solution[ilev]),
+                              robin ? &robin_a[ilev] : nullptr,
+                              robin ? &robin_b[ilev] : nullptr,
+                              robin ? &robin_f[ilev] : nullptr);
         }
 
         mlabec.setScalars(ascalar, bscalar);
@@ -402,20 +406,17 @@ MyTest::solveABecLaplacianInhomNeumann ()
 
             mlabec.setMaxOrder(linop_maxorder);
 
-            // This is a 3d problem with inhomogeneous Neumann BC
-            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::inhomogNeumann,
-                                             LinOpBCType::inhomogNeumann,
-                                             LinOpBCType::inhomogNeumann)},
-                               {AMREX_D_DECL(LinOpBCType::inhomogNeumann,
-                                             LinOpBCType::inhomogNeumann,
-                                             LinOpBCType::inhomogNeumann)});
+            mlabec.setDomainBC({AMREX_D_DECL(bct,bct,bct)}, {AMREX_D_DECL(bct,bct,bct)});
 
             if (ilev > 0) {
                 mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
 
-            // for problem with inhomogeneous Neumann BC, we need to pass boundary values
-            mlabec.setLevelBC(0, &solution[ilev]);
+            // the boundary values, or the Robin a, b and f
+            mlabec.setLevelBC(0, &solution[ilev],
+                              robin ? &robin_a[ilev] : nullptr,
+                              robin ? &robin_b[ilev] : nullptr,
+                              robin ? &robin_f[ilev] : nullptr);
 
             mlabec.setScalars(ascalar, bscalar);
 
@@ -502,6 +503,7 @@ MyTest::solveABecLaplacianGMRES ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMixedPrecision(mixed_precision);
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
@@ -658,6 +660,7 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("deterministic", deterministic);
+    pp.query("mixed_precision", mixed_precision);
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
@@ -701,9 +704,14 @@ MyTest::initData ()
     rhs.resize(nlevels);
     exact_solution.resize(nlevels);
 
-    if (prob_type == 2 || prob_type == 3 || prob_type == 4) {
+    if (prob_type == 2 || prob_type == 3 || prob_type == 4 || prob_type == 5) {
         acoef.resize(nlevels);
         bcoef.resize(nlevels);
+    }
+    if (prob_type == 5) {
+        robin_a.resize(nlevels);
+        robin_b.resize(nlevels);
+        robin_f.resize(nlevels);
     }
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
@@ -745,6 +753,14 @@ MyTest::initData ()
             const int ngb = (prob_type == 4) ? 0 : 1;
             bcoef[ilev].define(grids[ilev], dmap[ilev], 1, ngb);
         }
+        if (!robin_a.empty()) {
+            robin_a[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+            robin_b[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+            robin_f[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+            robin_a[ilev].setVal(0.0);
+            robin_b[ilev].setVal(0.0);
+            robin_f[ilev].setVal(0.0);
+        }
     }
 
     if (prob_type == 1) {
@@ -755,6 +771,8 @@ MyTest::initData ()
         initProbABecLaplacianInhomNeumann();
     } else if (prob_type == 4) {
         initProbNodeABecLaplacian();
+    } else if (prob_type == 5) {
+        initProbABecLaplacianRobin();
     } else {
         amrex::Abort("Unknown prob_type "+std::to_string(prob_type));
     }

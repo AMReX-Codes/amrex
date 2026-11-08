@@ -202,3 +202,42 @@ MyTest::initProbNodeABecLaplacian ()
         }
     }
 }
+
+void
+MyTest::initProbABecLaplacianRobin ()
+{
+    initProbABecLaplacianInhomNeumann(); // the interior data
+
+    for (int ilev = 0; ilev <= max_level; ++ilev)
+    {
+        const auto prob_lo = geom[ilev].ProbLoArray();
+        const auto dx      = geom[ilev].CellSizeArray();
+        Box const& domain = geom[ilev].Domain();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(robin_a[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto ra = robin_a[ilev].array(mfi);
+            auto rb = robin_b[ilev].array(mfi);
+            auto rf = robin_f[ilev].array(mfi);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (bx.smallEnd(idim) == domain.smallEnd(idim)) {
+                    amrex::ParallelFor(amrex::adjCellLo(bx, idim),
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        actual_init_robin(i,j,k,idim,0,ra,rb,rf,prob_lo,dx);
+                    });
+                }
+                if (bx.bigEnd(idim) == domain.bigEnd(idim)) {
+                    amrex::ParallelFor(amrex::adjCellHi(bx, idim),
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        actual_init_robin(i,j,k,idim,1,ra,rb,rf,prob_lo,dx);
+                    });
+                }
+            }
+        }
+    }
+}

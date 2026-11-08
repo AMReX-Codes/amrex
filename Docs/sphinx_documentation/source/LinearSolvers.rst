@@ -381,6 +381,19 @@ operators for the multigrid.
     // out = L(in)
     mlmg.apply(out, in);  // here both in and out are const Vector<MultiFab*>&
 
+:cpp:`LPInfo::setMixedPrecision(bool)` makes :cpp:`MLMG` run the multigrid
+cycles in single precision while the solution, the right-hand side and the
+residual it converges on stay in double precision.  The solver still reaches
+the requested tolerance.  This is available for :cpp:`MLPoisson`,
+:cpp:`MLABecLaplacian` and :cpp:`MLALaplacian` without embedded boundaries.
+The bottom solver must be the smoother, CG or BiCGStab, and it runs with
+the single precision default tolerance unless one is set with
+:cpp:`MLMG::setBottomTolerance`.  A mixed precision :cpp:`MLMG` used as a
+preconditioner needs a flexible Krylov method; :cpp:`GMRESMLMG` switches to
+flexible GMRES by itself.  If :cpp:`define` is called again on an operator,
+build a new :cpp:`MLMG` for it.  A mixed precision :cpp:`MLMG` aborts if it
+is used again after its operator is re-defined.
+
 At the bottom of the multigrid cycles, we use a ``bottom solver`` which may be
 different than the relaxation used at the other levels. The default bottom solver is the
 biconjugate gradient stabilized method, but can easily be changed with the :cpp:`MLMG` member method
