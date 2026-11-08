@@ -4,6 +4,8 @@
 
 #include <AMReX_FArrayBox.H>
 
+#include <type_traits>
+
 /// \cond DOXYGEN_IGNORE
 namespace amrex::nodelap_detail {
 

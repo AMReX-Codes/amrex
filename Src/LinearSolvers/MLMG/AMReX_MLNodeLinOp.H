@@ -18,22 +18,33 @@ namespace amrex {
  * Base class for nodal linear operators.
  */
 
-class MLNodeLinOp
-    : public MLLinOp
+//! Coarsening strategy of nodal operators.
+enum struct MLNodeLinOpCoarseningStrategy : int { Sigma, RAP };
+
+template <typename MF>
+class MLNodeLinOpT
+    : public MLLinOpT<MF>
 {
 public:
 
     friend class HypreMLNodeLap;
 
-    enum struct CoarseningStrategy : int { Sigma, RAP };
+    using FAB = typename MLLinOpT<MF>::FAB;
+    using RT  = typename MLLinOpT<MF>::RT;
+    using BCType    = typename MLLinOpT<MF>::BCType;
+    using BCMode    = typename MLLinOpT<MF>::BCMode;
+    using StateMode = typename MLLinOpT<MF>::StateMode;
+    using Location  = typename MLLinOpT<MF>::Location;
 
-    MLNodeLinOp ();
-    ~MLNodeLinOp () override = default;
+    using CoarseningStrategy = MLNodeLinOpCoarseningStrategy;
 
-    MLNodeLinOp (const MLNodeLinOp&) = delete;
-    MLNodeLinOp (MLNodeLinOp&&) = delete;
-    MLNodeLinOp& operator= (const MLNodeLinOp&) = delete;
-    MLNodeLinOp& operator= (MLNodeLinOp&&) = delete;
+    MLNodeLinOpT ();
+    ~MLNodeLinOpT () override = default;
+
+    MLNodeLinOpT (const MLNodeLinOpT&) = delete;
+    MLNodeLinOpT (MLNodeLinOpT&&) = delete;
+    MLNodeLinOpT& operator= (const MLNodeLinOpT&) = delete;
+    MLNodeLinOpT& operator= (MLNodeLinOpT&&) = delete;
 
     /**
      * \brief Bind the nodal operator to an AMR hierarchy.
@@ -50,7 +61,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 const Vector<FabFactory<FAB> const*>& a_factory = {},
                  int a_eb_limit_coarsening = -1);
 
     /**
@@ -64,11 +75,16 @@ public:
      */
     void setSmoothNumSweeps (int nsweeps) noexcept {
         m_smooth_num_sweeps = nsweeps;
+        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+            if (this->m_sp_linop) {
+                static_cast<MLNodeLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setSmoothNumSweeps(nsweeps);
+            }
+        }
     }
 
-    void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
-                     const MultiFab* = nullptr, const MultiFab* = nullptr,
-                     const MultiFab* = nullptr) final {}
+    void setLevelBC (int /*amrlev*/, const MF* /*levelbcdata*/,
+                     const MF* = nullptr, const MF* = nullptr,
+                     const MF* = nullptr) final {}
 
     /**
      * \brief Apply the nodal operator with the requested BC/state modes.
@@ -81,8 +97,8 @@ public:
      * \param s_mode  State interpretation (solution or correction).
      * \param bndry   Optional cached BC data.
      */
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
+    void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const final;
 
     /**
      * \brief Invoke the nodal smoother on (\p amrlev,\p mglev).
@@ -94,22 +110,22 @@ public:
      * \param skip_fillboundary True to assume ghost nodes are already filled.
      * \param niter  Number of smoothing sweeps to perform.
      */
-    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+    void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                  bool skip_fillboundary, int niter) const override;
 
     //! Residual helper that uses solution BCs and optional coarse data (operates on AMR level \p amrlev).
-    void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) override;
+    void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
+                                   const MF* crse_bcdata=nullptr) override;
     //! Residual helper for correction solves (optionally homogeneous BCs) on (\p amrlev,\p mglev).
-    void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
+    void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
+                                     BCMode bc_mode, const MF* crse_bcdata=nullptr) override;
 
     //! Return component-wise solvability offsets for (\p amrlev,\p mglev, \p rhs).
-    Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
-                                               MultiFab const& rhs) const override;
+    Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
+                                               MF const& rhs) const override;
     //! Subtract offsets produced by getSolvabilityOffset() from \p rhs.
-    void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
-                                         Vector<Real> const& offset) const override;
+    void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
+                                         Vector<RT> const& offset) const override;
 
     //! Prepare BC caches, masks, and metadata prior to solving.
     void prepareForSolve () override;
@@ -118,21 +134,21 @@ public:
     void preparePrecond () override;
 
     //! Zero Dirichlet nodes in \p mf before a correction or residual pass.
-    void setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const override;
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
 
     bool isSingular (int amrlev) const override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     bool isBottomSingular () const override { return m_is_bottom_singular; }
 
     //! Dot-product helper.
-    Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+    RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
     //! Dot product used when the operator acts as a preconditioner.
-    Real dotProductPrecond (Vector<MultiFab const*> const& x,
-                            Vector<MultiFab const*> const& y) const final;
+    RT dotProductPrecond (Vector<MF const*> const& x,
+                          Vector<MF const*> const& y) const final;
 
     //! L2 norm used when the operator acts as a preconditioner.
-    Real norm2Precond (Vector<MultiFab const*> const& x) const final;
+    RT norm2Precond (Vector<MF const*> const& x) const final;
 
     /**
      * \brief Apply physical BCs prior to smoothing/apply.
@@ -144,7 +160,7 @@ public:
      * \param state_mode State interpretation (solution vs correction).
      * \param skip_fillboundary True to skip FillBoundary calls.
      */
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode state_mode,
+    virtual void applyBC (int amrlev, int mglev, MF& phi, BCMode bc_mode, StateMode state_mode,
                           bool skip_fillboundary=false) const;
 
     /**
@@ -155,7 +171,7 @@ public:
      * \param out    Destination MultiFab receiving ``L(in)``.
      * \param in     Source MultiFab.
      */
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
+    virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
     /**
      * \brief Low-level smoother invoked by the base class.
      *
@@ -164,10 +180,10 @@ public:
      * \param sol    Correction updated in place.
      * \param rhs    Right-hand side for the smoother.
      */
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs) const = 0;
 
     //! Synchronize nodal values across box/partition boundaries on (\p amrlev,\p mglev).
-    void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
+    void nodalSync (int amrlev, int mglev, MF& mf) const;
 
     /**
      * \brief Build a nodal mask that marks points owned by this rank (used for sync).
@@ -195,10 +211,10 @@ public:
     virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
 
     //! Infinity norm helper operating on level \p amrlev (set \p local to true to skip MPI reduction).
-    Real normInf (int amrlev, MultiFab const& mf, bool local) const override;
+    RT normInf (int amrlev, MF const& mf, bool local) const override;
 
     //! Nodal average-down for residuals between AMR levels (no-op here).
-    void avgDownResAmr (int, MultiFab&, MultiFab const&) const final { }
+    void avgDownResAmr (int, MF&, MF const&) const final { }
 
     /**
      * \brief Prolong AMR-level data during FMG initialization.
@@ -208,7 +224,7 @@ public:
      * \param crse    Source coarse MultiFab.
      * \param nghost  Grow cells to fill.
      */
-    void interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse,
+    void interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                    IntVect const& nghost) const override;
 
     /**
@@ -216,7 +232,7 @@ public:
      *
      * \param sol Vector of nodal MultiFabs spanning all AMR levels.
      */
-    void averageDownAndSync (Vector<MultiFab>& sol) const override;
+    void averageDownAndSync (Vector<MF>& sol) const override;
 
     /**
      * \brief Overwrite fine data with the prolongation of coarse data
@@ -227,7 +243,7 @@ public:
      * \param fine   Destination fine MultiFab (overwritten in place).
      * \param crse   Source coarse MultiFab (its ghost cells may be modified).
      */
-    void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
+    void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
 
 #if (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<MLAlgMG> makeAlgMG (int mglev) const override;
@@ -282,6 +298,19 @@ public:
 
 protected:
 
+    void spCopySettings () override
+    {
+        MLLinOpT<MF>::spCopySettings();
+        setSmoothNumSweeps(m_smooth_num_sweeps);
+    }
+
+    //! Convert a geometry array to RT.
+    [[nodiscard]] static GpuArray<RT,AMREX_SPACEDIM>
+    toRT (GpuArray<Real,AMREX_SPACEDIM> const& a) noexcept
+    {
+        return {AMREX_D_DECL(static_cast<RT>(a[0]), static_cast<RT>(a[1]), static_cast<RT>(a[2]))};
+    }
+
     void resizeMultiGrid (int new_size) override;
 
     void buildMGHierarchy () override;
@@ -292,9 +321,9 @@ protected:
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask;          // nodal mask: 0: this level node, 1: c/f boundary, 2: fine node
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
-    MultiFab m_bottom_dot_mask;
-    MultiFab m_coarse_dot_mask;
-    Vector<MultiFab> m_precond_weight_mask;
+    MF m_bottom_dot_mask;
+    MF m_coarse_dot_mask;
+    Vector<MF> m_precond_weight_mask;
 
     Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
 
@@ -312,6 +341,14 @@ protected:
 private:
     bool m_is_bottom_singular = false;
 };
+
+extern template class MLNodeLinOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLNodeLinOpT<fMultiFab>;
+#endif
+
+//! Double precision base class for nodal linear operators.
+using MLNodeLinOp = MLNodeLinOpT<MultiFab>;
 
 }
 

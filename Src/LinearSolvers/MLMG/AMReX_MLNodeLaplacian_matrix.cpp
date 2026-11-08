@@ -8,33 +8,46 @@ namespace amrex {
 #if (AMREX_SPACEDIM > 1)
 
 #if defined(AMREX_USE_HYPRE)
+template <typename MF>
 void
-MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
-                               Array4<HypreNodeLap::AtomicInt const> const& gid,
-                               Array4<int const> const& lid,
-                               HypreNodeLap::Int* ncols,
-                               HypreNodeLap::Int* cols,
-                               Real* mat) const
+MLNodeLaplacianT<MF>::fillIJMatrix (MFIter const& mfi,
+                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                    Array4<int const> const& lid,
+                                    HypreNodeLap::Int* ncols,
+                                    HypreNodeLap::Int* cols,
+                                    Real* mat) const
 {
-    fillMatrix_doit(m_num_mg_levels[0]-1, mfi, gid, lid, ncols, cols, mat);
+    if constexpr (std::is_same_v<MF,MultiFab>) {
+        fillMatrix_doit(this->m_num_mg_levels[0]-1, mfi, gid, lid, ncols, cols, mat);
+    } else {
+        amrex::ignore_unused(mfi, gid, lid, ncols, cols, mat);
+        amrex::Abort("MLNodeLaplacian::fillIJMatrix: double precision only");
+    }
 }
 #endif
 
+template <typename MF>
 void
-MLNodeLaplacian::fillAlgMatrix (int mglev, MFIter const& mfi,
-                                Array4<Long const> const& gid,
-                                Array4<int const> const& lid,
-                                Long* ncols, Long* cols, Real* mat) const
+MLNodeLaplacianT<MF>::fillAlgMatrix (int mglev, MFIter const& mfi,
+                                     Array4<Long const> const& gid,
+                                     Array4<int const> const& lid,
+                                     Long* ncols, Long* cols, Real* mat) const
 {
-    fillMatrix_doit(mglev, mfi, gid, lid, ncols, cols, mat);
+    if constexpr (std::is_same_v<MF,MultiFab>) {
+        fillMatrix_doit(mglev, mfi, gid, lid, ncols, cols, mat);
+    } else {
+        amrex::ignore_unused(mglev, mfi, gid, lid, ncols, cols, mat);
+        amrex::Abort("MLNodeLaplacian::fillAlgMatrix: double precision only");
+    }
 }
 
+template <typename MF>
 template <typename AlgInt, typename AlgGid>
 void
-MLNodeLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
-                                  Array4<AlgGid const> const& gid,
-                                  Array4<int const> const& lid,
-                                  AlgInt* ncols, AlgInt* cols, Real* mat) const
+MLNodeLaplacianT<MF>::fillMatrix_doit (int mglev, MFIter const& mfi,
+                                       Array4<AlgGid const> const& gid,
+                                       Array4<int const> const& lid,
+                                       AlgInt* ncols, AlgInt* cols, Real* mat) const
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -48,18 +61,19 @@ MLNodeLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
 
 #ifdef AMREX_USE_GPU
 
+template <typename MF>
 template <typename AlgInt, typename AlgGid>
 void
-MLNodeLaplacian::fillMatrix_gpu (int mglev, MFIter const& mfi,
-                                 Array4<AlgGid const> const& gid,
-                                 Array4<int const> const& lid,
-                                 AlgInt* ncols, AlgInt* cols, Real* mat) const
+MLNodeLaplacianT<MF>::fillMatrix_gpu (int mglev, MFIter const& mfi,
+                                      Array4<AlgGid const> const& gid,
+                                      Array4<int const> const& lid,
+                                      AlgInt* ncols, AlgInt* cols, Real* mat) const
 {
     const int amrlev = 0;
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
-    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+    const auto dxinvarr = this->m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -67,7 +81,7 @@ MLNodeLaplacian::fillMatrix_gpu (int mglev, MFIter const& mfi,
     const Box& ndbx = mfi.validbox();
     const auto ndlo = amrex::lbound(ndbx);
     const auto ndlen = amrex::length(ndbx);
-    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE
         (static_cast<Long>(ndbx.numPts())*AMREX_D_TERM(3,*3,*3) <
@@ -77,7 +91,7 @@ MLNodeLaplacian::fillMatrix_gpu (int mglev, MFIter const& mfi,
 
     int nelems;
 
-    if (m_coarsening_strategy == CoarseningStrategy::RAP)
+    if (this->m_coarsening_strategy == CoarseningStrategy::RAP)
     {
         const auto& sten = stencil->const_array(mfi);
         nelems = amrex::Scan::PrefixSum<int>
@@ -186,26 +200,27 @@ MLNodeLaplacian::fillMatrix_gpu (int mglev, MFIter const& mfi,
 
 #endif
 
+template <typename MF>
 template <typename AlgInt, typename AlgGid>
 void
-MLNodeLaplacian::fillMatrix_cpu (int mglev, MFIter const& mfi,
-                                 Array4<AlgGid const> const& gid,
-                                 Array4<int const> const& lid,
-                                 AlgInt* ncols, AlgInt* cols, Real* mat) const
+MLNodeLaplacianT<MF>::fillMatrix_cpu (int mglev, MFIter const& mfi,
+                                      Array4<AlgGid const> const& gid,
+                                      Array4<int const> const& lid,
+                                      AlgInt* ncols, AlgInt* cols, Real* mat) const
 {
     const int amrlev = 0;
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
-    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+    const auto dxinvarr = this->m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
 
     const Box& ndbx = mfi.validbox();
-    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
 
-    if (m_coarsening_strategy == CoarseningStrategy::RAP)
+    if (this->m_coarsening_strategy == CoarseningStrategy::RAP)
     {
         const auto& sten = stencil->const_array(mfi);
         mlndlap_fillijmat_sten_cpu(ndbx, gid, lid, ncols, cols, mat, sten);
@@ -245,22 +260,23 @@ MLNodeLaplacian::fillMatrix_cpu (int mglev, MFIter const& mfi,
     }
 }
 
+template <typename MF>
 void
-MLNodeLaplacian::fillRHS (int mglev, MFIter const& mfi, Array4<int const> const& lid,
-                          Real* rhs, Array4<Real const> const& bfab) const
+MLNodeLaplacianT<MF>::fillRHS (int mglev, MFIter const& mfi, Array4<int const> const& lid,
+                               Real* rhs, Array4<Real const> const& bfab) const
 {
     const int amrlev = 0;
-    const Box& nddom = amrex::surroundingNodes(Geom(amrlev,mglev).Domain());
+    const Box& nddom = amrex::surroundingNodes(this->Geom(amrlev,mglev).Domain());
     const Box& bx = mfi.validbox();
-    const auto lobc = LoBC();
-    const auto hibc = HiBC();
+    const auto lobc = this->LoBC();
+    const auto hibc = this->HiBC();
     GpuArray<int,AMREX_SPACEDIM> neumann_lo{AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                          std::numeric_limits<int>::lowest(),
                                                          std::numeric_limits<int>::lowest())};
     GpuArray<int,AMREX_SPACEDIM> neumann_hi{AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                          std::numeric_limits<int>::lowest(),
                                                          std::numeric_limits<int>::lowest())};
-    if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+    if (this->m_coarsening_strategy == CoarseningStrategy::Sigma) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (lobc[idim] == LinOpBCType::Neumann || lobc[idim] == LinOpBCType::inflow) {
                 if (bx.smallEnd(idim) == nddom.smallEnd(idim)) {
@@ -286,6 +302,34 @@ MLNodeLaplacian::fillRHS (int mglev, MFIter const& mfi, Array4<int const> const&
         }
     });
 }
+
+#define AMREX_MLNODELAP_MATRIX_INST(MF) \
+    template void MLNodeLaplacianT<MF>::fillAlgMatrix (int, MFIter const&, \
+                                                       Array4<Long const> const&, \
+                                                       Array4<int const> const&, \
+                                                       Long*, Long*, Real*) const; \
+    template void MLNodeLaplacianT<MF>::fillRHS (int, MFIter const&, Array4<int const> const&, \
+                                                 Real*, Array4<Real const> const&) const;
+
+AMREX_MLNODELAP_MATRIX_INST(MultiFab)
+#ifdef AMREX_MLMG_HAS_FLOAT
+AMREX_MLNODELAP_MATRIX_INST(fMultiFab)
+#endif
+
+#if defined(AMREX_USE_HYPRE)
+template void MLNodeLaplacianT<MultiFab>::fillIJMatrix (MFIter const&,
+                                                        Array4<HypreNodeLap::AtomicInt const> const&,
+                                                        Array4<int const> const&,
+                                                        HypreNodeLap::Int*, HypreNodeLap::Int*,
+                                                        Real*) const;
+#ifdef AMREX_MLMG_HAS_FLOAT
+template void MLNodeLaplacianT<fMultiFab>::fillIJMatrix (MFIter const&,
+                                                         Array4<HypreNodeLap::AtomicInt const> const&,
+                                                         Array4<int const> const&,
+                                                         HypreNodeLap::Int*, HypreNodeLap::Int*,
+                                                         Real*) const;
+#endif
+#endif
 
 #endif
 

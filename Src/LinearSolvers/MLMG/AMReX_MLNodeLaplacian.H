@@ -28,15 +28,23 @@ namespace amrex {
 // where phi and rhs are nodal, and sigma is cell-centered.
 
 /// \ingroup amrex_eb
-class MLNodeLaplacian
-    : public MLNodeLinOp
+template <typename MF>
+class MLNodeLaplacianT
+    : public MLNodeLinOpT<MF>
 {
 public :
 
     friend class HypreMLNodeLap;
 
+    using FAB = typename MLNodeLinOpT<MF>::FAB;
+    using RT  = typename MLNodeLinOpT<MF>::RT;
+    using BCMode    = typename MLNodeLinOpT<MF>::BCMode;
+    using StateMode = typename MLNodeLinOpT<MF>::StateMode;
+    using Location  = typename MLNodeLinOpT<MF>::Location;
+    using CoarseningStrategy = typename MLNodeLinOpT<MF>::CoarseningStrategy;
+
     //! Construct an empty operator; call define() before solving.
-    MLNodeLaplacian () = default;
+    MLNodeLaplacianT () = default;
     /**
      * \brief Convenience constructor without EB factories.
      *
@@ -48,27 +56,27 @@ public :
      * \param a_const_sigma Uniform conductivity.  Zero selects variable
      *                      conductivity; setSigma() must then supply nonzero coefficients.
      */
-    MLNodeLaplacian (const Vector<Geometry>& a_geom,
-                     const Vector<BoxArray>& a_grids,
-                     const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                     Real  a_const_sigma = Real(0.0));
+    MLNodeLaplacianT (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap,
+                      const LPInfo& a_info = LPInfo(),
+                      const Vector<FabFactory<FAB> const*>& a_factory = {},
+                      RT  a_const_sigma = RT(0.0));
 #ifdef AMREX_USE_EB
     //! Convenience constructor that accepts embedded-boundary factories.
-    MLNodeLaplacian (const Vector<Geometry>& a_geom,
-                     const Vector<BoxArray>& a_grids,
-                     const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info,
-                     const Vector<EBFArrayBoxFactory const*>& a_factory,
-                     Real a_const_sigma = Real(0.0));
+    MLNodeLaplacianT (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap,
+                      const LPInfo& a_info,
+                      const Vector<EBFArrayBoxFactory const*>& a_factory,
+                      RT a_const_sigma = RT(0.0));
 #endif
-    ~MLNodeLaplacian () override = default;
+    ~MLNodeLaplacianT () override = default;
 
-    MLNodeLaplacian (const MLNodeLaplacian&) = delete;
-    MLNodeLaplacian (MLNodeLaplacian&&) = delete;
-    MLNodeLaplacian& operator= (const MLNodeLaplacian&) = delete;
-    MLNodeLaplacian& operator= (MLNodeLaplacian&&) = delete;
+    MLNodeLaplacianT (const MLNodeLaplacianT&) = delete;
+    MLNodeLaplacianT (MLNodeLaplacianT&&) = delete;
+    MLNodeLaplacianT& operator= (const MLNodeLaplacianT&) = delete;
+    MLNodeLaplacianT& operator= (MLNodeLaplacianT&&) = delete;
 
     /**
      * \brief Bind the nodal operator (no EB data).
@@ -85,8 +93,8 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                 Real  a_const_sigma = Real(0.0));
+                 const Vector<FabFactory<FAB> const*>& a_factory = {},
+                 RT  a_const_sigma = RT(0.0));
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
@@ -94,28 +102,40 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 Real a_const_sigma = Real(0.0));
+                 RT a_const_sigma = RT(0.0));
 #endif
 
     std::string name () const override { return std::string("MLNodeLaplacian"); }
+
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLNodeLaplacianT<MF>);
+    }
 
     /**
      * \brief Enable cylindrical (RZ) metric terms.
      *
      * \param rz True activates RZ corrections.
      */
-    void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
+    void setRZCorrection (bool rz) noexcept {
+        m_is_rz = rz;
+        if (this->m_sp_linop) { // the RZ stencil carries one power of r
+            this->m_sp_scale = static_cast<RT>(std::pow(this->m_sp_length_scale, rz ? -1 : -2));
+        }
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setRZCorrection(rz); });
+    }
 
     /**
      * \brief Threshold for normalization (prevents dividing by tiny averages).
      *
      * \param t Minimum average magnitude allowed before rescaling.
      */
-    void setNormalizationThreshold (Real t) noexcept {
+    void setNormalizationThreshold (RT t) noexcept {
         if (m_normalization_threshold != t) {
             m_normalization_threshold = t;
             m_needs_update = true;
         }
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) {
+            sp->setNormalizationThreshold(static_cast<float>(t)); });
     }
 
     /**
@@ -125,34 +145,37 @@ public :
      * \param amrlev AMR level receiving the coefficients.
      * \param a_sigma Cell-centered MultiFab containing nonzero conductivity coefficients.
      */
-    void setSigma (int amrlev, const MultiFab& a_sigma);
+    void setSigma (int amrlev, const MF& a_sigma);
 
     //! Compute `rhs = div(vel)` on nodal grids (used for projections).
-    void compDivergence (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel);
+    void compDivergence (const Vector<MF*>& rhs, const Vector<MF*>& vel);
 
     //! Assemble RHS including nodal/cell-centered forcing terms.
-    void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
-                  const Vector<const MultiFab*>& rhnd,
-                  const Vector<MultiFab*>& rhcc);
+    void compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,
+                  const Vector<const MF*>& rhnd,
+                  const Vector<MF*>& rhcc);
 
     //! Update velocities using the Poisson solution (projection correction).
-    void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
+    void updateVelocity (const Vector<MF*>& vel, const Vector<MF const*>& sol) const;
 
     //! Build coarse-level sync residuals for multilevel projections.
-    void compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& phi,
-                                 const MultiFab& vold, const MultiFab* rhcc,
+    void compSyncResidualCoarse (MF& sync_resid, const MF& phi,
+                                 const MF& vold, const MF* rhcc,
                                  const BoxArray& fine_grids, const IntVect& ref_ratio);
 
     //! Build fine-level sync residuals for multilevel projections.
-    void compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
-                               const MultiFab* rhcc);
+    void compSyncResidualFine (MF& sync_resid, const MF& phi, const MF& vold,
+                               const MF* rhcc);
 
     /**
      * \brief Choose red-black Gauss-Seidel instead of Jacobi smoothing.
      *
      * \param flag True selects Gauss-Seidel.
      */
-    void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
+    void setGaussSeidel (bool flag) noexcept {
+        m_use_gauss_seidel = flag;
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setGaussSeidel(flag); });
+    }
     /**
      * \brief Toggle harmonic averaging when coarsening sigma.
      *
@@ -163,6 +186,7 @@ public :
             m_use_harmonic_average = flag;
             m_needs_update = true;
         }
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setHarmonicAverage(flag); });
     }
 
     /**
@@ -175,6 +199,7 @@ public :
             m_use_mapped = flag;
             m_needs_update = true;
         }
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setMapped(flag); });
     }
 
     /**
@@ -183,26 +208,27 @@ public :
      * \param cs Desired coarsening strategy enum.
      */
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
-        if (m_const_sigma == Real(0.0) && m_coarsening_strategy != cs) {
-            m_coarsening_strategy = cs;
-            m_masks_built = false;
-            m_precond_weight_mask.clear();
+        if (m_const_sigma == RT(0.0) && this->m_coarsening_strategy != cs) {
+            this->m_coarsening_strategy = cs;
+            this->m_masks_built = false;
+            this->m_precond_weight_mask.clear();
             m_needs_update = true;
         }
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setCoarseningStrategy(cs); });
     }
 
     BottomSolver getDefaultBottomSolver () const final {
-        return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
+        return (this->m_coarsening_strategy == CoarseningStrategy::RAP) ?
             BottomSolver::bicgcg : BottomSolver::bicgstab;
     }
 
     //! Restrict nodal data from fine grids to coarse MG level \p cmglev.
-    void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const final;
     //! Add the prolongation of coarse data onto the fine grid (\p fine += prolong(\p crse)).
-    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
+    void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const final;
     //! Average solution/RHS pairs from fine AMR levels onto (\p camrlev).
-    void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
+    void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
+                                         const MF& fine_sol, const MF& fine_rhs) final;
 
     /**
      * \brief Set the coarse/fine nodes of fine AMR level \p famrlev (Dirichlet
@@ -214,16 +240,16 @@ public :
      * \param fine_sol Fine solution, modified at the coarse/fine nodes.
      * \param crse_sol Coarse solution.
      */
-    void interpCoarseFineSolution (int famrlev, MultiFab& fine_sol,
-                                   const MultiFab& crse_sol) const final;
+    void interpCoarseFineSolution (int famrlev, MF& fine_sol,
+                                   const MF& crse_sol) const final;
 
     /**
      * \brief Flux register reflux coupling coarse/fine nodal solves
      * (updates \p res using the solution and RHS arrays on both levels).
      */
     void reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
+                         MF& res, const MF& crse_sol, const MF& crse_rhs,
+                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const final;
 
     //! Finalize metric terms, sigma averages, and BC caches before solving.
     void prepareForSolve () final;
@@ -232,7 +258,7 @@ public :
     //! Refresh sigma averages/stencils and clear the dirty flag.
     void update () final;
     //! Apply the nodal Laplacian to \p in at (\p amrlev,\p mglev).
-    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
     /**
      * \brief Execute the smoother on (\p amrlev,\p mglev).
      *
@@ -241,9 +267,9 @@ public :
      * \param sol    Correction updated in place.
      * \param rhs    RHS supplied to the smoother.
      */
-    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs) const final;
     //! Divide \p mf by the diagonal of the operator (used by CG-family bottom solvers).
-    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+    void normalize (int amrlev, int mglev, MF& mf) const final;
 
     //! Adjust residual masks so EB Dirichlet nodes remain constrained.
     void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
@@ -255,23 +281,23 @@ public :
      * \param a_sol  Solution hierarchy (ignored).
      * \param a_loc  Requested location (ignored).
      */
-    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
-                            const Vector<MultiFab*>& a_sol,
+    void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MF*>& a_sol,
                             Location a_loc) const final {
         amrex::ignore_unused(a_flux, a_sol, a_loc);
         amrex::Abort("MLNodeLaplacian::getFluxes: How did we get here?");
     }
     //! Compute face-centered fluxes given nodal solutions.
-    void getFluxes (const Vector<MultiFab*>& a_flux,
-                            const Vector<MultiFab*>& a_sol) const final;
+    void getFluxes (const Vector<MF*>& a_flux,
+                            const Vector<MF*>& a_sol) const final;
     //! Remove Neumann contributions previously imposed on \p rhs.
-    void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final;
+    void unimposeNeumannBC (int amrlev, MF& rhs) const final;
     //! Compute component-wise offsets needed for solvability enforcement.
-    Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
-                                       MultiFab const& rhs) const override;
+    Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
+                                     MF const& rhs) const override;
     //! Subtract solvability offsets from \p rhs.
-    void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
-                                 Vector<Real> const& offset) const override;
+    void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
+                                 Vector<RT> const& offset) const override;
 
     /**
      * \brief Unsupported flux-style gradient extractor (kept for interface completeness).
@@ -281,8 +307,8 @@ public :
      * \param sol    Solution hierarchy (ignored).
      * \param loc    Requested location (ignored).
      */
-    void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const final {
+    void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
+                           MF& sol, Location loc) const final {
         amrex::ignore_unused(amrlev, grad, sol, loc);
         amrex::Abort("MLNodeLaplacian::compGrad: How did we get here?");
     }
@@ -293,7 +319,7 @@ public :
      * \param grad   Destination gradient MultiFab.
      * \param sol    Solution supplying nodal values.
      */
-    void compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const;
+    void compGrad (int amrlev, MF& grad, MF& sol) const;
 
     //! Average conductivity down across all AMR and MG levels.
     void averageDownCoeffs ();
@@ -303,10 +329,10 @@ public :
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
     //! Restrict interior-node RHS from fine to coarse when syncing.
-    void restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& frhs) const;
+    void restrictInteriorNodes (int camrlev, MF& crhs, MF& frhs) const;
 
     //! Fill ghost cells of \p sigma using \p geom for BC inference.
-    void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
+    void FillBoundaryCoeff (MF& sigma, const Geometry& geom);
 
     //! Build nodal operator stencils reflecting current sigma and metrics.
     void buildStencil ();
@@ -316,7 +342,7 @@ public :
     void buildSurfaceIntegral ();
 
     // Tells the solver that EB boundaries have inflow specified by "eb_vel"
-    void setEBInflowVelocity (int amrlev, const MultiFab& eb_vel);
+    void setEBInflowVelocity (int amrlev, const MF& eb_vel);
 
 #endif
 
@@ -362,29 +388,65 @@ public :
 
 protected:
 
+    void spCopySettings () override
+    {
+        MLNodeLinOpT<MF>::spCopySettings();
+        if (m_is_rz) { setRZCorrection(true); } // also sets the scale
+        setNormalizationThreshold(m_normalization_threshold);
+        setGaussSeidel(m_use_gauss_seidel);
+        setHarmonicAverage(m_use_harmonic_average);
+        setMapped(m_use_mapped);
+        setCoarseningStrategy(this->m_coarsening_strategy);
+    }
+
     void resizeMultiGrid (int new_size) final;
+
+#ifdef AMREX_USE_EB
+    //! EB factory of AMR level amrlev, or nullptr.  EB data are double
+    //! precision, so the float operator never has one.
+    [[nodiscard]] EBFArrayBoxFactory const* ebFactory (int amrlev) const
+    {
+        if constexpr (std::is_same_v<MF,MultiFab>) {
+            return dynamic_cast<EBFArrayBoxFactory const*>(this->m_factory[amrlev][0].get());
+        } else {
+            amrex::ignore_unused(amrlev);
+            return nullptr;
+        }
+    }
+
+    //! Volume fraction of EB factory f, or nullptr.
+    [[nodiscard]] static MF const* ebVolFrac (EBFArrayBoxFactory const* f)
+    {
+        if constexpr (std::is_same_v<MF,MultiFab>) {
+            return (f) ? &(f->getVolFrac()) : nullptr;
+        } else {
+            amrex::ignore_unused(f);
+            return nullptr;
+        }
+    }
+#endif
 
 private:
 
     int m_is_rz = 0;
 
-    Real m_const_sigma = Real(0.0);
-    Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
-    Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
-    Vector<std::unique_ptr<MultiFab> > m_nosigma_stencil;
-    Vector<Vector<Real> > m_s0_norm0;
+    RT m_const_sigma = RT(0.0);
+    Vector<Vector<Array<std::unique_ptr<MF>,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<std::unique_ptr<MF> > > m_stencil;
+    Vector<std::unique_ptr<MF> > m_nosigma_stencil;
+    Vector<Vector<RT> > m_s0_norm0;
 
-    Real m_normalization_threshold = Real(1.e-8);
+    RT m_normalization_threshold = RT(1.e-8);
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
-    Vector<std::unique_ptr<MultiFab> > m_integral;
+    Vector<std::unique_ptr<MF> > m_integral;
     bool m_integral_built = false;
 
-    Vector<std::unique_ptr<MultiFab> > m_surface_integral;
+    Vector<std::unique_ptr<MF> > m_surface_integral;
     bool m_surface_integral_built = false;
     bool m_build_surface_integral = false;
-    Vector<std::unique_ptr<MultiFab> > m_eb_vel_dot_n;
+    Vector<std::unique_ptr<MF> > m_eb_vel_dot_n;
 #endif
 
     bool m_use_gauss_seidel     = true;
@@ -394,6 +456,14 @@ private:
 
     void checkPoint (std::string const& file_name) const final;
 };
+
+extern template class MLNodeLaplacianT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLNodeLaplacianT<fMultiFab>;
+#endif
+
+//! Double precision nodal Laplacian.
+using MLNodeLaplacian = MLNodeLaplacianT<MultiFab>;
 
 }
 

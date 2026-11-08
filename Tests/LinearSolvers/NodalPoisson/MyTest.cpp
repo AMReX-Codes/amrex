@@ -45,6 +45,7 @@ MyTest::solve ()
     info.setConsolidation(consolidation);
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMixedPrecision(mixed_precision);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
     if (composite_solve)
@@ -284,6 +285,7 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("semicoarsening", semicoarsening);
+    pp.query("mixed_precision", mixed_precision);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
     //pp.query("smooth_num_sweeps", smooth_num_sweeps);
@@ -419,6 +421,7 @@ MyTest::testSigmaUpdate ()
     info.setConsolidation(consolidation);
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMixedPrecision(mixed_precision);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
     MLNodeLaplacian linop({geom[0]}, {grids[0]}, {dmap[0]}, info);
