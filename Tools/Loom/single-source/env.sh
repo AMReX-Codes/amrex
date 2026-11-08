@@ -4,10 +4,6 @@
 # Edit the first block for your machine; everything else derives from it.
 
 # --- Machine-specific -------------------------------------------------------
-# The HSA runtime (ROCr) that HRX loads at run time: a recent
-# libhsa-runtime64.so, by default ROCm 10.1's. Nothing else comes from ROCm.
-: "${ROCM_PATH:=/opt/rocm/core-10.1}"
-: "${LIBHSA_PATH:=$ROCM_PATH/lib/libhsa-runtime64.so.1}"
 # GCC 14 install directory (C++23 libstdc++ for building the tools, glibc crt
 # files for linking, compiler headers such as stddef.h for the single-source
 # compiles).
@@ -22,7 +18,7 @@
 : "${BUILD_JOBS:=8}"
 
 # --- Derived ----------------------------------------------------------------
-export ROCM_PATH LIBHSA_PATH GCC_INSTALL_DIR GLIBC_INCLUDE LOOM_WORK CXX_SRC HRX_SRC AMREX_SRC BUILD_JOBS
+export GCC_INSTALL_DIR GLIBC_INCLUDE LOOM_WORK CXX_SRC HRX_SRC AMREX_SRC BUILD_JOBS
 export TOOLS_ENV=$AMREX_SRC/Tools/Loom/single-source/.pixi/envs/default
 export CXX_BUILD=$LOOM_WORK/build/cxx
 export HRX_BUILD=$LOOM_WORK/build/hrx
@@ -33,7 +29,8 @@ mkdir -p "$TMPDIR"
 # clang from the pixi environment builds the tools and links executables.
 export CLANG=$TOOLS_ENV/bin/clang
 export CLANGXX=$TOOLS_ENV/bin/clang++
-export IREE_HAL_AMDGPU_LIBHSA_PATH=$LIBHSA_PATH
+# HRX runs on its native AMD GPU driver over libamdf (no ROCm runtime).
+export HRX_GPU_DRIVER=amdgpu
 
 # amrex-loom-cxx (the C++ compiler AMReX is configured with).
 export AMREX_LOOM_HOST_CXX=$AMREX_SRC/Tools/Loom/amrex-loom-host-cxx
