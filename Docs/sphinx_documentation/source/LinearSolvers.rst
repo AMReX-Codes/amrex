@@ -390,7 +390,9 @@ The bottom solver must be the smoother, CG or BiCGStab, and it runs with
 the single precision default tolerance unless one is set with
 :cpp:`MLMG::setBottomTolerance`.  A mixed precision :cpp:`MLMG` used as a
 preconditioner needs a flexible Krylov method; :cpp:`GMRESMLMG` switches to
-flexible GMRES by itself.
+flexible GMRES by itself.  If :cpp:`define` is called again on an operator,
+build a new :cpp:`MLMG` for it.  A mixed precision :cpp:`MLMG` aborts if it
+is used again after its operator is re-defined.
 
 At the bottom of the multigrid cycles, we use a ``bottom solver`` which may be
 different than the relaxation used at the other levels. The default bottom solver is the

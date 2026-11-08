@@ -1050,6 +1050,9 @@ protected:
 #endif
         ;
     std::unique_ptr<MLLinOpT<fMultiFab>> m_sp_linop;
+    //! Mixed precision: number of single precision copies built so far, so
+    //! that MLMG can tell that a re-define replaced the copy it uses.
+    int m_sp_linop_count = 0;
 
     //! Mixed precision: the single precision copy lives in a geometry
     //! whose lengths are m_sp_length_scale times this operator's, and it
@@ -1133,6 +1136,7 @@ protected:
                 LPInfo sp_info = a_info;
                 sp_info.mixed_precision = false;
                 m_sp_linop = f(sp_info);
+                ++m_sp_linop_count;
                 spCopySettings();
             }
         } else {

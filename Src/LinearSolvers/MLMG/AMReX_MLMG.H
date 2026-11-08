@@ -799,6 +799,7 @@ private:
 
     //! Mixed precision: multigrid on the operator's single precision copy
     std::unique_ptr<MLMGT<fMultiFab>> m_sp_mlmg;
+    int m_sp_linop_count = 0; //!< the copy m_sp_mlmg was built on
 
     [[nodiscard]] IntVect ngSol () const {
         IntVect ng(1);
@@ -2060,6 +2061,10 @@ MLMGT<MF>::prepareForSPSolve ()
         const bool first = !m_sp_mlmg;
         if (first) {
             m_sp_mlmg = std::make_unique<MLMGT<fMultiFab>>(*linop.m_sp_linop);
+            m_sp_linop_count = linop.m_sp_linop_count;
+        } else if (m_sp_linop_count != linop.m_sp_linop_count) {
+            amrex::Abort("MLMG: the operator was re-defined after this mixed precision MLMG "
+                         "was used; build a new MLMG for it");
         }
         auto& sp = *m_sp_mlmg;
         sp.setNSolve(do_nsolve);
