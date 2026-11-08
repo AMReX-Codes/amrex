@@ -8,7 +8,8 @@ libc++ headers for both. cxx compiles each file twice:
 2. through Loom's C++ importer (which embeds the same cxx) and `loom-compile`,
    to a gfx90a code object that is embedded in the host object.
 
-HRX is the GPU runtime. The pass criterion is that `GPU_ArenaLifetime_3d`,
+HRX is the GPU runtime, on its native AMD GPU driver (libamdf); no part of
+ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
 `GPU_CNS_Sod_3d` and `GPU_ExternalStream_3d` pass, and that the CNS run agrees
 with `cns-expected.txt` to round-off.
 
@@ -19,9 +20,9 @@ strictly single-source.
 ## Requirements
 
 - Linux x86-64 with an AMD gfx90a GPU (MI210, MI250X).
-- A recent HSA runtime (ROCr), `libhsa-runtime64.so`, which HRX loads at run
-  time. Tested with ROCm 10.1's; nothing else from ROCm is used (no HIP, no
-  device libraries, no ROCm headers).
+- The amdgpu kernel driver with access to `/dev/kfd`, which HRX's libamdf uses
+  directly. ROCm is not needed: no ROCr/HSA runtime, HIP, device libraries or
+  ROCm headers.
 - GCC 14 (its install directory, for libstdc++, glibc crt files and compiler
   headers).
 - glibc headers (`/usr/include` on most systems).
@@ -47,8 +48,6 @@ running the scripts:
 
 | Variable          | Meaning                                  | Default                                  |
 |-------------------|------------------------------------------|------------------------------------------|
-| `ROCM_PATH`       | ROCm root, used only to find libhsa      | `/opt/rocm/core-10.1`                    |
-| `LIBHSA_PATH`     | `libhsa-runtime64.so` to load            | `$ROCM_PATH/lib/libhsa-runtime64.so.1`   |
 | `GCC_INSTALL_DIR` | GCC 14 `lib/gcc/<triple>/<version>`      | `/usr/lib64/gcc/x86_64-suse-linux/14`    |
 | `GLIBC_INCLUDE`   | glibc headers                            | `/usr/include`                           |
 | `LOOM_WORK`       | directory holding the three clones       | current directory                        |
@@ -65,7 +64,8 @@ $S/run-tests.sh     # ctest for the three tests, then the CNS check
 
 `build-hrx.sh` points HRX's cxx dependency at the `cplusplus` clone
 (`FETCHCONTENT_SOURCE_DIR_CXX`), so Loom's importer and the host compiler are
-built from the same cxx source.
+built from the same cxx source. It builds only HRX's native AMD GPU driver, and
+`env.sh` selects it (`HRX_GPU_DRIVER=amdgpu`).
 
 ## Expected result
 
