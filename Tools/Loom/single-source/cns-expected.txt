@@ -1,5 +1,6 @@
 # CNS Sod 3d (Tests/GPU/CNS/Sod_3d/inputs-ci): expected per-step time and dt, and step-20 totals.
-# Source: single-source LOOM build on an MI210 (gfx90a), ROCm 10.1, 2026-11-09.
+# Source: single-source LOOM build on an MI210 (gfx90a), 2026-11-09, run on HRX's legacy
+# ROCr driver (ROCm 10.1 libhsa); the kit now uses HRX's native driver (libamdf).
 # cpu_reference: CPU-only AMReX build of the same tree (clang + libstdc++).
 step 1 0.003961660569 0.003961660569
 step 2 0.006664896859 0.00270323629
