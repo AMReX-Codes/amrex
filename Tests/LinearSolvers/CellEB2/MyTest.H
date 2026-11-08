@@ -19,16 +19,18 @@ public:
 
     void initData ();
 
+    // public for cuda
+    void compareWithMLHypre (amrex::MLEBABecLap& mleb, amrex::MLMG& mlmg,
+                             amrex::Vector<amrex::MultiFab> const& bcdata,
+                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& hibc);
+
 private:
 
     void initializeEB ();
     void readParameters ();
     void initGrids ();
     void addFineGrids ();
-    void compareWithMLHypre (amrex::MLEBABecLap& mleb, amrex::MLMG& mlmg,
-                             amrex::Vector<amrex::MultiFab> const& bcdata,
-                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                             amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& hibc);
 
     int max_level = 0;
     int ref_ratio = 2;
