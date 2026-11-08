@@ -698,6 +698,10 @@ TinyProfiler::PrintStats (RegionStats& regstats, double dt_max,
         }
     }
 
+    // maxncalls is 0 off the I/O rank. Clang may hoist the log10 below out of
+    // the I/O-rank branch, trapping on log10(0) when FPE traps are enabled.
+    maxncalls = std::max(maxncalls, Long(1));
+
     if (ParallelDescriptor::IOProcessor() && os)
     {
         IOFormatSaver iofmtsaver(*os);
