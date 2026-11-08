@@ -133,6 +133,14 @@ template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
+// Defined if the single precision operators and solver used by mixed
+// precision are compiled (in AMReX_MLMG_float.cpp).  nvcc on Windows cannot
+// compile the EB code of MLCellLinOp for float (see the if constexpr
+// workarounds there).
+#if !defined(AMREX_USE_FLOAT) && !(defined(AMREX_USE_CUDA) && defined(_WIN32) && defined(AMREX_USE_EB))
+#define AMREX_MLMG_HAS_FLOAT 1
+#endif
+
 /// \ingroup amrex_solver_mlmg
 /**
  * \brief Abstract base class for multilevel linear operators used by MLMG and the bottom solvers.
@@ -1034,11 +1042,10 @@ protected:
 
     //! Mixed precision: this operator keeps only MG level 0 and the single
     //! precision copy, built in the concrete operator's define, holds the
-    //! MG hierarchy.  nvcc on Windows cannot compile the EB code of
-    //! MLCellLinOp for float (see the if constexpr workarounds there).
+    //! MG hierarchy.
     static constexpr bool mixed_precision_capable =
-        std::is_same_v<MF,MultiFab> && std::is_same_v<Real,double>
-#if defined(AMREX_USE_CUDA) && defined(_WIN32) && defined(AMREX_USE_EB)
+        std::is_same_v<MF,MultiFab>
+#ifndef AMREX_MLMG_HAS_FLOAT
         && false
 #endif
         ;
@@ -2453,6 +2460,9 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 }
 
 extern template class MLLinOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLLinOpT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;

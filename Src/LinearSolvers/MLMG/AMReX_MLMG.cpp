@@ -6,8 +6,9 @@
 
 namespace amrex {
 
-// Explicit instantiation of these templates are necessary for working
-// around nvcc issues.
+// Explicit instantiation keeps applications from compiling these templates
+// and works around nvcc issues.  The single precision versions are in
+// AMReX_MLMG_float.cpp.
 
 template class MLMGT<MultiFab>;
 template class MLLinOpT<MultiFab>;

@@ -1288,6 +1288,9 @@ MLPoissonT<MF>::get_dpdn_on_domain_faces (Array<MF*,AMREX_SPACEDIM> const& dpdn,
 }
 
 extern template class MLPoissonT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLPoissonT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLPoisson = MLPoissonT<MultiFab>;

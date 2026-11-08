@@ -8,6 +8,7 @@ USE_LINEAR_SOLVERS_INCFLO ?= TRUE
 USE_LINEAR_SOLVERS_EM ?= TRUE
 
 CEXE_sources += AMReX_MLMG.cpp
+CEXE_sources += AMReX_MLMG_float.cpp
 
 CEXE_headers   += AMReX_MLMG.H
 CEXE_headers   += AMReX_MLAlgMG.H

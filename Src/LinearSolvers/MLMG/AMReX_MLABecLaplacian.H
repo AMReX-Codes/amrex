@@ -1627,6 +1627,9 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 }
 
 extern template class MLABecLaplacianT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLABecLaplacianT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLABecLaplacian = MLABecLaplacianT<MultiFab>;

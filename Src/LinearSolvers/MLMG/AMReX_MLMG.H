@@ -1589,10 +1589,14 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                          *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
-                EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
-#else
-                average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                // EB operators are double only.
+                if constexpr (std::is_same_v<MF,MultiFab>) {
+                    EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                } else
 #endif
+                {
+                    average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                }
             }
         }
     }
@@ -1659,10 +1663,14 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             if (linop.isCellCentered()) {
                 if constexpr (IsMultiFabLike_v<MF>) {
 #ifdef AMREX_USE_EB
-                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
-#else
-                    average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    // EB operators are double only.
+                    if constexpr (std::is_same_v<MF,MultiFab>) {
+                        EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    } else
 #endif
+                    {
+                        average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    }
                 } else {
                     amrex::Abort("MLMG: TODO average_down for non-MultiFab");
                 }
@@ -3125,6 +3133,9 @@ MLMGT<MF>::decPrintIdentation ()
 }
 
 extern template class MLMGT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLMGT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLMG = MLMGT<MultiFab>;

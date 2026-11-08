@@ -1000,6 +1000,9 @@ MLALaplacianT<MF>::FFlux (int amrlev, const MFIter& mfi,
 }
 
 extern template class MLALaplacianT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLALaplacianT<fMultiFab>;
+#endif
 
 using MLALaplacian = MLALaplacianT<MultiFab>;
 

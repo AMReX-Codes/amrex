@@ -907,6 +907,9 @@ MLCellABecLapT<MF>::makePETSc () const
 #endif
 
 extern template class MLCellABecLapT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLCellABecLapT<fMultiFab>;
+#endif
 
 /// \ingroup amrex_solver_mlmg
 using MLCellABecLap = MLCellABecLapT<MultiFab>;

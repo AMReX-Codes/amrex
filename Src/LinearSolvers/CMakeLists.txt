@@ -9,6 +9,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        PRIVATE
        MLMG/AMReX_MLMG.H
        MLMG/AMReX_MLMG.cpp
+       MLMG/AMReX_MLMG_float.cpp
        MLMG/AMReX_MLAlgMG.H
        MLMG/AMReX_MLAlgMG.cpp
        MLMG/AMReX_MLMG_K.H

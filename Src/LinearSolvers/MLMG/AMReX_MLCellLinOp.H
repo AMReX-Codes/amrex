@@ -2603,6 +2603,9 @@ MLCellLinOpT<MF>::endPrecondBC ()
 }
 
 extern template class MLCellLinOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLCellLinOpT<fMultiFab>;
+#endif
 
 using MLCellLinOp = MLCellLinOpT<MultiFab>;
 
