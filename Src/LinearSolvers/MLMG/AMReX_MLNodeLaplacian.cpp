@@ -102,11 +102,14 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     m_is_rz = this->m_geom[0][0].IsRZ();
 #endif
 
+    // The copy's sigma is scaled into the single precision range.
+    m_sp_sigma_scale = this->spScaleFor(std::abs(a_const_sigma));
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
         return std::make_unique<MLNodeLaplacianT<fMultiFab>>
             (this->spGeom(a_geom), a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{},
-             static_cast<float>(a_const_sigma));
+             static_cast<float>(m_sp_sigma_scale * a_const_sigma));
     });
+    spUpdateScale();
 
     m_needs_update = true;
 }
@@ -424,11 +427,55 @@ MLNodeLaplacianT<MF>::setSigma (int amrlev, const MF& a_sigma)
 
     m_needs_update = true;
 
-    this->template spForward<MLNodeLaplacianT>([&] (auto* sp) {
-        fMultiFab fsigma(a_sigma.boxArray(), a_sigma.DistributionMap(), a_sigma.nComp(), 0);
-        fsigma.LocalCopy(a_sigma, 0, 0, a_sigma.nComp(), IntVect(0));
-        sp->setSigma(amrlev, fsigma);
-    });
+    if (this->m_sp_linop) {
+        // Mixed precision: one scale for all AMR levels, from the largest sigma.
+        RT smax = RT(0.0);
+        for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
+            for (auto const& sg : m_sigma[alev][0]) {
+                if (sg) { smax = std::max(smax, sg->norminf(0, 1, IntVect(0), true)); }
+            }
+        }
+        ParallelAllReduce::Max(smax, ParallelContext::CommunicatorSub());
+        RT const s = this->spScaleFor(smax);
+        if (s != m_sp_sigma_scale) {
+            m_sp_sigma_scale = s;
+            spUpdateScale();
+            for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
+                if (alev != amrlev) {
+                    int const ncomp = m_use_mapped ? AMREX_SPACEDIM : 1;
+                    MF tmp(this->m_grids[alev][0], this->m_dmap[alev][0], ncomp, 0);
+                    for (int n = 0; n < ncomp; ++n) {
+                        auto const& src = m_sigma[alev][0][n] ? m_sigma[alev][0][n] : m_sigma[alev][0][0];
+                        amrex::Copy(tmp, *src, 0, n, 1, 0);
+                    }
+                    spForwardSigma(alev, tmp);
+                }
+            }
+        }
+        spForwardSigma(amrlev, a_sigma);
+    }
+}
+
+template <typename MF>
+void
+MLNodeLaplacianT<MF>::spForwardSigma (int amrlev, MF const& a_sigma)
+{
+    if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
+        int const ncomp = a_sigma.nComp();
+        fMultiFab fsigma(a_sigma.boxArray(), a_sigma.DistributionMap(), ncomp, 0);
+        auto const& fa = fsigma.arrays();
+        auto const& sa = a_sigma.const_arrays();
+        RT const s = m_sp_sigma_scale;
+        ParallelFor(fsigma, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n) noexcept
+        {
+            fa[b](i,j,k,n) = static_cast<float>(s * sa[b](i,j,k,n));
+        });
+        Gpu::streamSynchronize();
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setSigma(amrlev, fsigma); });
+    } else {
+        amrex::ignore_unused(amrlev, a_sigma);
+    }
 }
 
 template <typename MF>

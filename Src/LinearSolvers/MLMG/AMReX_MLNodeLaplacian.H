@@ -118,9 +118,7 @@ public :
      */
     void setRZCorrection (bool rz) noexcept {
         m_is_rz = rz;
-        if (this->m_sp_linop) { // the RZ stencil carries one power of r
-            this->m_sp_scale = static_cast<RT>(std::pow(this->m_sp_length_scale, rz ? -1 : -2));
-        }
+        spUpdateScale();
         this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setRZCorrection(rz); });
     }
 
@@ -146,6 +144,10 @@ public :
      * \param a_sigma Cell-centered MultiFab containing nonzero conductivity coefficients.
      */
     void setSigma (int amrlev, const MF& a_sigma);
+
+    //! Mixed precision: send the sigma of AMR level amrlev, scaled, to the
+    //! single precision copy.  Public for CUDA.
+    void spForwardSigma (int amrlev, MF const& a_sigma);
 
     //! Compute `rhs = div(vel)` on nodal grids (used for projections).
     void compDivergence (const Vector<MF*>& rhs, const Vector<MF*>& vel);
@@ -401,6 +403,16 @@ protected:
 
     void resizeMultiGrid (int new_size) final;
 
+    //! Mixed precision: the copy's sigma is m_sp_sigma_scale times ours and
+    //! its lengths m_sp_length_scale times ours (the RZ stencil carries one
+    //! power of r).
+    void spUpdateScale () noexcept {
+        if (this->m_sp_linop) {
+            this->m_sp_scale = m_sp_sigma_scale
+                * static_cast<RT>(std::pow(this->m_sp_length_scale, m_is_rz ? -1 : -2));
+        }
+    }
+
 #ifdef AMREX_USE_EB
     //! EB factory of AMR level amrlev, or nullptr.  EB data are double
     //! precision, so the float operator never has one.
@@ -431,6 +443,7 @@ private:
     int m_is_rz = 0;
 
     RT m_const_sigma = RT(0.0);
+    RT m_sp_sigma_scale = RT(1.0);
     Vector<Vector<Array<std::unique_ptr<MF>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MF> > > m_stencil;
     Vector<std::unique_ptr<MF> > m_nosigma_stencil;
