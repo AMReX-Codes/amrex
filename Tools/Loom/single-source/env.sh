@@ -39,8 +39,6 @@ export AMREX_LOOM_COMPILE=$HRX_BUILD/loom/src/loom/tools/loom-compile/loom-compi
 export AMREX_LOOM_TARGET=gfx90a
 export AMREX_LOOM_LOOMCXX_DIR=$LOOM_WORK/build/loomcxx-include
 export AMREX_LOOM_SYSTEM_INCLUDES=$TOOLS_ENV/include/c++/v1:$GCC_INSTALL_DIR/include:$GLIBC_INCLUDE
-export AMREX_LOOM_DEVICE_PRELUDE=$AMREX_SRC/Tools/Loom/amrex_loom_device_prelude_libcxx.H
-export AMREX_LOOM_LAYOUT_CHECK=0
 export AMREX_LOOM_HRX_LIB_DIR=$HRX_BUILD/libhrx/src/libhrx
 export AMREX_LOOM_HRX_INCLUDE_DIR=$HRX_SRC/libhrx/include
 

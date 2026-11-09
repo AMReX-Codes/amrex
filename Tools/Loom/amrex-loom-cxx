@@ -14,11 +14,11 @@
 #   AMREX_LOOM_COMPILE        loom-compile
 #   AMREX_LOOM_TARGET         e.g. gfx90a
 #   AMREX_LOOM_LOOMCXX_DIR    directory containing loomcxx/ headers
-#   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libstdc++/libc include dirs
+#   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libc++/compiler/libc include dirs
 #   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
 # Optional: AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
-#           AMREX_LOOM_LAYOUT_CHECK=0 skips the clang record-layout cross-check;
-#           set it when the host compiler is cxx (one frontend, no -Xclang).
+#           AMREX_LOOM_DEVICE_PRELUDE overrides the device prelude header (a
+#           path; "none" omits it).
 set -o pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 : "${AMREX_LOOM_HOST_CXX:?}" "${AMREX_LOOM_IMPORT:?}" "${AMREX_LOOM_COMPILE:?}"
@@ -48,16 +48,9 @@ if [[ -z "$src" || -z "$out" ]]; then
 fi
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/amrex-loom.XXXXXX")
 [[ "${AMREX_LOOM_KEEP:-0}" == 1 ]] || trap 'rm -rf "$tmp"' EXIT
-# Host compile. clang's record layouts of launch tags are kept for the layout
-# cross-check against the device pass (amrex-loom-layout-check.py).
-if [[ "${AMREX_LOOM_LAYOUT_CHECK:-1}" == 1 ]]; then
-"$AMREX_LOOM_HOST_CXX" "${args[@]}" -Xclang -fdump-record-layouts |
-  awk '/^\*\*\* Dumping AST Record Layout/ { keep = 0; head = 1; banner = $0; next }
-       head { head = 0; if ($0 ~ /amrex_loom::Tag</) { keep = 1; print banner } }
-       keep && (/^ *[0-9]+(:[0-9]+-[0-9]+)? \| / || /\[sizeof=/) { print }' > "$tmp/layouts.txt" || exit $?
-else
-  "$AMREX_LOOM_HOST_CXX" "${args[@]}" || exit $?
-fi
+# Host compile. With cxx as the host compiler (one frontend for both passes),
+# launch tag layouts agree by construction and need no cross-check.
+"$AMREX_LOOM_HOST_CXX" "${args[@]}" || exit $?
 
 # ---- Device pass --------------------------------------------------------
 dev=()
@@ -78,7 +71,6 @@ IFS=: read -r -a sysdirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
 for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
 
 abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
-# AMREX_LOOM_DEVICE_PRELUDE overrides the prelude header (a path; "none" omits it).
 prelude=${AMREX_LOOM_DEVICE_PRELUDE:-amrex_loom_device_prelude.H}
 if [[ "$prelude" == none ]]; then
   printf '#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
@@ -115,23 +107,6 @@ if [[ $ndrop -gt 0 && $round == 1 ]]; then
   grep -A1 'warning \[LOWERING' "$tmp/import.log" | grep 'warning \[LOWERING' | sed 's|^|  dropped: |' | head -40 >&2
 fi
 [[ -s "$tmp/manifest" ]] || exit 0
-
-# Layout cross-check: every kernel's tag fields (offset, size) as the device
-# pass computed them must equal clang's layout of the same host object.
-if [[ "${AMREX_LOOM_LAYOUT_CHECK:-1}" == 1 ]]; then
-  mismatched=$(python3 "$HERE/amrex-loom-layout-check.py" "$tmp/layouts.txt" "$tmp/manifest" 2> "$tmp/layout.log" |
-               tr '\n' ',' | sed 's/,$//')
-  if [[ -n "$mismatched" ]]; then
-    grep "MISMATCH\|NO-HOST-INSTANCE" "$tmp/layout.log" | cut -c1-240 | sed 's|^|  |' >&2
-    if [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && grep -q "MISMATCH" "$tmp/layout.log"; then
-      echo "amrex-loom-cxx: error: launch tag layout mismatch in $src" >&2
-      exit 1
-    fi
-    echo "amrex-loom-cxx: excluding $(echo "$mismatched" | tr ',' '\n' | wc -l) kernel(s) whose launch tag layout could not be verified in $src" >&2
-    excluded="${excluded:+$excluded,}$mismatched"
-    continue
-  fi
-fi
 
 "$AMREX_LOOM_COMPILE" "$tmp/dev.loombc" --target=amdgpu:"$AMREX_LOOM_TARGET" \
   --format=amdgpu-hsaco --output="$tmp/dev.hsaco" > "$tmp/compile.log" 2>&1
