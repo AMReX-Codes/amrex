@@ -534,6 +534,11 @@ MLNodeLaplacianT<MF>::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
 
+    // The single precision copy would form its RAP coarse operators in single
+    // precision, which loses small couplings and slows convergence.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_sp_linop || this->m_coarsening_strategy != CoarseningStrategy::RAP,
+        "MLNodeLaplacian: mixed precision needs CoarseningStrategy::Sigma (setCoarseningStrategy)");
+
     MLNodeLinOpT<MF>::prepareForSolve();
 
     this->buildMasks();

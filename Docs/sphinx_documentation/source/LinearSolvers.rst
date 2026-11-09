@@ -386,7 +386,10 @@ cycles in single precision while the solution, the right-hand side and the
 residual it converges on stay in double precision.  The solver still reaches
 the requested tolerance.  This is available for :cpp:`MLPoisson`,
 :cpp:`MLABecLaplacian`, :cpp:`MLALaplacian`, :cpp:`MLTensorOp` and
-:cpp:`MLNodeLaplacian` without embedded boundaries.
+:cpp:`MLNodeLaplacian` without embedded boundaries.  :cpp:`MLNodeLaplacian`
+needs the sigma coarsening strategy, which is not the default in builds with
+embedded boundary support; set it with
+:cpp:`setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma)`.
 The bottom solver must be the smoother, CG or BiCGStab, and it runs with
 the single precision default tolerance unless one is set with
 :cpp:`MLMG::setBottomTolerance`.  A mixed precision :cpp:`MLMG` used as a
