@@ -17,8 +17,8 @@
 #   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libc++/compiler/libc include dirs
 #   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
 # Optional: AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
-#           AMREX_LOOM_DEVICE_PRELUDE overrides the device prelude header (a
-#           path; "none" omits it).
+#           AMREX_LOOM_DEVICE_STRICT=1 fails the compile when the device pass
+#           fails, instead of keeping a host-only object.
 set -o pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 : "${AMREX_LOOM_HOST_CXX:?}" "${AMREX_LOOM_IMPORT:?}" "${AMREX_LOOM_COMPILE:?}"
@@ -71,27 +71,17 @@ IFS=: read -r -a sysdirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
 for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
 
 abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
-prelude=${AMREX_LOOM_DEVICE_PRELUDE:-amrex_loom_device_prelude.H}
-if [[ "$prelude" == none ]]; then
-  printf '#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
-else
-  printf '#include <%s>\n#include "%s"\n' "$prelude" "$abs_src" > "$tmp/dev.cpp"
-fi
+printf '#include <amrex_loom_device_prelude.H>\n#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
 # Import, then compile. Kernels the compiler rejects are excluded by export
 # name and the unit is re-imported (best effort: at most four rounds).
-excluded=""
+excluded=()
 for round in 1 2 3 4 5; do
-LOOM_CXX_HOSTED=1 LOOM_CXX_TOLERATE_HOST_ERRORS=1 LOOM_CXX_DROP_FAILED_KERNELS=1 LOOM_CXX_AUDIT_STD="${AMREX_LOOM_AUDIT_STD:-0}" \
-LOOM_CXX_EXCLUDE_KERNELS="$excluded" LOOM_CXX_KERNEL_MANIFEST="$tmp/manifest" \
-  "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
+"$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
+  --hosted --tolerate-host-errors --drop-failed-kernels \
+  --kernel-manifest="$tmp/manifest" "${excluded[@]}" \
   --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" --D=AMREX_LOOM_DEVICE_PASS=1 \
   "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
 rc=$?
-# Optional audit: keep the frontend errors tolerant mode demoted (first round).
-if [[ -n "${AMREX_LOOM_FRONTEND_LOG_DIR:-}" && $round == 1 ]]; then
-  mkdir -p "$AMREX_LOOM_FRONTEND_LOG_DIR"
-  grep "deferred error: " "$tmp/import.log" > "$AMREX_LOOM_FRONTEND_LOG_DIR/$(echo "$abs_src" | tr '/' '_').log" || true
-fi
 if [[ $rc -ne 0 ]]; then
   echo "amrex-loom-cxx: device pass failed for $src ($(grep -c 'warning \[' "$tmp/import.log") frontend warnings in host code)" >&2
   grep -A3 'error \[' "$tmp/import.log" | sed 's|^|  |' | head -40 >&2
@@ -112,7 +102,7 @@ fi
   --format=amdgpu-hsaco --output="$tmp/dev.hsaco" > "$tmp/compile.log" 2>&1
 rc=$?
 [[ $rc -eq 0 ]] && break
-rejected=$(grep -o "export '[^']*'" "$tmp/compile.log" | sed "s/export '//; s/'\$//" | sort -u | tr '\n' ',' | sed 's/,$//')
+rejected=$(grep -o "export '[^']*'" "$tmp/compile.log" | sed "s/export '//; s/'\$//" | sort -u)
 if [[ -z "$rejected" || $round == 5 ]]; then
   echo "amrex-loom-cxx: device compile failed for $src" >&2
   sed 's|^|  |' "$tmp/compile.log" | head -40 >&2
@@ -120,9 +110,9 @@ if [[ -z "$rejected" || $round == 5 ]]; then
   echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
   exit 0
 fi
-echo "amrex-loom-cxx: compile rejected $(echo "$rejected" | tr ',' '\n' | wc -l) kernel(s) in $src; excluding and retrying" >&2
+echo "amrex-loom-cxx: compile rejected $(echo "$rejected" | wc -l) kernel(s) in $src; excluding and retrying" >&2
 grep -h "error \[" "$tmp/compile.log" | sed "s/.*config .__loom_target_context_0_0. //" | cut -c1-200 | sort -u | sed 's|^|  compile-dropped: |' | head -10 >&2
-excluded="${excluded:+$excluded,}$rejected"
+while read -r name; do excluded+=(--exclude-kernel="$name"); done <<< "$rejected"
 done
 
 # Embed the executable and manifest; register them before main().
@@ -166,7 +156,5 @@ const int amrex_loom_registered_$id =
 }  // namespace
 EOS
 "$AMREX_LOOM_HOST_CXX" -c -fPIC "$tmp/register.cpp" -o "$tmp/register.o" || exit $?
-# Optional: keep each unit's final manifest for kernel counts.
-[[ -n "${AMREX_LOOM_STATS_DIR:-}" ]] && { mkdir -p "$AMREX_LOOM_STATS_DIR"; cp "$tmp/manifest" "$AMREX_LOOM_STATS_DIR/$(echo "$abs_src" | tr '/' '_').manifest"; }
 mv "$out" "$tmp/host.o"
 ld -r "$tmp/host.o" "$tmp/register.o" "$tmp/blob.o" -o "$out" || exit $?

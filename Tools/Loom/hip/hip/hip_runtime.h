@@ -564,6 +564,12 @@ template <int MT>
 inline constexpr bool has_fixed_kernel =
     MT == 1 || MT == 64 || MT == 128 || MT == 256 || MT == 512 || MT == 1024;
 
+// Export-name prefix of the fixed-size kernel template for MT.
+template <int MT>
+inline constexpr const char* fixed_kernel_name =
+    MT == 1 ? "kernel1" : MT == 64 ? "kernel64" : MT == 128 ? "kernel128"
+    : MT == 256 ? "kernel256" : MT == 512 ? "kernel512" : "kernel1024";
+
 inline dim3 to_dim3(dim3 d) { return d; }
 template <class I>
 requires std::is_integral_v<I>
@@ -611,8 +617,7 @@ void launch_fixed(B blocks, T threads, std::size_t shared_bytes,
                    MT, b.x, b.y, b.z);
       std::abort();
     }
-    static const std::string name = "kernel" + std::to_string(MT);
-    amrex_loom_launch_named(name.c_str(), typeid(Tag<F...>).name(), &tag,
+    amrex_loom_launch_named(fixed_kernel_name<MT>, typeid(Tag<F...>).name(), &tag,
                             sizeof(tag), g, b, shared_bytes, stream);
 #endif
   }
