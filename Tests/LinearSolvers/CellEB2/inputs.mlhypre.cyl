@@ -3,8 +3,9 @@
 # the fine level.  At cut cells on the coarse/fine boundary the composite
 # operators differ by design (HypreMLABecLap's fluxes there are the
 # area-weighted fine fluxes, MLMG's reflux is not volume or area weighted),
-# so the solutions differ by O(1e-4) and only the finest level's MLMG
-# residual (volume-weighted, as HypreMLABecLap's system) is checked.
+# so the solutions differ by O(1e-4) and the MLMG residual of hypre's
+# solution (volume-weighted, as HypreMLABecLap's system) is checked on the
+# finest level and, on the coarser levels, away from the coarse/fine boundary.
 # Variants (command-line arguments):
 #   eb_neumann = 1                   homogeneous Neumann on the EB
 #   hypre_mlabeclap.backend = algmg  AlgMG instead of hypre
@@ -19,6 +20,10 @@
 #   prob_hi = "1 2 1"                anisotropic cells
 #   eb2.sphere_center = "0.4 0.14 0.5" eb2.sphere_radius = 0.2 fine_lo = "0.25 0 0.25"
 #                                    the EB cuts the coarse/fine face at a Dirichlet wall
+#   eb2.geom_type = rotated_box      tilted walls (fluid inside a rotated box)
+# Also checked: the coarse cells under a finer level hold the EB average of
+# the finer solution (mlhypre_max_avg_diff), and the error against the exact
+# solution is at most mlhypre_max_exact_ratio times MLMG's.
 composite_solve = 1
 use_mlhypre = 1
 mlhypre_max_fine_res = 1.e-7

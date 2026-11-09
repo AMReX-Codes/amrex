@@ -153,9 +153,12 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 eb_neumann=1 \
             hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
         # the EB cuts the coarse/fine face at a Dirichlet wall (the coarse EB
-        # level does not build at 32 cells)
-        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=64 reltol=1.e-12 \
-            eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25"
+        # level does not build at 32 cells); also with AlgMG and setup reuse
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=64 reltol=1.e-12 \
+                eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25" \
+                hypre_mlabeclap.backend=$b mlhypre_num_setups=3
+        done
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -268,9 +271,16 @@ jobs:
         # coarse/fine boundary at cut cells, so the solutions agree
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl is_periodic="1 1" eb_neumann=1 \
             eb2.sphere_radius=0.15 eb2.sphere_has_fluid_inside=1 mlhypre_max_diff=1.e-10
-        # the EB cuts the coarse/fine face at a Dirichlet wall
-        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 \
-            eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25"
+        # the EB cuts the coarse/fine face at a Dirichlet wall: with hypre, with
+        # AlgMG and setup reuse and with refinement ratio 4
+        wall='eb2.sphere_center=0.4 0.14 0.5 eb2.sphere_radius=0.2 fine_lo=0.25 0 0.25'
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            ref_ratio=4 n_cell=32
+        # tilted walls (a rotated box of fluid)
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl eb2.geom_type=rotated_box
         # Neumann domain boundaries (fine level everywhere: identical operators);
         # anisotropic cells; no scaling of the unknowns
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann \

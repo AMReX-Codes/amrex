@@ -314,6 +314,55 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
             amrex::Print() << "Setup " << isetup << ", level " << ilev
                            << ": max |phi_hypre - phi_mlmg| = " << dmax
                            << ", max |MLMG residual of phi_hypre| * vfrac = " << rmax << '\n';
+            // On a coarser level the two operators differ only in the cells
+            // next to the coarse/fine boundary (MLMG's reflux is not volume
+            // weighted): elsewhere the residual is checked like the finest
+            // level's, which cannot see an error in the coarse rows
+            if (ilev < max_level) {
+                auto const fmask = amrex::makeFineMask(grids[ilev], dmap[ilev], IntVect(1), grids[ilev+1],
+                                                       IntVect(ref_ratio), geom[ilev].periodicity(), 0, 1);
+                MultiFab away(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+                MultiFab::Copy(away, res[ilev], 0, 0, 1, 0);
+                for (MFIter mfi(away); mfi.isValid(); ++mfi) {
+                    auto const& m = fmask.const_array(mfi);
+                    auto const& r = away.array(mfi);
+                    amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                    {
+                        IntVect const iv(AMREX_D_DECL(i,j,k));
+                        bool near = m(iv);
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                            IntVect const ed = IntVect::TheDimensionVector(d);
+                            near = near || m(iv-ed) || m(iv+ed);
+                        }
+                        if (near) { r(i,j,k) = 0.0; }
+                    });
+                }
+                Real const amax = away.norm0();
+                amrex::Print() << "    away from the coarse/fine boundary: max |MLMG residual of phi_hypre| * vfrac = "
+                               << amax << '\n';
+                if (mlhypre_max_fine_res >= 0.0 && !(amax <= mlhypre_max_fine_res)) {
+                    amrex::Abort("mlhypre: a coarser level's residual away from the coarse/fine boundary exceeds mlhypre_max_fine_res");
+                }
+            }
+            // Against the exact solution: an error in the rows (which the
+            // residual checks above may not see) makes HypreMLABecLap's error
+            // orders of magnitude larger than MLMG's, while the operators'
+            // difference at the coarse/fine boundary is below the
+            // discretization error; not for singular problems (constant)
+            if (!singular) {
+                MultiFab err(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+                MultiFab::LinComb(err, 1.0, hphi[ilev], 0, -1.0, phiexact[ilev], 0, 0, 1, 0);
+                MultiFab::Multiply(err, factory[ilev]->getVolFrac(), 0, 0, 1, 0);
+                Real const emax_h = err.norm0();
+                MultiFab::LinComb(err, 1.0, phi[ilev], 0, -1.0, phiexact[ilev], 0, 0, 1, 0);
+                MultiFab::Multiply(err, factory[ilev]->getVolFrac(), 0, 0, 1, 0);
+                Real const emax_m = err.norm0();
+                amrex::Print() << "    max |phi - exact| * vfrac: HypreMLABecLap " << emax_h
+                               << ", MLMG " << emax_m << '\n';
+                if (mlhypre_max_exact_ratio >= 0.0 && !(emax_h <= mlhypre_max_exact_ratio*emax_m)) {
+                    amrex::Abort("mlhypre: the error against the exact solution exceeds mlhypre_max_exact_ratio times MLMG's");
+                }
+            }
             if (verbose > 0) {
                 // Where: the cell of the largest residual, its volume fraction
                 // and whether it is at the domain boundary or at the
@@ -335,8 +384,8 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
                 bool at_cf = false;
                 if (ilev > 0) {
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        for (int s = -1; s <= 1; s += 2) {
-                            IntVect nb = iv; nb[idim] += s;
+                        for (int side = -1; side <= 1; side += 2) {
+                            IntVect nb = iv; nb[idim] += side;
                             at_cf = at_cf || (domain.contains(nb) && !grids[ilev].contains(nb));
                         }
                     }
@@ -503,6 +552,7 @@ MyTest::readParameters ()
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
     pp.query("mlhypre_max_avg_diff", mlhypre_max_avg_diff);
+    pp.query("mlhypre_max_exact_ratio", mlhypre_max_exact_ratio);
 }
 
 void
