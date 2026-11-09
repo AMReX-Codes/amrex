@@ -38,7 +38,7 @@ mkdir loom-work && cd loom-work
 git clone -b loom-single-source https://github.com/BenWibking/cplusplus.git cplusplus
 git clone -b loom-single-source https://github.com/BenWibking/hrx.git hrx
 git clone -b loom-single-source https://github.com/BenWibking/amrex.git amrex
-git -C hrx checkout --detach 1e6a0639d981b78fd458fc09cc2cef18497f0c40   # pinned HRX commit
+git -C hrx checkout --detach 801e8e183fa7774bcf77e3d4a7683e6cf4eba5a4   # pinned HRX commit
 
 S=$PWD/amrex/Tools/Loom/single-source
 pixi install --manifest-path $S/pixi.toml   # conda-forge toolchain pieces
