@@ -295,7 +295,17 @@ MyTest::readParameters ()
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("ref_ratio", ref_ratio);
-    pp.query("n_cell", n_cell);
+    {   // n_cell: one value (cubic domain) or one per direction
+        std::vector<int> nc;
+        pp.queryarr("n_cell", nc);
+        if (nc.size() == 1) {
+            n_cell = IntVect(nc[0]);
+        } else if (nc.size() == AMREX_SPACEDIM) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { n_cell[idim] = nc[idim]; }
+        } else if (!nc.empty()) {
+            amrex::Abort("n_cell needs 1 or AMREX_SPACEDIM values");
+        }
+    }
     pp.query("max_grid_size", max_grid_size);
     pp.query("domain_ratio", domain_ratio);
 
@@ -370,10 +380,13 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,domain_ratio,1.)});
+    // The longest side has length 1; domain_ratio stretches y.
+    const Real lmax = n_cell.max();
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)},
+               {AMREX_D_DECL(n_cell[0]/lmax,domain_ratio*n_cell[1]/lmax,n_cell[2]/lmax)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(periodic,periodic,periodic)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain0(IntVect(0), n_cell-1);
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
