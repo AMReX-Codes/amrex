@@ -93,8 +93,11 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         m_ref_ratio[ilev] = m_geom[ilev+1].Domain().length()
             /               m_geom[ilev  ].Domain().length();
         AMREX_ASSERT(m_geom[ilev+1].Domain() == amrex::refine(m_geom[ilev].Domain(),
-                                                              m_ref_ratio[ilev])
-                     && m_ref_ratio[ilev].allLE(4));
+                                                              m_ref_ratio[ilev]));
+        // The coarse/fine interpolation reads the boundary masks up to the
+        // refinement ratio away from a ghost cell
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_ref_ratio[ilev].allLE(4),
+            "HypreMLABecLap: refinement ratios up to 4 are supported");
         // The fine grids are coarsened (masks, coarse ids, average-down
         // rows); amrex::coarsen would silently round a non-coarsenable box
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_grids[ilev+1].coarsenable(m_ref_ratio[ilev]),
@@ -723,6 +726,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         }
         if (ilev < a_levelbcdata.size()) {
             check_grids(a_levelbcdata[ilev], ilev, IntVect(0), "boundary data");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!a_levelbcdata[ilev] || a_levelbcdata[ilev]->nGrow() >= 1,
+                "HypreMLABecLap: the boundary data must have a ghost cell");
         }
     }
 
@@ -1678,7 +1683,6 @@ void HypreMLABecLap::buildIJMaps ()
         // scaling, the scaling of the unknowns, 1/sqrt(volume fraction), with
         // ghost cells and also the coarser level's on the coarsened grids
         m_eb_bcrhs.resize(m_nlevels);
-        m_eb_cf_bcrhs.resize(m_nlevels);
         m_crse_id.resize(m_nlevels);
         if (m_eb_scaling) {
             m_eb_scale.resize(m_nlevels);
@@ -1869,8 +1873,10 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
 
     Box const& domain = m_geom[ilev].Domain();
 
-    // Singular: the first fluid cell of the finest level's lowest-numbered
-    // box that has one gets a diagonal-only row
+    // Singular: in the finest level's lowest-numbered box with a fluid cell,
+    // the first cell with at least half its volume in the fluid (or the first
+    // fluid cell) gets a diagonal-only row; a sliver cell would make a poorly
+    // scaled pin
     IntVect fixed_pt = IntVect::TheMaxVector();
     if (m_is_singular && ilev == m_nlevels-1) {
         int fixed_box = std::numeric_limits<int>::max();
@@ -1879,16 +1885,18 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
             auto const& vf = vfrac.const_array(mfi);
             const auto lo = amrex::lbound(vbx);
             const auto len = amrex::length(vbx);
-            ReduceOps<ReduceOpMin> reduce_op;
-            ReduceData<Long> reduce_data(reduce_op);
+            ReduceOps<ReduceOpMin,ReduceOpMin> reduce_op;
+            ReduceData<Long,Long> reduce_data(reduce_op);
             reduce_op.eval(vbx, reduce_data, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                -> GpuTuple<Long>
+                -> GpuTuple<Long,Long>
             {
-                return (vf(i,j,k) > Real(0.0))
-                    ? (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)
-                    : std::numeric_limits<Long>::max();
+                Long const idx = (Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x);
+                Long const none = std::numeric_limits<Long>::max();
+                return {(vf(i,j,k) >= Real(0.5)) ? idx : none,
+                        (vf(i,j,k) >  Real(0.0)) ? idx : none};
             });
-            Long const idx = amrex::get<0>(reduce_data.value(reduce_op));
+            auto const hv = reduce_data.value(reduce_op);
+            Long const idx = (amrex::get<0>(hv) < vbx.numPts()) ? amrex::get<0>(hv) : amrex::get<1>(hv);
             if (idx < vbx.numPts()) {
                 fixed_box = mfi.index();
                 fixed_pt = vbx.atOffset(idx);
@@ -1907,7 +1915,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     // loops synchronize the device at their end (MFIter).
     const int nboxes = m_eb_bcrhs[ilev].local_size();
     Vector<HypMLABecLapEB> ebs(nboxes);
-    Gpu::DeviceScalar<int> nesting_error(0);
+    Gpu::DeviceScalar<int> error(0);
     Vector<Long> cell_offset(nboxes+1, 0);
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
         Box const& vbx = mfi.validbox();
@@ -1959,23 +1967,28 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
             e.phys_face[face] = physical;
             e.cf_face[face] = (ilev > 0 && !physical);
         }
-        e.error = nesting_error.dataPtr();
+        e.error = error.dataPtr();
     }
     std::partial_sum(cell_offset.begin(), cell_offset.end(), cell_offset.begin());
     const Long ncells = cell_offset[nboxes];
+    // The box data go to the device (too large for a kernel argument on
+    // some platforms); the kernels read their box's copy
+    Gpu::DeviceVector<HypMLABecLapEB> d_ebs(nboxes);
+    Gpu::copyAsync(Gpu::hostToDevice, ebs.begin(), ebs.end(), d_ebs.begin());
 
     // Pass 1: the number of triplets of each cell (cells in memory order)
     Gpu::DeviceVector<Long> count(ncells), offset(ncells);
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
-        HypMLABecLapEB const e = ebs[mfi.LocalIndex()]; // copied into the kernel
-        const auto lo = amrex::lbound(e.vbx);
-        const auto len = amrex::length(e.vbx);
+        HypMLABecLapEB const* pe = d_ebs.data() + mfi.LocalIndex();
+        Box const& vbx = ebs[mfi.LocalIndex()].vbx;
+        const auto lo = amrex::lbound(vbx);
+        const auto len = amrex::length(vbx);
         Long* pcount = count.data() + cell_offset[mfi.LocalIndex()];
-        amrex::ParallelFor(e.vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Long n = 0;
             Real bcrhs;
-            hypmlabeclap_eb_row(e, IntVect(AMREX_D_DECL(i,j,k)),
+            hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
                                 [&] (Long, Long, Real) { ++n; }, bcrhs);
             pcount[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)] = n;
         });
@@ -1983,29 +1996,23 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     const Long ntrip = Scan::ExclusiveSum(ncells, count.data(), offset.data(), Scan::retSum);
 
     // Pass 2: the triplets, at the cells' offsets, and the right-hand side
-    // terms of the boundary values: the cell's own, and those of the coarse
-    // neighbors' rows per face (cf_bcrhs, see hypmlabeclap_eb_row)
+    // terms of the boundary values
     Triplets& t = chunks.emplace_back();
     t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
     auto* prows = t.rows.data();
     auto* pcols = t.cols.data();
     auto* pvals = t.vals.data();
-    MultiFab cf_bcrhs;
-    if (ilev > 0) {
-        cf_bcrhs.define(m_grids[ilev], m_dmap[ilev], 2*AMREX_SPACEDIM, 0,
-                        MFInfo().SetArena(The_Async_Arena()));
-    }
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
-        HypMLABecLapEB e = ebs[mfi.LocalIndex()]; // copied into the kernel
-        if (ilev > 0) { e.cf_bcrhs = cf_bcrhs.array(mfi); }
-        const auto lo = amrex::lbound(e.vbx);
-        const auto len = amrex::length(e.vbx);
+        HypMLABecLapEB const* pe = d_ebs.data() + mfi.LocalIndex();
+        Box const& vbx = ebs[mfi.LocalIndex()].vbx;
+        const auto lo = amrex::lbound(vbx);
+        const auto len = amrex::length(vbx);
         Long const* poff = offset.data() + cell_offset[mfi.LocalIndex()];
         auto const& bcrhs = m_eb_bcrhs[ilev].array(mfi);
-        amrex::ParallelFor(e.vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Long n = poff[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)];
-            hypmlabeclap_eb_row(e, IntVect(AMREX_D_DECL(i,j,k)),
+            hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
                                 [&] (Long r, Long c, Real v)
                                 {
                                     prows[n] = HYPRE_BigInt(r);
@@ -2015,33 +2022,12 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                 }, bcrhs(i,j,k));
         });
     }
-
-    // The boundary terms of the coarser level's rows, summed per coarse cell
-    // on the coarsened grids (with the coarse neighbors of the box in one
-    // ghost cell), added to that level's right-hand side terms below, once
-    // its own are built: the levels are built finest first
-    if (ilev > 0) {
-        IntVect const rr = m_ref_ratio[ilev-1];
-        m_eb_cf_bcrhs[ilev].define(amrex::coarsen(m_grids[ilev], rr), m_dmap[ilev], 1, 1);
-        for (MFIter mfi(m_eb_cf_bcrhs[ilev]); mfi.isValid(); ++mfi) {
-            Box const cvbx = mfi.validbox();
-            auto const& dst = m_eb_cf_bcrhs[ilev].array(mfi);
-            auto const& src = cf_bcrhs.const_array(mfi);
-            amrex::ParallelFor(amrex::grow(cvbx, 1), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                dst(i,j,k) = hypmlabeclap_eb_cf_bcrhs(IntVect(AMREX_D_DECL(i,j,k)), src, cvbx, rr);
-            });
-        }
-    }
-    if (ilev < m_nlevels-1) {
-        m_eb_bcrhs[ilev].ParallelAdd(m_eb_cf_bcrhs[ilev+1], 0, 0, 1, IntVect(1), IntVect(0),
-                                     m_geom[ilev].periodicity());
-        m_eb_cf_bcrhs[ilev+1].clear();
-    }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nesting_error.dataValue() == 0,
+    int const err = error.dataValue();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err != 1,
         "HypreMLABecLap: level " + std::to_string(ilev) + " reaches coarse cells that are not "
         "on level " + std::to_string(ilev-1) + "'s grids (the levels must be properly nested)");
-    Gpu::streamSynchronize(); // count, offset and cf_bcrhs are freed on return
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err == 0, "HypreMLABecLap: internal error in the EB rows");
+    Gpu::streamSynchronize(); // count, offset and d_ebs are freed on return
 #else
     amrex::ignore_unused(this, ilev, a_ascalar, a_bscalar, a_acoef, a_bcoef, chunks);
 #endif
@@ -2238,9 +2224,9 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     // (EB-covered, covered by a finer level) do not matter.
     for (auto const& [v, what] : {std::pair{bvec.data(), "right-hand side"},
                                   std::pair{xvec.data(), "initial guess"}}) {
-        bool bad = (nrows > 0) && Reduce::AnyOf(nrows, v, [=] AMREX_GPU_DEVICE (Real x) noexcept
+        bool bad = (nrows > 0) && Reduce::AnyOf(nrows, v, [=] AMREX_GPU_DEVICE (Real val) noexcept
         {
-            return amrex::isnan(x) || amrex::isinf(x);
+            return amrex::isnan(val) || amrex::isinf(val);
         });
         ParallelAllReduce::Or(bad, m_comm);
         if (bad) { fail(std::string("HypreMLABecLap: ") + what + " is not finite"); }

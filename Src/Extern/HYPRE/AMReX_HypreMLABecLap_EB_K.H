@@ -43,19 +43,20 @@ struct HypMLABecLapEB
     GpuArray<Real,2*AMREX_SPACEDIM> bcl{};
     GpuArray<bool,2*AMREX_SPACEDIM> cf_face{};   // boundary values from the coarser level's unknowns
     GpuArray<bool,2*AMREX_SPACEDIM> phys_face{}; // on the domain boundary (not periodic)
-    int* error = nullptr; // set when a row reaches a coarse cell off the coarser level's grids
     GpuArray<Array4<int const>,2*AMREX_SPACEDIM> bmask;
     GpuArray<Array4<Real const>,2*AMREX_SPACEDIM> bval;
-    //! Output (null: not written): the boundary terms of the coarser level's
-    //! rows across each face of the cell (2*AMREX_SPACEDIM components)
-    Array4<Real> cf_bcrhs;
+    //! Set to 1 when a row reaches a coarse cell off the coarser level's
+    //! grids (the levels are not properly nested), to 2 on an internal error;
+    //! the host checks it after the pass
+    int* error = nullptr;
 };
 
-//! A ghost cell's value: the sum of c[m]*phi(g+m*s) for m = 1..n-1, where s
-//! points from \p face into the box, plus c[0] times the boundary value
+//! A ghost cell's value: c[0] times the boundary value plus the sum of
+//! c[m]*phi(g+m*s) for m = 1..n-1, where s points from \p face into the box
+//! (Neumann: c = {0, 1}).  n = 0: not filled, the value is zero.
 struct HypMLABecLapEBFill
 {
-    int n = 0; // 0: not filled
+    int n = 0;
     Orientation face;
     Real c[3] = {};
 };
@@ -254,10 +255,7 @@ void hypmlabeclap_eb_dirichlet (HypMLABecLapEB const& e, IntVect const& c, Real 
  * finer level's: a fine cell adds them to its coarse neighbor's row, which
  * skips that face.  Ghost cells are filled as MLEBABecLap fills them, with
  * coarse/fine boundary values interpolated from the coarser level's unknowns
- * and other boundary values moved to the right-hand side: the cell's own in
- * \p bcrhs, those of the coarse neighbors' rows (a cut coarse/fine face next
- * to a Dirichlet wall) per face in e.cf_bcrhs, to be summed onto the coarser
- * level by hypmlabeclap_eb_cf_bcrhs.  A cell
+ * and other boundary values moved to the right-hand side (\p bcrhs).  A cell
  * covered by the finer level has the average-down row of EB_average_down;
  * the fine cells add their weights to it.  The same-level entries of the
  * cell's own row are summed first.  With the scaling s of the unknowns, an
@@ -288,14 +286,6 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         if (id < 0 && e.error) { *e.error = 1; }
         return id;
     };
-    // The boundary terms of the coarse neighbors' rows, per face of the cell
-    Real cfb[2*AMREX_SPACEDIM] = {};
-    auto flush_cf_bcrhs = [&] ()
-    {
-        if (e.cf_bcrhs) {
-            for (int m = 0; m < 2*AMREX_SPACEDIM; ++m) { e.cf_bcrhs(c,m) = cfb[m]; }
-        }
-    };
 
     Real const kappa = e.vfrac(c);
     Real const sc = scale(e.scale, c);
@@ -312,18 +302,15 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
 
     if (kappa == Real(0.0) || (e.fine_mask && e.fine_mask(c))) {
         put(row, row, sc*sc);
-        flush_cf_bcrhs();
         return;
     }
 
-    // A row with id and scaling s; face is the face of the cell across which
-    // a coarse neighbor's row is reached (-1 for the cell's own row).  The
-    // cell's own row sums its same-level entries in sten.  put_crse adds a
-    // coarse cell's entry except to the off-diagonals of a pinned row,
-    // put_cell maps a cell of this level to sten or to another row, put_phi
-    // also expands ghost cells.
-    struct Row { Long id; Real s; int face; };
-    Row const own{row, sc, -1};
+    // A row with id and scaling s.  The cell's own row sums its same-level
+    // entries in sten.  put_crse adds a coarse cell's entry except to the
+    // off-diagonals of a pinned row, put_cell maps a cell of this level to
+    // sten or to another row, put_phi also expands ghost cells.
+    struct Row { Long id; Real s; };
+    Row const own{row, sc};
     Real sten[nsten] = {};
     bool used[nsten] = {};
     auto put_crse = [&] (Row const& t, IntVect const& cq, Real v)
@@ -386,8 +373,11 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                 }
             } else if (t.id == row) {
                 bcrhs -= v*f.c[0]*e.bval[f.face](q);
-            } else if (t.face >= 0) { // a coarse neighbor's row
-                cfb[t.face] -= v*f.c[0]*e.bval[f.face](q);
+            } else if (e.error) {
+                // A coarse neighbor's row never reaches a physical boundary:
+                // the centroid shift of a cut face toward a ghost cell off
+                // the grids is excluded below (as MLEBABecLap's cc_mask)
+                *e.error = 2;
             }
         }
     };
@@ -406,8 +396,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             // The coarse neighbor across a coarse/fine face
             IntVect const cnb = amrex::coarsen(nb, e.rr);
             Row const crow = (e.cid(nb) < 0 && e.cf_face[face])
-                ? Row{crse_row(cnb), scale(e.crse_scale, cnb), int(face)}
-                : Row{-1, Real(0.0), -1};
+                ? Row{crse_row(cnb), scale(e.crse_scale, cnb)} : Row{-1, Real(0.0)};
             // b*(phi(f)-phi(f-ed)) on a cut face is interpolated toward its
             // centroid from the neighboring faces; as MLEBABecLap's cc_mask,
             // not toward a face whose two cells are both off the level's grids
@@ -455,41 +444,15 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                                   bcrhs);
     }
 
+    // A fluid cell with all faces covered and no EB Dirichlet or a term (an
+    // isolated cell) has no entries: give it the identity row
+    if (!used[nsten/2]) { put(row, row, sc*sc); }
     for (int m = 0; m < nsten; ++m) {
         if (used[m] && (!pinned || m == nsten/2)) {
             IntVect const o(AMREX_D_DECL(m%3-1, (m/3)%3-1, m/9-1));
             put(row, e.cid(c+o), sc*sten[m]*scale(e.scale, c+o));
         }
     }
-    flush_cf_bcrhs();
-}
-
-/**
- * \brief The boundary terms that the fine cells add to the row of coarse cell
- * cq of the coarsened fine box, grown by one cell: the sum over the
- * faces of the cell of the terms (hypmlabeclap_eb_row's e.cf_bcrhs) of the
- * fine cells across that face, if their coarse cell is in \p cvbx (the
- * coarsened valid box).
- */
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real hypmlabeclap_eb_cf_bcrhs (IntVect const& cq, Array4<Real const> const& cf_bcrhs,
-                               Box const& cvbx, IntVect const& rr)
-{
-    Real sum = Real(0.0);
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        for (int side = 0; side < 2; ++side) {
-            // The coarse neighbor on the low side has its fine cells' high
-            // faces toward cq, and vice versa
-            int const s = (side == 0) ? -1 : 1;
-            IntVect const cnb = cq + s*IntVect::TheDimensionVector(d);
-            if (!cvbx.contains(cnb)) { continue; }
-            Box layer(cnb*rr, cnb*rr+rr-1);
-            if (s < 0) { layer.setSmall(d, layer.bigEnd(d)); } else { layer.setBig(d, layer.smallEnd(d)); }
-            int const face = int(Orientation(d, (s < 0) ? Orientation::high : Orientation::low));
-            amrex::Loop(layer, [&] (int ii, int jj, int kk) { sum += cf_bcrhs(ii,jj,kk,face); });
-        }
-    }
-    return sum;
 }
 
 /**
