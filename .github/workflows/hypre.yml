@@ -281,13 +281,20 @@ jobs:
             ref_ratio=4 n_cell=32
         # tilted walls (a rotated box of fluid)
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl eb2.geom_type=rotated_box
+        # a cut cell in the corner of a Neumann wall and the coarse/fine boundary:
+        # MLMG leaves its ghost cell stale, so only the error against the exact
+        # solution (one with homogeneous Neumann walls) is compared
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            prob_type=3 domain_bc=neumann mlhypre_max_fine_res=-1 \
+            mlhypre_max_res_scaled=-1 mlhypre_max_exact_ratio=2
         # Neumann domain boundaries (fine level everywhere: identical operators);
         # anisotropic cells; no scaling of the unknowns
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann \
             fine_lo="0 0 0" fine_hi="1 1 1" mlhypre_max_diff=1.e-9
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann prob_hi="1 2 1"
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.eb_scaling=0 \
-            nan_in_covered=1 mlhypre_num_setups=3 amrex.fpe_trap_invalid=0
+            nan_in_covered=1 mlhypre_num_setups=3 amrex.fpe_trap_invalid=0 \
+            mlhypre_max_res_scaled=-1
 
         ccache -s
         du -hs ~/.cache/ccache

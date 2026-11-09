@@ -290,12 +290,51 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
                     lobc, hibc, amrex::GetVecOfConstPtrs(bcdata));
         hmleb.solve(amrex::GetVecOfPtrs(hphi), amrex::GetVecOfConstPtrs(srhs), reltol, 0.0);
 
-        // Volume-weighted, as the rows of HypreMLABecLap's system
+        // Weighted by the volume fraction, as the rows of HypreMLABecLap's
+        // system (res), and by its square root (ress), as the rows of the
+        // scaled system the solver converges: an error in a small cell's row
+        // appears there as sqrt(vfrac) times the right-hand side, not vfrac
+        // times it
         mlmg.compResidual(amrex::GetVecOfPtrs(res), amrex::GetVecOfPtrs(hphi),
                           amrex::GetVecOfConstPtrs(hrhs));
+        Vector<MultiFab> ress(nlevels);
         for (int ilev = 0; ilev < nlevels; ++ilev) {
-            MultiFab::Multiply(res[ilev], factory[ilev]->getVolFrac(), 0, 0, 1, 0);
+            auto const& vfrac = factory[ilev]->getVolFrac();
+            ress[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+            MultiFab::Copy(ress[ilev], vfrac, 0, 0, 1, 0);
+            for (MFIter mfi(ress[ilev]); mfi.isValid(); ++mfi) {
+                auto const& a = ress[ilev].array(mfi);
+                amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    a(i,j,k) = std::sqrt(a(i,j,k));
+                });
+            }
+            MultiFab::Multiply(ress[ilev], res[ilev], 0, 0, 1, 0);
+            amrex::EB_set_covered(ress[ilev], 0.0);
+            MultiFab::Multiply(res[ilev], vfrac, 0, 0, 1, 0);
         }
+        // Zero the cells covered by the finer level and their face neighbors:
+        // there the composite operators differ by design (MLMG's reflux is
+        // not volume weighted)
+        auto zero_near_cf = [&] (MultiFab& mf, int ilev)
+        {
+            auto const fmask = amrex::makeFineMask(grids[ilev], dmap[ilev], IntVect(1), grids[ilev+1],
+                                                   IntVect(ref_ratio), geom[ilev].periodicity(), 0, 1);
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+                auto const& m = fmask.const_array(mfi);
+                auto const& r = mf.array(mfi);
+                amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    IntVect const iv(AMREX_D_DECL(i,j,k));
+                    bool near = m(iv);
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                        IntVect const ed = IntVect::TheDimensionVector(d);
+                        near = near || m(iv-ed) || m(iv+ed);
+                    }
+                    if (near) { r(i,j,k) = 0.0; }
+                });
+            }
+        };
         for (int ilev = 0; ilev < nlevels; ++ilev) {
             MultiFab::LinComb(diff[ilev], 1.0, hphi[ilev], 0, -1.0, phi[ilev], 0, 0, 1, 0);
         }
@@ -315,34 +354,28 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
                            << ": max |phi_hypre - phi_mlmg| = " << dmax
                            << ", max |MLMG residual of phi_hypre| * vfrac = " << rmax << '\n';
             // On a coarser level the two operators differ only in the cells
-            // next to the coarse/fine boundary (MLMG's reflux is not volume
-            // weighted): elsewhere the residual is checked like the finest
-            // level's, which cannot see an error in the coarse rows
+            // next to the coarse/fine boundary: elsewhere the residual is
+            // checked like the finest level's, which cannot see an error in
+            // the coarse rows
+            Real rmaxs = ress[ilev].norm0();
             if (ilev < max_level) {
-                auto const fmask = amrex::makeFineMask(grids[ilev], dmap[ilev], IntVect(1), grids[ilev+1],
-                                                       IntVect(ref_ratio), geom[ilev].periodicity(), 0, 1);
                 MultiFab away(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
                 MultiFab::Copy(away, res[ilev], 0, 0, 1, 0);
-                for (MFIter mfi(away); mfi.isValid(); ++mfi) {
-                    auto const& m = fmask.const_array(mfi);
-                    auto const& r = away.array(mfi);
-                    amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                    {
-                        IntVect const iv(AMREX_D_DECL(i,j,k));
-                        bool near = m(iv);
-                        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                            IntVect const ed = IntVect::TheDimensionVector(d);
-                            near = near || m(iv-ed) || m(iv+ed);
-                        }
-                        if (near) { r(i,j,k) = 0.0; }
-                    });
-                }
+                zero_near_cf(away, ilev);
                 Real const amax = away.norm0();
+                MultiFab::Copy(away, ress[ilev], 0, 0, 1, 0);
+                zero_near_cf(away, ilev);
+                rmaxs = away.norm0();
                 amrex::Print() << "    away from the coarse/fine boundary: max |MLMG residual of phi_hypre| * vfrac = "
                                << amax << '\n';
                 if (mlhypre_max_fine_res >= 0.0 && !(amax <= mlhypre_max_fine_res)) {
                     amrex::Abort("mlhypre: a coarser level's residual away from the coarse/fine boundary exceeds mlhypre_max_fine_res");
                 }
+            }
+            amrex::Print() << "    scaled rows" << ((ilev < max_level) ? " (away from the c/f boundary)" : "")
+                           << ": max |MLMG residual of phi_hypre| * sqrt(vfrac) = " << rmaxs << '\n';
+            if (mlhypre_max_res_scaled >= 0.0 && !(rmaxs <= mlhypre_max_res_scaled)) {
+                amrex::Abort("mlhypre: the residual of the scaled rows exceeds mlhypre_max_res_scaled");
             }
             // Against the exact solution: an error in the rows (which the
             // residual checks above may not see) makes HypreMLABecLap's error
@@ -553,6 +586,7 @@ MyTest::readParameters ()
     pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
     pp.query("mlhypre_max_avg_diff", mlhypre_max_avg_diff);
     pp.query("mlhypre_max_exact_ratio", mlhypre_max_exact_ratio);
+    pp.query("mlhypre_max_res_scaled", mlhypre_max_res_scaled);
 }
 
 void
@@ -710,7 +744,7 @@ MyTest::initData ()
             if (!domainbox.contains(gbx)) {
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    mytest_set_phi_boundary(i,j,k,phi_arr,dx,domainbox);
+                    mytest_set_phi_boundary(i,j,k,phi_arr,dx,domainbox,lprob_type);
                 });
             }
         }

@@ -74,16 +74,19 @@ private:
     // compared with MLMG's solution (all levels, mlhypre_max_diff) and
     // checked with MLMG's composite residual times the volume fraction
     // (finest level, and the coarser levels away from the coarse/fine
-    // boundary, mlhypre_max_fine_res), with the EB average of the finer
-    // level's solution (coarser levels, mlhypre_max_avg_diff) and against
-    // the exact solution (error at most mlhypre_max_exact_ratio times
-    // MLMG's, except for singular problems); negative bounds are not checked
+    // boundary, mlhypre_max_fine_res) and times its square root, as the
+    // scaled rows the solver converges (the same cells,
+    // mlhypre_max_res_scaled), with the EB average of the finer level's
+    // solution (coarser levels, mlhypre_max_avg_diff) and against the exact
+    // solution (error at most mlhypre_max_exact_ratio times MLMG's, except
+    // for singular problems); negative bounds are not checked
     bool use_mlhypre = false;
     int mlhypre_num_setups = 1;
     amrex::Real mlhypre_max_diff = -1.0;
     amrex::Real mlhypre_max_fine_res = -1.0;
     amrex::Real mlhypre_max_avg_diff = 1.e-12;
     amrex::Real mlhypre_max_exact_ratio = 10.0;
+    amrex::Real mlhypre_max_res_scaled = -1.0;
     // NaN in the cells HypreMLABecLap does not use (EB-covered, covered by
     // a finer level) of its rhs and initial guess
     bool nan_in_covered = false;
