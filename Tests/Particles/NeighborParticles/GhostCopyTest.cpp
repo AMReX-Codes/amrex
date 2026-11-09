@@ -5,10 +5,14 @@
 
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace amrex;
 
-// Same-rank ghost refresh with and without the mask (setGhostCopyMasked), on
+// Ghost refresh with and without the mask (setGhostCopyMasked) and with the
+// options of the exchange on the CPU (setGhostMpiMasked, setGhostPersistentRecv,
+// setGhostDirect, setGhostBatched, setGhostIsend, setGhostCompact), on
 // particles that carry per-body contact slots (setGhostSlotGroup).
 //
 // Every particle has nslots slots. Slot s has a cpu key and an id key (runtime
@@ -19,7 +23,11 @@ using namespace amrex;
 // What the refresh has to deliver is the same with and without the mask: the
 // components flagged for ghost communication, and the payload of the occupied
 // slots. Without the mask the other components are copied too, which is
-// checked for the ghosts that stay on the rank.
+// checked for the ghosts that stay on the rank. The options change how the
+// ghosts are moved, not which ghosts there are or in which order: every
+// combination of them is run, after a rebuild and after the updates that
+// follow it, and the ghosts of each tile must be the same, in the same
+// order, as without any option.
 
 namespace
 {
@@ -134,7 +142,7 @@ namespace
             {
                 auto& ptile = GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
                 const int np = ptile.numRealParticles();
-                if (np == 0) { continue; }
+                if (np <= 0) { continue; }
 
                 auto const& aos = ptile.GetArrayOfStructs();
                 Gpu::HostVector<ParticleType> h_aos(np);
@@ -239,9 +247,52 @@ namespace
             ParallelDescriptor::ReduceLongSum(nghosts);
             return nghosts;
         }
+
+        // (id, cpu) of the ghosts of every tile in the order they are stored,
+        // each tile followed by a (-1, number of ghosts) entry
+        std::vector<std::pair<Long,int>> ghostOrder ()
+        {
+            std::vector<std::pair<Long,int>> order;
+            const int lev = 0;
+            for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                auto& ptile = GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+                const int nreal = ptile.numRealParticles();
+                const int nn = ptile.numNeighborParticles();
+                if (nn > 0) {
+                    auto const& aos = ptile.GetArrayOfStructs();
+                    Gpu::HostVector<ParticleType> h_aos(nn);
+                    Gpu::copy(Gpu::deviceToHost, aos().dataPtr() + nreal, aos().dataPtr() + nreal + nn,
+                              h_aos.begin());
+                    for (int i = 0; i < nn; ++i) {
+                        order.emplace_back(Long(h_aos[i].id()), h_aos[i].cpu());
+                    }
+                }
+                order.emplace_back(Long(-1), nn);
+            }
+            return order;
+        }
     };
 
-    void runGhostCopy (bool masked)
+    // the options of the ghost refresh, as bits
+    enum : unsigned {
+        OptMasked     = 1u << 0,   // setGhostCopyMasked
+        OptMpiMasked  = 1u << 1,   // setGhostMpiMasked
+        OptPersistent = 1u << 2,   // setGhostPersistentRecv
+        OptDirect     = 1u << 3,   // setGhostDirect
+        OptBatched    = 1u << 4,   // setGhostBatched
+        OptIsend      = 1u << 5,   // setGhostIsend
+        OptCompact    = 1u << 6,   // setGhostCompact
+        OptCount      = 1u << 7    // number of combinations
+    };
+
+    using GhostOrder = std::vector<std::pair<Long,int>>;
+
+    // Rebuild the ghosts, refresh them three times with new values, rebuild
+    // them and refresh them three times more, checking them against the values
+    // of the step each time. Returns the order of the ghosts after the second
+    // rebuild; with a reference, that order has to be the reference.
+    GhostOrder runGhostCopy (unsigned opts, GhostOrder const* reference)
     {
         int const size = 16;
         RealBox real_box;
@@ -259,9 +310,24 @@ namespace
         DistributionMapping dm(ba);
 
         SlotContainer pc(geom, dm, ba, 1);
+        bool const masked = (opts & OptMasked) != 0;
         pc.setGhostCopyMasked(masked);
+        pc.setGhostMpiMasked((opts & OptMpiMasked) != 0);
+        pc.setGhostPersistentRecv((opts & OptPersistent) != 0);
+        pc.setGhostDirect((opts & OptDirect) != 0);
+        pc.setGhostBatched((opts & OptBatched) != 0);
+        pc.setGhostIsend((opts & OptIsend) != 0);
+        pc.setGhostCompact((opts & OptCompact) != 0);
         AMREX_ALWAYS_ASSERT(pc.ghostCopyMasked() == masked);
+        AMREX_ALWAYS_ASSERT(pc.ghostMpiMasked() == ((opts & OptMpiMasked) != 0));
+        AMREX_ALWAYS_ASSERT(pc.ghostPersistentRecv() == ((opts & OptPersistent) != 0));
+        AMREX_ALWAYS_ASSERT(pc.ghostDirect() == ((opts & OptDirect) != 0));
+        AMREX_ALWAYS_ASSERT(pc.ghostBatched() == ((opts & OptBatched) != 0));
+        AMREX_ALWAYS_ASSERT(pc.ghostIsend() == ((opts & OptIsend) != 0));
+        AMREX_ALWAYS_ASSERT(pc.ghostCompact() == ((opts & OptCompact) != 0));
 
+        // the same ids in every run, so that the order of the ghosts can be compared
+        SlotContainer::ParticleType::NextID(1);
         pc.initParticles();
         pc.fillNeighbors();
         long ng = pc.checkGhosts(0, false);
@@ -275,8 +341,31 @@ namespace
             ng = pc.checkGhosts(step, !masked);
             AMREX_ALWAYS_ASSERT(ng > 0);
         }
-        amrex::PrintToFile("neighbor_test") << "  ghost copy " << (masked ? "masked" : "full")
-                                            << ": " << ng << " ghosts checked \n";
+
+        // a rebuild makes the layout of the messages and the component lists
+        // again, from the particles as they are now
+        pc.clearNeighbors();
+        pc.fillNeighbors();
+        ng = pc.checkGhosts(3, false);
+        AMREX_ALWAYS_ASSERT(ng > 0);
+        GhostOrder order = pc.ghostOrder();
+#ifndef AMREX_USE_GPU
+        // on the GPU the order in which the ghosts are stored is not fixed
+        if (reference != nullptr) {
+            std::string const msg = "ghosts differ from those of the refresh without options, options = "
+                                    + std::to_string(opts);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(order == *reference, msg.c_str());
+        }
+#else
+        amrex::ignore_unused(reference);
+#endif
+        for (int step = 4; step <= 6; ++step) {
+            pc.setData(step);
+            pc.updateNeighbors();
+            ng = pc.checkGhosts(step, !masked);
+            AMREX_ALWAYS_ASSERT(ng > 0);
+        }
+        return order;
     }
 }
 
@@ -284,6 +373,17 @@ void testGhostCopyMasked ()
 {
     BL_PROFILE("testGhostCopyMasked");
     amrex::PrintToFile("neighbor_test") << "Running ghost copy test \n";
-    runGhostCopy(false);
-    runGhostCopy(true);
+
+    // the container reports the options that take effect: not once for each of the runs below
+    int const verbose = amrex::Verbose();
+    amrex::SetVerbose(0);
+
+    GhostOrder const reference = runGhostCopy(0u, nullptr);
+    for (unsigned opts = 1; opts < OptCount; ++opts) {
+        runGhostCopy(opts, &reference);
+    }
+    amrex::SetVerbose(verbose);
+
+    amrex::PrintToFile("neighbor_test") << "  ghost refresh: " << OptCount
+                                        << " combinations of the options checked \n";
 }
