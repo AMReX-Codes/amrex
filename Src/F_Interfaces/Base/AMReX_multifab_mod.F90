@@ -19,6 +19,7 @@ module amrex_multifab_module
   public :: amrex_multifab_build, amrex_multifab_swap
   public :: amrex_multifab_write, amrex_multifab_read
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
+  public :: amrex_multifab_build_volume
   public :: amrex_imultifab_build, amrex_imultifab_destroy
   public :: amrex_imultifab_build_owner_mask, amrex_imultifab_build_fine_mask
   public :: amrex_mfiter_build, amrex_mfiter_destroy, amrex_mfiter_allow_multiple
@@ -98,6 +99,11 @@ module amrex_multifab_module
      module procedure amrex_multifab_build_s
      module procedure amrex_multifab_build_a
   end interface amrex_multifab_build
+
+  interface amrex_multifab_build_volume
+     module procedure amrex_multifab_build_volume_s
+     module procedure amrex_multifab_build_volume_a
+  end interface amrex_multifab_build_volume
 
 #ifdef __NVCOMPILER
   interface amrex_multifab_destroy
@@ -188,6 +194,12 @@ module amrex_multifab_module
        type(c_ptr), value :: srcmf
        integer(c_int), value :: comp, ncomp
      end subroutine amrex_fi_new_multifab_alias
+
+     subroutine amrex_fi_build_volume_multifab (mf, geom) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf, geom
+     end subroutine amrex_fi_build_volume_multifab
 
      subroutine amrex_fi_delete_multifab (mf) bind(c)
        import
@@ -681,6 +693,25 @@ contains
     mf%dm    = srcmf%dm
     call amrex_fi_new_multifab_alias(mf%p, srcmf%p, comp-1, ncomp)
   end subroutine amrex_multifab_build_alias
+
+  subroutine amrex_multifab_build_volume_a (mf, ba, dm, ng, geom)
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_boxarray), intent(in)   :: ba
+    type(amrex_distromap), intent(in)   :: dm
+    integer, intent(in) :: ng(*)
+    type(amrex_geometry), intent(in) :: geom
+    call amrex_multifab_build_a(mf, ba, dm, 1, ng)
+    call amrex_fi_build_volume_multifab(mf%p, geom%p)
+  end subroutine amrex_multifab_build_volume_a
+
+  subroutine amrex_multifab_build_volume_s (mf, ba, dm, ng, geom)
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_boxarray), intent(in )   :: ba
+    type(amrex_distromap), intent(in )   :: dm
+    integer, intent(in) :: ng
+    type(amrex_geometry), intent(in) :: geom
+    call amrex_multifab_build_volume_a (mf, ba, dm, (/ng, ng, ng/), geom)
+  end subroutine amrex_multifab_build_volume_s
 
   impure elemental subroutine amrex_multifab_destroy (this)
     type(amrex_multifab), intent(inout) :: this
