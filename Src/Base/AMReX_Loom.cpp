@@ -279,6 +279,8 @@ void check(hrx_status_t status, const char* what) {
   if (!hrx_status_is_ok(status)) fatal(what, status);
 }
 
+void shutdown();
+
 void initialize() {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   if (g_initialized) return;
@@ -286,6 +288,9 @@ void initialize() {
   check(hrx_gpu_device_get(0, &g_device), "hrx_gpu_device_get");
   check(hrx_stream_create(g_device, 0, &g_default_stream), "hrx_stream_create");
   g_initialized = true;
+  // Registered after the runtime's globals are constructed, so it runs before
+  // they are destroyed.
+  std::atexit(shutdown);
 }
 
 hrx_stream_t resolve(hipStream_t stream) {
@@ -640,6 +645,42 @@ hipError_t hipEventDestroy(hipEvent_t) { return hipSuccess; }
 hipError_t hipEventRecord(hipEvent_t, hipStream_t stream) { return hipStreamSynchronize(stream); }
 hipError_t hipEventSynchronize(hipEvent_t) { return hipSuccess; }
 hipError_t hipEventElapsedTime(float* ms, hipEvent_t, hipEvent_t) { *ms = 0.0f; return hipSuccess; }
+
+namespace {
+
+// Releases everything this runtime holds, then shuts HRX's GPU accelerator
+// down, which also ends an HRX_PROFILE_FILE profiling session.
+void shutdown() {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  if (!g_initialized) return;
+  sync_all();
+  for (auto& [host, buffer] : g_host_allocations) {
+    hrx_status_ignore(hrx_buffer_unmap(buffer));
+    hrx_buffer_release(buffer);
+  }
+  g_host_allocations.clear();
+  for (auto& [address, allocation] : g_allocations) hrx_buffer_release(allocation.buffer);
+  g_allocations.clear();
+  g_kernels.clear();
+  for (auto* executable : g_executables) hrx_executable_release(executable);
+  g_executables.clear();
+  g_images_loaded = false;
+  for (auto* s : g_streams) hrx_stream_release(s);
+  g_streams.clear();
+  hrx_stream_release(g_default_stream);
+  g_default_stream = nullptr;
+  hrx_status_t status = hrx_gpu_shutdown();
+  if (!hrx_status_is_ok(status)) {
+    char* message = nullptr;
+    std::size_t length = 0;
+    hrx_status_to_string(status, &message, &length);
+    std::fprintf(stderr, "amrex loom: hrx_gpu_shutdown failed: %s\n",
+                 message ? message : "(no status)");
+  }
+  g_initialized = false;
+}
+
+}  // namespace
 
 #endif  // AMREX_LOOM_HRX_HIP
 
