@@ -80,9 +80,8 @@ MLNodeLaplacianT<MF>::buildIntegral ()
             }
         }
 #endif
-    } else {
-        amrex::Abort("MLNodeLaplacian::buildIntegral: EB requires double precision");
     }
+    // The single precision copy has no EB factory, so it has no integrals.
 }
 
 template <typename MF>
@@ -154,9 +153,8 @@ MLNodeLaplacianT<MF>::buildSurfaceIntegral ()
             }
         }
 #endif
-    } else {
-        amrex::Abort("MLNodeLaplacian::buildSurfaceIntegral: EB requires double precision");
     }
+    // The single precision copy has no EB factory, so it has no integrals.
 }
 
 template void MLNodeLaplacianT<MultiFab>::buildIntegral ();
