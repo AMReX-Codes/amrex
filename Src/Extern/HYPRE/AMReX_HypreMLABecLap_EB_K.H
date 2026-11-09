@@ -41,7 +41,9 @@ struct HypMLABecLapEB
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> apert, fcent;
     GpuArray<int,2*AMREX_SPACEDIM> bct{};
     GpuArray<Real,2*AMREX_SPACEDIM> bcl{};
-    GpuArray<bool,2*AMREX_SPACEDIM> cf_face{}; // boundary values from the coarser level's unknowns
+    GpuArray<bool,2*AMREX_SPACEDIM> cf_face{};   // boundary values from the coarser level's unknowns
+    GpuArray<bool,2*AMREX_SPACEDIM> phys_face{}; // on the domain boundary (not periodic)
+    int* error = nullptr; // set when a row reaches a coarse cell off the coarser level's grids
     GpuArray<Array4<int const>,2*AMREX_SPACEDIM> bmask;
     GpuArray<Array4<Real const>,2*AMREX_SPACEDIM> bval;
     //! Output (null: not written): the boundary terms of the coarser level's
@@ -85,7 +87,7 @@ HypMLABecLapEBFill hypmlabeclap_eb_fill (HypMLABecLapEB const& e, IntVect const&
             if (!gbx.contains(g)) { continue; }
             Orientation const face(d, (side == 0) ? Orientation::low : Orientation::high);
             if (e.cid(g+s*ed) < 0) {
-                if (e.cf_face[face]) { continue; }
+                if (!e.phys_face[face]) { continue; }
                 // The corner case above, through this physical face
                 f.face = face;
                 if (e.bct[face] == AMREX_LO_NEUMANN) {
@@ -279,10 +281,12 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
         return s ? s(q) : Real(1.0);
     };
     // The coarser level must cover the coarse cells the row reaches
+    // (proper nesting); the host checks the flag after the pass
     auto crse_row = [&] (IntVect const& cq)
     {
-        AMREX_ASSERT(e.crse_id(cq) >= 0);
-        return e.crse_id(cq);
+        Long const id = e.crse_id(cq);
+        if (id < 0 && e.error) { *e.error = 1; }
+        return id;
     };
     // The boundary terms of the coarse neighbors' rows, per face of the cell
     Real cfb[2*AMREX_SPACEDIM] = {};

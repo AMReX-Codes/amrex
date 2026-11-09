@@ -107,13 +107,16 @@ public:
 
     /**
      * \brief EB operator: Dirichlet boundary condition on the EB for the
-     * following setups (the data are copied).
+     * following setups (the data are copied; the argument order is
+     * MLEBABecLap::setEBDirichlet's).
      *
-     * \param a_beta Per-level b coefficient on the EB (cell-centered).
      * \param a_phi  Per-level EB values; missing or null entries mean zero.
+     * \param a_beta Per-level b coefficient on the EB (cell-centered).
      */
-    void setEBDirichlet (Vector<MultiFab const*> const& a_beta,
-                         Vector<MultiFab const*> const& a_phi = {});
+    void setEBDirichlet (Vector<MultiFab const*> const& a_phi,
+                         Vector<MultiFab const*> const& a_beta);
+    //! EB operator: homogeneous Dirichlet boundary condition on the EB
+    void setEBHomogDirichlet (Vector<MultiFab const*> const& a_beta);
 
     /**
      * \brief IJ mode only: let setup() be called again with new coefficients
@@ -219,6 +222,8 @@ private:
 
     void addNonStencilEntriesToGraph ();
 
+    //! EB operator: copies of the caller's EB data, checked against the grids
+    void copyEBData (Vector<MultiFab const*> const& src, Vector<MultiFab>& dst) const;
     //! EB operator: b with ghost faces, averaged down as MLEBABecLap does
     [[nodiscard]] Vector<Array<MultiFab,AMREX_SPACEDIM>>
     ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a_bcoefs) const;

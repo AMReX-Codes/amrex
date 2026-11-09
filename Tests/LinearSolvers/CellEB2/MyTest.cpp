@@ -242,7 +242,7 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
     hmleb.setIsSingular(singular);
     hmleb.setReuseSolverSetup(mlhypre_num_setups > 1);
     if (!eb_neumann) {
-        hmleb.setEBDirichlet(amrex::GetVecOfConstPtrs(bcoef_eb), amrex::GetVecOfConstPtrs(phieb));
+        hmleb.setEBDirichlet(amrex::GetVecOfConstPtrs(phieb), amrex::GetVecOfConstPtrs(bcoef_eb));
     }
     Vector<Array<MultiFab const*,AMREX_SPACEDIM>> b(nlevels);
     for (int ilev = 0; ilev < nlevels; ++ilev) {

@@ -1778,25 +1778,32 @@ void HypreMLABecLap::buildIJMaps ()
 #endif
 }
 
-void HypreMLABecLap::setEBDirichlet (Vector<MultiFab const*> const& a_beta,
-                                     Vector<MultiFab const*> const& a_phi)
+void HypreMLABecLap::setEBDirichlet (Vector<MultiFab const*> const& a_phi,
+                                     Vector<MultiFab const*> const& a_beta)
 {
-    auto copy = [&] (Vector<MultiFab const*> const& src, Vector<MultiFab>& dst)
-    {
-        dst.clear();
-        dst.resize(m_nlevels);
-        for (int ilev = 0; ilev < m_nlevels && ilev < src.size(); ++ilev) {
-            if (src[ilev]) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(src[ilev]->boxArray() == m_grids[ilev] &&
-                                                 src[ilev]->DistributionMap() == m_dmap[ilev],
-                    "HypreMLABecLap::setEBDirichlet: the data must have the grids of the constructor");
-                dst[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 0);
-                MultiFab::Copy(dst[ilev], *src[ilev], 0, 0, 1, 0);
-            }
+    setEBHomogDirichlet(a_beta);
+    copyEBData(a_phi, m_eb_phi);
+}
+
+void HypreMLABecLap::setEBHomogDirichlet (Vector<MultiFab const*> const& a_beta)
+{
+    copyEBData(a_beta, m_eb_beta);
+    m_eb_phi.clear();
+}
+
+void HypreMLABecLap::copyEBData (Vector<MultiFab const*> const& src, Vector<MultiFab>& dst) const
+{
+    dst.clear();
+    dst.resize(m_nlevels);
+    for (int ilev = 0; ilev < m_nlevels && ilev < src.size(); ++ilev) {
+        if (src[ilev]) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(src[ilev]->boxArray() == m_grids[ilev] &&
+                                             src[ilev]->DistributionMap() == m_dmap[ilev],
+                "HypreMLABecLap::setEBDirichlet: the data must have the grids of the constructor");
+            dst[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 0);
+            MultiFab::Copy(dst[ilev], *src[ilev], 0, 0, 1, 0);
         }
-    };
-    copy(a_beta, m_eb_beta);
-    copy(a_phi, m_eb_phi);
+    }
     Gpu::streamSynchronize(); // the caller may free the sources
 }
 
@@ -1809,15 +1816,25 @@ HypreMLABecLap::ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a
     Vector<Array<MultiFab,AMREX_SPACEDIM>> bcoefs(m_nlevels);
 #ifdef AMREX_USE_EB
     for (int ilev = m_nlevels-1; ilev >= 0; --ilev) {
-        if (ilev >= a_bcoefs.size() || !a_bcoefs[ilev][0]) { continue; }
+        // A null coefficient is 1 (as in the non-EB path), per direction
+        auto given = [&] (int idim) {
+            return ilev < a_bcoefs.size() && a_bcoefs[ilev][idim] != nullptr;
+        };
+        bool const finer = (ilev < m_nlevels-1) && bcoefs[ilev+1][0].isDefined();
+        bool const any_given = AMREX_D_TERM(given(0), || given(1), || given(2));
+        if (!finer && !any_given) { continue; }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             auto& b = bcoefs[ilev][idim];
             b.define(amrex::convert(m_grids[ilev], IntVect::TheDimensionVector(idim)),
                      m_dmap[ilev], 1, 1, MFInfo(), *m_factory[ilev]);
-            b.setVal(Real(0.0));
-            MultiFab::Copy(b, *a_bcoefs[ilev][idim], 0, 0, 1, 0);
+            if (given(idim)) {
+                b.setVal(Real(0.0));
+                MultiFab::Copy(b, *a_bcoefs[ilev][idim], 0, 0, 1, 0);
+            } else {
+                b.setVal(Real(1.0));
+            }
         }
-        if (ilev < m_nlevels-1 && bcoefs[ilev+1][0].isDefined()) {
+        if (finer) {
             amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(bcoefs[ilev+1]),
                                          amrex::GetArrOfPtrs(bcoefs[ilev]),
                                          m_ref_ratio[ilev], m_geom[ilev]);
@@ -1890,6 +1907,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
     // loops synchronize the device at their end (MFIter).
     const int nboxes = m_eb_bcrhs[ilev].local_size();
     Vector<HypMLABecLapEB> ebs(nboxes);
+    Gpu::DeviceScalar<int> nesting_error(0);
     Vector<Long> cell_offset(nboxes+1, 0);
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
         Box const& vbx = mfi.validbox();
@@ -1938,8 +1956,10 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
             e.bval[face] = m_bndry[ilev]->bndryValues(face)[mfi].const_array();
             bool const physical = vbx[face] == domain[face]
                 && !m_geom[ilev].isPeriodic(face.coordDir());
+            e.phys_face[face] = physical;
             e.cf_face[face] = (ilev > 0 && !physical);
         }
+        e.error = nesting_error.dataPtr();
     }
     std::partial_sum(cell_offset.begin(), cell_offset.end(), cell_offset.begin());
     const Long ncells = cell_offset[nboxes];
@@ -2018,6 +2038,9 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                      m_geom[ilev].periodicity());
         m_eb_cf_bcrhs[ilev+1].clear();
     }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nesting_error.dataValue() == 0,
+        "HypreMLABecLap: level " + std::to_string(ilev) + " reaches coarse cells that are not "
+        "on level " + std::to_string(ilev-1) + "'s grids (the levels must be properly nested)");
     Gpu::streamSynchronize(); // count, offset and cf_bcrhs are freed on return
 #else
     amrex::ignore_unused(this, ilev, a_ascalar, a_bscalar, a_acoef, a_bcoef, chunks);
