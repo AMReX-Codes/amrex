@@ -22,6 +22,12 @@
 #                                    the EB cuts the coarse/fine face at a Dirichlet wall
 #   eb2.geom_type = rotated_box      tilted walls (fluid inside a rotated box)
 #   null_acoef = 1                   no a given to HypreMLABecLap (zero)
+#   prob_type = 3 eb2.sphere_radius = 0.35 (0.43 in 3D)   the EB cuts the convex
+#                                    corners (and edges) of the fine level; MLMG
+#                                    leaves the ghost cell outside two coarse/fine
+#                                    faces stale, so only the error against the
+#                                    exact solution (mlhypre_max_exact_err) is
+#                                    checked, with the residual checks off
 #   fine_notch_lo = "0.25 0.25 0.25" fine_notch_hi = "0.375 0.375 0.375" prob_type = 3
 #     reltol = 1.e-12 eb_neumann = 1 eb2.sphere_center = "0.325 0.325 0.325"
 #     eb2.sphere_radius = 0.065 (0.08 in 3D), null_acoef = 0 or 1 (same solution)

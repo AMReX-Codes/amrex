@@ -401,6 +401,9 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
                 if (mlhypre_max_exact_ratio >= 0.0 && !(emax_h <= mlhypre_max_exact_ratio*emax_m)) {
                     amrex::Abort("mlhypre: the error against the exact solution exceeds mlhypre_max_exact_ratio times MLMG's");
                 }
+                if (mlhypre_max_exact_err >= 0.0 && !(emax_h <= mlhypre_max_exact_err)) {
+                    amrex::Abort("mlhypre: the error against the exact solution exceeds mlhypre_max_exact_err");
+                }
             }
             if (verbose > 0) {
                 // Where: the cell of the largest residual, its volume fraction
@@ -600,6 +603,7 @@ MyTest::readParameters ()
     pp.query("mlhypre_max_avg_diff", mlhypre_max_avg_diff);
     pp.query("mlhypre_max_exact_ratio", mlhypre_max_exact_ratio);
     pp.query("mlhypre_max_res_scaled", mlhypre_max_res_scaled);
+    pp.query("mlhypre_max_exact_err", mlhypre_max_exact_err);
 }
 
 void

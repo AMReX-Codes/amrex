@@ -164,6 +164,10 @@ jobs:
         paste <(grep "phi_hypre - phi_mlmg" pocket0.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
               <(grep "phi_hypre - phi_mlmg" pocket1.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
             | awk '{d=$1-$2; if (d<0) d=-d; if (d > 1.e-6*$1) {print "null a is not 0: " $0; exit 1}}'
+        # the EB cuts the convex corners and edges of the fine level (as in 2D)
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 reltol=1.e-12 prob_type=3 \
+            eb2.sphere_radius=0.43 mlhypre_max_fine_res=-1 mlhypre_max_res_scaled=-1 \
+            mlhypre_max_exact_ratio=-1 mlhypre_max_exact_err=3.e-3
         # the EB cuts the coarse/fine face at a Dirichlet wall (the coarse EB
         # level does not build at 32 cells); also with AlgMG and setup reuse
         for b in hypre algmg; do
@@ -316,6 +320,12 @@ jobs:
         paste <(grep "phi_hypre - phi_mlmg" nullb1.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
               <(grep "phi_hypre - phi_mlmg" nullb2.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
             | awk '{d=$1-$2; if (d<0) d=-d; if (d > 1.e-6*$1) {print "null b is not 1: " $0; exit 1}}'
+        # the EB cuts the convex corners of the fine level: the ghost cell outside
+        # two coarse/fine faces is read by the EB Dirichlet stencil (MLMG leaves it
+        # stale, so the error against the exact solution is checked instead)
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 prob_type=3 \
+            eb2.sphere_radius=0.35 mlhypre_max_fine_res=-1 mlhypre_max_res_scaled=-1 \
+            mlhypre_max_exact_ratio=-1 mlhypre_max_exact_err=1.e-3
         # a cut cell in the corner of a Neumann wall and the coarse/fine boundary:
         # MLMG leaves its ghost cell stale, so only the error against the exact
         # solution (one with homogeneous Neumann walls) is compared
