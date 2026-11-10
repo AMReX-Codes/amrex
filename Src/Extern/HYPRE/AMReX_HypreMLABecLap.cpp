@@ -726,8 +726,11 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         }
         if (ilev < a_levelbcdata.size()) {
             check_grids(a_levelbcdata[ilev], ilev, IntVect(0), "boundary data");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!a_levelbcdata[ilev] || a_levelbcdata[ilev]->nGrow() >= 1,
-                "HypreMLABecLap: the boundary data must have a ghost cell");
+            // The boundary values are read from the ghost cells on the
+            // physical boundary (not on a fully periodic level)
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!a_levelbcdata[ilev] || m_geom[ilev].isAllPeriodic()
+                                             || a_levelbcdata[ilev]->nGrow() >= 1,
+                "HypreMLABecLap: the boundary data must have a ghost cell on a level with a physical boundary");
         }
     }
 
@@ -1816,29 +1819,35 @@ HypreMLABecLap::ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a
 {
     // As MLEBABecLap: zero in the ghost faces that no box fills, the fine
     // coefficients averaged down onto the coarse faces they cover (which the
-    // interpolation of a coarse cut face can reach)
+    // interpolation of a coarse cut face can reach).  A null coefficient is
+    // 1 (as in the non-EB path), per direction and level; once any level
+    // gives one, every level gets a field, so that the coarse faces under a
+    // finer level hold the average of that level's (null: 1) coefficient
     Vector<Array<MultiFab,AMREX_SPACEDIM>> bcoefs(m_nlevels);
 #ifdef AMREX_USE_EB
+    auto given = [&] (int ilev, int idim) {
+        return ilev < a_bcoefs.size() && a_bcoefs[ilev][idim] != nullptr;
+    };
+    bool any_given = false;
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            any_given = any_given || given(ilev, idim);
+        }
+    }
+    if (!any_given) { return bcoefs; }
     for (int ilev = m_nlevels-1; ilev >= 0; --ilev) {
-        // A null coefficient is 1 (as in the non-EB path), per direction
-        auto given = [&] (int idim) {
-            return ilev < a_bcoefs.size() && a_bcoefs[ilev][idim] != nullptr;
-        };
-        bool const finer = (ilev < m_nlevels-1) && bcoefs[ilev+1][0].isDefined();
-        bool const any_given = AMREX_D_TERM(given(0), || given(1), || given(2));
-        if (!finer && !any_given) { continue; }
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             auto& b = bcoefs[ilev][idim];
             b.define(amrex::convert(m_grids[ilev], IntVect::TheDimensionVector(idim)),
                      m_dmap[ilev], 1, 1, MFInfo(), *m_factory[ilev]);
-            if (given(idim)) {
+            if (given(ilev, idim)) {
                 b.setVal(Real(0.0));
                 MultiFab::Copy(b, *a_bcoefs[ilev][idim], 0, 0, 1, 0);
             } else {
                 b.setVal(Real(1.0));
             }
         }
-        if (finer) {
+        if (ilev < m_nlevels-1) {
             amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(bcoefs[ilev+1]),
                                          amrex::GetArrOfPtrs(bcoefs[ilev]),
                                          m_ref_ratio[ilev], m_geom[ilev]);

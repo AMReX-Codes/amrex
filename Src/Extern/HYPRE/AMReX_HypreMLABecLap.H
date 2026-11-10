@@ -147,10 +147,14 @@ public:
      * \param a_ascalar   Scalar applied to the diagonal term.
      * \param a_bscalar   Scalar applied to the diffusive term.
      * \param a_acoefs    Level-by-level `a` coefficients.
-     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients.
+     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients;
+     *                    a missing or null entry means 1 on that level (with EB,
+     *                    the coarse faces under a finer level then hold 1 too).
+     * \param a_levelbcdata BC data per level; a missing or null entry means zero.
+     *                    On a level with a physical boundary the data must have
+     *                    a ghost cell (the boundary values are read from it).
      * \param a_lobc      Low-side boundary-condition types.
      * \param a_hibc      High-side boundary-condition types.
-     * \param a_levelbcdata BC data per level; a missing or null entry means zero.
      * \param a_coarse_bc Optional BC data from even coarser AMR level.
      */
     void setup (Real a_ascalar, Real a_bscalar,

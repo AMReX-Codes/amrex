@@ -385,6 +385,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     if (e.a) { put_cell(own, c, kappa*e.sa*e.a(c)); }
 
     Real const rrvol = Real(AMREX_D_TERM(e.rr[0],*e.rr[1],*e.rr[2]));
+    bool open = false; // a face with a nonzero aperture
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         IntVect const ed = IntVect::TheDimensionVector(d);
         for (int side = 0; side < 2; ++side) {
@@ -392,7 +393,10 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             IntVect const f = (side == 0) ? c : c+ed;
             IntVect const nb = (side == 0) ? c-ed : c+ed;
             Real const ap = e.apert[d] ? e.apert[d](f) : Real(1.0);
-            if (ap == Real(0.0) || (e.fine_mask && e.fine_mask(nb))) { continue; }
+            if (ap == Real(0.0)) { continue; }
+            open = true;
+            // The flux across a coarse/fine face is the fine cells'
+            if (e.fine_mask && e.fine_mask(nb)) { continue; }
             // The coarse neighbor across a coarse/fine face
             IntVect const cnb = amrex::coarsen(nb, e.rr);
             Row const crow = (e.cid(nb) < 0 && e.cf_face[face])
@@ -445,8 +449,10 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     }
 
     // A fluid cell with all faces covered and no EB Dirichlet or a term (an
-    // isolated cell) has no entries: give it the identity row
-    if (!used[nsten/2]) { put(row, row, sc*sc); }
+    // isolated cell) has no entries: give it the identity row.  Not a cell
+    // whose open faces all border the finer level: its entries are the fine
+    // cells' fluxes, added to its row by the fine cells
+    if (!open && !used[nsten/2]) { put(row, row, sc*sc); }
     for (int m = 0; m < nsten; ++m) {
         if (used[m] && (!pinned || m == nsten/2)) {
             IntVect const o(AMREX_D_DECL(m%3-1, (m/3)%3-1, m/9-1));
