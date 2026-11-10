@@ -11,8 +11,10 @@ void fab_filfc (Box const& bx, Array4<Real> const& qn, int ncomp,
     const IntVect& len = bx.length();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (bcn->lo(idim) == BCType::int_dir) {
-            AMREX_ASSERT(bcn->hi(idim) == BCType::int_dir);
-            gdomain.grow(idim, len[idim]);
+            gdomain.growLo(idim, len[idim]);
+        }
+        if (bcn->hi(idim) == BCType::int_dir) {
+            gdomain.growHi(idim, len[idim]);
         }
     }
 
