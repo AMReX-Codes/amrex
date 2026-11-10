@@ -15,6 +15,16 @@ namespace {
         Array4<Real const> sfab;
         Array4<Real const> afab; // area or volume; empty when constant
         Box dbox;
+#ifdef AMREX_USE_LOOM
+        // LOOM device code cannot test a pointer for null; the host records
+        // whether afab is set.
+        int afab_set = 0;
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool has_area () const noexcept { return afab_set != 0; }
+#else
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool has_area () const noexcept { return static_cast<bool>(afab); }
+#endif
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         Box const& box () const noexcept { return dbox; }
     };
@@ -25,6 +35,28 @@ namespace {
         Real operator() (int, int, int) const noexcept { return v; }
     };
 }
+
+#ifdef AMREX_USE_LOOM
+namespace loomtag {
+template <>
+struct Traits<FluxRegTag> {
+    using Tag = FluxRegTag;
+    struct Stored { A4 dfab; A4 sfab; A4 afab; Box dbox; int afab_set; };
+    static void bases (Tag const& t, char const*& b) { note(t.dfab,b); note(t.sfab,b); note(t.afab,b); }
+    static Stored store (Tag const& t, char const* b) {
+        return {loomtag::store(t.dfab,b), loomtag::store(t.sfab,b), loomtag::store(t.afab,b),
+                t.dbox, t.afab_set};
+    }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static Tag load (Stored const& s, char* b) {
+        Tag t{loomtag::load<Real>(s.dfab,b), loomtag::load<Real const>(s.sfab,b),
+              loomtag::load<Real const>(s.afab,b), s.dbox};
+        t.afab_set = s.afab_set;
+        return t;
+    }
+};
+}
+#endif
 
 FluxRegister::FluxRegister ()
 {
@@ -209,6 +241,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             ftags.push_back({mf.array(t.srcIndex), mflx.const_array(t.srcIndex),
                             area.empty() ? Array4<Real const>{} : area.const_array(t.srcIndex),
                             t.sbox});
+#ifdef AMREX_USE_LOOM
+            ftags.back().afab_set = area.empty() ? 0 : 1;
+#endif
         };
         for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
         for (auto const& kv : *cpc.m_SndTags) {
@@ -220,7 +255,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             ParallelFor(ftags, numcomp,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, FluxRegTag const& tag) noexcept
             {
-                Real a = tag.afab ? tag.afab(i,j,k) : Real(1.0);
+                Real a = tag.has_area() ? tag.afab(i,j,k) : Real(1.0);
                 tag.dfab(i,j,k,n) = tag.sfab(i,j,k,n+srccomp)*mult*a;
             });
         } else
@@ -344,6 +379,9 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
             ftags.push_back({mf.array(t.srcIndex), mflx.const_array(t.srcIndex),
                             area.empty() ? Array4<Real const>{} : area.const_array(t.srcIndex),
                             t.sbox});
+#ifdef AMREX_USE_LOOM
+            ftags.back().afab_set = area.empty() ? 0 : 1;
+#endif
         };
         for (auto const& t : *cpc.m_LocTags) { add_tag(t); }
         for (auto const& kv : *cpc.m_SndTags) {
@@ -355,7 +393,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
             ParallelFor(ftags, numcomp,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, FluxRegTag const& tag) noexcept
             {
-                Real a = tag.afab ? tag.afab(i,j,k) : Real(1.0);
+                Real a = tag.has_area() ? tag.afab(i,j,k) : Real(1.0);
                 tag.dfab(i,j,k,n) = tag.sfab(i,j,k,n+srccomp)*mult*a;
             });
         } else
@@ -653,6 +691,9 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
             tags.push_back({mf.array(t.dstIndex), flux.const_array(t.dstIndex),
                             volume.empty() ? Array4<Real const>{} : volume.const_array(t.dstIndex),
                             bx});
+#ifdef AMREX_USE_LOOM
+            tags.back().afab_set = volume.empty() ? 0 : 1;
+#endif
         }
     };
     // With MPI teams, local tags include the destinations of teammates.
@@ -669,7 +710,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
         {
             amrex::ignore_unused(j,k);
             Box const bx{IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))};
-            if (tag.afab) {
+            if (tag.has_area()) {
                 fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, tag.afab, nc, scale, face);
             } else {
                 fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, ConstVolume{cvol}, nc, scale, face);
