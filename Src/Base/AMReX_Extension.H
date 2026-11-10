@@ -63,11 +63,10 @@
 #elif defined(AMREX_CXX_CRAY)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(AMREX_CXX_PGI)
-#define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
-
-#elif defined(AMREX_CXX_NVHPC)
-#define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
+#elif defined(AMREX_CXX_PGI) || defined(AMREX_CXX_NVHPC)
+// nvc++ also defines __PGI. No "loop ivdep": nvc++ 26.9 miscompiles
+// loops marked with it at -O2 and above (#6197).
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(AMREX_CXX_NEC)
 #define AMREX_PRAGMA_SIMD
