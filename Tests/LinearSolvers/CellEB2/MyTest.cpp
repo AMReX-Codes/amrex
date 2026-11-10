@@ -246,7 +246,11 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
     }
     Vector<Array<MultiFab const*,AMREX_SPACEDIM>> b(nlevels);
     for (int ilev = 0; ilev < nlevels; ++ilev) {
-        b[ilev] = amrex::GetArrOfConstPtrs(bcoef[ilev]);
+        if (null_fine_bcoef == 1 && ilev > 0) {
+            b[ilev].fill(nullptr);
+        } else {
+            b[ilev] = amrex::GetArrOfConstPtrs(bcoef[ilev]);
+        }
     }
 
     Vector<MultiFab> hphi(nlevels), srhs(nlevels), res(nlevels), diff(nlevels);
@@ -286,7 +290,9 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
                 }
             }
         }
-        hmleb.setup(s*scalars[0], s*scalars[1], amrex::GetVecOfConstPtrs(acoef), b,
+        Vector<MultiFab const*> acoef_ptrs = amrex::GetVecOfConstPtrs(acoef);
+        if (null_acoef) { for (auto& p : acoef_ptrs) { p = nullptr; } }
+        hmleb.setup(s*scalars[0], s*scalars[1], acoef_ptrs, b,
                     lobc, hibc, amrex::GetVecOfConstPtrs(bcdata));
         hmleb.solve(amrex::GetVecOfPtrs(hphi), amrex::GetVecOfConstPtrs(srhs), reltol, 0.0);
 
@@ -570,6 +576,13 @@ MyTest::readParameters ()
     pp.queryarr("fine_lo", fine_lo, 0, AMREX_SPACEDIM);
     pp.queryarr("fine_hi", fine_hi, 0, AMREX_SPACEDIM);
     pp.query("fine_shrink", fine_shrink);
+    if (pp.contains("fine_notch_lo") || pp.contains("fine_notch_hi")) {
+        pp.getarr("fine_notch_lo", fine_notch_lo, 0, AMREX_SPACEDIM);
+        pp.getarr("fine_notch_hi", fine_notch_hi, 0, AMREX_SPACEDIM);
+    }
+    pp.query("null_fine_bcoef", null_fine_bcoef);
+    pp.query("null_acoef", null_acoef);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!null_acoef || acoef_value == 0.0, "null_acoef needs acoef = 0");
     pp.query("nan_in_covered", nan_in_covered);
     pp.query("domain_bc", domain_bc);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(domain_bc == "dirichlet" || domain_bc == "neumann",
@@ -629,6 +642,18 @@ MyTest::addFineGrids ()
         }
         for (Box& b : bl) {
             b &= domain;
+        }
+        if (!fine_notch_lo.empty()) {
+            Box notch;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                notch.setSmall(idim, int(std::round(fine_notch_lo[idim]/dx[idim])));
+                notch.setBig(idim, int(std::round(fine_notch_hi[idim]/dx[idim]))-1);
+            }
+            BoxList notched;
+            for (Box const& b : bl) {
+                notched.join(amrex::boxDiff(b, notch));
+            }
+            bl = notched;
         }
         bl.simplify();
         grids[ilev].define(bl);
@@ -746,6 +771,13 @@ MyTest::initData ()
                 {
                     mytest_set_phi_boundary(i,j,k,phi_arr,dx,domainbox,lprob_type);
                 });
+            }
+        }
+        // b = 1 on the finer levels: given to HypreMLABecLap as null (1) or
+        // explicitly (2), and to MLMG
+        if (null_fine_bcoef && ilev > 0) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                bcoef[ilev][idim].setVal(1.0);
             }
         }
     }

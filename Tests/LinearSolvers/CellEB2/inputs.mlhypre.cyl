@@ -21,6 +21,17 @@
 #   eb2.sphere_center = "0.4 0.14 0.5" eb2.sphere_radius = 0.2 fine_lo = "0.25 0 0.25"
 #                                    the EB cuts the coarse/fine face at a Dirichlet wall
 #   eb2.geom_type = rotated_box      tilted walls (fluid inside a rotated box)
+#   null_acoef = 1                   no a given to HypreMLABecLap (zero)
+#   fine_notch_lo = "0.25 0.25 0.25" fine_notch_hi = "0.375 0.375 0.375" prob_type = 3
+#     reltol = 1.e-12 eb_neumann = 1 eb2.sphere_center = "0.325 0.325 0.325"
+#     eb2.sphere_radius = 0.065 (0.08 in 3D), null_acoef = 0 or 1 (same solution)
+#                                    an L-shaped fine level; at its concave
+#                                    corner, a coarse cut cell whose open faces
+#                                    all border the fine level (MLMG's unweighted
+#                                    reflux makes the solutions differ there)
+#   prob_type = 2 eb2.sphere_has_fluid_inside = 1 null_fine_bcoef = 1 (or 2)
+#                                    b = 1 on the fine level, null (1) or given
+#                                    (2) to HypreMLABecLap: the same solution
 #   prob_type = 3 domain_bc = neumann   an exact solution with homogeneous Neumann
 #                                    walls; with the wall geometry above, a cut
 #                                    cell in the corner of a Neumann wall and the

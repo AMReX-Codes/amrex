@@ -67,6 +67,15 @@ private:
     amrex::Vector<amrex::Real> fine_lo{AMREX_D_DECL(0.,0.,0.)};
     amrex::Vector<amrex::Real> fine_hi{AMREX_D_DECL(1.,1.,1.)};
     amrex::Real fine_shrink = 0.0;
+    // Removed from the finer levels (empty: nothing): an L-shaped fine level
+    amrex::Vector<amrex::Real> fine_notch_lo;
+    amrex::Vector<amrex::Real> fine_notch_hi;
+    // b = 1 on the finer levels (MLMG gets it), given to HypreMLABecLap as
+    // null (1: a null b means 1) or explicitly (2); the two must give the
+    // same solution
+    int null_fine_bcoef = 0;
+    // HypreMLABecLap gets no a at all (null, that is zero; acoef must be 0)
+    int null_acoef = 0;
     std::string domain_bc{"dirichlet"}; // or neumann, on the non-periodic domain boundaries
     amrex::Vector<amrex::Real> prob_hi{AMREX_D_DECL(1.,1.,1.)}; // the domain is [0, prob_hi]
     // Also solve with HypreMLABecLap (composite_solve): mlhypre_num_setups
