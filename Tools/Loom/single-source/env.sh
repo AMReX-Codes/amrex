@@ -10,6 +10,11 @@
 : "${GCC_INSTALL_DIR:=/usr/lib64/gcc/x86_64-suse-linux/14}"
 # glibc headers seen by the device pass (and by the host via the default sysroot).
 : "${GLIBC_INCLUDE:=/usr/include}"
+# Sysroot for compiling and linking host code. It must hold the same glibc as
+# GLIBC_INCLUDE: glibc 2.38+ headers redirect strtol and friends to
+# __isoc23_* symbols that older glibc (such as pixi clang's default sysroot)
+# does not export.
+: "${AMREX_LOOM_SYSROOT:=/}"
 # Where the three clones live, and where builds go.
 : "${LOOM_WORK:=$PWD}"
 : "${CXX_SRC:=$LOOM_WORK/cplusplus}"      # branch loom-single-source, pinned at cc0ced6a20
@@ -18,7 +23,7 @@
 : "${BUILD_JOBS:=8}"
 
 # --- Derived ----------------------------------------------------------------
-export GCC_INSTALL_DIR GLIBC_INCLUDE LOOM_WORK CXX_SRC HRX_SRC AMREX_SRC BUILD_JOBS
+export GCC_INSTALL_DIR GLIBC_INCLUDE AMREX_LOOM_SYSROOT LOOM_WORK CXX_SRC HRX_SRC AMREX_SRC BUILD_JOBS
 export TOOLS_ENV=$AMREX_SRC/Tools/Loom/single-source/.pixi/envs/default
 export CXX_BUILD=$LOOM_WORK/build/cxx
 export HRX_BUILD=$LOOM_WORK/build/hrx

@@ -52,6 +52,7 @@ running the scripts:
 |-------------------|------------------------------------------|------------------------------------------|
 | `GCC_INSTALL_DIR` | GCC 14 `lib/gcc/<triple>/<version>`      | `/usr/lib64/gcc/x86_64-suse-linux/14`    |
 | `GLIBC_INCLUDE`   | glibc headers                            | `/usr/include`                           |
+| `AMREX_LOOM_SYSROOT` | sysroot for host compiles and links; same glibc as `GLIBC_INCLUDE` | `/` |
 | `LOOM_WORK`       | directory holding the three clones       | current directory                        |
 | `BUILD_JOBS`      | parallel build jobs                      | `8`                                      |
 
