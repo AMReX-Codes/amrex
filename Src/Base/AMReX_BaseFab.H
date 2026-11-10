@@ -139,7 +139,7 @@ placementNew (T* const ptr, Long n, RunOn run_on = RunOn::Device)
 {
     amrex::ignore_unused(ptr,n,run_on);
     if constexpr (!std::is_trivially_default_constructible_v<T>) {
-        AMREX_HOST_DEVICE_FOR_1D_FLAG(run_on, n, i,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(run_on, n, i,
         {
             new (ptr+i) T;
         });
@@ -160,7 +160,7 @@ placementDelete (T* const ptr, Long n, RunOn run_on = RunOn::Device)
 {
     amrex::ignore_unused(ptr,n,run_on);
     if constexpr (!std::is_trivially_destructible_v<T>) {
-        AMREX_HOST_DEVICE_FOR_1D_FLAG(run_on, n, i,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(run_on, n, i,
         {
             (ptr+i)->~T();
         });
