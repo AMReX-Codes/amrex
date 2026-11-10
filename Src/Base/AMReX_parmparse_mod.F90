@@ -430,6 +430,10 @@ contains
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
+       if (allocated(v)) then
+          if (size(v) .lt. n) deallocate(v)
+       end if
+       if (.not.allocated(v)) allocate(v(n))
        call amrex_parmparse_get_intarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
     if (present(flag)) flag = n.gt.0
@@ -443,6 +447,10 @@ contains
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
+       if (allocated(v)) then
+          if (size(v) .lt. n) deallocate(v)
+       end if
+       if (.not.allocated(v)) allocate(v(n))
        call amrex_parmparse_get_realarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
     if (present(flag)) flag = n.gt.0
