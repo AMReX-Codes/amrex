@@ -683,6 +683,7 @@ static_assert(IsDataPacking<PackComponents, FArrayBox>(), // NOLINT(bugprone-thr
 //! \brief This class specializes behaviour on local copies and unpacking receive buffers.
 //!
 //! It takes a DTOS and FabProjection to apply them on the receiver side.
+//! src_component must be 0 unless FabProj is Identity.
 template <typename DTOS = Identity, typename FabProj = Identity>
 struct ApplyDtosAndProjectionOnReciever : PackComponents {
     constexpr ApplyDtosAndProjectionOnReciever() = default;
@@ -703,6 +704,9 @@ LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabAr
            const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags)
 {
     static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
+    // Received data is indexed from 0, but local data from src_component.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) || packing.src_component == 0,
+                                     "NonLocalBC: src_component must be 0 unless the projection is Identity");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         local_copy_gpu(dest, src, packing.dest_component, packing.src_component,
@@ -724,6 +728,8 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 {
     // If FAB is not FArrayBox we have not checked for the correct types yet.
     static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) || packing.src_component == 0,
+                                     "NonLocalBC: src_component must be 0 unless the projection is Identity");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         unpack_recv_buffer_gpu(dest, packing.dest_component, packing.n_components, recv.data,
@@ -1144,6 +1150,7 @@ ParallelCopy_alltoall (FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!                  boxes that need to be filled and copied from.
 //!
 //! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!                      Must be 0 unless Proj is Identity.
 //!
 //! \param[in]  destcomp The first component in dest that will get written by src.
 //!
@@ -1188,6 +1195,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //!                  boxes that need to be filled and copied from.
 //!
 //! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!                      Must be 0 unless Proj is Identity.
 //!
 //! \param[in]  destcomp The first component in dest that will get written by src.
 //!
@@ -1219,6 +1227,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //! \param[in]  src  The Multifab that is used to fill the send buffers.
 //!
 //! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!                      Must be 0 unless Proj is Identity.
 //!
 //! \param[in]  destcomp The first component in dest that will get written by src.
 //!
@@ -1259,6 +1268,7 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 //! \param[in]  src  The Multifab that is used to fill the send buffers.
 //!
 //! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!                      Must be 0 unless Proj is Identity.
 //!
 //! \param[in]  destcomp The first component in dest that will get written by src.
 //!
@@ -1349,7 +1359,7 @@ FillPolar (FabArray<FAB>& mf, Box const& domain);
  *
  * \param mf    FabArray/MultiFab whose ghost cells need to be filled.
  * \param cmd   communication metadata.
- * \param scomp starting component.
+ * \param scomp starting component. Must be 0 unless Proj is Identity.
  * \param ncomp number of components.
  * \param dtos  index mapping.
  * \param proj  component mapping.
@@ -1394,7 +1404,7 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  * \param handler CommHandler returned by FillBoundary_nowait.
  * \param mf      FabArray/MultiFab whose ghost cells need to be filled.
  * \param cmd     communication metadata.
- * \param scomp   starting component.
+ * \param scomp   starting component. Must be 0 unless Proj is Identity.
  * \param ncomp   number of components.
  * \param dtos    index mapping
  * \param proj    component mapping
@@ -1433,7 +1443,7 @@ FillBoundary_finish (CommHandler handler,
  *
  * \param mf    FabArray/MultiFab whose ghost cells need to be filled.
  * \param cmd   communication metadata.
- * \param scomp starting component.
+ * \param scomp starting component. Must be 0 unless Proj is Identity.
  * \param ncomp number of components.
  * \param dtos  index mapping.
  * \param proj  component mapping.

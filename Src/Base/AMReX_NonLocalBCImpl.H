@@ -443,6 +443,10 @@ CommHandler
 Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              DTOS const& dtos, Proj const& proj)
 {
+    // Received data is indexed from 0, but local data from scomp.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<Proj,Identity>) || scomp == 0,
+                                     "NonLocalBC: scomp must be 0 unless the projection is Identity");
+
 #ifdef AMREX_USE_MPI
     if (ParallelContext::NProcsSub() == 1)
 #endif
