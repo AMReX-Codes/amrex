@@ -22,6 +22,11 @@ extern "C" {
         mf = new MultiFab(*srcmf, amrex::make_alias, comp, ncomp);
     }
 
+    void amrex_fi_multifab_fill_volume (MultiFab* mf, const Geometry* geom)
+    {
+        geom->GetVolume(*mf);
+    }
+
     void amrex_fi_delete_multifab (MultiFab* mf)
     {
         delete mf;
