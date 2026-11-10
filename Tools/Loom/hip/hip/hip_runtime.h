@@ -148,6 +148,7 @@ struct hipDeviceProp_t {
   int maxThreadsPerMultiProcessor;
   int managedMemory;
   int concurrentManagedAccess;
+  int integrated;
   int pciBusID;
   int pciDeviceID;
   int pciDomainID;
@@ -492,6 +493,21 @@ template <class T> inline T __shfl_xor(T v, int, int = warpSize) { return v; }
 template <class T> inline T __shfl(T v, int, int = warpSize) { return v; }
 inline unsigned long long __ballot(int p) { return p ? 1ull : 0ull; }
 #endif
+// HIP's typed atomic builtins as used by AMReX (relaxed, agent scope), routed
+// to the relaxed device-scope atomics above. Macros, because clang reserves
+// the builtin names; the ordering and scope arguments are not evaluated.
+#define __hip_atomic_fetch_add(pointer, value, order, scope) atomicAdd((pointer), (value))
+#define __hip_atomic_fetch_min(pointer, value, order, scope) atomicMin((pointer), (value))
+#define __hip_atomic_fetch_max(pointer, value, order, scope) atomicMax((pointer), (value))
+// HIP's bit reinterpretations between floating-point and integer values.
+AMREX_LOOM_DEVICE_INLINE int __float_as_int(float x) { return __builtin_bit_cast(int, x); }
+AMREX_LOOM_DEVICE_INLINE float __int_as_float(int x) { return __builtin_bit_cast(float, x); }
+AMREX_LOOM_DEVICE_INLINE long long __double_as_longlong(double x) {
+  return __builtin_bit_cast(long long, x);
+}
+AMREX_LOOM_DEVICE_INLINE double __longlong_as_double(long long x) {
+  return __builtin_bit_cast(double, x);
+}
 template <class T>
 AMREX_LOOM_DEVICE_INLINE T __shfl_down_sync(unsigned long long, T value,
                                             unsigned int delta,
