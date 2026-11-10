@@ -28,13 +28,11 @@
 #include <random>
 #include <thread>
 
-const std::vector<std::string>&
+std::vector<std::string>
 amrex::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
-    static std::vector<std::string> tokens;
-    tokens = amrex::split(instr, separators);
-    return tokens;
+    return amrex::split(instr, separators);
 }
 
 bool

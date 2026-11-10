@@ -44,8 +44,8 @@ namespace amrex
     template <typename T> bool is_it (std::string const& s, T& v);
 
     //! Splits "instr" into separate pieces based on "separators".
-    const std::vector<std::string>& Tokenize (const std::string& instr,
-                                              const std::string& separators);
+    std::vector<std::string> Tokenize (const std::string& instr,
+                                       const std::string& separators);
 
     /**
     *  \brief Creates the specified directories.  path may be either a full pathname
