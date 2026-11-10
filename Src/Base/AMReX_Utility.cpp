@@ -8,6 +8,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Print.H>
+#include <AMReX_String.H>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
@@ -27,68 +28,13 @@
 #include <random>
 #include <thread>
 
-namespace {
-    bool tokenize_initialized = false;
-    char* line = nullptr;
-    void CleanupTokenizeStatics ()
-    {
-        delete [] line;
-    }
-}
-
-const std::vector<std::string>&
+std::vector<std::string>
 amrex::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
-    if (!tokenize_initialized) {
-        amrex::ExecOnFinalize(CleanupTokenizeStatics);
-        tokenize_initialized = true;
-    }
-
-    static std::vector<char*>       ptr;
-    static std::vector<std::string> tokens;
-    static int                      linelen = 0;
-    //
-    // Make copy of line that we can modify.
-    //
-    const int len = static_cast<int>(instr.size()) + 1;
-
-    if (len > linelen)
-    {
-        delete [] line;
-        line = new char[len];
-        linelen = len;
-    }
-
-    (void) std::strncpy(line, instr.c_str(), len);
-
-    char* token = nullptr;
-
-    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
-    {
-        ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
-            ptr.push_back(token);
-        }
-    }
-
-    tokens.resize(ptr.size());
-
-    for (int i = 1, N = static_cast<int>(ptr.size()); i < N; i++)
-    {
-        char* p = ptr[i];
-
-        while (std::strchr(separators.c_str(), *(p-1)) != nullptr) {
-            *--p = 0;
-        }
-    }
-
-    for (int i = 0, N = static_cast<int>(ptr.size()); i < N; i++) {
-        tokens[i] = ptr[i];
-    }
-
-    ptr.clear();
-    return tokens;
+    // As before, stop at the first null character.
+    return amrex::split(instr.substr(0, instr.find('\0')),
+                        separators.substr(0, separators.find('\0')));
 }
 
 bool
