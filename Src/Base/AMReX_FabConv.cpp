@@ -646,6 +646,10 @@ PD_fconvert (void*       out,
     DeltaBias = outfor[7] + hmbo - infor[7] - hmbi;
     hexpn     = 1LL << (outfor[1] - 1L);
     expn_max  = (1LL << outfor[1]) - 1LL;
+    // All-ones exponent in an IEEE format (hidden high mantissa bit, IEEE bias): Inf or NaN
+    const bool in_ieee = !hmbi && nbi_exp > 0 && nbi_exp < 63 && infor[2] < nbi &&
+                         (infor[7] == (1LL << (nbi_exp - 1)) - 1LL);
+    const Long expn_in_max = in_ieee ? (1LL << nbi_exp) - 1LL : -1LL;
 
     memset(out, 0, std::size_t(nitems)*outbytes);
 
@@ -659,6 +663,18 @@ PD_fconvert (void*       out,
         //
         expn = _pd_extract_field(lin, bi_exp, nbi_exp, inbytes, inord);
         sign = _pd_get_bit(lin, bi_sign, inbytes, inord);
+        // NaN has a nonzero mantissa. Inf is converted like a finite value.
+        bool is_nan = false;
+        if (expn == expn_in_max) {
+            indxin = bi_mant;
+            inrem  = int(infor[2]);
+            while (inrem > 0 && !is_nan) {
+                nbits = BitsMax > inrem ? inrem : BitsMax;
+                is_nan = (_pd_extract_field(lin, indxin, nbits, inbytes, inord) != 0);
+                indxin += nbits;
+                inrem  -= nbits;
+            }
+        }
         //
         // If we have a negative number and ones complement arithmetic on the
         // input side (won't have it on the output side with modern data).
@@ -674,7 +690,9 @@ PD_fconvert (void*       out,
                 expn += (expn < hexpn);
             }
         }
-        if (expn != 0) {
+        if (is_nan) {
+            expn = expn_max;
+        } else if (expn != 0) {
             expn += DeltaBias;
         }
         if ((0 <= expn) && (expn < expn_max))
@@ -735,7 +753,7 @@ PD_fconvert (void*       out,
             }
         }
         //
-        // In case of overflow use 1.0e+(expn_max).
+        // Overflow or NaN: use the all-ones exponent.
         //
         else if (expn_max <= expn)
         {
@@ -743,6 +761,9 @@ PD_fconvert (void*       out,
 
             if (_pd_get_bit(lin, bi_sign, inbytes, inord)) {
                 _pd_set_bit(lout, bo_sign);
+            }
+            if (is_nan) {
+                _pd_set_bit(lout, bo_mant); // keep NaN a NaN
             }
         }
         bi_sign += nbi;
