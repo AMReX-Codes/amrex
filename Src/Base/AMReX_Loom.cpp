@@ -7,7 +7,8 @@
 //
 //  * NATIVE (default): this file also implements the HIP runtime subset
 //    declared by Tools/Loom/hip/hip/hip_runtime.h on libhrx. Single device;
-//    streams are HRX streams. Needs no HIP headers.
+//    streams are HRX streams, each bound to its own HRX queue where the device
+//    allows. Needs no HIP headers.
 //  * HRX_HIP: HRX's libamdhip64.so implements the HIP runtime, and launches go
 //    through hipModuleLaunchKernel. Needs a HIP API header
 //    (AMReX_LOOM_HIP_INCLUDE_DIR); HRX does not install one yet.
@@ -28,7 +29,6 @@
 #include <cstring>
 #include <map>
 #include <mutex>
-#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -258,8 +258,25 @@ struct Allocation {
 std::recursive_mutex g_mutex;
 bool g_initialized = false;
 hrx_device_t g_device = nullptr;
+// Streams submit to exact HRX queues of one family that supports dispatch,
+// transfer and host calls. The default stream uses provisioned queue 0. Each
+// created stream gets a queue of its own where the device allows (an unused
+// provisioned queue, else a newly acquired one), so kernels on different
+// streams can run concurrently. HRX does not multiplex virtual streams onto
+// queues, so when acquisition fails the stream shares the least-used
+// provisioned queue: it keeps its own timeline, but its work serializes with
+// the other streams on that queue. AMREX_LOOM_SHARED_QUEUE=1 forces sharing.
+struct StreamQueue {
+  hrx_queue_t queue = nullptr;
+  bool acquired = false;           // owning reference from hrx_queue_acquire
+  uint32_t provisioned = 0;        // provisioned ordinal when !acquired
+};
+uint32_t g_queue_family = 0;
+bool g_queue_family_acquirable = false;
+bool g_shared_queue = false;
+std::vector<uint32_t> g_provisioned_users;  // streams bound to each provisioned queue
 hrx_stream_t g_default_stream = nullptr;
-std::set<hrx_stream_t> g_streams;
+std::map<hrx_stream_t, StreamQueue> g_streams;
 std::map<uintptr_t, Allocation> g_allocations;
 std::unordered_map<std::string, Kernel> g_kernels;
 std::vector<hrx_executable_t> g_executables;
@@ -286,7 +303,31 @@ void initialize() {
   if (g_initialized) return;
   check(hrx_gpu_initialize(0), "hrx_gpu_initialize");
   check(hrx_gpu_device_get(0, &g_device), "hrx_gpu_device_get");
-  check(hrx_stream_create(g_device, 0, &g_default_stream), "hrx_stream_create");
+  constexpr hrx_queue_role_flags_t roles =
+      HRX_QUEUE_ROLE_DISPATCH | HRX_QUEUE_ROLE_TRANSFER | HRX_QUEUE_ROLE_HOST_CALL;
+  bool found = false;
+  const auto family_count = static_cast<uint32_t>(hrx_device_queue_family_count(g_device));
+  for (uint32_t family = 0; family < family_count && !found; ++family) {
+    hrx_queue_family_info_t info{};
+    check(hrx_device_query_queue_family(g_device, family, &info),
+          "hrx_device_query_queue_family");
+    if ((info.roles & roles) != roles || info.provisioned_queue_count == 0) continue;
+    found = true;
+    g_queue_family = family;
+    g_queue_family_acquirable = info.supports_acquisition;
+    g_provisioned_users.assign(info.provisioned_queue_count, 0);
+  }
+  if (!found) {
+    std::fprintf(stderr, "amrex loom: no HRX queue family supports dispatch, transfer and "
+                         "host calls\n");
+    std::abort();
+  }
+  const char* shared = std::getenv("AMREX_LOOM_SHARED_QUEUE");
+  g_shared_queue = shared && *shared && std::strcmp(shared, "0") != 0;
+  check(hrx_stream_create(hrx_device_get_queue(g_device, g_queue_family, 0), 0,
+                          &g_default_stream),
+        "hrx_stream_create");
+  g_provisioned_users[0] = 1;
   g_initialized = true;
   // Registered after the runtime's globals are constructed, so it runs before
   // they are destroyed.
@@ -301,7 +342,7 @@ hrx_stream_t resolve(hipStream_t stream) {
 void sync_all() {
   initialize();
   check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
-  for (auto* s : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
 }
 
 // Returns the allocation containing |address|, or nullptr for host memory.
@@ -604,12 +645,41 @@ hipError_t hipMemPoolGetAttribute(hipMemPool_t, hipMemPoolAttr, void*) { return 
 
 // --- streams and events -----------------------------------------------------
 hipError_t hipStreamCreate(hipStream_t* stream) { return hipStreamCreateWithFlags(stream, 0); }
+namespace {
+// Picks the queue for a new stream: an unused provisioned queue, else a newly
+// acquired one, else the least-used provisioned queue (shared).
+StreamQueue select_stream_queue() {
+  auto least = std::min_element(g_provisioned_users.begin(), g_provisioned_users.end());
+  auto ordinal = static_cast<uint32_t>(least - g_provisioned_users.begin());
+  if (!g_shared_queue && *least != 0 && g_queue_family_acquirable) {
+    hrx_queue_t queue = nullptr;
+    hrx_status_t status = hrx_queue_acquire(g_device, g_queue_family, nullptr, &queue);
+    if (hrx_status_is_ok(status)) return {queue, true, 0};
+    hrx_status_ignore(status);
+  }
+  ++g_provisioned_users[ordinal];
+  return {hrx_device_get_queue(g_device, g_queue_family, ordinal), false, ordinal};
+}
+// Drops this runtime's use of |q| once its stream has been released.
+void release_stream_queue(const StreamQueue& q) {
+  if (q.acquired) {
+    hrx_queue_release(q.queue);
+  } else {
+    --g_provisioned_users[q.provisioned];
+  }
+}
+}  // namespace
 hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned) {
   initialize();
-  hrx_stream_t s = nullptr;
-  check(hrx_stream_create(g_device, 0, &s), "hrx_stream_create");
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  g_streams.insert(s);
+  StreamQueue q = select_stream_queue();
+  hrx_stream_t s = nullptr;
+  hrx_status_t status = hrx_stream_create(q.queue, 0, &s);
+  if (!hrx_status_is_ok(status)) {
+    release_stream_queue(q);
+    fatal("hrx_stream_create", status);
+  }
+  g_streams[s] = q;
   *stream = reinterpret_cast<hipStream_t>(s);
   return hipSuccess;
 }
@@ -618,8 +688,12 @@ hipError_t hipStreamDestroy(hipStream_t stream) {
   auto s = reinterpret_cast<hrx_stream_t>(stream);
   check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  g_streams.erase(s);
+  auto it = g_streams.find(s);
+  if (it == g_streams.end()) return g_last_error = hipErrorInvalidValue;
+  StreamQueue q = it->second;
+  g_streams.erase(it);
   hrx_stream_release(s);
+  release_stream_queue(q);
   return hipSuccess;
 }
 hipError_t hipStreamSynchronize(hipStream_t stream) {
@@ -658,7 +732,8 @@ hipError_t hipStreamAddCallback(hipStream_t stream, hipStreamCallback_t callback
   uint64_t wait_value = before.value, signal_value = after;
   hrx_semaphore_list_t wait{&semaphore, &wait_value, before.value > 0 ? std::size_t(1) : std::size_t(0)};
   hrx_semaphore_list_t signal{&semaphore, &signal_value, 1};
-  check(hrx_queue_host_call(g_device, ~hrx_queue_affinity_t(0), &wait, &signal, loom_callback_thunk,
+  // The host call goes to the stream's own queue, ordered by its timeline.
+  check(hrx_queue_host_call(hrx_stream_get_queue(s), &wait, &signal, loom_callback_thunk,
                             new LoomCallbackThunk{stream, callback, user_data}),
         "hrx_queue_host_call");
   return hipSuccess;
@@ -689,10 +764,16 @@ void shutdown() {
   for (auto* executable : g_executables) hrx_executable_release(executable);
   g_executables.clear();
   g_images_loaded = false;
-  for (auto* s : g_streams) hrx_stream_release(s);
+  // Streams first (each final release joins its work), then the queues this
+  // runtime acquired; HRX requires both before hrx_gpu_shutdown.
+  for (auto& [s, q] : g_streams) {
+    hrx_stream_release(s);
+    release_stream_queue(q);
+  }
   g_streams.clear();
   hrx_stream_release(g_default_stream);
   g_default_stream = nullptr;
+  g_provisioned_users.clear();
   hrx_status_t status = hrx_gpu_shutdown();
   if (!hrx_status_is_ok(status)) {
     char* message = nullptr;
