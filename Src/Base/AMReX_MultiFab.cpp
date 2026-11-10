@@ -741,7 +741,10 @@ MultiFab::min (int comp, int nghost, bool local) const
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() )
+    // Mask only when the EB flags have this MultiFab's index type.
+    if ( this->hasEBFabFactory() &&
+         this->ixType() == dynamic_cast<EBFArrayBoxFactory const&>(this->Factory())
+                               .getMultiEBCellFlagFab().ixType() )
     {
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
@@ -835,7 +838,10 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() )
+    // Mask only when the EB flags have this MultiFab's index type.
+    if ( this->hasEBFabFactory() &&
+         this->ixType() == dynamic_cast<EBFArrayBoxFactory const&>(this->Factory())
+                               .getMultiEBCellFlagFab().ixType() )
     {
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
@@ -924,7 +930,10 @@ MultiFab::max (int comp, int nghost, bool local) const
     Real mx = std::numeric_limits<Real>::lowest();
 
 #ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() )
+    // Mask only when the EB flags have this MultiFab's index type.
+    if ( this->hasEBFabFactory() &&
+         this->ixType() == dynamic_cast<EBFArrayBoxFactory const&>(this->Factory())
+                               .getMultiEBCellFlagFab().ixType() )
     {
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
@@ -1016,7 +1025,10 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
     Real mx = std::numeric_limits<Real>::lowest();
 
 #ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() )
+    // Mask only when the EB flags have this MultiFab's index type.
+    if ( this->hasEBFabFactory() &&
+         this->ixType() == dynamic_cast<EBFArrayBoxFactory const&>(this->Factory())
+                               .getMultiEBCellFlagFab().ixType() )
     {
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
         auto const& flags = ebfactory.getMultiEBCellFlagFab();
