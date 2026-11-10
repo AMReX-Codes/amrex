@@ -195,11 +195,11 @@ module amrex_multifab_module
        integer(c_int), value :: comp, ncomp
      end subroutine amrex_fi_new_multifab_alias
 
-     subroutine amrex_fi_build_volume_multifab (mf, geom) bind(c)
+     subroutine amrex_fi_multifab_fill_volume (mf, geom) bind(c)
        import
        implicit none
        type(c_ptr), value :: mf, geom
-     end subroutine amrex_fi_build_volume_multifab
+     end subroutine amrex_fi_multifab_fill_volume
 
      subroutine amrex_fi_delete_multifab (mf) bind(c)
        import
@@ -701,7 +701,7 @@ contains
     integer, intent(in) :: ng(*)
     type(amrex_geometry), intent(in) :: geom
     call amrex_multifab_build_a(mf, ba, dm, 1, ng)
-    call amrex_fi_build_volume_multifab(mf%p, geom%p)
+    call amrex_fi_multifab_fill_volume(mf%p, geom%p)
   end subroutine amrex_multifab_build_volume_a
 
   subroutine amrex_multifab_build_volume_s (mf, ba, dm, ng, geom)
