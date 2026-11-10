@@ -2089,7 +2089,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {

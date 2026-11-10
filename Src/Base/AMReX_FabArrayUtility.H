@@ -1359,6 +1359,14 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
         src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
         src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
         explicit_swap = false;
+        // A fab that does not own its data is an alias. Swapping the objects
+        // would not swap the data it refers to.
+        for (int K : dst.IndexArray()) {
+            if ((dst.defined(K) && dst[K].nBytesOwned() == 0) ||
+                (src.defined(K) && src[K].nBytesOwned() == 0)) {
+                explicit_swap = true;
+            }
+        }
     }
 
     if (!explicit_swap) {
