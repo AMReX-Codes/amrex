@@ -77,6 +77,7 @@ BoxList::clear ()
 void
 BoxList::join (const BoxList& blist)
 {
+    if (m_lbox.empty() && blist.size() > 0) { btype = blist.ixType(); }
     BL_ASSERT(blist.size() == 0 || ixType() == blist.ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
 }
@@ -84,6 +85,7 @@ BoxList::join (const BoxList& blist)
 void
 BoxList::join (const Vector<Box>& barr)
 {
+    if (m_lbox.empty() && !barr.empty()) { btype = barr[0].ixType(); }
     BL_ASSERT(barr.empty() || ixType() == barr[0].ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
 }
@@ -91,6 +93,7 @@ BoxList::join (const Vector<Box>& barr)
 void
 BoxList::catenate (BoxList& blist)
 {
+    if (m_lbox.empty() && blist.size() > 0) { btype = blist.ixType(); }
     BL_ASSERT(blist.size() == 0 || ixType() == blist.ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
     blist.m_lbox.clear();
@@ -589,6 +592,9 @@ BoxList::shiftHalf (int dir, int num_halfs)
     {
         bx.shiftHalf(dir, num_halfs);
     }
+    if (num_halfs % 2 != 0) {
+        btype.flip(dir);
+    }
     return *this;
 }
 
@@ -598,6 +604,11 @@ BoxList::shiftHalf (const IntVect& iv)
     for (auto& bx : m_lbox)
     {
         bx.shiftHalf(iv);
+    }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (iv[idim] % 2 != 0) {
+            btype.flip(idim);
+        }
     }
     return *this;
 }
@@ -988,6 +999,7 @@ BoxList::surroundingNodes () noexcept
     {
         bx.surroundingNodes();
     }
+    btype = IndexType::TheNodeType();
     return *this;
 }
 
@@ -998,6 +1010,7 @@ BoxList::surroundingNodes (int dir) noexcept
     {
         bx.surroundingNodes(dir);
     }
+    btype.set(dir);
     return *this;
 }
 
@@ -1008,6 +1021,7 @@ BoxList::enclosedCells () noexcept
     {
         bx.enclosedCells();
     }
+    btype = IndexType::TheCellType();
     return *this;
 }
 
@@ -1018,6 +1032,7 @@ BoxList::enclosedCells (int dir) noexcept
     {
         bx.enclosedCells(dir);
     }
+    btype.unset(dir);
     return *this;
 }
 
@@ -1074,6 +1089,9 @@ BoxList::Bcast ()
         m_lbox.resize(nboxes);
     }
     ParallelDescriptor::Bcast(m_lbox.data(), nboxes, IOProcNumber);
+    if (nboxes > 0) {
+        btype = m_lbox[0].ixType();
+    }
 }
 
 }
