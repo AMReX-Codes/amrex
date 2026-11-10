@@ -32,7 +32,9 @@ std::vector<std::string>
 amrex::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
-    return amrex::split(instr, separators);
+    // As before, stop at the first null character.
+    return amrex::split(instr.substr(0, instr.find('\0')),
+                        separators.substr(0, separators.find('\0')));
 }
 
 bool
