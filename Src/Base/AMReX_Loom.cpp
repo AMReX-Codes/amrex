@@ -536,13 +536,13 @@ static hipError_t copy(void* dst, const void* src, std::size_t bytes, hrx_stream
           "hrx_stream_copy_buffer");
     check(hrx_stream_flush(s), "hrx_stream_flush");
   } else if (d) {
-    sync_all();
-    check(hrx_synchronous_h2d(g_device, src, d->second.buffer, doff(d, dst), bytes),
-          "hrx_synchronous_h2d");
+    // Host<->device copies are ordered on their stream, as in HIP: the host
+    // range stays live until the stream reaches the transfer.
+    check(hrx_stream_copy_h2d(s, src, d->second.buffer, doff(d, dst), bytes),
+          "hrx_stream_copy_h2d");
   } else if (r) {
-    sync_all();
-    check(hrx_synchronous_d2h(g_device, r->second.buffer, doff(r, src), dst, bytes),
-          "hrx_synchronous_d2h");
+    check(hrx_stream_copy_d2h(s, r->second.buffer, doff(r, src), dst, bytes),
+          "hrx_stream_copy_d2h");
   } else {
     std::memmove(dst, src, bytes);
   }
@@ -632,11 +632,35 @@ hipError_t hipStreamQuery(hipStream_t stream) {
   return complete ? hipSuccess : hipErrorNotReady;
 }
 hipError_t hipStreamGetDevice(hipStream_t, hipDevice_t* device) { *device = 0; return hipSuccess; }
-// Callbacks run once all prior work on the stream has completed.
+namespace {
+struct LoomCallbackThunk { hipStream_t stream; hipStreamCallback_t callback; void* user_data; };
+hrx_status_t loom_callback_thunk(void* p) {
+  auto* thunk = static_cast<LoomCallbackThunk*>(p);
+  thunk->callback(thunk->stream, hipSuccess, thunk->user_data);
+  delete thunk;
+  return hrx_ok_status();
+}
+}  // namespace
+// HIP semantics: the callback runs on a runtime thread once all prior work on
+// the stream has completed, and later work on the stream waits until it
+// returns. It is a host call that waits on the stream's current timeline point
+// and signals the next one. As in HIP, the callback must not call back into
+// the stream API.
 hipError_t hipStreamAddCallback(hipStream_t stream, hipStreamCallback_t callback,
                                 void* user_data, unsigned) {
-  check(hrx_stream_synchronize(resolve(stream)), "hrx_stream_synchronize");
-  callback(stream, hipSuccess, user_data);
+  hrx_stream_t s = resolve(stream);
+  check(hrx_stream_flush(s), "hrx_stream_flush");
+  hrx_timeline_point_t before{};
+  check(hrx_stream_get_timeline_position(s, &before), "hrx_stream_get_timeline_position");
+  uint64_t after = 0;
+  check(hrx_stream_advance_timeline(s, &after), "hrx_stream_advance_timeline");
+  hrx_semaphore_t semaphore = before.semaphore;
+  uint64_t wait_value = before.value, signal_value = after;
+  hrx_semaphore_list_t wait{&semaphore, &wait_value, before.value > 0 ? std::size_t(1) : std::size_t(0)};
+  hrx_semaphore_list_t signal{&semaphore, &signal_value, 1};
+  check(hrx_queue_host_call(g_device, ~hrx_queue_affinity_t(0), &wait, &signal, loom_callback_thunk,
+                            new LoomCallbackThunk{stream, callback, user_data}),
+        "hrx_queue_host_call");
   return hipSuccess;
 }
 hipError_t hipStreamWaitEvent(hipStream_t, hipEvent_t, unsigned) { sync_all(); return hipSuccess; }
