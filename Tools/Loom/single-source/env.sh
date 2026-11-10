@@ -12,8 +12,8 @@
 : "${GLIBC_INCLUDE:=/usr/include}"
 # Where the three clones live, and where builds go.
 : "${LOOM_WORK:=$PWD}"
-: "${CXX_SRC:=$LOOM_WORK/cplusplus}"      # branch loom-single-source
-: "${HRX_SRC:=$LOOM_WORK/hrx}"            # branch loom-single-source, pinned at c60fc0c04b
+: "${CXX_SRC:=$LOOM_WORK/cplusplus}"      # branch loom-single-source, pinned at cc0ced6a20
+: "${HRX_SRC:=$LOOM_WORK/hrx}"            # branch loom-single-source, pinned at 455507db5e
 : "${AMREX_SRC:=$LOOM_WORK/amrex}"        # branch loom-single-source
 : "${BUILD_JOBS:=8}"
 
