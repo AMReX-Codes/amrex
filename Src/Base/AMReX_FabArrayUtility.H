@@ -1350,14 +1350,16 @@ void
 Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     // We can take a shortcut and do a std::swap if we're swapping all of the data
-    // and they are allocated in the same Arena.
+    // and they are allocated in the same Arena.  Tags are set only when define
+    // allocates the data, so aliases (make_alias) take the explicit path.
 
     bool explicit_swap = true;
 
     if (srccomp == dstcomp && dstcomp == 0 && numcomp == src.nComp() &&
         src.nComp() == dst.nComp() &&
         src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
-        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory() &&
+        !src.tags().empty() && !dst.tags().empty()) {
         explicit_swap = false;
     }
 
