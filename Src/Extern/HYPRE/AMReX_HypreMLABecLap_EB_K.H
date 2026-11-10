@@ -66,12 +66,16 @@ struct HypMLABecLapEBFill
  * 3) fills ghost cell g of the box.
  *
  * MLEBABecLap does not fill a cell outside two faces whose inner cell in
- * either direction is off the level's grids (outside a physical boundary and
- * the coarse/fine boundary, or a domain corner); MLMG then uses the
- * solution's ghost value, whatever it holds.  The composite operator fills
- * such a cell through the physical face at the lowest order: the boundary
- * value, or for Neumann the inner cell, itself a ghost cell (c[1] applies to
- * it).  A cell outside two coarse/fine faces is not filled (zero).
+ * either direction is off the level's grids (a convex corner of the grids
+ * at the coarse/fine boundary, an edge or a vertex in 3D; outside a physical
+ * boundary and the coarse/fine boundary; a domain corner); MLMG then uses
+ * the solution's ghost value, whatever it holds.  The composite operator
+ * fills such a cell at the lowest order: outside two coarse/fine faces with
+ * the coarse interpolation at the face, and at a physical boundary through
+ * the physical face with the boundary value, or for Neumann the inner cell,
+ * itself a ghost cell (c[1] applies to it); the physical face has priority
+ * (a coarse/fine fill from outside the domain would reach coarse cells off
+ * the grids).
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 HypMLABecLapEBFill hypmlabeclap_eb_fill (HypMLABecLapEB const& e, IntVect const& g)
@@ -88,14 +92,21 @@ HypMLABecLapEBFill hypmlabeclap_eb_fill (HypMLABecLapEB const& e, IntVect const&
             if (!gbx.contains(g)) { continue; }
             Orientation const face(d, (side == 0) ? Orientation::low : Orientation::high);
             if (e.cid(g+s*ed) < 0) {
-                if (!e.phys_face[face]) { continue; }
-                // The corner case above, through this physical face
-                f.face = face;
-                if (e.bct[face] == AMREX_LO_NEUMANN) {
-                    f.c[0] = Real(0.0);
-                    f.c[1] = Real(1.0);
-                    f.n = 2;
-                } else {
+                if (e.phys_face[face]) {
+                    // The corner case above, through this physical face
+                    f.face = face;
+                    if (e.bct[face] == AMREX_LO_NEUMANN) {
+                        f.c[0] = Real(0.0);
+                        f.c[1] = Real(1.0);
+                        f.n = 2;
+                    } else {
+                        f.c[0] = Real(1.0);
+                        f.n = 1;
+                    }
+                } else if (e.cf_face[face] && f.n == 0) {
+                    // Outside two coarse/fine faces: the coarse interpolation
+                    // at this face (not overriding a physical face's fill)
+                    f.face = face;
                     f.c[0] = Real(1.0);
                     f.n = 1;
                 }
