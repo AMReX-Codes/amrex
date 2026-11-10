@@ -705,7 +705,9 @@ LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabAr
 {
     static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
     // Received data is indexed from 0, but local data from src_component.
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) || packing.src_component == 0,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) ||
+                                     (std::is_same_v<FabProj,MapComponents<Identity>>) ||
+                                     packing.src_component == 0,
                                      "NonLocalBC: src_component must be 0 unless the projection is Identity");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -728,7 +730,9 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 {
     // If FAB is not FArrayBox we have not checked for the correct types yet.
     static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) || packing.src_component == 0,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<FabProj,Identity>) ||
+                                     (std::is_same_v<FabProj,MapComponents<Identity>>) ||
+                                     packing.src_component == 0,
                                      "NonLocalBC: src_component must be 0 unless the projection is Identity");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {

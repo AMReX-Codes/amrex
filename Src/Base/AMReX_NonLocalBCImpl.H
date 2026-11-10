@@ -444,7 +444,8 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
              DTOS const& dtos, Proj const& proj)
 {
     // Received data is indexed from 0, but local data from scomp.
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<Proj,Identity>) || scomp == 0,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((std::is_same_v<Proj,Identity>) ||
+                                     (std::is_same_v<Proj,MapComponents<Identity>>) || scomp == 0,
                                      "NonLocalBC: scomp must be 0 unless the projection is Identity");
 
 #ifdef AMREX_USE_MPI
