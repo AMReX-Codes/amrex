@@ -129,16 +129,17 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
  * \brief Start the lifetime of objects in a preallocated buffer.
  *
  * Types with trivial default construction need no construction because
- * default-initializing them has no effect.  Other types use AMReX host/device
- * loops so both CPU and GPU resident buffers are initialized correctly.
+ * default-initializing them has no effect.  Other types are constructed on
+ * the device if \p run_on is RunOn::Device in a GPU launch region, and on the
+ * host otherwise.
  */
 template <typename T>
 void
-placementNew (T* const ptr, Long n)
+placementNew (T* const ptr, Long n, RunOn run_on = RunOn::Device)
 {
-    amrex::ignore_unused(ptr,n);
+    amrex::ignore_unused(ptr,n,run_on);
     if constexpr (!std::is_trivially_default_constructible_v<T>) {
-        AMREX_HOST_DEVICE_FOR_1D ( n, i,
+        AMREX_HOST_DEVICE_FOR_1D_FLAG(run_on, n, i,
         {
             new (ptr+i) T;
         });
@@ -150,19 +151,25 @@ placementNew (T* const ptr, Long n)
  *
  * Trivially destructible types need no destruction — their lifetime ends
  * implicitly when storage is released.  For non-trivially-destructible types,
- * the destructor is called on each element via AMReX host/device loops so
- * both CPU and GPU resident buffers are finalized correctly.
+ * the destructor is called on each element, on the device if \p run_on is
+ * RunOn::Device in a GPU launch region and on the host otherwise.
  */
 template <typename T>
 void
-placementDelete (T* const ptr, Long n)
+placementDelete (T* const ptr, Long n, RunOn run_on = RunOn::Device)
 {
-    amrex::ignore_unused(ptr,n);
+    amrex::ignore_unused(ptr,n,run_on);
     if constexpr (!std::is_trivially_destructible_v<T>) {
-        AMREX_HOST_DEVICE_FOR_1D (n, i,
+        AMREX_HOST_DEVICE_FOR_1D_FLAG(run_on, n, i,
         {
             (ptr+i)->~T();
         });
+#ifdef AMREX_USE_GPU
+        if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
+            // The memory may be freed right after this returns.
+            Gpu::streamSynchronize();
+        }
+#endif
     }
 }
 
@@ -1610,7 +1617,8 @@ BaseFab<T>::define ()
     this->alloc_stream = Gpu::gpuStream();
 #endif
 
-    placementNew(this->dptr, this->truesize);
+    placementNew(this->dptr, this->truesize,
+                 arena()->isDeviceAccessible() ? RunOn::Device : RunOn::Host);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
 
@@ -1851,7 +1859,8 @@ BaseFab<T>::clear ()
                 amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
             }
 
-            placementDelete(this->dptr, this->truesize);
+            placementDelete(this->dptr, this->truesize,
+                            this->arena()->isDeviceAccessible() ? RunOn::Device : RunOn::Host);
 
 #ifdef AMREX_USE_GPU
             this->arena()->streamOrderedFree(this->dptr, alloc_stream);
