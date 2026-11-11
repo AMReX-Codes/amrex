@@ -3262,7 +3262,9 @@ The basic idea behind physical boundary conditions is as follows:
 
    Here, for the CPU build, the AMREX_GPU_DEVICE macro has no effect
    whatsoever, whereas for the GPU build, this marks the operator as a GPU
-   device function.
+   device function. For face-centered and nodal data, the callable object is
+   called for the faces and nodes on the domain boundary as well as those
+   outside the domain.
 
 -  It is the user's responsibility to have a consistent definition of
    what the ghost cells represent. A common option used in AMReX codes is to
