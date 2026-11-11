@@ -64,8 +64,8 @@ bool stream_query (hrx_stream_t stream);
 
 // --- launch ------------------------------------------------------------------
 
-//! Dispatches |kernel| (a loom::kernel::kernel_ref descriptor, defined by
-//! the Loom device pass) on |stream| with a grid of grid[0..2] workgroups of
+//! Dispatches |kernel| (a loom::kernel::kernel_ref descriptor, defined in
+//! the launching object by loom-cxx) on |stream| with a grid of grid[0..2] workgroups of
 //! block[0..2] work-items. block must be fixed_block x 1 x 1. The kernel
 //! arguments are packed from its one parameter object at |parameter|
 //! following the descriptor's leaves. An empty grid launches nothing.
