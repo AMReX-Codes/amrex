@@ -346,7 +346,7 @@ public:
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
-    EBCellFlagFab& operator= (EBCellFlagFab&&) = delete;
+    EBCellFlagFab& operator= (EBCellFlagFab&&) = default;
 
     //! Returns FabType (regular, covered, etc.) for the entire FAB.
     FabType getType () const noexcept { return m_type; }

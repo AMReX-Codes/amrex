@@ -237,6 +237,14 @@ public:
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
+    /**
+     * \brief Extend the EB data outside non-periodic domain faces to \p ngrow cells.
+     *
+     * The new cells copy the outermost stored layer, so they continue the
+     * extrusion of the domain face. Used on coarse levels when
+     * m_extrude_coarse_levels is true.
+     */
+    void extendAtDomainFaces (IntVect const& ngrow);
     //! Build the face-centered EBCellFlag connectivity for \p face_dir from its area fractions.
     void buildCellFlagFC (int face_dir);
     //! Build the cut-cell mask by coarsening from \p fine_level.
@@ -268,6 +276,13 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     bool m_has_eb_info = true;
+    /**
+     * If true, each coarse level built from this level is extended back to
+     * ngrow cells outside non-periodic domain faces by extrusion of the domain
+     * face. It is set from extend_domain_face when the finest level is built,
+     * for GeometryShop, STL and checkpoint file geometries alike.
+     */
+    bool m_extrude_coarse_levels = false;
     IntVect m_shift{0};
     IndexSpace const* m_parent;
 
@@ -370,6 +385,8 @@ GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
     }
 
     BL_PROFILE("EB2::GShopLevel()-prepare_grids");
+
+    m_extrude_coarse_levels = extend_domain_face;
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -802,7 +819,7 @@ GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
 #endif
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int /*ngrow*/,
+GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int ngrow,
                            const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(is, geom)
 {
@@ -843,6 +860,14 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
         }
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
+    }
+
+    m_extrude_coarse_levels = fineLevel.m_extrude_coarse_levels;
+    if (m_ok) {
+        if (m_extrude_coarse_levels) {
+            extendAtDomainFaces(IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16});
+        }
+        buildCellFlag();
     }
 }
 

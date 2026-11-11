@@ -47,16 +47,21 @@ public:
      * \brief Read EB data from a checkpoint file.
      *
      * Populates the provided BoxArrays, DistributionMapping, and MultiFabs.
+     * The file must store at least \p ngrow_finest cells outside the domain
+     * in each direction where \p ngrow_finest is positive, and exactly
+     * \p ngrow_finest cells in the other directions.
+     *
+     * \return Number of cells outside the domain stored in the file.
      */
-    void read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
-                               DistributionMapping& dmap,
-                               MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea,
-                               MultiFab& bndrycent, MultiFab& bndrynorm,
-                               Array<MultiFab,AMREX_SPACEDIM>& areafrac,
-                               Array<MultiFab,AMREX_SPACEDIM>& facecent,
-                               Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-                               MultiFab& levelset, int ng_gfab, const Geometry& geom,
-                               const IntVect& ngrow_finest, bool extend_domain_face, int max_grid_size) const;
+    IntVect read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
+                                  DistributionMapping& dmap,
+                                  MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea,
+                                  MultiFab& bndrycent, MultiFab& bndrynorm,
+                                  Array<MultiFab,AMREX_SPACEDIM>& areafrac,
+                                  Array<MultiFab,AMREX_SPACEDIM>& facecent,
+                                  Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+                                  MultiFab& levelset, int ng_gfab, const Geometry& geom,
+                                  const IntVect& ngrow_finest, bool extend_domain_face, int max_grid_size) const;
 
     /**
      * \brief Write EB data to disk so the hierarchy can be reconstructed later.
