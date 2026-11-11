@@ -524,7 +524,7 @@ struct Tag<F, Rest...> {
   AMREX_LOOM_DEVICE_INLINE void operator()() const { f(); rest(); }
 };
 
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 // Fixed workgroup sizes: blockDim/gridDim queries lower only when the
 // workgroup size is static, so every launch names one. Used by
 // AMREX_LAUNCH_KERNEL(MT, ...).
@@ -584,7 +584,7 @@ void launch_fixed(B blocks, T threads, std::size_t shared_bytes,
                 "AMReX LOOM backend: kernel block size MT must be one of "
                 "1, 64, 128, 256, 512, 1024");
   Tag<F...> tag{fs...};
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
   dim3 g = to_dim3(blocks);
   (void)threads; (void)shared_bytes; (void)stream;
   if constexpr (MT == 1) loom::kernel::launch<kernel1<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
