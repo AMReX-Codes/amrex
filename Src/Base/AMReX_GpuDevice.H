@@ -211,7 +211,7 @@ public:
 
     static std::string deviceVendor() noexcept
     {
-#if defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__)
+#if defined(AMREX_USE_LOOM) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__))
         return std::string("AMD");
 #elif defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_NVIDIA__))
         // Using HIP on NVIDIA GPUs isn't currently supported by AMReX

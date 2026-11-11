@@ -4,17 +4,16 @@
 // translation unit's Loom code object and kernel manifest, registers them
 // before main(), and launches pack kernel arguments from the host launch tag
 // following the manifest. This file implements the amrex_loom runtime
-// functions declared in AMReX_Loom.H on libhrx, and on top of them the HIP
-// runtime subset still declared by Tools/Loom/hip/hip/hip_runtime.h for code
-// not yet converted. Single device; streams are HRX streams, each bound to
-// its own HRX queue where the device allows. Needs no HIP headers.
+// functions declared in AMReX_Loom.H and AMReX_LoomRandom.H on libhrx.
+// Single device; streams are HRX streams, each bound to its own HRX queue
+// where the device allows.
 #include <AMReX_Config.H>
 
 #if defined(AMREX_USE_LOOM)
 
+#include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DYNAMIC_SHARED_BYTES
 #include <AMReX_Loom.H>
 #include <AMReX_LoomRandom.H>
-#include <hip/hip_runtime.h>
 #include <hrx_runtime.h>
 
 #include <algorithm>
@@ -206,7 +205,6 @@ std::map<uintptr_t, Allocation> g_allocations;
 std::unordered_map<std::string, Kernel> g_kernels;
 std::vector<hrx_executable_t> g_executables;
 bool g_images_loaded = false;
-hipError_t g_last_error = hipSuccess;
 
 [[noreturn]] void fatal(const char* what, hrx_status_t status) {
   char* message = nullptr;
@@ -377,20 +375,6 @@ void amrex_loom::launch_named(const char* kernel_name, const char* tag_type_name
   }
 }
 
-// --- errors -----------------------------------------------------------------
-hipError_t hipGetLastError() { hipError_t e = g_last_error; g_last_error = hipSuccess; return e; }
-hipError_t hipPeekAtLastError() { return g_last_error; }
-const char* hipGetErrorString(hipError_t error) {
-  switch (error) {
-    case hipSuccess: return "hipSuccess";
-    case hipErrorOutOfMemory: return "out of memory";
-    case hipErrorNotReady: return "not ready";
-    case hipErrorNotSupported: return "not supported by the LOOM backend";
-    default: return "LOOM backend error";
-  }
-}
-const char* hipGetErrorName(hipError_t error) { return hipGetErrorString(error); }
-
 // --- device (amrex_loom) -------------------------------------------------------
 
 namespace {
@@ -545,52 +529,6 @@ void rand_generate_normal_double(RandGenerator* g, double* p, std::size_t n, dou
 }
 }  // namespace amrex_loom
 
-// --- HIP runtime subset, on amrex_loom ------------------------------------------
-
-// --- device -----------------------------------------------------------------
-hipError_t hipGetDeviceCount(int* count) {
-  *count = amrex_loom::device_count();
-  return hipSuccess;
-}
-hipError_t hipSetDevice(int device) { initialize(); return device == 0 ? hipSuccess : hipErrorInvalidDevice; }
-hipError_t hipGetDevice(int* device) { initialize(); *device = 0; return hipSuccess; }
-
-hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int) {
-  amrex_loom::DeviceProperties p;
-  amrex_loom::device_properties(&p);
-  std::memset(prop, 0, sizeof(*prop));
-  std::memcpy(prop->name, p.name, sizeof(prop->name));
-  std::memcpy(prop->gcnArchName, p.gcnArchName, sizeof(prop->gcnArchName));
-  prop->totalGlobalMem = p.totalGlobalMem;
-  prop->sharedMemPerBlock = p.sharedMemPerBlock;
-  prop->regsPerBlock = 65536;
-  prop->warpSize = p.warpSize;
-  prop->maxThreadsPerBlock = p.maxThreadsPerBlock;
-  for (int d = 0; d < 3; ++d) {
-    prop->maxThreadsDim[d] = p.maxThreadsDim[d];
-    prop->maxGridSize[d] = p.maxGridSize[d];
-  }
-  prop->clockRate = 1700000;
-  prop->totalConstMem = 65536;
-  prop->major = 9;
-  prop->minor = 0;
-  prop->multiProcessorCount = p.multiProcessorCount;
-  prop->maxThreadsPerMultiProcessor = p.maxThreadsPerMultiProcessor;
-  prop->managedMemory = p.managedMemory;
-  prop->concurrentManagedAccess = p.concurrentManagedAccess;
-  prop->integrated = p.integrated;
-  return hipSuccess;
-}
-hipError_t hipDeviceGetAttribute(int* value, hipDeviceAttribute_t, int) { *value = 0; return hipSuccess; }
-hipError_t hipDeviceGetUuid(hipUUID* uuid, hipDevice_t) { amrex_loom::device_uuid(uuid->bytes); return hipSuccess; }
-hipError_t hipDeviceSynchronize() { amrex_loom::device_synchronize(); return hipSuccess; }
-hipError_t hipDeviceReset() { amrex_loom::device_synchronize(); return hipSuccess; }
-
-hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes) {
-  amrex_loom::memory_info(free_bytes, total_bytes);
-  return hipSuccess;
-}
-
 // --- memory (amrex_loom) -------------------------------------------------------
 
 // Pinned host memory: host-local, device-visible HRX buffers. Device code
@@ -735,158 +673,6 @@ PointerKind pointer_kind(const void* pointer) {
 }
 
 }  // namespace amrex_loom
-
-// --- memory -----------------------------------------------------------------
-hipError_t hipMalloc(void** pointer, std::size_t bytes) {
-  *pointer = amrex_loom::device_malloc(bytes);
-  return *pointer ? hipSuccess : (g_last_error = hipErrorOutOfMemory);
-}
-hipError_t hipMallocAsync(void** pointer, std::size_t bytes, hipStream_t) { return hipMalloc(pointer, bytes); }
-hipError_t hipMallocAsync(void** pointer, std::size_t bytes, hipMemPool_t, hipStream_t) {
-  return hipMalloc(pointer, bytes);
-}
-hipError_t hipMallocManaged(void** pointer, std::size_t, unsigned) {
-  *pointer = nullptr;
-  return g_last_error = hipErrorNotSupported;
-}
-hipError_t hipHostMalloc(void** pointer, std::size_t bytes, unsigned) {
-  *pointer = amrex_loom::pinned_malloc(bytes);
-  return *pointer ? hipSuccess : (g_last_error = hipErrorOutOfMemory);
-}
-hipError_t hipHostFree(void* pointer) {
-  if (!pointer) return hipSuccess;
-  if (amrex_loom::pointer_kind(pointer) != amrex_loom::PointerKind::pinned) {
-    return g_last_error = hipErrorInvalidValue;
-  }
-  amrex_loom::pinned_free(pointer);
-  return hipSuccess;
-}
-hipError_t hipFree(void* pointer) {
-  if (!pointer) return hipSuccess;
-  {
-    std::lock_guard<std::recursive_mutex> lock(g_mutex);
-    if (!g_allocations.count(reinterpret_cast<uintptr_t>(pointer))) {
-      return g_last_error = hipErrorInvalidValue;
-    }
-  }
-  amrex_loom::device_free(pointer);
-  return hipSuccess;
-}
-hipError_t hipFreeAsync(void* pointer, hipStream_t) { return hipFree(pointer); }
-
-hipError_t hipMemcpy(void* dst, const void* src, std::size_t bytes, hipMemcpyKind) {
-  amrex_loom::memcpy_async(dst, src, bytes, nullptr);
-  amrex_loom::device_synchronize();
-  return hipSuccess;
-}
-hipError_t hipMemcpyAsync(void* dst, const void* src, std::size_t bytes, hipMemcpyKind,
-                          hipStream_t stream) {
-  amrex_loom::memcpy_async(dst, src, bytes, stream);
-  return hipSuccess;
-}
-hipError_t hipMemsetAsync(void* dst, int value, std::size_t bytes, hipStream_t stream) {
-  amrex_loom::memset_async(dst, value, bytes, stream);
-  return hipSuccess;
-}
-hipError_t hipMemset(void* dst, int value, std::size_t bytes) {
-  amrex_loom::memset_async(dst, value, bytes, nullptr);
-  amrex_loom::device_synchronize();
-  return hipSuccess;
-}
-hipError_t hipMemcpyToSymbolAsync(const void*, const void*, std::size_t, std::size_t,
-                                  hipMemcpyKind, hipStream_t) {
-  return g_last_error = hipErrorNotSupported;
-}
-hipError_t hipMemcpyFromSymbolAsync(void*, const void*, std::size_t, std::size_t,
-                                    hipMemcpyKind, hipStream_t) {
-  return g_last_error = hipErrorNotSupported;
-}
-hipError_t hipMemAdvise(const void*, std::size_t, hipMemoryAdvise, int) { return hipSuccess; }
-hipError_t hipMemPrefetchAsync(const void*, std::size_t, int, hipStream_t) { return hipSuccess; }
-hipError_t hipPointerGetAttributes(hipPointerAttribute_t* attributes, const void* pointer) {
-  std::memset(attributes, 0, sizeof(*attributes));
-  switch (amrex_loom::pointer_kind(pointer)) {
-    case amrex_loom::PointerKind::device:
-      attributes->type = hipMemoryTypeDevice;
-      attributes->devicePointer = const_cast<void*>(pointer);
-      break;
-    case amrex_loom::PointerKind::pinned:
-      attributes->type = hipMemoryTypeHost;
-      attributes->hostPointer = attributes->devicePointer = const_cast<void*>(pointer);
-      break;
-    case amrex_loom::PointerKind::unregistered:
-      attributes->type = hipMemoryTypeUnregistered;
-      attributes->hostPointer = const_cast<void*>(pointer);
-      attributes->device = hipCpuDeviceId;
-      break;
-  }
-  return hipSuccess;
-}
-hipError_t hipDeviceGetMemPool(hipMemPool_t* pool, int) { *pool = nullptr; return hipErrorNotSupported; }
-hipError_t hipMemPoolSetAttribute(hipMemPool_t, hipMemPoolAttr, void*) { return hipErrorNotSupported; }
-hipError_t hipMemPoolGetAttribute(hipMemPool_t, hipMemPoolAttr, void*) { return hipErrorNotSupported; }
-
-// --- streams and events -----------------------------------------------------
-// hipStream_t is hrx_stream_t.
-hipError_t hipStreamCreate(hipStream_t* stream) { return hipStreamCreateWithFlags(stream, 0); }
-hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned) {
-  *stream = amrex_loom::stream_create();
-  return hipSuccess;
-}
-hipError_t hipStreamDestroy(hipStream_t stream) {
-  if (stream) {
-    std::lock_guard<std::recursive_mutex> lock(g_mutex);
-    if (!g_streams.count(stream)) return g_last_error = hipErrorInvalidValue;
-  }
-  amrex_loom::stream_destroy(stream);
-  return hipSuccess;
-}
-hipError_t hipStreamSynchronize(hipStream_t stream) {
-  amrex_loom::stream_synchronize(stream);
-  return hipSuccess;
-}
-hipError_t hipStreamQuery(hipStream_t stream) {
-  return amrex_loom::stream_query(stream) ? hipSuccess : hipErrorNotReady;
-}
-hipError_t hipStreamGetDevice(hipStream_t, hipDevice_t* device) { *device = 0; return hipSuccess; }
-namespace {
-struct LoomCallbackThunk { hipStream_t stream; hipStreamCallback_t callback; void* user_data; };
-hrx_status_t loom_callback_thunk(void* p) {
-  auto* thunk = static_cast<LoomCallbackThunk*>(p);
-  thunk->callback(thunk->stream, hipSuccess, thunk->user_data);
-  delete thunk;
-  return hrx_ok_status();
-}
-}  // namespace
-// HIP semantics: the callback runs on a runtime thread once all prior work on
-// the stream has completed, and later work on the stream waits until it
-// returns. It is a host call that waits on the stream's current timeline point
-// and signals the next one. As in HIP, the callback must not call back into
-// the stream API.
-hipError_t hipStreamAddCallback(hipStream_t stream, hipStreamCallback_t callback,
-                                void* user_data, unsigned) {
-  hrx_stream_t s = resolve(stream);
-  check(hrx_stream_flush(s), "hrx_stream_flush");
-  hrx_timeline_point_t before{};
-  check(hrx_stream_get_timeline_position(s, &before), "hrx_stream_get_timeline_position");
-  uint64_t after = 0;
-  check(hrx_stream_advance_timeline(s, &after), "hrx_stream_advance_timeline");
-  hrx_semaphore_t semaphore = before.semaphore;
-  uint64_t wait_value = before.value, signal_value = after;
-  hrx_semaphore_list_t wait{&semaphore, &wait_value, before.value > 0 ? std::size_t(1) : std::size_t(0)};
-  hrx_semaphore_list_t signal{&semaphore, &signal_value, 1};
-  // The host call goes to the stream's own queue, ordered by its timeline.
-  check(hrx_queue_host_call(hrx_stream_get_queue(s), &wait, &signal, loom_callback_thunk,
-                            new LoomCallbackThunk{stream, callback, user_data}),
-        "hrx_queue_host_call");
-  return hipSuccess;
-}
-hipError_t hipStreamWaitEvent(hipStream_t, hipEvent_t, unsigned) { sync_all(); return hipSuccess; }
-hipError_t hipEventCreate(hipEvent_t* event) { *event = nullptr; return hipSuccess; }
-hipError_t hipEventDestroy(hipEvent_t) { return hipSuccess; }
-hipError_t hipEventRecord(hipEvent_t, hipStream_t stream) { return hipStreamSynchronize(stream); }
-hipError_t hipEventSynchronize(hipEvent_t) { return hipSuccess; }
-hipError_t hipEventElapsedTime(float* ms, hipEvent_t, hipEvent_t) { *ms = 0.0f; return hipSuccess; }
 
 namespace {
 
