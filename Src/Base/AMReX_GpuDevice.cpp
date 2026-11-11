@@ -248,7 +248,7 @@ namespace {
 }
 #endif
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 namespace {
     int preinit_device_id = -1;
     int preinit_local_rank = -1;
@@ -287,7 +287,7 @@ namespace {
 
 int SelectDeviceBeforeMPIInit ()
 {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (preinit_device_id >= 0) { return preinit_device_id; }
 
 #ifdef AMREX_USE_MPI
@@ -416,7 +416,7 @@ Device::Initialize (bool minimal, int a_device_id)
     amrex::ignore_unused(n_local_procs);
 
     bool use_preinit = false;
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (! minimal) {
         use_preinit = use_preinit_device() && a_device_id < 0;
         if (! use_preinit && preinit_device_id >= 0 && a_device_id < 0 &&
@@ -436,7 +436,7 @@ Device::Initialize (bool minimal, int a_device_id)
     } else if (a_device_id >= 0) {
         device_id = a_device_id;
     } else if (use_preinit) {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         device_id = preinit_device_id;
 #endif
     } else if (ParallelDescriptor::NProcs() == 1) {
@@ -470,7 +470,7 @@ Device::Initialize (bool minimal, int a_device_id)
                 amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
             }
         }
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         if (preinit_device_id < 0 && ParallelDescriptor::NProcs() > 1 &&
             amrex::Verbose() && ParallelDescriptor::IOProcessor())
         {
@@ -505,7 +505,7 @@ Device::Initialize (bool minimal, int a_device_id)
         // hip < 5.2: uuid not supported
         num_device_partners = 1;
 
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
         constexpr int len = 16;
 #if !defined(AMREX_USE_LOOM)

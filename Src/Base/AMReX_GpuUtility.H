@@ -237,6 +237,10 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
         amrex::The_Pinned_Arena()->free(amrex_i_hp); \
         return amrex_i_r; \
     } ()
+#elif defined(AMREX_USE_LOOM)
+// Documented exclusion: Loom device code has no function pointers.
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) \
+    _Pragma("GCC error \"AMReX LOOM backend: device function pointers (AMREX_GET_DEVICE_FUNC_PTR) are not supported\"") sym
 #elif !defined(AMREX_USE_SYCL)
 #define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) sym
 #endif
