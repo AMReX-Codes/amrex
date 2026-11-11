@@ -518,7 +518,7 @@ MLNodeLinOpT<MF>::setOversetMask (int amrlev, const iMultiFab& a_dmask)
         Box const& bx = mfi.tilebox();
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
-            dmsk(i,j,k) = 1 - omsk(i,j,k);
+            dmsk(i,j,k) = (omsk(i,j,k) == 0) ? nodelap_detail::overset_node : 0;
         });
     }
     m_masks_built = false;

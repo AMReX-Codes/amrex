@@ -855,9 +855,6 @@ void
 MLNodeLaplacianT<MF>::interpCoarseFineSolution (int famrlev, MF& fine_sol,
                                                 const MF& crse_sol) const
 {
-    // With an overset mask the Dirichlet mask also has the user's nodes, so
-    // the coarse/fine nodes are found from the fine grids.
-    const bool overset = this->m_overset_dirichlet_mask;
     const int ncomp = this->getNComp();
 
     MF crse_copy = this->makeCoarseAmr(famrlev, IntVect(0), MFInfo().SetArena(The_Async_Arena()));
@@ -876,35 +873,17 @@ MLNodeLaplacianT<MF>::interpCoarseFineSolution (int famrlev, MF& fine_sol,
         dlo[d] = (lobc[d] == LinOpBCType::Dirichlet) ? nddom.smallEnd(d) : nddom.smallEnd(d)-1;
         dhi[d] = (hibc[d] == LinOpBCType::Dirichlet) ? nddom.bigEnd(d) : nddom.bigEnd(d)+1;
     }
-    iMultiFab ccm; // 1 in the cells outside the fine grids, as in buildMasks
-    if (overset) {
-        ccm.define(this->m_grids[famrlev][0], this->m_dmap[famrlev][0], 1, 1,
-                   MFInfo().SetArena(The_Async_Arena()));
-        ccm.BuildMask(this->Geom(famrlev,0).Domain(), this->Geom(famrlev,0).periodicity(),
-                      0, 1, 2, 0);
-    }
     auto const& f = fine_sol.arrays();
     auto const& t = fine_interp.const_arrays();
     auto const& dm = this->m_dirichlet_mask[famrlev][0]->const_arrays();
-    auto const& cm = overset ? ccm.const_arrays() : MultiArray4<int const>{};
-    const int jm = (AMREX_SPACEDIM > 1) ? 1 : 0;
-    const int km = (AMREX_SPACEDIM > 2) ? 1 : 0;
     amrex::ParallelFor(fine_sol, IntVect(0), ncomp,
     [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n) noexcept
     {
-        if (!dm[bno](i,j,k)) { return; }
+        // Not unknowns, nor nodes the user's overset mask marks known
+        if (dm[bno](i,j,k) == 0 || dm[bno](i,j,k) == nodelap_detail::overset_node) { return; }
         const IntVect iv(AMREX_D_DECL(i,j,k));
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             if (iv[d] == dlo[d] || iv[d] == dhi[d]) { return; } // Dirichlet domain node
-        }
-        if (overset) {
-            bool cf = false;
-            for (int kk = k-km; kk <= k; ++kk) {
-            for (int jj = j-jm; jj <= j; ++jj) {
-            for (int ii = i-1 ; ii <= i; ++ii) {
-                cf = cf || (cm[bno](ii,jj,kk) == 1);
-            }}}
-            if (!cf) { return; } // user Dirichlet node
         }
         f[bno](i,j,k,n) = t[bno](i,j,k,n);
     });

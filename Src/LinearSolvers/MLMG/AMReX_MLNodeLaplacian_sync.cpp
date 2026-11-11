@@ -522,7 +522,7 @@ MLNodeLaplacianT<MF>::compSyncResidualFine (MF& sync_resid, const MF& phi, const
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
-                    tmpmaskarr(i,j,k) = 1-dmskarr(i,j,k);
+                    tmpmaskarr(i,j,k) = dmskarr(i,j,k) ? 0 : 1;
                 });
 
                 rhs.resize(bx, 1, The_Async_Arena());
