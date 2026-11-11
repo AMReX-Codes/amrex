@@ -401,9 +401,10 @@ MLNodeLinOpT<MF>::buildMasks ()
     }
 
     // The coarse MG levels inject the overset mask, which can drop all known
-    // nodes from the bottom level.
-    m_is_bottom_singular = m_is_singular || (singular_bc && m_overset_dirichlet_mask &&
-                                             m_dirichlet_mask[0].back()->max(0) == 0);
+    // nodes from the bottom level.  Covered EB nodes (1) do not count.
+    m_is_bottom_singular = m_is_singular ||
+        (singular_bc && m_overset_dirichlet_mask &&
+         m_dirichlet_mask[0].back()->max(0) < nodelap_detail::overset_node);
 
     auto& has_cf = *m_has_fine_bndry[this->m_num_amr_levels-1];
 #ifdef AMREX_USE_OMP
@@ -587,7 +588,7 @@ MLNodeLinOpT<MF>::resizeMultiGrid (int new_size)
     if (m_masks_built)
     {
         if (m_is_bottom_singular && !m_is_singular) { // the new bottom may have overset nodes
-            m_is_bottom_singular = (m_dirichlet_mask[0].back()->max(0) == 0);
+            m_is_bottom_singular = (m_dirichlet_mask[0].back()->max(0) < nodelap_detail::overset_node);
         }
         const auto lobc = this->LoBC();
         const auto hibc = this->HiBC();
