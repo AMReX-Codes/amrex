@@ -257,7 +257,12 @@ struct Allocation {
 
 std::recursive_mutex g_mutex;
 bool g_initialized = false;
-hrx_device_t g_device = nullptr;
+hrx_runtime_t g_runtime = nullptr;
+hrx_device_group_t g_group = nullptr;
+hrx_device_t g_device = nullptr;  // borrowed from g_group
+// Memory scopes for address queries: kernels on g_queue_family and the host.
+hrx_memory_scope_t g_program_scope{};
+hrx_memory_scope_t g_host_scope{};
 // Streams submit to exact HRX queues of one family that supports dispatch,
 // transfer and host calls. The default stream uses provisioned queue 0. Each
 // created stream gets a queue of its own where the device allows (an unused
@@ -301,8 +306,24 @@ void shutdown();
 void initialize() {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   if (g_initialized) return;
-  check(hrx_gpu_initialize(0), "hrx_gpu_initialize");
-  check(hrx_gpu_device_get(0, &g_device), "hrx_gpu_device_get");
+  // One sealed group holding the first amdgpu device.
+  const hrx_host_allocator_t allocator = hrx_host_allocator_system();
+  hrx_runtime_options_t options{};
+  check(hrx_runtime_create(&options, allocator, &g_runtime), "hrx_runtime_create");
+  std::size_t device_count = 0;
+  hrx_device_info_t* infos = nullptr;
+  check(hrx_runtime_query_available_devices(g_runtime, "amdgpu", allocator, &device_count,
+                                            &infos),
+        "hrx_runtime_query_available_devices");
+  if (device_count == 0) {
+    std::fprintf(stderr, "amrex loom: no amdgpu devices available\n");
+    std::abort();
+  }
+  const hrx_device_create_params_t params = {infos[0].uri, HRX_WAIT_FLAG_YIELD};
+  hrx_status_t created = hrx_device_group_create(g_runtime, 1, &params, &g_group);
+  hrx_host_allocator_free(allocator, infos);
+  check(created, "hrx_device_group_create");
+  g_device = hrx_device_group_get_device(g_group, 0);
   constexpr hrx_queue_role_flags_t roles =
       HRX_QUEUE_ROLE_DISPATCH | HRX_QUEUE_ROLE_TRANSFER | HRX_QUEUE_ROLE_HOST_CALL;
   bool found = false;
@@ -322,6 +343,11 @@ void initialize() {
                          "host calls\n");
     std::abort();
   }
+  check(hrx_device_query_queue_family_memory_scope(g_device, g_queue_family,
+                                                   HRX_MEMORY_SITE_PROGRAM, &g_program_scope),
+        "hrx_device_query_queue_family_memory_scope");
+  check(hrx_device_query_host_memory_scope(g_device, &g_host_scope),
+        "hrx_device_query_host_memory_scope");
   const char* shared = std::getenv("AMREX_LOOM_SHARED_QUEUE");
   g_shared_queue = shared && *shared && std::strcmp(shared, "0") != 0;
   check(hrx_stream_create(hrx_device_get_queue(g_device, g_queue_family, 0), 0,
@@ -332,6 +358,15 @@ void initialize() {
   // Registered after the runtime's globals are constructed, so it runs before
   // they are destroyed.
   std::atexit(shutdown);
+}
+
+// Address kernels on the dispatch family use for |buffer|.
+void* device_address(hrx_buffer_t buffer) {
+  uint64_t address = 0;
+  check(hrx_buffer_query_address(buffer, g_program_scope, HRX_BUFFER_INTERFACE_DEVICE_ADDRESS,
+                                 &address),
+        "hrx_buffer_query_address");
+  return reinterpret_cast<void*>(static_cast<uintptr_t>(address));
 }
 
 hrx_stream_t resolve(hipStream_t stream) {
@@ -496,7 +531,7 @@ hipError_t hipMalloc(void** pointer, std::size_t bytes) {
     return g_last_error = hipErrorOutOfMemory;
   }
   check(hrx_stream_synchronize(g_default_stream), "allocation");
-  check(hrx_buffer_get_device_ptr(buffer, pointer), "hrx_buffer_get_device_ptr");
+  *pointer = device_address(buffer);
   g_allocations[reinterpret_cast<uintptr_t>(*pointer)] = {buffer, bytes};
   return hipSuccess;
 }
@@ -528,7 +563,7 @@ hipError_t hipHostMalloc(void** pointer, std::size_t bytes, unsigned) {
   check(hrx_stream_synchronize(g_default_stream), "host allocation");
   void* device = nullptr;
   void* host = nullptr;
-  check(hrx_buffer_get_device_ptr(buffer, &device), "hrx_buffer_get_device_ptr");
+  device = device_address(buffer);
   check(hrx_buffer_map(buffer, HRX_MAP_READ | HRX_MAP_WRITE | HRX_MAP_MAY_ALIAS, 0, bytes, &host),
         "hrx_buffer_map");
   if (host != device) {
@@ -765,7 +800,7 @@ void shutdown() {
   g_executables.clear();
   g_images_loaded = false;
   // Streams first (each final release joins its work), then the queues this
-  // runtime acquired; HRX requires both before hrx_gpu_shutdown.
+  // runtime acquired; HRX requires both before the group's final release.
   for (auto& [s, q] : g_streams) {
     hrx_stream_release(s);
     release_stream_queue(q);
@@ -774,14 +809,11 @@ void shutdown() {
   hrx_stream_release(g_default_stream);
   g_default_stream = nullptr;
   g_provisioned_users.clear();
-  hrx_status_t status = hrx_gpu_shutdown();
-  if (!hrx_status_is_ok(status)) {
-    char* message = nullptr;
-    std::size_t length = 0;
-    hrx_status_to_string(status, &message, &length);
-    std::fprintf(stderr, "amrex loom: hrx_gpu_shutdown failed: %s\n",
-                 message ? message : "(no status)");
-  }
+  g_device = nullptr;
+  hrx_device_group_release(g_group);
+  g_group = nullptr;
+  hrx_runtime_release(g_runtime);
+  g_runtime = nullptr;
   g_initialized = false;
 }
 
