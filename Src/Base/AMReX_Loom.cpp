@@ -86,9 +86,13 @@ std::vector<ManifestKernel> parse_manifest(const char* manifest) {
   return kernels;
 }
 
+struct Dim3 {
+  unsigned x, y, z;
+};
+
 // Checks a launch against its kernel and returns false for an empty grid.
 bool check_launch(const ManifestKernel* kernel, const char* tag_type_name,
-                  std::size_t tag_size, dim3 grid, std::size_t shared_bytes) {
+                  std::size_t tag_size, Dim3 grid, std::size_t shared_bytes) {
   if (grid.x == 0 || grid.y == 0 || grid.z == 0) return false;
   if (!kernel) {
     std::fprintf(stderr, "amrex loom: no device kernel for launch tag %s\n", tag_type_name);
@@ -133,7 +137,7 @@ std::vector<uint8_t> pack_kernargs(const ManifestKernel& kernel, const char* tag
   return kernarg;
 }
 
-void trace_launch(const std::string& name, dim3 grid, dim3 block, std::size_t kernarg_size) {
+void trace_launch(const std::string& name, Dim3 grid, Dim3 block, std::size_t kernarg_size) {
   static const bool trace = std::getenv("AMREX_LOOM_TRACE") != nullptr;
   if (trace) {
     std::fprintf(stderr, "amrex loom: launch %s grid %ux%ux%u block %ux%ux%u kernarg %zu\n",
@@ -335,10 +339,14 @@ void load_images() {
 
 }  // namespace
 
-void amrex_loom_launch_named(const char* kernel_name, const char* tag_type_name,
-                             const void* tag, std::size_t tag_size, dim3 grid,
-                             dim3 block, std::size_t shared_bytes,
-                             hipStream_t stream) {
+// --- launch (amrex_loom) ------------------------------------------------------
+
+void amrex_loom::launch_named(const char* kernel_name, const char* tag_type_name,
+                              const void* tag, std::size_t tag_size, const unsigned grid_size[3],
+                              const unsigned block_size[3], std::size_t shared_bytes,
+                              hrx_stream_t stream) {
+  const Dim3 grid{grid_size[0], grid_size[1], grid_size[2]};
+  const Dim3 block{block_size[0], block_size[1], block_size[2]};
   load_images();
   std::string name = std::string(kernel_name) + "__" + tag_type_name;
   auto found = g_kernels.find(name);

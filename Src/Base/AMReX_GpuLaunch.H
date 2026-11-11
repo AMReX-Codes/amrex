@@ -7,6 +7,9 @@
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
+#ifdef AMREX_USE_LOOM
+#include <AMReX_LoomLaunch.H>
+#endif
 #include <AMReX_GpuRange.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuMemory.H>

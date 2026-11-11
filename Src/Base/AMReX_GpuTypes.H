@@ -18,7 +18,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_SYCL
+#if defined(AMREX_USE_SYCL) || defined(AMREX_USE_LOOM)
 
 struct dim3 {
     unsigned int x = 1;
@@ -27,6 +27,10 @@ struct dim3 {
     dim3 () = default;
     constexpr dim3 (unsigned int x_, unsigned int y_=1, unsigned int z_=1) : x(x_),y(y_),z(z_) {}
 };
+
+#endif
+
+#ifdef AMREX_USE_SYCL
 
 struct Dim1 {
     std::size_t x;

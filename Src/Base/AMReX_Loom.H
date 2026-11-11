@@ -60,6 +60,17 @@ void stream_synchronize (hrx_stream_t stream);
 //! True when all work submitted to |stream| has completed.
 bool stream_query (hrx_stream_t stream);
 
+// --- launch ------------------------------------------------------------------
+
+//! Dispatches kernel export <kernel_name>__<tag_type_name> on |stream| with a
+//! grid of grid[0..2] workgroups of block[0..2] work-items. Its kernel
+//! arguments are packed from the |tag_size| bytes at |tag| following the
+//! kernel's manifest. An empty grid launches nothing. AMReX_LoomLaunch.H
+//! calls this; see there.
+void launch_named (const char* kernel_name, const char* tag_type_name, const void* tag,
+                   std::size_t tag_size, const unsigned grid[3], const unsigned block[3],
+                   std::size_t shared_bytes, hrx_stream_t stream);
+
 // --- memory ------------------------------------------------------------------
 
 //! Device-local buffer; returns its device address, or nullptr when out of
