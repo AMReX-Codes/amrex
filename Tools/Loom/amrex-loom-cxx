@@ -1,208 +1,60 @@
 #!/usr/bin/env bash
-# Single-source C++ compiler driver for AMReX_GPU_BACKEND=LOOM.
+# Single-source C++ compiler for AMReX_GPU_BACKEND=LOOM.
 #
-# Compile (-c): run the host compiler. If the host object references Loom
-# kernel descriptors (loom::kernel::kernel_ref<&K>, odr-used by launch sites),
-# run the Loom device pass on the same source with the same -I/-isystem/-D/-std
-# flags: it compiles the referenced kernels for the target GPU and defines
-# their descriptors. Link the embedded HSACO (registered at startup with
-# amrex_loom_register_executable) and the descriptors into the requested
-# object. A descriptor whose kernel has no device code is still defined, without
-# its available flag; launching it fails at run time.
-# Link: run the host compiler and add libhrx.
+# Compile (-c): Loom's offload driver, loom-cxx, parses the source once with
+# cxx and emits one object holding the host code (cxx's MLIR/LLVM back end),
+# the device code of the launched kernels compiled for AMREX_LOOM_TARGET
+# (registered at startup with amrex_loom_register_executable), and the kernel
+# descriptors that the host code references through loom::kernel::kernel_ref.
+# Kernels Loom cannot import or compile yet are dropped and reported; their
+# descriptors stay unavailable, so launching one fails at run time.
+# Link: clang++ with libc++, plus libhrx.
 #
-# Required environment (normally set by CMake through the launcher):
-#   AMREX_LOOM_HOST_CXX       host C++ compiler
-#   AMREX_LOOM_IMPORT         loom-import-cxx
-#   AMREX_LOOM_COMPILE        loom-compile
-#   AMREX_LOOM_TARGET         e.g. gfx90a
-#   AMREX_LOOM_LOOMCXX_DIR    directory containing loomcxx/ headers
+# Required environment (see Tools/Loom/single-source/env.sh):
+#   AMREX_LOOM_CXX_DRIVER       loom-cxx
+#   AMREX_LOOM_LOOMCXX_DIR      directory containing loomcxx/ headers
 #   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libc++/compiler/libc include dirs
-#   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
-#   AMREX_LOOM_HOST_TRIPLE    host target triple (default x86_64-linux-gnu)
-# Optional: AMREX_LOOM_PYTHON  Python 3 that reads loom-compile's JSON report
-#           (default: python3 on PATH).
-#           AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
-#           AMREX_LOOM_DEVICE_STRICT=1 fails the compile when the device pass
-#           fails, instead of keeping a host-only object.
+#   AMREX_LOOM_LINK_CXX         clang++ used for linking
+#   AMREX_LOOM_LIBCXX_ROOT      libc++ install with lib/
+#   AMREX_LOOM_GCC_INSTALL_DIR  GCC's lib/gcc/<triple>/<version> (crt files)
+#   AMREX_LOOM_HRX_LIB_DIR      directory containing libhrx.so
+# Optional:
+#   AMREX_LOOM_TARGET           device target (default gfx90a)
+#   AMREX_LOOM_HOST_TRIPLE      host target triple (default x86_64-linux-gnu)
+#   AMREX_LOOM_SYSROOT          sysroot holding glibc's libraries for linking
+#   AMREX_LOOM_DEVICE_STRICT=1  fail the compile when the device pass fails,
+#                               instead of keeping a host-only object
 set -o pipefail
-: "${AMREX_LOOM_HOST_CXX:?}" "${AMREX_LOOM_IMPORT:?}" "${AMREX_LOOM_COMPILE:?}"
-: "${AMREX_LOOM_TARGET:=gfx90a}"
+: "${AMREX_LOOM_CXX_DRIVER:?}" "${AMREX_LOOM_LOOMCXX_DIR:?}" "${AMREX_LOOM_LINK_CXX:?}"
 
-args=("$@")
-compile=0 src="" out=""
-for ((i = 0; i < ${#args[@]}; ++i)); do
-  a=${args[i]}
-  case "$a" in
-    -c) compile=1 ;;
-    -o) out=${args[i+1]}; ((++i)) ;;
-    -o*) out=${a#-o} ;;
-    *.cpp|*.cc|*.cxx|*.C) [[ "${args[i-1]:-}" != "-o" ]] && src=$a ;;
-  esac
-done
+compile=0
+for a in "$@"; do [[ "$a" == "-c" ]] && compile=1; done
 
-if [[ $compile -eq 0 ]]; then
-  # Link (or preprocessing-only) invocation.
-  extra=()
-  for a in "${args[@]}"; do [[ "$a" == "-shared" || "$a" == *.o || "$a" == *.a ]] && { extra=(-L"$AMREX_LOOM_HRX_LIB_DIR" -lhrx -Wl,-rpath,"$AMREX_LOOM_HRX_LIB_DIR"); break; }; done
-  exec "$AMREX_LOOM_HOST_CXX" "${args[@]}" "${extra[@]}"
+if [[ $compile == 0 ]]; then
+  # Link. cxx emits non-PIC code, so executables link without PIE.
+  : "${AMREX_LOOM_LIBCXX_ROOT:?}" "${AMREX_LOOM_GCC_INSTALL_DIR:?}"
+  sysroot=() hrx=()
+  [[ -n "${AMREX_LOOM_SYSROOT:-}" ]] && sysroot=(--sysroot="$AMREX_LOOM_SYSROOT")
+  for a in "$@"; do
+    if [[ "$a" == "-shared" || "$a" == *.o || "$a" == *.a ]]; then
+      hrx=(-L"$AMREX_LOOM_HRX_LIB_DIR" -lhrx -Wl,-rpath,"$AMREX_LOOM_HRX_LIB_DIR")
+      break
+    fi
+  done
+  exec "$AMREX_LOOM_LINK_CXX" --gcc-install-dir="$AMREX_LOOM_GCC_INSTALL_DIR" "${sysroot[@]}" \
+    -stdlib=libc++ -no-pie -L"$AMREX_LOOM_LIBCXX_ROOT/lib" -Wl,-rpath,"$AMREX_LOOM_LIBCXX_ROOT/lib" \
+    "$@" "${hrx[@]}"
 fi
 
-if [[ -z "$src" || -z "$out" ]]; then
-  exec "$AMREX_LOOM_HOST_CXX" "${args[@]}"
-fi
-# Host compile. With cxx as the host compiler (one frontend for both passes),
-# launch tag layouts and kernel_ref symbol names agree by construction.
-"$AMREX_LOOM_HOST_CXX" "${args[@]}" -isystem "$AMREX_LOOM_LOOMCXX_DIR" || exit $?
-# Kernel descriptors the host object references; none means no launches.
-refs=$(nm -u "$out" | awk '$2 ~ /^_ZN4loom6kernel10kernel_ref/ {print $2}' | sort -u)
-[[ -n "$refs" ]] || exit 0
-tmp=$(mktemp -d "${TMPDIR:-/tmp}/amrex-loom.XXXXXX")
-[[ "${AMREX_LOOM_KEEP:-0}" == 1 ]] || trap 'rm -rf "$tmp"' EXIT
-
-# Links descriptors.s (the device pass's descriptors, if any), plus the HSACO
-# and its registration when $1 is 1, into the requested object. Descriptors the
-# host references but the device pass did not define get unavailable ones,
-# named by their symbol, so the object always links.
-finish() {
-  local with_code=$1 sym n=0
-  touch "$tmp/descriptors.s"
-  {
-    cat "$tmp/descriptors.s"
-    for sym in $refs; do
-      grep -qF ".weak \"$sym\"" "$tmp/descriptors.s" && continue
-      n=$((n + 1))
-      printf '  .section ".rodata.%s","aG",%%progbits,"%s",comdat\n' "$sym" "$sym"
-      printf '  .weak "%s"\n  .type "%s",%%object\n  .size "%s",48\n  .p2align 3\n' "$sym" "$sym" "$sym"
-      printf '"%s":\n  .long 1, 0\n  .quad .Lamrex_loom_missing_%d\n' "$sym" "$n"
-      printf '  .long 0, 0, 0, 0, 0, 0\n  .quad 0\n.Lamrex_loom_missing_%d:\n  .asciz "%s"\n' "$n" "$sym"
-    done
-    printf '  .section .note.GNU-stack,"",%%progbits\n'
-  } > "$tmp/all-descriptors.s"
-  as "$tmp/all-descriptors.s" -o "$tmp/descriptors.o" || exit $?
-  local objs=("$tmp/descriptors.o")
-  [[ $with_code == 1 ]] && objs+=("$tmp/register.o" "$tmp/blob.o")
-  mv "$out" "$tmp/host.o"
-  ld -r "$tmp/host.o" "${objs[@]}" -o "$out" || exit $?
-  exit 0
-}
-
-# ---- Device pass --------------------------------------------------------
-dev=()
-for ((i = 0; i < ${#args[@]}; ++i)); do
-  a=${args[i]}
-  case "$a" in
-    -I) dev+=(--I="${args[i+1]}"); ((++i)) ;;
-    -I*) dev+=(--I="${a#-I}") ;;
-    -isystem) dev+=(--I="${args[i+1]}"); ((++i)) ;;
-    -isystem*) dev+=(--I="${a#-isystem}") ;;
-    -D) dev+=(--D="${args[i+1]}"); ((++i)) ;;
-    -D*) dev+=(--D="${a#-D}") ;;
-    -std=gnu++*) dev+=(--std="c++${a#-std=gnu++}") ;;
-    -std=*) dev+=(--std="${a#-std=}") ;;
-  esac
-done
-IFS=: read -r -a sysdirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
-for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
-
-abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
-printf '#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
-# Import, then compile. Kernels the compiler rejects are excluded by export
-# name and the unit is re-imported (best effort: at most five rounds). The
-# names come from the export_name field of the error diagnostics in
-# loom-compile's JSON compile report; compile.log keeps the text diagnostics.
-excluded=()
-for round in 1 2 3 4 5; do
-"$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
-  --hosted --triple="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
-  --tolerate-host-errors --drop-failed-kernels \
-  --kernel-descriptors="$tmp/descriptors.s" "${excluded[@]}" \
-  --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
-  "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
-rc=$?
-if [[ $rc -ne 0 ]]; then
-  echo "amrex-loom-cxx: device pass failed for $src ($(grep -c 'warning \[' "$tmp/import.log") frontend warnings in host code)" >&2
-  grep -A3 'error \[' "$tmp/import.log" | sed 's|^|  |' | head -40 >&2
-  # Best effort by default: the host object stands; launching one of this
-  # unit's kernels fails at run time with "no device kernel".
-  [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
-  echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
-  rm -f "$tmp/descriptors.s"
-  finish 0
-fi
-ndrop=$(grep -c "dropping launched kernel" "$tmp/import.log")
-if [[ $ndrop -gt 0 && $round == 1 ]]; then
-  echo "amrex-loom-cxx: dropped $ndrop launched kernel(s) in $src" >&2
-  grep -A1 'warning \[LOWERING' "$tmp/import.log" | grep 'warning \[LOWERING' | sed 's|^|  dropped: |' | head -40 >&2
-fi
-grep -q '^  .weak' "$tmp/descriptors.s" 2>/dev/null || finish 0
-
-rm -f "$tmp/compile-report.json"
-"$AMREX_LOOM_COMPILE" "$tmp/dev.loombc" --target=amdgpu:"$AMREX_LOOM_TARGET" \
-  --format=amdgpu-hsaco --output="$tmp/dev.hsaco" \
-  --compile-report=json-details --compile-report-output="$tmp/compile-report.json" \
-  > "$tmp/compile.log" 2>&1
-rc=$?
-[[ $rc -eq 0 ]] && break
-rejected=$("${AMREX_LOOM_PYTHON:-python3}" -c '
-import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        report = json.load(f)
-except (OSError, ValueError):
-    sys.exit(0)
-for d in report.get("diagnostics", []):
-    if d.get("severity") != "error":
-        continue
-    name = d.get("export_name") or (d.get("params") or {}).get("export_name")
-    if name:
-        print(name)
-' "$tmp/compile-report.json" | sort -u)
-if [[ -z "$rejected" || $round == 5 ]]; then
-  echo "amrex-loom-cxx: device compile failed for $src" >&2
-  sed 's|^|  |' "$tmp/compile.log" | head -40 >&2
-  [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
-  echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
-  rm -f "$tmp/descriptors.s"
-  finish 0
-fi
-echo "amrex-loom-cxx: compile rejected $(echo "$rejected" | wc -l) kernel(s) in $src; excluding and retrying" >&2
-grep -h "error \[" "$tmp/compile.log" | sed "s/.*config .__loom_target_context_0_0. //" | cut -c1-200 | sort -u | sed 's|^|  compile-dropped: |' | head -10 >&2
-while read -r name; do excluded+=(--exclude-kernel="$name"); done <<< "$rejected"
-done
-
-# Embed the executable and register it before main(). The bytes go in
-# through the assembler (.incbin), so no C++ compiler parses a large
-# initializer. A static initializer registers them; it works with any host
-# compiler, including one that ignores __attribute__((constructor)).
-id=$(printf '%s' "$abs_src" | cksum | cut -d' ' -f1)
-cat > "$tmp/blob.s" <<EOS
-  .section .rodata.amrex_loom_$id,"a",@progbits
-  .p2align 4
-  .globl __amrex_loom_hsaco_$id
-  .hidden __amrex_loom_hsaco_$id
-__amrex_loom_hsaco_$id:
-  .incbin "$tmp/dev.hsaco"
-  .globl __amrex_loom_hsaco_end_$id
-  .hidden __amrex_loom_hsaco_end_$id
-__amrex_loom_hsaco_end_$id:
-  .section .note.GNU-stack,"",@progbits
-EOS
-as "$tmp/blob.s" -o "$tmp/blob.o" || exit $?
-cat > "$tmp/register.cpp" <<EOS
-#include <cstddef>
-extern "C" void amrex_loom_register_executable(const void*, std::size_t);
-extern "C" {
-extern const unsigned char __amrex_loom_hsaco_$id[];
-extern const unsigned char __amrex_loom_hsaco_end_$id[];
-}
-namespace {
-const int amrex_loom_registered_$id =
-    (amrex_loom_register_executable(
-         __amrex_loom_hsaco_$id,
-         static_cast<std::size_t>(__amrex_loom_hsaco_end_$id - __amrex_loom_hsaco_$id)),
-     0);
-}  // namespace
-EOS
-"$AMREX_LOOM_HOST_CXX" -c -fPIC "$tmp/register.cpp" -o "$tmp/register.o" || exit $?
-finish 1
+# Compile. Include directories are explicit: loomcxx, then libc++, the
+# compiler's headers and libc.
+system=()
+IFS=: read -r -a dirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
+for d in "${dirs[@]}"; do [[ -n "$d" ]] && system+=(-isystem "$d"); done
+on_failure=host-only
+[[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && on_failure=error
+exec "$AMREX_LOOM_CXX_DRIVER" --target="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
+  --loom-target=amdgpu:"${AMREX_LOOM_TARGET:-gfx90a}" \
+  --loom-register-function=amrex_loom_register_executable \
+  --loom-drop-failed-kernels --loom-on-device-failure="$on_failure" \
+  -I "$AMREX_LOOM_LOOMCXX_DIR" "${system[@]}" "$@"
