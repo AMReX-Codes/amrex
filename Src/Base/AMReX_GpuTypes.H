@@ -12,6 +12,10 @@
 #  include <cstddef>
 #endif
 
+#ifdef AMREX_USE_LOOM
+#  include <AMReX_Loom.H>
+#endif
+
 namespace amrex {
 
 #ifdef AMREX_USE_SYCL

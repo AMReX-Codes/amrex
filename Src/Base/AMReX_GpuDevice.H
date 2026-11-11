@@ -22,7 +22,9 @@
 
 #ifdef AMREX_USE_GPU
 namespace amrex {
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+using gpuDeviceProp_t = amrex_loom::DeviceProperties;
+#elif defined(AMREX_USE_HIP)
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuDeviceProp_t = cudaDeviceProp;
