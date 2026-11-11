@@ -3,15 +3,17 @@
 // The launch registry is shared: the amrex-loom-cxx driver embeds each
 // translation unit's Loom code object and kernel manifest, registers them
 // before main(), and launches pack kernel arguments from the host launch tag
-// following the manifest. This file also implements the HIP runtime subset
-// declared by Tools/Loom/hip/hip/hip_runtime.h on libhrx. Single device;
-// streams are HRX streams, each bound to its own HRX queue where the device
-// allows. Needs no HIP headers.
+// following the manifest. This file implements the amrex_loom runtime
+// functions declared in AMReX_Loom.H on libhrx, and on top of them the HIP
+// runtime subset still declared by Tools/Loom/hip/hip/hip_runtime.h for code
+// not yet converted. Single device; streams are HRX streams, each bound to
+// its own HRX queue where the device allows. Needs no HIP headers.
 #include <AMReX_Config.H>
 
 // The Loom device pass never needs this host-only file.
 #if defined(AMREX_USE_LOOM) && !defined(__loom__)
 
+#include <AMReX_Loom.H>
 #include <hip/hip_runtime.h>
 #include <hrx_runtime.h>
 
@@ -153,7 +155,7 @@ extern "C" void amrex_loom_register_executable(const void* data, std::size_t siz
   images().push_back({data, size, manifest});
 }
 
-// --- HIP runtime subset on libhrx ---------------------------------------------
+// --- runtime state on libhrx ---------------------------------------------------
 
 namespace {
 
@@ -282,9 +284,10 @@ void* device_address(hrx_buffer_t buffer) {
   return reinterpret_cast<void*>(static_cast<uintptr_t>(address));
 }
 
-hrx_stream_t resolve(hipStream_t stream) {
+// A null stream is the default stream.
+hrx_stream_t resolve(hrx_stream_t stream) {
   initialize();
-  return stream ? reinterpret_cast<hrx_stream_t>(stream) : g_default_stream;
+  return stream ? stream : g_default_stream;
 }
 
 void sync_all() {
@@ -379,47 +382,69 @@ const char* hipGetErrorString(hipError_t error) {
 }
 const char* hipGetErrorName(hipError_t error) { return hipGetErrorString(error); }
 
-// --- device -----------------------------------------------------------------
-hipError_t hipGetDeviceCount(int* count) {
-  initialize();
-  *count = 1;
-  return hipSuccess;
-}
-hipError_t hipSetDevice(int device) { initialize(); return device == 0 ? hipSuccess : hipErrorInvalidDevice; }
-hipError_t hipGetDevice(int* device) { initialize(); *device = 0; return hipSuccess; }
+// --- device (amrex_loom) -------------------------------------------------------
 
-hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int) {
+namespace {
+// Picks the queue for a new stream: an unused provisioned queue, else a newly
+// acquired one, else the least-used provisioned queue (shared).
+StreamQueue select_stream_queue() {
+  auto least = std::min_element(g_provisioned_users.begin(), g_provisioned_users.end());
+  auto ordinal = static_cast<uint32_t>(least - g_provisioned_users.begin());
+  if (!g_shared_queue && *least != 0 && g_queue_family_acquirable) {
+    hrx_queue_t queue = nullptr;
+    hrx_status_t status = hrx_queue_acquire(g_device, g_queue_family, nullptr, &queue);
+    if (hrx_status_is_ok(status)) return {queue, true, 0};
+    hrx_status_ignore(status);
+  }
+  ++g_provisioned_users[ordinal];
+  return {hrx_device_get_queue(g_device, g_queue_family, ordinal), false, ordinal};
+}
+// Drops this runtime's use of |q| once its stream has been released.
+void release_stream_queue(const StreamQueue& q) {
+  if (q.acquired) {
+    hrx_queue_release(q.queue);
+  } else {
+    --g_provisioned_users[q.provisioned];
+  }
+}
+}  // namespace
+
+namespace amrex_loom {
+
+int device_count() {
+  initialize();
+  return 1;
+}
+
+// HRX does not report these; values describe an MI200-class GCD.
+void device_properties(DeviceProperties* prop) {
   initialize();
   std::memset(prop, 0, sizeof(*prop));
   std::snprintf(prop->name, sizeof(prop->name), "AMD GPU (HRX/Loom)");
   std::snprintf(prop->gcnArchName, sizeof(prop->gcnArchName), "%s",
                 std::getenv("AMREX_LOOM_TARGET") ? std::getenv("AMREX_LOOM_TARGET") : "gfx90a");
   std::size_t free_bytes = 0, total_bytes = 0;
-  hipMemGetInfo(&free_bytes, &total_bytes);
+  memory_info(&free_bytes, &total_bytes);
   prop->totalGlobalMem = total_bytes;
   prop->sharedMemPerBlock = 65536;
-  prop->regsPerBlock = 65536;
   prop->warpSize = 64;
   prop->maxThreadsPerBlock = 1024;
   prop->maxThreadsDim[0] = prop->maxThreadsDim[1] = prop->maxThreadsDim[2] = 1024;
   prop->maxGridSize[0] = 2147483647;
   prop->maxGridSize[1] = prop->maxGridSize[2] = 65535;
-  prop->clockRate = 1700000;
-  prop->totalConstMem = 65536;
-  prop->major = 9;
-  prop->minor = 0;
   prop->multiProcessorCount = 104;
   prop->maxThreadsPerMultiProcessor = 2048;
   prop->managedMemory = 0;
   prop->concurrentManagedAccess = 0;
-  return hipSuccess;
+  prop->integrated = 0;
 }
-hipError_t hipDeviceGetAttribute(int* value, hipDeviceAttribute_t, int) { *value = 0; return hipSuccess; }
-hipError_t hipDeviceGetUuid(hipUUID* uuid, hipDevice_t) { std::memset(uuid, 0, sizeof(*uuid)); return hipSuccess; }
-hipError_t hipDeviceSynchronize() { sync_all(); return hipSuccess; }
-hipError_t hipDeviceReset() { sync_all(); return hipSuccess; }
 
-hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes) {
+void device_uuid(char bytes[16]) {
+  initialize();
+  std::memset(bytes, 0, 16);
+}
+
+void memory_info(std::size_t* free_bytes, std::size_t* total_bytes) {
   initialize();
   std::size_t f = 0, t = 0;
   if (!hrx_status_is_ok(hrx_device_memory_info(g_device, &f, &t))) {
@@ -427,6 +452,96 @@ hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes) {
   }
   *free_bytes = f;
   *total_bytes = t;
+}
+
+void device_synchronize() { sync_all(); }
+
+// --- streams (amrex_loom) ------------------------------------------------------
+
+hrx_stream_t stream_create() {
+  initialize();
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  StreamQueue q = select_stream_queue();
+  hrx_stream_t s = nullptr;
+  hrx_status_t status = hrx_stream_create(q.queue, 0, &s);
+  if (!hrx_status_is_ok(status)) {
+    release_stream_queue(q);
+    fatal("hrx_stream_create", status);
+  }
+  g_streams[s] = q;
+  return s;
+}
+
+void stream_destroy(hrx_stream_t stream) {
+  if (!stream) return;
+  check(hrx_stream_synchronize(stream), "hrx_stream_synchronize");
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  auto it = g_streams.find(stream);
+  if (it == g_streams.end()) {
+    std::fprintf(stderr, "amrex loom: stream_destroy of a stream not from stream_create\n");
+    std::abort();
+  }
+  StreamQueue q = it->second;
+  g_streams.erase(it);
+  hrx_stream_release(stream);
+  release_stream_queue(q);
+}
+
+void stream_synchronize(hrx_stream_t stream) {
+  check(hrx_stream_synchronize(resolve(stream)), "hrx_stream_synchronize");
+}
+
+bool stream_query(hrx_stream_t stream) {
+  bool complete = false;
+  check(hrx_stream_query(resolve(stream), &complete), "hrx_stream_query");
+  return complete;
+}
+
+}  // namespace amrex_loom
+
+// --- HIP runtime subset, on amrex_loom ------------------------------------------
+
+// --- device -----------------------------------------------------------------
+hipError_t hipGetDeviceCount(int* count) {
+  *count = amrex_loom::device_count();
+  return hipSuccess;
+}
+hipError_t hipSetDevice(int device) { initialize(); return device == 0 ? hipSuccess : hipErrorInvalidDevice; }
+hipError_t hipGetDevice(int* device) { initialize(); *device = 0; return hipSuccess; }
+
+hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int) {
+  amrex_loom::DeviceProperties p;
+  amrex_loom::device_properties(&p);
+  std::memset(prop, 0, sizeof(*prop));
+  std::memcpy(prop->name, p.name, sizeof(prop->name));
+  std::memcpy(prop->gcnArchName, p.gcnArchName, sizeof(prop->gcnArchName));
+  prop->totalGlobalMem = p.totalGlobalMem;
+  prop->sharedMemPerBlock = p.sharedMemPerBlock;
+  prop->regsPerBlock = 65536;
+  prop->warpSize = p.warpSize;
+  prop->maxThreadsPerBlock = p.maxThreadsPerBlock;
+  for (int d = 0; d < 3; ++d) {
+    prop->maxThreadsDim[d] = p.maxThreadsDim[d];
+    prop->maxGridSize[d] = p.maxGridSize[d];
+  }
+  prop->clockRate = 1700000;
+  prop->totalConstMem = 65536;
+  prop->major = 9;
+  prop->minor = 0;
+  prop->multiProcessorCount = p.multiProcessorCount;
+  prop->maxThreadsPerMultiProcessor = p.maxThreadsPerMultiProcessor;
+  prop->managedMemory = p.managedMemory;
+  prop->concurrentManagedAccess = p.concurrentManagedAccess;
+  prop->integrated = p.integrated;
+  return hipSuccess;
+}
+hipError_t hipDeviceGetAttribute(int* value, hipDeviceAttribute_t, int) { *value = 0; return hipSuccess; }
+hipError_t hipDeviceGetUuid(hipUUID* uuid, hipDevice_t) { amrex_loom::device_uuid(uuid->bytes); return hipSuccess; }
+hipError_t hipDeviceSynchronize() { amrex_loom::device_synchronize(); return hipSuccess; }
+hipError_t hipDeviceReset() { amrex_loom::device_synchronize(); return hipSuccess; }
+
+hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes) {
+  amrex_loom::memory_info(free_bytes, total_bytes);
   return hipSuccess;
 }
 
@@ -592,66 +707,26 @@ hipError_t hipMemPoolSetAttribute(hipMemPool_t, hipMemPoolAttr, void*) { return 
 hipError_t hipMemPoolGetAttribute(hipMemPool_t, hipMemPoolAttr, void*) { return hipErrorNotSupported; }
 
 // --- streams and events -----------------------------------------------------
+// hipStream_t is hrx_stream_t.
 hipError_t hipStreamCreate(hipStream_t* stream) { return hipStreamCreateWithFlags(stream, 0); }
-namespace {
-// Picks the queue for a new stream: an unused provisioned queue, else a newly
-// acquired one, else the least-used provisioned queue (shared).
-StreamQueue select_stream_queue() {
-  auto least = std::min_element(g_provisioned_users.begin(), g_provisioned_users.end());
-  auto ordinal = static_cast<uint32_t>(least - g_provisioned_users.begin());
-  if (!g_shared_queue && *least != 0 && g_queue_family_acquirable) {
-    hrx_queue_t queue = nullptr;
-    hrx_status_t status = hrx_queue_acquire(g_device, g_queue_family, nullptr, &queue);
-    if (hrx_status_is_ok(status)) return {queue, true, 0};
-    hrx_status_ignore(status);
-  }
-  ++g_provisioned_users[ordinal];
-  return {hrx_device_get_queue(g_device, g_queue_family, ordinal), false, ordinal};
-}
-// Drops this runtime's use of |q| once its stream has been released.
-void release_stream_queue(const StreamQueue& q) {
-  if (q.acquired) {
-    hrx_queue_release(q.queue);
-  } else {
-    --g_provisioned_users[q.provisioned];
-  }
-}
-}  // namespace
 hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned) {
-  initialize();
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  StreamQueue q = select_stream_queue();
-  hrx_stream_t s = nullptr;
-  hrx_status_t status = hrx_stream_create(q.queue, 0, &s);
-  if (!hrx_status_is_ok(status)) {
-    release_stream_queue(q);
-    fatal("hrx_stream_create", status);
-  }
-  g_streams[s] = q;
-  *stream = reinterpret_cast<hipStream_t>(s);
+  *stream = amrex_loom::stream_create();
   return hipSuccess;
 }
 hipError_t hipStreamDestroy(hipStream_t stream) {
-  if (!stream) return hipSuccess;
-  auto s = reinterpret_cast<hrx_stream_t>(stream);
-  check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  auto it = g_streams.find(s);
-  if (it == g_streams.end()) return g_last_error = hipErrorInvalidValue;
-  StreamQueue q = it->second;
-  g_streams.erase(it);
-  hrx_stream_release(s);
-  release_stream_queue(q);
+  if (stream) {
+    std::lock_guard<std::recursive_mutex> lock(g_mutex);
+    if (!g_streams.count(stream)) return g_last_error = hipErrorInvalidValue;
+  }
+  amrex_loom::stream_destroy(stream);
   return hipSuccess;
 }
 hipError_t hipStreamSynchronize(hipStream_t stream) {
-  check(hrx_stream_synchronize(resolve(stream)), "hrx_stream_synchronize");
+  amrex_loom::stream_synchronize(stream);
   return hipSuccess;
 }
 hipError_t hipStreamQuery(hipStream_t stream) {
-  bool complete = false;
-  check(hrx_stream_query(resolve(stream), &complete), "hrx_stream_query");
-  return complete ? hipSuccess : hipErrorNotReady;
+  return amrex_loom::stream_query(stream) ? hipSuccess : hipErrorNotReady;
 }
 hipError_t hipStreamGetDevice(hipStream_t, hipDevice_t* device) { *device = 0; return hipSuccess; }
 namespace {
