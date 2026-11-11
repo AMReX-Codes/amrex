@@ -1,13 +1,13 @@
 // HIP source dialect for AMReX_GPU_BACKEND=LOOM.
 //
-// AMReX's HIP code paths are reused unchanged. This header replaces ROCm's
-// <hip/hip_runtime.h>:
-//  * host runtime API (the subset AMReX calls) implemented on native libhrx in
-//    Src/Base/AMReX_Loom.cpp;
-//  * device vocabulary (thread ids, barriers, atomics, shuffles) implemented
-//    on Loom C++ operations when the Loom device pass reads the file
-//    (AMREX_LOOM_DEVICE_PASS), and as inert host definitions otherwise;
-// Kernel launches live in Src/Base/AMReX_LoomLaunch.H.
+// AMReX's HIP device code paths are reused. This header replaces ROCm's
+// <hip/hip_runtime.h> with the HIP device vocabulary only: qualifiers, thread
+// ids, barriers, shared memory, atomics and shuffles, implemented on Loom C++
+// operations when the Loom device pass reads the file
+// (AMREX_LOOM_DEVICE_PASS), and as inert host definitions otherwise. It
+// declares no HIP host API: the host runtime is libhrx, through
+// Src/Base/AMReX_Loom.H, and kernel launches live in
+// Src/Base/AMReX_LoomLaunch.H.
 #ifndef AMREX_LOOM_HIP_RUNTIME_H_
 #define AMREX_LOOM_HIP_RUNTIME_H_
 
@@ -40,15 +40,6 @@
 #define AMREX_LOOM_DEVICE_INLINE inline
 #endif
 
-#ifndef __HIP_PLATFORM_AMD__
-#define __HIP_PLATFORM_AMD__ 1
-#endif
-
-#define HIP_VERSION_MAJOR 7
-#define HIP_VERSION_MINOR 0
-#define HIP_VERSION_PATCH 0
-#define HIP_VERSION (HIP_VERSION_MAJOR * 10000000 + HIP_VERSION_MINOR * 100000)
-
 // ---------------------------------------------------------------------------
 // Qualifiers
 // ---------------------------------------------------------------------------
@@ -68,188 +59,6 @@
 #define HIP_DYNAMIC_SHARED(type, var) \
   __shared__ type var[AMREX_LOOM_DYNAMIC_SHARED_BYTES / sizeof(type)];
 #define AMREX_LOOM_DYNAMIC_SHARED_BYTES 4096
-
-// ---------------------------------------------------------------------------
-// Runtime types
-// ---------------------------------------------------------------------------
-// A stream is a native HRX stream (hrx_stream_t), as AMReX's gpuStream_t is
-// under AMREX_USE_LOOM. The other handle tag names match ROCm's.
-typedef struct hrx_stream_s* hipStream_t;
-typedef struct ihipEvent_t* hipEvent_t;
-typedef int hipDevice_t;
-typedef struct ihipMemPoolHandle_t* hipMemPool_t;
-
-enum hipError_t {
-  hipSuccess = 0,
-  hipErrorInvalidValue = 1,
-  hipErrorOutOfMemory = 2,
-  hipErrorNotInitialized = 3,
-  hipErrorInvalidDevice = 101,
-  hipErrorNotReady = 600,
-  hipErrorNotSupported = 801,
-  hipErrorUnknown = 999,
-};
-#define hipCpuDeviceId (-1)
-
-enum hipMemcpyKind {
-  hipMemcpyHostToHost = 0,
-  hipMemcpyHostToDevice = 1,
-  hipMemcpyDeviceToHost = 2,
-  hipMemcpyDeviceToDevice = 3,
-  hipMemcpyDefault = 4,
-};
-
-enum hipMemoryType {
-  hipMemoryTypeUnregistered = 0,
-  hipMemoryTypeHost = 1,
-  hipMemoryTypeDevice = 2,
-  hipMemoryTypeManaged = 3,
-  hipMemoryTypeArray = 10,
-  hipMemoryTypeUnified = 11,
-};
-
-struct hipPointerAttribute_t {
-  hipMemoryType type;
-  int device;
-  void* devicePointer;
-  void* hostPointer;
-  int isManaged;
-  unsigned allocationFlags;
-};
-
-struct hipUUID {
-  char bytes[16];
-};
-
-struct hipDeviceProp_t {
-  char name[256];
-  hipUUID uuid;
-  std::size_t totalGlobalMem;
-  std::size_t sharedMemPerBlock;
-  int regsPerBlock;
-  int warpSize;
-  int maxThreadsPerBlock;
-  int maxThreadsDim[3];
-  int maxGridSize[3];
-  int clockRate;
-  std::size_t totalConstMem;
-  int major;
-  int minor;
-  int multiProcessorCount;
-  int maxThreadsPerMultiProcessor;
-  int managedMemory;
-  int concurrentManagedAccess;
-  int integrated;
-  int pciBusID;
-  int pciDeviceID;
-  int pciDomainID;
-  char gcnArchName[256];
-};
-
-enum hipDeviceAttribute_t {
-  hipDeviceAttributeMemoryPoolsSupported = 1,
-  hipDeviceAttributeConcurrentManagedAccess = 2,
-  hipDeviceAttributeManagedMemory = 3,
-};
-
-enum hipMemPoolAttr {
-  hipMemPoolAttrReleaseThreshold = 1,
-};
-
-enum hipMemoryAdvise {
-  hipMemAdviseSetReadMostly = 1,
-  hipMemAdviseUnsetReadMostly = 2,
-  hipMemAdviseSetPreferredLocation = 3,
-  hipMemAdviseUnsetPreferredLocation = 4,
-  hipMemAdviseSetAccessedBy = 5,
-  hipMemAdviseUnsetAccessedBy = 6,
-  hipMemAdviseSetCoarseGrain = 100,
-  hipMemAdviseUnsetCoarseGrain = 101,
-};
-
-#define hipHostMallocDefault 0x0u
-#define hipHostMallocPortable 0x1u
-#define hipHostMallocMapped 0x2u
-#define hipHostMallocWriteCombined 0x4u
-#define hipHostMallocNonCoherent 0x40000000u
-#define hipStreamDefault 0x0u
-#define hipStreamNonBlocking 0x1u
-#define hipMemAttachGlobal 0x1u
-
-typedef void (*hipStreamCallback_t)(hipStream_t stream, hipError_t status,
-                                    void* user_data);
-
-
-// ---------------------------------------------------------------------------
-// Runtime API (host; declarations are also visible to the device pass)
-// ---------------------------------------------------------------------------
-hipError_t hipGetLastError();
-hipError_t hipPeekAtLastError();
-const char* hipGetErrorString(hipError_t error);
-const char* hipGetErrorName(hipError_t error);
-hipError_t hipGetDeviceCount(int* count);
-hipError_t hipSetDevice(int device);
-hipError_t hipGetDevice(int* device);
-hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int device);
-hipError_t hipDeviceGetAttribute(int* value, hipDeviceAttribute_t attribute,
-                                 int device);
-hipError_t hipDeviceGetUuid(hipUUID* uuid, hipDevice_t device);
-hipError_t hipDeviceSynchronize();
-hipError_t hipDeviceReset();
-hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes);
-hipError_t hipMalloc(void** pointer, std::size_t bytes);
-hipError_t hipMallocAsync(void** pointer, std::size_t bytes,
-                          hipStream_t stream);
-hipError_t hipMallocAsync(void** pointer, std::size_t bytes, hipMemPool_t pool,
-                          hipStream_t stream);
-hipError_t hipMallocManaged(void** pointer, std::size_t bytes,
-                            unsigned flags = hipMemAttachGlobal);
-hipError_t hipHostMalloc(void** pointer, std::size_t bytes,
-                         unsigned flags = hipHostMallocDefault);
-hipError_t hipFree(void* pointer);
-hipError_t hipFreeAsync(void* pointer, hipStream_t stream);
-hipError_t hipHostFree(void* pointer);
-hipError_t hipMemcpy(void* dst, const void* src, std::size_t bytes,
-                     hipMemcpyKind kind);
-hipError_t hipMemcpyAsync(void* dst, const void* src, std::size_t bytes,
-                          hipMemcpyKind kind, hipStream_t stream = nullptr);
-hipError_t hipMemset(void* dst, int value, std::size_t bytes);
-hipError_t hipMemsetAsync(void* dst, int value, std::size_t bytes,
-                          hipStream_t stream = nullptr);
-hipError_t hipMemcpyToSymbolAsync(const void* symbol, const void* src,
-                                  std::size_t bytes, std::size_t offset,
-                                  hipMemcpyKind kind, hipStream_t stream);
-hipError_t hipMemcpyFromSymbolAsync(void* dst, const void* symbol,
-                                    std::size_t bytes, std::size_t offset,
-                                    hipMemcpyKind kind, hipStream_t stream);
-hipError_t hipMemAdvise(const void* pointer, std::size_t bytes,
-                        hipMemoryAdvise advice, int device);
-hipError_t hipMemPrefetchAsync(const void* pointer, std::size_t bytes,
-                               int device, hipStream_t stream = nullptr);
-hipError_t hipPointerGetAttributes(hipPointerAttribute_t* attributes,
-                                   const void* pointer);
-hipError_t hipDeviceGetMemPool(hipMemPool_t* pool, int device);
-hipError_t hipMemPoolSetAttribute(hipMemPool_t pool, hipMemPoolAttr attribute,
-                                  void* value);
-hipError_t hipMemPoolGetAttribute(hipMemPool_t pool, hipMemPoolAttr attribute,
-                                  void* value);
-hipError_t hipStreamCreate(hipStream_t* stream);
-hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned flags);
-hipError_t hipStreamDestroy(hipStream_t stream);
-hipError_t hipStreamSynchronize(hipStream_t stream);
-hipError_t hipStreamQuery(hipStream_t stream);
-hipError_t hipStreamGetDevice(hipStream_t stream, hipDevice_t* device);
-hipError_t hipStreamAddCallback(hipStream_t stream,
-                                hipStreamCallback_t callback, void* user_data,
-                                unsigned flags);
-hipError_t hipStreamWaitEvent(hipStream_t stream, hipEvent_t event,
-                              unsigned flags);
-hipError_t hipEventCreate(hipEvent_t* event);
-hipError_t hipEventDestroy(hipEvent_t event);
-hipError_t hipEventRecord(hipEvent_t event, hipStream_t stream = nullptr);
-hipError_t hipEventSynchronize(hipEvent_t event);
-hipError_t hipEventElapsedTime(float* ms, hipEvent_t start, hipEvent_t stop);
-
 
 // ---------------------------------------------------------------------------
 // Device vocabulary

@@ -75,8 +75,9 @@ endif()
 # LOOM
 if (AMReX_LOOM)
    add_amrex_define( AMREX_USE_LOOM NO_LEGACY )
-   # LOOM reuses AMReX's HIP source dialect; Tools/Loom/hip supplies the
-   # HIP vocabulary on HRX (host) and Loom (device).
+   # LOOM reuses AMReX's HIP device-code dialect; Tools/Loom/hip supplies
+   # the HIP device vocabulary on Loom. The host runtime is libhrx
+   # (AMReX_Loom.H), with no HIP host API.
    add_amrex_define( AMREX_USE_HIP NO_LEGACY )
    add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )
    add_amrex_define( NDEBUG )  # as for HIP: device assertions compile out
