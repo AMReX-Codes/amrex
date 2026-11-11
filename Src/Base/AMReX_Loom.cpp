@@ -545,23 +545,155 @@ hipError_t hipMemGetInfo(std::size_t* free_bytes, std::size_t* total_bytes) {
   return hipSuccess;
 }
 
-// --- memory -----------------------------------------------------------------
-hipError_t hipMalloc(void** pointer, std::size_t bytes) {
-  initialize();
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  if (bytes == 0) bytes = 1;
+// --- memory (amrex_loom) -------------------------------------------------------
+
+// Pinned host memory: host-local, device-visible HRX buffers. Device code
+// dereferences these directly (e.g. ReduceOps::value writes the host tuple),
+// so the mapped host address must equal the device address.
+static std::map<uintptr_t, hrx_buffer_t> g_host_allocations;
+
+namespace {
+
+// Allocates on the default stream and waits for the backing; nullptr when
+// HRX cannot allocate.
+hrx_buffer_t allocate_buffer(std::size_t bytes, hrx_memory_type_t type, const char* what) {
   hrx_buffer_t buffer = nullptr;
-  hrx_status_t status = hrx_buffer_allocate(g_default_stream, bytes, HRX_MEMORY_TYPE_DEVICE_LOCAL,
+  hrx_status_t status = hrx_buffer_allocate(g_default_stream, bytes, type,
                                             HRX_BUFFER_USAGE_DEFAULT, &buffer);
   if (!hrx_status_is_ok(status)) {
     hrx_status_ignore(status);
-    *pointer = nullptr;
-    return g_last_error = hipErrorOutOfMemory;
+    return nullptr;
   }
-  check(hrx_stream_synchronize(g_default_stream), "allocation");
-  *pointer = device_address(buffer);
-  g_allocations[reinterpret_cast<uintptr_t>(*pointer)] = {buffer, bytes};
-  return hipSuccess;
+  check(hrx_stream_synchronize(g_default_stream), what);
+  return buffer;
+}
+
+}  // namespace
+
+namespace amrex_loom {
+
+void* device_malloc(std::size_t bytes) {
+  initialize();
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  if (bytes == 0) bytes = 1;
+  hrx_buffer_t buffer = allocate_buffer(bytes, HRX_MEMORY_TYPE_DEVICE_LOCAL, "allocation");
+  if (!buffer) return nullptr;
+  void* pointer = device_address(buffer);
+  g_allocations[reinterpret_cast<uintptr_t>(pointer)] = {buffer, bytes};
+  return pointer;
+}
+
+void device_free(void* pointer) {
+  if (!pointer) return;
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  auto it = g_allocations.find(reinterpret_cast<uintptr_t>(pointer));
+  if (it == g_allocations.end()) {
+    std::fprintf(stderr, "amrex loom: device_free of %p, not from device_malloc\n", pointer);
+    std::abort();
+  }
+  sync_all();
+  hrx_buffer_release(it->second.buffer);
+  g_allocations.erase(it);
+}
+
+void* pinned_malloc(std::size_t bytes) {
+  initialize();
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  if (bytes == 0) bytes = 1;
+  hrx_buffer_t buffer = allocate_buffer(
+      bytes, HRX_MEMORY_TYPE_HOST_LOCAL | HRX_MEMORY_TYPE_DEVICE_VISIBLE, "host allocation");
+  if (!buffer) return nullptr;
+  void* device = device_address(buffer);
+  void* host = nullptr;
+  check(hrx_buffer_map(buffer, HRX_MAP_READ | HRX_MAP_WRITE | HRX_MAP_MAY_ALIAS, 0, bytes, &host),
+        "hrx_buffer_map");
+  if (host != device) {
+    std::fprintf(stderr, "amrex loom: pinned host address %p differs from device address %p\n",
+                 host, device);
+    std::abort();
+  }
+  g_host_allocations[reinterpret_cast<uintptr_t>(host)] = buffer;
+  return host;
+}
+
+void pinned_free(void* pointer) {
+  if (!pointer) return;
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  auto it = g_host_allocations.find(reinterpret_cast<uintptr_t>(pointer));
+  if (it == g_host_allocations.end()) {
+    std::fprintf(stderr, "amrex loom: pinned_free of %p, not from pinned_malloc\n", pointer);
+    std::abort();
+  }
+  sync_all();
+  hrx_status_ignore(hrx_buffer_unmap(it->second));
+  hrx_buffer_release(it->second);
+  g_host_allocations.erase(it);
+}
+
+void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t stream) {
+  if (bytes == 0) return;
+  hrx_stream_t s = resolve(stream);
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  const auto* d = find_allocation(dst);
+  const auto* r = find_allocation(src);
+  auto offset = [](const auto* a, const void* p) {
+    return reinterpret_cast<uintptr_t>(p) - a->first;
+  };
+  if (d && r) {
+    check(hrx_stream_copy_buffer(s, r->second.buffer, offset(r, src), d->second.buffer,
+                                 offset(d, dst), bytes),
+          "hrx_stream_copy_buffer");
+    check(hrx_stream_flush(s), "hrx_stream_flush");
+  } else if (d) {
+    // Host<->device copies are ordered on their stream: the host range stays
+    // live until the stream reaches the transfer.
+    check(hrx_stream_copy_h2d(s, src, d->second.buffer, offset(d, dst), bytes),
+          "hrx_stream_copy_h2d");
+  } else if (r) {
+    check(hrx_stream_copy_d2h(s, r->second.buffer, offset(r, src), dst, bytes),
+          "hrx_stream_copy_d2h");
+  } else {
+    std::memmove(dst, src, bytes);
+  }
+}
+
+void memset_async(void* dst, int value, std::size_t bytes, hrx_stream_t stream) {
+  if (bytes == 0) return;
+  hrx_stream_t s = resolve(stream);
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  const auto* d = find_allocation(dst);
+  if (!d) {
+    std::memset(dst, value, bytes);
+    return;
+  }
+  uint8_t pattern = static_cast<uint8_t>(value);
+  check(hrx_stream_fill_buffer(s, d->second.buffer,
+                               reinterpret_cast<uintptr_t>(dst) - d->first, bytes, &pattern, 1),
+        "hrx_stream_fill_buffer");
+  check(hrx_stream_flush(s), "hrx_stream_flush");
+}
+
+PointerKind pointer_kind(const void* pointer) {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  if (find_allocation(pointer)) return PointerKind::device;
+  auto a = reinterpret_cast<uintptr_t>(pointer);
+  auto it = g_host_allocations.upper_bound(a);
+  if (it != g_host_allocations.begin()) {
+    --it;
+    std::size_t size = 0;
+    if (hrx_status_is_ok(hrx_buffer_get_size(it->second, &size)) && a < it->first + size) {
+      return PointerKind::pinned;
+    }
+  }
+  return PointerKind::unregistered;
+}
+
+}  // namespace amrex_loom
+
+// --- memory -----------------------------------------------------------------
+hipError_t hipMalloc(void** pointer, std::size_t bytes) {
+  *pointer = amrex_loom::device_malloc(bytes);
+  return *pointer ? hipSuccess : (g_last_error = hipErrorOutOfMemory);
 }
 hipError_t hipMallocAsync(void** pointer, std::size_t bytes, hipStream_t) { return hipMalloc(pointer, bytes); }
 hipError_t hipMallocAsync(void** pointer, std::size_t bytes, hipMemPool_t, hipStream_t) {
@@ -571,113 +703,49 @@ hipError_t hipMallocManaged(void** pointer, std::size_t, unsigned) {
   *pointer = nullptr;
   return g_last_error = hipErrorNotSupported;
 }
-// Pinned host memory: host-local, device-visible HRX buffers. Device code
-// dereferences these directly (e.g. ReduceOps::value writes the host tuple),
-// so the mapped host address must equal the device address.
-static std::map<uintptr_t, hrx_buffer_t> g_host_allocations;
 hipError_t hipHostMalloc(void** pointer, std::size_t bytes, unsigned) {
-  initialize();
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  if (bytes == 0) bytes = 1;
-  hrx_buffer_t buffer = nullptr;
-  hrx_status_t status = hrx_buffer_allocate(
-      g_default_stream, bytes, HRX_MEMORY_TYPE_HOST_LOCAL | HRX_MEMORY_TYPE_DEVICE_VISIBLE,
-      HRX_BUFFER_USAGE_DEFAULT, &buffer);
-  if (!hrx_status_is_ok(status)) {
-    hrx_status_ignore(status);
-    *pointer = nullptr;
-    return g_last_error = hipErrorOutOfMemory;
-  }
-  check(hrx_stream_synchronize(g_default_stream), "host allocation");
-  void* device = nullptr;
-  void* host = nullptr;
-  device = device_address(buffer);
-  check(hrx_buffer_map(buffer, HRX_MAP_READ | HRX_MAP_WRITE | HRX_MAP_MAY_ALIAS, 0, bytes, &host),
-        "hrx_buffer_map");
-  if (host != device) {
-    std::fprintf(stderr, "amrex loom: pinned host address %p differs from device address %p\n",
-                 host, device);
-    std::abort();
-  }
-  g_host_allocations[reinterpret_cast<uintptr_t>(host)] = buffer;
-  *pointer = host;
-  return hipSuccess;
+  *pointer = amrex_loom::pinned_malloc(bytes);
+  return *pointer ? hipSuccess : (g_last_error = hipErrorOutOfMemory);
 }
 hipError_t hipHostFree(void* pointer) {
   if (!pointer) return hipSuccess;
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  auto it = g_host_allocations.find(reinterpret_cast<uintptr_t>(pointer));
-  if (it == g_host_allocations.end()) return g_last_error = hipErrorInvalidValue;
-  check(hrx_stream_synchronize(g_default_stream), "host free");
-  hrx_status_ignore(hrx_buffer_unmap(it->second));
-  hrx_buffer_release(it->second);
-  g_host_allocations.erase(it);
+  if (amrex_loom::pointer_kind(pointer) != amrex_loom::PointerKind::pinned) {
+    return g_last_error = hipErrorInvalidValue;
+  }
+  amrex_loom::pinned_free(pointer);
   return hipSuccess;
 }
 hipError_t hipFree(void* pointer) {
   if (!pointer) return hipSuccess;
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  auto it = g_allocations.find(reinterpret_cast<uintptr_t>(pointer));
-  if (it == g_allocations.end()) return g_last_error = hipErrorInvalidValue;
-  sync_all();
-  hrx_buffer_release(it->second.buffer);
-  g_allocations.erase(it);
+  {
+    std::lock_guard<std::recursive_mutex> lock(g_mutex);
+    if (!g_allocations.count(reinterpret_cast<uintptr_t>(pointer))) {
+      return g_last_error = hipErrorInvalidValue;
+    }
+  }
+  amrex_loom::device_free(pointer);
   return hipSuccess;
 }
 hipError_t hipFreeAsync(void* pointer, hipStream_t) { return hipFree(pointer); }
 
-static hipError_t copy(void* dst, const void* src, std::size_t bytes, hrx_stream_t s) {
-  if (bytes == 0) return hipSuccess;
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  const auto* d = find_allocation(dst);
-  const auto* r = find_allocation(src);
-  auto doff = [&](const auto* a, const void* p) {
-    return reinterpret_cast<uintptr_t>(p) - a->first;
-  };
-  if (d && r) {
-    check(hrx_stream_copy_buffer(s, r->second.buffer, doff(r, src), d->second.buffer,
-                                 doff(d, dst), bytes),
-          "hrx_stream_copy_buffer");
-    check(hrx_stream_flush(s), "hrx_stream_flush");
-  } else if (d) {
-    // Host<->device copies are ordered on their stream, as in HIP: the host
-    // range stays live until the stream reaches the transfer.
-    check(hrx_stream_copy_h2d(s, src, d->second.buffer, doff(d, dst), bytes),
-          "hrx_stream_copy_h2d");
-  } else if (r) {
-    check(hrx_stream_copy_d2h(s, r->second.buffer, doff(r, src), dst, bytes),
-          "hrx_stream_copy_d2h");
-  } else {
-    std::memmove(dst, src, bytes);
-  }
-  return hipSuccess;
-}
 hipError_t hipMemcpy(void* dst, const void* src, std::size_t bytes, hipMemcpyKind) {
-  hipError_t e = copy(dst, src, bytes, resolve(nullptr));
-  sync_all();
-  return e;
+  amrex_loom::memcpy_async(dst, src, bytes, nullptr);
+  amrex_loom::device_synchronize();
+  return hipSuccess;
 }
 hipError_t hipMemcpyAsync(void* dst, const void* src, std::size_t bytes, hipMemcpyKind,
                           hipStream_t stream) {
-  return copy(dst, src, bytes, resolve(stream));
+  amrex_loom::memcpy_async(dst, src, bytes, stream);
+  return hipSuccess;
 }
 hipError_t hipMemsetAsync(void* dst, int value, std::size_t bytes, hipStream_t stream) {
-  if (bytes == 0) return hipSuccess;
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  const auto* d = find_allocation(dst);
-  if (!d) { std::memset(dst, value, bytes); return hipSuccess; }
-  hrx_stream_t s = resolve(stream);
-  uint8_t pattern = static_cast<uint8_t>(value);
-  check(hrx_stream_fill_buffer(s, d->second.buffer,
-                               reinterpret_cast<uintptr_t>(dst) - d->first, bytes, &pattern, 1),
-        "hrx_stream_fill_buffer");
-  check(hrx_stream_flush(s), "hrx_stream_flush");
+  amrex_loom::memset_async(dst, value, bytes, stream);
   return hipSuccess;
 }
 hipError_t hipMemset(void* dst, int value, std::size_t bytes) {
-  hipError_t e = hipMemsetAsync(dst, value, bytes, nullptr);
-  sync_all();
-  return e;
+  amrex_loom::memset_async(dst, value, bytes, nullptr);
+  amrex_loom::device_synchronize();
+  return hipSuccess;
 }
 hipError_t hipMemcpyToSymbolAsync(const void*, const void*, std::size_t, std::size_t,
                                   hipMemcpyKind, hipStream_t) {
@@ -691,14 +759,20 @@ hipError_t hipMemAdvise(const void*, std::size_t, hipMemoryAdvise, int) { return
 hipError_t hipMemPrefetchAsync(const void*, std::size_t, int, hipStream_t) { return hipSuccess; }
 hipError_t hipPointerGetAttributes(hipPointerAttribute_t* attributes, const void* pointer) {
   std::memset(attributes, 0, sizeof(*attributes));
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  if (find_allocation(pointer)) {
-    attributes->type = hipMemoryTypeDevice;
-    attributes->devicePointer = const_cast<void*>(pointer);
-  } else {
-    attributes->type = hipMemoryTypeHost;
-    attributes->hostPointer = const_cast<void*>(pointer);
-    attributes->device = hipCpuDeviceId;
+  switch (amrex_loom::pointer_kind(pointer)) {
+    case amrex_loom::PointerKind::device:
+      attributes->type = hipMemoryTypeDevice;
+      attributes->devicePointer = const_cast<void*>(pointer);
+      break;
+    case amrex_loom::PointerKind::pinned:
+      attributes->type = hipMemoryTypeHost;
+      attributes->hostPointer = attributes->devicePointer = const_cast<void*>(pointer);
+      break;
+    case amrex_loom::PointerKind::unregistered:
+      attributes->type = hipMemoryTypeUnregistered;
+      attributes->hostPointer = const_cast<void*>(pointer);
+      attributes->device = hipCpuDeviceId;
+      break;
   }
   return hipSuccess;
 }
