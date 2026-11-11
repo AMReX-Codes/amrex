@@ -885,6 +885,38 @@ scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
 that have their own collision criteria by overloading the virtual
 :cpp:`check_pair` function.
 
+After the particles have moved, :cpp:`updateNeighbors()` refreshes the neighbor
+buffers. On the CPU, the refresh of a ghost that stays on the same rank copies
+every component by default, including the runtime components that are not
+flagged for ghost communication with :cpp:`setRealCommComp()` and
+:cpp:`setIntCommComp()`, whereas the MPI path sends only the flagged ones.
+:cpp:`setGhostCopyMasked(true)` makes the same-rank refresh copy only the
+flagged components too. If the particles carry per-body slot arrays, such as
+the contact history of a discrete element code, :cpp:`setGhostSlotGroup()`
+declares them (the number of slots, the runtime components that hold the keys,
+and the blocks of payload) so that only the occupied slots are copied. A slot
+is empty when both of its keys are -1. The default is to copy everything.
+
+Several more options make the rest of the exchange lighter on the CPU. None of
+them changes which ghosts there are, their values or their order, they are all
+off by default, and a change takes effect at the next :cpp:`fillNeighbors()`.
+An option that cannot be used for the particles at hand is ignored.
+:cpp:`setGhostMpiMasked(true)` makes the MPI path skip the payload of the empty
+slots when it packs and unpacks a ghost (it needs the masked copy and a slot
+group). :cpp:`setGhostBatched(true)` packs and unpacks one component at a time
+for all the ghosts of a message, instead of one ghost at a time (it needs the
+masked MPI path, particles stored as an array of structures without extra
+compile-time components, and one thread per rank). :cpp:`setGhostCompact(true)`
+sends a ghost as a head of fixed size followed by the payload of its occupied
+slots only, and sends only the used part of each message (it needs the batched
+records, one thread per rank and no inverse tags).
+:cpp:`setGhostPersistentRecv(true)` keeps the receive buffer and the lists of
+components between the updates that follow a rebuild,
+:cpp:`setGhostDirect(true)` writes the ghosts of an update straight into the
+particle tiles instead of through the staging tiles (not with inverse tags),
+and :cpp:`setGhostIsend(true)` posts the sends without blocking and waits for
+them together with the receives.
+
 .. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles.html#particles-neighborlist
 
 .. _sec:Particles:IO:
