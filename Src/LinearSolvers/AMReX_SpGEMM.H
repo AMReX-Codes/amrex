@@ -698,6 +698,10 @@ CSR<T,V,Index> spgemm_local_cusparse (Long nrows, Long ncols,
     return C;
 }
 
+#elif defined(AMREX_USE_LOOM)
+
+#error "AMReX LOOM backend: SpGEMM needs a vendor sparse library (rocSPARSE under HIP); build with AMReX_LINEAR_SOLVERS=OFF"
+
 #elif defined(AMREX_USE_HIP)
 
 inline void spgemm_rocsparse_check (rocsparse_status status)

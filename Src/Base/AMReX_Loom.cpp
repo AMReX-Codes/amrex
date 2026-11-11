@@ -13,6 +13,7 @@
 #if defined(AMREX_USE_LOOM)
 
 #include <AMReX_Loom.H>
+#include <AMReX_LoomRandom.H>
 #include <hip/hip_runtime.h>
 #include <hrx_runtime.h>
 
@@ -23,6 +24,7 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -504,6 +506,43 @@ bool stream_query(hrx_stream_t stream) {
   return complete;
 }
 
+}  // namespace amrex_loom
+
+// --- host random generator (amrex_loom) ----------------------------------------
+
+struct amrex_loom::RandGenerator {
+  std::mt19937_64 engine;
+};
+
+namespace {
+// Draws n values on the host, copies them to device memory at p, and waits.
+template <class T, class D>
+void rand_generate(amrex_loom::RandGenerator* g, T* p, std::size_t n, D dist) {
+  std::vector<T> host(n);
+  for (auto& v : host) v = static_cast<T>(dist(g->engine));
+  amrex_loom::memcpy_async(p, host.data(), n * sizeof(T), nullptr);
+  amrex_loom::device_synchronize();
+}
+}  // namespace
+
+namespace amrex_loom {
+RandGenerator* rand_generator_create(unsigned long long seed) {
+  return new RandGenerator{std::mt19937_64(seed)};
+}
+void rand_generator_destroy(RandGenerator* generator) { delete generator; }
+void rand_generate_uniform(RandGenerator* g, float* p, std::size_t n) {
+  rand_generate(g, p, n, std::uniform_real_distribution<float>(0.0f, 1.0f));
+}
+void rand_generate_uniform_double(RandGenerator* g, double* p, std::size_t n) {
+  rand_generate(g, p, n, std::uniform_real_distribution<double>(0.0, 1.0));
+}
+void rand_generate_normal(RandGenerator* g, float* p, std::size_t n, float mean, float stddev) {
+  rand_generate(g, p, n, std::normal_distribution<float>(mean, stddev));
+}
+void rand_generate_normal_double(RandGenerator* g, double* p, std::size_t n, double mean,
+                                 double stddev) {
+  rand_generate(g, p, n, std::normal_distribution<double>(mean, stddev));
+}
 }  // namespace amrex_loom
 
 // --- HIP runtime subset, on amrex_loom ------------------------------------------

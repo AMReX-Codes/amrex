@@ -20,6 +20,13 @@
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
 
+// LOOM also defines AMREX_USE_HIP; this picks a LOOM-specific variant first.
+#if defined(AMREX_USE_LOOM)
+#define AMREX_LOOM_OR_HIP_OR_CUDA(l,a,b) l
+#else
+#define AMREX_LOOM_OR_HIP_OR_CUDA(l,a,b) AMREX_HIP_OR_CUDA(a,b)
+#endif
+
 #if defined(AMREX_USE_HIP)
 #define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) a
 #elif defined(AMREX_USE_CUDA)
