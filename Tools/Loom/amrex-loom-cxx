@@ -23,7 +23,6 @@
 #           AMREX_LOOM_DEVICE_STRICT=1 fails the compile when the device pass
 #           fails, instead of keeping a host-only object.
 set -o pipefail
-HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 : "${AMREX_LOOM_HOST_CXX:?}" "${AMREX_LOOM_IMPORT:?}" "${AMREX_LOOM_COMPILE:?}"
 : "${AMREX_LOOM_TARGET:=gfx90a}"
 
@@ -74,7 +73,7 @@ IFS=: read -r -a sysdirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
 for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
 
 abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
-printf '#include <amrex_loom_device_prelude.H>\n#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
+printf '#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
 # Import, then compile. Kernels the compiler rejects are excluded by export
 # name and the unit is re-imported (best effort: at most five rounds). The
 # names come from the export_name field of the error diagnostics in
@@ -85,7 +84,7 @@ for round in 1 2 3 4 5; do
   --hosted --triple="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
   --tolerate-host-errors --drop-failed-kernels \
   --kernel-manifest="$tmp/manifest" "${excluded[@]}" \
-  --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
+  --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
   "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then

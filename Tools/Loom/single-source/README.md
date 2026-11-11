@@ -13,9 +13,10 @@ ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
 `GPU_CNS_Sod_3d` and `GPU_ExternalStream_3d` pass, and that the CNS run agrees
 with `cns-expected.txt` to round-off.
 
-The device pass still sees a prelude (`../amrex_loom_device_prelude.H`)
-and Loom's predefined `__loom__`, which the host pass does not, so the build is
-not yet strictly single-source. Only the backend header
+The device pass sees the same headers as the host pass. Loom's importer
+lowers the C math functions and their `__builtin_*` forms itself, so no device
+prelude is injected. The device pass still sees Loom's predefined `__loom__`,
+which the host pass does not. Only the backend header
 `../hip/hip/hip_runtime.h` tests `__loom__`, to define
 `AMREX_LOOM_DEVICE_PASS` for the rest of the backend; no AMReX source under
 `Src/` tests either macro.
@@ -42,7 +43,7 @@ git clone -b loom-single-source https://github.com/BenWibking/cplusplus.git cplu
 git clone -b loom-single-source https://github.com/BenWibking/hrx.git hrx
 git clone -b loom-single-source https://github.com/BenWibking/amrex.git amrex
 git -C cplusplus checkout --detach eb342fe42f   # pinned cxx commit
-git -C hrx checkout --detach dc277c5bcf         # pinned HRX commit
+git -C hrx checkout --detach d35cc59383         # pinned HRX commit
 
 S=$PWD/amrex/Tools/Loom/single-source
 pixi install --manifest-path $S/pixi.toml   # conda-forge toolchain pieces
