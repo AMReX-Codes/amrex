@@ -11,7 +11,7 @@
 #  ifdef AMREX_CUDA_CCCL_VER_GE_2_8
 #  include <thrust/iterator/transform_iterator.h>
 #  endif
-#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
+#elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
 #elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
 #  include <oneapi/dpl/execution>
@@ -1030,7 +1030,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return totalsum;
-#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
+#elif defined(AMREX_USE_HIP)
     void* d_temp = nullptr;
     std::size_t temp_bytes = 0;
     AMREX_GPU_SAFE_CALL(rocprim::inclusive_scan(d_temp, temp_bytes, in, out, n,
@@ -1106,7 +1106,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
-#elif defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
+#elif defined(AMREX_USE_HIP)
     T in_last = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
