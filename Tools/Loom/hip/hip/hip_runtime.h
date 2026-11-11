@@ -7,8 +7,9 @@
 //  * device vocabulary (thread ids, barriers, atomics, shuffles) implemented
 //    on Loom C++ operations when the Loom device pass reads the file
 //    (__loom__), and as inert host definitions otherwise;
-//  * hipLaunchKernelGGL routed to a Loom kernel template instance named by
-//    the Itanium type name of its launch tag (see amrex_loom_launch).
+//  * AMREX_LAUNCH_KERNEL(MT, ...) routed to a fixed-size Loom kernel template
+//    instance named by the Itanium type name of its launch tag (see
+//    amrex_loom_launch_named). Launches need a compile-time block size MT.
 #ifndef AMREX_LOOM_HIP_RUNTIME_H_
 #define AMREX_LOOM_HIP_RUNTIME_H_
 
@@ -247,11 +248,7 @@ hipError_t hipEventRecord(hipEvent_t event, hipStream_t stream = nullptr);
 hipError_t hipEventSynchronize(hipEvent_t event);
 hipError_t hipEventElapsedTime(float* ms, hipEvent_t start, hipEvent_t stop);
 
-// Kernel launch entry point implemented by the runtime.
-void amrex_loom_launch(const char* tag_type_name, const void* tag,
-                       std::size_t tag_size, dim3 grid, dim3 block,
-                       std::size_t shared_bytes, hipStream_t stream);
-// Launches export <kernel_name>__<tag_type_name>.
+// Kernel launch entry point implemented by the runtime. Launches export <kernel_name>__<tag_type_name>.
 void amrex_loom_launch_named(const char* kernel_name, const char* tag_type_name,
                              const void* tag, std::size_t tag_size, dim3 grid,
                              dim3 block, std::size_t shared_bytes,
@@ -525,19 +522,9 @@ struct Tag<F, G, H> {
 };
 
 #if defined(__loom__)
-// Launch geometry is supplied by the host at dispatch time.
-static loom::kernel::configuration kernel_config(unsigned gx, unsigned gy,
-                                                 unsigned gz, unsigned bx,
-                                                 unsigned by, unsigned bz) {
-  return {{gx, gy, gz}, {bx, by, bz}};
-}
-template <class T>
-[[loom::kernel(kernel_config), loom::kernel_type_symbol]]
-void kernel(T tag) {
-  tag();
-}
 // Fixed workgroup sizes: blockDim/gridDim queries lower only when the
-// workgroup size is static. Used by AMREX_LAUNCH_KERNEL(MT, ...).
+// workgroup size is static, so every launch names one. Used by
+// AMREX_LAUNCH_KERNEL(MT, ...).
 #define AMREX_LOOM_FIXED_KERNEL(N)                                            \
   static loom::kernel::configuration kernel_config##N(                        \
       unsigned gx, unsigned gy, unsigned gz) {                                \
@@ -572,52 +559,48 @@ template <class I>
 requires std::is_integral_v<I>
 inline dim3 to_dim3(I n) { return dim3(static_cast<unsigned>(n)); }
 
-template <class B, class T, class... F>
-void launch(B blocks, T threads, std::size_t shared_bytes, hipStream_t stream,
-            F const&... fs) {
-  Tag<F...> tag{fs...};
-  dim3 g = to_dim3(blocks);
-  dim3 b = to_dim3(threads);
-#if defined(__loom__)
-  (void)shared_bytes;
-  (void)stream;
-  loom::kernel::launch<kernel<Tag<F...>>>(
-      loom::kernel::workload(g.x, g.y, g.z, b.x, b.y, b.z), tag);
-#else
-  amrex_loom_launch(typeid(Tag<F...>).name(), &tag, sizeof(tag), g, b,
-                    shared_bytes, stream);
-#endif
+template <class... A>
+inline constexpr bool dependent_false = false;
+
+// A launch with a run-time block size (AMREX_LAUNCH_KERNEL_NOBOUND, the
+// amrex::launch(nblocks, nthreads_per_block, ...) overloads,
+// hipLaunchKernelGGL). LOOM kernels have a compile-time workgroup size.
+template <class... A>
+void launch(A const&...) {
+  static_assert(dependent_false<A...>,
+                "AMReX LOOM backend: kernel launches need a compile-time block "
+                "size; use amrex::launch<MT>(...) or AMREX_LAUNCH_KERNEL(MT, ...) "
+                "with MT in {1, 64, 128, 256, 512, 1024}");
 }
 
 // Launch with a compile-time workgroup size MT (threads must equal MT).
 template <int MT, class B, class T, class... F>
 void launch_fixed(B blocks, T threads, std::size_t shared_bytes,
                   hipStream_t stream, F const&... fs) {
-  if constexpr (!has_fixed_kernel<MT>) {
-    launch(blocks, threads, shared_bytes, stream, fs...);
-  } else {
-    Tag<F...> tag{fs...};
+  static_assert(has_fixed_kernel<MT>,
+                "AMReX LOOM backend: kernel block size MT must be one of "
+                "1, 64, 128, 256, 512, 1024");
+  Tag<F...> tag{fs...};
 #if defined(__loom__)
-    dim3 g = to_dim3(blocks);
-    (void)threads; (void)shared_bytes; (void)stream;
-    if constexpr (MT == 1) loom::kernel::launch<kernel1<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
-    else if constexpr (MT == 64) loom::kernel::launch<kernel64<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
-    else if constexpr (MT == 128) loom::kernel::launch<kernel128<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
-    else if constexpr (MT == 256) loom::kernel::launch<kernel256<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
-    else if constexpr (MT == 512) loom::kernel::launch<kernel512<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
-    else loom::kernel::launch<kernel1024<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  dim3 g = to_dim3(blocks);
+  (void)threads; (void)shared_bytes; (void)stream;
+  if constexpr (MT == 1) loom::kernel::launch<kernel1<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  else if constexpr (MT == 64) loom::kernel::launch<kernel64<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  else if constexpr (MT == 128) loom::kernel::launch<kernel128<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  else if constexpr (MT == 256) loom::kernel::launch<kernel256<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  else if constexpr (MT == 512) loom::kernel::launch<kernel512<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
+  else loom::kernel::launch<kernel1024<Tag<F...>>>(loom::kernel::workload(g.x, g.y, g.z), tag);
 #else
-    dim3 g = to_dim3(blocks);
-    dim3 b = to_dim3(threads);
-    if (b.x * b.y * b.z != static_cast<unsigned>(MT) || b.y != 1 || b.z != 1) {
-      std::fprintf(stderr, "amrex loom: fixed-size launch MT=%d with block %ux%ux%u\n",
-                   MT, b.x, b.y, b.z);
-      std::abort();
-    }
-    amrex_loom_launch_named(fixed_kernel_name<MT>, typeid(Tag<F...>).name(), &tag,
-                            sizeof(tag), g, b, shared_bytes, stream);
-#endif
+  dim3 g = to_dim3(blocks);
+  dim3 b = to_dim3(threads);
+  if (b.x * b.y * b.z != static_cast<unsigned>(MT) || b.y != 1 || b.z != 1) {
+    std::fprintf(stderr, "amrex loom: fixed-size launch MT=%d with block %ux%ux%u\n",
+                 MT, b.x, b.y, b.z);
+    std::abort();
   }
+  amrex_loom_launch_named(fixed_kernel_name<MT>, typeid(Tag<F...>).name(), &tag,
+                          sizeof(tag), g, b, shared_bytes, stream);
+#endif
 }
 
 }  // namespace amrex_loom
