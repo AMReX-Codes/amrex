@@ -365,10 +365,17 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
-    if (n == 0) { return 0;}
+        if (n == 0) { return 0; }
 #if defined(__SYCL_DEVICE_ONLY__)
-        mkl::rng::device::uniform<unsigned int> distr(0,n);
-        return mkl::rng::device::generate(distr, *random_engine.engine);
+        // oneMKL's integer uniform is float based: it can return n and is
+        // biased for large n. Use the same rejection sampling as CUDA/HIP.
+        mkl::rng::device::uniform_bits<std::uint32_t> distr;
+        unsigned int rand;
+        constexpr unsigned int RAND_M = 4294967295; // 2**32-1
+        do {
+            rand = mkl::rng::device::generate(distr, *random_engine.engine);
+        } while (rand >= (RAND_M - RAND_M % n));
+        return rand % n;
 #else
         AMREX_IF_ON_DEVICE((
                 unsigned int rand;
