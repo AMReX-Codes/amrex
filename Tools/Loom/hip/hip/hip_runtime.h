@@ -499,7 +499,8 @@ AMREX_LOOM_DEVICE_INLINE T __shfl_down_sync(unsigned long long, T value,
 namespace amrex_loom {
 
 // Launch tag: the callables run in order by each invocation. Its Itanium
-// type name identifies the kernel export on both sides of the build.
+// type name identifies the kernel export on both sides of the build. Built
+// as a recursive record: the first callable, then a tag for the rest.
 template <class... F>
 struct Tag;
 template <class F>
@@ -507,18 +508,11 @@ struct Tag<F> {
   F f;
   AMREX_LOOM_DEVICE_INLINE void operator()() const { f(); }
 };
-template <class F, class G>
-struct Tag<F, G> {
+template <class F, class... Rest>
+struct Tag<F, Rest...> {
   F f;
-  G g;
-  AMREX_LOOM_DEVICE_INLINE void operator()() const { f(); g(); }
-};
-template <class F, class G, class H>
-struct Tag<F, G, H> {
-  F f;
-  G g;
-  H h;
-  AMREX_LOOM_DEVICE_INLINE void operator()() const { f(); g(); h(); }
+  Tag<Rest...> rest;
+  AMREX_LOOM_DEVICE_INLINE void operator()() const { f(); rest(); }
 };
 
 #if defined(__loom__)
