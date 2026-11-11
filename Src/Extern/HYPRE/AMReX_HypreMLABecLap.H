@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_CompositeSystemUtil.H>
+#include <AMReX_FabFactory.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_HypreIJIface.H>
 #include <AMReX_LO_BCTYPES.H>
@@ -21,6 +22,38 @@
  *
  * Multilevel ABecLaplacian assembled into HYPRE's SStruct interface, including
  * coarse/fine coupling and optional SSAMG GPU solver support.
+ *
+ * In EB builds, given EB factories (EBSupport::full, at least one ghost
+ * cell) with cut cells on any level, the composite operator of MLMG with
+ * MLEBABecLap is assembled in IJ mode on all levels, except that the fluxes
+ * across coarse/fine faces are the area-weighted fine fluxes, so that the
+ * composite operator is conservative also where the EB crosses the
+ * coarse/fine boundary (MLMG's reflux treats the cells there as regular).
+ * The rows are weighted by the volume fraction, as is the right-hand side;
+ * cells covered by a finer level are the EB average of their fine cells
+ * (recomputed exactly after the solve, as MLMG averages down), and b on
+ * coarse faces covered by a finer level is the area-weighted average of the
+ * fine b, as in MLEBABecLap.  The right-hand side and the initial guess are
+ * not used in EB-covered cells and in cells covered by a finer level.  The
+ * factories must have the grids of the constructor.
+ *
+ * Like MLMG with maxorder 3 and an interpolation half width of 1 (which
+ * matters in 2D only), both with and without EB; Dirichlet or Neumann
+ * domain boundaries, refinement ratios 2 and 4; b at the face centers and
+ * phi at the cell centers (MLEBABecLap's default locations, not its face
+ * centroid and cell centroid options).  A ghost cell outside two faces
+ * whose inner cells are off the level's grids, which MLEBABecLap::applyBC
+ * does not fill (MLMG uses the solution's ghost value there, e.g. in the EB
+ * Dirichlet stencil of a cut cell in that corner), is filled at the lowest
+ * order: outside two coarse/fine faces (a convex corner of the grids) with
+ * the coarse interpolation at the face; outside a physical boundary and the
+ * coarse/fine boundary (or in a domain corner) with the boundary value, or
+ * for Neumann the inner cell's.
+ * Untested with EB: level 0 with coarse boundary data (a_coarse_bc).
+ *
+ * `<prefix>.eb_scaling` (default 1): with EB, scale the unknowns by
+ * 1/sqrt(volume fraction), so that the rows of small cut cells count in the
+ * residual norm (as in HypreMLNodeLap).  The dumped system is the scaled one.
  */
 
 namespace amrex {
@@ -57,6 +90,17 @@ public:
                     HypreSolverID a_hypre_solver_id,
                     std::string a_parmparse_prefix = "hypre_mlabeclap");
 
+    /**
+     * \brief As above, with per-level factories: EB factories with cut cells
+     * select the EB operator (IJ mode only).
+     */
+    HypreMLABecLap (Vector<Geometry> a_geom,
+                    Vector<BoxArray> a_grids,
+                    Vector<DistributionMapping> a_dmap,
+                    HypreSolverID a_hypre_solver_id,
+                    Vector<FabFactory<FArrayBox> const*> a_factory,
+                    std::string a_parmparse_prefix = "hypre_mlabeclap");
+
     ~HypreMLABecLap ();
 
     //! Set HYPRE's logging verbosity (\p v).
@@ -67,10 +111,24 @@ public:
     void setIsSingular (bool v) { m_is_singular = v; }
 
     /**
+     * \brief EB operator: Dirichlet boundary condition on the EB for the
+     * following setups (the data are copied; the argument order is
+     * MLEBABecLap::setEBDirichlet's).
+     *
+     * \param a_phi  Per-level EB values; missing or null entries mean zero.
+     * \param a_beta Per-level b coefficient on the EB (cell-centered).
+     */
+    void setEBDirichlet (Vector<MultiFab const*> const& a_phi,
+                         Vector<MultiFab const*> const& a_beta);
+    //! EB operator: homogeneous Dirichlet boundary condition on the EB
+    void setEBHomogDirichlet (Vector<MultiFab const*> const& a_beta);
+
+    /**
      * \brief IJ mode only: let setup() be called again with new coefficients
      * (same grids), updating the matrix values in place and keeping the
      * solver/preconditioner setup, which then only approximates the new
-     * operator (see resetSolverSetup()).
+     * operator (see resetSolverSetup()).  With EB, the boundary condition
+     * types and whether setEBDirichlet() was called must not change.
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
     //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
@@ -94,10 +152,14 @@ public:
      * \param a_ascalar   Scalar applied to the diagonal term.
      * \param a_bscalar   Scalar applied to the diffusive term.
      * \param a_acoefs    Level-by-level `a` coefficients.
-     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients.
+     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients;
+     *                    a missing or null entry means 1 on that level (with EB,
+     *                    the coarse faces under a finer level then hold 1 too).
+     * \param a_levelbcdata BC data per level; a missing or null entry means zero.
+     *                    On a level with a physical boundary the data must have
+     *                    a ghost cell (the boundary values are read from it).
      * \param a_lobc      Low-side boundary-condition types.
      * \param a_hibc      High-side boundary-condition types.
-     * \param a_levelbcdata BC data per level; a missing or null entry means zero.
      * \param a_coarse_bc Optional BC data from even coarser AMR level.
      */
     void setup (Real a_ascalar, Real a_bscalar,
@@ -118,8 +180,6 @@ public:
      */
     void solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                 Real a_reltol, Real a_abstol);
-
-    // update? updateDirichleBC? or updateCoeffs?
 
     // public for cuda
 
@@ -155,9 +215,29 @@ public:
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                   Real a_reltol, Real a_abstol);
 
+    //! Per-box (row, column, value) triplets of the IJ assembly
+    struct Triplets {
+        Gpu::DeviceVector<HYPRE_BigInt> rows, cols;
+        Gpu::DeviceVector<Real> vals;
+    };
+
+    //! EB operator: the triplets of level ilev's cells (see
+    //! hypmlabeclap_eb_row), with b from ebBCoefs; public for cuda
+    void buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar, MultiFab const* a_acoef,
+                          Array<MultiFab,AMREX_SPACEDIM> const& a_bcoef,
+                          Vector<Triplets>& chunks);
+
 private:
 
     void addNonStencilEntriesToGraph ();
+
+    //! EB operator: copies of the caller's EB data, checked against the grids
+    void copyEBData (Vector<MultiFab const*> const& src, Vector<MultiFab>& dst) const;
+    //! EB operator: b with ghost faces, averaged down as MLEBABecLap does
+    [[nodiscard]] Vector<Array<MultiFab,AMREX_SPACEDIM>>
+    ebBCoefs (Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a_bcoefs) const;
+    //! Scaling of the local rows' unknowns (one without EB scaling)
+    [[nodiscard]] Vector<Real> rowScaling () const;
 
     //! Global row id of cell iv on level lev in the IJ system (-1 if the
     //! cell is not on the level's grids); periodic images are wrapped.
@@ -171,6 +251,7 @@ private:
     Vector<BoxArray> m_grids;
     Vector<DistributionMapping> m_dmap;
     std::string m_parmparse_prefix;
+    Vector<FabFactory<FArrayBox> const*> m_factory;
     int m_nlevels = 0;
     MPI_Comm m_comm = MPI_COMM_NULL;
 
@@ -257,6 +338,19 @@ private:
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_rows;
     Vector<Gpu::DeviceVector<HYPRE_BigInt>> m_f2c_cols;
     Gpu::DeviceVector<HYPRE_BigInt> m_ij_rowids; // the local rows
+
+    //! EB operator (IJ mode): the scaling of the unknowns (with one ghost
+    //! cell), the coarser level's row ids and scaling on the coarsened grids
+    //! of each level, the right-hand side terms of the boundary values from
+    //! the last setup, and the EB Dirichlet data for the next one
+    bool m_eb = false;
+    bool m_eb_scaling = true;
+    Vector<MultiFab> m_eb_scale;
+    Vector<std::unique_ptr<FabArray<BaseFab<Long>>>> m_crse_id;
+    Vector<MultiFab> m_crse_scale;
+    Vector<MultiFab> m_eb_bcrhs;
+    Vector<MultiFab> m_eb_beta;
+    Vector<MultiFab> m_eb_phi;
     //! With setup reuse, the triplets of later setups are summed directly
     //! into a matrix's value array, each entry adding its triplets in
     //! increasing triplet order so that the sums do not depend on thread

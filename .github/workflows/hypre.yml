@@ -145,6 +145,37 @@ jobs:
             done
         done
 
+        # Composite EB solve (HypreMLABecLap) against MLMG
+        cd ${{github.workspace}}/Tests/LinearSolvers/CellEB2
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 CCACHE=ccache CXXSTD=c++20
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 nan_in_covered=1 \
+            amrex.fpe_trap_invalid=0
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 eb_neumann=1 \
+            hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
+        # an L-shaped fine level with a coarse cut cell at its concave corner;
+        # a = 0 given or no a at all: the same solution
+        for i in 0 1; do
+            mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 reltol=1.e-12 prob_type=3 \
+                eb_neumann=1 eb2.sphere_center="0.325 0.325 0.325" eb2.sphere_radius=0.08 \
+                fine_notch_lo="0.25 0.25 0.25" fine_notch_hi="0.375 0.375 0.375" \
+                null_acoef=$i > pocket$i.log
+            cat pocket$i.log
+        done
+        paste <(grep "phi_hypre - phi_mlmg" pocket0.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+              <(grep "phi_hypre - phi_mlmg" pocket1.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+            | awk '{d=$1-$2; if (d<0) d=-d; if (d > 1.e-6*$1) {print "null a is not 0: " $0; exit 1}}'
+        # the EB cuts the convex corners and edges of the fine level (as in 2D)
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 reltol=1.e-12 prob_type=3 \
+            eb2.sphere_radius=0.43 mlhypre_max_fine_res=-1 mlhypre_max_res_scaled=-1 \
+            mlhypre_max_exact_ratio=-1 mlhypre_max_exact_err=3.e-3
+        # the EB cuts the coarse/fine face at a Dirichlet wall (the coarse EB
+        # level does not build at 32 cells); also with AlgMG and setup reuse
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=64 reltol=1.e-12 \
+                eb2.sphere_center="0.4 0.14 0.5" eb2.sphere_radius=0.2 fine_lo="0.25 0 0.25" \
+                hypre_mlabeclap.backend=$b mlhypre_num_setups=3
+        done
+
         ccache -s
         du -hs ~/.cache/ccache
     - name: Clang-tidy
@@ -236,6 +267,79 @@ jobs:
             hypre_mlnodelap.hypre_solver=FlexGMRES hypre_mlnodelap.hypre_preconditioner=BoomerAMG
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
             use_mlhypre=1 mlhypre_max_diff=1.e-7 hypre_mlnodelap.backend=algmg
+
+        # Composite EB solve (HypreMLABecLap) against MLMG
+        cd ${{github.workspace}}/Tests/LinearSolvers/CellEB2
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre max_level=0
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.backend=$b
+            mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.backend=$b \
+                eb_neumann=1 mlhypre_num_setups=3 acoef=1
+        done
+        # three levels; NaN in the cells the system does not use must not matter
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl max_level=2 fine_shrink=0.03125 \
+            nan_in_covered=1 amrex.fpe_trap_invalid=0
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl ref_ratio=4 n_cell=32
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl is_periodic="1 0" fine_lo="0 0.25"
+        # singular, and the pinned cell not in box 0 (solid there); no
+        # coarse/fine boundary at cut cells, so the solutions agree
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl is_periodic="1 1" eb_neumann=1 \
+            eb2.sphere_radius=0.15 eb2.sphere_has_fluid_inside=1 mlhypre_max_diff=1.e-10
+        # the EB cuts the coarse/fine face at a Dirichlet wall: with hypre, with
+        # AlgMG and setup reuse and with refinement ratio 4
+        wall='eb2.sphere_center=0.4 0.14 0.5 eb2.sphere_radius=0.2 fine_lo=0.25 0 0.25'
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            ref_ratio=4 n_cell=32
+        # tilted walls (a rotated box of fluid)
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl eb2.geom_type=rotated_box
+        # an L-shaped fine level: at its concave corner, a coarse cut cell whose
+        # open faces all border the fine level (its row is the fine fluxes only);
+        # a = 0 given or no a at all: the same solution (MLMG's reflux puts the
+        # unweighted fine fluxes into that row, so the solutions differ there)
+        for i in 0 1; do
+            mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 prob_type=3 eb_neumann=1 \
+                eb2.sphere_center="0.325 0.325 0.325" eb2.sphere_radius=0.065 \
+                fine_notch_lo="0.25 0.25 0.25" fine_notch_hi="0.375 0.375 0.375" \
+                null_acoef=$i > pocket$i.log
+            cat pocket$i.log
+        done
+        paste <(grep "phi_hypre - phi_mlmg" pocket0.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+              <(grep "phi_hypre - phi_mlmg" pocket1.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+            | awk '{d=$1-$2; if (d<0) d=-d; if (d > 1.e-6*$1) {print "null a is not 0: " $0; exit 1}}'
+        # b = 1 on the fine level, null (1) or given (2): the same solution
+        for i in 1 2; do
+            mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl prob_type=2 \
+                eb2.sphere_has_fluid_inside=1 null_fine_bcoef=$i > nullb$i.log
+            cat nullb$i.log
+        done
+        paste <(grep "phi_hypre - phi_mlmg" nullb1.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+              <(grep "phi_hypre - phi_mlmg" nullb2.log | sed 's/.*phi_mlmg| = //; s/,.*//') \
+            | awk '{d=$1-$2; if (d<0) d=-d; if (d > 1.e-6*$1) {print "null b is not 1: " $0; exit 1}}'
+        # the EB cuts the convex corners of the fine level: the ghost cell outside
+        # two coarse/fine faces is read by the EB Dirichlet stencil (MLMG leaves it
+        # stale, so the error against the exact solution is checked instead)
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 prob_type=3 \
+            eb2.sphere_radius=0.35 mlhypre_max_fine_res=-1 mlhypre_max_res_scaled=-1 \
+            mlhypre_max_exact_ratio=-1 mlhypre_max_exact_err=1.e-3
+        # a cut cell in the corner of a Neumann wall and the coarse/fine boundary:
+        # MLMG leaves its ghost cell stale, so only the error against the exact
+        # solution (one with homogeneous Neumann walls) is compared
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl reltol=1.e-12 $wall \
+            prob_type=3 domain_bc=neumann mlhypre_max_fine_res=-1 \
+            mlhypre_max_res_scaled=-1 mlhypre_max_exact_ratio=2
+        # Neumann domain boundaries (fine level everywhere: identical operators);
+        # anisotropic cells; no scaling of the unknowns
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann \
+            fine_lo="0 0 0" fine_hi="1 1 1" mlhypre_max_diff=1.e-9
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl domain_bc=neumann prob_hi="1 2 1"
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.eb_scaling=0 \
+            nan_in_covered=1 mlhypre_num_setups=3 amrex.fpe_trap_invalid=0 \
+            mlhypre_max_res_scaled=-1
 
         ccache -s
         du -hs ~/.cache/ccache

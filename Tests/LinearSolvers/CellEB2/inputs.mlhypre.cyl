@@ -1,0 +1,70 @@
+# HypreMLABecLap's composite EB solve (IJ mode) compared with MLMG's, 2D or
+# 3D: a cylinder (sphere in 3D) of fluid outside, crossing the boundary of
+# the fine level.  At cut cells on the coarse/fine boundary the composite
+# operators differ by design (HypreMLABecLap's fluxes there are the
+# area-weighted fine fluxes, MLMG's reflux is not volume or area weighted),
+# so the solutions differ by O(1e-4) and the MLMG residual of hypre's
+# solution (volume-weighted, as HypreMLABecLap's system) is checked on the
+# finest level and, on the coarser levels, away from the coarse/fine boundary.
+# Variants (command-line arguments):
+#   eb_neumann = 1                   homogeneous Neumann on the EB
+#   hypre_mlabeclap.backend = algmg  AlgMG instead of hypre
+#   mlhypre_num_setups = 3           setups with reuse, scaled coefficients
+#   acoef = 1                        a != 0
+#   max_level = 2 fine_shrink = 0.03125   three levels
+#   ref_ratio = 4 n_cell = 32        refinement ratio 4
+#   is_periodic = "1 0 0" fine_lo = "0 0.25 0.25"   periodic, fine level on the periodic boundary
+#   is_periodic = "1 1 1" eb_neumann = 1             singular (compared up to a constant)
+#   nan_in_covered = 1               NaN in the cells the system does not use
+#   domain_bc = neumann              Neumann instead of Dirichlet domain boundaries
+#   prob_hi = "1 2 1"                anisotropic cells
+#   eb2.sphere_center = "0.4 0.14 0.5" eb2.sphere_radius = 0.2 fine_lo = "0.25 0 0.25"
+#                                    the EB cuts the coarse/fine face at a Dirichlet wall
+#   eb2.geom_type = rotated_box      tilted walls (fluid inside a rotated box)
+#   null_acoef = 1                   no a given to HypreMLABecLap (zero)
+#   prob_type = 3 eb2.sphere_radius = 0.35 (0.43 in 3D)   the EB cuts the convex
+#                                    corners (and edges) of the fine level; MLMG
+#                                    leaves the ghost cell outside two coarse/fine
+#                                    faces stale, so only the error against the
+#                                    exact solution (mlhypre_max_exact_err) is
+#                                    checked, with the residual checks off
+#   fine_notch_lo = "0.25 0.25 0.25" fine_notch_hi = "0.375 0.375 0.375" prob_type = 3
+#     reltol = 1.e-12 eb_neumann = 1 eb2.sphere_center = "0.325 0.325 0.325"
+#     eb2.sphere_radius = 0.065 (0.08 in 3D), null_acoef = 0 or 1 (same solution)
+#                                    an L-shaped fine level; at its concave
+#                                    corner, a coarse cut cell whose open faces
+#                                    all border the fine level (MLMG's unweighted
+#                                    reflux makes the solutions differ there)
+#   prob_type = 2 eb2.sphere_has_fluid_inside = 1 null_fine_bcoef = 1 (or 2)
+#                                    b = 1 on the fine level, null (1) or given
+#                                    (2) to HypreMLABecLap: the same solution
+#   prob_type = 3 domain_bc = neumann   an exact solution with homogeneous Neumann
+#                                    walls; with the wall geometry above, a cut
+#                                    cell in the corner of a Neumann wall and the
+#                                    coarse/fine boundary (MLMG leaves its ghost
+#                                    cell stale, so only the error against the
+#                                    exact solution can be compared there)
+# Also checked: the coarse cells under a finer level hold the EB average of
+# the finer solution (mlhypre_max_avg_diff), and the error against the exact
+# solution is at most mlhypre_max_exact_ratio times MLMG's.
+composite_solve = 1
+use_mlhypre = 1
+mlhypre_max_fine_res = 1.e-7
+mlhypre_max_res_scaled = 1.e-6
+linop_maxorder = 3
+reltol = 1.e-11
+prob_type = 1
+max_level = 1
+n_cell = 64
+max_grid_size = 16
+eb2.max_grid_size = 16
+eb2.geom_type = sphere
+eb2.sphere_center = 0.5 0.5 0.5
+eb2.sphere_radius = 0.3
+eb2.sphere_has_fluid_inside = 0
+fine_lo = 0.25 0.25 0.25
+fine_hi = 0.75 0.75 0.75
+hypre_mlabeclap.hypre_solver = FlexGMRES
+hypre_mlabeclap.hypre_preconditioner = BoomerAMG
+verbose = 1
+bottom_verbose = 0

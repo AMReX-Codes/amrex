@@ -156,15 +156,87 @@ inline Vector<Triplet> exchange_triplets (Vector<Triplet>&& trips, Vector<Long> 
 }
 
 /**
+ * \brief Send the (row, column, value) triplets in device memory whose rows
+ * are owned by other ranks to their owners, through the host (collective
+ * over comm).  Afterwards the arrays hold the triplets of this rank's rows
+ * [row_begin, row_begin+nrows): its own in their order, then the received
+ * ones in rank order.
+ */
+template <typename I>
+void localize_triplets (Gpu::DeviceVector<I>& rows, Gpu::DeviceVector<I>& cols,
+                        Gpu::DeviceVector<Real>& vals, Long row_begin, Long nrows,
+                        Vector<Long> const& rank_offset, MPI_Comm comm)
+{
+    if (ParallelDescriptor::NProcs(comm) == 1) { return; }
+    BL_PROFILE("composite::localize_triplets");
+    const Long row_end = row_begin + nrows;
+    const auto n = Long(rows.size());
+    auto* pr = rows.data();
+    auto* pc = cols.data();
+    auto* pv = vals.data();
+    Gpu::DeviceVector<Long> pos(n);
+    auto* ppos = pos.data();
+    const Long nsend = Scan::PrefixSum<Long>(n,
+        [=] AMREX_GPU_DEVICE (Long i) -> Long { return (pr[i] < row_begin || pr[i] >= row_end) ? 1 : 0; },
+        [=] AMREX_GPU_DEVICE (Long i, Long const& x) { ppos[i] = x; },
+        Scan::Type::exclusive, Scan::retSum);
+    Gpu::DeviceVector<Triplet> dsend(nsend);
+    Gpu::DeviceVector<I> lrows(n-nsend), lcols(n-nsend);
+    Gpu::DeviceVector<Real> lvals(n-nsend);
+    auto* ps = dsend.data();
+    auto* lr = lrows.data();
+    auto* lc = lcols.data();
+    auto* lv = lvals.data();
+    amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+    {
+        if (pr[i] < row_begin || pr[i] >= row_end) {
+            ps[ppos[i]] = Triplet{.row = Long(pr[i]), .col = Long(pc[i]), .val = pv[i]};
+        } else {
+            const Long il = i - ppos[i];
+            lr[il] = pr[i];
+            lc[il] = pc[i];
+            lv[il] = pv[i];
+        }
+    });
+    Vector<Triplet> hsend(nsend);
+    Gpu::copyAsync(Gpu::deviceToHost, dsend.begin(), dsend.end(), hsend.begin());
+    Gpu::streamSynchronize();
+    Vector<Triplet> const hrecv = exchange_triplets(std::move(hsend), rank_offset, comm);
+    const auto nrecv = Long(hrecv.size());
+    const Long nloc = n - nsend;
+    rows = std::move(lrows);
+    cols = std::move(lcols);
+    vals = std::move(lvals);
+    if (nrecv > 0) {
+        Gpu::DeviceVector<Triplet> drecv(nrecv);
+        Gpu::copyAsync(Gpu::hostToDevice, hrecv.begin(), hrecv.end(), drecv.begin());
+        rows.resize(nloc+nrecv);
+        cols.resize(nloc+nrecv);
+        vals.resize(nloc+nrecv);
+        auto const* pt = drecv.data();
+        auto* r = rows.data();
+        auto* c = cols.data();
+        auto* v = vals.data();
+        amrex::ParallelFor(nrecv, [=] AMREX_GPU_DEVICE (Long i) noexcept
+        {
+            r[nloc+i] = I(pt[i].row);
+            c[nloc+i] = I(pt[i].col);
+            v[nloc+i] = pt[i].val;
+        });
+        Gpu::streamSynchronize(); // before drecv is freed
+    }
+}
+
+/**
  * \brief Build an SpMatrix of this rank's rows [row_begin, row_begin+nrows)
  * from (row, column, value) triplets in device memory, without copying them
  * to the host: the device counterpart of exchange_triplets, OwnedCSR::define
  * and OwnedCSR::toSpMatrix.
  *
- * Triplets of rows owned by other ranks are sent to their owners through
- * the host (collective over comm).  The triplets of each row are sorted by
- * (column, triplet index) and duplicates are summed in that order, so the
- * values do not depend on thread scheduling.  The triplet arrays are
+ * Triplets of rows owned by other ranks are sent to their owners
+ * (localize_triplets, collective over comm).  The triplets of each row are
+ * sorted by (column, triplet index) and duplicates are summed in that order,
+ * so the values do not depend on thread scheduling.  The triplet arrays are
  * consumed.
  */
 inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVector<Long>& cols,
@@ -174,53 +246,7 @@ inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVect
 {
     BL_PROFILE("composite::triplets_to_spmatrix");
     AMREX_ALWAYS_ASSERT(rows.size() == cols.size() && rows.size() == vals.size());
-    const Long row_end = row_begin + nrows;
-
-    if (ParallelDescriptor::NProcs(comm) > 1) {
-        // Gather the triplets of other ranks' rows, exchange them on the
-        // host and append the ones received
-        const auto n = Long(rows.size());
-        auto const* pr = rows.data();
-        auto const* pc = cols.data();
-        auto const* pv = vals.data();
-        Gpu::DeviceVector<Long> pos(n);
-        auto* ppos = pos.data();
-        const Long nsend = Scan::PrefixSum<Long>(n,
-            [=] AMREX_GPU_DEVICE (Long i) -> Long { return (pr[i] < row_begin || pr[i] >= row_end) ? 1 : 0; },
-            [=] AMREX_GPU_DEVICE (Long i, Long const& x) { ppos[i] = x; },
-            Scan::Type::exclusive, Scan::retSum);
-        Gpu::DeviceVector<Triplet> dsend(nsend);
-        auto* ps = dsend.data();
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-        {
-            if (pr[i] < row_begin || pr[i] >= row_end) {
-                ps[ppos[i]] = Triplet{.row = pr[i], .col = pc[i], .val = pv[i]};
-            }
-        });
-        Vector<Triplet> hsend(nsend);
-        Gpu::copyAsync(Gpu::deviceToHost, dsend.begin(), dsend.end(), hsend.begin());
-        Gpu::streamSynchronize();
-        Vector<Triplet> const hrecv = exchange_triplets(std::move(hsend), rank_offset, comm);
-        const auto nrecv = Long(hrecv.size());
-        if (nrecv > 0) {
-            Gpu::DeviceVector<Triplet> drecv(nrecv);
-            Gpu::copyAsync(Gpu::hostToDevice, hrecv.begin(), hrecv.end(), drecv.begin());
-            rows.resize(n+nrecv);
-            cols.resize(n+nrecv);
-            vals.resize(n+nrecv);
-            auto const* pt = drecv.data();
-            auto* r = rows.data();
-            auto* c = cols.data();
-            auto* v = vals.data();
-            amrex::ParallelFor(nrecv, [=] AMREX_GPU_DEVICE (Long i) noexcept
-            {
-                r[n+i] = pt[i].row;
-                c[n+i] = pt[i].col;
-                v[n+i] = pt[i].val;
-            });
-            Gpu::streamSynchronize();
-        }
-    }
+    localize_triplets(rows, cols, vals, row_begin, nrows, rank_offset, comm);
 
     // Bucket the triplet indices by row
     const auto ntrip = Long(rows.size());
@@ -233,9 +259,7 @@ inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVect
     auto* pstart = start.data();
     amrex::ParallelFor(ntrip, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        if (pr[i] >= row_begin && pr[i] < row_end) {
-            Gpu::Atomic::AddNoRet(pcnt + (pr[i]-row_begin), 1);
-        }
+        Gpu::Atomic::AddNoRet(pcnt + (pr[i]-row_begin), 1);
     });
     const Long n_owned = Scan::PrefixSum<Long>(nrows,
         [=] AMREX_GPU_DEVICE (Long r) -> Long { return pcnt[r]; },
@@ -249,10 +273,8 @@ inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVect
     auto* pp = perm.data();
     amrex::ParallelFor(ntrip, [=] AMREX_GPU_DEVICE (Long i) noexcept
     {
-        if (pr[i] >= row_begin && pr[i] < row_end) {
-            const Long r = pr[i]-row_begin;
-            pp[pstart[r] + Gpu::Atomic::Add(pcnt+r, 1)] = i;
-        }
+        const Long r = pr[i]-row_begin;
+        pp[pstart[r] + Gpu::Atomic::Add(pcnt+r, 1)] = i;
     });
 
     // Sort each row by (column, triplet index) and count its distinct columns
