@@ -92,7 +92,7 @@ bool.false_val = false
 bool.True_val = True
 bool.FALSE_val = FALSE
 bool.t_val = t
-bool.f_val = f
+bool.f_val = F
 
 # query bool with parser
 my_value = 10

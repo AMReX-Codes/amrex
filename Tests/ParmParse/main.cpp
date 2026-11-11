@@ -298,6 +298,46 @@ int main(int argc, char* argv[])
         pp.get("f_val", v);
         AMREX_ALWAYS_ASSERT(v == false);
     }
+    { // for numbers, t and f refer to a parameter of that name if there is one
+        ParmParse pg;
+        pg.add("T", 300);
+        pg.add("true", 5);
+        ParmParse pp("tf");
+        pp.add("temp", std::string("T"));
+        pp.add("flag", std::string("true"));
+        // The inputs file has a parameter f (first value 3+4), but no t or F.
+        pp.addarr("arr", std::vector<std::string>{"T", "f", "t", "F", "2"});
+
+        int i = -1;
+        long long ll = -1;
+        float f = -1.F;
+        double d = -1.;
+        bool b = false;
+        pp.get("temp", i);
+        pp.get("temp", ll);
+        pp.get("temp", f);
+        pp.get("temp", d);
+        pp.get("temp", b); // always a literal for bool
+        AMREX_ALWAYS_ASSERT(i == 300 && ll == 300 && f == 300.F && d == 300. && b);
+
+        // true and false are always literals
+        pp.get("flag", i);
+        pp.get("flag", d);
+        AMREX_ALWAYS_ASSERT(i == 1 && d == 1.);
+
+        std::vector<int> iarr;
+        std::vector<double> darr;
+        pp.getarr("arr", iarr);
+        pp.getarr("arr", darr);
+        AMREX_ALWAYS_ASSERT(iarr.size() == 5 && iarr[0] == 300 && iarr[1] == 7 &&
+                            iarr[2] == 1 && iarr[3] == 0 && iarr[4] == 2);
+        AMREX_ALWAYS_ASSERT(darr.size() == 5 && darr[0] == 300. && darr[1] == 7. &&
+                            darr[2] == 1. && darr[3] == 0. && darr[4] == 2.);
+
+        // keep later tests unaffected
+        pg.remove("T");
+        pg.remove("true");
+    }
     {
         ParmParse pp;
         bool my_bool_flag_1 = false;
