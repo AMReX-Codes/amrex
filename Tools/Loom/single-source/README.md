@@ -2,37 +2,39 @@
 
 This directory reproduces the single-source LOOM test: AMReX's single-GPU tests
 built with one C++ frontend (cxx) for both host and device code, and one set of
-libc++ headers for both. cxx compiles each file twice:
+libc++ headers for both. Each file is compiled by Loom's offload driver,
+`loom-cxx`, which parses and type-checks it once with cxx and gives that one
+translation unit to both back ends:
 
-1. to x86-64 host code, through cxx's MLIR/LLVM back end;
-2. through Loom's C++ importer (which embeds the same cxx) and `loom-compile`,
-   to a gfx90a code object that is embedded in the host object.
+1. host code, through cxx's MLIR/LLVM back end (first, so device import cannot
+   change it);
+2. the launched kernels, through Loom's C++ importer and the Loom compiler, to
+   a gfx90a code object that is embedded in the same object file, with the
+   kernel descriptors the host code references.
 
 HRX is the GPU runtime, on its native AMD GPU driver (libamdf); no part of
 ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
 `GPU_CNS_Sod_3d` and `GPU_ExternalStream_3d` pass, and that the CNS run agrees
 with `cns-expected.txt` to round-off.
 
-The device pass sees the same headers as the host pass, including Loom's
-`loomcxx/` headers. Loom's importer lowers the C math functions and their
-`__builtin_*` forms itself, so no device prelude is injected.
+Host and device code come from the same parse, so they see the same headers,
+including Loom's `loomcxx/` headers. Loom's importer lowers the C math functions
+and their `__builtin_*` forms itself, so no device prelude is injected.
 
 Inside functions that run on both sides, `AMREX_IF_ON_DEVICE` and
 `AMREX_IF_ON_HOST` expand to ordinary `if` statements on
 `loom::target::is_device()` (`<loomcxx/target.h>`). The host compiler sees a
 constant `false` and emits only the host arm, even at `-O0`; the importer
-folds the call to `true` and imports only the device arm. Both arms parse in
-both passes.
+folds the call to `true` and imports only the device arm. Both arms are parsed
+(once).
 
 Device code is written on Loom's own C++ API, loomcxx
 (`Src/Base/AMReX_LoomDevice.H`): kernel topology, workgroup barriers and
 `[[loom::workgroup]]` storage, atomics, fences, subgroup shuffles and
 `loom::scalar` math. Loom operations are declarations, which the host never
-emits because only kernel bodies and device arms reach them. Kernel templates
-are defined in both passes; host code names them only through
-`loom::kernel::kernel_ref`. Nothing in AMReX tests which pass it is in: the
-only difference between the passes is Loom's predefined `__loom__`, which
-AMReX does not use.
+emits because only kernel bodies and device arms reach them. Host code names
+kernel templates only through `loom::kernel::kernel_ref`. Nothing in AMReX
+tests which back end it is compiled for.
 
 ## Requirements
 
@@ -44,8 +46,8 @@ AMReX does not use.
   headers).
 - glibc headers (`/usr/include` on most systems).
 - [pixi](https://pixi.sh) for the conda-forge packages in `pixi.toml`:
-  clang 22.1.8 (builds the tools and links), MLIR/LLVM 22.1.8 (cxx's back end),
-  libc++ 23.1.5 (host and device), CMake and Ninja.
+  clang 22.1.8 (builds the tools and links), MLIR/LLVM 22.1.8 (cxx's back end,
+  linked into `loom-cxx`), libc++ 23.1.5 (host and device), CMake and Ninja.
 - About 30 GB of disk, and a few GB of memory per build job.
 
 ## Steps
@@ -76,16 +78,18 @@ running the scripts:
 Then, from `loom-work` (on a GPU node for the last step):
 
 ```bash
-$S/build-cxx.sh     # cxx with its MLIR back end              (build/cxx)
-$S/build-hrx.sh     # loom-import-cxx, loom-compile, libhrx    (build/hrx)
-$S/build-amrex.sh   # AMReX LOOM backend and the three tests   (build/amrex)
+$S/build-hrx.sh     # loom-cxx (with cxx and its MLIR back end), libhrx  (build/hrx)
+$S/build-amrex.sh   # AMReX LOOM backend and the three tests             (build/amrex)
 $S/run-tests.sh     # ctest for the three tests, then the CNS check
 ```
 
-`build-hrx.sh` points HRX's cxx dependency at the `cplusplus` clone
-(`FETCHCONTENT_SOURCE_DIR_CXX`), so Loom's importer and the host compiler are
-built from the same cxx source. It builds only HRX's native AMD GPU driver, and
-`env.sh` selects it (`HRX_GPU_DRIVER=amdgpu`).
+`build-hrx.sh` configures HRX with `LOOM_CXX_HOST_CODEGEN=ON` and points HRX's
+cxx dependency at the `cplusplus` clone (`FETCHCONTENT_SOURCE_DIR_CXX`): HRX
+builds cxx through cxx's own CMake project with its MLIR back end (pixi's
+MLIR/LLVM), and `loom-cxx` links that one copy of cxx with Loom's importer and
+compiler. (`build-cxx.sh` only prepares pixi's MLIR package; `build-hrx.sh` runs
+it.) HRX builds only its native AMD GPU driver, and `env.sh` selects it
+(`HRX_GPU_DRIVER=amdgpu`).
 
 ## Expected result
 
@@ -103,12 +107,13 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
 
 ## Notes
 
-- Memory: keep `BUILD_JOBS` modest. Each cxx host compile and each device import
-  takes a few GB.
+- Memory: keep `BUILD_JOBS` modest. Each `loom-cxx` compile takes a few GB.
 - Executables link with `-no-pie`: cxx does not generate position-independent
   code yet.
 - Kernels that the importer cannot translate are dropped and reported by
-  `amrex-loom-cxx` (`dropped N launched kernel(s)`); none of them is reached by
-  the three tests.
-- The driver and the host-compiler wrapper are `../amrex-loom-cxx` and
-  `../amrex-loom-host-cxx`; both document their environment variables.
+  `loom-cxx` (`dropped N launched kernel(s)`, `--loom-drop-failed-kernels`);
+  none of them is reached by the three tests. Host errors are compile errors.
+- `../amrex-loom-cxx` is the compiler AMReX is configured with: it calls
+  `loom-cxx` once per compile and `clang++` to link, and documents its
+  environment variables. `loom-cxx --loom-stats` reports, per file, that the
+  source was preprocessed and parsed once, and the time of each phase.
