@@ -118,7 +118,6 @@ public :
      */
     void setRZCorrection (bool rz) noexcept {
         m_is_rz = rz;
-        spUpdateScale();
         this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setRZCorrection(rz); });
     }
 
@@ -145,9 +144,9 @@ public :
      */
     void setSigma (int amrlev, const MF& a_sigma);
 
-    //! Mixed precision: send the sigma of AMR level amrlev, scaled, to the
-    //! single precision copy.  Public for CUDA.
-    void spForwardSigma (int amrlev, MF const& a_sigma);
+    //! Mixed precision: send sigma, scaled, to the single precision copy.
+    //! Public for CUDA.
+    void spForwardSigma ();
 
     //! Compute `rhs = div(vel)` on nodal grids (used for projections).
     void compDivergence (const Vector<MF*>& rhs, const Vector<MF*>& vel);
@@ -393,7 +392,7 @@ protected:
     void spCopySettings () override
     {
         MLNodeLinOpT<MF>::spCopySettings();
-        if (m_is_rz) { setRZCorrection(true); } // also sets the scale
+        if (m_is_rz) { setRZCorrection(true); }
         setNormalizationThreshold(m_normalization_threshold);
         setGaussSeidel(m_use_gauss_seidel);
         setHarmonicAverage(m_use_harmonic_average);
@@ -404,12 +403,12 @@ protected:
     void resizeMultiGrid (int new_size) final;
 
     //! Mixed precision: the copy's sigma is m_sp_sigma_scale times ours and
-    //! its lengths m_sp_length_scale times ours (the RZ stencil carries one
-    //! power of r).
+    //! its lengths m_sp_length_scale times ours.  The RZ terms do not depend
+    //! on the length.
     void spUpdateScale () noexcept {
         if (this->m_sp_linop) {
             this->m_sp_scale = m_sp_sigma_scale
-                * static_cast<RT>(std::pow(this->m_sp_length_scale, m_is_rz ? -1 : -2));
+                * static_cast<RT>(std::pow(this->m_sp_length_scale, -2));
         }
     }
 

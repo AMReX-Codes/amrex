@@ -523,6 +523,7 @@ MLNodeLinOpT<MF>::setOversetMask (int amrlev, const iMultiFab& a_dmask)
     }
     m_masks_built = false;
     m_overset_dirichlet_mask = true;
+    this->template spForward<MLNodeLinOpT>([&] (auto* sp) { sp->setOversetMask(amrlev, a_dmask); });
 }
 
 template <typename MF>

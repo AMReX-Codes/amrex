@@ -89,12 +89,16 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     m_integral.resize(this->m_num_amr_levels);
     m_surface_integral.resize(this->m_num_amr_levels);
     m_eb_vel_dot_n.resize(this->m_num_amr_levels);
-    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
-    {
-        m_integral[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
-                                                  this->m_dmap[amrlev][0],
-                                                  ncomp_i, 1, MFInfo(),
-                                                  *this->m_factory[amrlev][0]);
+    if constexpr (std::is_same_v<MF,MultiFab>) { // EB needs double precision
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
+        {
+            m_integral[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
+                                                      this->m_dmap[amrlev][0],
+                                                      ncomp_i, 1, MFInfo(),
+                                                      *this->m_factory[amrlev][0]);
+        }
+    } else {
+        amrex::ignore_unused(ncomp_i);
     }
 #endif
 
@@ -110,6 +114,12 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
              static_cast<float>(m_sp_sigma_scale * a_const_sigma));
     });
     spUpdateScale();
+
+    // A constant sigma fixes the coarsening strategy.  Neither mixed precision
+    // nor the single precision operator has EB, so use the non-EB default.
+    if (m_const_sigma != RT(0.0) && (this->m_sp_linop || !std::is_same_v<MF,MultiFab>)) {
+        this->m_coarsening_strategy = CoarseningStrategy::Sigma;
+    }
 
     m_needs_update = true;
 }
@@ -426,56 +436,41 @@ MLNodeLaplacianT<MF>::setSigma (int amrlev, const MF& a_sigma)
     }
 
     m_needs_update = true;
-
-    if (this->m_sp_linop) {
-        // Mixed precision: one scale for all AMR levels, from the largest sigma.
-        RT smax = RT(0.0);
-        for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
-            for (auto const& sg : m_sigma[alev][0]) {
-                if (sg) { smax = std::max(smax, sg->norminf(0, 1, IntVect(0), true)); }
-            }
-        }
-        ParallelAllReduce::Max(smax, ParallelContext::CommunicatorSub());
-        RT const s = this->spScaleFor(smax);
-        if (s != m_sp_sigma_scale) {
-            m_sp_sigma_scale = s;
-            spUpdateScale();
-            for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
-                if (alev != amrlev) {
-                    int ncomp = 1;
-                    if (m_use_mapped) { ncomp = AMREX_SPACEDIM; }
-                    MF tmp(this->m_grids[alev][0], this->m_dmap[alev][0], ncomp, 0);
-                    for (int n = 0; n < ncomp; ++n) {
-                        auto const& src = m_sigma[alev][0][n] ? m_sigma[alev][0][n] : m_sigma[alev][0][0];
-                        amrex::Copy(tmp, *src, 0, n, 1, 0);
-                    }
-                    spForwardSigma(alev, tmp);
-                }
-            }
-        }
-        spForwardSigma(amrlev, a_sigma);
-    }
 }
 
 template <typename MF>
 void
-MLNodeLaplacianT<MF>::spForwardSigma (int amrlev, MF const& a_sigma)
+MLNodeLaplacianT<MF>::spForwardSigma ()
 {
     if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-        int const ncomp = a_sigma.nComp();
-        fMultiFab fsigma(a_sigma.boxArray(), a_sigma.DistributionMap(), ncomp, 0);
-        auto const& fa = fsigma.arrays();
-        auto const& sa = a_sigma.const_arrays();
+        // One scale for all AMR levels, from the largest sigma.
+        RT smax = RT(0.0);
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            for (auto const& sg : m_sigma[amrlev][0]) {
+                if (sg) { smax = std::max(smax, sg->norminf(0, 1, IntVect(0), true)); }
+            }
+        }
+        ParallelAllReduce::Max(smax, ParallelContext::CommunicatorSub());
+        m_sp_sigma_scale = this->spScaleFor(smax);
+        spUpdateScale();
+
+        int ncomp = 1;
+        if (m_use_mapped) { ncomp = AMREX_SPACEDIM; }
         RT const s = m_sp_sigma_scale;
-        ParallelFor(fsigma, IntVect(0), ncomp,
-        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n) noexcept
-        {
-            fa[b](i,j,k,n) = static_cast<float>(s * sa[b](i,j,k,n));
-        });
-        Gpu::streamSynchronize();
-        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setSigma(amrlev, fsigma); });
-    } else {
-        amrex::ignore_unused(amrlev, a_sigma);
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            fMultiFab fsigma(this->m_grids[amrlev][0], this->m_dmap[amrlev][0], ncomp, 0);
+            auto const& fa = fsigma.arrays();
+            for (int n = 0; n < ncomp; ++n) {
+                auto const& src = m_sigma[amrlev][0][n] ? m_sigma[amrlev][0][n] : m_sigma[amrlev][0][0];
+                auto const& sa = src->const_arrays();
+                ParallelFor(fsigma, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+                {
+                    fa[b](i,j,k,n) = static_cast<float>(s * sa[b](i,j,k));
+                });
+            }
+            Gpu::streamSynchronize();
+            this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setSigma(amrlev, fsigma); });
+        }
     }
 }
 
@@ -539,6 +534,8 @@ MLNodeLaplacianT<MF>::prepareForSolve ()
     // precision, which loses small couplings and slows convergence.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->m_sp_linop || this->m_coarsening_strategy != CoarseningStrategy::RAP,
         "MLNodeLaplacian: mixed precision needs CoarseningStrategy::Sigma (setCoarseningStrategy)");
+
+    if (this->m_sp_linop && m_sigma[0][0][0]) { spForwardSigma(); }
 
     MLNodeLinOpT<MF>::prepareForSolve();
 

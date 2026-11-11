@@ -93,12 +93,11 @@ MLNodeLaplacianT<MF>::buildStencil ()
                     Array4<RT> const ns_starr = m_nosigma_stencil[amrlev] ?
                         m_nosigma_stencil[amrlev]->array(mfi) : Array4<RT>{};
 #ifdef AMREX_USE_EB
-                    Array4<RT const> const& intgarr = intg->const_array(mfi);
-
                     const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
                     if (factory)
                     {
+                        Array4<RT const> const& intgarr = intg->const_array(mfi);
                         Array4<EBCellFlag const> const& flagarr = flags->const_array(mfi);
                         Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
                         const auto& flag = (*flags)[mfi];
