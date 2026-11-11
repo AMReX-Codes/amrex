@@ -3,24 +3,17 @@
 // The launch registry is shared: the amrex-loom-cxx driver embeds each
 // translation unit's Loom code object and kernel manifest, registers them
 // before main(), and launches pack kernel arguments from the host launch tag
-// following the manifest. Two runtimes dispatch the packed arguments:
-//
-//  * NATIVE (default): this file also implements the HIP runtime subset
-//    declared by Tools/Loom/hip/hip/hip_runtime.h on libhrx. Single device;
-//    streams are HRX streams, each bound to its own HRX queue where the device
-//    allows. Needs no HIP headers.
-//  * HRX_HIP: HRX's libamdhip64.so implements the HIP runtime, and launches go
-//    through hipModuleLaunchKernel. Needs a HIP API header
-//    (AMReX_LOOM_HIP_INCLUDE_DIR); HRX does not install one yet.
+// following the manifest. This file also implements the HIP runtime subset
+// declared by Tools/Loom/hip/hip/hip_runtime.h on libhrx. Single device;
+// streams are HRX streams, each bound to its own HRX queue where the device
+// allows. Needs no HIP headers.
 #include <AMReX_Config.H>
 
 // The Loom device pass never needs this host-only file.
 #if defined(AMREX_USE_LOOM) && !defined(__loom__)
 
 #include <hip/hip_runtime.h>
-#if !defined(AMREX_LOOM_HRX_HIP)
 #include <hrx_runtime.h>
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -36,7 +29,7 @@
 
 namespace {
 
-// --- launch registry (both runtimes) ----------------------------------------
+// --- launch registry ---------------------------------------------------------
 
 // One kernel ABI argument, copied from the host launch tag.
 struct Argument {
@@ -167,80 +160,7 @@ void amrex_loom_launch(const char* tag_type_name, const void* tag, std::size_t t
                           shared_bytes, stream);
 }
 
-#if defined(AMREX_LOOM_HRX_HIP)
-
-// --- HRX_HIP runtime ----------------------------------------------------------
-
-namespace {
-
-struct Kernel {
-  ManifestKernel manifest;
-  hipFunction_t function = nullptr;
-};
-
-std::mutex g_mutex;
-std::unordered_map<std::string, Kernel> g_kernels;
-std::vector<hipModule_t> g_modules;
-bool g_images_loaded = false;
-
-void hip_check(hipError_t error, const char* what) {
-  if (error == hipSuccess) return;
-  std::fprintf(stderr, "amrex loom: %s failed: %s\n", what, hipGetErrorString(error));
-  std::abort();
-}
-
-void load_images() {
-  std::lock_guard<std::mutex> lock(g_mutex);
-  if (g_images_loaded) return;
-  for (const Image& image : images()) {
-    hipModule_t module = nullptr;
-    hip_check(hipModuleLoadData(&module, image.data), "hipModuleLoadData");
-    g_modules.push_back(module);
-    for (auto& entry : parse_manifest(image.manifest)) {
-      if (g_kernels.count(entry.name)) continue;
-      Kernel k;
-      hip_check(hipModuleGetFunction(&k.function, module, entry.name.c_str()),
-                "hipModuleGetFunction");
-      std::string name = entry.name;
-      k.manifest = std::move(entry);
-      g_kernels.emplace(std::move(name), std::move(k));
-    }
-  }
-  g_images_loaded = true;
-}
-
-}  // namespace
-
-void amrex_loom_launch_named(const char* kernel_name, const char* tag_type_name,
-                             const void* tag, std::size_t tag_size, dim3 grid,
-                             dim3 block, std::size_t shared_bytes,
-                             hipStream_t stream) {
-  load_images();
-  std::string name = std::string(kernel_name) + "__" + tag_type_name;
-  auto found = g_kernels.find(name);
-  const Kernel* kernel = found == g_kernels.end() ? nullptr : &found->second;
-  if (!check_launch(kernel ? &kernel->manifest : nullptr, tag_type_name, tag_size, grid,
-                    shared_bytes)) {
-    return;
-  }
-  std::vector<uint8_t> kernarg = pack_kernargs(kernel->manifest, tag_type_name, tag, tag_size);
-  std::size_t kernarg_size = kernarg.size();
-  trace_launch(name, grid, block, kernarg_size);
-  // The buffer is already in the kernel's native kernarg layout. Dynamic shared
-  // memory is a fixed workgroup buffer inside the kernel.
-  void* extra[] = {HIP_LAUNCH_PARAM_BUFFER_POINTER, kernarg.data(),
-                   HIP_LAUNCH_PARAM_BUFFER_SIZE, &kernarg_size, HIP_LAUNCH_PARAM_END};
-  hip_check(hipModuleLaunchKernel(kernel->function, grid.x, grid.y, grid.z,
-                                  block.x, block.y, block.z, 0, stream, nullptr, extra),
-            "hipModuleLaunchKernel");
-  if (sync_after_launch()) {
-    hip_check(hipStreamSynchronize(stream), "hipStreamSynchronize");
-  }
-}
-
-#else  // NATIVE
-
-// --- NATIVE runtime: HIP subset on libhrx -------------------------------------
+// --- HIP runtime subset on libhrx ---------------------------------------------
 
 namespace {
 
@@ -818,7 +738,5 @@ void shutdown() {
 }
 
 }  // namespace
-
-#endif  // AMREX_LOOM_HRX_HIP
 
 #endif  // AMREX_USE_LOOM
