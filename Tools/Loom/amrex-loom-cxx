@@ -16,7 +16,9 @@
 #   AMREX_LOOM_LOOMCXX_DIR    directory containing loomcxx/ headers
 #   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libc++/compiler/libc include dirs
 #   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
-# Optional: AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
+# Optional: AMREX_LOOM_PYTHON  Python 3 that reads loom-compile's JSON report
+#           (default: python3 on PATH).
+#           AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
 #           AMREX_LOOM_DEVICE_STRICT=1 fails the compile when the device pass
 #           fails, instead of keeping a host-only object.
 set -o pipefail
@@ -73,7 +75,9 @@ for d in "${sysdirs[@]}"; do [[ -n "$d" ]] && dev+=(--isystem="$d"); done
 abs_src=$(cd "$(dirname "$src")" && pwd)/$(basename "$src")
 printf '#include <amrex_loom_device_prelude.H>\n#include "%s"\n' "$abs_src" > "$tmp/dev.cpp"
 # Import, then compile. Kernels the compiler rejects are excluded by export
-# name and the unit is re-imported (best effort: at most four rounds).
+# name and the unit is re-imported (best effort: at most five rounds). The
+# names come from the export_name field of the error diagnostics in
+# loom-compile's JSON compile report; compile.log keeps the text diagnostics.
 excluded=()
 for round in 1 2 3 4 5; do
 "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
@@ -98,11 +102,27 @@ if [[ $ndrop -gt 0 && $round == 1 ]]; then
 fi
 [[ -s "$tmp/manifest" ]] || exit 0
 
+rm -f "$tmp/compile-report.json"
 "$AMREX_LOOM_COMPILE" "$tmp/dev.loombc" --target=amdgpu:"$AMREX_LOOM_TARGET" \
-  --format=amdgpu-hsaco --output="$tmp/dev.hsaco" > "$tmp/compile.log" 2>&1
+  --format=amdgpu-hsaco --output="$tmp/dev.hsaco" \
+  --compile-report=json-details --compile-report-output="$tmp/compile-report.json" \
+  > "$tmp/compile.log" 2>&1
 rc=$?
 [[ $rc -eq 0 ]] && break
-rejected=$(grep -o "export '[^']*'" "$tmp/compile.log" | sed "s/export '//; s/'\$//" | sort -u)
+rejected=$("${AMREX_LOOM_PYTHON:-python3}" -c '
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        report = json.load(f)
+except (OSError, ValueError):
+    sys.exit(0)
+for d in report.get("diagnostics", []):
+    if d.get("severity") != "error":
+        continue
+    name = d.get("export_name") or (d.get("params") or {}).get("export_name")
+    if name:
+        print(name)
+' "$tmp/compile-report.json" | sort -u)
 if [[ -z "$rejected" || $round == 5 ]]; then
   echo "amrex-loom-cxx: device compile failed for $src" >&2
   sed 's|^|  |' "$tmp/compile.log" | head -40 >&2
