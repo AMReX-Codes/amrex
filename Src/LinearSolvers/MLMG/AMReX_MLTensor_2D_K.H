@@ -57,7 +57,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dlo.x == vlo.x) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -99,7 +99,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dhi.x == vhi.x) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -141,7 +141,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dlo.x == vlo.x) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -183,7 +183,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 }
             } else if (x_interior || dhi.x == vhi.x) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {

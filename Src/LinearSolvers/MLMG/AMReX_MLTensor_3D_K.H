@@ -45,7 +45,7 @@ void mltensor_fill_edges_xlo_ylo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
                                    bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xlo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -104,7 +104,7 @@ void mltensor_fill_edges_xhi_ylo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::ylo(), icomp),
                                    bcl(Orientation::ylo(), icomp),
                                    bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -163,7 +163,7 @@ void mltensor_fill_edges_xlo_yhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
                                    bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xlo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -222,7 +222,7 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::yhi(), icomp),
                                    bcl(Orientation::yhi(), icomp),
                                    bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -281,7 +281,7 @@ void mltensor_fill_edges_xlo_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
                                    bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xlo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -340,7 +340,7 @@ void mltensor_fill_edges_xhi_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
                                    bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -399,7 +399,7 @@ void mltensor_fill_edges_xlo_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xlo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -458,7 +458,7 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -517,7 +517,7 @@ void mltensor_fill_edges_ylo_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
                                    bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (y_interior || ylo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -576,7 +576,7 @@ void mltensor_fill_edges_yhi_zlo (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zlo(), icomp),
                                    bcl(Orientation::zlo(), icomp),
                                    bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (y_interior || yhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -635,7 +635,7 @@ void mltensor_fill_edges_ylo_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (y_interior || ylo_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -694,7 +694,7 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bct(Orientation::zhi(), icomp),
                                    bcl(Orientation::zhi(), icomp),
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
             }
         } else if (y_interior || yhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
@@ -798,7 +798,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xlo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -809,7 +809,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
@@ -820,7 +820,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -885,7 +885,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -896,7 +896,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (ylo_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
@@ -907,7 +907,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -972,7 +972,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xlo_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -983,7 +983,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
@@ -994,7 +994,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -1059,7 +1059,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xhi_domain && zlo_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -1070,7 +1070,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (yhi_domain && zlo_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
@@ -1081,7 +1081,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
                                        bcvalzlo, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -1146,7 +1146,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xlo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -1157,7 +1157,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
@@ -1168,7 +1168,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -1233,7 +1233,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
                                        bcvalylo, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -1244,7 +1244,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (ylo_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
@@ -1255,7 +1255,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -1320,7 +1320,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xlo_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -1331,7 +1331,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
@@ -1342,7 +1342,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
@@ -1407,7 +1407,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp, shy, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((x_interior && z_interior) || (xhi_domain && zhi_domain)) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
@@ -1418,7 +1418,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if ((y_interior && z_interior) || (yhi_domain && zhi_domain)) {
                     mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
@@ -1429,7 +1429,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
                                        bcvalzhi, maxorder, dxinv[2], inhomog, icomp, shz, blen);
-                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                    vel(i,j,k,icomp) = T(0.5)*(tmp+vel(i,j,k,icomp));
                 } else if (x_interior) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),

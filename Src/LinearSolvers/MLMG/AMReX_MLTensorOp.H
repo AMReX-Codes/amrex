@@ -125,7 +125,12 @@ public:
      * \param amrlev AMR level receiving the data.
      * \param kappa  Array of MultiFabs, one per spatial direction.
      */
-    template <typename AMF>
+    void setBulkViscosity (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& kappa) {
+        setBulkViscosity<MF>(amrlev, kappa);
+    }
+    //! Same, for MultiFabs of another precision.
+    template <FabArrayType AMF>
+    requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
     void setBulkViscosity (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& kappa);
     /**
      * \brief Populate `kappa` with a constant scalar.
@@ -232,7 +237,12 @@ public:
      *               each with AMREX_SPACEDIM components holding the mapping
      *               factors dx_j/dxi_j at that face.
      */
-    template <typename AMF>
+    void setMappingFactors (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& fac) {
+        setMappingFactors<MF>(amrlev, fac);
+    }
+    //! Same, for MultiFabs of another precision.
+    template <FabArrayType AMF>
+    requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
     void setMappingFactors (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& fac);
 
     //! True if setMappingFactors has been called for any AMR level.
@@ -275,7 +285,8 @@ public: // for cuda
 };
 
 template <typename MF>
-template <typename AMF>
+template <FabArrayType AMF>
+requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLTensorOpT<MF>::setBulkViscosity (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& kappa)
 {
@@ -288,7 +299,8 @@ MLTensorOpT<MF>::setBulkViscosity (int amrlev, const Array<AMF const*,AMREX_SPAC
 }
 
 template <typename MF>
-template <typename AMF>
+template <FabArrayType AMF>
+requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLTensorOpT<MF>::setMappingFactors (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& fac)
 {
@@ -307,12 +319,13 @@ MLTensorOpT<MF>::setMappingFactors (int amrlev, const Array<AMF const*,AMREX_SPA
     this->template spForward<MLTensorOpT>([&] (auto* sp) { sp->setMappingFactors(amrlev, fac); });
 }
 
+// Member functions are defined in the .cpp file.  Only these instantiations exist.
 extern template class MLTensorOpT<MultiFab>;
 #ifdef AMREX_MLMG_HAS_FLOAT
 extern template class MLTensorOpT<fMultiFab>;
 #endif
 
-//! Double precision tensor operator.
+/// \ingroup amrex_solver_mlmg
 using MLTensorOp = MLTensorOpT<MultiFab>;
 
 }
