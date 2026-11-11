@@ -11,7 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#if !defined(__loom__)
+#if !defined(AMREX_LOOM_DEVICE_PASS)
 #include <cmath>
 #include <random>
 #include <vector>
@@ -68,7 +68,7 @@ AMREX_LOOM_DEVICE_INLINE float hiprand_uniform(hiprandState_t* state) {
   return (static_cast<float>(bits) + 1.0f) * (1.0f / 16777216.0f);
 }
 
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 #define AMREX_LOOM_LOG(x) __builtin_log(x)
 #define AMREX_LOOM_SQRT(x) __builtin_sqrt(x)
 #define AMREX_LOOM_COS(x) __builtin_cos(x)
@@ -107,7 +107,7 @@ enum hiprandRngType_t { HIPRAND_RNG_PSEUDO_DEFAULT = 400 };
 struct amrex_loom_rand_generator;
 typedef amrex_loom_rand_generator* hiprandGenerator_t;
 
-#if !defined(__loom__)
+#if !defined(AMREX_LOOM_DEVICE_PASS)
 struct amrex_loom_rand_generator {
   std::mt19937_64 engine{20260108ull};
 };

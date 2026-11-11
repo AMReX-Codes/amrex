@@ -6,7 +6,7 @@
 //    Src/Base/AMReX_Loom.cpp;
 //  * device vocabulary (thread ids, barriers, atomics, shuffles) implemented
 //    on Loom C++ operations when the Loom device pass reads the file
-//    (__loom__), and as inert host definitions otherwise;
+//    (AMREX_LOOM_DEVICE_PASS), and as inert host definitions otherwise;
 //  * AMREX_LAUNCH_KERNEL(MT, ...) routed to a fixed-size Loom kernel template
 //    instance named by the Itanium type name of its launch tag (see
 //    amrex_loom_launch_named). Launches need a compile-time block size MT.
@@ -18,7 +18,17 @@
 #include <cstring>
 #include <type_traits>
 
+// AMREX_LOOM_DEVICE_PASS is defined exactly when Loom's C++ importer reads
+// the translation unit. This is the only test of the importer's predefined
+// __loom__: the rest of the LOOM backend uses AMREX_LOOM_DEVICE_PASS.
+// AMReX sources under Src/ test neither; they see the device pass only
+// through the HIP vocabulary below (__HIP_DEVICE_COMPILE__). Replace this
+// test when Loom no longer predefines __loom__.
 #if defined(__loom__)
+#define AMREX_LOOM_DEVICE_PASS 1
+#endif
+
+#if defined(AMREX_LOOM_DEVICE_PASS)
 #include <loomcxx/atomic.h>
 #include <loomcxx/buffer.h>
 #include <loomcxx/kernel.h>
@@ -52,7 +62,7 @@
 #define __managed__ _Pragma("GCC error \"AMReX LOOM backend: __managed__ variables are not supported\"")
 #define __forceinline__ inline __attribute__((always_inline))
 #define __launch_bounds__(...)
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 #define __shared__ [[loom::workgroup]]
 #else
 #define __shared__ static
@@ -260,7 +270,7 @@ struct amrex_loom_uint3 {
   unsigned int x, y, z;
 };
 
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 AMREX_LOOM_DEVICE_INLINE amrex_loom_uint3 amrex_loom_thread_idx() {
   return {static_cast<unsigned>(loom::kernel::workitem::id.x),
           static_cast<unsigned>(loom::kernel::workitem::id.y),
@@ -310,7 +320,7 @@ inline constexpr int warpSize = 64;
 
 // HIP device math beyond <cmath>. Only device code (AMREX_IF_ON_DEVICE)
 // references these.
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 AMREX_LOOM_DEVICE_INLINE double sinpi(double x) { return __builtin_sin(3.141592653589793238462643 * x); }
 AMREX_LOOM_DEVICE_INLINE float sinpif(float x) { return __builtin_sinf(3.14159265358979323846f * x); }
 AMREX_LOOM_DEVICE_INLINE double cospi(double x) { return __builtin_cos(3.141592653589793238462643 * x); }
@@ -345,7 +355,7 @@ template <class T>
 inline constexpr bool atomic_float = std::is_floating_point_v<T>;
 }  // namespace amrex_loom_detail
 
-#if defined(__loom__)
+#if defined(AMREX_LOOM_DEVICE_PASS)
 #define AMREX_LOOM_RMW(KIND, value, pointer)                                  \
   loom::view::atomic::rmw<loom::atomic::kind::KIND,                           \
                           loom::atomic::ordering::relaxed,                    \
