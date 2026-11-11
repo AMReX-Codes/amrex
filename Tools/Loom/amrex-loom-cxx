@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Single-source C++ compiler driver for AMReX_GPU_BACKEND=LOOM.
 #
-# Compile (-c): run the host compiler, then the Loom device pass on the same
-# source with the same -I/-isystem/-D/-std flags. If the translation unit
-# launches kernels, compile them for the target GPU and link an embedded HSACO
-# plus its launch manifest into the requested object (registered at startup
-# with amrex_loom_register_executable).
+# Compile (-c): run the host compiler. If the host object references Loom
+# kernel descriptors (loom::kernel::kernel_ref<&K>, odr-used by launch sites),
+# run the Loom device pass on the same source with the same -I/-isystem/-D/-std
+# flags: it compiles the referenced kernels for the target GPU and defines
+# their descriptors. Link the embedded HSACO (registered at startup with
+# amrex_loom_register_executable) and the descriptors into the requested
+# object. A descriptor whose kernel has no device code is still defined, without
+# its available flag; launching it fails at run time.
 # Link: run the host compiler and add libhrx.
 #
 # Required environment (normally set by CMake through the launcher):
@@ -48,11 +51,41 @@ fi
 if [[ -z "$src" || -z "$out" ]]; then
   exec "$AMREX_LOOM_HOST_CXX" "${args[@]}"
 fi
+# Host compile. With cxx as the host compiler (one frontend for both passes),
+# launch tag layouts and kernel_ref symbol names agree by construction.
+"$AMREX_LOOM_HOST_CXX" "${args[@]}" -isystem "$AMREX_LOOM_LOOMCXX_DIR" || exit $?
+# Kernel descriptors the host object references; none means no launches.
+refs=$(nm -u "$out" | awk '$2 ~ /^_ZN4loom6kernel10kernel_ref/ {print $2}' | sort -u)
+[[ -n "$refs" ]] || exit 0
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/amrex-loom.XXXXXX")
 [[ "${AMREX_LOOM_KEEP:-0}" == 1 ]] || trap 'rm -rf "$tmp"' EXIT
-# Host compile. With cxx as the host compiler (one frontend for both passes),
-# launch tag layouts agree by construction and need no cross-check.
-"$AMREX_LOOM_HOST_CXX" "${args[@]}" || exit $?
+
+# Links descriptors.s (the device pass's descriptors, if any), plus the HSACO
+# and its registration when $1 is 1, into the requested object. Descriptors the
+# host references but the device pass did not define get unavailable ones,
+# named by their symbol, so the object always links.
+finish() {
+  local with_code=$1 sym n=0
+  touch "$tmp/descriptors.s"
+  {
+    cat "$tmp/descriptors.s"
+    for sym in $refs; do
+      grep -qF ".weak \"$sym\"" "$tmp/descriptors.s" && continue
+      n=$((n + 1))
+      printf '  .section ".rodata.%s","aG",%%progbits,"%s",comdat\n' "$sym" "$sym"
+      printf '  .weak "%s"\n  .type "%s",%%object\n  .size "%s",48\n  .p2align 3\n' "$sym" "$sym" "$sym"
+      printf '"%s":\n  .long 1, 0\n  .quad .Lamrex_loom_missing_%d\n' "$sym" "$n"
+      printf '  .long 0, 0, 0, 0, 0, 0\n  .quad 0\n.Lamrex_loom_missing_%d:\n  .asciz "%s"\n' "$n" "$sym"
+    done
+    printf '  .section .note.GNU-stack,"",%%progbits\n'
+  } > "$tmp/all-descriptors.s"
+  as "$tmp/all-descriptors.s" -o "$tmp/descriptors.o" || exit $?
+  local objs=("$tmp/descriptors.o")
+  [[ $with_code == 1 ]] && objs+=("$tmp/register.o" "$tmp/blob.o")
+  mv "$out" "$tmp/host.o"
+  ld -r "$tmp/host.o" "${objs[@]}" -o "$out" || exit $?
+  exit 0
+}
 
 # ---- Device pass --------------------------------------------------------
 dev=()
@@ -83,7 +116,7 @@ for round in 1 2 3 4 5; do
 "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
   --hosted --triple="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
   --tolerate-host-errors --drop-failed-kernels \
-  --kernel-manifest="$tmp/manifest" "${excluded[@]}" \
+  --kernel-descriptors="$tmp/descriptors.s" "${excluded[@]}" \
   --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
   "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
 rc=$?
@@ -94,14 +127,15 @@ if [[ $rc -ne 0 ]]; then
   # unit's kernels fails at run time with "no device kernel".
   [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
   echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
-  exit 0
+  rm -f "$tmp/descriptors.s"
+  finish 0
 fi
 ndrop=$(grep -c "dropping launched kernel" "$tmp/import.log")
 if [[ $ndrop -gt 0 && $round == 1 ]]; then
   echo "amrex-loom-cxx: dropped $ndrop launched kernel(s) in $src" >&2
   grep -A1 'warning \[LOWERING' "$tmp/import.log" | grep 'warning \[LOWERING' | sed 's|^|  dropped: |' | head -40 >&2
 fi
-[[ -s "$tmp/manifest" ]] || exit 0
+grep -q '^  .weak' "$tmp/descriptors.s" 2>/dev/null || finish 0
 
 rm -f "$tmp/compile-report.json"
 "$AMREX_LOOM_COMPILE" "$tmp/dev.loombc" --target=amdgpu:"$AMREX_LOOM_TARGET" \
@@ -129,19 +163,19 @@ if [[ -z "$rejected" || $round == 5 ]]; then
   sed 's|^|  |' "$tmp/compile.log" | head -40 >&2
   [[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && exit $rc
   echo "amrex-loom-cxx: warning: continuing without device code for $src" >&2
-  exit 0
+  rm -f "$tmp/descriptors.s"
+  finish 0
 fi
 echo "amrex-loom-cxx: compile rejected $(echo "$rejected" | wc -l) kernel(s) in $src; excluding and retrying" >&2
 grep -h "error \[" "$tmp/compile.log" | sed "s/.*config .__loom_target_context_0_0. //" | cut -c1-200 | sort -u | sed 's|^|  compile-dropped: |' | head -10 >&2
 while read -r name; do excluded+=(--exclude-kernel="$name"); done <<< "$rejected"
 done
 
-# Embed the executable and manifest; register them before main().
-# The bytes go in through the assembler (.incbin), so no C++ compiler parses a
-# large initializer. A static initializer registers them; it works with any
-# host compiler, including one that ignores __attribute__((constructor)).
+# Embed the executable and register it before main(). The bytes go in
+# through the assembler (.incbin), so no C++ compiler parses a large
+# initializer. A static initializer registers them; it works with any host
+# compiler, including one that ignores __attribute__((constructor)).
 id=$(printf '%s' "$abs_src" | cksum | cut -d' ' -f1)
-{ cat "$tmp/manifest"; printf '\0'; } > "$tmp/manifest.z"
 cat > "$tmp/blob.s" <<EOS
   .section .rodata.amrex_loom_$id,"a",@progbits
   .p2align 4
@@ -152,30 +186,23 @@ __amrex_loom_hsaco_$id:
   .globl __amrex_loom_hsaco_end_$id
   .hidden __amrex_loom_hsaco_end_$id
 __amrex_loom_hsaco_end_$id:
-  .globl __amrex_loom_manifest_$id
-  .hidden __amrex_loom_manifest_$id
-__amrex_loom_manifest_$id:
-  .incbin "$tmp/manifest.z"
   .section .note.GNU-stack,"",@progbits
 EOS
 as "$tmp/blob.s" -o "$tmp/blob.o" || exit $?
 cat > "$tmp/register.cpp" <<EOS
 #include <cstddef>
-extern "C" void amrex_loom_register_executable(const void*, std::size_t, const char*);
+extern "C" void amrex_loom_register_executable(const void*, std::size_t);
 extern "C" {
 extern const unsigned char __amrex_loom_hsaco_$id[];
 extern const unsigned char __amrex_loom_hsaco_end_$id[];
-extern const char __amrex_loom_manifest_$id[];
 }
 namespace {
 const int amrex_loom_registered_$id =
     (amrex_loom_register_executable(
          __amrex_loom_hsaco_$id,
-         static_cast<std::size_t>(__amrex_loom_hsaco_end_$id - __amrex_loom_hsaco_$id),
-         __amrex_loom_manifest_$id),
+         static_cast<std::size_t>(__amrex_loom_hsaco_end_$id - __amrex_loom_hsaco_$id)),
      0);
 }  // namespace
 EOS
 "$AMREX_LOOM_HOST_CXX" -c -fPIC "$tmp/register.cpp" -o "$tmp/register.o" || exit $?
-mv "$out" "$tmp/host.o"
-ld -r "$tmp/host.o" "$tmp/register.o" "$tmp/blob.o" -o "$out" || exit $?
+finish 1
