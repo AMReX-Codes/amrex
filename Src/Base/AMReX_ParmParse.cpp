@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <type_traits>
+#include <utility>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -1645,7 +1646,14 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
     try {
         auto parser = pp_make_parser<T>(val, {}, table, parser_prefix, use_querywithparser);
         auto exe = parser.template compileHost<0>();
-        ref = static_cast<T>(exe());
+        auto const v = exe();
+        if constexpr (std::is_integral_v<T> && !std::is_same_v<T,bool>) {
+            if (!std::in_range<T>(v)) {
+                amrex::Error("ParmParse: "+name+" = "+val+" evaluates to "+std::to_string(v)
+                             +", which is out of range for its type");
+            }
+        }
+        ref = static_cast<T>(v);
     } catch (...) {
         recursive_symbols.erase(name);
         throw;

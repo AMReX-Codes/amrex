@@ -23,6 +23,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -1277,12 +1278,19 @@ public:
               std::same_as<T,long long> ||
               std::same_as<T,float> ||
               std::same_as<T,double>)
-    T eval (std::string const& expr) const
+    [[nodiscard]] T eval (std::string const& expr) const
     {
         if constexpr (std::is_integral_v<T>) {
             auto const parser = this->makeIParser(expr, {});
             auto const exe = parser.compileHost<0>();
-            return static_cast<T>(exe()); // In the future, we might add safety check.
+            auto const v = exe();
+            if constexpr (!std::same_as<T,bool>) {
+                if (!std::in_range<T>(v)) {
+                    amrex::Error("ParmParse::eval: "+expr+" evaluates to "+std::to_string(v)
+                                 +", which is out of range for its type");
+                }
+            }
+            return static_cast<T>(v);
         } else {
             auto const parser = this->makeParser(expr, {});
             auto const exe = parser.compileHost<0>();
