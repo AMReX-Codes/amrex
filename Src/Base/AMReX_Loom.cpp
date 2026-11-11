@@ -10,8 +10,7 @@
 // its own HRX queue where the device allows. Needs no HIP headers.
 #include <AMReX_Config.H>
 
-// The Loom device pass never needs this host-only file.
-#if defined(AMREX_USE_LOOM) && !defined(__loom__)
+#if defined(AMREX_USE_LOOM)
 
 #include <AMReX_Loom.H>
 #include <hip/hip_runtime.h>
