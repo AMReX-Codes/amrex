@@ -400,10 +400,6 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
         error = b;
     }
 
-    if (!error) {
-        buildCellFlag();
-    }
-
     return error;
 }
 
@@ -538,8 +534,6 @@ Level::extendAtDomainFaces (IntVect const& ngrow)
         m_facecent[idim] = extrudeFabArray(m_facecent[idim], m_grids, m_dmap);
         m_edgecent[idim] = extrudeFabArray(m_edgecent[idim], m_grids, m_dmap);
     }
-
-    buildCellFlag();
 }
 
 void

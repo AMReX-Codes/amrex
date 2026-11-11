@@ -863,8 +863,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
     }
 
     m_extrude_coarse_levels = fineLevel.m_extrude_coarse_levels;
-    if (m_ok && m_extrude_coarse_levels) {
-        extendAtDomainFaces(IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16});
+    if (m_ok) {
+        if (m_extrude_coarse_levels) {
+            extendAtDomainFaces(IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16});
+        }
+        buildCellFlag();
     }
 }
 
