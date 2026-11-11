@@ -2,11 +2,12 @@
 //
 // The amrex-loom-cxx driver embeds each translation unit's Loom code object
 // and registers it before main(). A launch names its kernel by a Loom kernel
-// descriptor (loom::kernel::kernel_ref, defined by the device pass), finds the
-// kernel's export in the registered code objects by the descriptor's export
-// name, and packs the kernel arguments from the host launch tag following the
-// descriptor's leaves. This file implements the amrex_loom runtime
-// functions declared in AMReX_Loom.H and AMReX_LoomRandom.H on libhrx.
+// descriptor (loom::kernel::kernel_ref, defined locally in each object by
+// loom-cxx), finds the kernel's export by the descriptor's export name in the
+// code object the descriptor names, and packs the kernel arguments from the
+// host launch tag following the descriptor's leaves. This file implements the
+// amrex_loom runtime functions declared in AMReX_Loom.H and AMReX_LoomRandom.H
+// on libhrx.
 // Single device; streams are HRX streams, each bound to its own HRX queue
 // where the device allows.
 #include <AMReX_Config.H>
@@ -156,7 +157,7 @@ hrx_stream_t g_default_stream = nullptr;
 std::map<hrx_stream_t, StreamQueue> g_streams;
 std::map<uintptr_t, Allocation> g_allocations;
 std::unordered_map<const loom::kernel::descriptor*, Kernel> g_kernels;
-std::vector<hrx_executable_t> g_executables;
+std::vector<hrx_executable_t> g_executables;  // parallel to images()
 bool g_images_loaded = false;
 
 [[noreturn]] void fatal(const char* what, hrx_status_t status) {
@@ -286,15 +287,21 @@ void load_images() {
 
 namespace {
 
-// The executable and ordinal of |kernel|'s export. Every translation unit's
-// code object carries its own copy of the kernels it launches; any copy will
-// do. Resolved once per descriptor.
+// The executable and ordinal of |kernel|'s export. Each translation unit's
+// descriptors name the code object of that unit, which carries the kernels it
+// launches: kernels of different units may share an export name (lambdas with
+// internal linkage, for example) and only the unit's own code object has the
+// right one. A descriptor without a code object (from the legacy two-pass
+// build) takes any registered code object exporting its name. Resolved once
+// per descriptor.
 const Kernel& resolve_kernel(const loom::kernel::descriptor& kernel) {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   auto found = g_kernels.find(&kernel);
   if (found != g_kernels.end()) return found->second;
   load_images();
-  for (hrx_executable_t executable : g_executables) {
+  for (std::size_t i = 0; i < g_executables.size(); ++i) {
+    if (kernel.code_object && images()[i].data != kernel.code_object) continue;
+    hrx_executable_t executable = g_executables[i];
     uint32_t ordinal = 0;
     hrx_status_t status =
         hrx_executable_lookup_export_by_name(executable, kernel.name, &ordinal);
@@ -303,8 +310,9 @@ const Kernel& resolve_kernel(const loom::kernel::descriptor& kernel) {
     }
     hrx_status_ignore(status);
   }
-  std::fprintf(stderr, "amrex loom: no device kernel %s in the registered code objects\n",
-               kernel.name);
+  std::fprintf(stderr, "amrex loom: no device kernel %s in %s\n", kernel.name,
+               kernel.code_object ? "its translation unit's registered code object"
+                                  : "the registered code objects");
   std::abort();
 }
 
