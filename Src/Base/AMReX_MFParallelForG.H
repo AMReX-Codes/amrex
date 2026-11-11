@@ -95,7 +95,7 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
         // Box and block within the box from the block index, without a division.
         const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
         amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
                 [=] AMREX_GPU_DEVICE () noexcept
@@ -166,7 +166,7 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
     const BoxIndexer* dp_boxes = parforinfo.getBoxes();
     const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
     amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
                 [=] AMREX_GPU_DEVICE () noexcept
@@ -217,7 +217,7 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
     const int* dp_xbounds = parforinfo.getXBounds();
     const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
     amrex::detail::launch_kernel_fn<MT>(nblocks, MT, 0, Gpu::gpuStream(),
                 [=] AMREX_GPU_DEVICE () noexcept

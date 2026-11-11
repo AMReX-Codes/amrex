@@ -54,6 +54,11 @@
 #elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_PRAGMA_SIMD
 
+// LOOM: one parse serves the host compile and the Loom device pass, so the
+// definition cannot depend on the pass.
+#elif defined(AMREX_USE_LOOM)
+#define AMREX_PRAGMA_SIMD
+
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
@@ -91,6 +96,9 @@
 
 #elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_FORCE_INLINE __forceinline__
+
+#elif defined(AMREX_USE_LOOM)
+#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(AMREX_CXX_INTEL)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))

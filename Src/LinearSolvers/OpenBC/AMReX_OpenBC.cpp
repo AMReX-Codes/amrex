@@ -551,7 +551,11 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
             }
             openbc::scale_moments(tmom);
 
+#if defined(AMREX_USE_LOOM)
+            LoomDevice::syncThreads();
+#else
             __syncthreads();
+#endif
 
             if (threadIdx.x < (openbc::M+1)*(openbc::M+2)/2) {
                 mom.mom[threadIdx.x] = Real(0.);

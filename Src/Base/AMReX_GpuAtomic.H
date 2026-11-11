@@ -6,6 +6,7 @@
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
 
+#include <bit>
 #include <type_traits>
 #include <utility>
 
@@ -16,6 +17,18 @@
 namespace amrex {
 
 namespace Gpu::Atomic {
+
+#if defined(AMREX_USE_LOOM)
+// Relaxed device-scope atomics on Loom (AMReX_LoomDevice.H), under the CUDA
+// names that the CUDA/HIP code paths below share with LOOM.
+using LoomDevice::atomicAdd;
+using LoomDevice::atomicMin;
+using LoomDevice::atomicMax;
+using LoomDevice::atomicExch;
+using LoomDevice::atomicCAS;
+using LoomDevice::atomicAnd;
+using LoomDevice::atomicOr;
+#endif
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
 // The result of Min and Max is unspecified if any input is NaN, and so is
@@ -88,7 +101,7 @@ namespace detail {
 #endif
     }
 
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
     // Min (IS_MIN) or Max of float or double with one integer atomic.
     // Sign bit clear: the values order like signed ints. Sign bit set: the
@@ -100,11 +113,15 @@ namespace detail {
         using I = std::conditional_t<sizeof(T) == 4, int, long long>;
         using U = std::make_unsigned_t<I>;
         I iv, old;
+#if defined(AMREX_USE_LOOM)
+        iv = std::bit_cast<I>(value);
+#else
         if constexpr (sizeof(T) == 4) {
             iv = __float_as_int(value);
         } else {
             iv = __double_as_longlong(value);
         }
+#endif
         if (iv >= 0) {
             auto* im = reinterpret_cast<I*>(m);
             if constexpr (IS_MIN) {
@@ -121,11 +138,15 @@ namespace detail {
                 old = static_cast<I>(atomicMin(um, uv));
             }
         }
+#if defined(AMREX_USE_LOOM)
+        return std::bit_cast<T>(old);
+#else
         if constexpr (sizeof(T) == 4) {
             return __int_as_float(old);
         } else {
             return __longlong_as_double(old);
         }
+#endif
     }
 
     template <typename R, typename Int, typename F>
@@ -254,7 +275,7 @@ namespace detail {
 //  If
 ////////////////////////////////////////////////////////////////////////
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL) || defined(AMREX_USE_LOOM)
     template <typename T, typename Op, typename Cond>
     requires (sizeof(T) == sizeof(unsigned int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -357,7 +378,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Min_device (float* const m, float const value) noexcept
     {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         return detail::atomic_fp_min_max<true>(m, value);
 #else
         return detail::atomic_op<float,int>(m,value,amrex::Minimum<float>());
@@ -367,7 +388,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Min_device (double* const m, double const value) noexcept
     {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         return detail::atomic_fp_min_max<true>(m, value);
 #else
         return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Minimum<double>());
@@ -434,7 +455,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Max_device (float* const m, float const value) noexcept
     {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         return detail::atomic_fp_min_max<false>(m, value);
 #else
         return detail::atomic_op<float,int>(m,value,amrex::Maximum<float>());
@@ -444,7 +465,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Max_device (double* const m, double const value) noexcept
     {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
         return detail::atomic_fp_min_max<false>(m, value);
 #else
         return detail::atomic_op<double,unsigned long long int>(m,value,amrex::Maximum<double>());

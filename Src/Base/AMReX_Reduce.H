@@ -1210,9 +1210,15 @@ bool AnyOf (N n, T const* v, P const& pred)
 #else
     amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#if defined(AMREX_USE_LOOM)
+        [[loom::workgroup]] int has_any;
+        if (threadIdx.x == 0) { has_any = *dp; }
+        LoomDevice::syncThreads();
+#else
         __shared__ int has_any;
         if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
+#endif
 
         if (!has_any)
         {
@@ -1269,12 +1275,18 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
         }
     });
 #else
-    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, ec.numBlocks, ec.numThreads, 0,
+    amrex::detail::launch_kernel_fn<AMREX_GPU_MAX_THREADS>(ec.numBlocks, ec.numThreads, 0,
                         Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#if defined(AMREX_USE_LOOM)
+        [[loom::workgroup]] int has_any;
+        if (threadIdx.x == 0) { has_any = *dp; }
+        LoomDevice::syncThreads();
+#else
         __shared__ int has_any;
         if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
+#endif
 
         if (!has_any)
         {

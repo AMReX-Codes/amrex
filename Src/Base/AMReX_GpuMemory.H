@@ -119,7 +119,20 @@ private:
 #endif
 };
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_LOOM)
+
+//! The launch's shared memory: under LOOM, a fixed workgroup array of
+//! AMREX_LOOM_DYNAMIC_SHARED_BYTES.
+template <class T>
+struct SharedMemory
+{
+    [[nodiscard]] AMREX_LOOM_DEVICE_INLINE T* dataPtr () noexcept {
+        [[loom::workgroup]] T amrex_sm[AMREX_LOOM_DYNAMIC_SHARED_BYTES / sizeof(T)];
+        return amrex_sm;
+    }
+};
+
+#elif defined(AMREX_USE_GPU)
 
 template <class T>
 struct SharedMemory
