@@ -74,7 +74,11 @@ namespace detail {
     U fp_opaque (U v) noexcept
     {
 #if defined(AMREX_MATH_ISNAN_BITS) && (defined(__GNUC__) || defined(__clang__))
-#  if defined(__HIP_DEVICE_COMPILE__)
+#  if defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_LOOM)
+        // Loom needs no barrier: its fast-math permissions are flags on
+        // individual floating-point operations and do not constrain other
+        // uses of their operands, so a bit test cannot be folded.
+#  elif defined(__HIP_DEVICE_COMPILE__)
         __asm__("" : "+v"(v));
 #  else
         AMREX_IF_ON_HOST((__asm__("" : "+r"(v));))
