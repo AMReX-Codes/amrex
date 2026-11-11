@@ -13,13 +13,21 @@ ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
 `GPU_CNS_Sod_3d` and `GPU_ExternalStream_3d` pass, and that the CNS run agrees
 with `cns-expected.txt` to round-off.
 
-The device pass sees the same headers as the host pass. Loom's importer
-lowers the C math functions and their `__builtin_*` forms itself, so no device
-prelude is injected. The device pass still sees Loom's predefined `__loom__`,
-which the host pass does not. Only the backend header
-`../hip/hip/hip_runtime.h` tests `__loom__`, to define
-`AMREX_LOOM_DEVICE_PASS` for the rest of the backend; no AMReX source under
-`Src/` tests either macro.
+The device pass sees the same headers as the host pass, including Loom's
+`loomcxx/` headers. Loom's importer lowers the C math functions and their
+`__builtin_*` forms itself, so no device prelude is injected.
+
+Inside functions that run on both sides, `AMREX_IF_ON_DEVICE` and
+`AMREX_IF_ON_HOST` expand to ordinary `if` statements on
+`loom::target::is_device()` (`<loomcxx/target.h>`). The host compiler sees a
+constant `false` and emits only the host arm, even at `-O0`; the importer
+folds the call to `true` and imports only the device arm. Both arms parse in
+both passes.
+
+The device pass still sees Loom's predefined `__loom__`, which the host pass
+does not. Only the backend header `../hip/hip/hip_runtime.h` tests `__loom__`,
+to define `AMREX_LOOM_DEVICE_PASS` for the rest of the backend and
+`__HIP_DEVICE_COMPILE__` for AMReX's HIP code paths.
 
 ## Requirements
 
