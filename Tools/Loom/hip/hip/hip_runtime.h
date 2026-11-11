@@ -35,26 +35,10 @@
 #define __HIP_PLATFORM_AMD__ 1
 #endif
 
-// With AMReX_LOOM_RUNTIME=HRX_HIP the host side uses the real HIP runtime
-// declarations (plain C++ mode), implemented by HRX's libamdhip64.so. The
-// Loom device pass keeps the minimal declarations below.
-#if defined(AMREX_LOOM_HRX_HIP) && !defined(__loom__)
-#include <hip/hip_runtime_api.h>
-#define AMREX_LOOM_HIP_API_DECLARED 1
-#undef __host__
-#undef __device__
-#undef __global__
-#undef __constant__
-#undef __shared__
-#undef __managed__
-#undef __forceinline__
-#undef __launch_bounds__
-#else
 #define HIP_VERSION_MAJOR 7
 #define HIP_VERSION_MINOR 0
 #define HIP_VERSION_PATCH 0
 #define HIP_VERSION (HIP_VERSION_MAJOR * 10000000 + HIP_VERSION_MINOR * 100000)
-#endif
 
 // ---------------------------------------------------------------------------
 // Qualifiers
@@ -76,7 +60,6 @@
   __shared__ type var[AMREX_LOOM_DYNAMIC_SHARED_BYTES / sizeof(type)];
 #define AMREX_LOOM_DYNAMIC_SHARED_BYTES 4096
 
-#if !defined(AMREX_LOOM_HIP_API_DECLARED)
 // ---------------------------------------------------------------------------
 // Runtime types
 // ---------------------------------------------------------------------------
@@ -263,8 +246,6 @@ hipError_t hipEventDestroy(hipEvent_t event);
 hipError_t hipEventRecord(hipEvent_t event, hipStream_t stream = nullptr);
 hipError_t hipEventSynchronize(hipEvent_t event);
 hipError_t hipEventElapsedTime(float* ms, hipEvent_t start, hipEvent_t stop);
-
-#endif  // !AMREX_LOOM_HIP_API_DECLARED
 
 // Kernel launch entry point implemented by the runtime.
 void amrex_loom_launch(const char* tag_type_name, const void* tag,
