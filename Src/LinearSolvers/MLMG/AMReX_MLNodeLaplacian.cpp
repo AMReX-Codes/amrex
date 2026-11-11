@@ -115,10 +115,13 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     });
     spUpdateScale();
 
-    // A constant sigma fixes the coarsening strategy.  Neither mixed precision
-    // nor the single precision operator has EB, so use the non-EB default.
-    if (m_const_sigma != RT(0.0) && (this->m_sp_linop || !std::is_same_v<MF,MultiFab>)) {
+    // Mixed precision needs sigma coarsening, and neither it nor the single
+    // precision operator has EB.  The copy already took our strategy.
+    if (this->m_sp_linop || !std::is_same_v<MF,MultiFab>) {
         this->m_coarsening_strategy = CoarseningStrategy::Sigma;
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) {
+            sp->setCoarseningStrategy(CoarseningStrategy::Sigma);
+        });
     }
 
     m_needs_update = true;
