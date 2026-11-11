@@ -636,7 +636,11 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 if (tid == 0) {
                     *shared_counter = 0;
                 }
+#if defined(AMREX_USE_LOOM)
+                LoomDevice::syncThreads();
+#else
                 __syncthreads();
+#endif
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
                     unsigned int itag = Gpu::Atomic::Add(shared_counter, 1u);

@@ -109,6 +109,8 @@ struct BlockStatus<T, true>
         do {
 #if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::work_group);
+#elif defined(AMREX_USE_LOOM)
+            LoomDevice::fenceBlock();
 #else
             __threadfence_block();
 #endif
@@ -134,6 +136,8 @@ struct BlockStatus<T, false>
         }
 #if defined(AMREX_USE_SYCL)
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+        LoomDevice::fenceDevice();
 #else
         __threadfence();
 #endif
@@ -179,6 +183,8 @@ struct BlockStatus<T, false>
             r = read();
 #if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+            LoomDevice::fenceDevice();
 #else
             __threadfence();
 #endif

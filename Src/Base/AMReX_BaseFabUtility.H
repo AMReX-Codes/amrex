@@ -110,7 +110,11 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
                 auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
+#if defined(AMREX_USE_LOOM)
+            LoomDevice::syncThreads();
+#else
             __syncthreads();
+#endif
             T* const pb = p + std::uint64_t(block_start)*STRUCTSIZE;
             for (UInt m = threadIdx.x,
                      mend = amrex::min(UInt(blockDim.x), indexer.numPts()-block_start) * STRUCTSIZE;
@@ -199,6 +203,18 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
         }
     });
     AMREX_GPU_ERROR_CHECK();
+
+#elif defined(AMREX_USE_LOOM)
+
+    // LOOM kernels have one-dimensional workgroups: one work-item per element.
+    amrex::ParallelFor(Long(nx)*ny*nz, [=] AMREX_GPU_DEVICE (Long n) noexcept
+    {
+        auto const i = int(n % nx);
+        auto const jk = n / nx;
+        auto const j = int(jk % ny);
+        auto const k = int(jk / ny);
+        po[i + (j+k*std::size_t(ny))*nx] = pi[k + (j+i*std::size_t(ny))*nz];
+    });
 
 #elif defined(AMREX_USE_SYCL)
 

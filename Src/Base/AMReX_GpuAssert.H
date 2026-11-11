@@ -7,7 +7,7 @@
  * \brief Assertions for GPU device code.
  *
  * \def AMREX_DEVICE_ASSERT
- * \brief Assert \p flag in CUDA, HIP, or SYCL device code.
+ * \brief Assert \p flag in CUDA, HIP, SYCL, or LOOM device code.
  *
  * The macro maps to \c assert and is defined only for those GPU backends on
  * non-Apple platforms.
@@ -25,7 +25,7 @@
 #  define AMREX_DEVICE_ASSERT(flag) assert(flag)
 #elif defined(AMREX_USE_CUDA)
 #  define AMREX_DEVICE_ASSERT(flag) assert(flag)
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 #  define AMREX_DEVICE_ASSERT(flag) assert(flag)
 #endif
 

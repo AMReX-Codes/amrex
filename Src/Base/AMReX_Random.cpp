@@ -76,7 +76,7 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
     gpu_rand_generator = new std::remove_pointer_t<decltype(gpu_rand_generator)>
         (Gpu::Device::streamQueue(), gpu_seed+1234ULL);
 
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
     gpu_rand_state =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
     randState_t* gpu_rand_state_local = gpu_rand_state;
@@ -357,7 +357,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 {
     if (N <= 0) { return; }
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (N == 1) {
         auto r = amrex::RandomNormal(mean, stddev);
         Gpu::htod_memcpy_async(p, &r, sizeof(Real));
@@ -408,7 +408,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 
 #endif
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (Neven < N) {
         auto r = amrex::RandomNormal(mean, stddev);
         Gpu::htod_memcpy_async(p+(N-1), &r, sizeof(Real));

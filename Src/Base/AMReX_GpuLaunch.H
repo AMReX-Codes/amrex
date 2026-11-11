@@ -75,6 +75,10 @@ namespace amrex {
     template<class L, class... Lambdas>
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
 
+#endif
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
+
     namespace detail {
     //! Function form of AMREX_LAUNCH_KERNEL for call sites whose kernel body
     //! contains preprocessor conditionals (not allowed inside macro arguments).

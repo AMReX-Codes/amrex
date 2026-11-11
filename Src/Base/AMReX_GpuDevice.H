@@ -240,6 +240,8 @@ public:
 
 #if defined(AMREX_USE_HIP)
     static AMREX_EXPORT constexpr int warp_size = AMREX_AMDGCN_WAVEFRONT_SIZE;
+#elif defined(AMREX_USE_LOOM)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_LOOM_SUBGROUP_SIZE;
 #elif defined(AMREX_USE_SYCL)
     static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else

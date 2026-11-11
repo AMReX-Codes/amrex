@@ -24,10 +24,15 @@ constant `false` and emits only the host arm, even at `-O0`; the importer
 folds the call to `true` and imports only the device arm. Both arms parse in
 both passes.
 
-The device pass still sees Loom's predefined `__loom__`, which the host pass
-does not. Only the backend header `../hip/hip/hip_runtime.h` tests `__loom__`,
-to define `AMREX_LOOM_DEVICE_PASS` for the rest of the backend and
-`__HIP_DEVICE_COMPILE__` for AMReX's HIP code paths.
+Device code is written on Loom's own C++ API, loomcxx
+(`Src/Base/AMReX_LoomDevice.H`): kernel topology, workgroup barriers and
+`[[loom::workgroup]]` storage, atomics, fences, subgroup shuffles and
+`loom::scalar` math. Loom operations are declarations, which the host never
+emits because only kernel bodies and device arms reach them. Kernel templates
+are defined in both passes; host code names them only through
+`loom::kernel::kernel_ref`. Nothing in AMReX tests which pass it is in: the
+only difference between the passes is Loom's predefined `__loom__`, which
+AMReX does not use.
 
 ## Requirements
 

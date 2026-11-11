@@ -230,12 +230,10 @@ endif ()
 # compiler); the host runtime is libhrx.
 if (AMReX_LOOM)
    # AMReX_Loom.cpp implements the amrex_loom runtime (AMReX_Loom.H) on
-   # libhrx. Tools/Loom/hip supplies the HIP device vocabulary only.
+   # libhrx. Device code uses Loom's loomcxx headers, which the driver adds.
    set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
    set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
    foreach(D IN LISTS AMReX_SPACEDIM)
-      target_include_directories(amrex_${D}d BEFORE PUBLIC
-         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Tools/Loom/hip>)
       target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_INCLUDE_DIR})
       target_link_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_LIB_DIR})
       target_link_libraries(amrex_${D}d PUBLIC hrx)

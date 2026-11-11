@@ -119,6 +119,8 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
             if (my_turn) {
 #if defined(AMREX_USE_SYCL)
                 sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::fenceDevice();
 #else
                 __threadfence();
 #endif
@@ -128,6 +130,8 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
                 }
 #if defined(AMREX_USE_SYCL)
                 sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::fenceDevice();
 #else
                 __threadfence(); // It appears that we need this fence too if a GPU is shared.
 #endif
@@ -154,6 +158,10 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 #elif defined(AMREX_USE_HIP)
 
                 __builtin_amdgcn_s_sleep(1);
+
+#elif defined(AMREX_USE_LOOM)
+
+                // Loom has no sleep operation; spin.
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -387,6 +395,8 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
             if (itag+1 < pntags[blockIdx.x+1]) {
 #ifdef AMREX_USE_SYCL
                 sycl::group_barrier(item.get_group());
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::syncThreads();
 #else
                 __syncthreads();
 #endif
