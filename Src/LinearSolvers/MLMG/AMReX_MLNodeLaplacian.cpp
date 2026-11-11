@@ -855,11 +855,9 @@ void
 MLNodeLaplacianT<MF>::interpCoarseFineSolution (int famrlev, MF& fine_sol,
                                                 const MF& crse_sol) const
 {
-    // With an overset mask the Dirichlet mask also has the user's nodes.
-    // Mixed precision still needs the coarse/fine nodes updated, so it finds
-    // them from the fine grids.
+    // With an overset mask the Dirichlet mask also has the user's nodes, so
+    // the coarse/fine nodes are found from the fine grids.
     const bool overset = this->m_overset_dirichlet_mask;
-    if (overset && !this->m_sp_linop) { return; } // user Dirichlet nodes
     const int ncomp = this->getNComp();
 
     MF crse_copy = this->makeCoarseAmr(famrlev, IntVect(0), MFInfo().SetArena(The_Async_Arena()));
