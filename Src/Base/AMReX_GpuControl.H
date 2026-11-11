@@ -7,8 +7,8 @@
 
 #include <utility>
 
-// LOOM has no stream-ordered memory pools.
-#if (defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)) && !defined(AMREX_USE_LOOM)
+// Stream-ordered memory pools (LOOM has none).
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)
 #define AMREX_GPU_STREAM_ALLOC_SUPPORT 1
 #endif
 
@@ -20,7 +20,7 @@
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
 
-// LOOM also defines AMREX_USE_HIP; this picks a LOOM-specific variant first.
+// A variant for LOOM, otherwise AMREX_HIP_OR_CUDA.
 #if defined(AMREX_USE_LOOM)
 #define AMREX_LOOM_OR_HIP_OR_CUDA(l,a,b) l
 #else

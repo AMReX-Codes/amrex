@@ -59,7 +59,7 @@ namespace {
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
 
-#if (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)) && !defined(AMREX_USE_LOOM)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     // Only running out of memory is recoverable; other errors abort.
     void abort_unless_out_of_memory (gpuError_t ret, char const* call)
     {
