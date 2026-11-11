@@ -11,12 +11,10 @@
 
 #ifdef AMREX_USE_LOOM
 
-#include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DEVICE_PASS, AMREX_LOOM_DEVICE_INLINE
+#include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DEVICE_INLINE
 
-#include <cstddef>
-#if !defined(AMREX_LOOM_DEVICE_PASS)
 #include <cmath>
-#endif
+#include <cstddef>
 
 namespace amrex_loom {
 
@@ -42,17 +40,6 @@ AMREX_LOOM_DEVICE_INLINE unsigned long long next(RandState* state) {
   state->s1 = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
   return result;
 }
-#if defined(AMREX_LOOM_DEVICE_PASS)
-AMREX_LOOM_DEVICE_INLINE double log(double x) { return __builtin_log(x); }
-AMREX_LOOM_DEVICE_INLINE double sqrt(double x) { return __builtin_sqrt(x); }
-AMREX_LOOM_DEVICE_INLINE double cos(double x) { return __builtin_cos(x); }
-AMREX_LOOM_DEVICE_INLINE double exp(double x) { return __builtin_exp(x); }
-#else
-inline double log(double x) { return std::log(x); }
-inline double sqrt(double x) { return std::sqrt(x); }
-inline double cos(double x) { return std::cos(x); }
-inline double exp(double x) { return std::exp(x); }
-#endif
 }  // namespace rand_detail
 
 AMREX_LOOM_DEVICE_INLINE void rand_init(unsigned long long seed, unsigned long long subsequence,
@@ -83,14 +70,14 @@ AMREX_LOOM_DEVICE_INLINE float rand_uniform(RandState* state) {
 AMREX_LOOM_DEVICE_INLINE double rand_normal_double(RandState* state) {
   double u1 = rand_uniform_double(state);
   double u2 = rand_uniform_double(state);
-  return rand_detail::sqrt(-2.0 * rand_detail::log(u1)) *
-         rand_detail::cos(6.283185307179586476925 * u2);
+  return std::sqrt(-2.0 * std::log(u1)) *
+         std::cos(6.283185307179586476925 * u2);
 }
 AMREX_LOOM_DEVICE_INLINE float rand_normal(RandState* state) {
   return static_cast<float>(rand_normal_double(state));
 }
 AMREX_LOOM_DEVICE_INLINE unsigned int rand_poisson(RandState* state, double lambda) {
-  double limit = rand_detail::exp(-lambda);
+  double limit = std::exp(-lambda);
   double product = rand_uniform_double(state);
   unsigned int k = 0;
   while (product > limit) {
