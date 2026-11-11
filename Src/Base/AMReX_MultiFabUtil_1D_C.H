@@ -103,7 +103,11 @@ void amrex_avg_cc_to_fc (int i, int, int, int n, Box const& xbx,
             Real rlo = problo + (i-Real(0.5))*dx;
             Real rhi = problo + (i+Real(0.5))*dx;
             Real rcen = Real(0.5)*(rlo+rhi);
-            fx(i,0,0,n) = Real(0.5)*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
+            if (rcen == Real(0.0)) { // face on the axis
+                fx(i,0,0,n) = Real(0.5)*(cc(i-1,0,0,n) + cc(i,0,0,n));
+            } else {
+                fx(i,0,0,n) = Real(0.5)*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
+            }
             break;
         }
         case 2:
@@ -114,7 +118,11 @@ void amrex_avg_cc_to_fc (int i, int, int, int n, Box const& xbx,
             Real rlo = problo + (i-Real(0.5))*dx;
             Real rhi = problo + (i+Real(0.5))*dx;
             Real rcen = Real(0.5)*(rlo+rhi);
-            fx(i,0,0,n) = Real(0.5)*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
+            if (rcen == Real(0.0)) { // face at the origin
+                fx(i,0,0,n) = Real(0.5)*(cc(i-1,0,0,n) + cc(i,0,0,n));
+            } else {
+                fx(i,0,0,n) = Real(0.5)*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
+            }
             break;
         }
         default:
