@@ -1,9 +1,11 @@
 // Host runtime for AMReX_GPU_BACKEND=LOOM.
 //
-// The launch registry is shared: the amrex-loom-cxx driver embeds each
-// translation unit's Loom code object and kernel manifest, registers them
-// before main(), and launches pack kernel arguments from the host launch tag
-// following the manifest. This file implements the amrex_loom runtime
+// The amrex-loom-cxx driver embeds each translation unit's Loom code object
+// and registers it before main(). A launch names its kernel by a Loom kernel
+// descriptor (loom::kernel::kernel_ref, defined by the device pass), finds the
+// kernel's export in the registered code objects by the descriptor's export
+// name, and packs the kernel arguments from the host launch tag following the
+// descriptor's leaves. This file implements the amrex_loom runtime
 // functions declared in AMReX_Loom.H and AMReX_LoomRandom.H on libhrx.
 // Single device; streams are HRX streams, each bound to its own HRX queue
 // where the device allows.
@@ -15,6 +17,7 @@
 #include <AMReX_Loom.H>
 #include <AMReX_LoomRandom.H>
 #include <hrx_runtime.h>
+#include <loomcxx/kernel_ref.h>
 
 #include <algorithm>
 #include <cmath>
@@ -24,8 +27,6 @@
 #include <map>
 #include <mutex>
 #include <random>
-#include <sstream>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -33,24 +34,9 @@ namespace {
 
 // --- launch registry ---------------------------------------------------------
 
-// One kernel ABI argument, copied from the host launch tag.
-struct Argument {
-  char kind;           // 'c' by-value bytes, 'b' device pointer (buffer)
-  std::size_t offset;  // byte offset in the launch tag object
-  std::size_t size;
-};
-
-// One kernel's manifest block.
-struct ManifestKernel {
-  std::string name;          // export name: <kernel>__<Itanium tag type name>
-  std::size_t tag_size = 0;  // sizeof(Tag) seen by the device pass
-  std::vector<Argument> arguments;
-};
-
 struct Image {
   const void* data;
   std::size_t size;
-  const char* manifest;
 };
 
 std::vector<Image>& images() {
@@ -58,45 +44,31 @@ std::vector<Image>& images() {
   return list;
 }
 
-// Parses the importer's kernel manifest:
-//   kernel <export> <parameter_count>
-//   size <sizeof> <alignof>
-//   arg <parameter> <c|b> <byte_offset> <byte_size>
-std::vector<ManifestKernel> parse_manifest(const char* manifest) {
-  std::vector<ManifestKernel> kernels;
-  std::istringstream in(manifest);
-  std::string line;
-  while (std::getline(in, line)) {
-    std::istringstream row(line);
-    std::string word;
-    row >> word;
-    if (word == "kernel") {
-      kernels.emplace_back();
-      row >> kernels.back().name;
-    } else if (kernels.empty()) {
-      continue;
-    } else if (word == "size") {
-      row >> kernels.back().tag_size;
-    } else if (word == "arg") {
-      int parameter = 0;
-      Argument a{};
-      row >> parameter >> a.kind >> a.offset >> a.size;
-      kernels.back().arguments.push_back(a);
-    }
-  }
-  return kernels;
-}
-
 struct Dim3 {
   unsigned x, y, z;
 };
 
 // Checks a launch against its kernel and returns false for an empty grid.
-bool check_launch(const ManifestKernel* kernel, const char* tag_type_name,
-                  std::size_t tag_size, Dim3 grid, std::size_t shared_bytes) {
+bool check_launch(const loom::kernel::descriptor& kernel, Dim3 grid, Dim3 block,
+                  unsigned fixed_block, std::size_t shared_bytes) {
+  if (block.x != fixed_block || block.y != 1 || block.z != 1) {
+    std::fprintf(stderr, "amrex loom: fixed-size launch MT=%u with block %ux%ux%u\n",
+                 fixed_block, block.x, block.y, block.z);
+    std::abort();
+  }
   if (grid.x == 0 || grid.y == 0 || grid.z == 0) return false;
-  if (!kernel) {
-    std::fprintf(stderr, "amrex loom: no device kernel for launch tag %s\n", tag_type_name);
+  if (kernel.version != loom::kernel::descriptor_version) {
+    std::fprintf(stderr, "amrex loom: kernel descriptor version %u for %s, expected %u\n",
+                 kernel.version, kernel.name, loom::kernel::descriptor_version);
+    std::abort();
+  }
+  if (!(kernel.flags & loom::kernel::descriptor_flag_available)) {
+    std::fprintf(stderr, "amrex loom: no device kernel for %s\n", kernel.name);
+    std::abort();
+  }
+  if (kernel.parameter_count != 1) {
+    std::fprintf(stderr, "amrex loom: kernel %s has %u parameters, expected one\n",
+                 kernel.name, kernel.parameter_count);
     std::abort();
   }
   if (shared_bytes > AMREX_LOOM_DYNAMIC_SHARED_BYTES) {
@@ -104,45 +76,27 @@ bool check_launch(const ManifestKernel* kernel, const char* tag_type_name,
                  "%d supported\n", shared_bytes, AMREX_LOOM_DYNAMIC_SHARED_BYTES);
     std::abort();
   }
-  // Both passes use one frontend, so the sizes agree unless the device pass
-  // saw a different translation unit (for example, a differing macro).
-  if (kernel->tag_size != 0 && kernel->tag_size != tag_size) {
-    std::fprintf(stderr, "amrex loom: launch tag size mismatch for %s: host %zu, device pass %zu\n",
-                 tag_type_name, tag_size, kernel->tag_size);
-    std::abort();
-  }
   return true;
 }
 
-// Packs the kernel's explicit kernarg segment from the host launch tag. Loom
-// AMDGPU kernargs align buffers to 8 bytes and by-value scalars to 4 bytes
-// regardless of size (the code object's .args .align), not C alignment.
-std::vector<uint8_t> pack_kernargs(const ManifestKernel& kernel, const char* tag_type_name,
-                                   const void* tag, std::size_t tag_size) {
-  const auto* bytes = static_cast<const uint8_t*>(tag);
-  std::vector<uint8_t> kernarg;
-  kernarg.reserve(256);
-  for (const Argument& a : kernel.arguments) {
-    if (a.offset + a.size > tag_size) {
-      std::fprintf(stderr, "amrex loom: manifest/host layout mismatch for %s\n",
-                   tag_type_name);
-      std::abort();
-    }
-    std::size_t align = a.kind == 'b' ? 8 : std::min<std::size_t>(a.size, 4);
-    if (align == 0) align = 1;
-    std::size_t offset = (kernarg.size() + align - 1) / align * align;
-    kernarg.resize(offset + a.size, 0);
-    std::memcpy(kernarg.data() + offset, bytes + a.offset, a.size);
+// Packs the kernel's explicit kernarg segment from the host launch tag at the
+// offsets the descriptor gives.
+std::vector<uint8_t> pack_kernargs(const loom::kernel::descriptor& kernel,
+                                   const void* parameter) {
+  const auto* bytes = static_cast<const uint8_t*>(parameter);
+  std::vector<uint8_t> kernarg(kernel.kernarg_size, 0);
+  for (unsigned i = 0; i < kernel.leaf_count; ++i) {
+    const loom::kernel::descriptor_leaf& leaf = kernel.leaves[i];
+    std::memcpy(kernarg.data() + leaf.kernarg_offset, bytes + leaf.source_offset, leaf.size);
   }
-  kernarg.resize((kernarg.size() + 7) / 8 * 8, 0);
   return kernarg;
 }
 
-void trace_launch(const std::string& name, Dim3 grid, Dim3 block, std::size_t kernarg_size) {
+void trace_launch(const char* name, Dim3 grid, Dim3 block, std::size_t kernarg_size) {
   static const bool trace = std::getenv("AMREX_LOOM_TRACE") != nullptr;
   if (trace) {
     std::fprintf(stderr, "amrex loom: launch %s grid %ux%ux%u block %ux%ux%u kernarg %zu\n",
-                 name.c_str(), grid.x, grid.y, grid.z, block.x, block.y, block.z,
+                 name, grid.x, grid.y, grid.z, block.x, block.y, block.z,
                  kernarg_size);
   }
 }
@@ -154,17 +108,16 @@ bool sync_after_launch() {
 
 }  // namespace
 
-extern "C" void amrex_loom_register_executable(const void* data, std::size_t size,
-                                               const char* manifest) {
-  images().push_back({data, size, manifest});
+extern "C" void amrex_loom_register_executable(const void* data, std::size_t size) {
+  images().push_back({data, size});
 }
 
 // --- runtime state on libhrx ---------------------------------------------------
 
 namespace {
 
+// A kernel export resolved from its descriptor's name.
 struct Kernel {
-  ManifestKernel manifest;
   hrx_executable_t executable = nullptr;
   uint32_t ordinal = 0;
 };
@@ -202,7 +155,7 @@ std::vector<uint32_t> g_provisioned_users;  // streams bound to each provisioned
 hrx_stream_t g_default_stream = nullptr;
 std::map<hrx_stream_t, StreamQueue> g_streams;
 std::map<uintptr_t, Allocation> g_allocations;
-std::unordered_map<std::string, Kernel> g_kernels;
+std::unordered_map<const loom::kernel::descriptor*, Kernel> g_kernels;
 std::vector<hrx_executable_t> g_executables;
 bool g_images_loaded = false;
 
@@ -323,16 +276,6 @@ void load_images() {
                                    &executable),
           "hrx_executable_load_data");
     g_executables.push_back(executable);
-    for (auto& entry : parse_manifest(image.manifest)) {
-      if (g_kernels.count(entry.name)) continue;
-      Kernel k;
-      k.executable = executable;
-      check(hrx_executable_lookup_export_by_name(executable, entry.name.c_str(), &k.ordinal),
-            "hrx_executable_lookup_export_by_name");
-      std::string name = entry.name;
-      k.manifest = std::move(entry);
-      g_kernels.emplace(std::move(name), std::move(k));
-    }
   }
   g_images_loaded = true;
 }
@@ -341,22 +284,42 @@ void load_images() {
 
 // --- launch (amrex_loom) ------------------------------------------------------
 
-void amrex_loom::launch_named(const char* kernel_name, const char* tag_type_name,
-                              const void* tag, std::size_t tag_size, const unsigned grid_size[3],
-                              const unsigned block_size[3], std::size_t shared_bytes,
-                              hrx_stream_t stream) {
+namespace {
+
+// The executable and ordinal of |kernel|'s export. Every translation unit's
+// code object carries its own copy of the kernels it launches; any copy will
+// do. Resolved once per descriptor.
+const Kernel& resolve_kernel(const loom::kernel::descriptor& kernel) {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  auto found = g_kernels.find(&kernel);
+  if (found != g_kernels.end()) return found->second;
+  load_images();
+  for (hrx_executable_t executable : g_executables) {
+    uint32_t ordinal = 0;
+    hrx_status_t status =
+        hrx_executable_lookup_export_by_name(executable, kernel.name, &ordinal);
+    if (hrx_status_is_ok(status)) {
+      return g_kernels.emplace(&kernel, Kernel{executable, ordinal}).first->second;
+    }
+    hrx_status_ignore(status);
+  }
+  std::fprintf(stderr, "amrex loom: no device kernel %s in the registered code objects\n",
+               kernel.name);
+  std::abort();
+}
+
+}  // namespace
+
+void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void* parameter,
+                          const unsigned grid_size[3], const unsigned block_size[3],
+                          unsigned fixed_block, std::size_t shared_bytes,
+                          hrx_stream_t stream) {
   const Dim3 grid{grid_size[0], grid_size[1], grid_size[2]};
   const Dim3 block{block_size[0], block_size[1], block_size[2]};
-  load_images();
-  std::string name = std::string(kernel_name) + "__" + tag_type_name;
-  auto found = g_kernels.find(name);
-  const Kernel* kernel = found == g_kernels.end() ? nullptr : &found->second;
-  if (!check_launch(kernel ? &kernel->manifest : nullptr, tag_type_name, tag_size, grid,
-                    shared_bytes)) {
-    return;
-  }
-  std::vector<uint8_t> kernarg = pack_kernargs(kernel->manifest, tag_type_name, tag, tag_size);
-  trace_launch(name, grid, block, kernarg.size());
+  if (!check_launch(descriptor, grid, block, fixed_block, shared_bytes)) return;
+  const Kernel& kernel = resolve_kernel(descriptor);
+  std::vector<uint8_t> kernarg = pack_kernargs(descriptor, parameter);
+  trace_launch(descriptor.name, grid, block, kernarg.size());
   hrx_dispatch_config_t config{};
   config.workgroup_count[0] = grid.x;
   config.workgroup_count[1] = grid.y;
@@ -365,7 +328,7 @@ void amrex_loom::launch_named(const char* kernel_name, const char* tag_type_name
   config.workgroup_size[1] = block.y;
   config.workgroup_size[2] = block.z;
   hrx_stream_t s = resolve(stream);
-  check(hrx_stream_dispatch(s, kernel->executable, kernel->ordinal, &config,
+  check(hrx_stream_dispatch(s, kernel.executable, kernel.ordinal, &config,
                             kernarg.data(), kernarg.size(), nullptr, 0,
                             HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
         "hrx_stream_dispatch");
