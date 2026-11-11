@@ -126,8 +126,7 @@ namespace Gpu {
 
 #endif
 
-// LOOM has no HIP host API, so no HIP error checks.
-#if defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
+#if defined(AMREX_USE_HIP)
 #define AMREX_HIP_SAFE_CALL(call) { \
     hipError_t amrex_i_err = call;          \
     if (hipSuccess != amrex_i_err) { \

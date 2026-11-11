@@ -74,7 +74,7 @@ namespace detail {
     U fp_opaque (U v) noexcept
     {
 #if defined(AMREX_MATH_ISNAN_BITS) && (defined(__GNUC__) || defined(__clang__))
-#  if defined(__HIP_DEVICE_COMPILE__) && !defined(AMREX_USE_LOOM)
+#  if defined(AMREX_USE_HIP) && defined(__HIP_DEVICE_COMPILE__)
         __asm__("" : "+v"(v));
 #  else
         // On a LOOM device no barrier is needed: Loom's fast-math permissions
