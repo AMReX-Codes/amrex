@@ -100,10 +100,9 @@ public:
 
     //! Return whether the EB is regular/covered/mixed inside \p box.  A box
     //! that no triangle touches is taken to be regular or covered, which
-    //! assumes a water-tight mesh.  Nodes outside \p bounding_box take the
-    //! value of the nearest node inside it, as in fillFab().
-    [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn,
-                                  Box const& bounding_box) const;
+    //! assumes a water-tight mesh.  \p box must lie inside the bounding box;
+    //! the last argument is not used.
+    [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const;
 
     static constexpr bool isGPUable () noexcept { return true; }
 

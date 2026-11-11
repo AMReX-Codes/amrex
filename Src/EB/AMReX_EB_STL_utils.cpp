@@ -1178,20 +1178,9 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
 }
 
 int
-STLtools::getBoxType (Box const& a_box, Geometry const& geom, RunOn,
-                      Box const& bounding_box) const
+STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const
 {
     BL_PROFILE("STLtools::getBoxType");
-
-    // Nodes outside the bounding box take the value of the nearest node in
-    // it, as in fillFab.  So the box has the same nodes as its clamp.
-    Box box = a_box;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        box.setSmall(idim, amrex::Clamp(a_box.smallEnd(idim), bounding_box.smallEnd(idim),
-                                        bounding_box.bigEnd(idim)));
-        box.setBig(idim, amrex::Clamp(a_box.bigEnd(idim), bounding_box.smallEnd(idim),
-                                      bounding_box.bigEnd(idim)));
-    }
 
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
