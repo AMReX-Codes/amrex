@@ -153,13 +153,6 @@ extern "C" void amrex_loom_register_executable(const void* data, std::size_t siz
   images().push_back({data, size, manifest});
 }
 
-void amrex_loom_launch(const char* tag_type_name, const void* tag, std::size_t tag_size,
-                       dim3 grid, dim3 block, std::size_t shared_bytes,
-                       hipStream_t stream) {
-  amrex_loom_launch_named("kernel", tag_type_name, tag, tag_size, grid, block,
-                          shared_bytes, stream);
-}
-
 // --- HIP runtime subset on libhrx ---------------------------------------------
 
 namespace {
