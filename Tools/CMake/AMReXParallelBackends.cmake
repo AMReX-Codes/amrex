@@ -229,7 +229,8 @@ endif ()
 # LOOM: device code is compiled by the amrex-loom-cxx driver (set as the C++
 # compiler); the host runtime is libhrx.
 if (AMReX_LOOM)
-   # AMReX_Loom.cpp implements the HIP runtime subset on libhrx.
+   # AMReX_Loom.cpp implements the amrex_loom runtime (AMReX_Loom.H) and the
+   # remaining HIP runtime subset on libhrx.
    set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
    set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
    foreach(D IN LISTS AMReX_SPACEDIM)

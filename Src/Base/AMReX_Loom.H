@@ -4,7 +4,8 @@
 
 // Host runtime of AMReX_GPU_BACKEND=LOOM: thin functions over native libhrx,
 // implemented in AMReX_Loom.cpp. AMReX's GPU layer calls these under
-// AMREX_USE_LOOM; streams are HRX streams. Every function initializes the
+// AMREX_USE_LOOM. Streams are HRX streams; device and pinned memory are HRX
+// buffers addressed by their device address. Every function initializes the
 // runtime on first use and aborts on an HRX failure, except where noted.
 //
 // The Loom device pass sees these declarations but never calls them, so the
@@ -58,6 +59,29 @@ void stream_destroy (hrx_stream_t stream);
 void stream_synchronize (hrx_stream_t stream);
 //! True when all work submitted to |stream| has completed.
 bool stream_query (hrx_stream_t stream);
+
+// --- memory ------------------------------------------------------------------
+
+//! Device-local buffer; returns its device address, or nullptr when out of
+//! device memory.
+void* device_malloc (std::size_t bytes);
+//! Waits for all streams, then releases the device_malloc buffer at |pointer|.
+void device_free (void* pointer);
+//! Host-local, device-visible buffer whose host and device addresses agree;
+//! returns nullptr when out of memory.
+void* pinned_malloc (std::size_t bytes);
+//! Waits for all streams, then releases the pinned_malloc buffer at |pointer|.
+void pinned_free (void* pointer);
+//! Copies |bytes| after prior work on |stream|. Either side may be device
+//! memory (device_malloc) or host memory, including pinned memory; host
+//! ranges stay live until the stream reaches the copy.
+void memcpy_async (void* dst, const void* src, std::size_t bytes, hrx_stream_t stream);
+//! Fills |bytes| with the byte |value| after prior work on |stream|.
+void memset_async (void* dst, int value, std::size_t bytes, hrx_stream_t stream);
+
+enum class PointerKind { unregistered, device, pinned };
+//! What kind of LOOM allocation, if any, contains |pointer|.
+PointerKind pointer_kind (const void* pointer);
 
 }  // namespace amrex_loom
 

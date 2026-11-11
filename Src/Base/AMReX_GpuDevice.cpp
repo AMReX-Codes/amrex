@@ -1315,7 +1315,9 @@ void
 Device::mem_advise_set_preferred (void* p, std::size_t sz, int device)
 {
     amrex::ignore_unused(p,sz,device);
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+    // No managed memory under LOOM: nothing to advise.
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     {
 #if defined(AMREX_USE_CUDA)
@@ -1347,7 +1349,9 @@ void
 Device::mem_advise_set_readonly (void* p, std::size_t sz)
 {
     amrex::ignore_unused(p,sz);
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+    // No managed memory under LOOM: nothing to advise.
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     {
 #if defined(AMREX_USE_CUDA)
