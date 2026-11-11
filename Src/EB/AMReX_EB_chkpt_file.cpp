@@ -100,7 +100,7 @@ ChkptFile::ChkptFile (std::string fname)
     : m_restart_file(std::move(fname))
 {}
 
-void
+IntVect
 ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  DistributionMapping& dmap,
                                  MultiFab& volfrac, MultiFab& centroid,
@@ -109,7 +109,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  Array<MultiFab,AMREX_SPACEDIM>& facecent,
                                  Array<MultiFab,AMREX_SPACEDIM>& edgecent,
                                  MultiFab& levelset, int ng_gfab, const Geometry& geom,
-                                 IntVect& ngrow_finest, bool extend_domain_face,
+                                 const IntVect& ngrow_finest, bool extend_domain_face,
                                  int max_grid_size) const
 {
     Real prob_lo[] = {AMREX_D_DECL(std::numeric_limits<Real>::max(),
@@ -187,7 +187,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                          : ngrow_chkptfile[idim] == ngrow_finest[idim],
                                          "EB2::ChkptFile cannot read from a smaller or incompatible ngrow");
     }
-    ngrow_finest = ngrow_chkptfile;
 
     bool edf_chkptfile;
     is >> edf_chkptfile;
@@ -305,6 +304,8 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         VisMF::Read(levelset, prefix);
     }
+
+    return ngrow_chkptfile;
 }
 
 void

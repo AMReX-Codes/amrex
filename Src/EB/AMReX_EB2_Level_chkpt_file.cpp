@@ -36,11 +36,11 @@ ChkptFileLevel::define_fine_chkpt_file (ChkptFile const& chkpt_file,
     }
 
     const int ng = GFab::ng;
-    chkpt_file.read_from_chkpt_file(m_grids, m_covered_grids,
-                                    m_dmap, m_volfrac, m_centroid, m_bndryarea,
-                                    m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
-                                    m_edgecent, m_levelset, ng, geom, m_ngrow,
-                                    extend_domain_face, max_grid_size);
+    m_ngrow = chkpt_file.read_from_chkpt_file(m_grids, m_covered_grids,
+                                              m_dmap, m_volfrac, m_centroid, m_bndryarea,
+                                              m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
+                                              m_edgecent, m_levelset, ng, geom, m_ngrow,
+                                              extend_domain_face, max_grid_size);
 
 
     if ( m_grids.empty() &&
