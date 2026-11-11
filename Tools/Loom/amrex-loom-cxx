@@ -83,7 +83,7 @@ for round in 1 2 3 4 5; do
 "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
   --hosted --tolerate-host-errors --drop-failed-kernels \
   --kernel-manifest="$tmp/manifest" "${excluded[@]}" \
-  --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" --D=AMREX_LOOM_DEVICE_PASS=1 \
+  --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
   "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then

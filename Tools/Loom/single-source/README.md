@@ -14,8 +14,11 @@ ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
 with `cns-expected.txt` to round-off.
 
 The device pass still sees a prelude (`../amrex_loom_device_prelude.H`)
-and a predefined `__loom__` that the host pass does not, so the build is not yet
-strictly single-source.
+and Loom's predefined `__loom__`, which the host pass does not, so the build is
+not yet strictly single-source. Only the backend header
+`../hip/hip/hip_runtime.h` tests `__loom__`, to define
+`AMREX_LOOM_DEVICE_PASS` for the rest of the backend; no AMReX source under
+`Src/` tests either macro.
 
 ## Requirements
 
