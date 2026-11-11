@@ -183,3 +183,6 @@ unset_multi_b = 2
 UNSET = unset_multi_a unset_multi_b
 
 unset_kept = 77
+
+# removed by UNSET on the ctest command line
+unset_from_cmdline = 5

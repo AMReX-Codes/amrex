@@ -490,6 +490,11 @@ int main(int argc, char* argv[])
         // "unset_kept" is NOT unset, so it should still be present
         pp.get("unset_kept", v);
         AMREX_ALWAYS_ASSERT(v == 77);
+        // The ctest command line has "unset_cmdline_test=1 UNSET=unset_from_cmdline"
+        int cmdline_test = 0;
+        pp.query("unset_cmdline_test", cmdline_test);
+        found = pp.query("unset_from_cmdline", v);
+        AMREX_ALWAYS_ASSERT(found == (cmdline_test ? 0 : 1));
     }
     {
         amrex::Print() << "SUCCESS\n";
