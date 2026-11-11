@@ -6,6 +6,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_RealVect.H>
 
+#include <limits>
+
 using namespace amrex;
 
 int main(int argc, char* argv[])
@@ -149,6 +151,65 @@ int main(int argc, char* argv[])
     } catch (std::runtime_error const& e) {
         // Runtime error as expected
         amrex::ignore_unused(e);
+    }
+    { // integer values out of range for the queried type are errors
+        ParmParse pp("range");
+        pp.add("int_max", std::string("2147483647"));
+        pp.add("int_min", std::string("-2^31"));
+        pp.add("big", std::string("3000000000"));
+        pp.add("big_expr", std::string("1024*1024*4096"));
+        pp.add("big_real", std::string("1.e10"));
+        pp.add("small", std::string("-2^31-1"));
+        pp.addarr("big_arr", std::vector<std::string>{"1", "2^31"});
+
+        long long ll = 0;
+        pp.get("big", ll);
+        AMREX_ALWAYS_ASSERT(ll == 3000000000LL);
+        pp.get("big_expr", ll);
+        AMREX_ALWAYS_ASSERT(ll == 4294967296LL);
+        pp.get("big_real", ll);
+        AMREX_ALWAYS_ASSERT(ll == 10000000000LL);
+        pp.get("small", ll);
+        AMREX_ALWAYS_ASSERT(ll == -2147483649LL);
+        AMREX_ALWAYS_ASSERT(pp.eval<long long>("range.big*2") == 6000000000LL);
+
+        int i = 0;
+        pp.get("int_max", i);
+        AMREX_ALWAYS_ASSERT(i == std::numeric_limits<int>::max());
+        pp.get("int_min", i);
+        AMREX_ALWAYS_ASSERT(i == std::numeric_limits<int>::lowest());
+
+        int nerrors = 0;
+        for (const char* name : {"big", "big_expr", "big_real", "small"}) {
+            try {
+                pp.query(name, i);
+            } catch (std::runtime_error const&) {
+                ++nerrors;
+            }
+            try {
+                pp.queryWithParser(name, i);
+            } catch (std::runtime_error const&) {
+                ++nerrors;
+            }
+        }
+        try {
+            std::vector<int> v;
+            pp.queryarr("big_arr", v);
+        } catch (std::runtime_error const&) {
+            ++nerrors;
+        }
+        try {
+            std::vector<int> v(2);
+            pp.queryarrWithParser("big_arr", 2, v.data());
+        } catch (std::runtime_error const&) {
+            ++nerrors;
+        }
+        try {
+            amrex::ignore_unused(pp.eval<int>("range.big"));
+        } catch (std::runtime_error const&) {
+            ++nerrors;
+        }
+        AMREX_ALWAYS_ASSERT(nerrors == 11);
     }
     {
         int max_steps = -1;
