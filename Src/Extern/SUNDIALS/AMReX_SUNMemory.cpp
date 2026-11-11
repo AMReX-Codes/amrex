@@ -3,7 +3,9 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+#error "AMReX LOOM backend: SUNDIALS has no memory helper for HRX buffers"
+#elif defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
 #include <sunmemory/sunmemory_cuda.h>
