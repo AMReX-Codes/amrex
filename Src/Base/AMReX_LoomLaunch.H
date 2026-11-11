@@ -8,12 +8,13 @@
 // amrex_loom::launch_fixed<MT>. The callables f... are packed into a launch
 // tag, amrex_loom::Tag<F...>, run by a fixed-size kernel template instance
 // kernel<MT><Tag<F...>>. launch_fixed odr-uses that instance's Loom launch
-// descriptor, loom::kernel::kernel_ref<&kernel<MT><Tag<F...>>>, in both
-// passes of the build:
-//  * the Loom device pass treats the odr-use as a launch root: it compiles the
-//    kernel instance and defines the descriptor (export name and kernel
-//    argument layout), which the amrex-loom-cxx driver links into the object;
-//  * the host pass passes the descriptor and the tag to amrex_loom::dispatch
+// descriptor, loom::kernel::kernel_ref<&kernel<MT><Tag<F...>>>, which
+// amrex-loom-cxx (loom-cxx) sees from both sides of its one parse:
+//  * the Loom device pass treats the odr-use as a launch root and compiles the
+//    kernel instance; loom-cxx defines the descriptor inside the object, with
+//    local linkage (export name, the compiled kernel's argument layout and
+//    the object's own code object);
+//  * host code passes the descriptor and the tag to amrex_loom::dispatch
 //    (AMReX_Loom.cpp), which packs the kernel arguments from the tag following
 //    the descriptor and dispatches on the HRX stream.
 // Launches need a compile-time block size MT.
