@@ -309,13 +309,14 @@ MLNodeLinOpT<MF>::buildMasks ()
 
     m_masks_built = true;
 
-    m_is_bottom_singular = false;
+    bool singular_bc = false; // no Dirichlet BC and level 0 covers the domain
     auto itlo = std::ranges::find(this->m_lobc[0], BCType::Dirichlet);
     auto ithi = std::ranges::find(this->m_hibc[0], BCType::Dirichlet);
     if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
-        m_is_bottom_singular = (this->m_domain_covered[0] && !m_overset_dirichlet_mask);
+        singular_bc = this->m_domain_covered[0];
     }
+    m_is_singular = singular_bc && !m_overset_dirichlet_mask;
 
     const auto lobc = this->LoBC();
     const auto hibc = this->HiBC();
@@ -398,6 +399,11 @@ MLNodeLinOpT<MF>::buildMasks ()
             });
         }
     }
+
+    // The coarse MG levels inject the overset mask, which can drop all known
+    // nodes from the bottom level.
+    m_is_bottom_singular = m_is_singular || (singular_bc && m_overset_dirichlet_mask &&
+                                             m_dirichlet_mask[0].back()->max(0) == 0);
 
     auto& has_cf = *m_has_fine_bndry[this->m_num_amr_levels-1];
 #ifdef AMREX_USE_OMP
@@ -580,6 +586,9 @@ MLNodeLinOpT<MF>::resizeMultiGrid (int new_size)
 
     if (m_masks_built)
     {
+        if (m_is_bottom_singular && !m_is_singular) { // the new bottom may have overset nodes
+            m_is_bottom_singular = (m_dirichlet_mask[0].back()->max(0) == 0);
+        }
         const auto lobc = this->LoBC();
         const auto hibc = this->HiBC();
         const Geometry& geom = this->m_geom[amrlev][mglev];

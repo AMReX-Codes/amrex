@@ -137,7 +137,7 @@ public:
     void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
 
     bool isSingular (int amrlev) const override
-        { return (amrlev == 0) ? m_is_bottom_singular : false; }
+        { return (amrlev == 0) ? m_is_singular : false; }
     bool isBottomSingular () const override { return m_is_bottom_singular; }
 
     //! Dot-product helper.
@@ -339,7 +339,8 @@ protected:
     mutable bool m_in_solution_mode = true;
 
 private:
-    bool m_is_bottom_singular = false;
+    bool m_is_singular = false;
+    bool m_is_bottom_singular = false; // also when coarsening dropped all overset nodes
 };
 
 extern template class MLNodeLinOpT<MultiFab>;
