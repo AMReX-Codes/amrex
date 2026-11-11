@@ -64,10 +64,9 @@
 // ---------------------------------------------------------------------------
 // Runtime types
 // ---------------------------------------------------------------------------
-// Handle tag names match ROCm's, so the Itanium names of kernels whose
-// lambdas live in functions taking these handles agree between the host
-// compile (which may use the real HIP declarations) and the device pass.
-typedef struct ihipStream_t* hipStream_t;
+// A stream is a native HRX stream (hrx_stream_t), as AMReX's gpuStream_t is
+// under AMREX_USE_LOOM. The other handle tag names match ROCm's.
+typedef struct hrx_stream_s* hipStream_t;
 typedef struct ihipEvent_t* hipEvent_t;
 typedef int hipDevice_t;
 typedef struct ihipMemPoolHandle_t* hipMemPool_t;

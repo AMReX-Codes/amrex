@@ -1,0 +1,65 @@
+#ifndef AMREX_LOOM_H_
+#define AMREX_LOOM_H_
+#include <AMReX_Config.H>
+
+// Host runtime of AMReX_GPU_BACKEND=LOOM: thin functions over native libhrx,
+// implemented in AMReX_Loom.cpp. AMReX's GPU layer calls these under
+// AMREX_USE_LOOM; streams are HRX streams. Every function initializes the
+// runtime on first use and aborts on an HRX failure, except where noted.
+//
+// The Loom device pass sees these declarations but never calls them, so the
+// header names the HRX handle types without including <hrx_runtime.h>.
+
+#ifdef AMREX_USE_LOOM
+
+#include <cstddef>
+
+typedef struct hrx_stream_s* hrx_stream_t;
+
+namespace amrex_loom {
+
+// Device properties AMReX reads (amrex::gpuDeviceProp_t under LOOM).
+struct DeviceProperties {
+    char name[256];
+    char gcnArchName[256];
+    std::size_t totalGlobalMem;
+    std::size_t sharedMemPerBlock;
+    int warpSize;
+    int maxThreadsPerBlock;
+    int maxThreadsDim[3];
+    int maxGridSize[3];
+    int multiProcessorCount;
+    int maxThreadsPerMultiProcessor;
+    int managedMemory;
+    int concurrentManagedAccess;
+    int integrated;
+};
+
+// --- device ------------------------------------------------------------------
+
+//! Number of devices the runtime exposes (one).
+int device_count ();
+//! Properties of device 0.
+void device_properties (DeviceProperties* properties);
+//! 16-byte device identifier (all zero: HRX does not report one).
+void device_uuid (char bytes[16]);
+//! Free and total device memory in bytes.
+void memory_info (std::size_t* free_bytes, std::size_t* total_bytes);
+//! Waits for the work of every stream.
+void device_synchronize ();
+
+// --- streams -----------------------------------------------------------------
+
+//! Creates a stream on an HRX queue of its own where the device allows.
+hrx_stream_t stream_create ();
+//! Waits for |stream|'s work, then releases it and its queue.
+void stream_destroy (hrx_stream_t stream);
+//! Flushes |stream| and waits for its work.
+void stream_synchronize (hrx_stream_t stream);
+//! True when all work submitted to |stream| has completed.
+bool stream_query (hrx_stream_t stream);
+
+}  // namespace amrex_loom
+
+#endif  // AMREX_USE_LOOM
+#endif  // AMREX_LOOM_H_

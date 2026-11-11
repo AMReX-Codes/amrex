@@ -183,6 +183,8 @@ StreamManager::sync () {
         new_empty_wait_list.clear();
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
+#elif defined(AMREX_USE_LOOM)
+    amrex_loom::stream_synchronize(m_stream);
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(m_stream));,
                        AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(m_stream)); )
@@ -314,19 +316,29 @@ int SelectDeviceBeforeMPIInit ()
     if (local_rank < 0) { return -1; }
 
     int ngpus = 0;
+#if defined(AMREX_USE_LOOM)
+    ngpus = amrex_loom::device_count();
+    if (ngpus <= 0) { return -1; }
+#else
     if (AMREX_HIP_OR_CUDA(hipGetDeviceCount(&ngpus) != hipSuccess,
                           cudaGetDeviceCount(&ngpus) != cudaSuccess) || ngpus <= 0)
     {
         return -1;
     }
+#endif
 
     Machine::Initialize();
     int id = machine_device_id(local_rank % ngpus, ngpus);
+#if defined(AMREX_USE_LOOM)
+    // The LOOM runtime opens a single device.
+    if (id != 0) { return -1; }
+#else
     if (AMREX_HIP_OR_CUDA(hipSetDevice(id) != hipSuccess,
                           cudaSetDevice(id) != cudaSuccess))
     {
         return -1;
     }
+#endif
 
     preinit_device_id = id;
     preinit_local_rank = local_rank;
@@ -362,10 +374,14 @@ Device::Initialize (bool minimal, int a_device_id)
     }
 
     if (amrex::Verbose()) {
+#if defined(AMREX_USE_LOOM)
+        amrex::Print() << "Initializing LOOM...\n";
+#else
         AMREX_HIP_OR_CUDA_OR_SYCL
             ( amrex::Print() << "Initializing HIP...\n";,
               amrex::Print() << "Initializing CUDA...\n";,
               amrex::Print() << "Initializing SYCL...\n"; )
+#endif
     }
 
     // Count the number of GPU devices.
@@ -378,6 +394,11 @@ Device::Initialize (bool minimal, int a_device_id)
         if (gpu_device_count <= 0) {
             amrex::Abort("No GPU device found");
         }
+    }
+#elif defined(AMREX_USE_LOOM)
+    gpu_device_count = amrex_loom::device_count();
+    if (gpu_device_count <= 0) {
+        amrex::Abort("No GPU device found");
     }
 #else
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDeviceCount(&gpu_device_count));,
@@ -408,8 +429,10 @@ Device::Initialize (bool minimal, int a_device_id)
 
     if (minimal) {
         device_id = 0;
+#if !defined(AMREX_USE_LOOM)
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDevice(&device_id));,
                           AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device_id)); );
+#endif
     } else if (a_device_id >= 0) {
         device_id = a_device_id;
     } else if (use_preinit) {
@@ -456,7 +479,10 @@ Device::Initialize (bool minimal, int a_device_id)
 #endif
     }
 
-#if !defined(AMREX_USE_SYCL)
+#if defined(AMREX_USE_LOOM)
+    // The LOOM runtime opens a single device.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_id == 0, "AMReX LOOM backend: only device 0 is available");
+#elif !defined(AMREX_USE_SYCL)
     if ( ! minimal) {
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
                           AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
@@ -482,10 +508,16 @@ Device::Initialize (bool minimal, int a_device_id)
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
         constexpr int len = 16;
+#if !defined(AMREX_USE_LOOM)
         static_assert(std::is_same<decltype(AMREX_HIP_OR_CUDA(hipUUID,cudaUUID_t)::bytes),
                                    char[len]>());
+#endif
         std::vector<char> buf(ParallelDescriptor::NProcs()*len);
         char* pbuf = buf.data();
+#if defined(AMREX_USE_LOOM)
+        char sbuf[len];
+        amrex_loom::device_uuid(sbuf);
+#else
 #ifdef AMREX_USE_CUDA
         auto const& uuid = device_prop.uuid;
 #else
@@ -493,6 +525,7 @@ Device::Initialize (bool minimal, int a_device_id)
         AMREX_HIP_SAFE_CALL(hipDeviceGetUuid(&uuid, device_id));
 #endif
         char const* sbuf = uuid.bytes;
+#endif
         MPI_Allgather(sbuf, len, MPI_CHAR, pbuf, len, MPI_CHAR,
                       ParallelDescriptor::Communicator());
         std::map<std::string,int> uuid_counts;
@@ -556,7 +589,9 @@ Device::Initialize (bool minimal, int a_device_id)
 #endif /* AMREX_USE_MPI */
 
     if (amrex::Verbose() && ! minimal) {
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+        amrex::Print() << "LOOM"
+#elif defined(AMREX_USE_CUDA)
         amrex::Print() << "CUDA"
 #elif defined(AMREX_USE_HIP)
         amrex::Print() << "HIP"
@@ -603,6 +638,11 @@ Device::Finalize ()
     }
     sycl_context.reset();
     sycl_device.reset();
+#elif defined(AMREX_USE_LOOM)
+    for (int i = 0; i < max_gpu_streams; ++i)
+    {
+        amrex_loom::stream_destroy(gpu_stream_pool[i].getStream());
+    }
 #else
     for (int i = 0; i < max_gpu_streams; ++i)
     {
@@ -632,7 +672,20 @@ Device::initialize_gpu (bool minimal)
         gpu_stream_pool = Vector<StreamManager>(max_gpu_streams);
     }
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+
+    amrex_loom::device_properties(&device_prop);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
+
+    for (int i = 0; i < max_gpu_streams; ++i) {
+        gpu_stream_pool[i].getStream() = amrex_loom::stream_create();
+    }
+
+    // No stream-ordered memory pools (AMREX_GPU_STREAM_ALLOC_SUPPORT).
+    memory_pools_supported = 0;
+
+#elif defined(AMREX_USE_HIP)
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
 
@@ -916,6 +969,8 @@ Device::setExternalStream (gpuStream_t s)
 #  else
     amrex::ignore_unused(s); // cudaStreamGetDevice arrived in CUDA 12.8.
 #  endif
+#elif defined(AMREX_USE_LOOM)
+    amrex::ignore_unused(s); // The LOOM runtime opens a single device.
 #elif defined(AMREX_USE_HIP)
 #  if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && \
       ((HIP_VERSION_MAJOR > 5) || (HIP_VERSION_MAJOR == 5 && HIP_VERSION_MINOR >= 6))
@@ -980,8 +1035,12 @@ void
 Device::synchronize ()
 {
 #ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_LOOM)
+    amrex_loom::device_synchronize();
+#else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+#endif
     // After the device-wide sync completes, synchronizing all AMReX-managed
     // streams is cheap and drains deferred frees queued on their managers.
     streamSynchronizeAll();
@@ -1033,6 +1092,8 @@ Device::streamSynchronize (gpuStream_t s) noexcept
     } else {
         amrex::Abort("streamSynchronize(stream): unknown SYCL stream.");
     }
+#elif defined(AMREX_USE_LOOM)
+    amrex_loom::stream_synchronize(s);
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
@@ -1485,9 +1546,13 @@ Device::freeMemAvailable ()
 #ifndef AMREX_USE_SYCL
     std::size_t t;
 #endif
+#if defined(AMREX_USE_LOOM)
+    amrex_loom::memory_info(&f, &t);
+#else
     AMREX_HIP_OR_CUDA_OR_SYCL( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
                              AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
                                f = device_prop.totalGlobalMem; );
+#endif
 #if defined (AMREX_USE_SYCL) && defined(__INTEL_LLVM_COMPILER)
     if (sycl_device->has(sycl::aspect::ext_intel_free_memory)) {
         f = sycl_device->get_info<sycl::ext::intel::info::device::free_memory>();
@@ -1540,6 +1605,8 @@ bool isStreamActive (gpuStream_t s)
 {
 #if defined(AMREX_USE_CUDA)
     return cudaStreamQuery(s) != cudaSuccess;
+#elif defined(AMREX_USE_LOOM)
+    return ! amrex_loom::stream_query(s);
 #elif defined(AMREX_USE_HIP)
     return hipStreamQuery(s) != hipSuccess;
 #elif defined(AMREX_USE_SYCL)

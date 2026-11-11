@@ -61,7 +61,7 @@ namespace {
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     // Only running out of memory is recoverable; other errors abort.
-    void abort_unless_out_of_memory (gpuError_t ret, char const* call)
+    void abort_unless_out_of_memory (AMREX_HIP_OR_CUDA(hipError_t, cudaError_t) ret, char const* call)
     {
         if (ret != AMREX_HIP_OR_CUDA(hipErrorOutOfMemory, cudaErrorMemoryAllocation)) {
             amrex::Abort(std::string("Arena: ") + call + " returned " + std::to_string(ret) + ": "
