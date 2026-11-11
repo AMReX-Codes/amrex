@@ -8,6 +8,19 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#if defined(AMREX_USE_LOOM)
+// One parse serves both LOOM passes, so the host/device choice is a C++
+// branch rather than a preprocessor one. The host compiler sees
+// loom::target::is_device() as a constant false and emits only the host arm;
+// the Loom importer folds it to true and imports only the device arm. Both
+// arms must therefore parse in both passes.
+#include <loomcxx/target.h>
+#define AMREX_IF_ON_DEVICE(CODE) \
+  if (::loom::target::is_device()) { AMREX_IMPL_STRIP_PARENS(CODE) }
+#define AMREX_IF_ON_HOST(CODE) \
+  if (!::loom::target::is_device()) { AMREX_IMPL_STRIP_PARENS(CODE) }
+#endif
+
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_CXX_PGI) || defined(AMREX_CXX_NVHPC))
 #include <nv/target>
 #define AMREX_IF_ON_DEVICE(CODE) NV_IF_TARGET(NV_IS_DEVICE, CODE)

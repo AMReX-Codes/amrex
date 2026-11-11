@@ -211,7 +211,7 @@ namespace amrex::Gpu {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void* memcpy (void* dest, const void* src, std::size_t count)
 {
-#if defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
+#if defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) && !defined(AMREX_USE_LOOM)
     return ::memcpy(dest, src, count);
 #else
     return std::memcpy(dest, src, count);

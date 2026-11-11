@@ -116,8 +116,8 @@ inline constexpr int warpSize = 64;
 #define __builtin_amdgcn_s_sleep(n) ((void)0)
 
 // HIP device math beyond <cmath>. Only device code (AMREX_IF_ON_DEVICE)
-// references these.
-#if defined(AMREX_LOOM_DEVICE_PASS)
+// calls these, but the host pass parses that code too, so both passes
+// define them.
 AMREX_LOOM_DEVICE_INLINE double sinpi(double x) { return __builtin_sin(3.141592653589793238462643 * x); }
 AMREX_LOOM_DEVICE_INLINE float sinpif(float x) { return __builtin_sinf(3.14159265358979323846f * x); }
 AMREX_LOOM_DEVICE_INLINE double cospi(double x) { return __builtin_cos(3.141592653589793238462643 * x); }
@@ -145,7 +145,6 @@ AMREX_LOOM_DEVICE_INLINE unsigned long long __umul64hi(unsigned long long a,
   unsigned long long cross = (lo_lo >> 32) + (hi_lo & 0xffffffffull) + lo_hi;
   return hi_hi + (hi_lo >> 32) + (cross >> 32);
 }
-#endif
 
 namespace amrex_loom_detail {
 template <class T>

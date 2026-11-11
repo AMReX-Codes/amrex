@@ -10,6 +10,9 @@
 #   AMREX_LOOM_GCC_INSTALL_DIR   GCC's lib/gcc/<triple>/<version> (compiler
 #                                headers such as stddef.h; glibc crt files)
 #   AMREX_LOOM_LINK_CXX          clang++ used for linking
+#   AMREX_LOOM_LOOMCXX_DIR       directory containing loomcxx/ headers, which
+#                                the device pass also reads (AMReX includes
+#                                <loomcxx/target.h> in both passes)
 # Optional:
 #   AMREX_LOOM_SYSROOT           sysroot holding glibc's headers and libraries
 #   AMREX_LOOM_HOST_CXX_LOG      file that records flags dropped for cxx
@@ -17,6 +20,7 @@
 #                                the device pass parses for the same triple
 set -o pipefail
 : "${AMREX_LOOM_CXX:?}" "${AMREX_LOOM_LIBCXX_ROOT:?}" "${AMREX_LOOM_GCC_INSTALL_DIR:?}" "${AMREX_LOOM_LINK_CXX:?}"
+: "${AMREX_LOOM_LOOMCXX_DIR:?}"
 C=$AMREX_LOOM_LIBCXX_ROOT
 sysroot=()
 [[ -n "${AMREX_LOOM_SYSROOT:-}" ]] && sysroot=(--sysroot="$AMREX_LOOM_SYSROOT")
@@ -49,4 +53,4 @@ if [[ -n "${AMREX_LOOM_HOST_CXX_LOG:-}" && ${#dropped[@]} -gt 0 ]]; then
 fi
 exec "$AMREX_LOOM_CXX" --target="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" "${sysroot[@]}" \
   -nostdinc++ -isystem "$C/include/c++/v1" -isystem "$AMREX_LOOM_GCC_INSTALL_DIR/include" \
-  -fno-exceptions "${args[@]}"
+  -isystem "$AMREX_LOOM_LOOMCXX_DIR" -fno-exceptions "${args[@]}"
