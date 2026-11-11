@@ -502,6 +502,15 @@ will become
     foo.a = 2
     foo.b = 2
 
+When an integer or floating-point parameter is read with :cpp:`get` or
+:cpp:`query` (including the array versions), a value of ``true`` or ``false``
+(in any case) is read as 1 or 0. A value of ``t`` or ``f`` (in any case) is
+also read as 1 or 0, unless it is the name of an existing parameter. In that
+case it refers to the parameter, which is looked up in the same way as a
+variable in a math expression (the name is case-sensitive). For example,
+``temp = T`` is read as 300 if the inputs also have ``T = 300``, and as 1
+otherwise.
+
 Enum Class
 ----------
 
