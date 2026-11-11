@@ -20,10 +20,11 @@
 
 #ifdef AMREX_USE_LOOM
 
-#include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DEVICE_PASS, AMREX_LOOM_DEVICE_INLINE
+#include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DEVICE_INLINE
 #include <AMReX_GpuTypes.H>       // amrex::dim3, hrx_stream_t
 #include <AMReX_Loom.H>           // amrex_loom::dispatch
 
+#include <loomcxx/kernel.h>
 #include <loomcxx/kernel_ref.h>
 
 #include <cstddef>
@@ -49,10 +50,13 @@ struct Tag<F, Rest...> {
 };
 
 // Fixed workgroup sizes: blockDim/gridDim queries lower only when the
-// workgroup size is static, so every launch names one. The device pass
-// defines the kernels; the host only names them, through kernel_ref, and
-// needs no definition.
-#if defined(AMREX_LOOM_DEVICE_PASS)
+// workgroup size is static, so every launch names one. Both passes see the
+// kernel definitions. The host only names an instance, through kernel_ref
+// (whose template argument is not a reference that emits code), so it never
+// emits a kernel body or the device code the body reaches; the device pass
+// compiles the instances that launch sites reach.
+// The importer requires a launch configuration function with internal
+// linkage.
 #define AMREX_LOOM_FIXED_KERNEL_DEFINITION(N)                                 \
   static loom::kernel::configuration kernel_config##N(                        \
       unsigned gx, unsigned gy, unsigned gz) {                                \
@@ -63,11 +67,6 @@ struct Tag<F, Rest...> {
   void kernel##N(T tag) {                                                     \
     tag();                                                                    \
   }
-#else
-#define AMREX_LOOM_FIXED_KERNEL_DEFINITION(N)                                 \
-  template <class T>                                                          \
-  void kernel##N(T tag);
-#endif
 // fixed_kernel_ref<T>(std::integral_constant<int, N>{}) is kernel<N><T>'s
 // launch descriptor; overload resolution instantiates only the one used.
 #define AMREX_LOOM_FIXED_KERNEL(N)                                            \
