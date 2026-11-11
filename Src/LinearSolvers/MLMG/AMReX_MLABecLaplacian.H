@@ -330,10 +330,12 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     this->m_ncomp = a_ncomp;
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, this->dpInfo(a_info), a_factory);
     define_ab_coeffs();
-    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
-        return std::make_unique<MLABecLaplacianT<fMultiFab>>
-            (this->spGeom(a_geom), a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
-    });
+    if (typeid(*this) == typeid(MLABecLaplacianT<MF>)) { // a derived operator builds its own copy
+        this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+            return std::make_unique<MLABecLaplacianT<fMultiFab>>
+                (this->spGeom(a_geom), a_grids, a_dmap, sp_info, Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
+        });
+    }
 }
 
 template <typename MF>
@@ -350,11 +352,13 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     this->m_ncomp = a_ncomp;
     MLCellABecLapT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, this->dpInfo(a_info), a_factory);
     define_ab_coeffs();
-    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
-        return std::make_unique<MLABecLaplacianT<fMultiFab>>
-            (this->spGeom(a_geom), a_grids, a_dmap, a_overset_mask, sp_info,
-             Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
-    });
+    if (typeid(*this) == typeid(MLABecLaplacianT<MF>)) { // a derived operator builds its own copy
+        this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+            return std::make_unique<MLABecLaplacianT<fMultiFab>>
+                (this->spGeom(a_geom), a_grids, a_dmap, a_overset_mask, sp_info,
+                 Vector<FabFactory<BaseFab<float>> const*>{}, a_ncomp);
+        });
+    }
 }
 
 template <typename MF>

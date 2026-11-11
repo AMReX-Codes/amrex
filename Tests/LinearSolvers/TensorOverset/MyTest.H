@@ -38,6 +38,7 @@ private:
     amrex::MultiFab eta;
 
     int do_overset = 1;
+    int mixed_precision = 0;
     amrex::iMultiFab oversetmask;
 };
 

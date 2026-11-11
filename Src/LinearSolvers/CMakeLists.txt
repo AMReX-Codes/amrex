@@ -113,7 +113,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           MLMG/AMReX_MLNodeLap_${D}D_K.H
           MLMG/AMReX_MLTensorOp.H
           MLMG/AMReX_MLTensorOp.cpp
-          MLMG/AMReX_MLTensorOp_grad.cpp
           MLMG/AMReX_MLTensor_K.H
           MLMG/AMReX_MLTensor_${D}D_K.H
        )

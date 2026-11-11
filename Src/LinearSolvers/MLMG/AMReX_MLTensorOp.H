@@ -33,38 +33,45 @@ namespace amrex {
 // they are not set, their default value is 1.
 
 /// \brief Tensor solver with shear/bulk viscosity inputs for high-Reynolds flows.
-class MLTensorOp
-    : public MLABecLaplacian
+template <typename MF>
+class MLTensorOpT
+    : public MLABecLaplacianT<MF>
 {
 public:
 
+    using FAB = typename MF::fab_type;
+    using RT  = typename MF::value_type;
+    using Location = typename MLLinOpT<MF>::Location;
+    using BCMode = typename MLLinOpT<MF>::BCMode;
+    using StateMode = typename MLLinOpT<MF>::StateMode;
+
     //! Construct an empty tensor operator; call define() before solving.
-    MLTensorOp ();
+    MLTensorOpT ();
     /**
      * \brief Convenience constructor without overset masks (for cell-only domains).
      *
      * Internally calls define() with the provided metadata.
      */
-    MLTensorOp (const Vector<Geometry>& a_geom,
+    MLTensorOpT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
                 const LPInfo& a_info = LPInfo(),
-                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                const Vector<FabFactory<FAB> const*>& a_factory = {});
     /**
      * \brief Convenience constructor that includes overset-mask support (1 = unknown, 0 = known).
      */
-    MLTensorOp (const Vector<Geometry>& a_geom,
+    MLTensorOpT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
                 const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                 const LPInfo& a_info = LPInfo(),
-                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-    ~MLTensorOp () override = default;
+                const Vector<FabFactory<FAB> const*>& a_factory = {});
+    ~MLTensorOpT () override = default;
 
-    MLTensorOp (const MLTensorOp&) = delete;
-    MLTensorOp (MLTensorOp&&) = delete;
-    MLTensorOp& operator= (const MLTensorOp&) = delete;
-    MLTensorOp& operator= (MLTensorOp&&) = delete;
+    MLTensorOpT (const MLTensorOpT&) = delete;
+    MLTensorOpT (MLTensorOpT&&) = delete;
+    MLTensorOpT& operator= (const MLTensorOpT&) = delete;
+    MLTensorOpT& operator= (MLTensorOpT&&) = delete;
 
     /**
      * \brief Define the hierarchy for standard tensor solves.
@@ -79,7 +86,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FAB> const*>& a_factory = {});
 
     /**
      * \brief Define the hierarchy with overset masks (1 = unknown, 0 = known).
@@ -96,7 +103,7 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FAB> const*>& a_factory = {});
 
     /**
      * \brief Provide shear viscosity `eta` as face-centered MultiFabs.
@@ -104,28 +111,34 @@ public:
      * \param amrlev AMR level receiving the data.
      * \param eta    Array of MultiFabs, one per spatial direction.
      */
-    void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
+    void setShearViscosity (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& eta);
     /**
      * \brief Populate `eta` with a constant scalar.
      *
      * \param amrlev AMR level receiving the value.
      * \param eta    Scalar shear viscosity.
      */
-    void setShearViscosity (int amrlev, Real eta);
+    void setShearViscosity (int amrlev, RT eta);
     /**
      * \brief Provide bulk viscosity `kappa` as face-centered MultiFabs.
      *
      * \param amrlev AMR level receiving the data.
      * \param kappa  Array of MultiFabs, one per spatial direction.
      */
-    void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
+    void setBulkViscosity (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& kappa) {
+        setBulkViscosity<MF>(amrlev, kappa);
+    }
+    //! Same, for MultiFabs of another precision.
+    template <FabArrayType AMF>
+    requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+    void setBulkViscosity (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& kappa);
     /**
      * \brief Populate `kappa` with a constant scalar.
      *
      * \param amrlev AMR level receiving the value.
      * \param kappa  Scalar bulk viscosity.
      */
-    void setBulkViscosity (int amrlev, Real kappa);
+    void setBulkViscosity (int amrlev, RT kappa);
 
     [[nodiscard]] int getNComp () const final { return AMREX_SPACEDIM; }
 
@@ -139,7 +152,7 @@ public:
      * coefficients are left untouched.
      */
     [[nodiscard]] bool needsUpdate () const final {
-        return (m_needs_update || MLABecLaplacian::needsUpdate());
+        return (m_needs_update || MLABecLaplacianT<MF>::needsUpdate());
     }
     /**
      * \brief Not implemented for tensor operators.
@@ -153,6 +166,10 @@ public:
 
     //! Assemble viscosity data/BC caches before solving.
     void prepareForSolve () final;
+    [[nodiscard]] bool supportsMixedPrecision () const override {
+        return typeid(*this) == typeid(MLTensorOpT<MF>);
+    }
+
     [[nodiscard]] bool isSingular (int /*armlev*/) const final { return false; }
     [[nodiscard]] bool isBottomSingular () const final { return false; }
 
@@ -167,8 +184,8 @@ public:
      * \param s_mode  State mode (solution vs correction).
      * \param bndry  Optional boundary metadata supplied by MLMG.
      */
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
+    void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
+                StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const final;
 
     /**
      * \brief Assemble viscous fluxes on AMR level \p amrlev.
@@ -178,8 +195,8 @@ public:
      * \param sol    Solution values defining the flux.
      * \param loc    Sampling location for the stencil (faces, centroids, etc.).
      */
-    void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                   MultiFab& sol, Location loc) const override;
+    void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
+                   MF& sol, Location loc) const override;
 
     /**
      * \brief Compute velocity gradients (symmetrized) at the requested location.
@@ -193,10 +210,10 @@ public:
      * \param sol    Solution whose gradients are computed.
      * \param loc    Sampling location (cell/face center, centroid, etc.).
      */
-    void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                      MultiFab& sol, Location loc) const;
+    void compVelGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
+                      MF& sol, Location loc) const;
 
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
+    void setBCoeffs (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& beta) = delete;
 
     /**
      * \brief Declare a diagonal mesh mapping and supply its face factors.
@@ -220,7 +237,13 @@ public:
      *               each with AMREX_SPACEDIM components holding the mapping
      *               factors dx_j/dxi_j at that face.
      */
-    void setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& fac);
+    void setMappingFactors (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& fac) {
+        setMappingFactors<MF>(amrlev, fac);
+    }
+    //! Same, for MultiFabs of another precision.
+    template <FabArrayType AMF>
+    requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+    void setMappingFactors (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& fac);
 
     //! True if setMappingFactors has been called for any AMR level.
     [[nodiscard]] bool isMapped () const noexcept { return m_use_mapped; }
@@ -235,10 +258,10 @@ public:
 protected:
 
     bool m_has_kappa = false;
-    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
+    Vector<Vector<Array<MF,AMREX_SPACEDIM> > > m_kappa;
 
     bool m_use_mapped = false;
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_mapfac; // per AMR level, MG level 0
+    Vector<Array<MF,AMREX_SPACEDIM> > m_mapfac; // per AMR level, MG level 0
 
 private:
 
@@ -256,10 +279,54 @@ public: // for cuda
      * \param s_mode  State mode (solution/correction).
      * \param bndry   Boundary metadata supplied by MLMG (may be null).
      */
-    void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                        BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry
+    void applyBCTensor (int amrlev, int mglev, MF& vel,
+                        BCMode bc_mode, StateMode s_mode, const MLMGBndryT<MF>* bndry
                         ) const;
 };
+
+template <typename MF>
+template <FabArrayType AMF>
+requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+void
+MLTensorOpT<MF>::setBulkViscosity (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& kappa)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_kappa[amrlev][0][idim].LocalCopy(*kappa[idim], 0, 0, 1, IntVect(0));
+    }
+    m_has_kappa = true;
+    m_needs_update = true;
+    this->template spForward<MLTensorOpT>([&] (auto* sp) { sp->setBulkViscosity(amrlev, kappa); });
+}
+
+template <typename MF>
+template <FabArrayType AMF>
+requires (std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+void
+MLTensorOpT<MF>::setMappingFactors (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& fac)
+{
+    if (m_mapfac.empty()) { m_mapfac.resize(this->NAMRLevels()); }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT(fac[idim]->nComp() >= AMREX_SPACEDIM);
+        if (!m_mapfac[amrlev][idim].ok()) {
+            m_mapfac[amrlev][idim].define
+                (amrex::convert(this->m_grids[amrlev][0], IntVect::TheDimensionVector(idim)),
+                 this->m_dmap[amrlev][0], AMREX_SPACEDIM, 0, MFInfo(), *this->m_factory[amrlev][0]);
+        }
+        m_mapfac[amrlev][idim].LocalCopy(*fac[idim], 0, 0, AMREX_SPACEDIM, IntVect(0));
+    }
+    m_use_mapped = true;
+    m_needs_update = true;
+    this->template spForward<MLTensorOpT>([&] (auto* sp) { sp->setMappingFactors(amrlev, fac); });
+}
+
+// Member functions are defined in the .cpp file.  Only these instantiations exist.
+extern template class MLTensorOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+extern template class MLTensorOpT<fMultiFab>;
+#endif
+
+/// \ingroup amrex_solver_mlmg
+using MLTensorOp = MLTensorOpT<MultiFab>;
 
 }
 
