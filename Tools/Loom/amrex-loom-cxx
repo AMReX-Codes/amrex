@@ -16,6 +16,7 @@
 #   AMREX_LOOM_LOOMCXX_DIR    directory containing loomcxx/ headers
 #   AMREX_LOOM_SYSTEM_INCLUDES  ':'-separated libc++/compiler/libc include dirs
 #   AMREX_LOOM_HRX_LIB_DIR    directory containing libhrx.so
+#   AMREX_LOOM_HOST_TRIPLE    host target triple (default x86_64-linux-gnu)
 # Optional: AMREX_LOOM_PYTHON  Python 3 that reads loom-compile's JSON report
 #           (default: python3 on PATH).
 #           AMREX_LOOM_KEEP=1 keeps the device-pass temporaries.
@@ -81,7 +82,8 @@ printf '#include <amrex_loom_device_prelude.H>\n#include "%s"\n' "$abs_src" > "$
 excluded=()
 for round in 1 2 3 4 5; do
 "$AMREX_LOOM_IMPORT" --builtin-includes=false --root=@launched \
-  --hosted --tolerate-host-errors --drop-failed-kernels \
+  --hosted --triple="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
+  --tolerate-host-errors --drop-failed-kernels \
   --kernel-manifest="$tmp/manifest" "${excluded[@]}" \
   --I="$HERE" --I="$AMREX_LOOM_LOOMCXX_DIR" "${dev[@]}" \
   "$tmp/dev.cpp" --to=bc --output="$tmp/dev.loombc" > "$tmp/import.log" 2>&1

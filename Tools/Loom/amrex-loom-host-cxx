@@ -13,6 +13,8 @@
 # Optional:
 #   AMREX_LOOM_SYSROOT           sysroot holding glibc's headers and libraries
 #   AMREX_LOOM_HOST_CXX_LOG      file that records flags dropped for cxx
+#   AMREX_LOOM_HOST_TRIPLE       host target triple (default x86_64-linux-gnu);
+#                                the device pass parses for the same triple
 set -o pipefail
 : "${AMREX_LOOM_CXX:?}" "${AMREX_LOOM_LIBCXX_ROOT:?}" "${AMREX_LOOM_GCC_INSTALL_DIR:?}" "${AMREX_LOOM_LINK_CXX:?}"
 C=$AMREX_LOOM_LIBCXX_ROOT
@@ -45,6 +47,6 @@ done
 if [[ -n "${AMREX_LOOM_HOST_CXX_LOG:-}" && ${#dropped[@]} -gt 0 ]]; then
   echo "dropped: ${dropped[*]}" >> "$AMREX_LOOM_HOST_CXX_LOG"
 fi
-exec "$AMREX_LOOM_CXX" --target=x86_64-linux-gnu "${sysroot[@]}" \
+exec "$AMREX_LOOM_CXX" --target="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" "${sysroot[@]}" \
   -nostdinc++ -isystem "$C/include/c++/v1" -isystem "$AMREX_LOOM_GCC_INSTALL_DIR/include" \
   -fno-exceptions "${args[@]}"
