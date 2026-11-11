@@ -45,6 +45,7 @@ module amrex_multifab_module
      procedure :: norm0         => amrex_multifab_norm0
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
+     generic :: abs           => amrex_multifab_abs, amrex_multifab_abs_gv
      generic :: setval        => amrex_multifab_setval, amrex_multifab_setval_gv
      procedure :: plus          => amrex_multifab_plus
      procedure :: mult          => amrex_multifab_mult
@@ -61,6 +62,8 @@ module amrex_multifab_module
      generic   :: override_sync => amrex_multifab_override_sync, amrex_multifab_override_sync_mask
      generic   :: sum_boundary  => amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c
      procedure :: average_sync  => amrex_multifab_average_sync
+     procedure, private :: amrex_multifab_abs
+     procedure, private :: amrex_multifab_abs_gv
      procedure, private :: amrex_multifab_setval
      procedure, private :: amrex_multifab_setval_gv
      procedure, private :: amrex_multifab_add
@@ -296,6 +299,14 @@ module amrex_multifab_module
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm2
+
+     subroutine amrex_fi_multifab_abs (mf, ic, nc, ng) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       integer(c_int), value :: ic, nc
+       integer(c_int), intent(in) :: ng(*)
+     end subroutine amrex_fi_multifab_abs
 
      subroutine amrex_fi_multifab_setval (mf, val, ic, nc, ng) bind(c)
        import
@@ -892,6 +903,22 @@ contains
        r = amrex_fi_multifab_norm2(this%p, 0)
     end if
   end function amrex_multifab_norm2
+
+  subroutine amrex_multifab_abs_gv (this, icomp, ncomp, nghost)
+    class(amrex_multifab), intent(inout) :: this
+    integer, intent(in) :: icomp, ncomp, nghost(*)
+    call amrex_fi_multifab_abs(this%p, icomp-1, ncomp, nghost)
+  end subroutine amrex_multifab_abs_gv
+
+  subroutine amrex_multifab_abs (this, icomp, ncomp, nghost)
+    class(amrex_multifab), intent(inout) :: this
+    integer, intent(in), optional :: icomp, ncomp, nghost
+    integer :: ic, nc, ng(3)
+    ic = 0;         if (present(icomp))  ic = icomp-1
+    nc = this%nc;   if (present(ncomp))  nc = ncomp
+    ng = this%ng;   if (present(nghost)) ng = nghost
+    call amrex_fi_multifab_abs(this%p, ic, nc, ng)
+  end subroutine amrex_multifab_abs
 
   subroutine amrex_multifab_setval_gv (this, val, icomp, ncomp, nghost)
     class(amrex_multifab), intent(inout) :: this

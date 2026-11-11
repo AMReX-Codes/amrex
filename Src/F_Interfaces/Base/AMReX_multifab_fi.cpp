@@ -109,6 +109,11 @@ extern "C" {
         return mf->norm2(comp);
     }
 
+    void amrex_fi_multifab_abs (MultiFab* mf, int ic, int nc, const int* ng)
+    {
+        mf->abs(ic, nc, IntVect(ng));
+    }
+
     void amrex_fi_multifab_setval (MultiFab* mf, Real val, int ic, int nc, const int* ng)
     {
         mf->setVal(val, ic, nc, IntVect(ng));
