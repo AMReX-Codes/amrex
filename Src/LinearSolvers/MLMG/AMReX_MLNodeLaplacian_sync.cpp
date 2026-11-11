@@ -1109,18 +1109,21 @@ MLNodeLaplacianT<MF>::reflux (int crse_amrlev,
 #endif
 }
 
-#define AMREX_MLNODELAP_SYNC_INST(MF) \
-    template void MLNodeLaplacianT<MF>::compSyncResidualCoarse (MF&, const MF&, const MF&, \
-                                                                const MF*, const BoxArray&, \
-                                                                const IntVect&); \
-    template void MLNodeLaplacianT<MF>::compSyncResidualFine (MF&, const MF&, const MF&, \
-                                                              const MF*); \
-    template void MLNodeLaplacianT<MF>::reflux (int, MF&, const MF&, const MF&, \
-                                                MF&, MF&, const MF&) const;
-
-AMREX_MLNODELAP_SYNC_INST(MultiFab)
+template void MLNodeLaplacianT<MultiFab>::compSyncResidualCoarse (MultiFab&, const MultiFab&, const MultiFab&,
+                                                                  const MultiFab*, const BoxArray&,
+                                                                  const IntVect&);
+template void MLNodeLaplacianT<MultiFab>::compSyncResidualFine (MultiFab&, const MultiFab&, const MultiFab&,
+                                                                const MultiFab*);
+template void MLNodeLaplacianT<MultiFab>::reflux (int, MultiFab&, const MultiFab&, const MultiFab&,
+                                                  MultiFab&, MultiFab&, const MultiFab&) const;
 #ifdef AMREX_MLMG_HAS_FLOAT
-AMREX_MLNODELAP_SYNC_INST(fMultiFab)
+template void MLNodeLaplacianT<fMultiFab>::compSyncResidualCoarse (fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                                   const fMultiFab*, const BoxArray&,
+                                                                   const IntVect&);
+template void MLNodeLaplacianT<fMultiFab>::compSyncResidualFine (fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                                 const fMultiFab*);
+template void MLNodeLaplacianT<fMultiFab>::reflux (int, fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                   fMultiFab&, fMultiFab&, const fMultiFab&) const;
 #endif
 
 }

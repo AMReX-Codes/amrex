@@ -1497,23 +1497,33 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 #endif
 }
 
-#define AMREX_MLNODELAP_MISC_INST(MF) \
-    template void MLNodeLaplacianT<MF>::averageDownCoeffs (); \
-    template void MLNodeLaplacianT<MF>::averageDownCoeffsToCoarseAmrLevel (int); \
-    template void MLNodeLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int); \
-    template void MLNodeLaplacianT<MF>::Fapply (int, int, MF&, const MF&) const; \
-    template void MLNodeLaplacianT<MF>::Fsmooth (int, int, MF&, const MF&) const; \
-    template void MLNodeLaplacianT<MF>::updateVelocity (const Vector<MF*>&, \
-                                                        const Vector<MF const*>&) const; \
-    template void MLNodeLaplacianT<MF>::compGrad (int, MF&, MF&) const; \
-    template void MLNodeLaplacianT<MF>::getFluxes (const Vector<MF*>&, const Vector<MF*>&) const; \
-    template void MLNodeLaplacianT<MF>::compDivergence (const Vector<MF*>&, const Vector<MF*>&); \
-    template void MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>&, const Vector<MF*>&, \
-                                                 const Vector<const MF*>&, const Vector<MF*>&);
-
-AMREX_MLNODELAP_MISC_INST(MultiFab)
+/// \cond DOXYGEN_IGNORE
+template void MLNodeLaplacianT<MultiFab>::averageDownCoeffs ();
+template void MLNodeLaplacianT<MultiFab>::averageDownCoeffsToCoarseAmrLevel (int);
+template void MLNodeLaplacianT<MultiFab>::averageDownCoeffsSameAmrLevel (int);
+template void MLNodeLaplacianT<MultiFab>::Fapply (int, int, MultiFab&, const MultiFab&) const;
+template void MLNodeLaplacianT<MultiFab>::Fsmooth (int, int, MultiFab&, const MultiFab&) const;
+template void MLNodeLaplacianT<MultiFab>::updateVelocity (const Vector<MultiFab*>&,
+                                                          const Vector<MultiFab const*>&) const;
+template void MLNodeLaplacianT<MultiFab>::compGrad (int, MultiFab&, MultiFab&) const;
+template void MLNodeLaplacianT<MultiFab>::getFluxes (const Vector<MultiFab*>&, const Vector<MultiFab*>&) const;
+template void MLNodeLaplacianT<MultiFab>::compDivergence (const Vector<MultiFab*>&, const Vector<MultiFab*>&);
+template void MLNodeLaplacianT<MultiFab>::compRHS (const Vector<MultiFab*>&, const Vector<MultiFab*>&,
+                                                   const Vector<const MultiFab*>&, const Vector<MultiFab*>&);
 #ifdef AMREX_MLMG_HAS_FLOAT
-AMREX_MLNODELAP_MISC_INST(fMultiFab)
+template void MLNodeLaplacianT<fMultiFab>::averageDownCoeffs ();
+template void MLNodeLaplacianT<fMultiFab>::averageDownCoeffsToCoarseAmrLevel (int);
+template void MLNodeLaplacianT<fMultiFab>::averageDownCoeffsSameAmrLevel (int);
+template void MLNodeLaplacianT<fMultiFab>::Fapply (int, int, fMultiFab&, const fMultiFab&) const;
+template void MLNodeLaplacianT<fMultiFab>::Fsmooth (int, int, fMultiFab&, const fMultiFab&) const;
+template void MLNodeLaplacianT<fMultiFab>::updateVelocity (const Vector<fMultiFab*>&,
+                                                           const Vector<fMultiFab const*>&) const;
+template void MLNodeLaplacianT<fMultiFab>::compGrad (int, fMultiFab&, fMultiFab&) const;
+template void MLNodeLaplacianT<fMultiFab>::getFluxes (const Vector<fMultiFab*>&, const Vector<fMultiFab*>&) const;
+template void MLNodeLaplacianT<fMultiFab>::compDivergence (const Vector<fMultiFab*>&, const Vector<fMultiFab*>&);
+template void MLNodeLaplacianT<fMultiFab>::compRHS (const Vector<fMultiFab*>&, const Vector<fMultiFab*>&,
+                                                    const Vector<const fMultiFab*>&, const Vector<fMultiFab*>&);
 #endif
+/// \endcond
 
 }

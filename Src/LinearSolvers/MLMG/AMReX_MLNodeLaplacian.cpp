@@ -442,7 +442,8 @@ MLNodeLaplacianT<MF>::setSigma (int amrlev, const MF& a_sigma)
             spUpdateScale();
             for (int alev = 0; alev < this->m_num_amr_levels; ++alev) {
                 if (alev != amrlev) {
-                    int const ncomp = m_use_mapped ? AMREX_SPACEDIM : 1;
+                    int ncomp = 1;
+                    if (m_use_mapped) { ncomp = AMREX_SPACEDIM; }
                     MF tmp(this->m_grids[alev][0], this->m_dmap[alev][0], ncomp, 0);
                     for (int n = 0; n < ncomp; ++n) {
                         auto const& src = m_sigma[alev][0][n] ? m_sigma[alev][0][n] : m_sigma[alev][0][0];

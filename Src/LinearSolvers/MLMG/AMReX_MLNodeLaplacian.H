@@ -105,7 +105,7 @@ public :
                  RT a_const_sigma = RT(0.0));
 #endif
 
-    std::string name () const override { return std::string("MLNodeLaplacian"); }
+    [[nodiscard]] std::string name () const override { return std::string("MLNodeLaplacian"); }
 
     [[nodiscard]] bool supportsMixedPrecision () const override {
         return typeid(*this) == typeid(MLNodeLaplacianT<MF>);
@@ -219,7 +219,7 @@ public :
         this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setCoarseningStrategy(cs); });
     }
 
-    BottomSolver getDefaultBottomSolver () const final {
+    [[nodiscard]] BottomSolver getDefaultBottomSolver () const final {
         return (this->m_coarsening_strategy == CoarseningStrategy::RAP) ?
             BottomSolver::bicgcg : BottomSolver::bicgstab;
     }

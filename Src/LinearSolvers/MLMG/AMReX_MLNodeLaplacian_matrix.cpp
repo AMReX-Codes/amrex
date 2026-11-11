@@ -303,17 +303,19 @@ MLNodeLaplacianT<MF>::fillRHS (int mglev, MFIter const& mfi, Array4<int const> c
     });
 }
 
-#define AMREX_MLNODELAP_MATRIX_INST(MF) \
-    template void MLNodeLaplacianT<MF>::fillAlgMatrix (int, MFIter const&, \
-                                                       Array4<Long const> const&, \
-                                                       Array4<int const> const&, \
-                                                       Long*, Long*, Real*) const; \
-    template void MLNodeLaplacianT<MF>::fillRHS (int, MFIter const&, Array4<int const> const&, \
-                                                 Real*, Array4<Real const> const&) const;
-
-AMREX_MLNODELAP_MATRIX_INST(MultiFab)
+template void MLNodeLaplacianT<MultiFab>::fillAlgMatrix (int, MFIter const&,
+                                                         Array4<Long const> const&,
+                                                         Array4<int const> const&,
+                                                         Long*, Long*, Real*) const;
+template void MLNodeLaplacianT<MultiFab>::fillRHS (int, MFIter const&, Array4<int const> const&,
+                                                   Real*, Array4<Real const> const&) const;
 #ifdef AMREX_MLMG_HAS_FLOAT
-AMREX_MLNODELAP_MATRIX_INST(fMultiFab)
+template void MLNodeLaplacianT<fMultiFab>::fillAlgMatrix (int, MFIter const&,
+                                                          Array4<Long const> const&,
+                                                          Array4<int const> const&,
+                                                          Long*, Long*, Real*) const;
+template void MLNodeLaplacianT<fMultiFab>::fillRHS (int, MFIter const&, Array4<int const> const&,
+                                                    Real*, Array4<Real const> const&) const;
 #endif
 
 #if defined(AMREX_USE_HYPRE)
