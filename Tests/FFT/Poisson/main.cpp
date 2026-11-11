@@ -344,9 +344,10 @@ int main (int argc, char* argv[])
         // Trap floating-point exceptions unless the command line says
         // otherwise. The singular cases (no Dirichlet boundary) must not
         // divide by the zero wavenumber, not even speculatively. Optimized
-        // clang builds are skipped, because by default clang may raise
-        // exceptions the source does not (e.g., in unused SIMD lanes).
-#if defined(__clang__) && !defined(AMREX_DEBUG)
+        // clang and nvc++ builds are skipped, because by default they may
+        // raise exceptions the source does not (e.g., in unused SIMD lanes
+        // or in branches converted to selects).
+#if (defined(__clang__) || defined(__NVCOMPILER)) && !defined(AMREX_DEBUG)
         constexpr int trap_default = 0;
 #else
         constexpr int trap_default = 1;
