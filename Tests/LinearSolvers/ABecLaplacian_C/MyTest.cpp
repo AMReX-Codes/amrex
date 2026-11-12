@@ -642,6 +642,12 @@ MyTest::readParameters ()
         } else if (!nc.empty()) {
             amrex::Abort("n_cell needs 1 or AMREX_SPACEDIM values");
         }
+        // the exact solutions fit the BCs only for sides of length 1 or 1/2
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n_cell[idim] == n_cell.max() ||
+                                             2*n_cell[idim] == n_cell.max(),
+                                             "each n_cell must be n_cell.max() or n_cell.max()/2");
+        }
     }
     pp.query("max_grid_size", max_grid_size);
 
@@ -658,8 +664,10 @@ MyTest::readParameters ()
     pp.query("prob_type", prob_type);
     // after every value it checks has been read
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
-                                                     composite_solve && max_level == 1),
-        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
+                                                     composite_solve && max_level == 1 &&
+                                                     n_cell[0] == n_cell.max()),
+        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve, max_level = 1"
+        " and n_cell[0] = n_cell.max()");
 
     pp.query("verbose", verbose);
     pp.query("do_plots", do_plots);

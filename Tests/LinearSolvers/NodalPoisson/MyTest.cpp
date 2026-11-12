@@ -344,8 +344,10 @@ MyTest::readParameters ()
     pp.query("use_hypre", use_hypre);
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("periodic", periodic);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic || (composite_solve && domain_ratio == 1.0),
-                                     "periodic requires composite_solve = 1 and domain_ratio = 1");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic || (composite_solve && domain_ratio == 1.0 &&
+                                                   n_cell == IntVect(n_cell.max())),
+                                     "periodic requires composite_solve = 1, domain_ratio = 1"
+                                     " and a cubic domain");
     pp.query("mlhypre_prefix", mlhypre_prefix);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_test_throw", mlhypre_test_throw);
