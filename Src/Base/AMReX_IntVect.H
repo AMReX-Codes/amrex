@@ -15,6 +15,7 @@
 #include <AMReX_Tuple.H>
 #include <AMReX_TypeTraits.H>
 
+#include <bit>
 #include <iosfwd>
 #include <cstdlib>
 #include <cmath>
@@ -41,10 +42,8 @@ template <int ratio>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i) noexcept
 {
-    if constexpr (ratio == 2) {
-        return i >> 1;
-    } else if constexpr (ratio == 4) {
-        return i >> 2;
+    if constexpr (ratio > 0 && (ratio & (ratio-1)) == 0) {
+        return i >> std::countr_zero(unsigned(ratio));
     } else {
         return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
     }
