@@ -106,6 +106,9 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
 
 ## Notes
 
+- `build-hrx.sh` builds only `loom-cxx` and libhrx. Loom's standalone
+  importer and compiler, `loom-import-cxx` and `loom-compile`, are debugging
+  tools: `cmake --build build/hrx --target loom-import-cxx loom-compile`.
 - Memory: keep `BUILD_JOBS` modest. Each `loom-cxx` compile takes a few GB.
 - Executables link with `-no-pie`: cxx does not generate position-independent
   code yet.
