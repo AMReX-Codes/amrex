@@ -65,14 +65,19 @@ bool stream_query (hrx_stream_t stream);
 // --- launch ------------------------------------------------------------------
 
 //! Dispatches |kernel| (a loom::kernel::kernel_ref descriptor, defined in
-//! the launching object by loom-cxx) on |stream| with a grid of grid[0..2] workgroups of
-//! block[0..2] work-items. block must be fixed_block x 1 x 1. The kernel
-//! arguments are packed from its one parameter object at |parameter|
-//! following the descriptor's leaves. An empty grid launches nothing.
-//! AMReX_LoomLaunch.H calls this; see there.
+//! the launching object by loom-cxx) on |stream| with a grid of grid[0..2]
+//! workgroups of block[0..2] work-items. block must be fixed_block x 1 x 1.
+//! The kernel arguments are packed from its one parameter object at
+//! |parameter| following the descriptor's leaves. The first launch of a
+//! kernel of a code object loads that code object. An empty grid launches
+//! nothing. AMReX_LoomLaunch.H calls this; see there.
 void dispatch (const loom::kernel::descriptor& kernel, const void* parameter,
                const unsigned grid[3], const unsigned block[3], unsigned fixed_block,
                std::size_t shared_bytes, hrx_stream_t stream);
+
+//! Number of code objects loaded so far (diagnostics). The runtime loads a
+//! code object at the first launch of one of its kernels, never at startup.
+std::size_t loaded_code_object_count ();
 
 // --- memory ------------------------------------------------------------------
 

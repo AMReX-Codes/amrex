@@ -1,11 +1,12 @@
 // Host runtime for AMReX_GPU_BACKEND=LOOM.
 //
 // loom-cxx, the C++ compiler of LOOM builds, embeds each translation unit's
-// Loom code object and registers it before main(). A launch names its kernel by a Loom kernel
-// descriptor (loom::kernel::kernel_ref, defined locally in each object by
-// loom-cxx), dispatches the export the descriptor numbers in the code object
-// it names, and packs the kernel arguments from the host launch tag following
-// the descriptor's leaves. This file implements the
+// Loom code object. A launch names its kernel by a Loom kernel descriptor
+// (loom::kernel::kernel_ref, defined locally in each object by loom-cxx),
+// loads the code object the descriptor names the first time any of its
+// kernels launches, dispatches the export the descriptor numbers there, and
+// packs the kernel arguments from the host launch tag following the
+// descriptor's leaves. Nothing is loaded at startup. This file implements the
 // amrex_loom runtime functions declared in AMReX_Loom.H and AMReX_LoomRandom.H
 // on libhrx.
 // Single device; streams are HRX streams, each bound to its own HRX queue
@@ -33,17 +34,7 @@
 
 namespace {
 
-// --- launch registry ---------------------------------------------------------
-
-struct Image {
-  const void* data;
-  std::size_t size;
-};
-
-std::vector<Image>& images() {
-  static std::vector<Image> list;
-  return list;
-}
+// --- launch checks -------------------------------------------------------------
 
 struct Dim3 {
   unsigned x, y, z;
@@ -116,10 +107,6 @@ bool sync_after_launch() {
 
 }  // namespace
 
-extern "C" void amrex_loom_register_executable(const void* data, std::size_t size) {
-  images().push_back({data, size});
-}
-
 // --- runtime state on libhrx ---------------------------------------------------
 
 namespace {
@@ -157,9 +144,8 @@ std::vector<uint32_t> g_provisioned_users;  // streams bound to each provisioned
 hrx_stream_t g_default_stream = nullptr;
 std::map<hrx_stream_t, StreamQueue> g_streams;
 std::map<uintptr_t, Allocation> g_allocations;
-// The loaded executable of each registered code object, by its address.
-std::unordered_map<const void*, hrx_executable_t> g_executables;
-bool g_images_loaded = false;
+// The executable of each code object loaded so far, by its loom-cxx record.
+std::unordered_map<const loom::kernel::embedded_code_object*, hrx_executable_t> g_executables;
 
 [[noreturn]] void fatal(const char* what, hrx_status_t status) {
   char* message = nullptr;
@@ -266,47 +252,42 @@ const std::pair<const uintptr_t, Allocation>* find_allocation(const void* addres
   return &*it;
 }
 
-void load_images() {
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  if (g_images_loaded) return;
-  initialize();
-  const char* target = std::getenv("AMREX_LOOM_TARGET");
-  if (!target || !*target) target = "gfx90a";
-  for (const Image& image : images()) {
-    hrx_executable_t executable = nullptr;
-    check(hrx_executable_load_data(g_device, image.data, image.size, "amdgpu", target,
-                                   &executable),
-          "hrx_executable_load_data");
-    g_executables.emplace(image.data, executable);
-  }
-  g_images_loaded = true;
-}
-
 }  // namespace
 
 // --- launch (amrex_loom) ------------------------------------------------------
 
 namespace {
 
-// The executable of the code object |kernel| names. Each translation unit's
-// descriptors name the code object of that unit, which carries the kernels it
-// launches: kernels of different units may share an export name (lambdas with
-// internal linkage, for example) and only the unit's own code object has the
-// right one. The descriptor names the kernel by its export ordinal there.
+// The executable of the code object |kernel| names, loaded the first time
+// one of its kernels launches. Each translation unit's descriptors name the
+// code object of that unit, which carries the kernels it launches: kernels of
+// different units may share an export name (lambdas with internal linkage,
+// for example) and only the unit's own code object has the right one. The
+// descriptor names the kernel by its export ordinal there.
 hrx_executable_t kernel_executable(const loom::kernel::descriptor& kernel) {
-  if (!kernel.code_object) {
+  const loom::kernel::embedded_code_object* code_object = kernel.code_object;
+  if (!code_object) {
     std::fprintf(stderr, "amrex loom: kernel descriptor of %s names no code object\n",
                  kernel.name);
     std::abort();
   }
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  load_images();
-  auto found = g_executables.find(kernel.code_object);
-  if (found == g_executables.end()) {
-    std::fprintf(stderr, "amrex loom: the code object of %s is not registered\n", kernel.name);
-    std::abort();
+  auto found = g_executables.find(code_object);
+  if (found != g_executables.end()) return found->second;
+  initialize();
+  hrx_executable_t executable = nullptr;
+  check(hrx_executable_load_data(g_device, code_object->data, code_object->size,
+                                 code_object->target_family, code_object->target_key,
+                                 &executable),
+        "hrx_executable_load_data");
+  if (tracing()) {
+    std::fprintf(stderr, "amrex loom: loaded code object %p (%s:%s, %zu bytes) for %s\n",
+                 static_cast<const void*>(code_object), code_object->target_family,
+                 code_object->target_key, static_cast<std::size_t>(code_object->size),
+                 kernel.name);
   }
-  return found->second;
+  g_executables.emplace(code_object, executable);
+  return executable;
 }
 
 // Checks, while tracing, that the export the descriptor numbers is its kernel.
@@ -425,6 +406,11 @@ void memory_info(std::size_t* free_bytes, std::size_t* total_bytes) {
 }
 
 void device_synchronize() { sync_all(); }
+
+std::size_t loaded_code_object_count() {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  return g_executables.size();
+}
 
 // --- streams (amrex_loom) ------------------------------------------------------
 
@@ -666,9 +652,8 @@ void shutdown() {
   g_host_allocations.clear();
   for (auto& [address, allocation] : g_allocations) hrx_buffer_release(allocation.buffer);
   g_allocations.clear();
-  for (auto& [data, executable] : g_executables) hrx_executable_release(executable);
+  for (auto& [code_object, executable] : g_executables) hrx_executable_release(executable);
   g_executables.clear();
-  g_images_loaded = false;
   // Streams first (each final release joins its work), then the queues this
   // runtime acquired; HRX requires both before the group's final release.
   for (auto& [s, q] : g_streams) {

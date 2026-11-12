@@ -5,7 +5,7 @@
 # the device code of the launched kernels and the kernel descriptors that host
 # code references. Executables and shared libraries link with clang++ against
 # libc++, the C++ library the host code was compiled for. AMReX adds the device
-# options (target, code object registration, drop policy) and libhrx; see
+# options (target, drop policy) and libhrx; see
 # Tools/CMake/AMReXParallelBackends.cmake.
 #
 # Configure with -DCMAKE_TOOLCHAIN_FILE=<amrex>/Tools/Loom/LoomToolchain.cmake
