@@ -5,8 +5,9 @@
 // (loom::kernel::kernel_ref, defined locally in each object by loom-cxx),
 // loads the code object the descriptor names the first time any of its
 // kernels launches, dispatches the export the descriptor numbers there, and
-// packs the kernel arguments from the host launch tag following the
-// descriptor's leaves. Nothing is loaded at startup. This file implements the
+// packs the kernel arguments from the host launch tag with the descriptor's
+// packing function, which loom-cxx generates from the compiled kernel's
+// argument layout. Nothing is loaded at startup. This file implements the
 // amrex_loom runtime functions declared in AMReX_Loom.H and AMReX_LoomRandom.H
 // on libhrx.
 // Single device; streams are HRX streams, each bound to its own HRX queue
@@ -72,19 +73,6 @@ bool check_launch(const loom::kernel::descriptor& kernel, Dim3 grid, Dim3 block,
     std::abort();
   }
   return true;
-}
-
-// Packs the kernel's explicit kernarg segment from the host launch tag at the
-// offsets the descriptor gives.
-std::vector<uint8_t> pack_kernargs(const loom::kernel::descriptor& kernel,
-                                   const void* parameter) {
-  const auto* bytes = static_cast<const uint8_t*>(parameter);
-  std::vector<uint8_t> kernarg(kernel.kernarg_size, 0);
-  for (unsigned i = 0; i < kernel.leaf_count; ++i) {
-    const loom::kernel::descriptor_leaf& leaf = kernel.leaves[i];
-    std::memcpy(kernarg.data() + leaf.kernarg_offset, bytes + leaf.source_offset, leaf.size);
-  }
-  return kernarg;
 }
 
 bool tracing() {
@@ -313,8 +301,17 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
   if (!check_launch(descriptor, grid, block, fixed_block, shared_bytes)) return;
   hrx_executable_t executable = kernel_executable(descriptor);
   if (tracing()) check_export(executable, descriptor);
-  std::vector<uint8_t> kernarg = pack_kernargs(descriptor, parameter);
-  trace_launch(descriptor.name, grid, block, kernarg.size());
+  // The descriptor's packing function writes the whole kernarg segment from
+  // the launch tag; HRX copies it at dispatch.
+  alignas(16) uint8_t local[1024];
+  std::vector<uint8_t> heap;
+  uint8_t* kernarg = local;
+  if (descriptor.kernarg_size > sizeof(local)) {
+    heap.resize(descriptor.kernarg_size);
+    kernarg = heap.data();
+  }
+  descriptor.pack(kernarg, &parameter);
+  trace_launch(descriptor.name, grid, block, descriptor.kernarg_size);
   hrx_dispatch_config_t config{};
   config.workgroup_count[0] = grid.x;
   config.workgroup_count[1] = grid.y;
@@ -324,7 +321,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
   config.workgroup_size[2] = block.z;
   hrx_stream_t s = resolve(stream);
   check(hrx_stream_dispatch(s, executable, descriptor.export_ordinal, &config,
-                            kernarg.data(), kernarg.size(), nullptr, 0,
+                            kernarg, descriptor.kernarg_size, nullptr, 0,
                             HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
         "hrx_stream_dispatch");
   check(hrx_stream_flush(s), "hrx_stream_flush");
