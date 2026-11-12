@@ -522,7 +522,7 @@ void HypreMLNodeLap::buildMatrix ()
     // CSR on the host, one AMR level at a time.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_dbc.empty(), "HypreMLNodeLap::buildMatrix called twice");
     const int finest = m_nlevels-1;
-    m_pin_gid = (m_linop->isBottomSingular() && m_nglobal > 0) ? 0 : -1;
+    m_pin_gid = (m_linop->isSingular(0) && m_nglobal > 0) ? 0 : -1;
     Long const pin = m_pin_gid;
     const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
     const bool algmg_dev = (m_backend == Backend::algmg) && !need_csr;
@@ -1070,7 +1070,7 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
     }
 
     // Singular problems: make the right-hand side exactly consistent
-    if (m_linop->isBottomSingular()) {
+    if (m_linop->isSingular(0)) {
         Real bsum = 0.0, msum = 0.0;
         for (Long r = 0; r < nrows; ++r) { bsum += bvec[r]; msum += mvec[r]; }
         ParallelAllReduce::Sum(bsum, m_comm);
