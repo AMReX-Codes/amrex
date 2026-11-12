@@ -63,7 +63,7 @@ public:
 
     ParIterBase_impl (ContainerRef pc, int level);
 
-    ParIterBase_impl (ContainerRef pc, int level, MFItInfo& info);
+    ParIterBase_impl (ContainerRef pc, int level, MFItInfo const& info);
 
     void operator++ ()
     {
@@ -135,7 +135,7 @@ public:
         : ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(pc,level)
         {}
 
-    ParIter_impl (ContainerType& pc, int level, MFItInfo& info)
+    ParIter_impl (ContainerType& pc, int level, MFItInfo const& info)
         : ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(pc,level,info)
         {}
 };
@@ -160,7 +160,7 @@ public:
         : ParIterBase_impl<true,ParticleType,NArrayReal,NArrayInt,Allocator,CellAssignor>(pc,level)
         {}
 
-    ParConstIter_impl (ContainerType const& pc, int level, MFItInfo& info)
+    ParConstIter_impl (ContainerType const& pc, int level, MFItInfo const& info)
         : ParIterBase_impl<true,ParticleType,NArrayReal,NArrayInt,Allocator, CellAssignor>(pc,level,info)
         {}
 };
@@ -168,9 +168,10 @@ public:
 template <bool is_const, typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 ParIterBase_impl<is_const, ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::ParIterBase_impl
-  (ContainerRef pc, int level, MFItInfo& info)
+  (ContainerRef pc, int level, MFItInfo const& info)
     :
-      MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
+      // Enable tiling on a copy so that an info shared among OpenMP threads is never written.
+      MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? MFItInfo(info).EnableTiling(pc.tile_size) : info),
       m_level(level),
       m_pc(&pc)
 {
