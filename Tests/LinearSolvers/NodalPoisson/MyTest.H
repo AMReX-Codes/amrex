@@ -8,7 +8,7 @@
 
 // Solve `div dot (sigma grad phi) = rhs` using the nodal solver
 
-class MyTest
+class MyTest // NOLINT(clang-analyzer-optin.performance.Padding)
 {
 public:
 
