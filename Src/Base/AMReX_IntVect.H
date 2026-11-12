@@ -24,13 +24,15 @@
 
 namespace amrex {
 
+// Coarsening rounds toward negative infinity.  For ratios 2 and 4 that is a
+// right shift, which is arithmetic for a negative int (C++20).
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i, int ratio) noexcept
 {
     switch (ratio) {
     case  1: return i;
-    case  2: return (i<0) ? -std::abs(i+1)/2    -1 : i/2;
-    case  4: return (i<0) ? -std::abs(i+1)/4    -1 : i/4;
+    case  2: return i >> 1;
+    case  4: return i >> 2;
     default: return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
     }
 }
@@ -39,7 +41,13 @@ template <int ratio>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i) noexcept
 {
-    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+    if constexpr (ratio == 2) {
+        return i >> 1;
+    } else if constexpr (ratio == 4) {
+        return i >> 2;
+    } else {
+        return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+    }
 }
 
 /// \cond DOXYGEN_IGNORE
@@ -944,12 +952,12 @@ IntVectND<dim>::coarsen (int s) noexcept
         break;
     case 2:
         for (int i=0; i<dim; ++i) {
-            vect[i] = (vect[i]<0) ? -std::abs(vect[i]+1)/2-1 : vect[i]/2;
+            vect[i] >>= 1;
         }
         break;
     case 4:
         for (int i=0; i<dim; ++i) {
-            vect[i] = (vect[i]<0) ? -std::abs(vect[i]+1)/4-1 : vect[i]/4;
+            vect[i] >>= 2;
         }
         break;
     default:
