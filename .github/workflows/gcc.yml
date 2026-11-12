@@ -208,6 +208,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_FORTRAN_INTERFACES=ON \
+            -DAMReX_IPO=ON              \
             -DAMReX_SPACEDIM=2          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
