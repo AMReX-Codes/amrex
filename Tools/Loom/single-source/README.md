@@ -117,6 +117,7 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   `loom-cxx` is the C++ compiler, called once per compile, and `clang++` with
   libc++ links; the file documents its settings, which `env.sh` exports.
   AMReX's CMake adds the device options (`-DAMReX_AMD_ARCH`, the code object
-  registration function and the drop policy), Loom's `loomcxx/` headers and
-  libhrx. `loom-cxx --loom-stats` reports, per file, that the source was
+  registration function and the drop policy) and libhrx; `loom-cxx` finds
+  Loom's `loomcxx/` headers next to itself, as clang finds its resource
+  directory. `loom-cxx --loom-stats` reports, per file, that the source was
   preprocessed and parsed once, and the time of each phase.

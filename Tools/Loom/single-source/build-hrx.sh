@@ -17,6 +17,4 @@ cmake -S "$HRX_SRC" -B "$HRX_BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_FLAGS="--gcc-install-dir=$GCC_INSTALL_DIR" -DCMAKE_CXX_FLAGS="--gcc-install-dir=$GCC_INSTALL_DIR" \
   "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath,$TOOLS_ENV/lib"
 cmake --build "$HRX_BUILD" --target loom-cxx loom-import-cxx loom-compile hrx -j "$BUILD_JOBS"
-mkdir -p "$AMREX_LOOM_LOOMCXX_DIR"
-ln -sfn "$HRX_SRC/loom/src/loom/import/cxx/include/loomcxx" "$AMREX_LOOM_LOOMCXX_DIR/loomcxx"
 "$AMREX_LOOM_CXX_DRIVER" --help | head -1
