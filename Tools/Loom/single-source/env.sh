@@ -35,14 +35,15 @@ export CLANGXX=$TOOLS_ENV/bin/clang++
 # HRX runs on its native AMD GPU driver over libamdf (no ROCm runtime).
 export HRX_GPU_DRIVER=amdgpu
 
-# amrex-loom-cxx (the C++ compiler AMReX is configured with): loom-cxx compiles,
-# clang++ links, libc++ for both.
+# AMReX's LOOM toolchain (amrex/Tools/Loom/LoomToolchain.cmake): loom-cxx
+# compiles, clang++ links, libc++ for both.
 export AMREX_LOOM_CXX_DRIVER=$HRX_BUILD/loom/src/loom/tools/loom-cxx/loom-cxx
-export AMREX_LOOM_TARGET=gfx90a
-export AMREX_LOOM_LOOMCXX_DIR=$LOOM_WORK/build/loomcxx-include
-export AMREX_LOOM_SYSTEM_INCLUDES=$TOOLS_ENV/include/c++/v1:$GCC_INSTALL_DIR/include:$GLIBC_INCLUDE
-export AMREX_LOOM_HRX_LIB_DIR=$HRX_BUILD/libhrx/src/libhrx
-export AMREX_LOOM_HRX_INCLUDE_DIR=$HRX_SRC/libhrx/include
+export AMREX_LOOM_LINK_CXX=$CLANGXX
 export AMREX_LOOM_LIBCXX_ROOT=$TOOLS_ENV
 export AMREX_LOOM_GCC_INSTALL_DIR=$GCC_INSTALL_DIR
-export AMREX_LOOM_LINK_CXX=$CLANGXX
+export AMREX_LOOM_GLIBC_INCLUDE=$GLIBC_INCLUDE
+# Device target, Loom's loomcxx/ headers and libhrx, for AMReX's configure.
+export AMREX_LOOM_TARGET=gfx90a
+export AMREX_LOOM_LOOMCXX_DIR=$LOOM_WORK/build/loomcxx-include
+export AMREX_LOOM_HRX_LIB_DIR=$HRX_BUILD/libhrx/src/libhrx
+export AMREX_LOOM_HRX_INCLUDE_DIR=$HRX_SRC/libhrx/include

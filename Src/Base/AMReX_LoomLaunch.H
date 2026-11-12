@@ -9,7 +9,7 @@
 // tag, amrex_loom::Tag<F...>, run by a fixed-size kernel template instance
 // kernel<MT><Tag<F...>>. launch_fixed odr-uses that instance's Loom launch
 // descriptor, loom::kernel::kernel_ref<&kernel<MT><Tag<F...>>>, which
-// amrex-loom-cxx (loom-cxx) sees from both sides of its one parse:
+// loom-cxx sees from both sides of its one parse:
 //  * the Loom device pass treats the odr-use as a launch root and compiles the
 //    kernel instance; loom-cxx defines the descriptor inside the object, with
 //    local linkage (export name, the compiled kernel's argument layout and

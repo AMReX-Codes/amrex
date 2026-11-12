@@ -226,18 +226,45 @@ endif ()
 # HIP
 #
 #
-# LOOM: device code is compiled by the amrex-loom-cxx driver (set as the C++
-# compiler); the host runtime is libhrx.
+# LOOM: C++ compiles with Loom's single-source driver, loom-cxx, and links with
+# clang++ and libc++ (Tools/Loom/LoomToolchain.cmake); the host runtime is
+# libhrx.
 if (AMReX_LOOM)
-   # AMReX_Loom.cpp implements the amrex_loom runtime (AMReX_Loom.H) on
-   # libhrx. Device code uses Loom's loomcxx headers, which the driver adds.
+   get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
+   if (NOT _this_comp STREQUAL loom-cxx)
+      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=LOOM compiles C++ with loom-cxx: "
+         "configure with -DCMAKE_TOOLCHAIN_FILE=${PROJECT_SOURCE_DIR}/Tools/Loom/LoomToolchain.cmake\n")
+   endif ()
+   unset(_this_comp)
+   list(LENGTH AMReX_AMD_ARCH _arch_count)
+   if (NOT _arch_count EQUAL 1 OR AMReX_AMD_ARCH STREQUAL IGNORE)
+      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=LOOM compiles for one AMReX_AMD_ARCH\n")
+   endif ()
+   unset(_arch_count)
+   # Loom's loomcxx/ headers (device code API), libhrx's hrx_runtime.h and
+   # libhrx. AMReX_Loom.cpp implements the amrex_loom runtime (AMReX_Loom.H)
+   # on libhrx.
+   set(AMReX_LOOM_LOOMCXX_INCLUDE_DIR "" CACHE PATH "Directory containing Loom's loomcxx/ headers")
    set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
    set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
+   find_library(AMReX_LOOM_HRX_LIBRARY hrx PATHS ${AMReX_LOOM_HRX_LIB_DIR} NO_DEFAULT_PATH REQUIRED)
+   # Device options of every compile that includes AMReX: the device target,
+   # the registration function receiving each object's code object
+   # (AMReX_Loom.cpp), and the drop policy. Kernels that Loom cannot import or
+   # compile yet are dropped and reported by loom-cxx; their descriptors stay
+   # unavailable, so launching one fails at run time. Any other device-pass
+   # failure fails the compile.
+   set(_loom_flags
+      --loom-target=amdgpu:${AMReX_AMD_ARCH}
+      --loom-register-function=amrex_loom_register_executable
+      --loom-drop-failed-kernels)
    foreach(D IN LISTS AMReX_SPACEDIM)
-      target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_INCLUDE_DIR})
-      target_link_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_LIB_DIR})
-      target_link_libraries(amrex_${D}d PUBLIC hrx)
+      target_include_directories(amrex_${D}d PUBLIC
+         ${AMReX_LOOM_LOOMCXX_INCLUDE_DIR} ${AMReX_LOOM_HRX_INCLUDE_DIR})
+      target_compile_options(amrex_${D}d PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:${_loom_flags}>")
+      target_link_libraries(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_LIBRARY})
    endforeach()
+   unset(_loom_flags)
 endif ()
 
 if (AMReX_HIP)
