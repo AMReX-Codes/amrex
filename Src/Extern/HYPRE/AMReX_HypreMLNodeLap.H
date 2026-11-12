@@ -19,7 +19,8 @@
 
 namespace amrex {
 
-class MLNodeLaplacian;
+template <typename MF> class MLNodeLaplacianT;
+using MLNodeLaplacian = MLNodeLaplacianT<MultiFab>;
 
 /**
  * \brief Composite multi-level solve of an MLNodeLaplacian with hypre.

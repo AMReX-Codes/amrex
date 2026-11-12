@@ -385,8 +385,9 @@ operators for the multigrid.
 cycles in single precision while the solution, the right-hand side and the
 residual it converges on stay in double precision.  The solver still reaches
 the requested tolerance.  This is available for :cpp:`MLPoisson`,
-:cpp:`MLABecLaplacian`, :cpp:`MLALaplacian` and :cpp:`MLTensorOp` without
-embedded boundaries.
+:cpp:`MLABecLaplacian`, :cpp:`MLALaplacian`, :cpp:`MLTensorOp` and
+:cpp:`MLNodeLaplacian` without embedded boundaries.  With mixed precision,
+:cpp:`MLNodeLaplacian` uses the sigma coarsening strategy.
 The bottom solver must be the smoother, CG or BiCGStab, and it runs with
 the single precision default tolerance unless one is set with
 :cpp:`MLMG::setBottomTolerance`.  A mixed precision :cpp:`MLMG` used as a

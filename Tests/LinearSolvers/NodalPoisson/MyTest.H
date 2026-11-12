@@ -53,6 +53,11 @@ private:
     bool agglomeration = false;
     bool consolidation = false;
     bool semicoarsening = false;
+    bool mixed_precision = false;
+    // known nodes in a ball at the domain center on all levels; composite solve only
+    bool overset = false;
+    // if positive: abort if the max-norm error exceeds it
+    amrex::Real max_error = -1.0;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
     //int smooth_num_sweeps = 4;
