@@ -14,8 +14,11 @@ translation unit to both back ends:
 
 HRX is the GPU runtime, on its native AMD GPU driver (libamdf); no part of
 ROCm is used. The pass criterion is that `GPU_ArenaLifetime_3d`,
-`GPU_CNS_Sod_3d` and `GPU_ExternalStream_3d` pass, and that the CNS run agrees
-with `cns-expected.txt` to round-off.
+`GPU_CNS_Sod_3d`, `GPU_ExternalStream_3d` and `GPU_LoomCodeObjects_3d` pass,
+and that the CNS run agrees with `cns-expected.txt` to round-off.
+`GPU_LoomCodeObjects_3d` checks that the runtime loads a translation unit's
+code object only at the first launch of one of its kernels, and that kernel
+arguments narrower than a kernel argument slot reach the device.
 
 Host and device code come from the same parse, so they see the same headers,
 including Loom's `loomcxx/` headers. Loom's importer lowers the C math functions
@@ -79,8 +82,8 @@ Then, from `loom-work` (on a GPU node for the last step):
 
 ```bash
 $S/build-hrx.sh     # loom-cxx (with cxx and its MLIR back end), libhrx  (build/hrx)
-$S/build-amrex.sh   # AMReX LOOM backend and the three tests             (build/amrex)
-$S/run-tests.sh     # ctest for the three tests, then the CNS check
+$S/build-amrex.sh   # AMReX LOOM backend and the four tests              (build/amrex)
+$S/run-tests.sh     # ctest for the four tests, then the CNS check
 ```
 
 `build-hrx.sh` configures HRX with `LOOM_CXX_HOST_CODEGEN=ON` and points HRX's
@@ -93,7 +96,7 @@ AMD GPU driver, and `env.sh` selects it (`HRX_GPU_DRIVER=amdgpu`).
 ## Expected result
 
 ```text
-100% tests passed, 0 tests failed out of 3
+100% tests passed, 0 tests failed out of 4
 steps checked: 20; max relative difference from the recorded run: ... (tolerance 1e-10); bit-identical: ...
   mass: 147456.0 (CPU reference 147455.99999999956, relative 3.0e-15)
   ...
@@ -114,13 +117,13 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   code yet.
 - Kernels that the importer cannot translate are dropped and reported by
   `loom-cxx` (`dropped N launched kernel(s)`, `--loom-drop-failed-kernels`);
-  none of them is reached by the three tests. Host errors, and any other
+  none of them is reached by the four tests. Host errors, and any other
   failure of the device pass, are compile errors.
 - AMReX is configured with the toolchain file `../LoomToolchain.cmake`:
   `loom-cxx` is the C++ compiler, called once per compile, and `clang++` with
   libc++ links; the file documents its settings, which `env.sh` exports.
-  AMReX's CMake adds the device options (`-DAMReX_AMD_ARCH`, the code object
-  registration function and the drop policy) and libhrx; `loom-cxx` finds
+  AMReX's CMake adds the device options (`-DAMReX_AMD_ARCH` and the drop
+  policy) and libhrx; `loom-cxx` finds
   Loom's `loomcxx/` headers next to itself, as clang finds its resource
   directory. `loom-cxx --loom-stats` reports, per file, that the source was
   preprocessed and parsed once, and the time of each phase.

@@ -247,15 +247,14 @@ if (AMReX_LOOM)
    set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
    set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
    find_library(AMReX_LOOM_HRX_LIBRARY hrx PATHS ${AMReX_LOOM_HRX_LIB_DIR} NO_DEFAULT_PATH REQUIRED)
-   # Device options of every compile that includes AMReX: the device target,
-   # the registration function receiving each object's code object
-   # (AMReX_Loom.cpp), and the drop policy. Kernels that Loom cannot import or
-   # compile yet are dropped and reported by loom-cxx; their descriptors stay
-   # unavailable, so launching one fails at run time. Any other device-pass
-   # failure fails the compile.
+   # Device options of every compile that includes AMReX: the device target
+   # and the drop policy. Kernels that Loom cannot import or compile yet are
+   # dropped and reported by loom-cxx; their descriptors stay unavailable, so
+   # launching one fails at run time. Any other device-pass failure fails the
+   # compile. The runtime (AMReX_Loom.cpp) loads each object's code object at
+   # the first launch of one of its kernels.
    set(_loom_flags
       --loom-target=amdgpu:${AMReX_AMD_ARCH}
-      --loom-register-function=amrex_loom_register_executable
       --loom-drop-failed-kernels)
    foreach(D IN LISTS AMReX_SPACEDIM)
       target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_INCLUDE_DIR})
