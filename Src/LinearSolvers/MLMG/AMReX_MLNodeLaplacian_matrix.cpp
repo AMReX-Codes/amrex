@@ -335,4 +335,6 @@ template void MLNodeLaplacianT<fMultiFab>::fillIJMatrix (MFIter const&,
 
 #endif
 
+namespace detail { void mlndlap_anchor_matrix () {} } // see mlndlap_link_parts
+
 }
