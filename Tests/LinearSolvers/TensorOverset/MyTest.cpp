@@ -6,6 +6,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <memory>
+#include <string>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -33,9 +36,12 @@ MyTest::solve ()
 
     std::unique_ptr<MLTensorOp> mltensor;
     if (do_overset) {
-        mltensor = std::unique_ptr<MLTensorOp>(new MLTensorOp({geom}, {grids}, {dmap}, {&oversetmask}, info));
+        mltensor = std::make_unique<MLTensorOp>(Vector<Geometry>{geom}, Vector<BoxArray>{grids},
+                                                Vector<DistributionMapping>{dmap},
+                                                Vector<iMultiFab const*>{&oversetmask}, info);
     } else {
-        mltensor = std::unique_ptr<MLTensorOp>(new MLTensorOp({geom}, {grids}, {dmap}, info));
+        mltensor = std::make_unique<MLTensorOp>(Vector<Geometry>{geom}, Vector<BoxArray>{grids},
+                                                Vector<DistributionMapping>{dmap}, info);
     }
 
     mltensor->setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -65,7 +71,7 @@ MyTest::solve ()
     mlmg.setBottomVerbose(bottom_verbose);
 
     // In region with overset mask = 0, phi has valid solution and rhs is zero.
-    Real mlmg_err = mlmg.solve({&solution}, {&rhs}, 1.e-11, 0.0);
+    mlmg.solve({&solution}, {&rhs}, 1.e-11, 0.0);
 }
 
 void
@@ -73,18 +79,25 @@ MyTest::writePlotfile ()
 {
     Vector<std::string> varname = {"u", "v", "w", "uexact", "vexact", "wexact",
                                    "xerror", "yerror", "zerror", "xrhs", "yrhs", "zrhs", "eta"};
-    MultiFab plotmf(grids, dmap, varname.size(),  0);
+    MultiFab plotmf(grids, dmap, static_cast<int>(varname.size()),  0);
     MultiFab::Copy(plotmf, solution, 0,  0, 3, 0);
     MultiFab::Copy(plotmf, exact   , 0,  3, 3, 0);
     MultiFab::Copy(plotmf, solution, 0,  6, 3, 0);
     MultiFab::Copy(plotmf, rhs     , 0,  9, 3, 0);
     MultiFab::Copy(plotmf, eta     , 0, 12, 1, 0);
     MultiFab::Subtract(plotmf, exact, 0, 6, 3, 0);
-    WriteMultiLevelPlotfile("plot", 1, {&plotmf},
-                            varname, {geom}, 0.0, {0}, {IntVect(2)});
+    if (do_plots) {
+        WriteMultiLevelPlotfile("plot", 1, {&plotmf},
+                                varname, {geom}, 0.0, {0}, {IntVect(2)});
+    }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const Real maxerr = plotmf.norm0(6+idim);
         amrex::Print() << "\n";
-        amrex::Print() << "  max-norm error = " << plotmf.norm0(6+idim) << '\n';
+        amrex::Print() << "  max-norm error = " << maxerr << '\n';
+        if (max_error > Real(0.0) && !(maxerr <= max_error)) {
+            amrex::Abort("max-norm error of component " + std::to_string(idim)
+                         + " exceeds max_error");
+        }
         const auto dx = geom.CellSize();
         amrex::Print() << "    1-norm error = " << plotmf.norm1(6+idim) * (dx[0]*dx[1]*dx[2])
                        << '\n';
@@ -106,6 +119,8 @@ MyTest::readParameters ()
 
     pp.query("do_overset", do_overset);
     pp.query("mixed_precision", mixed_precision);
+    pp.query("max_error", max_error);
+    pp.query("do_plots", do_plots);
 }
 
 void
@@ -136,9 +151,7 @@ MyTest::initData ()
     // Box overset_box = amrex::shift(geom.Domain(), 0, n_cell/2); // right half
 
     const auto problo = geom.ProbLoArray();
-    const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
-    auto loverset = do_overset;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

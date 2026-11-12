@@ -39,6 +39,8 @@ private:
 
     int do_overset = 1;
     int mixed_precision = 0;
+    amrex::Real max_error = -1.0; // if positive, abort when the max-norm error exceeds it
+    int do_plots = 1;
     amrex::iMultiFab oversetmask;
 };
 
