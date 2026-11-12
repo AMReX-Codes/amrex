@@ -112,8 +112,12 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   code yet.
 - Kernels that the importer cannot translate are dropped and reported by
   `loom-cxx` (`dropped N launched kernel(s)`, `--loom-drop-failed-kernels`);
-  none of them is reached by the three tests. Host errors are compile errors.
-- `../amrex-loom-cxx` is the compiler AMReX is configured with: it calls
-  `loom-cxx` once per compile and `clang++` to link, and documents its
-  environment variables. `loom-cxx --loom-stats` reports, per file, that the
-  source was preprocessed and parsed once, and the time of each phase.
+  none of them is reached by the three tests. Host errors, and any other
+  failure of the device pass, are compile errors.
+- AMReX is configured with the toolchain file `../LoomToolchain.cmake`:
+  `loom-cxx` is the C++ compiler, called once per compile, and `clang++` with
+  libc++ links; the file documents its settings, which `env.sh` exports.
+  AMReX's CMake adds the device options (`-DAMReX_AMD_ARCH`, the code object
+  registration function and the drop policy), Loom's `loomcxx/` headers and
+  libhrx. `loom-cxx --loom-stats` reports, per file, that the source was
+  preprocessed and parsed once, and the time of each phase.
