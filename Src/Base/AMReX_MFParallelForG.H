@@ -13,16 +13,24 @@
 /// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 
+// Copies the BoxIndexers of boxes, followed by the ints in extra, to the device.
 inline
-void build_par_for_boxes (char*& hp, BoxIndexer*& pboxes, Vector<Box> const& boxes)
+void build_par_for_boxes (char*& hp, BoxIndexer*& pboxes, Vector<Box> const& boxes,
+                          Vector<int> const& extra = {})
 {
     if (boxes.empty()) { return; }
+    static_assert(sizeof(BoxIndexer) % alignof(int) == 0);
     const int nboxes = boxes.size();
-    const std::size_t nbytes = nboxes*sizeof(BoxIndexer);
+    const std::size_t nbytes_boxes = nboxes*sizeof(BoxIndexer);
+    const std::size_t nbytes = nbytes_boxes + extra.size()*sizeof(int);
     hp = (char*)The_Pinned_Arena()->alloc(nbytes);
     auto* hp_boxes = (BoxIndexer*)hp;
     for (int i = 0; i < nboxes; ++i) {
         new (hp_boxes+i) BoxIndexer(boxes[i]);
+    }
+    auto* hp_extra = (int*)(hp + nbytes_boxes);
+    for (int i = 0; i < int(extra.size()); ++i) {
+        hp_extra[i] = extra[i];
     }
 
     auto dp = (char*) The_Arena()->alloc(nbytes);
@@ -84,6 +92,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
         AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
         const int nblocks = nblocks_per_box * nboxes;
         const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+        // Box and block within the box from the block index, without a division.
+        const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -91,23 +101,25 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
             <<<nblocks, MT, 0, Gpu::gpuStream()>>>
             ([=] AMREX_GPU_DEVICE () noexcept
              {
-                 int ibox = int(blockIdx.x) / nblocks_per_box;
-                 auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+                 std::uint32_t ibox, iblock;
+                 fdm_box(ibox, iblock, blockIdx.x);
+                 auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
         amrex::launch<MT>(nblocks, Gpu::gpuStream(),
              [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
              {
-                 int blockIdxx = item.get_group_linear_id();
+                 auto blockIdxx = std::uint32_t(item.get_group_linear_id());
                  int threadIdxx = item.get_local_linear_id();
-                 int ibox = int(blockIdxx) / nblocks_per_box;
-                 auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
+                 std::uint32_t ibox, iblock;
+                 fdm_box(ibox, iblock, blockIdxx);
+                 auto icell = std::uint64_t(iblock)*MT + threadIdxx;
 #endif
                  BoxIndexer const& indexer = dp_boxes[ibox];
                  if (icell < indexer.numPts()) {
                      auto [i, j, k] = indexer(icell);
-                     parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
+                     parfor_mf_detail::call_f(f, int(ibox), i, j, k, ncomp);
                  }
              });
     }
@@ -153,6 +165,7 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
     AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
     const int nblocks = nblocks_per_box * nboxes;
     const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+    const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -160,18 +173,20 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
         <<<nblocks, MT, 0, Gpu::gpuStream()>>>
         ([=] AMREX_GPU_DEVICE () noexcept
          {
-             int ibox = int(blockIdx.x) / nblocks_per_box;
-             auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+             std::uint32_t ibox, iblock;
+             fdm_box(ibox, iblock, blockIdx.x);
+             auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
     amrex::launch<MT>(nblocks, Gpu::gpuStream(),
          [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
          {
-             int blockIdxx = item.get_group_linear_id();
+             auto blockIdxx = std::uint32_t(item.get_group_linear_id());
              int threadIdxx = item.get_local_linear_id();
-             int ibox = int(blockIdxx) / nblocks_per_box;
-             auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
+             std::uint32_t ibox, iblock;
+             fdm_box(ibox, iblock, blockIdxx);
+             auto icell = std::uint64_t(iblock)*MT + threadIdxx;
 #endif
              BoxIndexer const& indexer = dp_boxes[ibox];
              if (icell < indexer.numPts()) {
@@ -180,25 +195,14 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
                      iv[idim] = indexer.lo[idim] + (iv[idim]-indexer.lo[idim])*stride[idim];
                  }
                  auto const d3 = iv.dim3();
-                 f(ibox, d3.x, d3.y, d3.z);
+                 f(int(ibox), d3.x, d3.y, d3.z);
              }
          });
     AMREX_GPU_ERROR_CHECK();
 }
 
-// Number of points along x of the box tracked by a BoxIndexer.
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int box_indexer_len_x (BoxIndexer const& indexer)
-{
-#if (AMREX_SPACEDIM == 1)
-    return int(indexer.npts);
-#else
-    return int(indexer.fdm[0].divisor);
-#endif
-}
-
-// One launch over the red or black points of all boxes. Consecutive threads
-// take consecutive points of one row, as in the single-box path.
+// One launch over the red or black points of all boxes, as in the single-box
+// path: thread ic of a row takes i = 2*ic or 2*ic+1, whichever has the color.
 template <int MT, FabArrayType MF, typename F>
 void
 ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
@@ -212,6 +216,8 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
     AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
     const int nblocks = nblocks_per_box * nboxes;
     const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+    const int* dp_xbounds = parforinfo.getXBounds();
+    const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -219,31 +225,28 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
         <<<nblocks, MT, 0, Gpu::gpuStream()>>>
         ([=] AMREX_GPU_DEVICE () noexcept
          {
-             int ibox = int(blockIdx.x) / nblocks_per_box;
-             auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+             std::uint32_t ibox, iblock;
+             fdm_box(ibox, iblock, blockIdx.x);
+             auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
     amrex::launch<MT>(nblocks, Gpu::gpuStream(),
          [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
          {
-             int blockIdxx = item.get_group_linear_id();
+             auto blockIdxx = std::uint32_t(item.get_group_linear_id());
              int threadIdxx = item.get_local_linear_id();
-             int ibox = int(blockIdxx) / nblocks_per_box;
-             auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
+             std::uint32_t ibox, iblock;
+             fdm_box(ibox, iblock, blockIdxx);
+             auto icell = std::uint64_t(iblock)*MT + threadIdxx;
 #endif
-             // indexers[0]: even i, indexers[1]: odd i. Enumerate the larger
-             // lattice, then pick the one with the parity this row needs.
-             BoxIndexer const* indexers = dp_boxes + 2*ibox;
-             const int big = (indexers[1].numPts() > indexers[0].numPts()) ? 1 : 0;
-             if (icell < indexers[big].numPts()) {
-                 const IntVect iv = indexers[big].intVect(icell);
-                 const int ic = iv[0] - indexers[big].lo[0];
-                 auto const d3 = iv.dim3();
-                 const int parity = (d3.y + d3.z + redblack) & 1;
-                 BoxIndexer const& indexer = indexers[parity];
-                 if (ic < box_indexer_len_x(indexer)) {
-                     f(ibox, indexer.lo[0] + 2*ic, d3.y, d3.z);
+             // The box coarsened by 2 in x, and the box's x bounds.
+             BoxIndexer const& indexer = dp_boxes[ibox];
+             if (icell < indexer.numPts()) {
+                 auto [ic, j, k] = indexer(icell);
+                 const int i = 2*ic + ((j+k+redblack) & 1);
+                 if (i >= dp_xbounds[2*ibox] && i <= dp_xbounds[2*ibox+1]) {
+                     f(int(ibox), i, j, k);
                  }
              }
          });
