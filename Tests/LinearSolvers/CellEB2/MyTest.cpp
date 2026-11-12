@@ -32,6 +32,8 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    auto const beta_loc = beta_on_centroid ? MLLinOp::Location::FaceCentroid
+                                           : MLLinOp::Location::FaceCenter;
     if (verbose > 0) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
@@ -87,7 +89,7 @@ MyTest::solve ()
 
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             mleb.setACoeffs(ilev, acoef[ilev]);
-            mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
+            mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]), beta_loc);
         }
 
         if (!eb_neumann) {
@@ -147,7 +149,7 @@ MyTest::solve ()
             mleb.setScalars(scalars[0], scalars[1]);
 
             mleb.setACoeffs(0, acoef[ilev]);
-            mleb.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef[ilev]));
+            mleb.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef[ilev]), beta_loc);
 
             if (!eb_neumann) {
                 mleb.setEBDirichlet(0, phieb[ilev], bcoef_eb[ilev]);
@@ -241,6 +243,7 @@ MyTest::compareWithMLHypre (MLEBABecLap& mleb, MLMG& mlmg, Vector<MultiFab> cons
     hmleb.setVerbose(verbose);
     hmleb.setIsSingular(singular);
     hmleb.setReuseSolverSetup(mlhypre_num_setups > 1);
+    hmleb.setBCoeffsOnCentroids(beta_on_centroid);
     if (!eb_neumann) {
         hmleb.setEBDirichlet(amrex::GetVecOfConstPtrs(phieb), amrex::GetVecOfConstPtrs(bcoef_eb));
     }
@@ -586,6 +589,7 @@ MyTest::readParameters ()
     pp.query("null_fine_bcoef", null_fine_bcoef);
     pp.query("null_acoef", null_acoef);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!null_acoef || acoef_value == 0.0, "null_acoef needs acoef = 0");
+    pp.query("beta_on_centroid", beta_on_centroid);
     pp.query("nan_in_covered", nan_in_covered);
     pp.query("domain_bc", domain_bc);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(domain_bc == "dirichlet" || domain_bc == "neumann",

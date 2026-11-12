@@ -28,6 +28,7 @@ struct HypMLABecLapEB
     IntVect rr{1};          // ratio to the coarser level
     GpuArray<Real,AMREX_SPACEDIM> dxinv{};
     Real sa = 0.0, sb = 0.0;
+    bool beta_on_centroid = false; // b at the face centroids (else at the face centers)
     IntVect fixed_pt = IntVect::TheMaxVector();
     Array4<Long const> cid;      // row ids, with the same-level neighbors in the ghost cells
     Array4<Long const> crse_id;  // row ids of the coarser level, on the coarsened box (null on level 0)
@@ -261,14 +262,15 @@ void hypmlabeclap_eb_dirichlet (HypMLABecLapEB const& e, IntVect const& c, Real 
  * \brief The composite EB row of cell c and the cell's entries in coarser
  * rows, passed to put(row, col, value).
  *
- * The row is MLEBABecLap's operator (cell-centered phi, face-centered b)
- * times the volume fraction.  The fluxes across coarse/fine faces are the
- * finer level's: a fine cell adds them to its coarse neighbor's row, which
- * skips that face.  Ghost cells are filled as MLEBABecLap fills them, with
- * coarse/fine boundary values interpolated from the coarser level's unknowns
- * and other boundary values moved to the right-hand side (\p bcrhs).  A cell
- * covered by the finer level has the average-down row of EB_average_down;
- * the fine cells add their weights to it.  The same-level entries of the
+ * The row is MLEBABecLap's operator (cell-centered phi, b at the face
+ * centers or at the face centroids) times the volume fraction.  The fluxes
+ * across coarse/fine faces are the finer level's: a fine cell adds them to
+ * its coarse neighbor's row, which skips that face.  Ghost cells are filled
+ * as MLEBABecLap fills them, with coarse/fine boundary values interpolated
+ * from the coarser level's unknowns and other boundary values moved to the
+ * right-hand side (\p bcrhs).  A cell covered by the finer level has the
+ * average-down row of EB_average_down; the fine cells add their weights to
+ * it.  The same-level entries of the
  * cell's own row are summed first.  With the scaling s of the unknowns, an
  * entry (i,j) is multiplied by s_i*s_j.
  *
@@ -413,8 +415,10 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
             Row const crow = (e.cid(nb) < 0 && e.cf_face[face])
                 ? Row{crse_row(cnb), scale(e.crse_scale, cnb)} : Row{-1, Real(0.0)};
             // b*(phi(f)-phi(f-ed)) on a cut face is interpolated toward its
-            // centroid from the neighboring faces; as MLEBABecLap's cc_mask,
-            // not toward a face whose two cells are both off the level's grids
+            // centroid from the neighboring faces (with b at the centroids,
+            // the face's own b times the interpolated phi(f)-phi(f-ed)); as
+            // MLEBABecLap's cc_mask, not toward a face whose two cells are
+            // both off the level's grids
             IntVect off[AMREX_SPACEDIM-1];
             Real frac[AMREX_SPACEDIM-1];
             int nt = 0;
@@ -443,7 +447,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
                         v *= Real(1.0)-frac[t];
                     }
                 }
-                if (e.b[d]) { v *= e.b[d](fp); }
+                if (e.b[d]) { v *= e.b[d](e.beta_on_centroid ? f : fp); }
                 put_phi(own, fp, v);
                 put_phi(own, fp-ed, -v);
                 if (crow.id >= 0) {

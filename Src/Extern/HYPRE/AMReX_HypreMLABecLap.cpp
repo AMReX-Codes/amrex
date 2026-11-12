@@ -1938,6 +1938,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         e.dxinv = m_geom[ilev].InvCellSizeArray();
         e.sa = a_ascalar;
         e.sb = a_bscalar;
+        e.beta_on_centroid = m_beta_on_centroid;
         e.fixed_pt = fixed_pt;
         e.cid = m_cell_id[ilev]->const_array(mfi);
         if (ilev > 0) {
