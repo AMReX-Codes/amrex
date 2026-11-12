@@ -375,6 +375,6 @@ template void MLNodeLaplacianT<MultiFab>::buildStencil ();
 template void MLNodeLaplacianT<fMultiFab>::buildStencil ();
 #endif
 
-namespace detail { void mlndlap_anchor_sten () {} } // see mlndlap_link_parts
-
 }
+
+namespace amrex::detail { void mlndlap_anchor_sten () {} } // see mlndlap_link_parts

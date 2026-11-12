@@ -164,6 +164,6 @@ template void MLNodeLaplacianT<fMultiFab>::buildIntegral ();
 template void MLNodeLaplacianT<fMultiFab>::buildSurfaceIntegral ();
 #endif
 
-namespace detail { void mlndlap_anchor_eb () {} } // see mlndlap_link_parts
-
 }
+
+namespace amrex::detail { void mlndlap_anchor_eb () {} } // see mlndlap_link_parts
