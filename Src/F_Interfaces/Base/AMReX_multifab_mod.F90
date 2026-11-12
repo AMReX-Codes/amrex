@@ -915,7 +915,7 @@ contains
     integer, intent(in), optional :: icomp, ncomp, nghost
     integer :: ic, nc, ng(3)
     ic = 0;         if (present(icomp))  ic = icomp-1
-    nc = this%nc;   if (present(ncomp))  nc = ncomp
+    nc = this%nc - ic;   if (present(ncomp))  nc = ncomp
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_multifab_abs(this%p, ic, nc, ng)
   end subroutine amrex_multifab_abs
@@ -933,7 +933,7 @@ contains
     integer, intent(in), optional :: icomp, ncomp, nghost
     integer :: ic, nc, ng(3)
     ic = 0;         if (present(icomp))  ic = icomp-1
-    nc = this%nc;   if (present(ncomp))  nc = ncomp
+    nc = this%nc - ic;   if (present(ncomp))  nc = ncomp
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_multifab_setval(this%p, val, ic, nc, ng)
   end subroutine amrex_multifab_setval
@@ -1294,7 +1294,7 @@ contains
     integer, intent(in), optional :: icomp, ncomp, nghost
     integer :: ic, nc, ng(3)
     ic = 0;         if (present(icomp))  ic = icomp-1
-    nc = this%nc;   if (present(ncomp))  nc = ncomp
+    nc = this%nc - ic;   if (present(ncomp))  nc = ncomp
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_imultifab_setval(this%p, val, ic, nc, ng)
   end subroutine amrex_imultifab_setval
