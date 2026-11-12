@@ -1,5 +1,5 @@
 # Environment for single-source LOOM builds of AMReX. Source it before each
-# step (build-cxx.sh, build-hrx.sh, build-amrex.sh, run-tests.sh do this).
+# step (build-hrx.sh, build-amrex.sh, run-tests.sh do this).
 #
 # Edit the first block for your machine; everything else derives from it.
 

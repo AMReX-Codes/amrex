@@ -87,9 +87,8 @@ $S/run-tests.sh     # ctest for the three tests, then the CNS check
 cxx dependency at the `cplusplus` clone (`FETCHCONTENT_SOURCE_DIR_CXX`): HRX
 builds cxx through cxx's own CMake project with its MLIR back end (pixi's
 MLIR/LLVM), and `loom-cxx` links that one copy of cxx with Loom's importer and
-compiler. (`build-cxx.sh` only prepares pixi's MLIR package; `build-hrx.sh` runs
-it.) HRX builds only its native AMD GPU driver, and `env.sh` selects it
-(`HRX_GPU_DRIVER=amdgpu`).
+compiler. pixi's MLIR package is used as installed. HRX builds only its native
+AMD GPU driver, and `env.sh` selects it (`HRX_GPU_DRIVER=amdgpu`).
 
 ## Expected result
 
