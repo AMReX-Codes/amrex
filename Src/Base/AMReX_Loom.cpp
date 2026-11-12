@@ -291,28 +291,26 @@ namespace {
 // descriptors name the code object of that unit, which carries the kernels it
 // launches: kernels of different units may share an export name (lambdas with
 // internal linkage, for example) and only the unit's own code object has the
-// right one. A descriptor without a code object (from the legacy two-pass
-// build) takes any registered code object exporting its name. Resolved once
-// per descriptor.
+// right one. Resolved once per descriptor.
 const Kernel& resolve_kernel(const loom::kernel::descriptor& kernel) {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   auto found = g_kernels.find(&kernel);
   if (found != g_kernels.end()) return found->second;
+  if (!kernel.code_object) {
+    std::fprintf(stderr, "amrex loom: kernel descriptor of %s names no code object\n",
+                 kernel.name);
+    std::abort();
+  }
   load_images();
   for (std::size_t i = 0; i < g_executables.size(); ++i) {
-    if (kernel.code_object && images()[i].data != kernel.code_object) continue;
+    if (images()[i].data != kernel.code_object) continue;
     hrx_executable_t executable = g_executables[i];
     uint32_t ordinal = 0;
-    hrx_status_t status =
-        hrx_executable_lookup_export_by_name(executable, kernel.name, &ordinal);
-    if (hrx_status_is_ok(status)) {
-      return g_kernels.emplace(&kernel, Kernel{executable, ordinal}).first->second;
-    }
-    hrx_status_ignore(status);
+    check(hrx_executable_lookup_export_by_name(executable, kernel.name, &ordinal),
+          "hrx_executable_lookup_export_by_name");
+    return g_kernels.emplace(&kernel, Kernel{executable, ordinal}).first->second;
   }
-  std::fprintf(stderr, "amrex loom: no device kernel %s in %s\n", kernel.name,
-               kernel.code_object ? "its translation unit's registered code object"
-                                  : "the registered code objects");
+  std::fprintf(stderr, "amrex loom: the code object of %s is not registered\n", kernel.name);
   std::abort();
 }
 
