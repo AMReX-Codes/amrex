@@ -87,6 +87,33 @@ MyTest::solve ()
             solution[ilev].setVal(0.0, interior, 0, 1, 0);
         }
 
+        Vector<iMultiFab> omask(max_level+1);
+        if (overset) {
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                omask[ilev].define(solution[ilev].boxArray(), dmap[ilev], 1, 0);
+                const auto dx = geom[ilev].CellSizeArray();
+                const auto probhi = geom[ilev].ProbHiArray();
+                auto const& ma = omask[ilev].arrays();
+                auto const& sa = solution[ilev].arrays();
+                auto const& ea = exact_solution[ilev].const_arrays();
+                amrex::ParallelFor(omask[ilev], [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+                {
+                    amrex::ignore_unused(j,k);
+                    Real r2 = AMREX_D_TERM(  amrex::Math::powi<2>(Real(i)*dx[0] - Real(0.5)*probhi[0]),
+                                           + amrex::Math::powi<2>(Real(j)*dx[1] - Real(0.5)*probhi[1]),
+                                           + amrex::Math::powi<2>(Real(k)*dx[2] - Real(0.5)*probhi[2]));
+                    if (r2 < Real(0.01)) { // known node
+                        ma[b](i,j,k) = 0;
+                        sa[b](i,j,k) = ea[b](i,j,k);
+                    } else {
+                        ma[b](i,j,k) = 1;
+                    }
+                });
+                Gpu::streamSynchronize();
+                linop.setOversetMask(ilev, omask[ilev]);
+            }
+        }
+
         if (use_gmres) {
             GMRESMLMG gmsolver(mlmg);
             gmsolver.setVerbose(verbose);
@@ -251,7 +278,11 @@ MyTest::compute_norms () const
 
         auto mask = error.OwnerMask(geom[ilev].periodicity());
 
-        amrex::Print() << "    max-norm: " << error.norm0(*mask, 0, 0) << "\n";
+        const Real maxerr = error.norm0(*mask, 0, 0);
+        amrex::Print() << "    max-norm: " << maxerr << "\n";
+        if (max_error > Real(0.0) && !(maxerr <= max_error)) {
+            amrex::Abort("Level " + std::to_string(ilev) + " max-norm error exceeds max_error");
+        }
         const Real* dx = geom[ilev].CellSize();
         Real dvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
         amrex::Print() << "    1-norm  : " << error.norm1(0, geom[ilev].periodicity())*dvol << "\n";
@@ -286,6 +317,8 @@ MyTest::readParameters ()
     pp.query("consolidation", consolidation);
     pp.query("semicoarsening", semicoarsening);
     pp.query("mixed_precision", mixed_precision);
+    pp.query("overset", overset);
+    pp.query("max_error", max_error);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
     //pp.query("smooth_num_sweeps", smooth_num_sweeps);
@@ -431,7 +464,9 @@ MyTest::testSigmaUpdate ()
                       {AMREX_D_DECL(LinOpBCType::Dirichlet,
                                     LinOpBCType::Dirichlet,
                                     LinOpBCType::Dirichlet)});
-    linop.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+    if (!mixed_precision) { // which needs sigma coarsening
+        linop.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+    }
 
     sigma[0].setVal(Real(1.0));
     linop.setSigma(0, sigma[0]);
@@ -466,6 +501,20 @@ MyTest::testSigmaUpdate ()
 
     if (err > tol || amrex::isnan(err)) {
         amrex::Abort("NodalPoisson sigma update check failed");
+    }
+
+    if (mixed_precision) { // the single precision copy must have the new sigma too
+        MultiFab::Copy(solution[0], exact_solution[0], 0, 0, 1, 0);
+        solution[0].setVal(0.0, amrex::surroundingNodes(amrex::grow(geom[0].Domain(), -1)), 0, 1, 0);
+        mlmg.solve({solution.data()}, {&lhs2}, reltol, 0.0);
+        MultiFab::Subtract(solution[0], exact_solution[0], 0, 0, 1, 0);
+        const Real solve_err = solution[0].norm0(*mask, 0, 0);
+        const Real solve_tol = std::sqrt(reltol_update);
+        amrex::Print() << "NodalPoisson sigma update solve: max error = "
+                       << solve_err << ", tolerance = " << solve_tol << "\n";
+        if (!(solve_err <= solve_tol)) {
+            amrex::Abort("NodalPoisson sigma update solve failed");
+        }
     }
 #endif
 }
