@@ -46,11 +46,9 @@ endif()
 set(CMAKE_CXX_COMPILER "${AMREX_LOOM_CXX_DRIVER}")
 # loom-cxx discovers no include directories: libc++, then the compiler's
 # headers, then libc, as a clang++ -stdlib=libc++ compile searches them.
-# Without -std, cxx parses C++26, and libc++'s C++26 headers do not parse yet;
-# start from C++20, which AMReX requires. CMake identifies this default and
-# adds a later -std for targets that need a newer standard.
+# loom-cxx defaults to C++20.
 string(JOIN " " CMAKE_CXX_FLAGS_INIT
-       "--target=${AMREX_LOOM_HOST_TRIPLE} -std=c++20"
+       "--target=${AMREX_LOOM_HOST_TRIPLE}"
        "-isystem ${AMREX_LOOM_LIBCXX_ROOT}/include/c++/v1"
        "-isystem ${AMREX_LOOM_GCC_INSTALL_DIR}/include"
        "-isystem ${AMREX_LOOM_GLIBC_INCLUDE}")
