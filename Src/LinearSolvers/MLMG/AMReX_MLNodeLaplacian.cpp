@@ -106,6 +106,12 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
     m_is_rz = this->m_geom[0][0].IsRZ();
 #endif
 
+    // Mixed precision needs sigma coarsening, and neither it nor the single
+    // precision operator has EB.
+    if (this->info.mixed_precision || !std::is_same_v<MF,MultiFab>) {
+        this->m_coarsening_strategy = CoarseningStrategy::Sigma;
+    }
+
     // The copy's sigma is scaled into the single precision range.
     m_sp_sigma_scale = this->spScaleFor(std::abs(a_const_sigma));
     this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
@@ -114,15 +120,6 @@ MLNodeLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
              static_cast<float>(m_sp_sigma_scale * a_const_sigma));
     });
     spUpdateScale();
-
-    // Mixed precision needs sigma coarsening, and neither it nor the single
-    // precision operator has EB.  The copy already took our strategy.
-    if (this->m_sp_linop || !std::is_same_v<MF,MultiFab>) {
-        this->m_coarsening_strategy = CoarseningStrategy::Sigma;
-        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) {
-            sp->setCoarseningStrategy(CoarseningStrategy::Sigma);
-        });
-    }
 
     m_needs_update = true;
 }

@@ -75,11 +75,7 @@ public:
      */
     void setSmoothNumSweeps (int nsweeps) noexcept {
         m_smooth_num_sweeps = nsweeps;
-        if constexpr (MLLinOpT<MF>::mixed_precision_capable) {
-            if (this->m_sp_linop) {
-                static_cast<MLNodeLinOpT<fMultiFab>*>(this->m_sp_linop.get())->setSmoothNumSweeps(nsweeps);
-            }
-        }
+        this->template spForward<MLNodeLinOpT>([&] (auto* sp) { sp->setSmoothNumSweeps(nsweeps); });
     }
 
     void setLevelBC (int /*amrlev*/, const MF* /*levelbcdata*/,
