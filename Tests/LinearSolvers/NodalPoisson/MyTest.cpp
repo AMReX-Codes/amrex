@@ -382,7 +382,7 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    // The longest side has length 1; domain_ratio stretches y.
+    // Cubic cells and longest side 1, before domain_ratio stretches y.
     const auto lmax = Real(n_cell.max());
     RealBox rb({AMREX_D_DECL(0.,0.,0.)},
                {AMREX_D_DECL(n_cell[0]/lmax,domain_ratio*n_cell[1]/lmax,n_cell[2]/lmax)});
