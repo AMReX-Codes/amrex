@@ -7,7 +7,8 @@
 # (registered at startup with amrex_loom_register_executable), and the kernel
 # descriptors that the host code references through loom::kernel::kernel_ref.
 # Kernels Loom cannot import or compile yet are dropped and reported; their
-# descriptors stay unavailable, so launching one fails at run time.
+# descriptors stay unavailable, so launching one fails at run time. Any other
+# device-pass failure fails the compile.
 # Link: clang++ with libc++, plus libhrx.
 #
 # Required environment (see Tools/Loom/single-source/env.sh):
@@ -22,8 +23,6 @@
 #   AMREX_LOOM_TARGET           device target (default gfx90a)
 #   AMREX_LOOM_HOST_TRIPLE      host target triple (default x86_64-linux-gnu)
 #   AMREX_LOOM_SYSROOT          sysroot holding glibc's libraries for linking
-#   AMREX_LOOM_DEVICE_STRICT=1  fail the compile when the device pass fails,
-#                               instead of keeping a host-only object
 set -o pipefail
 : "${AMREX_LOOM_CXX_DRIVER:?}" "${AMREX_LOOM_LOOMCXX_DIR:?}" "${AMREX_LOOM_LINK_CXX:?}"
 
@@ -51,10 +50,8 @@ fi
 system=()
 IFS=: read -r -a dirs <<< "${AMREX_LOOM_SYSTEM_INCLUDES:-}"
 for d in "${dirs[@]}"; do [[ -n "$d" ]] && system+=(-isystem "$d"); done
-on_failure=host-only
-[[ "${AMREX_LOOM_DEVICE_STRICT:-0}" == 1 ]] && on_failure=error
 exec "$AMREX_LOOM_CXX_DRIVER" --target="${AMREX_LOOM_HOST_TRIPLE:-x86_64-linux-gnu}" \
   --loom-target=amdgpu:"${AMREX_LOOM_TARGET:-gfx90a}" \
   --loom-register-function=amrex_loom_register_executable \
-  --loom-drop-failed-kernels --loom-on-device-failure="$on_failure" \
+  --loom-drop-failed-kernels \
   -I "$AMREX_LOOM_LOOMCXX_DIR" "${system[@]}" "$@"
