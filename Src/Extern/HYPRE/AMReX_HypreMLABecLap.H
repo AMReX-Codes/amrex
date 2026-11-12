@@ -203,14 +203,6 @@ public:
     //! Build the device maps of the IJ assembly; public for cuda
     void buildIJMaps ();
 
-    //! Map the assembled triplets to the hypre matrix's value arrays
-    //! (m_ij_gather); public for cuda
-    void buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
-                       Gpu::DeviceVector<HYPRE_BigInt> const& cols);
-    //! Overwrite the hypre matrix's values with the triplet values
-    //! (m_ij_gather); public for cuda
-    void updateIJValues (Gpu::DeviceVector<Real> const& vals);
-
     //! Solve with the IJ system (see m_use_ij); public for cuda
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                   Real a_reltol, Real a_abstol);
@@ -352,17 +344,8 @@ private:
     Vector<MultiFab> m_eb_beta;
     Vector<MultiFab> m_eb_phi;
     //! With setup reuse, the triplets of later setups are summed directly
-    //! into a matrix's value array, each entry adding its triplets in
-    //! increasing triplet order so that the sums do not depend on thread
-    //! scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
-    struct EntryGather
-    {
-        Gpu::DeviceVector<Long> offset;
-        Gpu::DeviceVector<Long> trip;
-        [[nodiscard]] bool empty () const { return offset.empty(); }
-        [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
-        void clear () { offset.clear(); trip.clear(); }
-    };
+    //! into a matrix's value array (composite::EntryGather)
+    using EntryGather = composite::EntryGather;
     //! Hypre backend: entries of the assembled hypre matrix, diag values
     //! first, then offd values; empty if not built
     EntryGather m_ij_gather;

@@ -966,6 +966,16 @@ except next to small cut cells, see ``eb_scaling``).
   unknowns by :math:`1/\sqrt{\text{nodal fluid fraction}}` so that the rows
   of nodes next to small cut cells count in the residual norm.
 
+- :cpp:`HypreMLNodeLap::updateMatrix()`: assemble the matrix again from the
+  operator's current ``sigma`` (the same grids, boundary conditions and
+  masks), for example for a projection whose coefficient changes every time
+  step.  With :cpp:`setReuseSolverSetup(true)` the values are updated in
+  place and the hypre solver setup, or the AlgMG hierarchy, is kept, as for
+  :cpp:`HypreMLABecLap`: :cpp:`resetSolverSetup()`,
+  :cpp:`setReuseSetupMaxIter()` and ``hypre_mlnodelap.reuse_setup_max_iter``
+  work the same way, and a solve with a reused setup that does not converge
+  redoes the setup and continues once before failing.
+
 :cpp:`getNumIters()`, :cpp:`getFinalResidualNorm()` and
 :cpp:`setThrowException()` work as for :cpp:`HypreMLABecLap`, and so does the
 use on a sub-communicator (the communicator of the :cpp:`MLNodeLaplacian`).

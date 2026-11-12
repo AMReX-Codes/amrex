@@ -251,6 +251,15 @@ jobs:
             mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
                 mlhypre_nan_dirichlet_rhs=1 do_plots=0
         done
+        # repeated solves of one object: sigma scaled, the matrix updated in
+        # place and the setup kept, also with the setup redone after a solve
+        # that needed more than one iteration
+        for b in hypre algmg; do
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_num_solves=3 do_plots=0
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_num_solves=3 hypre_mlnodelap.reuse_setup_max_iter=1 do_plots=0
+        done
         # sub-communicators, and failures that must throw (NaN rhs or initial guess)
         for b in hypre algmg; do
             mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b split_comm=1
@@ -267,6 +276,12 @@ jobs:
             hypre_mlnodelap.hypre_solver=FlexGMRES hypre_mlnodelap.hypre_preconditioner=BoomerAMG
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
             use_mlhypre=1 mlhypre_max_diff=1.e-7 hypre_mlnodelap.backend=algmg
+        # the matrix updated in place (scaled sigma) with the setup kept
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
+            use_mlhypre=1 mlhypre_max_diff=1.e-7 mlhypre_num_solves=3 \
+            hypre_mlnodelap.hypre_solver=FlexGMRES hypre_mlnodelap.hypre_preconditioner=BoomerAMG
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs_3d n_cell=64 multigrid_types=geometric \
+            use_mlhypre=1 mlhypre_max_diff=1.e-7 mlhypre_num_solves=3 hypre_mlnodelap.backend=algmg
 
         # Composite EB solve (HypreMLABecLap) against MLMG
         cd ${{github.workspace}}/Tests/LinearSolvers/CellEB2

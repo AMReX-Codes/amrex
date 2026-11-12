@@ -79,6 +79,10 @@ private:
     int const_solution = 0;
     // mlhypre: NaN rhs at the Dirichlet domain nodes, which must not be used
     int mlhypre_nan_dirichlet_rhs = 0;
+    // mlhypre: solves of the same object after the first, each with sigma
+    // and the rhs scaled by 2 (the same solution), the matrix updated in
+    // place and the solver setup kept (HypreMLNodeLap::updateMatrix)
+    int mlhypre_num_solves = 1;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the
