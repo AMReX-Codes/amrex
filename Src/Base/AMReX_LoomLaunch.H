@@ -10,11 +10,11 @@
 // kernel<MT><Tag<F...>>. launch_fixed odr-uses that instance's Loom launch
 // descriptor, loom::kernel::kernel_ref<&kernel<MT><Tag<F...>>>, which
 // loom-cxx sees from both sides of its one parse:
-//  * the Loom device pass treats the odr-use as a launch root and compiles the
-//    kernel instance; loom-cxx defines the descriptor inside the object, with
-//    local linkage (the kernel's export in the object's own code object, and
-//    a function packing the kernel arguments in the compiled kernel's
-//    layout);
+//  * the descriptors host code references are the Loom device pass's kernel
+//    roots, so it compiles the kernel instance; loom-cxx defines the
+//    descriptor inside the object, with local linkage (the kernel's export in
+//    the object's own code object, and a function packing the kernel
+//    arguments in the compiled kernel's layout);
 //  * host code passes the descriptor and the tag to amrex_loom::dispatch
 //    (AMReX_Loom.cpp), which packs the kernel arguments from the tag with the
 //    descriptor's packing function and dispatches on the HRX stream.
@@ -56,7 +56,7 @@ struct Tag<F, Rest...> {
 // kernel definitions. The host only names an instance, through kernel_ref
 // (whose template argument is not a reference that emits code), so it never
 // emits a kernel body or the device code the body reaches; the device pass
-// compiles the instances that launch sites reach.
+// compiles the instances whose descriptors host code references.
 // The importer requires a launch configuration function with internal
 // linkage.
 #define AMREX_LOOM_FIXED_KERNEL_DEFINITION(N)                                 \

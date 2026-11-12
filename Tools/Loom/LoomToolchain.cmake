@@ -2,8 +2,8 @@
 #
 # C++ sources compile with Loom's single-source offload driver, loom-cxx: it
 # parses each source once with cxx and emits one object holding the host code,
-# the device code of the launched kernels and the kernel descriptors that host
-# code references. Executables and shared libraries link with clang++ against
+# the device code of the kernels whose descriptors host code references, and
+# those descriptors. Executables and shared libraries link with clang++ against
 # libc++, the C++ library the host code was compiled for. AMReX adds the device
 # options (target, drop policy) and libhrx; see
 # Tools/CMake/AMReXParallelBackends.cmake.
