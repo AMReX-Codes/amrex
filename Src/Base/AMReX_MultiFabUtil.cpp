@@ -872,6 +872,8 @@ namespace amrex
                 }
                 int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
                 int nblocks = n2dblocks * b.length(direction);
+                const Math::FastDivmodU32 fdm_n2dblocks(n2dblocks);
+                const Math::FastDivmodU32 fdm_n2dx(n2dx);
 #ifdef AMREX_USE_SYCL
                 std::size_t shared_mem_byte = sizeof(Real)
                     * std::max(Gpu::Device::warp_size, AMREX_GPU_MAX_THREADS/Gpu::Device::warp_size);
@@ -883,14 +885,19 @@ namespace amrex
 #endif
                 {
 #ifdef AMREX_USE_SYCL
-                    int i1d = h.blockIdx() / n2dblocks;
-                    int i2d = h.threadIdx() + AMREX_GPU_MAX_THREADS*(h.blockIdx()-i1d*n2dblocks);
+                    auto const blockIdxx = std::uint32_t(h.blockIdx());
+                    auto const threadIdxx = int(h.threadIdx());
 #else
-                    int i1d = blockIdx.x / n2dblocks;
-                    int i2d = threadIdx.x + AMREX_GPU_MAX_THREADS*(blockIdx.x-i1d*n2dblocks);
+                    auto const blockIdxx = std::uint32_t(blockIdx.x);
+                    auto const threadIdxx = int(threadIdx.x);
 #endif
-                    int i2dy = i2d / n2dx;
-                    int i2dx = i2d - i2dy*n2dx;
+                    std::uint32_t quot, rem;
+                    fdm_n2dblocks(quot, rem, blockIdxx);
+                    const int i1d = int(quot);
+                    const int i2d = threadIdxx + AMREX_GPU_MAX_THREADS*int(rem);
+                    fdm_n2dx(quot, rem, std::uint32_t(i2d));
+                    const int i2dy = int(quot);
+                    const int i2dx = int(rem);
                     int i, j, k, idir;
                     if (direction == 0) {
                         i = i1d  + lo.x;

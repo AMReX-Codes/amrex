@@ -783,7 +783,7 @@ public:
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
         //! One BoxIndexer per box over the points equal to offset modulo stride.
         ParForInfo (const FabArrayBase& fa, const IntVect& stride, const IntVect& offset);
-        //! Two BoxIndexers per box: the points with even i, then those with odd i.
+        //! One BoxIndexer per box over the box coarsened by 2 in x, plus the box's x bounds.
         ParForInfo (const FabArrayBase& fa, RedBlack);
         ~ParForInfo ();
 
@@ -791,6 +791,8 @@ public:
             return int((m_ncellsmax+nthreads-1)/nthreads);
         }
         BoxIndexer const* getBoxes () const { return m_boxes; }
+        //! Red-black only: the lower and upper x bounds of each box.
+        int const* getXBounds () const { return m_xbounds; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -805,6 +807,7 @@ public:
         IntVect m_offset{0};
         Long m_ncellsmax = 0;
         BoxIndexer* m_boxes = nullptr;
+        int const* m_xbounds = nullptr;
         char* m_hp = nullptr;
     };
 
@@ -827,7 +830,8 @@ public:
     /**
      * \brief Obtain metadata for a red-black ParallelFor over the valid region.
      *
-     * Each box gets two BoxIndexers, over its points with even i and with odd i.
+     * Each box gets a BoxIndexer over the box coarsened by 2 in x, whose
+     * points ic stand for the pairs i = 2*ic and 2*ic+1, and its x bounds.
      */
     ParForInfo const& getParForInfoRedBlack () const;
 

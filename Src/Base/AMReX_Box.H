@@ -2496,6 +2496,8 @@ struct BoxIndexerND
 {
     std::uint64_t npts;
     Math::FastDivmodU64 fdm[dim-1];
+    //! 32-bit version of fdm, used when npts fits: much cheaper on GPUs.
+    Math::FastDivmodU32 fdm32[dim-1];
     IntVectND<dim> lo;
 
     BoxIndexerND (BoxND<dim> const& box)
@@ -2506,6 +2508,9 @@ struct BoxIndexerND
             for (int i=0; i<dim-1; ++i) {
                 mult *= box.length(i);
                 fdm[i] = Math::FastDivmodU64(mult);
+                if (npts < std::uint64_t(std::numeric_limits<std::uint32_t>::max())) {
+                    fdm32[i] = Math::FastDivmodU32(std::uint32_t(mult));
+                }
             }
         }
 
@@ -2520,14 +2525,24 @@ struct BoxIndexerND
     {
         IntVectND<dim> retval = lo;
 
-        for (int i=dim-1; i>0; --i) {
-            std::uint64_t quotient, remainder;
-            fdm[i-1](quotient, remainder, icell);
-            retval[i] += quotient;
-            icell = remainder;
+        if (npts < std::uint64_t(std::numeric_limits<std::uint32_t>::max())) {
+            auto icell32 = std::uint32_t(icell);
+            for (int i=dim-1; i>0; --i) {
+                std::uint32_t quotient, remainder;
+                fdm32[i-1](quotient, remainder, icell32);
+                retval[i] += int(quotient);
+                icell32 = remainder;
+            }
+            retval[0] += int(icell32);
+        } else {
+            for (int i=dim-1; i>0; --i) {
+                std::uint64_t quotient, remainder;
+                fdm[i-1](quotient, remainder, icell);
+                retval[i] += quotient;
+                icell = remainder;
+            }
+            retval[0] += icell;
         }
-
-        retval[0] += icell;
 
         return retval;
     }

@@ -729,6 +729,7 @@ public:
             AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
             const int nblocks = nblocks_per_box * nboxes;
             const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+            const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
             auto const& stream = Gpu::gpuStream();
             auto pdst = reduce_data.devicePtr(stream);
@@ -761,14 +762,15 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox = iblock / nblocks_per_box;
-                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                    std::uint32_t ibox, ib;
+                    fdm_box(ibox, ib, std::uint32_t(iblock));
+                    auto icell = std::uint64_t(ib)*AMREX_GPU_MAX_THREADS + threadIdx.x;
 
                     BoxIndexer const& indexer = dp_boxes[ibox];
                     if (icell < indexer.numPts()) {
                         auto [i, j, k] = indexer(icell);
                         Reduce::detail::mf_call_f<Tag, F, ReduceTuple, Ps...>
-                            (f, ibox, i, j, k, ncomp, r);
+                            (f, int(ibox), i, j, k, ncomp, r);
                     }
                 }
 #ifdef AMREX_USE_SYCL

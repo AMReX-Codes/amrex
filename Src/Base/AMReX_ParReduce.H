@@ -344,6 +344,7 @@ struct ParReduceComp
         RT* ppart = dpart.data();
         RT* pr = dr.data();
         BoxIndexer const* pbx = fa.getParForInfo(nghost).getBoxes();
+        const Math::FastDivmodU32 fdm_nb1(nb1);
 
 #ifdef AMREX_USE_SYCL
         constexpr std::size_t shared_mem_bytes = sizeof(RT)
@@ -360,8 +361,10 @@ struct ParReduceComp
         {
 #endif
             for (int b = int(blockIdx.x); b < nblocks; b += int(gridDim.x)) {
-                const int n = b / nb1;
-                const int bb = b - n*nb1;
+                std::uint32_t n32, bb32;
+                fdm_nb1(n32, bb32, std::uint32_t(b));
+                const int n = int(n32);
+                const int bb = int(bb32);
                 const int L = amrex::bisect(poff, 0, nlocal, bb);
                 const int nb = poff[L+1] - poff[L];
                 BoxIndexer const& indexer = pbx[L];
