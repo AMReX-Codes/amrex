@@ -1,7 +1,7 @@
 // Host runtime for AMReX_GPU_BACKEND=LOOM.
 //
-// The amrex-loom-cxx driver embeds each translation unit's Loom code object
-// and registers it before main(). A launch names its kernel by a Loom kernel
+// loom-cxx, the C++ compiler of LOOM builds, embeds each translation unit's
+// Loom code object and registers it before main(). A launch names its kernel by a Loom kernel
 // descriptor (loom::kernel::kernel_ref, defined locally in each object by
 // loom-cxx), finds the kernel's export by the descriptor's export name in the
 // code object the descriptor names, and packs the kernel arguments from the
