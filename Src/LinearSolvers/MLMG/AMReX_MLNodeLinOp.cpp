@@ -535,6 +535,26 @@ MLNodeLinOpT<MF>::setOversetMask (int amrlev, const iMultiFab& a_dmask)
 
 template <typename MF>
 void
+MLNodeLinOpT<MF>::applyOverset (int amrlev, MF& mf) const
+{
+    if (!m_overset_dirichlet_mask) { return; }
+
+    auto const& dmsk = m_dirichlet_mask[amrlev][0]->const_arrays();
+    auto const& ma = mf.arrays();
+    amrex::ParallelFor(mf, IntVect(0), this->getNComp(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+    {
+        if (dmsk[box_no](i,j,k) == nodelap_detail::overset_node) {
+            ma[box_no](i,j,k,n) = RT(0.0);
+        }
+    });
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
+}
+
+template <typename MF>
+void
 MLNodeLinOpT<MF>::applyBC (int amrlev, int mglev, MF& phi, BCMode/* bc_mode*/,
                            StateMode state_mode, bool skip_fillboundary) const
 {

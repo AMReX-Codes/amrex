@@ -208,6 +208,9 @@ public:
      */
     void setOversetMask (int amrlev, const iMultiFab& a_dmask);
 
+    //! Zero \p mf at the known nodes of the overset mask.
+    void applyOverset (int amrlev, MF& mf) const override;
+
     virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
 
     //! Infinity norm helper operating on level \p amrlev (set \p local to true to skip MPI reduction).
