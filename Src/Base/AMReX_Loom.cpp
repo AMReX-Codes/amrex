@@ -3,9 +3,9 @@
 // loom-cxx, the C++ compiler of LOOM builds, embeds each translation unit's
 // Loom code object and registers it before main(). A launch names its kernel by a Loom kernel
 // descriptor (loom::kernel::kernel_ref, defined locally in each object by
-// loom-cxx), finds the kernel's export by the descriptor's export name in the
-// code object the descriptor names, and packs the kernel arguments from the
-// host launch tag following the descriptor's leaves. This file implements the
+// loom-cxx), dispatches the export the descriptor numbers in the code object
+// it names, and packs the kernel arguments from the host launch tag following
+// the descriptor's leaves. This file implements the
 // amrex_loom runtime functions declared in AMReX_Loom.H and AMReX_LoomRandom.H
 // on libhrx.
 // Single device; streams are HRX streams, each bound to its own HRX queue
@@ -52,17 +52,20 @@ struct Dim3 {
 // Checks a launch against its kernel and returns false for an empty grid.
 bool check_launch(const loom::kernel::descriptor& kernel, Dim3 grid, Dim3 block,
                   unsigned fixed_block, std::size_t shared_bytes) {
+  // Every descriptor version keeps the version and the export name first.
+  if (kernel.version != loom::kernel::descriptor_version) {
+    std::fprintf(stderr, "amrex loom: kernel %s has a version %u descriptor; this runtime "
+                 "reads version %u only: rebuild with the loom-cxx matching its "
+                 "loomcxx/kernel_ref.h\n",
+                 kernel.name, kernel.version, loom::kernel::descriptor_version);
+    std::abort();
+  }
   if (block.x != fixed_block || block.y != 1 || block.z != 1) {
     std::fprintf(stderr, "amrex loom: fixed-size launch MT=%u with block %ux%ux%u\n",
                  fixed_block, block.x, block.y, block.z);
     std::abort();
   }
   if (grid.x == 0 || grid.y == 0 || grid.z == 0) return false;
-  if (kernel.version != loom::kernel::descriptor_version) {
-    std::fprintf(stderr, "amrex loom: kernel descriptor version %u for %s, expected %u\n",
-                 kernel.version, kernel.name, loom::kernel::descriptor_version);
-    std::abort();
-  }
   if (!(kernel.flags & loom::kernel::descriptor_flag_available)) {
     std::fprintf(stderr, "amrex loom: no device kernel for %s\n", kernel.name);
     std::abort();
@@ -93,9 +96,13 @@ std::vector<uint8_t> pack_kernargs(const loom::kernel::descriptor& kernel,
   return kernarg;
 }
 
-void trace_launch(const char* name, Dim3 grid, Dim3 block, std::size_t kernarg_size) {
+bool tracing() {
   static const bool trace = std::getenv("AMREX_LOOM_TRACE") != nullptr;
-  if (trace) {
+  return trace;
+}
+
+void trace_launch(const char* name, Dim3 grid, Dim3 block, std::size_t kernarg_size) {
+  if (tracing()) {
     std::fprintf(stderr, "amrex loom: launch %s grid %ux%ux%u block %ux%ux%u kernarg %zu\n",
                  name, grid.x, grid.y, grid.z, block.x, block.y, block.z,
                  kernarg_size);
@@ -116,12 +123,6 @@ extern "C" void amrex_loom_register_executable(const void* data, std::size_t siz
 // --- runtime state on libhrx ---------------------------------------------------
 
 namespace {
-
-// A kernel export resolved from its descriptor's name.
-struct Kernel {
-  hrx_executable_t executable = nullptr;
-  uint32_t ordinal = 0;
-};
 
 struct Allocation {
   hrx_buffer_t buffer;
@@ -156,8 +157,8 @@ std::vector<uint32_t> g_provisioned_users;  // streams bound to each provisioned
 hrx_stream_t g_default_stream = nullptr;
 std::map<hrx_stream_t, StreamQueue> g_streams;
 std::map<uintptr_t, Allocation> g_allocations;
-std::unordered_map<const loom::kernel::descriptor*, Kernel> g_kernels;
-std::vector<hrx_executable_t> g_executables;  // parallel to images()
+// The loaded executable of each registered code object, by its address.
+std::unordered_map<const void*, hrx_executable_t> g_executables;
 bool g_images_loaded = false;
 
 [[noreturn]] void fatal(const char* what, hrx_status_t status) {
@@ -276,7 +277,7 @@ void load_images() {
     check(hrx_executable_load_data(g_device, image.data, image.size, "amdgpu", target,
                                    &executable),
           "hrx_executable_load_data");
-    g_executables.push_back(executable);
+    g_executables.emplace(image.data, executable);
   }
   g_images_loaded = true;
 }
@@ -287,31 +288,37 @@ void load_images() {
 
 namespace {
 
-// The executable and ordinal of |kernel|'s export. Each translation unit's
+// The executable of the code object |kernel| names. Each translation unit's
 // descriptors name the code object of that unit, which carries the kernels it
 // launches: kernels of different units may share an export name (lambdas with
 // internal linkage, for example) and only the unit's own code object has the
-// right one. Resolved once per descriptor.
-const Kernel& resolve_kernel(const loom::kernel::descriptor& kernel) {
-  std::lock_guard<std::recursive_mutex> lock(g_mutex);
-  auto found = g_kernels.find(&kernel);
-  if (found != g_kernels.end()) return found->second;
+// right one. The descriptor names the kernel by its export ordinal there.
+hrx_executable_t kernel_executable(const loom::kernel::descriptor& kernel) {
   if (!kernel.code_object) {
     std::fprintf(stderr, "amrex loom: kernel descriptor of %s names no code object\n",
                  kernel.name);
     std::abort();
   }
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
   load_images();
-  for (std::size_t i = 0; i < g_executables.size(); ++i) {
-    if (images()[i].data != kernel.code_object) continue;
-    hrx_executable_t executable = g_executables[i];
-    uint32_t ordinal = 0;
-    check(hrx_executable_lookup_export_by_name(executable, kernel.name, &ordinal),
-          "hrx_executable_lookup_export_by_name");
-    return g_kernels.emplace(&kernel, Kernel{executable, ordinal}).first->second;
+  auto found = g_executables.find(kernel.code_object);
+  if (found == g_executables.end()) {
+    std::fprintf(stderr, "amrex loom: the code object of %s is not registered\n", kernel.name);
+    std::abort();
   }
-  std::fprintf(stderr, "amrex loom: the code object of %s is not registered\n", kernel.name);
-  std::abort();
+  return found->second;
+}
+
+// Checks, while tracing, that the export the descriptor numbers is its kernel.
+void check_export(hrx_executable_t executable, const loom::kernel::descriptor& kernel) {
+  hrx_executable_export_info_t info{};
+  check(hrx_executable_export_info(executable, kernel.export_ordinal, &info),
+        "hrx_executable_export_info");
+  if (std::strcmp(info.name, kernel.name) != 0) {
+    std::fprintf(stderr, "amrex loom: export %u of the code object of %s is %s\n",
+                 kernel.export_ordinal, kernel.name, info.name);
+    std::abort();
+  }
 }
 
 }  // namespace
@@ -323,7 +330,8 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
   const Dim3 grid{grid_size[0], grid_size[1], grid_size[2]};
   const Dim3 block{block_size[0], block_size[1], block_size[2]};
   if (!check_launch(descriptor, grid, block, fixed_block, shared_bytes)) return;
-  const Kernel& kernel = resolve_kernel(descriptor);
+  hrx_executable_t executable = kernel_executable(descriptor);
+  if (tracing()) check_export(executable, descriptor);
   std::vector<uint8_t> kernarg = pack_kernargs(descriptor, parameter);
   trace_launch(descriptor.name, grid, block, kernarg.size());
   hrx_dispatch_config_t config{};
@@ -334,7 +342,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
   config.workgroup_size[1] = block.y;
   config.workgroup_size[2] = block.z;
   hrx_stream_t s = resolve(stream);
-  check(hrx_stream_dispatch(s, kernel.executable, kernel.ordinal, &config,
+  check(hrx_stream_dispatch(s, executable, descriptor.export_ordinal, &config,
                             kernarg.data(), kernarg.size(), nullptr, 0,
                             HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
         "hrx_stream_dispatch");
@@ -658,8 +666,7 @@ void shutdown() {
   g_host_allocations.clear();
   for (auto& [address, allocation] : g_allocations) hrx_buffer_release(allocation.buffer);
   g_allocations.clear();
-  g_kernels.clear();
-  for (auto* executable : g_executables) hrx_executable_release(executable);
+  for (auto& [data, executable] : g_executables) hrx_executable_release(executable);
   g_executables.clear();
   g_images_loaded = false;
   // Streams first (each final release joins its work), then the queues this
