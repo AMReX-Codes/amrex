@@ -241,10 +241,9 @@ if (AMReX_LOOM)
       message(FATAL_ERROR "\nAMReX_GPU_BACKEND=LOOM compiles for one AMReX_AMD_ARCH\n")
    endif ()
    unset(_arch_count)
-   # Loom's loomcxx/ headers (device code API), libhrx's hrx_runtime.h and
-   # libhrx. AMReX_Loom.cpp implements the amrex_loom runtime (AMReX_Loom.H)
-   # on libhrx.
-   set(AMReX_LOOM_LOOMCXX_INCLUDE_DIR "" CACHE PATH "Directory containing Loom's loomcxx/ headers")
+   # libhrx's hrx_runtime.h and libhrx. AMReX_Loom.cpp implements the
+   # amrex_loom runtime (AMReX_Loom.H) on libhrx. loom-cxx finds Loom's
+   # loomcxx/ headers (device code API) itself.
    set(AMReX_LOOM_HRX_INCLUDE_DIR "" CACHE PATH "Directory containing hrx_runtime.h")
    set(AMReX_LOOM_HRX_LIB_DIR "" CACHE PATH "Directory containing libhrx.so")
    find_library(AMReX_LOOM_HRX_LIBRARY hrx PATHS ${AMReX_LOOM_HRX_LIB_DIR} NO_DEFAULT_PATH REQUIRED)
@@ -259,8 +258,7 @@ if (AMReX_LOOM)
       --loom-register-function=amrex_loom_register_executable
       --loom-drop-failed-kernels)
    foreach(D IN LISTS AMReX_SPACEDIM)
-      target_include_directories(amrex_${D}d PUBLIC
-         ${AMReX_LOOM_LOOMCXX_INCLUDE_DIR} ${AMReX_LOOM_HRX_INCLUDE_DIR})
+      target_include_directories(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_INCLUDE_DIR})
       target_compile_options(amrex_${D}d PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:${_loom_flags}>")
       target_link_libraries(amrex_${D}d PUBLIC ${AMReX_LOOM_HRX_LIBRARY})
    endforeach()

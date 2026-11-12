@@ -42,8 +42,8 @@ export AMREX_LOOM_LINK_CXX=$CLANGXX
 export AMREX_LOOM_LIBCXX_ROOT=$TOOLS_ENV
 export AMREX_LOOM_GCC_INSTALL_DIR=$GCC_INSTALL_DIR
 export AMREX_LOOM_GLIBC_INCLUDE=$GLIBC_INCLUDE
-# Device target, Loom's loomcxx/ headers and libhrx, for AMReX's configure.
+# Device target and libhrx, for AMReX's configure. loom-cxx finds Loom's
+# loomcxx/ headers itself.
 export AMREX_LOOM_TARGET=gfx90a
-export AMREX_LOOM_LOOMCXX_DIR=$LOOM_WORK/build/loomcxx-include
 export AMREX_LOOM_HRX_LIB_DIR=$HRX_BUILD/libhrx/src/libhrx
 export AMREX_LOOM_HRX_INCLUDE_DIR=$HRX_SRC/libhrx/include
