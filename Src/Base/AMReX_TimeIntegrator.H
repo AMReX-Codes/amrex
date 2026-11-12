@@ -167,9 +167,24 @@ public:
         integrator_ptr->set_post_fast_step_action(A);
     }
 
+    void set_error_norm (std::function<amrex::Real (T&, T&, T&, amrex::Real, amrex::Real)> F)
+    {
+        integrator_ptr->set_error_norm(F);
+    }
+
     amrex::Real get_time_step ()
     {
         return integrator_ptr->get_time_step();
+    }
+
+    amrex::Real get_previous_time_step ()
+    {
+        return integrator_ptr->get_previous_time_step();
+    }
+
+    amrex::Real get_scaled_error ()
+    {
+        return integrator_ptr->get_scaled_error();
     }
 
     void set_time_step (amrex::Real dt)
@@ -237,8 +252,11 @@ public:
             // Call the time integrator advance
             integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
 
-            // Update our time variable
-            m_time += m_timestep;
+            // Update our time variable using the actual step size taken
+            m_time += integrator_ptr->get_previous_time_step();
+
+            // Pick up any timestep changes from post_step_action or adaptive control
+            m_timestep = integrator_ptr->get_time_step();
         }
     }
 
