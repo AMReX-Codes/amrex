@@ -4,10 +4,10 @@
 # $CXX_SRC through cxx's own CMake project (LOOM_CXX_HOST_CODEGEN), so the
 # driver links one copy of cxx for host code generation and device import.
 # Only HRX's native AMD GPU driver (libamdf) is built; the legacy ROCr driver is
-# off.
+# off. HRX's CMake accepts pixi's MLIR package as installed (its version file
+# reports no version; HRX takes LLVM's).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
-"$(dirname "${BASH_SOURCE[0]}")/build-cxx.sh" > /dev/null
 cmake -S "$HRX_SRC" -B "$HRX_BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLOOM_IMPORT_CXX=ON -DLOOM_CXX_HOST_CODEGEN=ON -DLIBHRX_BUILD=ON \
   -DIREE_HAL_DRIVER_AMD_GPU=ON -DIREE_HAL_DRIVER_AMDGPU=OFF -DIREE_HAL_DRIVER_AMD_XDNA=OFF \
