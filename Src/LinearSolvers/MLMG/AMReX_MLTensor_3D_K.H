@@ -2007,10 +2007,18 @@ void mltensor_cross_terms_fx (Box const& box, Array4<T> const& fx,
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                T dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                T dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-                T dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
-                T dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                T dudy, dvdy, dudz, dwdz;
+                if (i == dlo.x || i == dhi.x+1) { // on the domain boundary
+                    dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                    dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                    dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                    dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                } else {
+                    dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+                    dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+                    dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
+                    dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
+                }
                 if (mapfac) {
                     const T rxy = mapfac(i,j,k,0)/mapfac(i,j,k,1);
                     const T rxz = mapfac(i,j,k,0)/mapfac(i,j,k,2);
@@ -2052,10 +2060,18 @@ void mltensor_cross_terms_fy (Box const& box, Array4<T> const& fy,
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                T dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                T dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-                T dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
-                T dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                T dudx, dvdx, dvdz, dwdz;
+                if (j == dlo.y || j == dhi.y+1) { // on the domain boundary
+                    dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                    dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                    dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                    dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                } else {
+                    dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+                    dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+                    dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
+                    dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
+                }
                 if (mapfac) {
                     const T ryx = mapfac(i,j,k,1)/mapfac(i,j,k,0);
                     const T ryz = mapfac(i,j,k,1)/mapfac(i,j,k,2);
@@ -2097,10 +2113,18 @@ void mltensor_cross_terms_fz (Box const& box, Array4<T> const& fz,
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                T dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                T dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
-                T dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
-                T dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                T dudx, dwdx, dvdy, dwdy;
+                if (k == dlo.z || k == dhi.z+1) { // on the domain boundary
+                    dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                    dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                    dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                    dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                } else {
+                    dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
+                    dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
+                    dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
+                    dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
+                }
                 if (mapfac) {
                     const T rzx = mapfac(i,j,k,2)/mapfac(i,j,k,0);
                     const T rzy = mapfac(i,j,k,2)/mapfac(i,j,k,1);
