@@ -728,12 +728,10 @@ Embedded Boundary
    This controls the behavior of the embedded boundary outside the
    domain. If this is true, the embedded boundary outside the domain is
    extended perpendicularly from the domain face. Otherwise, it's generated
-   with the user provided implicit function. Note that this parameter can be
+   with the user provided implicit function or STL mesh. Note that this parameter can be
    overridden by the user when calling :cpp:`amrex::EB2::Build` with the
-   optional parameter ``bool extend_domain_face``. Note also that this
-   parameter has no effect for STL geometries, because an STL file is
-   expected to describe a water-tight object that already defines the
-   embedded boundary outside the domain.
+   optional parameter ``bool extend_domain_face``. The parameter applies to
+   geometries built from an implicit function and from an STL file alike.
 
 .. py:data:: eb2.num_coarsen_opt
    :type: int

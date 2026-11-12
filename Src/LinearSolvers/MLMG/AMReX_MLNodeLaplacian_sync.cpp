@@ -12,10 +12,11 @@
 
 namespace amrex {
 
+template <typename MF>
 void
-MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a_phi,
-                                         const MultiFab& vold, const MultiFab* rhcc,
-                                         const BoxArray& fine_grids, const IntVect& ref_ratio)
+MLNodeLaplacianT<MF>::compSyncResidualCoarse (MF& sync_resid, const MF& a_phi,
+                                              const MF& vold, const MF* rhcc,
+                                              const BoxArray& fine_grids, const IntVect& ref_ratio)
 {
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
@@ -25,14 +26,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     sync_resid.setVal(0.0);
 
-    const Geometry& geom = m_geom[0][0];
-    const DistributionMapping& dmap = m_dmap[0][0];
-    const BoxArray& ccba = m_grids[0][0];
+    const Geometry& geom = this->m_geom[0][0];
+    const DistributionMapping& dmap = this->m_dmap[0][0];
+    const BoxArray& ccba = this->m_grids[0][0];
     const BoxArray& ndba = amrex::convert(ccba, IntVect::TheNodeVector());
     const BoxArray& ccfba = amrex::convert(fine_grids, IntVect::TheZeroVector());
 
-    const auto lobc = LoBC();
-    const auto hibc = HiBC();
+    const auto lobc = this->LoBC();
+    const auto hibc = this->HiBC();
 
     // cell-center, 1: coarse; 0: covered by fine
     const int owner = 1;
@@ -50,7 +51,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
     }
 
-    MultiFab phi(ndba, dmap, 1, 1);
+    MF phi(ndba, dmap, 1, 1);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -58,8 +59,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     {
         const Box& bx = mfi.tilebox();
         const Box& gbx = mfi.growntilebox();
-        Array4<Real> const& fab = phi.array(mfi);
-        Array4<Real const> const& a_fab = a_phi.const_array(mfi);
+        Array4<RT> const& fab = phi.array(mfi);
+        Array4<RT const> const& a_fab = a_phi.const_array(mfi);
         Array4<int const> const& msk = crse_cc_mask.const_array(mfi);
         AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
         {
@@ -74,7 +75,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     const auto& nddom = amrex::surroundingNodes(ccdom);
 
-    const auto dxinv = geom.InvCellSizeArray();
+    const auto dxinv = this->toRT(geom.InvCellSizeArray());
 
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
@@ -86,15 +87,15 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         AMREX_D_TERM(, && (m_sigma[0][0][1] != nullptr),
                      && (m_sigma[0][0][2] != nullptr));
     AMREX_D_TERM(,
-                 const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
-                 const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
-    const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
+                 const MF* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
+                 const MF* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
+    const iMultiFab& dmsk = *this->m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
-    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = ebFactory(0);
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* intg = m_integral[0].get();
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    const MF* intg = m_integral[0].get();
+    const MF* vfrac = ebVolFrac(factory);
 #endif
 
     bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
@@ -105,14 +106,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox rhs, u;
+        FAB rhs, u;
         // Per-axis sigma scratch for the anisotropic path.
-        FArrayBox sig_y_local;
+        FAB sig_y_local;
 #if (AMREX_SPACEDIM == 3)
-        FArrayBox sig_z_local;
+        FAB sig_z_local;
 #endif
 #ifdef AMREX_USE_EB
-        FArrayBox sten, cn;
+        FAB sten, cn;
 #endif
         for (MFIter mfi(sync_resid,mfi_info); mfi.isValid(); ++mfi)
         {
@@ -147,18 +148,18 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     const Box& ccvbx = amrex::enclosedCells(mfi.validbox());
 
                     u.resize(ccbxg1, AMREX_SPACEDIM, The_Async_Arena());
-                    Array4<Real> const& uarr = u.array();
+                    Array4<RT> const& uarr = u.array();
 
                     Box b = ccbxg1 & ccvbx;
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        if (m_lobc[0][idim] == LinOpBCType::inflow)
+                        if (this->m_lobc[0][idim] == LinOpBCType::inflow)
                         {
                             if (b.smallEnd(idim) == ccdom.smallEnd(idim)) {
                                 b.growLo(idim, 1);
                             }
                         }
-                        if (m_hibc[0][idim] == LinOpBCType::inflow)
+                        if (this->m_hibc[0][idim] == LinOpBCType::inflow)
                         {
                             if (b.bigEnd(idim) == ccdom.bigEnd(idim)) {
                                 b.growHi(idim, 1);
@@ -166,7 +167,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         }
                     }
 
-                    Array4<Real const> const& voarr = vold.const_array(mfi);
+                    Array4<RT const> const& voarr = vold.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                     {
                         if (b.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)){
@@ -181,14 +182,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     });
 
                     rhs.resize(bx, 1, The_Async_Arena());
-                    Array4<Real> const& rhsarr = rhs.array();
+                    Array4<RT> const& rhsarr = rhs.array();
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
 #ifdef AMREX_USE_EB
                     if (typ == FabType::singlevalued)
                     {
-                        Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                        Array4<Real const> const& intgarr = intg->const_array(mfi);
+                        Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                        Array4<RT const> const& intgarr = intg->const_array(mfi);
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
                             mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,dmskarr,dxinv,nddom,lobc,hibc);
@@ -212,8 +213,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
                     if (rhcc)
                     {
-                        Array4<Real> rhccarr = uarr;
-                        Array4<Real const> const& rhccarr_orig = rhcc->const_array(mfi);
+                        Array4<RT> rhccarr = uarr;
+                        Array4<RT const> const& rhccarr_orig = rhcc->const_array(mfi);
                         const Box& b2 = ccbxg1 & ccvbx;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
@@ -227,11 +228,11 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #ifdef AMREX_USE_EB
                         if (typ == FabType::singlevalued)
                         {
-                            Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                            Array4<Real const> const& intgarr = intg->const_array(mfi);
+                            Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                            Array4<RT const> const& intgarr = intg->const_array(mfi);
                             AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                             {
-                                Real rhs2 = mlndlap_rhcc_eb(i,j,k,rhccarr,vfracarr,intgarr,dmskarr);
+                                RT rhs2 = mlndlap_rhcc_eb<RT>(i,j,k,rhccarr,vfracarr,intgarr,dmskarr);
                                 rhsarr(i,j,k) += rhs2;
                             });
                         }
@@ -240,18 +241,18 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         {
                             AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                             {
-                                Real rhs2 = mlndlap_rhcc(i,j,k,rhccarr,dmskarr);
+                                RT rhs2 = mlndlap_rhcc<RT>(i,j,k,rhccarr,dmskarr);
                                 rhsarr(i,j,k) += rhs2;
                             });
                         }
                     }
 
-                    Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
-                    Array4<Real const> const& phiarr = phi.const_array(mfi);
+                    Array4<RT> const& sync_resid_a = sync_resid.array(mfi);
+                    Array4<RT const> const& phiarr = phi.const_array(mfi);
 #ifdef AMREX_USE_EB
                     if (typ == FabType::singlevalued)
                     {
-                        Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+                        Array4<RT const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
 
                         Box stbx = bx;
                         AMREX_D_TERM(stbx.growLo(0,1);, stbx.growLo(1,1);, stbx.growLo(2,1));
@@ -259,16 +260,16 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
                         constexpr int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
                         sten.resize(stbx,ncomp_s, The_Async_Arena());
-                        Array4<Real> const& stenarr = sten.array();
+                        Array4<RT> const& stenarr = sten.array();
 
                         constexpr int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                         cn.resize(sgbx,ncomp_c+1, The_Async_Arena());
-                        Array4<Real> const& cnarr = cn.array();
-                        Array4<Real> const& sgarr = cn.array(ncomp_c);
+                        Array4<RT> const& cnarr = cn.array();
+                        Array4<RT> const& sgarr = cn.array(ncomp_c);
 
                         Array4<EBCellFlag const> const& flagarr = flags->const_array(mfi);
-                        Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                        Array4<Real const> const& intgarr = intg->const_array(mfi);
+                        Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                        Array4<RT const> const& intgarr = intg->const_array(mfi);
 
                         const Box& ibx = sgbx & amrex::enclosedCells(mfi.validbox());
                         AMREX_HOST_DEVICE_FOR_3D(sgbx, i, j, k,
@@ -299,7 +300,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     else
 #endif
                     {
-                        Array4<Real> sigmaarr = uarr;
+                        Array4<RT> sigmaarr = uarr;
                         const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
 
                         // Per-axis sigma scratch when mapped.
@@ -309,16 +310,16 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          sig_z_local.resize(ccbxg1, 1, The_Async_Arena());)
                         }
                         AMREX_D_TERM(,
-                                     Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};,
-                                     Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};)
+                                     Array4<RT> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<RT>{};,
+                                     Array4<RT> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<RT>{};)
 
                         if (sigma_orig) {
-                            Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+                            Array4<RT const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
                             if (aniso_sigma) {
                                 AMREX_D_TERM(,
-                                             Array4<Real const> syarr_orig
+                                             Array4<RT const> syarr_orig
                                                  = sigma_orig_y->const_array(mfi);,
-                                             Array4<Real const> szarr_orig
+                                             Array4<RT const> szarr_orig
                                                  = sigma_orig_z->const_array(mfi);)
                                 AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                                 {
@@ -344,7 +345,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                             }
                         } else {
                             // Const sigma: anisotropic n/a here.
-                            Real const_sigma = m_const_sigma;
+                            RT const_sigma = m_const_sigma;
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
                                 if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
@@ -356,12 +357,12 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         }
 
                         if (aniso_sigma) {
-                            Array4<Real const> sxarr_c = sigmaarr;
+                            Array4<RT const> sxarr_c = sigmaarr;
 #if (AMREX_SPACEDIM >= 2)
-                            Array4<Real const> syarr_c = syarr_w;
+                            Array4<RT const> syarr_c = syarr_w;
 #endif
 #if (AMREX_SPACEDIM == 3)
-                            Array4<Real const> szarr_c = szarr_w;
+                            Array4<RT const> szarr_c = szarr_w;
 #endif
 #if (AMREX_SPACEDIM == 1)
                             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
@@ -409,9 +410,10 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     }
 }
 
+template <typename MF>
 void
-MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
-                                       const MultiFab* rhcc)
+MLNodeLaplacianT<MF>::compSyncResidualFine (MF& sync_resid, const MF& phi, const MF& vold,
+                                            const MF* rhcc)
 {
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
@@ -425,24 +427,24 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
         AMREX_D_TERM(, && (m_sigma[0][0][1] != nullptr),
                      && (m_sigma[0][0][2] != nullptr));
     AMREX_D_TERM(,
-                 const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
-                 const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
-    const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
+                 const MF* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
+                 const MF* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
+    const iMultiFab& dmsk = *this->m_dirichlet_mask[0][0];
 
-    const auto lobc = LoBC();
-    const auto hibc = HiBC();
+    const auto lobc = this->LoBC();
+    const auto hibc = this->HiBC();
 
 #ifdef AMREX_USE_EB
-    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = ebFactory(0);
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* intg = m_integral[0].get();
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    const MF* intg = m_integral[0].get();
+    const MF* vfrac = ebVolFrac(factory);
 #endif
 
-    const Geometry& geom = m_geom[0][0];
+    const Geometry& geom = this->m_geom[0][0];
     const Box& ccdom = geom.Domain();
     const Box& nddom = amrex::surroundingNodes(ccdom);
-    const auto dxinv = geom.InvCellSizeArray();
+    const auto dxinv = this->toRT(geom.InvCellSizeArray());
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -453,15 +455,15 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox rhs, u;
+        FAB rhs, u;
         IArrayBox tmpmask;
         // Per-axis sigma scratch for the anisotropic path.
-        FArrayBox sig_y_local;
+        FAB sig_y_local;
 #if (AMREX_SPACEDIM == 3)
-        FArrayBox sig_z_local;
+        FAB sig_z_local;
 #endif
 #ifdef AMREX_USE_EB
-        FArrayBox sten, cn;
+        FAB sten, cn;
 #endif
         for (MFIter mfi(sync_resid,mfi_info); mfi.isValid(); ++mfi)
         {
@@ -482,18 +484,18 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 const Box& ccbxg1 = amrex::enclosedCells(bxg1);
 
                 u.resize(ccbxg1, AMREX_SPACEDIM, The_Async_Arena());
-                Array4<Real> const& uarr = u.array();
+                Array4<RT> const& uarr = u.array();
 
                 Box ovlp = ccvbx & ccbxg1;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    if (m_lobc[0][idim] == LinOpBCType::inflow)
+                    if (this->m_lobc[0][idim] == LinOpBCType::inflow)
                     {
                         if (ovlp.smallEnd(idim) == ccdom.smallEnd(idim)) {
                             ovlp.growLo(idim, 1);
                         }
                     }
-                    if (m_hibc[0][idim] == LinOpBCType::inflow)
+                    if (this->m_hibc[0][idim] == LinOpBCType::inflow)
                     {
                         if (ovlp.bigEnd(idim) == ccdom.bigEnd(idim)) {
                             ovlp.growHi(idim, 1);
@@ -501,7 +503,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     }
                 }
 
-                Array4<Real const> const& voarr = vold.const_array(mfi);
+                Array4<RT const> const& voarr = vold.const_array(mfi);
                 AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                 {
                     if (ovlp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
@@ -520,17 +522,17 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
-                    tmpmaskarr(i,j,k) = 1-dmskarr(i,j,k);
+                    tmpmaskarr(i,j,k) = dmskarr(i,j,k) ? 0 : 1;
                 });
 
                 rhs.resize(bx, 1, The_Async_Arena());
-                Array4<Real> const& rhsarr = rhs.array();
+                Array4<RT> const& rhsarr = rhs.array();
 
 #ifdef AMREX_USE_EB
                 if (typ == FabType::singlevalued)
                 {
-                    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<RT const> const& intgarr = intg->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,tmpmaskarr,dxinv,nddom,lobc,hibc);
@@ -554,8 +556,8 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
                 if (rhcc)
                 {
-                    Array4<Real> rhccarr = uarr;
-                    Array4<Real const> const& rhccarr_orig = rhcc->const_array(mfi);
+                    Array4<RT> rhccarr = uarr;
+                    Array4<RT const> const& rhccarr_orig = rhcc->const_array(mfi);
                     const Box& ovlp3 = ccvbx & ccbxg1;
                     AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                     {
@@ -568,11 +570,11 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #ifdef AMREX_USE_EB
                     if (typ == FabType::singlevalued)
                     {
-                        Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                        Array4<Real const> const& intgarr = intg->const_array(mfi);
+                        Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                        Array4<RT const> const& intgarr = intg->const_array(mfi);
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
-                            Real rhs2 = mlndlap_rhcc_eb(i,j,k,rhccarr,vfracarr,intgarr,tmpmaskarr);
+                            RT rhs2 = mlndlap_rhcc_eb<RT>(i,j,k,rhccarr,vfracarr,intgarr,tmpmaskarr);
                             rhsarr(i,j,k) += rhs2;
                         });
                     }
@@ -581,18 +583,18 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     {
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
-                            Real rhs2 = mlndlap_rhcc(i,j,k,rhccarr,tmpmaskarr);
+                            RT rhs2 = mlndlap_rhcc<RT>(i,j,k,rhccarr,tmpmaskarr);
                             rhsarr(i,j,k) += rhs2;
                         });
                     }
                 }
 
-                Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
-                Array4<Real const> const& phiarr = phi.const_array(mfi);
+                Array4<RT> const& sync_resid_a = sync_resid.array(mfi);
+                Array4<RT const> const& phiarr = phi.const_array(mfi);
 #ifdef AMREX_USE_EB
                 if (typ == FabType::singlevalued)
                 {
-                    Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+                    Array4<RT const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
 
                     Box stbx = bx;
                     AMREX_D_TERM(stbx.growLo(0,1);, stbx.growLo(1,1);, stbx.growLo(2,1));
@@ -600,16 +602,16 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
                     constexpr int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
                     sten.resize(stbx,ncomp_s, The_Async_Arena());
-                    Array4<Real> const& stenarr = sten.array();
+                    Array4<RT> const& stenarr = sten.array();
 
                     constexpr int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     cn.resize(sgbx,ncomp_c+1, The_Async_Arena());
-                    Array4<Real> const& cnarr = cn.array();
-                    Array4<Real> const& sgarr = cn.array(ncomp_c);
+                    Array4<RT> const& cnarr = cn.array();
+                    Array4<RT> const& sgarr = cn.array(ncomp_c);
 
                     Array4<EBCellFlag const> const& flagarr = flags->const_array(mfi);
-                    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    Array4<RT const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<RT const> const& intgarr = intg->const_array(mfi);
 
                     const Box& ibx = sgbx & amrex::enclosedCells(mfi.validbox());
                     AMREX_HOST_DEVICE_FOR_3D(sgbx, i, j, k,
@@ -644,7 +646,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 else
 #endif
                 {
-                    Array4<Real> sigmaarr = uarr;
+                    Array4<RT> sigmaarr = uarr;
                     const Box& ovlp2 = ccvbx & ccbxg1;
 
                     if (aniso_sigma) {
@@ -653,16 +655,16 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                                      sig_z_local.resize(ccbxg1, 1, The_Async_Arena());)
                     }
                     AMREX_D_TERM(,
-                                 Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};,
-                                 Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};)
+                                 Array4<RT> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<RT>{};,
+                                 Array4<RT> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<RT>{};)
 
                     if (sigma_orig) {
-                        Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+                        Array4<RT const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
                         if (aniso_sigma) {
                             AMREX_D_TERM(,
-                                         Array4<Real const> syarr_orig
+                                         Array4<RT const> syarr_orig
                                              = sigma_orig_y->const_array(mfi);,
-                                         Array4<Real const> szarr_orig
+                                         Array4<RT const> szarr_orig
                                              = sigma_orig_z->const_array(mfi);)
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
@@ -687,7 +689,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                             });
                         }
                     } else {
-                        Real const_sigma = m_const_sigma;
+                        RT const_sigma = m_const_sigma;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
                             if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
@@ -699,12 +701,12 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     }
 
                     if (aniso_sigma) {
-                        Array4<Real const> sxarr_c = sigmaarr;
+                        Array4<RT const> sxarr_c = sigmaarr;
 #if (AMREX_SPACEDIM >= 2)
-                        Array4<Real const> syarr_c = syarr_w;
+                        Array4<RT const> syarr_c = syarr_w;
 #endif
 #if (AMREX_SPACEDIM == 3)
-                        Array4<Real const> szarr_c = szarr_w;
+                        Array4<RT const> szarr_c = szarr_w;
 #endif
 #if (AMREX_SPACEDIM == 1)
                         AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
@@ -775,10 +777,11 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     }
 }
 
+template <typename MF>
 void
-MLNodeLaplacian::reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& a_fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
+MLNodeLaplacianT<MF>::reflux (int crse_amrlev,
+                              MF& res, const MF& crse_sol, const MF& crse_rhs,
+                              MF& a_fine_res, MF& fine_sol, const MF& fine_rhs) const
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse_amrlev,res,crse_sol,crse_rhs,a_fine_res,fine_sol,fine_rhs);
@@ -793,23 +796,23 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     BL_PROFILE("MLNodeLaplacian::reflux()");
 
-    const int amrrr = AMRRefRatio(crse_amrlev);
-    AMREX_ALWAYS_ASSERT(amrrr == 2 || m_coarsening_strategy == CoarseningStrategy::Sigma);
+    const int amrrr = this->AMRRefRatio(crse_amrlev);
+    AMREX_ALWAYS_ASSERT(amrrr == 2 || this->m_coarsening_strategy == CoarseningStrategy::Sigma);
 
-    const Geometry& cgeom = m_geom[crse_amrlev  ][0];
-    const Geometry& fgeom = m_geom[crse_amrlev+1][0];
-    const auto cdxinv = cgeom.InvCellSizeArray();
-    const auto fdxinv = fgeom.InvCellSizeArray();
+    const Geometry& cgeom = this->m_geom[crse_amrlev  ][0];
+    const Geometry& fgeom = this->m_geom[crse_amrlev+1][0];
+    const auto cdxinv = this->toRT(cgeom.InvCellSizeArray());
+    const auto fdxinv = this->toRT(fgeom.InvCellSizeArray());
     const Box& c_cc_domain = cgeom.Domain();
     const Box& c_cc_domain_p = cgeom.growPeriodicDomain(1);
     const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
     const Box& f_nd_domain = amrex::surroundingNodes(fgeom.Domain());
 
-    const auto lobc = LoBC();
-    const auto hibc = HiBC();
+    const auto lobc = this->LoBC();
+    const auto hibc = this->HiBC();
 
     bool neumann_doubling = false;
-    if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+    if (this->m_coarsening_strategy == CoarseningStrategy::Sigma) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             neumann_doubling = neumann_doubling || (lobc[idim] == LinOpBCType::inflow  ||
                                                     lobc[idim] == LinOpBCType::Neumann ||
@@ -825,20 +828,20 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const BoxArray& fba = fine_sol.boxArray();
     const DistributionMapping& fdm = fine_sol.DistributionMap();
 
-    const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
+    const iMultiFab& fdmsk = *this->m_dirichlet_mask[crse_amrlev+1][0];
     const auto& stencil    =  m_nosigma_stencil[crse_amrlev+1];
 
-    MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0,
-                                 MFInfo().SetArena(The_Async_Arena()));
+    MF fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0,
+                           MFInfo().SetArena(The_Async_Arena()));
 
-    std::unique_ptr<MultiFab> tmp_fine_res;
+    std::unique_ptr<MF> tmp_fine_res;
     if (!a_fine_res.nGrowVect().allGE(amrrr-1)) {
-        tmp_fine_res = std::make_unique<MultiFab>(a_fine_res.boxArray(),
-                                                  a_fine_res.DistributionMap(), 1, amrrr-1,
-                                                  MFInfo().SetArena(The_Async_Arena()));
-        MultiFab::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
+        tmp_fine_res = std::make_unique<MF>(a_fine_res.boxArray(),
+                                            a_fine_res.DistributionMap(), 1, amrrr-1,
+                                            MFInfo().SetArena(The_Async_Arena()));
+        amrex::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
     }
-    MultiFab& fine_res = (tmp_fine_res) ? *tmp_fine_res :  a_fine_res;
+    MF& fine_res = (tmp_fine_res) ? *tmp_fine_res :  a_fine_res;
 
     fine_res.FillBoundary(fgeom.periodicity());
 
@@ -848,10 +851,10 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     for (MFIter mfi(fine_res_for_coarse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Array4<Real> const& cfab = fine_res_for_coarse.array(mfi);
-        Array4<Real const> const& ffab = fine_res.const_array(mfi);
+        Array4<RT> const& cfab = fine_res_for_coarse.array(mfi);
+        Array4<RT const> const& ffab = fine_res.const_array(mfi);
         Array4<int const> const& mfab = fdmsk.const_array(mfi);
-        if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+        if (this->m_coarsening_strategy == CoarseningStrategy::Sigma) {
             if (amrrr == 2) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
@@ -864,7 +867,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                 });
             }
         } else {
-            Array4<Real const> const& stfab = stencil->const_array(mfi);
+            Array4<RT const> const& stfab = stencil->const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
@@ -873,7 +876,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
 
-    MultiFab fine_contrib(amrex::coarsen(fba, amrrr), fdm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
+    MF fine_contrib(amrex::coarsen(fba, amrrr), fdm, 1, 0, MFInfo().SetArena(The_Async_Arena()));
 
     const auto& fsigma = m_sigma[crse_amrlev+1][0][0];
 
@@ -888,22 +891,22 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         const Box& fvbx = amrex::refine(mfi.validbox(),amrrr);
         const Box& cc_fvbx = amrex::enclosedCells(fvbx);
 
-        Array4<Real> const& farr = fine_contrib.array(mfi);
-        Array4<Real const> const& resarr = fine_res.const_array(mfi);
-        Array4<Real const> const& rhsarr = fine_rhs.const_array(mfi);
-        Array4<Real const> const& solarr = fine_sol.const_array(mfi);
+        Array4<RT> const& farr = fine_contrib.array(mfi);
+        Array4<RT const> const& resarr = fine_res.const_array(mfi);
+        Array4<RT const> const& rhsarr = fine_rhs.const_array(mfi);
+        Array4<RT const> const& solarr = fine_sol.const_array(mfi);
         Array4<int const> const& marr = fdmsk.const_array(mfi);
 
         if (fsigma) {
-            Array4<Real const> const& sigarr = fsigma->const_array(mfi);
+            Array4<RT const> const& sigarr = fsigma->const_array(mfi);
             const bool aniso_sigma = m_use_mapped && (fsigma != nullptr)
                 AMREX_D_TERM(, && (m_sigma[crse_amrlev+1][0][1] != nullptr),
                              && (m_sigma[crse_amrlev+1][0][2] != nullptr));
             AMREX_D_TERM(,
-                         Array4<Real const> syarr = aniso_sigma
-                             ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<Real const>{};,
-                         Array4<Real const> szarr = aniso_sigma
-                             ? m_sigma[crse_amrlev+1][0][2]->const_array(mfi) : Array4<Real const>{};)
+                         Array4<RT const> syarr = aniso_sigma
+                             ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<RT const>{};,
+                         Array4<RT const> szarr = aniso_sigma
+                             ? m_sigma[crse_amrlev+1][0][2]->const_array(mfi) : Array4<RT const>{};)
 #if (AMREX_SPACEDIM == 2)
             if (aniso_sigma) {
                 if (amrrr == 2) {
@@ -962,7 +965,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
             }
 #endif
         } else {
-            Real const_sigma = m_const_sigma;
+            RT const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 2)
             if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
@@ -995,15 +998,15 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         }
     }
 
-    MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0,
-                                  MFInfo().SetArena(The_Async_Arena()));
+    MF fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0,
+                            MFInfo().SetArena(The_Async_Arena()));
     fine_contrib_on_crse.setVal(0.0);
     fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
 
-    const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
-    const auto& nd_mask     = m_nd_fine_mask[crse_amrlev];
-    const auto& cc_mask     = m_cc_fine_mask[crse_amrlev];
-    const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
+    const iMultiFab& cdmsk = *this->m_dirichlet_mask[crse_amrlev][0];
+    const auto& nd_mask     = this->m_nd_fine_mask[crse_amrlev];
+    const auto& cc_mask     = this->m_cc_fine_mask[crse_amrlev];
+    const auto& has_fine_bndry = this->m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = m_sigma[crse_amrlev][0][0];
     const bool aniso_csigma = m_use_mapped && (csigma != nullptr)
@@ -1018,21 +1021,21 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         if ((*has_fine_bndry)[mfi])
         {
             const Box& bx = mfi.tilebox();
-            Array4<Real> const& resarr = res.array(mfi);
-            Array4<Real const> const& csolarr = crse_sol.const_array(mfi);
-            Array4<Real const> const& crhsarr = crse_rhs.const_array(mfi);
+            Array4<RT> const& resarr = res.array(mfi);
+            Array4<RT const> const& csolarr = crse_sol.const_array(mfi);
+            Array4<RT const> const& crhsarr = crse_rhs.const_array(mfi);
             Array4<int const> const& cdmskarr = cdmsk.const_array(mfi);
             Array4<int const> const& ndmskarr = nd_mask->const_array(mfi);
             Array4<int const> const& ccmskarr = cc_mask->const_array(mfi);
-            Array4<Real const> const& fcocarr = fine_contrib_on_crse.const_array(mfi);
+            Array4<RT const> const& fcocarr = fine_contrib_on_crse.const_array(mfi);
 
             if (csigma) {
-                Array4<Real const> const& csigarr = csigma->const_array(mfi);
+                Array4<RT const> const& csigarr = csigma->const_array(mfi);
                 AMREX_D_TERM(,
-                             Array4<Real const> csigyarr = aniso_csigma
-                                 ? m_sigma[crse_amrlev][0][1]->const_array(mfi) : Array4<Real const>{};,
-                             Array4<Real const> csigzarr = aniso_csigma
-                                 ? m_sigma[crse_amrlev][0][2]->const_array(mfi) : Array4<Real const>{};)
+                             Array4<RT const> csigyarr = aniso_csigma
+                                 ? m_sigma[crse_amrlev][0][1]->const_array(mfi) : Array4<RT const>{};,
+                             Array4<RT const> csigzarr = aniso_csigma
+                                 ? m_sigma[crse_amrlev][0][2]->const_array(mfi) : Array4<RT const>{};)
 #if (AMREX_SPACEDIM == 2)
                 if (aniso_csigma) {
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
@@ -1075,7 +1078,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                 }
 #endif
             } else {
-                Real const_sigma = m_const_sigma;
+                RT const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
@@ -1099,9 +1102,28 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     }
 #ifdef AMREX_USE_EB
     // Make sure to zero out the residual on any nodes completely surrounded by covered cells
-    amrex::EB_set_covered(res,0.0);
+    if constexpr (std::is_same_v<MF,MultiFab>) {
+        amrex::EB_set_covered(res,0.0);
+    }
 #endif
 #endif
 }
+
+template void MLNodeLaplacianT<MultiFab>::compSyncResidualCoarse (MultiFab&, const MultiFab&, const MultiFab&,
+                                                                  const MultiFab*, const BoxArray&,
+                                                                  const IntVect&);
+template void MLNodeLaplacianT<MultiFab>::compSyncResidualFine (MultiFab&, const MultiFab&, const MultiFab&,
+                                                                const MultiFab*);
+template void MLNodeLaplacianT<MultiFab>::reflux (int, MultiFab&, const MultiFab&, const MultiFab&,
+                                                  MultiFab&, MultiFab&, const MultiFab&) const;
+#ifdef AMREX_MLMG_HAS_FLOAT
+template void MLNodeLaplacianT<fMultiFab>::compSyncResidualCoarse (fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                                   const fMultiFab*, const BoxArray&,
+                                                                   const IntVect&);
+template void MLNodeLaplacianT<fMultiFab>::compSyncResidualFine (fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                                 const fMultiFab*);
+template void MLNodeLaplacianT<fMultiFab>::reflux (int, fMultiFab&, const fMultiFab&, const fMultiFab&,
+                                                   fMultiFab&, fMultiFab&, const fMultiFab&) const;
+#endif
 
 }

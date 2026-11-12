@@ -502,6 +502,15 @@ will become
     foo.a = 2
     foo.b = 2
 
+When an integer or floating-point parameter is read with :cpp:`get` or
+:cpp:`query` (including the array versions), a value of ``true`` or ``false``
+(in any case) is read as 1 or 0. A value of ``t`` or ``f`` (in any case) is
+also read as 1 or 0, unless it is the name of an existing parameter. In that
+case it refers to the parameter, which is looked up in the same way as a
+variable in a math expression (the name is case-sensitive). For example,
+``temp = T`` is read as 300 if the inputs also have ``T = 300``, and as 1
+otherwise.
+
 Enum Class
 ----------
 
@@ -3253,7 +3262,9 @@ The basic idea behind physical boundary conditions is as follows:
 
    Here, for the CPU build, the AMREX_GPU_DEVICE macro has no effect
    whatsoever, whereas for the GPU build, this marks the operator as a GPU
-   device function.
+   device function. For face-centered and nodal data, the callable object is
+   called for the faces and nodes on the domain boundary as well as those
+   outside the domain.
 
 -  It is the user's responsibility to have a consistent definition of
    what the ghost cells represent. A common option used in AMReX codes is to

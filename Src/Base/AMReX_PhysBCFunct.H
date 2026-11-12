@@ -57,7 +57,8 @@ protected:
 /**
 * In this gpu version, F is provided by the user.  It needs to have a
 * __device__ operator() that can work on a cell/node for boundaries not
-* handled by amrex::fab_filcc/fab_filnd.
+* handled by amrex::fab_filcc/fab_filnd.  For face and nodal data, it is
+* also called on the faces and nodes on the domain boundary.
 */
 template <class F>
 class GpuBndryFuncFab
@@ -290,12 +291,12 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
     if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
-    const auto geomdata = geom.data();
 
     AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
 
-    const auto f_user = m_user_f;
+    // Like CpuBndryFuncFab, fill the ghost nodes first and then call the
+    // user function.
 
     // xlo
     if (!geom.isPeriodic(0) && bx.smallEnd(0) < domain.smallEnd(0)) {
@@ -305,10 +306,10 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(dxlo,j,k,n);
+                if (bcr_p[n-dcomp].lo(0) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(dxlo,j,k,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 
@@ -320,10 +321,10 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(dxhi,j,k,n);
+                if (bcr_p[n-dcomp].hi(0) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(dxhi,j,k,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 
@@ -336,10 +337,10 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(i,dylo,k,n);
+                if (bcr_p[n-dcomp].lo(1) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(i,dylo,k,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 
@@ -351,10 +352,10 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(i,dyhi,k,n);
+                if (bcr_p[n-dcomp].hi(1) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(i,dyhi,k,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 #endif
@@ -368,10 +369,10 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(i,j,dzlo,n);
+                if (bcr_p[n-dcomp].lo(2) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(i,j,dzlo,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 
@@ -383,13 +384,42 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         amrex::ParallelFor(bndry, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             for (int n = dcomp; n < dcomp+numcomp; ++n) {
-                fab(i,j,k,n) = fab(i,j,dzhi,n);
+                if (bcr_p[n-dcomp].hi(2) != BCType::int_dir) {
+                    fab(i,j,k,n) = fab(i,j,dzhi,n);
+                }
             }
-            f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
         });
     }
 #endif
+
+    // The user function is called once on every node on or outside the
+    // domain boundary.
+    if constexpr (!std::is_same_v<F,FabFillNoOp>) {
+        const auto geomdata = geom.data();
+        const auto f_user = m_user_f;
+        Box rem = bx; // nodes not visited yet
+        for (int idim = 0; idim < AMREX_SPACEDIM && rem.ok(); ++idim) {
+            if (geom.isPeriodic(idim)) { continue; }
+            Box blo = rem;
+            blo.setBig(idim, std::min(rem.bigEnd(idim), domain.smallEnd(idim)));
+            rem.setSmall(idim, std::max(rem.smallEnd(idim), domain.smallEnd(idim)+1));
+            Box bhi = rem;
+            bhi.setSmall(idim, std::max(rem.smallEnd(idim), domain.bigEnd(idim)));
+            rem.setBig(idim, std::min(rem.bigEnd(idim), domain.bigEnd(idim)-1));
+            for (Box const& b : {blo, bhi}) {
+                if (b.ok()) {
+                    amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
+                        f_user(IntVect(AMREX_D_DECL(i,j,k)), fab, dcomp, numcomp, geomdata, time,
+                               bcr_p, 0, orig_comp);
+                    });
+                }
+            }
+        }
+    } else {
+        amrex::ignore_unused(time, orig_comp);
+    }
 }
 
 template <class F>

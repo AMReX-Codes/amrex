@@ -22,7 +22,8 @@
 
 namespace amrex {
 
-class MLNodeLinOp;
+template <typename MF> class MLNodeLinOpT;
+using MLNodeLinOp = MLNodeLinOpT<MultiFab>;
 
 /**
  * \brief IJ-based nodal Laplacian that mirrors MLNodeLinOp's discretization.

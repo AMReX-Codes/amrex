@@ -9,168 +9,163 @@ namespace {
     constexpr int kappa_num_mglevs = 1;
 }
 
-MLTensorOp::MLTensorOp ()
+template <typename MF>
+MLTensorOpT<MF>::MLTensorOpT ()
 {
-    MLABecLaplacian::setScalars(1.0,1.0);
+    MLABecLaplacianT<MF>::setScalars(1.0,1.0);
 }
 
-MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
+template <typename MF>
+MLTensorOpT<MF>::MLTensorOpT (const Vector<Geometry>& a_geom,
                         const Vector<BoxArray>& a_grids,
                         const Vector<DistributionMapping>& a_dmap,
                         const LPInfo& a_info,
-                        const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                        const Vector<FabFactory<FAB> const*>& a_factory)
 {
-    MLABecLaplacian::setScalars(1.0,1.0);
+    MLABecLaplacianT<MF>::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
-MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
+template <typename MF>
+MLTensorOpT<MF>::MLTensorOpT (const Vector<Geometry>& a_geom,
                         const Vector<BoxArray>& a_grids,
                         const Vector<DistributionMapping>& a_dmap,
                         const Vector<iMultiFab const*>& a_overset_mask,
                         const LPInfo& a_info,
-                        const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                        const Vector<FabFactory<FAB> const*>& a_factory)
 {
-    MLABecLaplacian::setScalars(1.0,1.0);
+    MLABecLaplacianT<MF>::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 }
 
+template <typename MF>
 void
-MLTensorOp::define (const Vector<Geometry>& a_geom,
+MLTensorOpT<MF>::define (const Vector<Geometry>& a_geom,
                     const Vector<BoxArray>& a_grids,
                     const Vector<DistributionMapping>& a_dmap,
                     const LPInfo& a_info,
-                    const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                    const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLTensorOp::define()");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory,
+    MLABecLaplacianT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory,
                             AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_mapfac.clear();
     m_use_mapped = false;
-    m_kappa.resize(NAMRLevels());
-    for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
+    m_kappa.resize(this->NAMRLevels());
+    for (int amrlev = 0; amrlev < this->NAMRLevels(); ++amrlev) {
+        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,this->NMGLevels(amrlev)));
         for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_kappa[amrlev][mglev][idim].define
-                    (amrex::convert(m_grids[amrlev][mglev],
+                    (amrex::convert(this->m_grids[amrlev][mglev],
                                     IntVect::TheDimensionVector(idim)),
-                     m_dmap[amrlev][mglev], 1, 0,
-                     MFInfo(), *m_factory[amrlev][mglev]);
+                     this->m_dmap[amrlev][mglev], 1, 0,
+                     MFInfo(), *this->m_factory[amrlev][mglev]);
             }
         }
     }
+
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLTensorOpT<fMultiFab>>(this->spGeom(a_geom), a_grids, a_dmap, sp_info);
+    });
 }
 
+template <typename MF>
 void
-MLTensorOp::define (const Vector<Geometry>& a_geom,
+MLTensorOpT<MF>::define (const Vector<Geometry>& a_geom,
                     const Vector<BoxArray>& a_grids,
                     const Vector<DistributionMapping>& a_dmap,
                     const Vector<iMultiFab const*>& a_overset_mask,
                     const LPInfo& a_info,
-                    const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                    const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLTensorOp::define(oveset)");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info,
+    MLABecLaplacianT<MF>::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info,
                             a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_mapfac.clear();
     m_use_mapped = false;
-    m_kappa.resize(NAMRLevels());
-    for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
+    m_kappa.resize(this->NAMRLevels());
+    for (int amrlev = 0; amrlev < this->NAMRLevels(); ++amrlev) {
+        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,this->NMGLevels(amrlev)));
         for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_kappa[amrlev][mglev][idim].define
-                    (amrex::convert(m_grids[amrlev][mglev],
+                    (amrex::convert(this->m_grids[amrlev][mglev],
                                     IntVect::TheDimensionVector(idim)),
-                     m_dmap[amrlev][mglev], 1, 0,
-                     MFInfo(), *m_factory[amrlev][mglev]);
+                     this->m_dmap[amrlev][mglev], 1, 0,
+                     MFInfo(), *this->m_factory[amrlev][mglev]);
             }
         }
     }
+
+    this->makeSPLinOp(a_info, [&] (auto const& sp_info) {
+        return std::make_unique<MLTensorOpT<fMultiFab>>(this->spGeom(a_geom), a_grids, a_dmap,
+                                                        a_overset_mask, sp_info);
+    });
 }
 
+template <typename MF>
 void
-MLTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta)
+MLTensorOpT<MF>::setShearViscosity (int amrlev, const Array<MF const*,AMREX_SPACEDIM>& eta)
 {
-    MLABecLaplacian::setBCoeffs(amrlev, eta);
+    MLABecLaplacianT<MF>::setBCoeffs(amrlev, eta);
 }
 
+template <typename MF>
 void
-MLTensorOp::setShearViscosity (int amrlev, Real eta)
+MLTensorOpT<MF>::setShearViscosity (int amrlev, RT eta)
 {
-    MLABecLaplacian::setBCoeffs(amrlev, eta);
+    MLABecLaplacianT<MF>::setBCoeffs(amrlev, eta);
 }
 
-void
-MLTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa)
-{
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        MultiFab::Copy(m_kappa[amrlev][0][idim], *kappa[idim], 0, 0, 1, 0);
-    }
-    m_has_kappa = true;
-    m_needs_update = true;
-}
 
+template <typename MF>
 void
-MLTensorOp::setBulkViscosity (int amrlev, Real kappa)
+MLTensorOpT<MF>::setBulkViscosity (int amrlev, RT kappa)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_kappa[amrlev][0][idim].setVal(kappa);
     }
     m_has_kappa = true;
     m_needs_update = true;
+    this->template spForward<MLTensorOpT>([&] (auto* sp) {
+        sp->setBulkViscosity(amrlev, static_cast<float>(kappa)); });
 }
 
-void
-MLTensorOp::setMappingFactors (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& fac)
-{
-    if (m_mapfac.empty()) { m_mapfac.resize(NAMRLevels()); }
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        AMREX_ALWAYS_ASSERT(fac[idim]->nComp() >= AMREX_SPACEDIM);
-        if (!m_mapfac[amrlev][idim].ok()) {
-            m_mapfac[amrlev][idim].define
-                (amrex::convert(m_grids[amrlev][0], IntVect::TheDimensionVector(idim)),
-                 m_dmap[amrlev][0], AMREX_SPACEDIM, 0, MFInfo(), *m_factory[amrlev][0]);
-        }
-        MultiFab::Copy(m_mapfac[amrlev][idim], *fac[idim], 0, 0, AMREX_SPACEDIM, 0);
-    }
-    m_use_mapped = true;
-    m_needs_update = true;
-}
 
+template <typename MF>
 void
-MLTensorOp::prepareForSolve ()
+MLTensorOpT<MF>::prepareForSolve ()
 {
     if (m_use_mapped) {
         // The factors are set per AMR level; a level without them would
         // silently use the unmapped cross-term kernels.
-        for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
+        for (int amrlev = 0; amrlev < this->NAMRLevels(); ++amrlev) {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasMappingFactors(amrlev),
                 "MLTensorOp: setMappingFactors must be called for every AMR level");
         }
     }
     if (m_has_kappa) {
-        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+        for (int amrlev = this->NAMRLevels()-1; amrlev >= 0; --amrlev) {
             for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
                 amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev][mglev-1]),
                                           GetArrOfPtrs     (m_kappa[amrlev][mglev  ]),
-                                          IntVect(mg_coarsen_ratio), 0);
+                                          IntVect(this->mg_coarsen_ratio), 0);
             }
             if (amrlev > 0) {
                 amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
                                           GetArrOfPtrs     (m_kappa[amrlev-1].front()),
-                                          AMRRefRatioVect(amrlev-1), m_geom[amrlev-1][0]);
+                                          this->AMRRefRatioVect(amrlev-1), this->m_geom[amrlev-1][0]);
             }
         }
     } else {
-        for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
+        for (int amrlev = 0; amrlev < this->NAMRLevels(); ++amrlev) {
             for (auto & mglev : m_kappa[amrlev]) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     mglev[idim].setVal(0.0);
@@ -179,21 +174,21 @@ MLTensorOp::prepareForSolve ()
         }
     }
 
-    for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
+    for (int amrlev = 0; amrlev < this->NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], Real(4./3.),
-                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+            MF::Xpay(this->m_b_coeffs[amrlev][0][idim], RT(4./3.),
+                           m_kappa[amrlev][0][idim], 0, icomp, 1, IntVect(0));
         }
     }
 
-    MLABecLaplacian::prepareForSolve();
+    MLABecLaplacianT<MF>::prepareForSolve();
 
-    for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+    for (int amrlev = this->NAMRLevels()-1; amrlev >= 0; --amrlev) {
         for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
-            if (m_has_kappa && m_overset_mask[amrlev][mglev]) {
-                const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
-                const Real osfac = Real(2.0)*fac/(fac+Real(1.0));
+            if (m_has_kappa && this->m_overset_mask[amrlev][mglev]) {
+                const RT fac = static_cast<RT>(1 << mglev); // 2**mglev
+                const RT osfac = RT(2.0)*fac/(fac+RT(1.0));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -202,10 +197,10 @@ MLTensorOp::prepareForSolve ()
                     AMREX_D_TERM(Box const& xbx = mfi.nodaltilebox(0);,
                                  Box const& ybx = mfi.nodaltilebox(1);,
                                  Box const& zbx = mfi.nodaltilebox(2));
-                    AMREX_D_TERM(Array4<Real> const& bx = m_kappa[amrlev][mglev][0].array(mfi);,
-                                 Array4<Real> const& by = m_kappa[amrlev][mglev][1].array(mfi);,
-                                 Array4<Real> const& bz = m_kappa[amrlev][mglev][2].array(mfi));
-                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_D_TERM(Array4<RT> const& bx = m_kappa[amrlev][mglev][0].array(mfi);,
+                                 Array4<RT> const& by = m_kappa[amrlev][mglev][1].array(mfi);,
+                                 Array4<RT> const& bz = m_kappa[amrlev][mglev][2].array(mfi));
+                    Array4<int const> const& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                         (xbx, t_xbx,
                          {
@@ -227,64 +222,66 @@ MLTensorOp::prepareForSolve ()
     m_needs_update = false;
 }
 
+template <typename MF>
 void
-MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                   StateMode s_mode, const MLMGBndry* bndry) const
+MLTensorOpT<MF>::apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
+                   StateMode s_mode, const MLMGBndryT<MF>* bndry) const
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(amrlev,mglev,out,in,bc_mode,s_mode,bndry);
 #else
     BL_PROFILE("MLTensorOp::apply()");
 
-    MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
+    MLABecLaplacianT<MF>::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
     if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
-    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+    const auto& bcondloc = *this->m_bcondloc[amrlev][mglev];
 
-    Array4<Real const> foo;
+    Array4<RT const> foo;
 
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dxinv_r = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    const GpuArray<RT,AMREX_SPACEDIM> dxinv{AMREX_D_DECL(RT(dxinv_r[0]),RT(dxinv_r[1]),RT(dxinv_r[2]))};
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
-    Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
-    Real bscalar = m_b_scalar;
+    Array<MF,AMREX_SPACEDIM> const& etamf = this->m_b_coeffs[amrlev][mglev];
+    Array<MF,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
+    RT bscalar = this->m_b_scalar;
     const bool mapped = hasMappingFactors(amrlev) && (mglev == 0);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
+        FAB fluxfab_tmp[AMREX_SPACEDIM];
         for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            Array4<Real> const axfab = out.array(mfi);
-            Array4<Real const> const vfab = in.const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
-                         Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
-                         Array4<Real const> const etazfab = etamf[2].const_array(mfi););
-            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
-                         Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
-                         Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
+            Array4<RT> const axfab = out.array(mfi);
+            Array4<RT const> const vfab = in.const_array(mfi);
+            AMREX_D_TERM(Array4<RT const> const etaxfab = etamf[0].const_array(mfi);,
+                         Array4<RT const> const etayfab = etamf[1].const_array(mfi);,
+                         Array4<RT const> const etazfab = etamf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<RT const> const kapxfab = kapmf[0].const_array(mfi);,
+                         Array4<RT const> const kapyfab = kapmf[1].const_array(mfi);,
+                         Array4<RT const> const kapzfab = kapmf[2].const_array(mfi););
             // Mesh-mapping face factors (empty Array4s when not mapped)
-            AMREX_D_TERM(Array4<Real const> const mapxfab = mapped ? m_mapfac[amrlev][0].const_array(mfi) : foo;,
-                         Array4<Real const> const mapyfab = mapped ? m_mapfac[amrlev][1].const_array(mfi) : foo;,
-                         Array4<Real const> const mapzfab = mapped ? m_mapfac[amrlev][2].const_array(mfi) : foo;);
+            AMREX_D_TERM(Array4<RT const> const mapxfab = mapped ? m_mapfac[amrlev][0].const_array(mfi) : foo;,
+                         Array4<RT const> const mapyfab = mapped ? m_mapfac[amrlev][1].const_array(mfi) : foo;,
+                         Array4<RT const> const mapzfab = mapped ? m_mapfac[amrlev][2].const_array(mfi) : foo;);
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
             AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM, The_Async_Arena());,
                          fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM, The_Async_Arena());,
                          fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM, The_Async_Arena()););
-            AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
-                         Array4<Real> const fyfab = fluxfab_tmp[1].array();,
-                         Array4<Real> const fzfab = fluxfab_tmp[2].array(););
+            AMREX_D_TERM(Array4<RT> const fxfab = fluxfab_tmp[0].array();,
+                         Array4<RT> const fyfab = fluxfab_tmp[1].array();,
+                         Array4<RT> const fzfab = fluxfab_tmp[2].array(););
 
             if (domain.strictly_contains(bx)) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
@@ -346,8 +343,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                 );
             }
 
-            if (m_overset_mask[amrlev][mglev]) {
-                const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
+            if (this->m_overset_mask[amrlev][mglev]) {
+                const auto& osm = this->m_overset_mask[amrlev][mglev]->array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
                     mltensor_cross_terms_os(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab),
@@ -365,23 +362,25 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 #endif
 }
 
+template <typename MF>
 void
-MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(readability-convert-member-functions-to-static)
-                           BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
+MLTensorOpT<MF>::applyBCTensor (int amrlev, int mglev, MF& vel, // NOLINT(readability-convert-member-functions-to-static)
+                           BCMode bc_mode, StateMode, const MLMGBndryT<MF>* bndry) const
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(amrlev,mglev,vel,bc_mode,bndry);
 #else
 
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
-    const int imaxorder = maxorder;
-    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
-    const auto& maskvals = m_maskvals[amrlev][mglev];
+    const int imaxorder = this->maxorder;
+    const auto& bcondloc = *this->m_bcondloc[amrlev][mglev];
+    const auto& maskvals = this->m_maskvals[amrlev][mglev];
 
-    Array4<Real const> foo;
+    Array4<RT const> foo;
 
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dxinv_r = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    const GpuArray<RT,AMREX_SPACEDIM> dxinv{AMREX_D_DECL(RT(dxinv_r[0]),RT(dxinv_r[1]),RT(dxinv_r[2]))};
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
@@ -400,7 +399,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
         const auto & bdcv = bcondloc.bndryConds(mfi);
 
         Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
-        Array2D<Real,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bcl;
+        Array2D<RT,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bcl;
         for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
             for (OrientationIter face; face; ++face) {
                 Orientation ori = face();
@@ -478,5 +477,239 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
 
 #endif
 }
+
+
+
+template <typename MF>
+void
+MLTensorOpT<MF>::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
+                       MF& sol, Location loc) const
+{
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev, fluxes, sol, loc);
+#else
+    BL_PROFILE("MLTensorOp::compFlux()");
+
+    const int mglev = 0;
+    const int ncomp = getNComp();
+    MLABecLaplacianT<MF>::compFlux(amrlev, fluxes, sol, loc);
+
+    MLMGBndryT<MF> const* bndry = this->m_bndry_sol[amrlev].get();
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
+
+    const auto& bcondloc = *this->m_bcondloc[amrlev][mglev];
+
+    const auto dxinv_r = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    const GpuArray<RT,AMREX_SPACEDIM> dxinv{AMREX_D_DECL(RT(dxinv_r[0]),RT(dxinv_r[1]),RT(dxinv_r[2]))};
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+
+    Array<MF,AMREX_SPACEDIM> const& etamf = this->m_b_coeffs[amrlev][mglev];
+    Array<MF,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
+    RT bscalar = this->m_b_scalar;
+    const bool mapped = hasMappingFactors(amrlev);
+    Array4<RT const> foo;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        Array<FAB,AMREX_SPACEDIM> fluxfab_tmp;
+
+        for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            Array4<RT const> const vfab = sol.const_array(mfi);
+            AMREX_D_TERM(Array4<RT const> const etaxfab = etamf[0].const_array(mfi);,
+                         Array4<RT const> const etayfab = etamf[1].const_array(mfi);,
+                         Array4<RT const> const etazfab = etamf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<RT const> const kapxfab = kapmf[0].const_array(mfi);,
+                         Array4<RT const> const kapyfab = kapmf[1].const_array(mfi);,
+                         Array4<RT const> const kapzfab = kapmf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<RT const> const mapxfab = mapped ? m_mapfac[amrlev][0].const_array(mfi) : foo;,
+                         Array4<RT const> const mapyfab = mapped ? m_mapfac[amrlev][1].const_array(mfi) : foo;,
+                         Array4<RT const> const mapzfab = mapped ? m_mapfac[amrlev][2].const_array(mfi) : foo;);
+            AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
+                         Box const ybx = mfi.nodaltilebox(1);,
+                         Box const zbx = mfi.nodaltilebox(2););
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM, The_Async_Arena()););
+            AMREX_D_TERM(Array4<RT> const fxfab = fluxfab_tmp[0].array();,
+                         Array4<RT> const fyfab = fluxfab_tmp[1].array();,
+                         Array4<RT> const fzfab = fluxfab_tmp[2].array(););
+
+            if (domain.strictly_contains(mfi.tilebox())) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                ( xbx, txbx,
+                  {
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,mapxfab);
+                  }
+                , ybx, tybx,
+                  {
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,mapyfab);
+                  }
+                , zbx, tzbx,
+                  {
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,mapzfab);
+                  }
+                );
+            } else {
+                const auto & bdcv = bcondloc.bndryConds(mfi);
+
+                Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    for (OrientationIter face; face; ++face) {
+                        Orientation ori = face();
+                        bct(ori,icomp) = bdcv[icomp][ori];
+                    }
+                }
+
+                const auto& bvxlo = (*bndry)[Orientation(0,Orientation::low )].array(mfi);
+                const auto& bvylo = (*bndry)[Orientation(1,Orientation::low )].array(mfi);
+                const auto& bvxhi = (*bndry)[Orientation(0,Orientation::high)].array(mfi);
+                const auto& bvyhi = (*bndry)[Orientation(1,Orientation::high)].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+                const auto& bvzlo = (*bndry)[Orientation(2,Orientation::low )].array(mfi);
+                const auto& bvzhi = (*bndry)[Orientation(2,Orientation::high)].array(mfi);
+#endif
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                ( xbx, txbx,
+                  {
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,
+                                              bvxlo, bvxhi, bct, dlo, dhi, mapxfab);
+                  }
+                , ybx, tybx,
+                  {
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,
+                                              bvylo, bvyhi, bct, dlo, dhi, mapyfab);
+                  }
+                , zbx, tzbx,
+                  {
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,
+                                              bvzlo, bvzhi, bct, dlo, dhi, mapzfab);
+                  }
+                );
+            }
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                Array4<RT      > dst = fluxes[idim]->array(mfi);
+                Array4<RT const> src = fluxfab_tmp[idim].const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
+                {
+                    dst(i,j,k,n) += bscalar*src(i,j,k,n);
+                });
+            }
+
+        }
+    }
+#endif
+}
+
+
+
+template <typename MF>
+void
+MLTensorOpT<MF>::compVelGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes, // NOLINT(readability-convert-member-functions-to-static)
+                       MF& sol, Location /*loc*/) const
+{
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,fluxes,sol);
+#else
+    BL_PROFILE("MLTensorOp::compVelGrad()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!isMapped(),
+        "MLTensorOp::compVelGrad is not mapping-aware; apply the factors in the caller");
+
+    const int mglev = 0;
+
+    MLMGBndryT<MF> const* bndry = this->m_bndry_sol[amrlev].get();
+    this->applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, bndry);
+
+    const auto& bcondloc = *this->m_bcondloc[amrlev][mglev];
+
+    const auto dxinv_r = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    const GpuArray<RT,AMREX_SPACEDIM> dxinv{AMREX_D_DECL(RT(dxinv_r[0]),RT(dxinv_r[1]),RT(dxinv_r[2]))};
+    const Box& domain = this->m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Array4<RT const> const vfab = sol.const_array(mfi);
+        AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
+                     Box const ybx = mfi.nodaltilebox(1);,
+                     Box const zbx = mfi.nodaltilebox(2);)
+        AMREX_D_TERM(Array4<RT> const fxfab = fluxes[0]->array(mfi);,
+                     Array4<RT> const fyfab = fluxes[1]->array(mfi);,
+                     Array4<RT> const fzfab = fluxes[2]->array(mfi);)
+
+// The derivatives are put in the array with the following order:
+// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8
+// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy
+// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz
+
+        if (domain.strictly_contains(mfi.tilebox())) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+            ( xbx, txbx,
+              {
+                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
+              }
+            , ybx, tybx,
+              {
+                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
+              }
+            , zbx, tzbx,
+              {
+                  mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
+              }
+            );
+        } else {
+            const auto & bdcv = bcondloc.bndryConds(mfi);
+
+            Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
+            for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                for (OrientationIter face; face; ++face) {
+                    Orientation ori = face();
+                    bct(ori,icomp) = bdcv[icomp][ori];
+                }
+            }
+
+            const auto& bvxlo = (*bndry)[Orientation(0,Orientation::low )].array(mfi);
+            const auto& bvylo = (*bndry)[Orientation(1,Orientation::low )].array(mfi);
+            const auto& bvxhi = (*bndry)[Orientation(0,Orientation::high)].array(mfi);
+            const auto& bvyhi = (*bndry)[Orientation(1,Orientation::high)].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+            const auto& bvzlo = (*bndry)[Orientation(2,Orientation::low )].array(mfi);
+            const auto& bvzhi = (*bndry)[Orientation(2,Orientation::high)].array(mfi);
+#endif
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+            ( xbx, txbx,
+              {
+                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv,bvxlo,bvxhi,bct,dlo,dhi);
+              }
+            , ybx, tybx,
+              {
+                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv,bvylo,bvyhi,bct,dlo,dhi);
+              }
+            , zbx, tzbx,
+              {
+                  mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv,bvzlo,bvzhi,bct,dlo,dhi);
+              }
+            );
+        }
+    }
+#endif
+}
+
+template class MLTensorOpT<MultiFab>;
+#ifdef AMREX_MLMG_HAS_FLOAT
+template class MLTensorOpT<fMultiFab>; // single precision copy for mixed precision
+#endif
 
 }

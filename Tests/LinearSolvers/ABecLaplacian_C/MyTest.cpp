@@ -632,7 +632,23 @@ MyTest::readParameters ()
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("ref_ratio", ref_ratio);
-    pp.query("n_cell", n_cell);
+    {   // n_cell: one value (cubic domain) or one per direction
+        std::vector<int> nc;
+        pp.queryarr("n_cell", nc);
+        if (nc.size() == 1) {
+            n_cell = IntVect(nc[0]);
+        } else if (nc.size() == AMREX_SPACEDIM) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) { n_cell[idim] = nc[idim]; }
+        } else if (!nc.empty()) {
+            amrex::Abort("n_cell needs 1 or AMREX_SPACEDIM values");
+        }
+        // the exact solutions fit the BCs only for sides of length 1 or 1/2
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n_cell[idim] == n_cell.max() ||
+                                             2*n_cell[idim] == n_cell.max(),
+                                             "each n_cell must be n_cell.max() or n_cell.max()/2");
+        }
+    }
     pp.query("max_grid_size", max_grid_size);
 
     pp.query("composite_solve", composite_solve);
@@ -648,8 +664,13 @@ MyTest::readParameters ()
     pp.query("prob_type", prob_type);
     // after every value it checks has been read
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!periodic_x || (use_mlhypre && prob_type == 1 &&
-                                                     composite_solve && max_level == 1),
-        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve and max_level = 1");
+                                                     composite_solve && max_level == 1 &&
+                                                     n_cell[0] == n_cell.max()),
+        "periodic_x needs use_mlhypre, prob_type = 1, composite_solve, max_level = 1"
+        " and n_cell[0] = n_cell.max()");
+    // nearly singular (ascalar = 1e-3); a short x side loses the error cancellation
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(prob_type != 3 || n_cell[0] == n_cell.max(),
+                                     "prob_type = 3 needs n_cell[0] = n_cell.max()");
 
     pp.query("verbose", verbose);
     pp.query("do_plots", do_plots);
@@ -714,10 +735,12 @@ MyTest::initData ()
         robin_f.resize(nlevels);
     }
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    // Cubic cells; the longest side has length 1.
+    const auto lmax = Real(n_cell.max());
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(n_cell[0]/lmax,n_cell[1]/lmax,n_cell[2]/lmax)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(int(periodic_x),0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain0(IntVect(0), n_cell-1);
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -732,8 +755,8 @@ MyTest::initData ()
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
         if (periodic_x) { // ... except in x, where it touches the high end
-            domain.setSmall(0, n_cell/2);
-            domain.setBig(0, n_cell-1);
+            domain.setSmall(0, n_cell[0]/2);
+            domain.setBig(0, n_cell[0]-1);
         }
         domain.refine(ref_ratio);
     }

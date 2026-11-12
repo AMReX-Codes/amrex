@@ -54,7 +54,9 @@ struct Rotate90DstToSrc
 {
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        if (a.x < 0) {
+        if (a.x < 0 && a.y < 0) { // lo-x/lo-y corner: 180 degree rotation
+            return Dim3{.x = -1-a.x, .y = -1-a.y, .z = a.z};
+        } else if (a.x < 0) {
             return Rotate90ClockWise()(a);
         } else {
             return Rotate90CounterClockWise()(a);
@@ -587,21 +589,6 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
 
     auto handler = Comm_nowait(mf, scomp, ncomp, TheRB90,Rotate90DstToSrc{},
                                Identity{});
-
-    Box corner(-nghost, IntVect{AMREX_D_DECL(-1,-1,domain.bigEnd(2)+nghost[2])});
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        Box const& bx = corner & mfi.fabbox();
-        if (bx.ok()) {
-            auto const& fab = mf.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,ncomp,i,j,k,n,
-            {
-                fab(i,j,k,scomp+n) = fab(-i-1,-j-1,k,scomp+n);
-            });
-        }
-    }
 
 #ifdef AMREX_USE_MPI
     Comm_finish(mf, scomp, ncomp, TheRB90, std::move(handler), Rotate90DstToSrc{},

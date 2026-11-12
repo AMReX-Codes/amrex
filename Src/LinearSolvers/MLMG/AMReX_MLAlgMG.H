@@ -12,7 +12,8 @@
 namespace amrex {
 
 template <typename T> class AlgMG;
-class MLNodeLinOp;
+template <typename MF> class MLNodeLinOpT;
+using MLNodeLinOp = MLNodeLinOpT<MultiFab>;
 
 /**
  * \brief Algebraic system of one MG level of AMR level 0 of an MLLinOp,

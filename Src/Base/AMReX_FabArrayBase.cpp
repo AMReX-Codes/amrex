@@ -1375,14 +1375,19 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
     loxbox.grow(2, m_ngrow[2]);
     loybox.grow(2, m_ngrow[2]);
 #endif
+    Box loxy_corner(-m_ngrow, IntVect{AMREX_D_DECL(-1,-1,m_domain.bigEnd(2)+m_ngrow[2])});
 
-    Array<Box,2> const domain_dst{loxbox, loybox};
+    // The lo-x/lo-y corner is filled by a 180 degree rotation.
+    Array<Box,3> const domain_dst{loxbox, loybox, loxy_corner};
     auto const src_to_dst = amrex::makeTuple(NonLocalBC::Rotate90CounterClockWise{},
-                                             NonLocalBC::Rotate90ClockWise{});
+                                             NonLocalBC::Rotate90ClockWise{},
+                                             NonLocalBC::Rotate180Fn{0});
     auto const dst_to_src = amrex::makeTuple(NonLocalBC::Rotate90ClockWise{},
-                                             NonLocalBC::Rotate90CounterClockWise{});
-    Array<Box,2> const domain_src{amrex::get<0>(dst_to_src)(domain_dst[0]),
-                                  amrex::get<1>(dst_to_src)(domain_dst[1])};
+                                             NonLocalBC::Rotate90CounterClockWise{},
+                                             NonLocalBC::Rotate180Fn{0});
+    Array<Box,3> const domain_src{amrex::get<0>(dst_to_src)(domain_dst[0]),
+                                  amrex::get<1>(dst_to_src)(domain_dst[1]),
+                                  amrex::get<2>(dst_to_src)(domain_dst[2])};
 
     auto& send_tags = *m_SndTags;
 
@@ -1405,11 +1410,13 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
         }
 #endif
 
-        Array<Box,2> const src_boxes{gbx & domain_src[0], gbx & domain_src[1]};
-        Array<Box,2> const dst_boxes{amrex::get<0>(src_to_dst)(src_boxes[0]),
-                                     amrex::get<1>(src_to_dst)(src_boxes[1])};
+        Array<Box,3> const src_boxes{gbx & domain_src[0], gbx & domain_src[1],
+                                     gbx & domain_src[2]};
+        Array<Box,3> const dst_boxes{amrex::get<0>(src_to_dst)(src_boxes[0]),
+                                     amrex::get<1>(src_to_dst)(src_boxes[1]),
+                                     amrex::get<2>(src_to_dst)(src_boxes[2])};
 
-        for (int n = 0; n < 2; ++n) {
+        for (int n = 0; n < 3; ++n) {
             if (src_boxes[n].ok()) {
                 ba.intersections(dst_boxes[n], isects, false, m_ngrow);
                 for (auto const& is : isects) {
@@ -1419,7 +1426,8 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     if (dst_owner != myproc) // local copy will be dealt with later
                     {
                         Box bxsnd = (n==0) ? amrex::get<0>(dst_to_src)(bxrcv)
-                                           : amrex::get<1>(dst_to_src)(bxrcv);
+                                  : (n==1) ? amrex::get<1>(dst_to_src)(bxrcv)
+                                           : amrex::get<2>(dst_to_src)(bxrcv);
                         send_tags[dst_owner].emplace_back(bxrcv, bxsnd, krcv, ksnd);
                     }
                 }
@@ -1434,19 +1442,21 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
         const int krcv = imap[i];
         Box const& gbx = amrex::grow(ba[krcv],m_ngrow);
 
-        Array<Box,2> const dst_boxes{gbx & domain_dst[0], gbx & domain_dst[1]};
-        Array<Box,2> const src_boxes{amrex::get<0>(dst_to_src)(dst_boxes[0]),
-                                     amrex::get<1>(dst_to_src)(dst_boxes[1])};
+        Array<Box,3> const dst_boxes{gbx & domain_dst[0], gbx & domain_dst[1],
+                                     gbx & domain_dst[2]};
+        Array<Box,3> const src_boxes{amrex::get<0>(dst_to_src)(dst_boxes[0]),
+                                     amrex::get<1>(dst_to_src)(dst_boxes[1]),
+                                     amrex::get<2>(dst_to_src)(dst_boxes[2])};
 
-        for (int n = 0; n < 2; ++n) {
+        for (int n = 0; n < 3; ++n) {
             if (dst_boxes[n].ok()) {
                 ba.intersections(src_boxes[n], isects);
                 for (auto const& is : isects) {
                     const int ksnd = is.first;
                     Box      bxsnd = is.second;
-                    // the ghost cells at hi-x, hi-y, lo-z, and hi-z
-                    // boundaries are also the source
-                    if (bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
+                    // the ghost cells at lo-z and hi-z boundaries are also the
+                    // source, and at hi-x (hi-y) for the lo-x (lo-y) region
+                    if (n < 2 && bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
                         bxsnd.growHi(n,m_ngrow[n]);
                     }
 #if (AMREX_SPACEDIM == 3)
@@ -1459,7 +1469,8 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
 #endif
                     bxsnd &= src_boxes[n];
                     Box bxrcv = (n==0) ? amrex::get<0>(src_to_dst)(bxsnd)
-                                       : amrex::get<1>(src_to_dst)(bxsnd);
+                              : (n==1) ? amrex::get<1>(src_to_dst)(bxsnd)
+                                       : amrex::get<2>(src_to_dst)(bxsnd);
                     const int src_owner = dm[ksnd];
                     FabArrayBase::CopyComTag cct(bxrcv, bxsnd, krcv, ksnd);
                     if (src_owner == myproc) {

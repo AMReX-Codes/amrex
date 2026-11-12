@@ -134,8 +134,9 @@ template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
 // Defined if the single precision operators and solver used by mixed
-// precision are compiled (in AMReX_MLMG_float.cpp).  nvcc on Windows cannot
-// compile the EB code of MLCellLinOp for float (see the if constexpr
+// precision are compiled (in AMReX_MLMG_float.cpp and in the source files
+// of the other operators that support mixed precision).  nvcc on Windows
+// cannot compile the EB code of MLCellLinOp for float (see the if constexpr
 // workarounds there).
 #if !defined(AMREX_USE_FLOAT) && !(defined(AMREX_USE_CUDA) && defined(_WIN32) && defined(AMREX_USE_EB))
 #define AMREX_MLMG_HAS_FLOAT 1

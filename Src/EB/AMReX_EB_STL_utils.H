@@ -100,16 +100,21 @@ public:
 
     //! Return whether the EB is regular/covered/mixed inside \p box.  A box
     //! that no triangle touches is taken to be regular or covered, which
-    //! assumes a water-tight mesh.
+    //! assumes a water-tight mesh.  \p box must lie inside the bounding box;
+    //! the last argument is not used.
     [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn, Box const&) const;
 
     static constexpr bool isGPUable () noexcept { return true; }
 
-    //! Fill a BaseFab with level-set data (host/device aware).
+    //! Fill a BaseFab with level-set data (host/device aware).  Nodes outside
+    //! \p bounding_box take the value of the nearest node inside it, so with
+    //! extend_domain_face the geometry outside the domain is an extrusion of
+    //! the domain face, as for EB2::GeometryShop.
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const;
 
     //! Compute intercepts and face types for EB geometry based on the STL mesh.
+    //! Edges outside \p bounding_box are evaluated at the nearest edge inside it.
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const& lst, Geometry const& geom, RunOn,

@@ -930,6 +930,34 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
                 const std::string& name, const std::string& val, T& ref,
                 bool use_querywithparser);
 
+// For integer and floating-point T, a bare t or f (in any case) that names a
+// ParmParse entry refers to that entry and is not a bool literal.
+template <typename T>
+bool pp_tf_names_entry (const ParmParse::Table& table, const std::string& parser_prefix,
+                        const std::string& name, const std::string& val)
+{
+    if constexpr (std::is_same_v<T,int> || std::is_same_v<T,long> ||
+                  std::is_same_v<T,long long> || std::is_same_v<T,float> ||
+                  std::is_same_v<T,double>) {
+        if (val != "t" && val != "T" && val != "f" && val != "F") { return false; }
+        // the names the parser looks up
+        std::vector<std::string> keys{val};
+        if (!parser_prefix.empty()) {
+            keys.push_back(parser_prefix+"."+val);
+        }
+        if (!ParmParse::ParserPrefix.empty()) {
+            keys.push_back(ParmParse::ParserPrefix+"."+val);
+        }
+        return std::any_of(keys.begin(), keys.end(), [&] (std::string const& key) {
+            auto found = table.find(key);
+            return key != name && found != table.cend() && !found->second.m_vals.empty();
+        });
+    } else {
+        amrex::ignore_unused(table, parser_prefix, name, val);
+        return false;
+    }
+}
+
 template <typename T>
 void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, bool parsed)
 {
@@ -1182,7 +1210,7 @@ squeryval (const ParmParse::Table& table,
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>);
 
-    if (is(valname, ref)) {
+    if (!pp_tf_names_entry<T>(table, parser_prefix, name, valname) && is(valname, ref)) {
         if constexpr (is_integral_floating) {
             pp_entry_set_last_val(entry, ival, ref, false);
         }
@@ -1353,7 +1381,7 @@ squeryarr (const ParmParse::Table& table,
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
         const std::string& valname = (*def)[n];
-        if (is(valname, ref[n])) {
+        if (!pp_tf_names_entry<T>(table, parser_prefix, name, valname) && is(valname, ref[n])) {
             if constexpr (is_integral_floating) {
                 pp_entry_set_last_val(entry, n, ref[n], false);
             }
@@ -1503,20 +1531,9 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
             argstr += argv[i];
             argstr += SPACE;
         }
-        ParmParse::Table arg_table;
+        // Append to the existing table, so that UNSET also removes earlier entries.
         const char* b = argstr.c_str();
-        bldTable(b, arg_table);
-        //
-        // Append arg_table to end of existing table.
-        //
-        for (auto& [name, arg_entry] : arg_table) {
-            auto& src = arg_entry.m_vals;
-            auto& dst = table[name].m_vals;
-            std::ranges::move(src, std::back_inserter(dst));
-            auto& src_quotes = arg_entry.m_quotes;
-            auto& dst_quotes = table[name].m_quotes;
-            std::ranges::move(src_quotes, std::back_inserter(dst_quotes));
-        }
+        bldTable(b, table);
     }
     initialized = true;
 }

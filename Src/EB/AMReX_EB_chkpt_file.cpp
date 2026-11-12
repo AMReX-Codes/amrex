@@ -100,7 +100,7 @@ ChkptFile::ChkptFile (std::string fname)
     : m_restart_file(std::move(fname))
 {}
 
-void
+IntVect
 ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  DistributionMapping& dmap,
                                  MultiFab& volfrac, MultiFab& centroid,
@@ -181,7 +181,12 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
             ngrow_chkptfile[i++] = std::stoi(word);
         }
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_chkptfile == ngrow_finest, "EB2::ChkptFile cannot read from different ngrow");
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_finest[idim] > 0
+                                         ? ngrow_chkptfile[idim] >= ngrow_finest[idim]
+                                         : ngrow_chkptfile[idim] == ngrow_finest[idim],
+                                         "EB2::ChkptFile cannot read from a smaller or incompatible ngrow");
+    }
 
     bool edf_chkptfile;
     is >> edf_chkptfile;
@@ -299,6 +304,8 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         VisMF::Read(levelset, prefix);
     }
+
+    return ngrow_chkptfile;
 }
 
 void

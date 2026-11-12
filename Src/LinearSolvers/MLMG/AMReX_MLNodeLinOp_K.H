@@ -4,6 +4,8 @@
 
 #include <AMReX_FArrayBox.H>
 
+#include <type_traits>
+
 /// \cond DOXYGEN_IGNORE
 namespace amrex::nodelap_detail {
 
@@ -55,6 +57,9 @@ namespace amrex::nodelap_detail {
     constexpr int crse_node = 0;
     constexpr int crse_fine_node = 1;
     constexpr int fine_node = 2;
+    // Dirichlet mask: a node the overset mask marks known.  Other Dirichlet
+    // nodes are 1.
+    constexpr int overset_node = 2;
 }
 /// \endcond
 

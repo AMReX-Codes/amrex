@@ -9,24 +9,34 @@
 #endif
 #include <AMReX_MLNodeLinOp_K.H>
 
+#include <limits>
+#include <type_traits>
+
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE
 namespace nodelap_detail {
 
-#if (BL_USE_FLOAT)
-    constexpr float eps = 1.e-30_rt;
-#else
-    constexpr double eps = 1.e-100_rt;
-#endif
-    constexpr Real almostone  = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
-    constexpr Real almostzero = Real(1.) - almostone;
+    template <typename T>
+    inline constexpr T eps_v = T(1.e-100L);
+    template <>
+    inline constexpr float eps_v<float> = float(1.e-30L);
+
+    template <typename T>
+    inline constexpr T almostone_v = T(1.) - T(100.)*std::numeric_limits<T>::epsilon();
+    template <typename T>
+    inline constexpr T almostzero_v = T(1.) - almostone_v<T>;
+
+    constexpr Real eps = eps_v<Real>;
+    constexpr Real almostone  = almostone_v<Real>;
+    constexpr Real almostzero = almostzero_v<Real>;
 
 }
 /// \endcond
 
+template <typename T>
 inline void
-mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+mlndlap_scale_neumann_bc (std::type_identity_t<T> s, Box const& bx, Array4<T> const& rhs, Box const& nddom,
                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
@@ -52,16 +62,18 @@ mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box co
     }
 }
 
+template <typename T>
 inline void
-mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+mlndlap_impose_neumann_bc (Box const& bx, Array4<T> const& rhs, Box const& nddom,
                            GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                            GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     mlndlap_scale_neumann_bc(2.0, bx, rhs, nddom, lobc, hibc);
 }
 
+template <typename T>
 inline void
-mlndlap_unimpose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+mlndlap_unimpose_neumann_bc (Box const& bx, Array4<T> const& rhs, Box const& nddom,
                            GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                            GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
@@ -80,42 +92,45 @@ mlndlap_unimpose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& 
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_sten (int i, int j, int k, Array4<Real> const& x,
-                             Array4<Real const> const& sten,
-                             Array4<int const> const& msk, Real s0_norm0) noexcept
+void mlndlap_normalize_sten (int i, int j, int k, Array4<T> const& x,
+                             Array4<std::type_identity_t<T> const> const& sten,
+                             Array4<int const> const& msk, std::type_identity_t<T> s0_norm0) noexcept
 {
     if (!msk(i,j,k) && std::abs(sten(i,j,k,0)) > s0_norm0) {
         x(i,j,k) /= sten(i,j,k,0);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_jacobi_sten (int i, int j, int k, Array4<Real> const& sol,
-                          Real Ax, Array4<Real const> const& rhs,
-                          Array4<Real const> const& sten,
+void mlndlap_jacobi_sten (int i, int j, int k, Array4<T> const& sol,
+                          std::type_identity_t<T> Ax, Array4<std::type_identity_t<T> const> const& rhs,
+                          Array4<std::type_identity_t<T> const> const& sten,
                           Array4<int const> const& msk) noexcept
 {
     if (msk(i,j,k)) {
-        sol(i,j,k) = Real(0.0);
-    } else if (sten(i,j,k,0) != Real(0.0)) {
-        sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax) / sten(i,j,k,0);
+        sol(i,j,k) = T(0.0);
+    } else if (sten(i,j,k,0) != T(0.0)) {
+        sol(i,j,k) += T(2./3.) * (rhs(i,j,k) - Ax) / sten(i,j,k,0);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
-                          Array4<Real const> const& Ax,
-                          Array4<Real const> const& rhs,
-                          Array4<Real const> const& sten,
+void mlndlap_jacobi_sten (Box const& bx, Array4<T> const& sol,
+                          Array4<std::type_identity_t<T> const> const& Ax,
+                          Array4<std::type_identity_t<T> const> const& rhs,
+                          Array4<std::type_identity_t<T> const> const& sten,
                           Array4<int const> const& msk) noexcept
 {
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = Real(0.0);
-        } else if (sten(i,j,k,0) != Real(0.0)) {
-            sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
+            sol(i,j,k) = T(0.0);
+        } else if (sten(i,j,k,0) != T(0.0)) {
+            sol(i,j,k) += T(2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
         }
     });
 }

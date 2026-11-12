@@ -8,7 +8,7 @@
 
 // Solve `div dot (sigma grad phi) = rhs` using the nodal solver
 
-class MyTest
+class MyTest // NOLINT(clang-analyzer-optin.performance.Padding)
 {
 public:
 
@@ -34,7 +34,7 @@ private:
 
     int max_level = 1;
     int ref_ratio = 2;
-    int n_cell = 128;
+    amrex::IntVect n_cell{AMREX_D_DECL(128,128,128)};
     int max_grid_size = 64;
     amrex::Real domain_ratio = 1.0;
 
@@ -53,6 +53,11 @@ private:
     bool agglomeration = false;
     bool consolidation = false;
     bool semicoarsening = false;
+    bool mixed_precision = false;
+    // known nodes in a ball at the domain center on all levels; composite solve only
+    bool overset = false;
+    // if positive: abort if the max-norm error exceeds it
+    amrex::Real max_error = -1.0;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
     //int smooth_num_sweeps = 4;
