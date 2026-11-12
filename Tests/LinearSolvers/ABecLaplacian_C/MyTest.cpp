@@ -668,6 +668,9 @@ MyTest::readParameters ()
                                                      n_cell[0] == n_cell.max()),
         "periodic_x needs use_mlhypre, prob_type = 1, composite_solve, max_level = 1"
         " and n_cell[0] = n_cell.max()");
+    // nearly singular (ascalar = 1e-3); a short x side loses the error cancellation
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(prob_type != 3 || n_cell[0] == n_cell.max(),
+                                     "prob_type = 3 needs n_cell[0] = n_cell.max()");
 
     pp.query("verbose", verbose);
     pp.query("do_plots", do_plots);
