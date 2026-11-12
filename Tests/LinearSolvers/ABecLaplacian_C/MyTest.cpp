@@ -733,7 +733,7 @@ MyTest::initData ()
     }
 
     // Cubic cells; the longest side has length 1.
-    const Real lmax = n_cell.max();
+    const auto lmax = Real(n_cell.max());
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(n_cell[0]/lmax,n_cell[1]/lmax,n_cell[2]/lmax)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(int(periodic_x),0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());

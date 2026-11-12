@@ -383,7 +383,7 @@ MyTest::initData ()
     sigma.resize(nlevels);
 
     // The longest side has length 1; domain_ratio stretches y.
-    const Real lmax = n_cell.max();
+    const auto lmax = Real(n_cell.max());
     RealBox rb({AMREX_D_DECL(0.,0.,0.)},
                {AMREX_D_DECL(n_cell[0]/lmax,domain_ratio*n_cell[1]/lmax,n_cell[2]/lmax)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(periodic,periodic,periodic)};
