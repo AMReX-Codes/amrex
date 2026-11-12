@@ -357,8 +357,15 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     clearNeighbors();
 
     if (this->use_comms_arena) {
-        snd_buffer.setArena(The_Comms_Arena());
-        rcv_buffer.setArena(The_Comms_Arena());
+        // Free the old memory with its own arena before switching arenas.
+        if (snd_buffer.arena() != The_Comms_Arena()) {
+            snd_buffer.free_async();
+            snd_buffer.setArena(The_Comms_Arena());
+        }
+        if (rcv_buffer.arena() != The_Comms_Arena()) {
+            rcv_buffer.free_async();
+            rcv_buffer.setArena(The_Comms_Arena());
+        }
     }
 
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
