@@ -46,7 +46,7 @@ private:
 
     int max_level = 1;
     int ref_ratio = 2;
-    int n_cell = 128;
+    amrex::IntVect n_cell{AMREX_D_DECL(128,128,128)};
     int max_grid_size = 64;
 
     bool composite_solve = true;
