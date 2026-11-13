@@ -354,7 +354,7 @@ namespace amrex {
          * layout was stored without its pointer (see MultiArray4).
          */
         AMREX_GPU_HOST_DEVICE
-        constexpr ArrayND (T* a_p, detail::Stride<N-1> const& a_stride,
+        constexpr ArrayND (T* a_p, typename detail::StrideType<N,last_dim_component>::type const& a_stride,
                            IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
             : p(a_p), stride(a_stride), begin(a_begin), end(a_end) {}
 #endif
