@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <cmath>
 #include <stdexcept>
 #include <type_traits>
 #include <tuple>
@@ -2113,15 +2114,17 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     Real final_res = 0.0;
     if (m_backend == Backend::hypre) {
         BL_PROFILE_VAR("HypreMLABecLap::ij_vectors_in", blp_vin);
-        if (m_ij_vectors_assembled) {
-            // Same layout: write into the assembled vectors directly
-            for (auto [v, src] : {std::pair{b, bvec.data()}, std::pair{x, xvec.data()}}) {
-                HYPRE_ParVector pv = nullptr;
-                HYPRE_IJVectorGetObject(v, (void**) &pv);
-                Real* dst = hypre_VectorData(hypre_ParVectorLocalVector((hypre_ParVector*) pv));
-                Gpu::copyAsync(Gpu::deviceToDevice, src, src+nrows, dst);
-            }
+        // Write into an assembled vector directly (the same layout)
+        auto set_assembled = [&] (HYPRE_IJVector v, Real const* src) {
+            HYPRE_ParVector pv = nullptr;
+            HYPRE_IJVectorGetObject(v, (void**) &pv);
+            Real* dst = hypre_VectorData(hypre_ParVectorLocalVector((hypre_ParVector*) pv));
+            Gpu::copyAsync(Gpu::deviceToDevice, src, src+nrows, dst);
             Gpu::streamSynchronize();
+        };
+        if (m_ij_vectors_assembled) {
+            set_assembled(b, bvec.data());
+            set_assembled(x, xvec.data());
         } else {
             HYPRE_IJVectorInitialize(b);
             HYPRE_IJVectorInitialize(x);
@@ -2137,20 +2140,33 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         }
         BL_PROFILE_VAR_STOP(blp_vin);
 
-        m_ij_solver->setThrowException(m_throw_exception);
         // A setup kept from an earlier matrix (setup reuse), not one done for
         // this solve
         const bool reused = m_reuse_setup && !m_ij_solver->setupPending();
-        m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+        // With a reused setup, a hypre error or a non-finite residual is
+        // caught (the residual norm is global, so every rank takes the same
+        // path) and retried below like a solve that does not converge; the
+        // caller's failure policy applies to the retry
+        m_ij_solver->setThrowException(m_throw_exception || reused);
+        bool blew_up = false;
+        try {
+            m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+        } catch (std::runtime_error const&) {
+            if (!reused) { throw; }
+            blew_up = true;
+        }
+        m_ij_solver->setThrowException(m_throw_exception);
         num_iterations = static_cast<int>(m_ij_solver->getNumIters());
         final_res = m_ij_solver->getFinalResidualNorm();
-        if (reused && !(final_res <= a_reltol)) {
+        if (reused && (blew_up || !(final_res <= a_reltol))) {
             // The reused setup may have become too poor a preconditioner for
             // the current matrix: redo it and continue from the current x
+            // (from the initial guess after a blow-up)
             if (m_verbose) {
                 amrex::Print() << m_parmparse_prefix << ": no convergence with the reused setup ("
                                << num_iterations << " iterations); redoing the setup\n";
             }
+            if (blew_up || !std::isfinite(final_res)) { set_assembled(x, xvec.data()); }
             m_ij_solver->setNeedSetup();
             m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
             num_iterations += static_cast<int>(m_ij_solver->getNumIters());

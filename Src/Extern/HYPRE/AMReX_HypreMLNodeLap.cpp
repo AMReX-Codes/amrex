@@ -1282,43 +1282,58 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) : Real(0.0);
 
     if (m_backend == Backend::hypre) {
-        HYPRE_IJVectorInitialize(m_b);
-        HYPRE_IJVectorInitialize(m_x);
+        Gpu::DeviceVector<BigInt> d_rows(nrows);
         if (nrows > 0) {
             Vector<BigInt> rowids(nrows);
             std::iota(rowids.begin(), rowids.end(), static_cast<BigInt>(m_ilower));
-            Gpu::DeviceVector<BigInt> d_rows(nrows);
-            Gpu::DeviceVector<Real> d_b(nrows), d_x(nrows);
             Gpu::copyAsync(Gpu::hostToDevice, rowids.begin(), rowids.end(), d_rows.begin());
-            Gpu::copyAsync(Gpu::hostToDevice, m_bvec.begin(), m_bvec.end(), d_b.begin());
-            Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), d_x.begin());
-            Gpu::streamSynchronize();
-            HYPRE_IJVectorSetValues(m_b, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_b.data());
-            HYPRE_IJVectorSetValues(m_x, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_x.data());
-            Gpu::hypreSynchronize();
         }
-        HYPRE_IJVectorAssemble(m_b);
-        HYPRE_IJVectorAssemble(m_x);
+        auto load = [&] (HYPRE_IJVector v, Vector<Real> const& h) {
+            HYPRE_IJVectorInitialize(v);
+            if (nrows > 0) {
+                Gpu::DeviceVector<Real> d(nrows);
+                Gpu::copyAsync(Gpu::hostToDevice, h.begin(), h.end(), d.begin());
+                Gpu::streamSynchronize();
+                HYPRE_IJVectorSetValues(v, static_cast<HYPRE_Int>(nrows), d_rows.data(), d.data());
+                Gpu::hypreSynchronize();
+            }
+            HYPRE_IJVectorAssemble(v);
+        };
+        load(m_b, m_bvec);
+        load(m_x, m_xvec);
 
-        m_ij->setThrowException(m_throw_exception);
         // With setup reuse the setup is redone only after resetSolverSetup()
         // or an assembly that could not update the matrix in place
         m_ij->setRecomputePreconditioner(!m_reuse_setup);
         // A setup kept from an earlier matrix, not one done for this solve
         const bool reused = m_reuse_setup && !m_ij->setupPending();
-        m_ij->solve(a_reltol, abstol, a_maxiter);
+        // With a reused setup, a hypre error or a non-finite residual is
+        // caught (the residual norm is global, so every rank takes the same
+        // path) and retried below like a solve that does not converge; the
+        // caller's failure policy applies to the retry
+        m_ij->setThrowException(m_throw_exception || reused);
+        bool blew_up = false;
+        try {
+            m_ij->solve(a_reltol, abstol, a_maxiter);
+        } catch (std::runtime_error const&) {
+            if (!reused) { throw; }
+            blew_up = true;
+        }
+        m_ij->setThrowException(m_throw_exception);
         m_num_iters = static_cast<int>(m_ij->getNumIters());
         m_final_res = m_ij->getFinalResidualNorm();
         auto converged_now = [&] () {
             return (m_final_res <= a_reltol) || (abstol > Real(0.0) && m_final_res*m_bnorm <= abstol);
         };
-        if (reused && !converged_now()) {
+        if (reused && (blew_up || !converged_now())) {
             // The reused setup may have become too poor a preconditioner for
             // the current matrix: redo it and continue from the current x
+            // (from the initial guess after a blow-up)
             if (m_verbose) {
                 amrex::Print() << m_prefix << ": no convergence with the reused setup ("
                                << m_num_iters << " iterations); redoing the setup\n";
             }
+            if (blew_up || !std::isfinite(m_final_res)) { load(m_x, m_xvec); }
             m_ij->setNeedSetup();
             m_ij->solve(a_reltol, abstol, a_maxiter);
             m_num_iters += static_cast<int>(m_ij->getNumIters());

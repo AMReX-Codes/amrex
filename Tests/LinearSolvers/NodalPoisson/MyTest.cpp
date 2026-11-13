@@ -199,12 +199,20 @@ MyTest::solve ()
             compare_with_mlmg();
             // mlhypre_num_solves > 1: sigma and the right-hand side scaled by
             // 2 (the same solution), the matrix updated in place with the
-            // solver setup kept, and solved again from the same initial guess
+            // solver setup kept, and solved again from the same initial guess.
+            // A copy of sigma is scaled: the next trial solves the original
+            // problem again.
+            Vector<MultiFab> sigma2(max_level+1);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                sigma2[ilev].define(sigma[ilev].boxArray(), sigma[ilev].DistributionMap(),
+                                    1, sigma[ilev].nGrow());
+                MultiFab::Copy(sigma2[ilev], sigma[ilev], 0, 0, 1, sigma[ilev].nGrow());
+            }
             for (int isolve = 1; isolve < mlhypre_num_solves; ++isolve) {
                 for (int ilev = 0; ilev <= max_level; ++ilev) {
-                    sigma[ilev].mult(Real(2.0), 0, 1, sigma[ilev].nGrow());
+                    sigma2[ilev].mult(Real(2.0), 0, 1, sigma2[ilev].nGrow());
                     hyp_rhs[ilev].mult(Real(2.0), 0, 1, 0);
-                    linop.setSigma(ilev, sigma[ilev]);
+                    linop.setSigma(ilev, sigma2[ilev]);
                     MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
                     const Box& interior = amrex::surroundingNodes(
                         amrex::grow(geom[ilev].Domain(), -1));
