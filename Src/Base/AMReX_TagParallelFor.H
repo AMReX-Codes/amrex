@@ -132,7 +132,7 @@ namespace loomtag {
 
 struct A4 {
     Long off;
-    detail::Stride<3> stride;
+    detail::StrideType<4,true>::type stride;
     IntVectND<4> begin;
     IntVectND<4> end;
 };

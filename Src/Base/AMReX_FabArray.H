@@ -198,7 +198,7 @@ struct MultiArray4
     // holds each accessor's layout and its element offset from `base`.
     struct LoomEntry {
         Long offset;
-        detail::Stride<3> stride;
+        detail::StrideType<4,true>::type stride;
         IntVectND<4> begin;
         IntVectND<4> end;
     };
