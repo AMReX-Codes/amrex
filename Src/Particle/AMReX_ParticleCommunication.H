@@ -603,8 +603,10 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         total_buffer_size = plan.m_snd_offsets.back();
     }
 
-    if (! snd_buffer.arena()->hasFreeDeviceMemory(total_buffer_size)) {
-        snd_buffer.clear();
+    if (snd_buffer.capacity() < total_buffer_size &&
+        ! snd_buffer.arena()->hasFreeDeviceMemory(total_buffer_size)) {
+        // Free the old memory with its own arena before switching arenas.
+        snd_buffer.free_async();
         snd_buffer.setArena(The_Pinned_Arena());
     }
     snd_buffer.resize(total_buffer_size);
