@@ -22,7 +22,7 @@ int main (int argc, char* argv[])
         // The system is a * phi - del dot grad phi.
         // Where phi = sin^5(x)*sin^5(y)*sin^5(z)
 
-        BoxIndexer box_indexer(domain);
+        BoxIndexerND<AMREX_SPACEDIM,std::uint64_t> box_indexer(domain);
 
         // Initialzie bvec
         {

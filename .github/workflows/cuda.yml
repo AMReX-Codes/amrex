@@ -230,6 +230,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=20                      \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_ARRAY4_64BIT_INDEX=ON                \
             -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_EB=ON                                \
             -DAMReX_FFT=ON                               \

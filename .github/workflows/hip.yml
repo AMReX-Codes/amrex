@@ -187,7 +187,8 @@ jobs:
 
         cd Tests/LinearSolvers/NodeEB
         make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE \
-                 WARN_ERROR=TRUE AMD_ARCH=gfx90a CCACHE=ccache CXXSTD=c++20
+                 WARN_ERROR=TRUE AMD_ARCH=gfx90a CCACHE=ccache CXXSTD=c++20 \
+                 USE_ARRAY4_64BIT_INDEX=TRUE
 
         ccache -s
         du -hs ~/.cache/ccache

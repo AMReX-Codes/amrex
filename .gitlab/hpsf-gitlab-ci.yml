@@ -64,6 +64,7 @@ Nvidia-H100-single-precision:
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_ARRAY4_64BIT_INDEX=ON                \
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=CUDA                     \
           -DCMAKE_C_COMPILER=$(which gcc)              \

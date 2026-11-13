@@ -2481,36 +2481,52 @@ BoxND<dim> makeSingleCellBox (IntVectND<dim> const& vect, IndexTypeND<dim> typ =
     return BoxND<dim>{vect, vect, typ};
 }
 
+namespace detail {
+#ifdef AMREX_ARRAY4_64BIT_INDEX
+    using BoxIndexerUInt = std::uint64_t;
+#else
+    using BoxIndexerUInt = std::uint32_t;
+#endif
+}
+
 /**
  * \brief Utility that maps flattened point indices back to IntVectND coordinates.
  *
- * The constructor captures a sequence of \ref Math::FastDivmodU64 helpers that
+ * The constructor captures a sequence of fast divmod helpers that
  * implement fast division by the running products of box lengths, so repeated
  * calls to \ref intVect or the Dim3 functor avoid costly integer divisions while
  * walking a \ref BoxND.
  *
  * \tparam dim Box dimensionality.
+ * \tparam UIntT Index type, std::uint32_t or std::uint64_t. The 32-bit version
+ *         is much cheaper on GPUs, but limits the box to fewer than 2^31 points.
+ *         The default is 32-bit unless AMREX_ARRAY4_64BIT_INDEX is defined. Use
+ *         std::uint64_t for a large box that is not a fab box, e.g., a domain.
  */
-template<int dim>
+template<int dim, typename UIntT = detail::BoxIndexerUInt>
 struct BoxIndexerND
 {
-    std::uint64_t npts;
-    Math::FastDivmodU64 fdm[dim-1];
-    //! 32-bit version of fdm, used when npts fits: much cheaper on GPUs.
-    Math::FastDivmodU32 fdm32[dim-1];
+    static_assert(std::is_same_v<UIntT,std::uint32_t> || std::is_same_v<UIntT,std::uint64_t>);
+    using UInt = UIntT;
+    using Divmod = std::conditional_t<sizeof(UInt) == 4, Math::FastDivmodU32, Math::FastDivmodU64>;
+
+    UInt npts;
+    Divmod fdm[dim-1];
     IntVectND<dim> lo;
 
     BoxIndexerND (BoxND<dim> const& box)
-        : npts(box.numPts()),
+        : npts(UInt(box.numPts())),
           lo  (box.smallEnd())
         {
-            std::uint64_t mult = 1;
+            if constexpr (sizeof(UInt) == 4) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(box.numPts() <= Long(std::numeric_limits<int>::max()),
+                    "BoxIndexer: box has too many points for 32-bit indexing; build with "
+                    "USE_ARRAY4_64BIT_INDEX=TRUE (GNU Make) or AMReX_ARRAY4_64BIT_INDEX=ON (CMake)");
+            }
+            UInt mult = 1;
             for (int i=0; i<dim-1; ++i) {
-                mult *= box.length(i);
-                fdm[i] = Math::FastDivmodU64(mult);
-                if (npts < std::uint64_t(std::numeric_limits<std::uint32_t>::max())) {
-                    fdm32[i] = Math::FastDivmodU32(std::uint32_t(mult));
-                }
+                mult *= UInt(box.length(i));
+                fdm[i] = Divmod(mult);
             }
         }
 
@@ -2525,24 +2541,15 @@ struct BoxIndexerND
     {
         IntVectND<dim> retval = lo;
 
-        if (npts < std::uint64_t(std::numeric_limits<std::uint32_t>::max())) {
-            auto icell32 = std::uint32_t(icell);
-            for (int i=dim-1; i>0; --i) {
-                std::uint32_t quotient, remainder;
-                fdm32[i-1](quotient, remainder, icell32);
-                retval[i] += int(quotient);
-                icell32 = remainder;
-            }
-            retval[0] += int(icell32);
-        } else {
-            for (int i=dim-1; i>0; --i) {
-                std::uint64_t quotient, remainder;
-                fdm[i-1](quotient, remainder, icell);
-                retval[i] += quotient;
-                icell = remainder;
-            }
-            retval[0] += icell;
+        auto ic = UInt(icell);
+        for (int i=dim-1; i>0; --i) {
+            UInt quotient, remainder;
+            fdm[i-1](quotient, remainder, ic);
+            retval[i] += int(quotient);
+            ic = remainder;
         }
+
+        retval[0] += int(ic);
 
         return retval;
     }
@@ -2566,16 +2573,18 @@ struct BoxIndexerND
      * \return Total number of points.
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::uint64_t numPts () const { return npts; }
+    UInt numPts () const { return npts; }
 };
 
 /**
  * \brief Specialization for the 1D case where no fast-division table is needed.
  */
-template<>
-struct BoxIndexerND<1>
+template<typename UIntT>
+struct BoxIndexerND<1,UIntT>
 {
-    std::uint64_t npts;
+    static_assert(std::is_same_v<UIntT,std::uint32_t> || std::is_same_v<UIntT,std::uint64_t>);
+    using UInt = UIntT;
+    UInt npts;
 
     IntVectND<1> lo;
 
@@ -2585,9 +2594,15 @@ struct BoxIndexerND<1>
      * \param box Box that supplies the span.
      */
     BoxIndexerND (BoxND<1> const& box)
-        : npts(box.numPts()),
+        : npts(UInt(box.numPts())),
           lo(box.smallEnd(0))
-        {}
+        {
+            if constexpr (sizeof(UInt) == 4) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(box.numPts() <= Long(std::numeric_limits<int>::max()),
+                    "BoxIndexer: box has too many points for 32-bit indexing; build with "
+                    "USE_ARRAY4_64BIT_INDEX=TRUE (GNU Make) or AMReX_ARRAY4_64BIT_INDEX=ON (CMake)");
+            }
+        }
 
     /**
      * \brief Convert flattened point index \p icell to the 1D coordinate.
@@ -2619,7 +2634,7 @@ struct BoxIndexerND<1>
      * \return Total number of points.
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::uint64_t numPts () const { return npts; }
+    UInt numPts () const { return npts; }
 };
 
 using BoxIndexer = BoxIndexerND<AMREX_SPACEDIM>;

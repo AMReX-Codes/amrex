@@ -184,6 +184,12 @@ else
   BOUND_CHECK := FALSE
 endif
 
+ifdef USE_ARRAY4_64BIT_INDEX
+  USE_ARRAY4_64BIT_INDEX := $(strip $(USE_ARRAY4_64BIT_INDEX))
+else
+  USE_ARRAY4_64BIT_INDEX := FALSE
+endif
+
 ifdef EXPORT_DYNAMIC
   EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
 else
@@ -962,6 +968,13 @@ ifeq ($(BOUND_CHECK),TRUE)
   DEFINES += -DAMREX_BOUND_CHECK
 endif
 
+ifeq ($(USE_ARRAY4_64BIT_INDEX),TRUE)
+  DEFINES += -DAMREX_ARRAY4_64BIT_INDEX
+  IndexSuffix := .IDX64
+else
+  IndexSuffix :=
+endif
+
 ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DAMREX_PARTICLES
 endif
@@ -1002,7 +1015,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(IndexSuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
