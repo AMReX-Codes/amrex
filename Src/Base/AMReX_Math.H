@@ -496,6 +496,8 @@ std::uint32_t umulhi32 (std::uint32_t a, std::uint32_t b)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::mul_hi(a,b);
+#elif defined(AMREX_USE_LOOM)
+    return std::uint32_t((std::uint64_t(a) * std::uint64_t(b)) >> 32);
 #else
     AMREX_IF_ON_DEVICE(( return __umulhi(a, b); ))
     AMREX_IF_ON_HOST((
