@@ -20,33 +20,13 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <cmath>
 #include <stdexcept>
 #include <type_traits>
 #include <tuple>
 #include <utility>
 
 namespace amrex {
-
-namespace {
-//! Group the triplets by the matrix entry they add to (entry[n] for triplet
-//! n, in [0, nentries)), keeping increasing triplet order within an entry
-void define_gather (Gpu::DeviceVector<Long>& g_offset, Gpu::DeviceVector<Long>& g_trip,
-                    Vector<Long> const& entry, Long nentries)
-{
-    const auto ntrip = Long(entry.size());
-    Vector<Long> offset(nentries+1, 0);
-    for (Long n = 0; n < ntrip; ++n) { ++offset[entry[n]+1]; }
-    for (Long e = 0; e < nentries; ++e) { offset[e+1] += offset[e]; }
-    Vector<Long> fill(offset.begin(), offset.end()-1);
-    Vector<Long> trip(ntrip);
-    for (Long n = 0; n < ntrip; ++n) { trip[fill[entry[n]]++] = n; }
-    g_offset.resize(nentries+1);
-    g_trip.resize(ntrip);
-    Gpu::copyAsync(Gpu::hostToDevice, offset.begin(), offset.end(), g_offset.begin());
-    Gpu::copyAsync(Gpu::hostToDevice, trip.begin(), trip.end(), g_trip.begin());
-    Gpu::streamSynchronize();
-}
-}
 
 HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
                                 Vector<BoxArray> a_grids,
@@ -169,6 +149,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
         pp.query("reuse_setup_max_iter", m_reuse_max_iter);
+        pp.query("reuse_setup_max_change", m_reuse_max_change);
         pp.query("eb_scaling", m_eb_scaling);
         m_use_ij = pp.contains("hypre_solver") || (m_backend == Backend::algmg);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_use_ij || m_dump_max == 0,
@@ -1227,12 +1208,13 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 ntot = Long(rows.size());
             }
         }
+        rescaleToSetup(vals);
         // In-place update of the assembled matrix (setup reuse)
         const bool direct = (m_backend == Backend::hypre) && !m_ij_gather.empty();
         if (direct) {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_ij_gather.numTriplets() == ntot,
                 "HypreMLABecLap: the matrix pattern changed between setups with reuse");
-            updateIJValues(vals);
+            composite::ij_update_values(m_ij_solver->A(), m_ij_gather, vals);
         }
         if (m_backend == Backend::hypre && ntot > 0 && !direct) {
             BL_PROFILE("HYPRE_IJMatrixAddToValues");
@@ -1275,7 +1257,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 Gpu::copyAsync(Gpu::hostToDevice, m_csr.col_index.begin(), m_csr.col_index.end(),
                                m_alg_col_index.begin());
                 Gpu::streamSynchronize();
-                define_gather(m_alg_gather.offset, m_alg_gather.trip, slots, m_csr.nnz());
+                composite::define_gather(m_alg_gather, slots, m_csr.nnz());
             }
         }
         if (m_backend == Backend::hypre) {
@@ -1283,7 +1265,10 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 BL_PROFILE("HYPRE_IJMatrixAssemble");
                 HYPRE_IJMatrixAssemble(ij_A);
                 Gpu::hypreSynchronize();
-                if (m_reuse_setup && !m_ij_gather_failed) { buildIJSlots(rows, cols); }
+                if (m_reuse_setup && !m_ij_gather_failed &&
+                    !composite::ij_entry_slots(m_ij_solver->A(), rows, cols, m_comm, m_ij_gather)) {
+                    m_ij_gather_failed = true; // for this matrix; not tried again
+                }
             }
         } else {
             auto spA = std::make_unique<SpMatrix<Real>>();
@@ -1300,17 +1285,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                m_alg_row_offset.end(), csr.row_offset.begin());
                 Gpu::copyAsync(Gpu::deviceToDevice, m_alg_col_index.begin(),
                                m_alg_col_index.end(), csr.col_index.begin());
-                auto* pm = csr.mat.data();
-                auto const* go = m_alg_gather.offset.data();
-                auto const* gt = m_alg_gather.trip.data();
-                auto const* v = vals.data();
-                amrex::ParallelFor(csr.nnz, [=] AMREX_GPU_DEVICE (Long e) noexcept
-                {
-                    Real sum = 0.0;
-                    for (Long k = go[e]; k < go[e+1]; ++k) { sum += v[gt[k]]; }
-                    pm[e] = sum;
-                });
-                Gpu::streamSynchronize();
+                composite::gather_sum(m_alg_gather, vals.data(), csr.mat.data(), csr.nnz);
                 spA->define(AlgPartition(m_rank_offset), std::move(csr), CsrSorted{true});
             } else {
                 m_csr.toSpMatrix(*spA, m_rank_offset);
@@ -2042,111 +2017,60 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
 #endif
 }
 
-void HypreMLABecLap::buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
-                                   Gpu::DeviceVector<HYPRE_BigInt> const& cols)
+void HypreMLABecLap::rescaleToSetup (Gpu::DeviceVector<Real>& vals)
 {
-#if (AMREX_SPACEDIM > 1)
-    BL_PROFILE("HypreMLABecLap::buildIJSlots()");
-    m_ij_gather.clear();
-    HYPRE_ParCSRMatrix parA = nullptr;
-    HYPRE_IJMatrixGetObject(m_ij_solver->A(), (void**) &parA);
-    auto* A = (hypre_ParCSRMatrix*) parA;
-    hypre_CSRMatrix* diag = hypre_ParCSRMatrixDiag(A);
-    hypre_CSRMatrix* offd = hypre_ParCSRMatrixOffd(A);
-    const auto nr = Long(hypre_CSRMatrixNumRows(diag));
-    auto host_copy = [] (hypre_CSRMatrix* m, HYPRE_Int const* p, Long n) {
-        Vector<HYPRE_Int> h(n);
-        if (n > 0) {
-            hypre_TMemcpy(h.data(), p, HYPRE_Int, n, HYPRE_MEMORY_HOST,
-                          hypre_CSRMatrixMemoryLocation(m));
-        }
-        return h;
-    };
-    auto const di = host_copy(diag, hypre_CSRMatrixI(diag), nr+1);
-    auto const dj = host_copy(diag, hypre_CSRMatrixJ(diag), di[nr]);
-    auto const oi = host_copy(offd, hypre_CSRMatrixI(offd), nr+1);
-    auto const oj = host_copy(offd, hypre_CSRMatrixJ(offd), oi[nr]);
-    HYPRE_BigInt const* colmap = hypre_ParCSRMatrixColMapOffd(A); // host
-    const auto ncolmap = Long(hypre_CSRMatrixNumCols(offd));
-    const HYPRE_BigInt row0 = hypre_ParCSRMatrixFirstRowIndex(A);
-    const HYPRE_BigInt col0 = hypre_ParCSRMatrixFirstColDiag(A);
-    const HYPRE_BigInt col1 = hypre_ParCSRMatrixLastColDiag(A);
-
-    const auto ntot = Long(rows.size());
-    Vector<HYPRE_BigInt> hr(ntot), hc(ntot);
-    Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
-    Gpu::streamSynchronize();
-    Vector<Long> entry(ntot);
-    bool all_found = true;
-    for (Long n = 0; n < ntot && all_found; ++n) {
-        const Long r = Long(hr[n] - row0);
-        Long s = -1;
-        bool found = false;
-        if (r < 0 || r >= nr) {
-            // Only rows owned by this rank are assembled here
-            all_found = false;
-            break;
-        }
-        if (hc[n] >= col0 && hc[n] <= col1) {
-            const auto lc = HYPRE_Int(hc[n] - col0);
-            for (HYPRE_Int k = di[r]; k < di[r+1]; ++k) {
-                if (dj[k] == lc) { s = k; found = true; break; }
-            }
-        } else {
-            auto const* it = std::lower_bound(colmap, colmap+ncolmap, hc[n]);
-            if (it != colmap+ncolmap && *it == hc[n]) {
-                const auto lc = HYPRE_Int(it - colmap);
-                for (HYPRE_Int k = oi[r]; k < oi[r+1]; ++k) {
-                    if (oj[k] == lc) { s = Long(di[nr]) + k; found = true; break; }
-                }
-            }
-        }
-        all_found = found;
-        entry[n] = s;
-    }
-    // hypre may have dropped an entry: then all ranks keep the general path,
-    // whose assembly is collective
-    ParallelAllReduce::And(all_found, m_comm);
-    if (!all_found) {
-        m_ij_gather_failed = true; // for this matrix; not tried again
-        return;
-    }
-    define_gather(m_ij_gather.offset, m_ij_gather.trip, entry, Long(di[nr]) + Long(oi[nr]));
-#else
-    amrex::ignore_unused(rows, cols);
-#endif
-}
-
-void HypreMLABecLap::updateIJValues (Gpu::DeviceVector<Real> const& vals)
-{
-#if (AMREX_SPACEDIM > 1)
-    BL_PROFILE("HypreMLABecLap::updateIJValues()");
-    HYPRE_ParCSRMatrix parA = nullptr;
-    HYPRE_IJMatrixGetObject(m_ij_solver->A(), (void**) &parA);
-    auto* A = (hypre_ParCSRMatrix*) parA;
-    hypre_CSRMatrix* diag = hypre_ParCSRMatrixDiag(A);
-    hypre_CSRMatrix* offd = hypre_ParCSRMatrixOffd(A);
-    Real* dd = hypre_CSRMatrixData(diag);
-    Real* od = hypre_CSRMatrixData(offd);
-    const auto nd = Long(hypre_CSRMatrixNumNonzeros(diag));
-    const auto no = Long(hypre_CSRMatrixNumNonzeros(offd));
-    AMREX_ALWAYS_ASSERT(Long(m_ij_gather.offset.size()) == nd+no+1);
-    // hypre may still be using the matrix on its own stream
-    Gpu::hypreSynchronize();
-    auto const* go = m_ij_gather.offset.data();
-    auto const* gt = m_ij_gather.trip.data();
+    // A kept setup (the hypre solver setup or the AlgMG hierarchy) is for the
+    // matrix it was done with.  A later matrix is scaled to that matrix's
+    // 2-norm (of the triplet values, which fix the ratio) and solveIJ scales
+    // the right-hand side the same way: a uniform change of the coefficients,
+    // by a time step say, then leaves the kept setup exact, where its
+    // smoother weights and coarse corrections would otherwise grow with the
+    // change until the preconditioner diverges.
+    auto const n = Long(vals.size());
     auto const* v = vals.data();
-    amrex::ParallelFor(nd+no, [=] AMREX_GPU_DEVICE (Long e) noexcept
-    {
-        Real sum = 0.0;
-        for (Long k = go[e]; k < go[e+1]; ++k) { sum += v[gt[k]]; }
-        if (e < nd) { dd[e] = sum; } else { od[e-nd] = sum; }
-    });
-    Gpu::streamSynchronize(); // before hypre uses the matrix
-#else
-    amrex::ignore_unused(vals);
-#endif
+    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                             { return v[i]*v[i]; })
+                         : Real(0.0);
+    ParallelAllReduce::Sum(norm2, m_comm);
+    const bool new_setup = (m_backend == Backend::hypre)
+        ? (!m_ij_solver || m_ij_solver->setupPending())
+        : (!m_algmg || m_algmg_reset || !m_reuse_setup);
+    bool changed = false;
+    if (!new_setup && m_reuse_max_change > Real(0.0) && std::cmp_equal(m_setup_vals.size(), n) &&
+        m_setup_norm2 > Real(0.0) && norm2 > Real(0.0)) {
+        // The change of the scaled matrix since the setup, relative to the
+        // setup matrix (reuse_setup_max_change)
+        const Real s = std::sqrt(m_setup_norm2 / norm2);
+        auto const* v0 = m_setup_vals.data();
+        Real d2 = Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                    { Real d = s*v[i] - v0[i]; return d*d; });
+        ParallelAllReduce::Sum(d2, m_comm);
+        const Real change = std::sqrt(d2 / m_setup_norm2);
+        if (change > m_reuse_max_change) {
+            if (m_verbose) {
+                amrex::Print() << m_parmparse_prefix << ": the matrix changed by " << change
+                               << " since the kept setup; redoing the setup\n";
+            }
+            if (m_backend == Backend::hypre) { m_ij_solver->setNeedSetup(); }
+            else { m_algmg_reset = true; }
+            changed = true;
+        }
+    }
+    if (new_setup || changed || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
+        m_setup_norm2 = norm2;
+        m_matrix_scale = Real(1.0);
+        if (m_reuse_max_change > Real(0.0)) {
+            m_setup_vals.resize(n);
+            Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.end(), m_setup_vals.begin());
+            Gpu::streamSynchronize();
+        }
+    } else {
+        m_matrix_scale = std::sqrt(m_setup_norm2 / norm2);
+        const Real s = m_matrix_scale;
+        auto* pv = vals.data();
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { pv[i] *= s; });
+        Gpu::streamSynchronize();
+    }
 }
 
 void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
@@ -2225,6 +2149,11 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             });
         }
     }
+    if (m_matrix_scale != Real(1.0)) { // the matrix is scaled to the kept setup
+        const Real s = m_matrix_scale;
+        auto* pb = bvec.data();
+        amrex::ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { pb[i] *= s; });
+    }
     Gpu::streamSynchronize();
     BL_PROFILE_VAR_STOP(blp_load);
 
@@ -2248,15 +2177,17 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     Real final_res = 0.0;
     if (m_backend == Backend::hypre) {
         BL_PROFILE_VAR("HypreMLABecLap::ij_vectors_in", blp_vin);
-        if (m_ij_vectors_assembled) {
-            // Same layout: write into the assembled vectors directly
-            for (auto [v, src] : {std::pair{b, bvec.data()}, std::pair{x, xvec.data()}}) {
-                HYPRE_ParVector pv = nullptr;
-                HYPRE_IJVectorGetObject(v, (void**) &pv);
-                Real* dst = hypre_VectorData(hypre_ParVectorLocalVector((hypre_ParVector*) pv));
-                Gpu::copyAsync(Gpu::deviceToDevice, src, src+nrows, dst);
-            }
+        // Write into an assembled vector directly (the same layout)
+        auto set_assembled = [&] (HYPRE_IJVector v, Real const* src) {
+            HYPRE_ParVector pv = nullptr;
+            HYPRE_IJVectorGetObject(v, (void**) &pv);
+            Real* dst = hypre_VectorData(hypre_ParVectorLocalVector((hypre_ParVector*) pv));
+            Gpu::copyAsync(Gpu::deviceToDevice, src, src+nrows, dst);
             Gpu::streamSynchronize();
+        };
+        if (m_ij_vectors_assembled) {
+            set_assembled(b, bvec.data());
+            set_assembled(x, xvec.data());
         } else {
             HYPRE_IJVectorInitialize(b);
             HYPRE_IJVectorInitialize(x);
@@ -2272,20 +2203,33 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         }
         BL_PROFILE_VAR_STOP(blp_vin);
 
-        m_ij_solver->setThrowException(m_throw_exception);
         // A setup kept from an earlier matrix (setup reuse), not one done for
         // this solve
         const bool reused = m_reuse_setup && !m_ij_solver->setupPending();
-        m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+        // With a reused setup, a hypre error or a non-finite residual is
+        // caught (the residual norm is global, so every rank takes the same
+        // path) and retried below like a solve that does not converge; the
+        // caller's failure policy applies to the retry
+        m_ij_solver->setThrowException(m_throw_exception || reused);
+        bool blew_up = false;
+        try {
+            m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
+        } catch (std::runtime_error const&) {
+            if (!reused) { throw; }
+            blew_up = true;
+        }
+        m_ij_solver->setThrowException(m_throw_exception);
         num_iterations = static_cast<int>(m_ij_solver->getNumIters());
         final_res = m_ij_solver->getFinalResidualNorm();
-        if (reused && !(final_res <= a_reltol)) {
+        if (reused && (blew_up || !(final_res <= a_reltol))) {
             // The reused setup may have become too poor a preconditioner for
             // the current matrix: redo it and continue from the current x
+            // (from the initial guess after a blow-up)
             if (m_verbose) {
                 amrex::Print() << m_parmparse_prefix << ": no convergence with the reused setup ("
                                << num_iterations << " iterations); redoing the setup\n";
             }
+            if (blew_up || !std::isfinite(final_res)) { set_assembled(x, xvec.data()); }
             m_ij_solver->setNeedSetup();
             m_ij_solver->solve(a_reltol, Real(-1.0), m_maxiter);
             num_iterations += static_cast<int>(m_ij_solver->getNumIters());

@@ -116,8 +116,52 @@ public:
     //! Number of composite unknowns
     [[nodiscard]] BigInt numUnknowns () const { return m_nglobal; }
 
-    //! Internal: called by the constructor (public only for CUDA extended lambdas)
+    /**
+     * \brief Assemble the matrix again from the operator's current
+     * coefficients, for the following solves: the MLNodeLaplacian of the
+     * constructor with new values of sigma (the same grids, boundary
+     * conditions, masks and EB, so that the matrix pattern is unchanged).
+     * With setReuseSolverSetup(true) the values are updated in place and
+     * the hypre solver setup, or the AlgMG hierarchy, is kept (see
+     * HypreMLABecLap::setReuseSolverSetup); otherwise the setup is redone
+     * at the next solve.
+     */
+    void updateMatrix ();
+    /**
+     * \brief Keep the solver setup across updateMatrix() calls, as
+     * HypreMLABecLap::setReuseSolverSetup: the kept setup only
+     * approximates the updated operator, and a solve with it that does not
+     * converge redoes the setup and continues once before failing.  Can be
+     * set at any time.
+     */
+    void setReuseSolverSetup (bool v) noexcept { m_reuse_setup = v; }
+    //! With setup reuse, the matrix of a later updateMatrix() is scaled to
+    //! the 2-norm of the one the kept setup was done for, and the right-hand
+    //! side with it (as for HypreMLABecLap).  The factor of the last update.
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_matrix_scale; }
+    //! With setup reuse: redo the setup at the next solve when a solve with
+    //! a reused setup needs more than \p n iterations (0: never; this is
+    //! also `<prefix>.reuse_setup_max_iter`)
+    void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
+    //! Redo the setup at the next solve when the matrix, scaled to the kept
+    //! setup's, has changed by more than this fraction (2-norm) since that
+    //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
+    //! copy of the setup matrix's values.
+    void setReuseSetupMaxChange (Real f) noexcept { m_reuse_max_change = f; }
+    //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
+    void resetSolverSetup () {
+        if (m_ij) { m_ij->setNeedSetup(); }
+        m_algmg_reset = true;
+    }
+
+    //! Internal: called by the constructor and updateMatrix (public only
+    //! for CUDA extended lambdas)
     void buildMatrix ();
+    void rescaleToSetup (Gpu::DeviceVector<Real>& vals);
+    //! Internal: the assembled triplets (this rank's rows) to the backend's
+    //! matrix (public only for CUDA extended lambdas)
+    void populateMatrix (Gpu::DeviceVector<BigInt>& rows, Gpu::DeviceVector<BigInt>& cols,
+                         Gpu::DeviceVector<Real>& vals);
 
 private:
     using IdFab = BaseFab<Long>;
@@ -199,6 +243,29 @@ private:
     int m_num_iters = 0;
     Real m_final_res = 0.0;
     Real m_bnorm = 0.0;           // 2-norm of the assembled right-hand side
+
+    // Setup reuse (see HypreMLABecLap): in-place updates of the assembled
+    // matrix through the entry slots of the triplets, and whether the
+    // hypre matrix has been assembled once (then zeroed and assembled again)
+    bool m_reuse_setup = false;
+    int m_reuse_max_iter = 0;
+    // Setup reuse: the squared 2-norm of the matrix values the kept setup was
+    // done for, and the factor the current matrix is scaled by to match it
+    Real m_setup_norm2 = 0.0;
+    Real m_matrix_scale = 1.0;
+    Real m_reuse_max_change = 0.0;
+    Gpu::DeviceVector<Real> m_setup_vals; // with reuse_setup_max_change
+    bool m_matrix_assembled = false;
+    bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
+    composite::EntryGather m_ij_gather;
+    //! AlgMG backend: the pattern of the CSR matrix and the slots of the
+    //! triplets in it; a new hierarchy at the next update or solve; and
+    //! whether the last update kept the hierarchy
+    Gpu::DeviceVector<Long> m_alg_row_offset;
+    Gpu::DeviceVector<Long> m_alg_col_index;
+    composite::EntryGather m_alg_gather;
+    bool m_algmg_reset = false;
+    bool m_algmg_kept = false;
 };
 
 }

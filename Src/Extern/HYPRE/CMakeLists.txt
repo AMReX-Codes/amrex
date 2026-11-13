@@ -33,6 +33,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_HypreMLABecLap.H
           AMReX_HypreMLABecLap.cpp
           AMReX_CompositeSystemUtil.H
+          AMReX_CompositeSystemUtil.cpp
           AMReX_HypreMLNodeLap.H
           AMReX_HypreMLNodeLap.cpp
           AMReX_HypreMLABecLap_K.H

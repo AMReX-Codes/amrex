@@ -3,12 +3,14 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_AlgMG.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Scan.H>
 #include <AMReX_SpMatrix.H>
 #include <AMReX_Vector.H>
+#include <HYPRE_IJ_mv.h>
 
 #include <algorithm>
 #include <array>
@@ -24,7 +26,8 @@
  *
  * Helpers for the composite (all AMR levels) solvers such as
  * HypreMLABecLap: an owned-row CSR built from (row, column, value)
- * triplets, the AlgMG backend options, and Matrix Market output of the
+ * triplets, the in-place update of an assembled matrix from new triplets
+ * (setup reuse), the AlgMG backend options, and Matrix Market output of the
  * assembled systems for analysis outside AMReX.
  */
 
@@ -32,6 +35,70 @@ namespace amrex::composite {
 
 //! (row, column, value) of a matrix entry with global indices
 struct Triplet { Long row; Long col; Real val; };
+
+/**
+ * \brief With setup reuse, the triplets of later assemblies are summed
+ * directly into a matrix's value array, each entry adding its triplets in
+ * increasing triplet order so that the sums do not depend on thread
+ * scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
+ */
+struct EntryGather
+{
+    Gpu::DeviceVector<Long> offset;
+    Gpu::DeviceVector<Long> trip;
+    [[nodiscard]] bool empty () const { return offset.empty(); }
+    [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
+    void clear () { offset.clear(); trip.clear(); }
+};
+
+//! Group the triplets by the matrix entry they add to (entry[n] for triplet
+//! n, in [0, nentries)), keeping increasing triplet order within an entry
+inline void define_gather (EntryGather& g, Vector<Long> const& entry, Long nentries)
+{
+    const auto ntrip = Long(entry.size());
+    Vector<Long> offset(nentries+1, 0);
+    for (Long n = 0; n < ntrip; ++n) { ++offset[entry[n]+1]; }
+    for (Long e = 0; e < nentries; ++e) { offset[e+1] += offset[e]; }
+    Vector<Long> fill(offset.begin(), offset.end()-1);
+    Vector<Long> trip(ntrip);
+    for (Long n = 0; n < ntrip; ++n) { trip[fill[entry[n]]++] = n; }
+    g.offset.resize(nentries+1);
+    g.trip.resize(ntrip);
+    Gpu::copyAsync(Gpu::hostToDevice, offset.begin(), offset.end(), g.offset.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, trip.begin(), trip.end(), g.trip.begin());
+    Gpu::streamSynchronize();
+}
+
+//! The sum of the triplet values of each of the nentries entries of \p g,
+//! into out (on the device)
+inline void gather_sum (EntryGather const& g, Real const* vals, Real* out, Long nentries)
+{
+    AMREX_ALWAYS_ASSERT(Long(g.offset.size()) == nentries+1);
+    auto const* go = g.offset.data();
+    auto const* gt = g.trip.data();
+    amrex::ParallelFor(nentries, [=] AMREX_GPU_DEVICE (Long e) noexcept
+    {
+        Real sum = 0.0;
+        for (Long k = go[e]; k < go[e+1]; ++k) { sum += vals[gt[k]]; }
+        out[e] = sum;
+    });
+    Gpu::streamSynchronize();
+}
+
+/**
+ * \brief The entries of the assembled hypre IJ matrix \p A (its diag values
+ * first, then its offd values) that the triplets (\p rows, \p cols, all in
+ * this rank's rows) were summed into, as an EntryGather for in-place
+ * updates with ij_update_values.  Collective over \p comm: returns false on
+ * all ranks (and \p g empty) if hypre dropped an entry on any rank.
+ */
+bool ij_entry_slots (HYPRE_IJMatrix A, Gpu::DeviceVector<HYPRE_BigInt> const& rows,
+                     Gpu::DeviceVector<HYPRE_BigInt> const& cols, MPI_Comm comm,
+                     EntryGather& g);
+
+//! Overwrite the values of the assembled hypre IJ matrix \p A with the sums
+//! of the new triplet values \p vals, as grouped by ij_entry_slots
+void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector<Real> const& vals);
 
 //! Scientific notation for messages (std::to_string prints 0.000000 for 1e-7)
 inline std::string to_sci (double x)

@@ -165,33 +165,63 @@ MyTest::solve ()
                     }
                 }
             }
-            hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
-            for (int ilev = 0; ilev <= max_level; ++ilev) {
-                MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
-                MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
-                // const_solution: against the exact (constant) solution
-                MultiFab const& ref = const_solution ? exact_solution[ilev] : sol_mlmg[ilev];
-                MultiFab::Subtract(diff, ref, 0, 0, 1, 0);
-                // Singular (periodic) problems: solutions differ by a constant
-                const Real dmax = periodic ? Real(0.5)*(diff.max(0) - diff.min(0)) : diff.norm0();
-                const Real smax = ref.norm0();
-                std::string const rname = const_solution ? "exact" : "MLMG";
-                amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - " << rname << "| = "
-                               << dmax << " (max |" << rname << "| = " << smax << ")\n";
-                if (mlhypre_max_diff > Real(0.0) && !(dmax <= mlhypre_max_diff*smax)) {
-                    amrex::Abort("HypreMLNodeLap differs from " + rname + " by more than "
-                                 "mlhypre_max_diff on level " + std::to_string(ilev));
-                }
-                if (const_solution) { // MLMG must reproduce u = 1 as well
-                    MultiFab::Copy(diff, sol_mlmg[ilev], 0, 0, 1, 0);
-                    diff.plus(Real(-1.0), 0, 1, 0);
-                    const Real mmax = diff.norm0();
-                    amrex::Print() << "Level " << ilev << ": max |MLMG - exact| = " << mmax << "\n";
-                    if (mlhypre_max_diff > Real(0.0) && !(mmax <= mlhypre_max_diff)) {
-                        amrex::Abort("MLMG differs from exact by more than mlhypre_max_diff on level "
-                                     + std::to_string(ilev));
+            auto compare_with_mlmg = [&] ()
+            {
+                for (int ilev = 0; ilev <= max_level; ++ilev) {
+                    MultiFab diff(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
+                    MultiFab::Copy(diff, solution[ilev], 0, 0, 1, 0);
+                    // const_solution: against the exact (constant) solution
+                    MultiFab const& ref = const_solution ? exact_solution[ilev] : sol_mlmg[ilev];
+                    MultiFab::Subtract(diff, ref, 0, 0, 1, 0);
+                    // Singular (periodic) problems: solutions differ by a constant
+                    const Real dmax = periodic ? Real(0.5)*(diff.max(0) - diff.min(0)) : diff.norm0();
+                    const Real smax = ref.norm0();
+                    std::string const rname = const_solution ? "exact" : "MLMG";
+                    amrex::Print() << "Level " << ilev << ": max |HypreMLNodeLap - " << rname << "| = "
+                                   << dmax << " (max |" << rname << "| = " << smax << ")\n";
+                    if (mlhypre_max_diff > Real(0.0) && !(dmax <= mlhypre_max_diff*smax)) {
+                        amrex::Abort("HypreMLNodeLap differs from " + rname + " by more than "
+                                     "mlhypre_max_diff on level " + std::to_string(ilev));
+                    }
+                    if (const_solution) { // MLMG must reproduce u = 1 as well
+                        MultiFab::Copy(diff, sol_mlmg[ilev], 0, 0, 1, 0);
+                        diff.plus(Real(-1.0), 0, 1, 0);
+                        const Real mmax = diff.norm0();
+                        amrex::Print() << "Level " << ilev << ": max |MLMG - exact| = " << mmax << "\n";
+                        if (mlhypre_max_diff > Real(0.0) && !(mmax <= mlhypre_max_diff)) {
+                            amrex::Abort("MLMG differs from exact by more than mlhypre_max_diff on level "
+                                         + std::to_string(ilev));
+                        }
                     }
                 }
+            };
+            hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
+            compare_with_mlmg();
+            // mlhypre_num_solves > 1: sigma and the right-hand side scaled by
+            // 2 (the same solution), the matrix updated in place with the
+            // solver setup kept, and solved again from the same initial guess.
+            // A copy of sigma is scaled: the next trial solves the original
+            // problem again.
+            Vector<MultiFab> sigma2(max_level+1);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                sigma2[ilev].define(sigma[ilev].boxArray(), sigma[ilev].DistributionMap(),
+                                    1, sigma[ilev].nGrow());
+                MultiFab::Copy(sigma2[ilev], sigma[ilev], 0, 0, 1, sigma[ilev].nGrow());
+            }
+            for (int isolve = 1; isolve < mlhypre_num_solves; ++isolve) {
+                for (int ilev = 0; ilev <= max_level; ++ilev) {
+                    sigma2[ilev].mult(Real(2.0), 0, 1, sigma2[ilev].nGrow());
+                    hyp_rhs[ilev].mult(Real(2.0), 0, 1, 0);
+                    linop.setSigma(ilev, sigma2[ilev]);
+                    MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
+                    const Box& interior = amrex::surroundingNodes(
+                        amrex::grow(geom[ilev].Domain(), -1));
+                    solution[ilev].setVal(0.0, interior, 0, 1, 0);
+                }
+                hyp.setReuseSolverSetup(true);
+                hyp.updateMatrix();
+                hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
+                compare_with_mlmg();
             }
 #else
             amrex::Abort("use_mlhypre requires USE_HYPRE=TRUE");
@@ -354,6 +384,7 @@ MyTest::readParameters ()
     pp.query("fine_at_boundary", fine_at_boundary);
     pp.query("const_solution", const_solution);
     pp.query("mlhypre_nan_dirichlet_rhs", mlhypre_nan_dirichlet_rhs);
+    pp.query("mlhypre_num_solves", mlhypre_num_solves);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mlhypre_nan_dirichlet_rhs || (use_mlhypre && !periodic),
                                      "mlhypre_nan_dirichlet_rhs requires use_mlhypre = 1 and periodic = 0");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!const_solution || (use_mlhypre && !periodic),
