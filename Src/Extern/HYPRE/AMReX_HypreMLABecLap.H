@@ -140,6 +140,12 @@ public:
     //! the next solve when a solve with a reused setup needs more than \p n
     //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
+    //! IJ mode with setup reuse: redo the setup at the next solve when the
+    //! matrix, scaled to the kept setup's, has changed by more than this
+    //! fraction (2-norm) since that setup (0: never; this is also
+    //! `<prefix>.reuse_setup_max_change`).  Keeps a copy of the setup
+    //! matrix's values.
+    void setReuseSetupMaxChange (Real f) noexcept { m_reuse_max_change = f; }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {
         if (m_ij_solver) { m_ij_solver->setNeedSetup(); }
@@ -327,6 +333,8 @@ private:
     // done for, and the factor the current matrix is scaled by to match it
     Real m_setup_norm2 = 0.0;
     Real m_matrix_scale = 1.0;
+    Real m_reuse_max_change = 0.0;
+    Gpu::DeviceVector<Real> m_setup_vals; // with reuse_setup_max_change
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;

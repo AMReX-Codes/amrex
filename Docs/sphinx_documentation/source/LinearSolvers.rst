@@ -901,7 +901,13 @@ sparse matrix:
   with a reused setup that does not converge redoes the setup and continues
   once before failing; :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
   :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
-  with a reused setup needed more iterations.
+  with a reused setup needed more iterations, and
+  :cpp:`hypre_mlabeclap.reuse_setup_max_change` (or
+  :cpp:`setReuseSetupMaxChange`) when the matrix, scaled to the kept setup's,
+  has changed by more than that fraction (2-norm) since the setup: a kept
+  BoomerAMG setup stops converging once the matrix has changed by a few tens
+  of percent in a non-uniform way (0.2 is a reasonable value; it keeps a copy
+  of the setup matrix's values).
 
 - In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
   report the last solve; when a solve redid a reused setup and continued,
@@ -976,7 +982,8 @@ except next to small cut cells, see ``eb_scaling``).
   place and the hypre solver setup, or the AlgMG hierarchy, is kept, as for
   :cpp:`HypreMLABecLap` (the later matrix and right-hand side scaled to the
   kept setup's matrix): :cpp:`resetSolverSetup()`,
-  :cpp:`setReuseSetupMaxIter()` and ``hypre_mlnodelap.reuse_setup_max_iter``
+  :cpp:`setReuseSetupMaxIter()`, ``hypre_mlnodelap.reuse_setup_max_iter``,
+  :cpp:`setReuseSetupMaxChange()` and ``hypre_mlnodelap.reuse_setup_max_change``
   work the same way, and a solve with a reused setup that does not converge
   redoes the setup and continues once before failing.
 

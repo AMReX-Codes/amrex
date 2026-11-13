@@ -14,6 +14,7 @@
 #include <limits>
 #include <cmath>
 #include <stdexcept>
+#include <utility>
 #include <array>
 #include <numeric>
 
@@ -294,6 +295,7 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
         pp.query("reuse_setup_max_iter", m_reuse_max_iter);
+        pp.query("reuse_setup_max_change", m_reuse_max_change);
     }
 
     numberUnknowns();
@@ -911,9 +913,35 @@ void HypreMLNodeLap::rescaleToSetup (Gpu::DeviceVector<Real>& vals)
     const bool new_setup = (m_backend == Backend::hypre)
         ? (!m_ij || m_ij->setupPending())
         : (!m_algmg || m_algmg_reset || !m_reuse_setup);
-    if (new_setup || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
+    bool changed = false;
+    if (!new_setup && m_reuse_max_change > Real(0.0) && std::cmp_equal(m_setup_vals.size(), n) &&
+        m_setup_norm2 > Real(0.0) && norm2 > Real(0.0)) {
+        // The change of the scaled matrix since the setup, relative to the
+        // setup matrix (reuse_setup_max_change)
+        const Real s = std::sqrt(m_setup_norm2 / norm2);
+        auto const* v0 = m_setup_vals.data();
+        Real d2 = Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                    { Real d = s*v[i] - v0[i]; return d*d; });
+        ParallelAllReduce::Sum(d2, m_comm);
+        const Real change = std::sqrt(d2 / m_setup_norm2);
+        if (change > m_reuse_max_change) {
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": the matrix changed by " << change
+                               << " since the kept setup; redoing the setup\n";
+            }
+            if (m_backend == Backend::hypre) { m_ij->setNeedSetup(); }
+            else { m_algmg_reset = true; }
+            changed = true;
+        }
+    }
+    if (new_setup || changed || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
         m_setup_norm2 = norm2;
         m_matrix_scale = Real(1.0);
+        if (m_reuse_max_change > Real(0.0)) {
+            m_setup_vals.resize(n);
+            Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.end(), m_setup_vals.begin());
+            Gpu::streamSynchronize();
+        }
     } else {
         m_matrix_scale = std::sqrt(m_setup_norm2 / norm2);
         const Real s = m_matrix_scale;

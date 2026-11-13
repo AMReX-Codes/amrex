@@ -143,6 +143,11 @@ public:
     //! a reused setup needs more than \p n iterations (0: never; this is
     //! also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
+    //! Redo the setup at the next solve when the matrix, scaled to the kept
+    //! setup's, has changed by more than this fraction (2-norm) since that
+    //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
+    //! copy of the setup matrix's values.
+    void setReuseSetupMaxChange (Real f) noexcept { m_reuse_max_change = f; }
     //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
     void resetSolverSetup () {
         if (m_ij) { m_ij->setNeedSetup(); }
@@ -248,6 +253,8 @@ private:
     // done for, and the factor the current matrix is scaled by to match it
     Real m_setup_norm2 = 0.0;
     Real m_matrix_scale = 1.0;
+    Real m_reuse_max_change = 0.0;
+    Gpu::DeviceVector<Real> m_setup_vals; // with reuse_setup_max_change
     bool m_matrix_assembled = false;
     bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
     composite::EntryGather m_ij_gather;
