@@ -968,11 +968,12 @@ ifeq ($(BOUND_CHECK),TRUE)
   DEFINES += -DAMREX_BOUND_CHECK
 endif
 
+IndexSuffix :=
 ifeq ($(USE_ARRAY4_64BIT_INDEX),TRUE)
   DEFINES += -DAMREX_ARRAY4_64BIT_INDEX
-  IndexSuffix := .IDX64
-else
-  IndexSuffix :=
+  ifeq ($(USE_GPU),TRUE)
+    IndexSuffix := .IDX64
+  endif
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)

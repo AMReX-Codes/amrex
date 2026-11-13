@@ -571,8 +571,9 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BOUND_CHECK            |  Enable bound checking in Array4 class          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_ARRAY4_64BIT_INDEX     |  64-bit Array4 indexing; needed for an          | NO                      | YES, NO               |
-   |                              |  individual box of 2^31 or more points          |                         |                       |
+   | AMReX_ARRAY4_64BIT_INDEX     |  64-bit Array4 indexing in GPU builds; needed   | NO                      | YES, NO               |
+   |                              |  for an individual box of 2^31 or more points.  |                         |                       |
+   |                              |  No effect in CPU builds                        |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EXPORT_DYNAMIC         |  Enable backtrace on macOS                      | NO (unless Darwin)      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
