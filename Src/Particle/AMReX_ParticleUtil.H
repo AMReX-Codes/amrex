@@ -236,6 +236,54 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
     }
 }
 
+/**
+ * \brief Return the tile box with the given index.
+ *
+ * This is the inverse of getTileIndex with tiling turned on: the tiles of
+ * \p box are numbered in the same way, so that
+ * \code
+ *     Box tbx;
+ *     int tile_index = getTileIndex(iv, box, true, tile_size, tbx);
+ * \endcode
+ * implies `getTileBoxFromIndex(tile_index, box, tile_size) == tbx`.
+ * This is useful, for example, to recover the box of a bin from its
+ * index after particles have been binned by tile.
+ *
+ * \param tile_index index of the tile, in [0, numTilesInBox(box, true, tile_size))
+ * \param box        the box that is divided into tiles
+ * \param tile_size  the tile size
+ *
+ * \return the cell-centered box covered by the tile
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Box getTileBoxFromIndex (int tile_index, const Box& box, const IntVect& tile_size) noexcept
+{
+    //
+    // This function must be consistent with getTileIndex!!!
+    //
+    IntVect tilelo, tilehi;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const int lo = box.smallEnd(idim);
+        const int ncells = box.bigEnd(idim) - lo + 1;
+        const int ntile = amrex::max(ncells/tile_size[idim], 1);
+        const int itile = tile_index % ntile;
+        tile_index /= ntile;
+        const int ts_right = ncells/ntile;
+        const int ts_left  = ts_right+1;
+        const int nleft = ncells - ntile*ts_right;
+        if (itile < nleft) {
+            // tiles on the left of nleft have size of ts_left
+            tilelo[idim] = lo + itile*ts_left;
+            tilehi[idim] = tilelo[idim] + ts_left - 1;
+        } else {
+            // tiles on the right have size of ts_right
+            tilelo[idim] = lo + itile*ts_right + nleft;
+            tilehi[idim] = tilelo[idim] + ts_right - 1;
+        }
+    }
+    return Box(tilelo, tilehi);
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile_size)
 {
