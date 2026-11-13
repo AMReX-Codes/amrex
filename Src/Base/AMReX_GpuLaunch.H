@@ -23,6 +23,7 @@
 #include <AMReX_Algorithm.H>
 #include <AMReX_Math.H>
 #include <AMReX_Vector.H>
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <limits>
@@ -118,6 +119,14 @@ namespace Gpu {
 // ************************************************
 
 #ifdef AMREX_USE_GPU
+    // A grid-stride loop over a box with a 32-bit point index advances by
+    // (threads per block)*(blocks). For a box of at most 2^31 points this is
+    // at most 2^31 if the number of threads per block is a power of two, and
+    // then the index cannot wrap around.
+    static_assert(sizeof(amrex::detail::BoxIndexerUInt) > 4 ||
+                  std::has_single_bit(unsigned(AMREX_GPU_MAX_THREADS)),
+                  "AMREX_GPU_MAX_THREADS must be a power of two");
+
     struct ExecutionConfig {
         ExecutionConfig () noexcept {
             Gpu::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
@@ -152,6 +161,10 @@ namespace Gpu {
     ExecutionConfig
     makeExecutionConfig (Long N) noexcept
     {
+        // For the same reason as the static_assert on AMREX_GPU_MAX_THREADS.
+        static_assert(sizeof(amrex::detail::BoxIndexerUInt) > 4 ||
+                      std::has_single_bit(unsigned(MT)),
+                      "The number of threads per block must be a power of two");
         ExecutionConfig ec(dim3{}, dim3{});
         Long numBlocks = (std::max(N,Long(1)) + MT - 1) / MT;
         // ensure that blockDim.x*gridDim.x does not overflow
