@@ -2482,10 +2482,10 @@ BoxND<dim> makeSingleCellBox (IntVectND<dim> const& vect, IndexTypeND<dim> typ =
 }
 
 namespace detail {
-#ifdef AMREX_ARRAY4_64BIT_INDEX
-    using BoxIndexerUInt = std::uint64_t;
-#else
+#if defined(AMREX_USE_GPU) && !defined(AMREX_ARRAY4_64BIT_INDEX)
     using BoxIndexerUInt = std::uint32_t;
+#else
+    using BoxIndexerUInt = std::uint64_t;
 #endif
 }
 
@@ -2500,8 +2500,9 @@ namespace detail {
  * \tparam dim Box dimensionality.
  * \tparam UIntT Index type, std::uint32_t or std::uint64_t. The 32-bit version
  *         is much cheaper on GPUs, but limits the box to fewer than 2^31 points.
- *         The default is 32-bit unless AMREX_ARRAY4_64BIT_INDEX is defined. Use
- *         std::uint64_t for a large box that is not a fab box, e.g., a domain.
+ *         The default is 32-bit in GPU builds unless AMREX_ARRAY4_64BIT_INDEX is
+ *         defined, and 64-bit in CPU builds. Use std::uint64_t for a large box
+ *         that is not a fab box, e.g., a domain.
  */
 template<int dim, typename UIntT = detail::BoxIndexerUInt>
 struct BoxIndexerND

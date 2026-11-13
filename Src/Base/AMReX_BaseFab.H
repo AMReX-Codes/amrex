@@ -120,10 +120,10 @@ struct NumComps {
 namespace detail {
 //! In GPU builds, Array4 computes offsets within a component with 32-bit
 //! integers (see ArrayND::offset4), so a box must have fewer than 2^31 points.
-//! The limit applies to all builds, so that behavior does not depend on the build.
+//! CPU builds have no such limit.
 inline void check_array4_index_range (Box const& bx)
 {
-#ifndef AMREX_ARRAY4_64BIT_INDEX
+#if defined(AMREX_USE_GPU) && !defined(AMREX_ARRAY4_64BIT_INDEX)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bx.numPts() <= Long(std::numeric_limits<int>::max()),
         "BaseFab: box has too many points for 32-bit Array4 indexing; "
         "build with USE_ARRAY4_64BIT_INDEX=TRUE (GNU Make) or AMReX_ARRAY4_64BIT_INDEX=ON (CMake)");

@@ -84,11 +84,12 @@ list of important variables.
 
    \end{center}
 
-A single box of a :cpp:`FArrayBox` or other :cpp:`BaseFab`, or a box passed to
-:cpp:`ParallelFor` in a GPU build, must have fewer than :math:`2^{31}` points.
+In a GPU build, a single box of a :cpp:`FArrayBox` or other :cpp:`BaseFab`, or
+a box passed to :cpp:`ParallelFor`, must have fewer than :math:`2^{31}` points.
 The limit applies to each box individually, not to the total number of points
 on a process or in the domain. Set ``USE_ARRAY4_64BIT_INDEX = TRUE`` if a single
-box has :math:`2^{31}` or more points, at some cost in GPU performance.
+box has :math:`2^{31}` or more points, at some cost in GPU performance. CPU
+builds have no such limit.
 
 At the beginning of ``amrex-tutorials/Base/HelloWorld/GNUmakefile``,
 ``AMREX_HOME`` is set to the path to the top directory of AMReX.  Note that in
