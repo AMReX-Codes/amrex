@@ -48,9 +48,9 @@ workflow:
         git checkout FETCH_HEAD
       fi
 
-Nvidia-H100-single-precision:
+Nvidia-H200-single-precision:
   extends: .dependency-n-fetch-pr
-  tags: [nvidia-h100]
+  tags: [nvidia-h200]
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
   script:
     - |
@@ -81,13 +81,13 @@ Nvidia-H100-single-precision:
     # with the test status; a failed submission never fails the job.
     - |
       status=0
-      ctest -j 2 --test-dir build --output-on-failure || status=$?
+      ctest -j 4 --test-dir build --output-on-failure || status=$?
       if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
         CDASH_SOURCE_DIR="$CI_PROJECT_DIR" \
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
-        CDASH_BUILD_NAME="nvidia-h100-cuda-single" \
+        CDASH_BUILD_NAME="nvidia-h200-cuda-single" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 4 || true
       fi
       exit $status
 
@@ -130,7 +130,7 @@ AMD-MI300A:
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
         CDASH_BUILD_NAME="amd-mi300a-hip" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 2 || true
       fi
       exit $status
 
@@ -169,7 +169,7 @@ Intel-PVC:
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
         CDASH_BUILD_NAME="intel-pvc-sycl" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 4 || true
       fi
       exit $status
 
