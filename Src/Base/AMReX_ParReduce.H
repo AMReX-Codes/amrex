@@ -370,8 +370,8 @@ struct ParReduceComp
                 BoxIndexer const& indexer = pbx[L];
                 RT t;
                 for_each_init<0, RT, Ops...>(t);
-                for (auto icell = std::uint64_t(bb-poff[L])*MT + threadIdx.x;
-                     icell < indexer.numPts(); icell += std::uint64_t(nb)*MT)
+                for (auto icell = BoxIndexer::UInt(bb-poff[L])*MT + BoxIndexer::UInt(threadIdx.x);
+                     icell < indexer.numPts(); icell += BoxIndexer::UInt(nb)*MT)
                 {
                     auto [i, j, k] = indexer(icell);
                     for_each_local<0, RT, Ops...>(t, f(L,i,j,k,n));

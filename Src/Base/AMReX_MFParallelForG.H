@@ -103,7 +103,7 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
              {
                  std::uint32_t ibox, iblock;
                  fdm_box(ibox, iblock, blockIdx.x);
-                 auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
+                 auto icell = BoxIndexer::UInt(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -114,7 +114,7 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
                  int threadIdxx = item.get_local_linear_id();
                  std::uint32_t ibox, iblock;
                  fdm_box(ibox, iblock, blockIdxx);
-                 auto icell = std::uint64_t(iblock)*MT + threadIdxx;
+                 auto icell = BoxIndexer::UInt(iblock)*MT + threadIdxx;
 #endif
                  BoxIndexer const& indexer = dp_boxes[ibox];
                  if (icell < indexer.numPts()) {
@@ -175,7 +175,7 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
          {
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdx.x);
-             auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
+             auto icell = BoxIndexer::UInt(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -186,7 +186,7 @@ ParallelForStrided_doit (MF const& mf, IntVect const& stride, IntVect const& off
              int threadIdxx = item.get_local_linear_id();
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdxx);
-             auto icell = std::uint64_t(iblock)*MT + threadIdxx;
+             auto icell = BoxIndexer::UInt(iblock)*MT + threadIdxx;
 #endif
              BoxIndexer const& indexer = dp_boxes[ibox];
              if (icell < indexer.numPts()) {
@@ -227,7 +227,7 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
          {
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdx.x);
-             auto icell = std::uint64_t(iblock)*MT + threadIdx.x;
+             auto icell = BoxIndexer::UInt(iblock)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -238,7 +238,7 @@ ParallelForRedBlack_doit (MF const& mf, int redblack, F const& f)
              int threadIdxx = item.get_local_linear_id();
              std::uint32_t ibox, iblock;
              fdm_box(ibox, iblock, blockIdxx);
-             auto icell = std::uint64_t(iblock)*MT + threadIdxx;
+             auto icell = BoxIndexer::UInt(iblock)*MT + threadIdxx;
 #endif
              // The box coarsened by 2 in x, and the box's x bounds.
              BoxIndexer const& indexer = dp_boxes[ibox];

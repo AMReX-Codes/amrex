@@ -286,7 +286,7 @@ Result run (Params const& p)
 
     Real a = p.alpha;
 
-    BoxIndexer box_indexer(domain);
+    BoxIndexerND<AMREX_SPACEDIM,std::uint64_t> box_indexer(domain);
 
     {
         auto* rhs = bvec.data();
