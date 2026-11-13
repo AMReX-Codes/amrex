@@ -87,7 +87,7 @@ Nvidia-H200-single-precision:
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
         CDASH_BUILD_NAME="nvidia-h200-cuda-single" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 4 || true
       fi
       exit $status
 
@@ -130,7 +130,7 @@ AMD-MI300A:
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
         CDASH_BUILD_NAME="amd-mi300a-hip" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 2 || true
       fi
       exit $status
 
@@ -169,7 +169,7 @@ Intel-PVC:
         CDASH_BINARY_DIR="$CI_PROJECT_DIR/build" \
         CDASH_BUILD_NAME="intel-pvc-sycl" \
         CDASH_SITE="hpsf-gitlab" \
-        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" || true
+        ctest -S "$CI_PROJECT_DIR/Tools/CTest/submit.cmake" -j 4 || true
       fi
       exit $status
 
