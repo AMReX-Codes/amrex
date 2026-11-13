@@ -385,6 +385,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
             Gpu::streamSynchronize();
             communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, pinned_rcv_buffer);
         } else {
+            pinned_snd_buffer.clear(); // avoid copying stale data on growth
             pinned_snd_buffer.resize(snd_buffer.size());
             Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
             neighbor_copy_plan.buildMPIFinish(this->BufferMap());
@@ -392,6 +393,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
             communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
 
+        rcv_buffer.clear(); // avoid copying stale data on growth
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
         communicateParticlesFinish(neighbor_copy_plan);

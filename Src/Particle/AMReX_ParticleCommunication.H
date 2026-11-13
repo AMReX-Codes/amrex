@@ -609,6 +609,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         snd_buffer.free_async();
         snd_buffer.setArena(The_Pinned_Arena());
     }
+    // The old contents are not needed; clear first so that growing the
+    // buffer does not copy stale data into the new allocation.
+    snd_buffer.clear();
     snd_buffer.resize(total_buffer_size);
 
     const auto* p_comm_real = plan.d_real_comp_mask.dataPtr();
@@ -948,6 +951,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     Gpu::copy(Gpu::hostToDevice, plan.m_rcv_pad_correction_h.begin(), plan.m_rcv_pad_correction_h.end(),
               plan.m_rcv_pad_correction_d.begin());
 
+    // The old contents are not needed; clear first so that growing the
+    // buffer does not copy stale data into the new allocation.
+    rcv_buffer.clear();
     rcv_buffer.resize(TotRcvBytes);
 
     plan.m_nrcvs = int(RcvProc.size());
