@@ -3,6 +3,7 @@
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_Scan.H>
 
 #ifdef AMREX_USE_EB
@@ -888,7 +889,38 @@ void HypreMLNodeLap::buildMatrix ()
     // pattern), for the in-place updates and the dumps
     composite::localize_triplets(rows, cols, vals, Long(m_ilower), m_iupper - m_ilower + 1,
                                  m_rank_offset, m_comm);
+    rescaleToSetup(vals);
     populateMatrix(rows, cols, vals);
+}
+
+void HypreMLNodeLap::rescaleToSetup (Gpu::DeviceVector<Real>& vals)
+{
+    // A kept setup (the hypre solver setup or the AlgMG hierarchy) is for the
+    // matrix it was done with.  A later matrix is scaled to that matrix's
+    // 2-norm (of the triplet values, which fix the ratio) and loadRHS scales
+    // the right-hand side the same way: a uniform change of sigma, by a time
+    // step say, then leaves the kept setup exact, where its smoother weights
+    // and coarse corrections would otherwise grow with the change until the
+    // preconditioner diverges.
+    auto const n = Long(vals.size());
+    auto const* v = vals.data();
+    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                             { return v[i]*v[i]; })
+                         : Real(0.0);
+    ParallelAllReduce::Sum(norm2, m_comm);
+    const bool new_setup = (m_backend == Backend::hypre)
+        ? (!m_ij || m_ij->setupPending())
+        : (!m_algmg || m_algmg_reset || !m_reuse_setup);
+    if (new_setup || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
+        m_setup_norm2 = norm2;
+        m_matrix_scale = Real(1.0);
+    } else {
+        m_matrix_scale = std::sqrt(m_setup_norm2 / norm2);
+        const Real s = m_matrix_scale;
+        auto* pv = vals.data();
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { pv[i] *= s; });
+        Gpu::streamSynchronize();
+    }
 }
 
 void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
@@ -1140,10 +1172,10 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
         }
     }
 
-    // Scaled system: b' = s b
+    // Scaled system: b' = s b, and the matrix scale of the kept setup
     Real bnorm2 = 0.0;
     for (Long r = 0; r < nrows; ++r) {
-        bvec[r] *= svec[r];
+        bvec[r] *= svec[r] * m_matrix_scale;
         bnorm2 += bvec[r]*bvec[r];
     }
     ParallelAllReduce::Sum(bnorm2, m_comm);
@@ -1278,8 +1310,9 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     const Real fine_vol = AMREX_D_TERM(m_geom.back().CellSize(0),
                                        *m_geom.back().CellSize(1),
                                        *m_geom.back().CellSize(2));
+    // Also scaled like the right-hand side, to the kept setup
     const Real abstol = (a_abstol > Real(0.0))
-        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) : Real(0.0);
+        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) * m_matrix_scale : Real(0.0);
 
     if (m_backend == Backend::hypre) {
         Gpu::DeviceVector<BigInt> d_rows(nrows);

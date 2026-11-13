@@ -135,6 +135,10 @@ public:
      * set at any time.
      */
     void setReuseSolverSetup (bool v) noexcept { m_reuse_setup = v; }
+    //! With setup reuse, the matrix of a later updateMatrix() is scaled to
+    //! the 2-norm of the one the kept setup was done for, and the right-hand
+    //! side with it (as for HypreMLABecLap).  The factor of the last update.
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_matrix_scale; }
     //! With setup reuse: redo the setup at the next solve when a solve with
     //! a reused setup needs more than \p n iterations (0: never; this is
     //! also `<prefix>.reuse_setup_max_iter`)
@@ -148,6 +152,7 @@ public:
     //! Internal: called by the constructor and updateMatrix (public only
     //! for CUDA extended lambdas)
     void buildMatrix ();
+    void rescaleToSetup (Gpu::DeviceVector<Real>& vals);
     //! Internal: the assembled triplets (this rank's rows) to the backend's
     //! matrix (public only for CUDA extended lambdas)
     void populateMatrix (Gpu::DeviceVector<BigInt>& rows, Gpu::DeviceVector<BigInt>& cols,
@@ -239,6 +244,10 @@ private:
     // hypre matrix has been assembled once (then zeroed and assembled again)
     bool m_reuse_setup = false;
     int m_reuse_max_iter = 0;
+    // Setup reuse: the squared 2-norm of the matrix values the kept setup was
+    // done for, and the factor the current matrix is scaled by to match it
+    Real m_setup_norm2 = 0.0;
+    Real m_matrix_scale = 1.0;
     bool m_matrix_assembled = false;
     bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
     composite::EntryGather m_ij_gather;

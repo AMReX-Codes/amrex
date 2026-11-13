@@ -894,9 +894,12 @@ sparse matrix:
   with new coefficients (on the same grids) updates the matrix values in
   place and keeps the solver setup (with the AlgMG backend, the hierarchy:
   :cpp:`AlgMG::updateMatrix`) until :cpp:`resetSolverSetup()`.  It can be
-  turned on before or after the first :cpp:`setup`.  A solve with a reused
-  setup that does not converge redoes the setup and continues once before
-  failing; :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
+  turned on before or after the first :cpp:`setup`.  The matrix of a later
+  :cpp:`setup` is scaled to the 2-norm of the one the kept setup was done
+  for, and the right-hand side with it, so that a uniform change of the
+  coefficients (by a time step, say) leaves the kept setup exact.  A solve
+  with a reused setup that does not converge redoes the setup and continues
+  once before failing; :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
   :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
   with a reused setup needed more iterations.
 
@@ -971,7 +974,8 @@ except next to small cut cells, see ``eb_scaling``).
   masks), for example for a projection whose coefficient changes every time
   step.  With :cpp:`setReuseSolverSetup(true)` the values are updated in
   place and the hypre solver setup, or the AlgMG hierarchy, is kept, as for
-  :cpp:`HypreMLABecLap`: :cpp:`resetSolverSetup()`,
+  :cpp:`HypreMLABecLap` (the later matrix and right-hand side scaled to the
+  kept setup's matrix): :cpp:`resetSolverSetup()`,
   :cpp:`setReuseSetupMaxIter()` and ``hypre_mlnodelap.reuse_setup_max_iter``
   work the same way, and a solve with a reused setup that does not converge
   redoes the setup and continues once before failing.

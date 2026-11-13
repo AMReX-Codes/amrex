@@ -131,6 +131,11 @@ public:
      * types and whether setEBDirichlet() was called must not change.
      */
     void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    //! With setup reuse, the matrix of a later setup() is scaled to the
+    //! 2-norm of the one the kept setup was done for, and the right-hand side
+    //! with it: a uniform change of the coefficients (by a time step, say)
+    //! leaves the kept setup exact.  The factor of the last setup.
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_matrix_scale; }
     //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
     //! the next solve when a solve with a reused setup needs more than \p n
     //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
@@ -204,6 +209,7 @@ public:
     void buildIJMaps ();
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
+    void rescaleToSetup (Gpu::DeviceVector<Real>& vals);
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                   Real a_reltol, Real a_abstol);
 
@@ -317,6 +323,10 @@ private:
     //! AlgMG backend: the last setup kept the hierarchy
     bool m_algmg_kept = false;
     int m_reuse_max_iter = 0;
+    // Setup reuse: the squared 2-norm of the matrix values the kept setup was
+    // done for, and the factor the current matrix is scaled by to match it
+    Real m_setup_norm2 = 0.0;
+    Real m_matrix_scale = 1.0;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;

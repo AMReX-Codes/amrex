@@ -1207,6 +1207,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 ntot = Long(rows.size());
             }
         }
+        rescaleToSetup(vals);
         // In-place update of the assembled matrix (setup reuse)
         const bool direct = (m_backend == Backend::hypre) && !m_ij_gather.empty();
         if (direct) {
@@ -2015,6 +2016,36 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
 #endif
 }
 
+void HypreMLABecLap::rescaleToSetup (Gpu::DeviceVector<Real>& vals)
+{
+    // A kept setup (the hypre solver setup or the AlgMG hierarchy) is for the
+    // matrix it was done with.  A later matrix is scaled to that matrix's
+    // 2-norm (of the triplet values, which fix the ratio) and solveIJ scales
+    // the right-hand side the same way: a uniform change of the coefficients,
+    // by a time step say, then leaves the kept setup exact, where its
+    // smoother weights and coarse corrections would otherwise grow with the
+    // change until the preconditioner diverges.
+    auto const n = Long(vals.size());
+    auto const* v = vals.data();
+    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                             { return v[i]*v[i]; })
+                         : Real(0.0);
+    ParallelAllReduce::Sum(norm2, m_comm);
+    const bool new_setup = (m_backend == Backend::hypre)
+        ? (!m_ij_solver || m_ij_solver->setupPending())
+        : (!m_algmg || m_algmg_reset || !m_reuse_setup);
+    if (new_setup || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
+        m_setup_norm2 = norm2;
+        m_matrix_scale = Real(1.0);
+    } else {
+        m_matrix_scale = std::sqrt(m_setup_norm2 / norm2);
+        const Real s = m_matrix_scale;
+        auto* pv = vals.data();
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { pv[i] *= s; });
+        Gpu::streamSynchronize();
+    }
+}
+
 void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                               Real a_reltol, Real a_abstol)
 {
@@ -2090,6 +2121,11 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
                 hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
             });
         }
+    }
+    if (m_matrix_scale != Real(1.0)) { // the matrix is scaled to the kept setup
+        const Real s = m_matrix_scale;
+        auto* pb = bvec.data();
+        amrex::ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { pb[i] *= s; });
     }
     Gpu::streamSynchronize();
     BL_PROFILE_VAR_STOP(blp_load);
