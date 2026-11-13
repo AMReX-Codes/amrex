@@ -152,6 +152,8 @@ jobs:
             amrex.fpe_trap_invalid=0
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 eb_neumann=1 \
             hypre_mlabeclap.backend=algmg mlhypre_num_setups=3
+        # b at the face centroids (prob_type=2: a variable b)
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs.mlhypre.cyl n_cell=32 prob_type=2 beta_on_centroid=1
         # an L-shaped fine level with a coarse cut cell at its concave corner;
         # a = 0 given or no a at all: the same solution
         for i in 0 1; do
@@ -273,11 +275,14 @@ jobs:
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre max_level=0
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre beta_on_centroid=1
         for b in hypre algmg; do
             mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.backend=$b
             mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl hypre_mlabeclap.backend=$b \
                 eb_neumann=1 mlhypre_num_setups=3 acoef=1
         done
+        # b at the face centroids (prob_type=2: a variable b)
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl prob_type=2 beta_on_centroid=1
         # three levels; NaN in the cells the system does not use must not matter
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.mlhypre.cyl max_level=2 fine_shrink=0.03125 \
             nan_in_covered=1 amrex.fpe_trap_invalid=0
