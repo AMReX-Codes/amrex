@@ -1258,12 +1258,6 @@ Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
                 const Vector<MultiFab const*>& a_rhs,
                  Real a_tol_rel, Real a_tol_abs);
 
-The solver supports hierarchies in which refined levels touch the domain
-boundary, including fully refined intermediate AMR levels.  It extends the
-grids that touch the boundary with source-free support cells outside the
-original domain, which preserves proper nesting on the enlarged domain used
-by James's method.
-
 
 .. _sec:linearsolver:crossproj:
 
