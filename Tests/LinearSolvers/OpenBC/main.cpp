@@ -8,12 +8,19 @@ using namespace amrex;
 
 namespace {
 
-void solve_hierarchy (int nlevels, bool corner_refined)
+enum struct Refinement { full, corner, face };
+
+void solve_hierarchy (int nlevels, Refinement refinement)
 {
-    // fully refined: every level covers its whole domain.
-    // corner refined: every fine level is a single 32^3 grid touching the
-    // low corner of the domain, so support grids recurse through many levels.
-    int const n_cell = corner_refined ? 32 : 8;
+    // full: every level covers its whole domain.
+    // corner: every fine level is a single 32^3 grid touching the low corner
+    // of the domain, so support grids are needed on many levels and along
+    // the exterior edges and corner.
+    // face: every fine level is an 8x16x16 patch of 8^3 grids in the middle
+    // of the high-x face. Each patch is nested in its parent with a margin of
+    // only 4 coarse cells along the face, so support grids must not be wider
+    // than the grids they extend.
+    int const n_cell = (refinement == Refinement::full) ? 8 : 32;
 
     Vector<Geometry> geom(nlevels);
     Vector<BoxArray> grids(nlevels);
@@ -29,12 +36,15 @@ void solve_hierarchy (int nlevels, bool corner_refined)
         Box const domain(IntVect(0), IntVect(nc-1));
         geom[lev].define(domain, real_box, CoordSys::cartesian, periodic);
 
-        if (corner_refined && lev > 0) {
+        if (refinement == Refinement::corner && lev > 0) {
             grids[lev].define(Box(IntVect(0), IntVect(31)));
+        } else if (refinement == Refinement::face && lev > 0) {
+            grids[lev].define(Box(IntVect(nc-8, nc/2-8, nc/2-8),
+                                  IntVect(nc-1, nc/2+7, nc/2+7)));
         } else {
             grids[lev].define(domain);
         }
-        grids[lev].maxSize(16);
+        grids[lev].maxSize((refinement == Refinement::face) ? 8 : 16);
         dmap[lev].define(grids[lev]);
 
         phi[lev].define(grids[lev], dmap[lev], 1, 1);
@@ -77,10 +87,13 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     {
         for (int nlevels = 2; nlevels <= 5; ++nlevels) {
-            solve_hierarchy(nlevels, false);
+            solve_hierarchy(nlevels, Refinement::full);
         }
         for (int nlevels = 2; nlevels <= 7; ++nlevels) {
-            solve_hierarchy(nlevels, true);
+            solve_hierarchy(nlevels, Refinement::corner);
+        }
+        for (int nlevels = 2; nlevels <= 7; ++nlevels) {
+            solve_hierarchy(nlevels, Refinement::face);
         }
     }
     amrex::Finalize();
