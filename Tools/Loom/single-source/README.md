@@ -58,10 +58,10 @@ tests which back end it is compiled for.
 ```bash
 mkdir loom-work && cd loom-work
 git clone -b loom-single-source https://github.com/BenWibking/cplusplus.git cplusplus
-git clone -b loom-single-source https://github.com/BenWibking/hrx.git hrx
+git clone -b loom-single-source-next https://github.com/BenWibking/hrx.git hrx
 git clone -b loom-single-source https://github.com/BenWibking/amrex.git amrex
 git -C cplusplus checkout --detach 0caf64b6ee   # pinned cxx commit
-git -C hrx checkout --detach 8c5ab018a4         # pinned HRX commit
+git -C hrx checkout --detach f30f761986         # pinned HRX commit
 
 S=$PWD/amrex/Tools/Loom/single-source
 pixi install --manifest-path $S/pixi.toml   # conda-forge toolchain pieces
