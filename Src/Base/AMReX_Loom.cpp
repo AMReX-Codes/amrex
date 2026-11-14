@@ -30,8 +30,14 @@
 #include <map>
 #include <mutex>
 #include <random>
+#include <string>
 #include <unordered_map>
 #include <vector>
+
+#if defined(__linux__)
+#include <dirent.h>
+#include <sched.h>
+#endif
 
 namespace {
 
@@ -150,6 +156,31 @@ void check(hrx_status_t status, const char* what) {
 
 void shutdown();
 
+// NUMA node of the CPU the calling thread runs on, or -1 if unknown. HRX pins
+// its device threads to node 0 unless the device URI names a host node, and
+// fails device creation when the process may not run there (a batch job whose
+// CPUs are all on another node).
+int current_numa_node() {
+#if defined(__linux__)
+  const int cpu = sched_getcpu();
+  if (cpu < 0) return -1;
+  char path[64];
+  std::snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d", cpu);
+  DIR* dir = opendir(path);
+  if (!dir) return -1;
+  int node = -1;
+  while (const dirent* entry = readdir(dir)) {
+    char tail = 0;
+    if (std::sscanf(entry->d_name, "node%d%c", &node, &tail) == 1) break;
+    node = -1;
+  }
+  closedir(dir);
+  return node;
+#else
+  return -1;
+#endif
+}
+
 void initialize() {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   if (g_initialized) return;
@@ -166,7 +197,14 @@ void initialize() {
     std::fprintf(stderr, "amrex loom: no amdgpu devices available\n");
     std::abort();
   }
-  const hrx_device_create_params_t params = {infos[0].uri, HRX_WAIT_FLAG_YIELD};
+  // Place HRX's device threads on this thread's NUMA node, which the process
+  // is allowed to use.
+  std::string uri = infos[0].uri;
+  if (const int node = current_numa_node(); node >= 0) {
+    uri += (uri.find('?') == std::string::npos ? '?' : '&');
+    uri += "host_numa_node=" + std::to_string(node);
+  }
+  const hrx_device_create_params_t params = {uri.c_str(), HRX_WAIT_FLAG_YIELD};
   hrx_status_t created = hrx_device_group_create(g_runtime, 1, &params, &g_group);
   hrx_host_allocator_free(allocator, infos);
   check(created, "hrx_device_group_create");
