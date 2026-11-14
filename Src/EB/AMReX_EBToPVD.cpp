@@ -19,12 +19,6 @@ amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amr
    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
 
-bool intersects(amrex::Real val)
-{
-   // alpha is dimensionless; allow roundoff at both ends of a cell edge.
-   return (val >= -intersection_tol && val <= Real(1) + intersection_tol);
-}
-
 }
 
 void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
@@ -71,7 +65,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                normal[1] = ady * apnorminv;
                normal[2] = adz * apnorminv;
 
-               // Work relative to vertex 0 to avoid cancellation in calc_alpha.
+               // Work relative to vertex 0 to avoid cancellation in plane distances.
                centroid[0] = (bcent(i,j,k,0) + Real(0.5))*dx[0];
                centroid[1] = (bcent(i,j,k,1) + Real(0.5))*dx[1];
                centroid[2] = (bcent(i,j,k,2) + Real(0.5))*dx[2];
@@ -97,12 +91,10 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                int count;
                Real distance, p;
                std::array<Real,3> n0;
-               std::array<Real,12> alpha;
-               std::array<bool,12> alpha_intersect;
+               std::array<std::array<Real,3>,12> apoints{};
 
                calc_hesse(distance, n0, p, normal, centroid);
-               calc_alpha(alpha, n0, p, vertex, dx);
-               calc_intersects(count, alpha_intersect, alpha);
+               calc_intersects(count, apoints, n0, p, vertex, dx);
 
                // If the number of facet "contained" in does not describe a facet:
                // ... I.e. there's less than 3 (not even a triangle) or more than 6
@@ -114,8 +106,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   int count_d;
                   Real p_d;
                   std::array<Real,3> n0_d;
-                  std::array<Real,12> alpha_d;
-                  std::array<bool,12> alpha_d_intersect;
+                  std::array<std::array<Real,3>,12> apoints_d{};
 
                   Real tol = std::min({dx[0], dx[1], dx[2]})/Real(100.); // bit of a fudge factor
 
@@ -125,12 +116,10 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   }
 
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
-                  calc_alpha(alpha_d, n0_d, p_d, vertex, dx);
-                  calc_intersects(count_d, alpha_d_intersect, alpha_d);
+                  calc_intersects(count_d, apoints_d, n0_d, p_d, vertex, dx);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
-                     alpha = alpha_d;
-                     alpha_intersect = alpha_d_intersect;
+                     apoints = apoints_d;
                   }
 
                   for(int idim = 0; idim < 3; ++idim) {
@@ -138,12 +127,10 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   }
 
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
-                  calc_alpha(alpha_d, n0_d, p_d, vertex, dx);
-                  calc_intersects(count_d, alpha_d_intersect, alpha_d);
+                  calc_intersects(count_d, apoints_d, n0_d, p_d, vertex, dx);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
-                     alpha = alpha_d;
-                     alpha_intersect = alpha_d_intersect;
+                     apoints = apoints_d;
                   }
                }
                // I know this was a bit of a hack, but it's the only way I prevent
@@ -152,36 +139,10 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                if((count >=3) && (count <=6)) {
                   m_connectivity.push_back({0,0,0,0,0,0,0});
 
-                  // calculate intersection points.
-                  std::array<std::array<Real,3>,12> apoints;
-
-                  std::array<Real,3> ihat = {1, 0, 0};
-                  std::array<Real,3> jhat = {0, 1, 0};
-                  std::array<Real,3> khat = {0, 0, 1};
-
-                  for(int idim = 0; idim < 3; ++idim) {
-                     apoints[ 0][idim] = vertex[0][idim] + ihat[idim]*dx[0]*alpha[ 0];
-                     apoints[ 1][idim] = vertex[1][idim] + jhat[idim]*dx[1]*alpha[ 1];
-                     apoints[ 2][idim] = vertex[2][idim] + ihat[idim]*dx[0]*alpha[ 2];
-                     apoints[ 3][idim] = vertex[0][idim] + jhat[idim]*dx[1]*alpha[ 3];
-                     apoints[ 4][idim] = vertex[0][idim] + khat[idim]*dx[2]*alpha[ 4];
-                     apoints[ 5][idim] = vertex[1][idim] + khat[idim]*dx[2]*alpha[ 5];
-                     apoints[ 6][idim] = vertex[3][idim] + khat[idim]*dx[2]*alpha[ 6];
-                     apoints[ 7][idim] = vertex[2][idim] + khat[idim]*dx[2]*alpha[ 7];
-                     apoints[ 8][idim] = vertex[4][idim] + ihat[idim]*dx[0]*alpha[ 8];
-                     apoints[ 9][idim] = vertex[5][idim] + jhat[idim]*dx[1]*alpha[ 9];
-                     apoints[10][idim] = vertex[6][idim] + ihat[idim]*dx[0]*alpha[10];
-                     apoints[11][idim] = vertex[4][idim] + jhat[idim]*dx[1]*alpha[11];
-                  }
-
-                  // store intersections with grid cell alpha in [0,1]
-                  for(int lc1 = 0; lc1 < 12; ++lc1) {
-                     if(alpha_intersect[lc1]) {
-                        m_points.push_back(apoints[lc1]);
-                        int lc2 = m_connectivity.back()[0]+1;
-                        m_connectivity.back()[0] = lc2;
-                        m_connectivity.back()[lc2] = static_cast<int>(m_points.size()-1);
-                     }
+                  for(int n = 0; n < count; ++n) {
+                     m_points.push_back(apoints[n]);
+                     m_connectivity.back()[0] = n+1;
+                     m_connectivity.back()[n+1] = static_cast<int>(m_points.size()-1);
                   }
 
                   reorder_polygon(m_points, m_connectivity.back(), n0);
@@ -430,70 +391,42 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
    p = sign_of_dist*(-distance);
 }
 
-void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
+void EBToPVD::calc_intersects(int& int_count,
+      std::array<std::array<Real,3>,12>& points,
       const std::array<Real,3>& n0, Real p,
-      const std::array<std::array<Real,3>,8>& vertex,
-      const Real* dx)
-{
-   // default (large) value
-   std::ranges::fill(alpha, 10.0);
-
-   // Ray-xAxis intersection
-   if(std::abs(n0[0]) > std::numeric_limits<Real>::epsilon()) {
-      alpha[0]  = (p - dot_product(n0,vertex[0]))/(n0[0]*dx[0]);
-      alpha[2]  = (p - dot_product(n0,vertex[2]))/(n0[0]*dx[0]);
-      alpha[8]  = (p - dot_product(n0,vertex[4]))/(n0[0]*dx[0]);
-      alpha[10] = (p - dot_product(n0,vertex[6]))/(n0[0]*dx[0]);
-   }
-
-   // Ray-yAxis intersection
-   if(std::abs(n0[1]) > std::numeric_limits<Real>::epsilon()) {
-      alpha[1]  = (p - dot_product(n0,vertex[1]))/(n0[1]*dx[1]);
-      alpha[3]  = (p - dot_product(n0,vertex[0]))/(n0[1]*dx[1]);
-      alpha[9]  = (p - dot_product(n0,vertex[5]))/(n0[1]*dx[1]);
-      alpha[11] = (p - dot_product(n0,vertex[4]))/(n0[1]*dx[1]);
-   }
-
-   // Ray-zAxis intersection
-   if(std::abs(n0[2]) > std::numeric_limits<Real>::epsilon()) {
-      alpha[4] = (p - dot_product(n0,vertex[0]))/(n0[2]*dx[2]);
-      alpha[5] = (p - dot_product(n0,vertex[1]))/(n0[2]*dx[2]);
-      alpha[6] = (p - dot_product(n0,vertex[3]))/(n0[2]*dx[2]);
-      alpha[7] = (p - dot_product(n0,vertex[2]))/(n0[2]*dx[2]);
-   }
-}
-
-void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-      std::array<Real,12>& alpha)
+      const std::array<std::array<Real,3>,8>& vertex, const Real* dx)
 {
    int_count = 0;
-   std::ranges::fill(intersects_flags, false);
+   std::array<Real,8> distance;
+   // Bound roundoff in the plane equation before dividing by an edge's
+   // normal component, which can amplify it for nearly parallel edges.
+   Real const tol = intersection_tol *
+      (std::abs(n0[0])*dx[0] + std::abs(n0[1])*dx[1] + std::abs(n0[2])*dx[2]);
+   for(int v = 0; v < 8; ++v) {
+      distance[v] = dot_product(n0, vertex[v]) - p;
+      if(std::abs(distance[v]) <= tol) {
+         distance[v] = Real(0);
+         points[int_count++] = vertex[v];
+      }
+   }
 
-   // Endpoints of the edges used by calc_alpha and the point reconstruction.
    constexpr std::array<std::array<int,2>,12> edge_vertices = {{
       {0,1}, {1,3}, {2,3}, {0,2}, {0,4}, {1,5},
       {3,7}, {2,6}, {4,5}, {5,7}, {6,7}, {4,6}
    }};
-   std::array<bool,8> corner_seen{};
-
-   for(int lc1 = 0; lc1 < 12; ++lc1) {
-      if(intersects(alpha[lc1])) {
-         int corner = -1;
-         if(std::abs(alpha[lc1]) <= intersection_tol) {
-            alpha[lc1] = Real(0);
-            corner = edge_vertices[lc1][0];
-         } else if(std::abs(alpha[lc1] - Real(1)) <= intersection_tol) {
-            alpha[lc1] = Real(1);
-            corner = edge_vertices[lc1][1];
-         }
-         // Several edges can intersect the same corner. Count it only once
-         // so a valid polygon is not rejected for having more than six points.
-         if(corner >= 0) {
-            if(corner_seen[corner]) { continue; }
-            corner_seen[corner] = true;
+   for(auto const& edge : edge_vertices) {
+      int const a = edge[0];
+      int const b = edge[1];
+      // On-plane corners were already added once, including the endpoints
+      // of edges lying in the plane. Only strict sign changes add new points.
+      if((distance[a] < 0 && distance[b] > 0) ||
+         (distance[a] > 0 && distance[b] < 0)) {
+         Real const alpha = distance[a]/(distance[a] - distance[b]);
+         for(int idim = 0; idim < 3; ++idim) {
+            points[int_count][idim] = vertex[a][idim] +
+               alpha*(vertex[b][idim] - vertex[a][idim]);
          }
          ++int_count;
-         intersects_flags[lc1] = true;
       }
    }
 }
