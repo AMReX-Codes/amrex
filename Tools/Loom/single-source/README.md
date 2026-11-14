@@ -61,7 +61,7 @@ git clone -b loom-single-source https://github.com/BenWibking/cplusplus.git cplu
 git clone -b loom-single-source https://github.com/BenWibking/hrx.git hrx
 git clone -b loom-single-source https://github.com/BenWibking/amrex.git amrex
 git -C cplusplus checkout --detach 0caf64b6ee   # pinned cxx commit
-git -C hrx checkout --detach a74773957c         # pinned HRX commit
+git -C hrx checkout --detach 8c5ab018a4         # pinned HRX commit
 
 S=$PWD/amrex/Tools/Loom/single-source
 pixi install --manifest-path $S/pixi.toml   # conda-forge toolchain pieces
@@ -127,3 +127,8 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   Loom's `loomcxx/` headers next to itself, as clang finds its resource
   directory. `loom-cxx --loom-stats` reports, per file, that the source was
   preprocessed and parsed once, and the time of each phase.
+- Per-kernel profile: run a test with `HRX_PROFILE_FILE=run.ireeprof
+  HRX_PROFILE_MODE=dispatch`, then read the capture with HRX's `iree-profile`
+  (`cmake --build build/hrx --target iree-profile`):
+  `iree-profile dispatch run.ireeprof` lists each kernel's count and device
+  time.
