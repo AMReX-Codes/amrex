@@ -484,7 +484,11 @@ namespace amrex::Gpu {
                     auto ga = new(shared_T+threadIdxx) T;
                     f(*ga, i);
                 }
+#if defined(AMREX_USE_LOOM)
+                LoomDevice::syncThreads();
+#else
                 __syncthreads();
+#endif
                 for (Long m = threadIdxx,
                          mend = nU * amrex::min(blockDimx, N-blockDimx*blockIdxx);
                      m < mend; m += blockDimx) {

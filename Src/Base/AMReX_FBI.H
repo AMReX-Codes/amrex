@@ -77,7 +77,7 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     {
         if (icell < ncells) {
             for (int n = 0; n < ncomp; ++n) {
-                f(&(tag.dfab(i,j,k,n+dcomp)),
+                f(tag.dfab.ptr(i,j,k,n+dcomp),
                   tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
             }
         }
@@ -91,10 +91,10 @@ fab_to_fab_store (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
     amrex::ParallelFor(tags,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
     {
-        int m = Gpu::Atomic::Add(&(tag.mask(i,j,k)), 1);
+        int m = Gpu::Atomic::Add(tag.mask.ptr(i,j,k), 1);
         if (m == 0) {
             for (int n = 0; n < ncomp; ++n) {
-                f(&(tag.dfab(i,j,k,n+dcomp)),
+                f(tag.dfab.ptr(i,j,k,n+dcomp),
                   tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
             }
         }
@@ -108,7 +108,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
     amrex::ParallelFor(tags,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
     {
-        int* m = &(tag.mask(i,j,k));
+        int* m = tag.mask.ptr(i,j,k);
         bool my_turn = false;
         do {
 #if defined(AMREX_USE_SYCL)
@@ -119,15 +119,19 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
             if (my_turn) {
 #if defined(AMREX_USE_SYCL)
                 sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::fenceDevice();
 #else
                 __threadfence();
 #endif
                 for (int n = 0; n < ncomp; ++n) {
-                    f(&(tag.dfab(i,j,k,n+dcomp)),
+                    f(tag.dfab.ptr(i,j,k,n+dcomp),
                       tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
                 }
 #if defined(AMREX_USE_SYCL)
                 sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::fenceDevice();
 #else
                 __threadfence(); // It appears that we need this fence too if a GPU is shared.
 #endif
@@ -154,6 +158,10 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 #elif defined(AMREX_USE_HIP)
 
                 __builtin_amdgcn_s_sleep(1);
+
+#elif defined(AMREX_USE_LOOM)
+
+                // Loom has no sleep operation; spin.
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -229,6 +237,33 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAdd<T0, T1>(), masks);
 }
 
+template <int nthreads, typename T0, typename T1, class F>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deterministic_fab_to_fab_tag (Array4CopyTag<T0,T1> const& tag, int tid, int scomp,
+                                   int dcomp, int ncomp, F const& f) noexcept
+{
+    // Copy the box: binding a reference to a member of the pointer-holding
+    // tag would need its object storage under LOOM.
+    const Box dbox = tag.dbox;
+    auto ncells = int(dbox.numPts());
+    const auto len = amrex::length(dbox);
+    const auto lo  = amrex::lbound(dbox);
+    for (int icell = tid; icell < ncells; icell += nthreads) {
+        int k =  icell /   (len.x*len.y);
+        int j = (icell - k*(len.x*len.y)) /   len.x;
+        int i = (icell - k*(len.x*len.y)) - j*len.x;
+        i += lo.x;
+        j += lo.y;
+        k += lo.z;
+        for (int n = 0; n < ncomp; ++n) {
+            f(tag.dfab.ptr(i,j,k,n+dcomp),
+              tag.sfab(i + tag.offset.x,
+                       j + tag.offset.y,
+                       k + tag.offset.z, n+scomp));
+        }
+    }
+}
+
 template <typename T0, typename T1, class F>
 void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int scomp,
                                int dcomp, int ncomp, F const& f)
@@ -287,7 +322,19 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     std::sort(tiled_tags.begin(), tiled_tags.end());
 
     Gpu::HostVector<unsigned int> h_ntags;
+#ifdef AMREX_USE_LOOM
+    // LOOM device code cannot load pointers from memory: store each tag with
+    // its Array4 pointers as byte offsets from one base pointer (see
+    // loomtag in AMReX_TagParallelFor.H) and rebuild it by value in the kernel.
+    using LoomTraits = loomtag::Traits<TagType>;
+    using LoomStored = typename LoomTraits::Stored;
+    char const* lbase = nullptr;
+    for (auto const& tag : a_tags) { LoomTraits::bases(tag, lbase); }
+    char* loom_base = const_cast<char*>(lbase);
+    Gpu::HostVector<LoomStored> h_tags;
+#else
     Gpu::HostVector<TagType> h_tags;
+#endif
     h_tags.reserve(tiled_tags.size());
 
     for (unsigned int itag = 0; itag < tiled_tags.size(); ++itag) {
@@ -298,13 +345,22 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
         }
         auto const& ttag = tiled_tags[itag];
         auto const& btag = a_tags[ttag.tag_index];
-        h_tags.push_back(TagType{.dfab = btag.dfab, .dindex = btag.dindex, .sfab = btag.sfab,
-                                 .dbox = btag.dbox & ttag.dindex_tilebox.second,
-                                 .offset = btag.offset});
+        TagType tiled{.dfab = btag.dfab, .dindex = btag.dindex, .sfab = btag.sfab,
+                      .dbox = btag.dbox & ttag.dindex_tilebox.second,
+                      .offset = btag.offset};
+#ifdef AMREX_USE_LOOM
+        h_tags.push_back(LoomTraits::store(tiled, lbase));
+#else
+        h_tags.push_back(tiled);
+#endif
     }
     h_ntags.push_back((unsigned int)tiled_tags.size());
 
+#ifdef AMREX_USE_LOOM
+    Gpu::DeviceVector<LoomStored> d_tags(h_tags.size());
+#else
     Gpu::DeviceVector<TagType> d_tags(h_tags.size());
+#endif
     Gpu::DeviceVector<unsigned int> d_ntags(h_ntags.size());
     Gpu::copyAsync(Gpu::hostToDevice,h_tags.begin(),h_tags.end(),d_tags.begin());
     Gpu::copyAsync(Gpu::hostToDevice,h_ntags.begin(),h_ntags.end(),d_ntags.begin());
@@ -326,28 +382,21 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
 #endif
 
         for (unsigned int itag = pntags[blockIdx.x]; itag < pntags[blockIdx.x+1]; ++itag) {
-            auto const tag = ptag[itag];
-            auto ncells = int(tag.dbox.numPts());
-            const auto len = amrex::length(tag.dbox);
-            const auto lo  = amrex::lbound(tag.dbox);
-            for (int icell = int(threadIdx.x); icell < ncells; icell += nthreads) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
-                for (int n = 0; n < ncomp; ++n) {
-                    f(tag.dfab.ptr(i,j,k,n+dcomp),
-                      tag.sfab(i + tag.offset.x,
-                               j + tag.offset.y,
-                               k + tag.offset.z, n+scomp));
-                }
-            }
+#ifdef AMREX_USE_LOOM
+            // The rebuilt tag binds a const reference parameter, so it stays
+            // a value (a pointer-holding local would need object storage).
+            deterministic_fab_to_fab_tag<nthreads>(LoomTraits::load(ptag[itag], loom_base),
+                                                   int(threadIdx.x), scomp, dcomp, ncomp, f);
+#else
+            deterministic_fab_to_fab_tag<nthreads>(ptag[itag], int(threadIdx.x),
+                                                   scomp, dcomp, ncomp, f);
+#endif
 
             if (itag+1 < pntags[blockIdx.x+1]) {
 #ifdef AMREX_USE_SYCL
                 sycl::group_barrier(item.get_group());
+#elif defined(AMREX_USE_LOOM)
+                LoomDevice::syncThreads();
 #else
                 __syncthreads();
 #endif

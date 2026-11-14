@@ -46,7 +46,10 @@ namespace amrex::Gpu {
     }
 
     inline bool isManaged (void const* p) noexcept {
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+        amrex::ignore_unused(p);
+        return false; // no managed memory under LOOM
+#elif defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
 #if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
@@ -70,7 +73,9 @@ namespace amrex::Gpu {
     }
 
     inline bool isDevicePtr (void const* p) noexcept {
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+        return amrex_loom::pointer_kind(p) == amrex_loom::PointerKind::device;
+#elif defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
 #if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
@@ -94,7 +99,9 @@ namespace amrex::Gpu {
     }
 
     inline bool isPinnedPtr (void const* p) noexcept {
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+        return amrex_loom::pointer_kind(p) == amrex_loom::PointerKind::pinned;
+#elif defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
 #if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
@@ -118,7 +125,9 @@ namespace amrex::Gpu {
     }
 
     inline bool isGpuPtr (void const* p) noexcept {
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+        return amrex_loom::pointer_kind(p) != amrex_loom::PointerKind::unregistered;
+#elif defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
         if (r != hipSuccess) { return false; }
@@ -228,6 +237,10 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
         amrex::The_Pinned_Arena()->free(amrex_i_hp); \
         return amrex_i_r; \
     } ()
+#elif defined(AMREX_USE_LOOM)
+// Documented exclusion: Loom device code has no function pointers.
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) \
+    _Pragma("GCC error \"AMReX LOOM backend: device function pointers (AMREX_GET_DEVICE_FUNC_PTR) are not supported\"") sym
 #elif !defined(AMREX_USE_SYCL)
 #define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) sym
 #endif

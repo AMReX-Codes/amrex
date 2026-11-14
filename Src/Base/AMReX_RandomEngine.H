@@ -9,7 +9,9 @@
 #  include <omp.h>
 #endif
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_LOOM)
+#include <AMReX_LoomRandom.H>
+#elif defined(AMREX_USE_HIP)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-W#warnings"
 #include <hiprand/hiprand.hpp>
@@ -51,7 +53,10 @@ namespace amrex
 
 #else
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+    using randState_t = amrex_loom::RandState;
+    using randGenerator_t = amrex_loom::RandGenerator*;
+#elif defined(AMREX_USE_HIP)
     using randState_t = hiprandState_t;
     using randGenerator_t = hiprandGenerator_t;
 #else

@@ -5,6 +5,7 @@
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_REAL.H>
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -26,10 +27,25 @@ namespace amrex {
         if (p == nullptr || nelems == 0) { return; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && run_on == RunOn::Device) {
+#if defined(AMREX_USE_LOOM)
+            // Loom cannot fold signaling_NaN() (__builtin_nans) to a
+            // constant; store the same bit patterns as the host path below.
+            T snan;
+            if constexpr (std::is_same_v<T,float>) {
+                snan = __builtin_bit_cast(float, UINT32_C(0x7fa00000));
+            } else {
+                snan = __builtin_bit_cast(double, UINT64_C(0x7ff0000080000001));
+            }
+            amrex::ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long i) noexcept
+            {
+                p[i] = snan;
+            });
+#else
             amrex::ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long i) noexcept
             {
                 p[i] = std::numeric_limits<T>::signaling_NaN();
             });
+#endif
         } else
 #endif
         {

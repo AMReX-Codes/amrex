@@ -13,6 +13,8 @@
 #  include <cusparse.h>
 #elif defined(AMREX_USE_HIP)
 #  include <rocsparse/rocsparse.h>
+#elif defined(AMREX_USE_LOOM)
+#  error "AMReX LOOM backend: sparse matrices need a vendor sparse library (rocSPARSE under HIP); build with AMReX_LINEAR_SOLVERS=OFF"
 #elif defined(AMREX_USE_SYCL)
 #  include <mkl_version.h>
 #  include <oneapi/mkl/spblas.hpp>

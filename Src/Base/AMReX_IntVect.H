@@ -347,7 +347,13 @@ public:
 
     //! Returns the i'th coordinate of the IntVectND.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+#ifdef AMREX_USE_LOOM
+    // LOOM: by value, so reading a component of a receiver held as SSA values
+    // (e.g. a captured Array4's begin) needs no storage identity.
+    int operator[] (int i) const noexcept { BL_ASSERT(i>=0 && i < dim); return vect[i]; }
+#else
     const int& operator[] (int i) const noexcept { BL_ASSERT(i>=0 && i < dim); return vect[i]; }
+#endif
 
     //! Returns a reference to the i'th coordinate of the IntVectND. Used by structured bindings.
     template<std::size_t i>

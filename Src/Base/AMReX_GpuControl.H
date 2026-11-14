@@ -7,6 +7,7 @@
 
 #include <utility>
 
+// Stream-ordered memory pools (LOOM has none).
 #if defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)
 #define AMREX_GPU_STREAM_ALLOC_SUPPORT 1
 #endif
@@ -17,6 +18,13 @@
 #define AMREX_HIP_OR_CUDA(a,b) b
 #else
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
+#endif
+
+// A variant for LOOM, otherwise AMREX_HIP_OR_CUDA.
+#if defined(AMREX_USE_LOOM)
+#define AMREX_LOOM_OR_HIP_OR_CUDA(l,a,b) l
+#else
+#define AMREX_LOOM_OR_HIP_OR_CUDA(l,a,b) AMREX_HIP_OR_CUDA(a,b)
 #endif
 
 #if defined(AMREX_USE_HIP)
@@ -73,7 +81,9 @@ namespace amrex {
 
 namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+using gpuStream_t = hrx_stream_t;
+#elif defined(AMREX_USE_HIP)
 using gpuStream_t = hipStream_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuStream_t = cudaStream_t;

@@ -17,16 +17,22 @@ namespace {
 gpuStream_t make_external_stream ()
 {
     gpuStream_t s;
+#if defined(AMREX_USE_LOOM)
+    s = amrex_loom::stream_create();
+#else
     AMREX_HIP_OR_CUDA_OR_SYCL(
         AMREX_HIP_SAFE_CALL(hipStreamCreateWithFlags(&s, hipStreamNonBlocking)),
         AMREX_CUDA_SAFE_CALL(cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking)),
         s.queue = new sycl::queue(Gpu::Device::streamQueue()));
+#endif
     return s;
 }
 
 void destroy_external_stream (gpuStream_t s)
 {
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+    amrex_loom::stream_destroy(s);
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(s));
 #elif defined(AMREX_USE_HIP)
     AMREX_HIP_SAFE_CALL(hipStreamDestroy(s));

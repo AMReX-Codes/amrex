@@ -432,7 +432,7 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                              shared_mem_bytes);
         amrex::Abort("xxxx SYCL todo: openbc compute_moments");
 #else
-        amrex::launch(m_ngpublocks_h.back(), m_nthreads_momtag, shared_mem_bytes, Gpu::gpuStream(),
+        auto const compute_moments =
         [=] AMREX_GPU_DEVICE () noexcept
         {
             Gpu::SharedMemory<openbc::Moments::array_type> gsm;
@@ -551,7 +551,11 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
             }
             openbc::scale_moments(tmom);
 
+#if defined(AMREX_USE_LOOM)
+            LoomDevice::syncThreads();
+#else
             __syncthreads();
+#endif
 
             if (threadIdx.x < (openbc::M+1)*(openbc::M+2)/2) {
                 mom.mom[threadIdx.x] = Real(0.);
@@ -559,7 +563,21 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                     mom.mom[threadIdx.x] += shared[i][threadIdx.x];
                 }
             }
-        });
+        };
+#ifdef AMREX_USE_LOOM
+        // LOOM kernels take a compile-time block size (64 or 128 here).
+        if (m_nthreads_momtag == 64) {
+            amrex::launch<64>(m_ngpublocks_h.back(), shared_mem_bytes, Gpu::gpuStream(),
+                              compute_moments);
+        } else {
+            AMREX_ASSERT(m_nthreads_momtag == 128);
+            amrex::launch<128>(m_ngpublocks_h.back(), shared_mem_bytes, Gpu::gpuStream(),
+                               compute_moments);
+        }
+#else
+        amrex::launch(m_ngpublocks_h.back(), m_nthreads_momtag, shared_mem_bytes, Gpu::gpuStream(),
+                      compute_moments);
+#endif
 #endif
     }
 #else

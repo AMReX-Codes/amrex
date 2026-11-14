@@ -1560,6 +1560,12 @@ Initialize ()
     }
 #endif
 
+#elif defined(AMREX_USE_LOOM)
+
+    // MPI libraries detect ROCm memory, not HRX buffers on HRX's native
+    // driver, so GPU-aware MPI is not assumed (amrex.use_gpu_aware_mpi can
+    // still request it).
+
 #elif defined(AMREX_USE_HIP)
 
 #if defined(OMPI_HAVE_MPI_EXT_ROCM) && OMPI_HAVE_MPI_EXT_ROCM

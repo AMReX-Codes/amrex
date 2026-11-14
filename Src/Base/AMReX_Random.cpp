@@ -76,18 +76,22 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
     gpu_rand_generator = new std::remove_pointer_t<decltype(gpu_rand_generator)>
         (Gpu::Device::streamQueue(), gpu_seed+1234ULL);
 
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
     gpu_rand_state =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
     randState_t* gpu_rand_state_local = gpu_rand_state;
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
         ULong seqstart = static_cast<ULong>(idx) + 10 * static_cast<ULong>(idx);
-        AMREX_HIP_OR_CUDA( hiprand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]);,
+        AMREX_LOOM_OR_HIP_OR_CUDA(
+            amrex_loom::rand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]);,
+            hiprand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]);,
                             curand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]); )
     });
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+    gpu_rand_generator = amrex_loom::rand_generator_create(gpu_seed+1234ULL);
+#elif defined(AMREX_USE_CUDA)
     AMREX_CURAND_SAFE_CALL(curandCreateGenerator
                            (&gpu_rand_generator, CURAND_RNG_PSEUDO_DEFAULT));
     AMREX_CURAND_SAFE_CALL(curandSetPseudoRandomGeneratorSeed
@@ -288,7 +292,9 @@ DeallocateRandomSeedDevArray ()
     }
     if (gpu_rand_generator != nullptr)
     {
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+        amrex_loom::rand_generator_destroy(gpu_rand_generator);
+#elif defined(AMREX_USE_CUDA)
         AMREX_CURAND_SAFE_CALL(curandDestroyGenerator(gpu_rand_generator));
 #else
         AMREX_HIPRAND_SAFE_CALL(hiprandDestroyGenerator(gpu_rand_generator));
@@ -309,6 +315,15 @@ void FillRandom (Real* p, Long N)
     AMREX_CURAND_SAFE_CALL(curandGenerateUniform(gpu_rand_generator, p, N));
 #  else
     AMREX_CURAND_SAFE_CALL(curandGenerateUniformDouble(gpu_rand_generator, p, N));
+#  endif
+    Gpu::synchronize();
+
+#elif defined(AMREX_USE_LOOM)
+
+#  ifdef BL_USE_FLOAT
+    amrex_loom::rand_generate_uniform(gpu_rand_generator, p, N);
+#  else
+    amrex_loom::rand_generate_uniform_double(gpu_rand_generator, p, N);
 #  endif
     Gpu::synchronize();
 
@@ -342,7 +357,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 {
     if (N <= 0) { return; }
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (N == 1) {
         auto r = amrex::RandomNormal(mean, stddev);
         Gpu::htod_memcpy_async(p, &r, sizeof(Real));
@@ -359,6 +374,14 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
     AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
 #  else
     AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
+#  endif
+
+#elif defined(AMREX_USE_LOOM)
+
+#  ifdef BL_USE_FLOAT
+    amrex_loom::rand_generate_normal(gpu_rand_generator, p, Neven, mean, stddev);
+#  else
+    amrex_loom::rand_generate_normal_double(gpu_rand_generator, p, Neven, mean, stddev);
 #  endif
 
 #elif defined(AMREX_USE_HIP)
@@ -385,7 +408,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 
 #endif
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
     if (Neven < N) {
         auto r = amrex::RandomNormal(mean, stddev);
         Gpu::htod_memcpy_async(p+(N-1), &r, sizeof(Real));

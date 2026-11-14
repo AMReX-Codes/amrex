@@ -109,6 +109,8 @@ struct BlockStatus<T, true>
         do {
 #if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::work_group);
+#elif defined(AMREX_USE_LOOM)
+            LoomDevice::fenceBlock();
 #else
             __threadfence_block();
 #endif
@@ -134,6 +136,8 @@ struct BlockStatus<T, false>
         }
 #if defined(AMREX_USE_SYCL)
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+        LoomDevice::fenceDevice();
 #else
         __threadfence();
 #endif
@@ -179,6 +183,8 @@ struct BlockStatus<T, false>
             r = read();
 #if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#elif defined(AMREX_USE_LOOM)
+            LoomDevice::fenceDevice();
 #else
             __threadfence();
 #endif
@@ -636,6 +642,41 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
         Gpu::freeAsync(The_Arena(), dp);
     }
 
+    return totalsum;
+}
+
+#elif defined(AMREX_USE_LOOM)
+
+// LOOM: minimal correct device scan (one invocation walks the sequence).
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
+{
+    if (n <= 0) { return 0; }
+    T* dtotal = static_cast<T*>(The_Arena()->alloc(sizeof(T)));
+    constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
+    amrex::launch<1>(1, Gpu::gpuStream(), [=] AMREX_GPU_DEVICE () noexcept
+    {
+        T sum = 0;
+        for (N i = 0; i < n; ++i) {
+            T v = fin(i);
+            if constexpr (is_exclusive) {
+                fout(i, sum);
+                sum += v;
+            } else {
+                sum += v;
+                fout(i, sum);
+            }
+        }
+        *dtotal = sum;
+    });
+    T totalsum = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&totalsum, dtotal, sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    The_Arena()->free(dtotal);
     return totalsum;
 }
 

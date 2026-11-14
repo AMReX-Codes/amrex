@@ -13,7 +13,24 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+
+// The LOOM runtime (AMReX_Loom.H) aborts on HRX failures, so no error is
+// ever left pending.
+using gpuError_t = int;
+constexpr gpuError_t gpuSuccess = 0;
+
+inline gpuError_t
+gpuGetLastError () {
+    return gpuSuccess;
+}
+
+inline const char*
+gpuGetErrorString (gpuError_t error) {
+    return error == gpuSuccess ? "no error" : "LOOM backend error";
+}
+
+#elif defined(AMREX_USE_HIP)
 
 using gpuError_t = hipError_t;
 constexpr gpuError_t gpuSuccess = hipSuccess;
@@ -109,7 +126,7 @@ namespace Gpu {
 
 #endif
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP)
 #define AMREX_HIP_SAFE_CALL(call) { \
     hipError_t amrex_i_err = call;          \
     if (hipSuccess != amrex_i_err) { \
