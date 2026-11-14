@@ -16,8 +16,8 @@
 : "${AMREX_LOOM_SYSROOT:=/}"
 # Where the three clones live, and where builds go.
 : "${LOOM_WORK:=$PWD}"
-: "${CXX_SRC:=$LOOM_WORK/cplusplus}"      # branch loom-single-source, pinned at 2cf250eccd
-: "${HRX_SRC:=$LOOM_WORK/hrx}"            # branch loom-single-source, pinned at 157b57cdbe
+: "${CXX_SRC:=$LOOM_WORK/cplusplus}"      # branch loom-single-source, pinned at 0caf64b6ee
+: "${HRX_SRC:=$LOOM_WORK/hrx}"            # branch loom-single-source, pinned at 23d8fbd340
 : "${AMREX_SRC:=$LOOM_WORK/amrex}"        # branch loom-single-source
 : "${BUILD_JOBS:=8}"
 
