@@ -307,8 +307,11 @@ public:
 
         m_items = v;
 
+        m_bins.resize(0);
         m_bins.resize(nitems);
+        m_perm.resize(0);
         m_perm.resize(nitems);
+        m_local_offsets.resize(0);
         m_local_offsets.resize(nitems);
 
         m_counts.resize(0);
@@ -439,7 +442,9 @@ public:
 
         m_items = v;
 
+        m_bins.resize(0);
         m_bins.resize(nitems);
+        m_perm.resize(0);
         m_perm.resize(nitems);
 
         int nchunks = OpenMP::get_max_threads();
@@ -578,7 +583,9 @@ public:
 
         m_items = v;
 
+        m_bins.resize(0);
         m_bins.resize(nitems);
+        m_perm.resize(0);
         m_perm.resize(nitems);
 
         m_counts.resize(0);

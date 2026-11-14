@@ -952,6 +952,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 
     Gpu::DeviceVector<index_type> llist_start(nbins, llist_guard);
     Gpu::DeviceVector<index_type> llist_next(nitems);
+    perm.resize(0);
     perm.resize(nitems);
     Gpu::DeviceScalar<index_type> global_idx(0);
 
