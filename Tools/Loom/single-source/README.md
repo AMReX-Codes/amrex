@@ -137,3 +137,12 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   (`cmake --build build/hrx --target iree-profile`):
   `iree-profile dispatch run.ireeprof` lists each kernel's count and device
   time.
+  Per-dispatch timestamps take queue dispatches off HRX's agent-scope path,
+  so a profile overstates the cost of immediate submission; compare step
+  times from unprofiled runs.
+- Kernel submission: by default each launch is submitted to the GPU at once
+  (`AMREX_LOOM_SUBMIT=immediate`), as HIP does. `AMREX_LOOM_SUBMIT=batch`
+  records launches on the stream instead and submits them together every
+  `AMREX_LOOM_FLUSH_EVERY` operations (default 32). Either way, every stream
+  is submitted and made visible to the host at each synchronization.
+  `AMREX_LOOM_SYNC_LAUNCH=1` waits after every launch, for debugging.
