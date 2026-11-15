@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <random>
 #include <string>
@@ -310,10 +311,29 @@ void recorded(hrx_stream_t s) {
   }
 }
 
+// Host copies of pageable sources of host-to-device transfers still recorded or
+// in flight on each stream (memcpy_async), freed once the stream is known to
+// have reached them.
+struct Staging {
+  std::vector<std::unique_ptr<uint8_t[]>> buffers;
+  std::size_t bytes = 0;
+};
+std::unordered_map<hrx_stream_t, Staging> g_staging;
+
+// Frees |s|'s staging copies; the caller has waited for |s|.
+void release_staging(hrx_stream_t s) {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  g_staging.erase(s);
+}
+
 void sync_all() {
   flush_all();
   check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
   for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  // External streams' staging is released when they are synchronized.
+  g_staging.erase(g_default_stream);
+  for (auto& [s, q] : g_streams) g_staging.erase(s);
 }
 
 // Returns the allocation containing |address|, or nullptr for host memory.
@@ -528,20 +548,25 @@ void stream_destroy(hrx_stream_t stream) {
   StreamQueue q = it->second;
   g_streams.erase(it);
   g_unflushed.erase(stream);
+  g_staging.erase(stream);
   hrx_stream_release(stream);
   release_stream_queue(q);
 }
 
 void stream_synchronize(hrx_stream_t stream) {
   flush_all();
-  check(hrx_stream_synchronize(resolve(stream)), "hrx_stream_synchronize");
+  hrx_stream_t s = resolve(stream);
+  check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  release_staging(s);
 }
 
 // HRX's query compares only submitted work, so pending work is flushed first.
 bool stream_query(hrx_stream_t stream) {
   flush_all();
+  hrx_stream_t s = resolve(stream);
   bool complete = false;
-  check(hrx_stream_query(resolve(stream), &complete), "hrx_stream_query");
+  check(hrx_stream_query(s, &complete), "hrx_stream_query");
+  if (complete) release_staging(s);
   return complete;
 }
 
@@ -684,13 +709,31 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
           "hrx_stream_copy_buffer");
     recorded(s);
   } else if (d) {
-    // Host<->device copies are ordered on their stream: the host range stays
-    // live until the stream reaches the transfer.
-    check(hrx_stream_copy_h2d(s, src, d->second.buffer, offset(d, dst), bytes),
+    // HRX reads the host range when the transfer executes. A pinned source
+    // (pinned_malloc) stays asynchronous, as with HIP; the caller keeps it
+    // unmodified until the stream reaches the transfer. A pageable source is
+    // copied first, so the caller may reuse it on return, as hipMemcpyAsync
+    // allows.
+    const void* from = src;
+    if (pointer_kind(src) != PointerKind::pinned) {
+      constexpr std::size_t kStagingLimit = std::size_t(256) << 20;
+      if (g_staging[s].bytes + bytes > kStagingLimit) stream_synchronize(s);
+      Staging& staging = g_staging[s];
+      auto copy = std::make_unique<uint8_t[]>(bytes);
+      std::memcpy(copy.get(), src, bytes);
+      from = copy.get();
+      staging.buffers.push_back(std::move(copy));
+      staging.bytes += bytes;
+    }
+    check(hrx_stream_copy_h2d(s, from, d->second.buffer, offset(d, dst), bytes),
           "hrx_stream_copy_h2d");
   } else if (r) {
+    // HRX writes the host range when the transfer executes. A pinned
+    // destination stays asynchronous; a pageable one is complete on return, as
+    // hipMemcpyAsync makes it.
     check(hrx_stream_copy_d2h(s, r->second.buffer, offset(r, src), dst, bytes),
           "hrx_stream_copy_d2h");
+    if (pointer_kind(dst) != PointerKind::pinned) stream_synchronize(s);
   } else {
     std::memmove(dst, src, bytes);
   }
