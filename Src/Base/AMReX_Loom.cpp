@@ -99,6 +99,19 @@ bool sync_after_launch() {
   return sync;
 }
 
+// How many dispatches, copies and fills a stream records before submitting
+// them as one recording (AMREX_LOOM_FLUSH_EVERY). 1, the default, submits
+// each launch on its own, as HIP does. 0 submits only at completion points:
+// stream and device synchronization, stream queries, frees and stream
+// destruction, which all flush every stream first (flush_all).
+unsigned flush_every() {
+  static const unsigned every = [] {
+    const char* value = std::getenv("AMREX_LOOM_FLUSH_EVERY");
+    return value && *value ? static_cast<unsigned>(std::strtoul(value, nullptr, 10)) : 1u;
+  }();
+  return every;
+}
+
 }  // namespace
 
 // --- runtime state on libhrx ---------------------------------------------------
@@ -260,8 +273,40 @@ hrx_stream_t resolve(hrx_stream_t stream) {
   return stream ? stream : g_default_stream;
 }
 
-void sync_all() {
+// Operations recorded on each stream since its last flush (AMREX_LOOM_FLUSH_EVERY > 1).
+std::unordered_map<hrx_stream_t, unsigned> g_unflushed;
+
+// Submits every stream's pending recording. Completion points call this before
+// waiting on or querying any one stream: HRX's query sees only submitted work,
+// and AMReX synchronizes its streams one at a time (MFIter::Finalize), so
+// submitting all of them first keeps them running concurrently. Flushing a
+// stream with nothing pending does nothing.
+void flush_all() {
   initialize();
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  check(hrx_stream_flush(g_default_stream), "hrx_stream_flush");
+  for (auto& [s, q] : g_streams) check(hrx_stream_flush(s), "hrx_stream_flush");
+  g_unflushed.clear();
+}
+
+// Called after recording an operation on |s|: submits per AMREX_LOOM_FLUSH_EVERY.
+void recorded(hrx_stream_t s) {
+  const unsigned every = flush_every();
+  if (every == 1) {
+    check(hrx_stream_flush(s), "hrx_stream_flush");
+    return;
+  }
+  if (every == 0) return;
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  unsigned& count = g_unflushed[s];
+  if (++count >= every) {
+    check(hrx_stream_flush(s), "hrx_stream_flush");
+    count = 0;
+  }
+}
+
+void sync_all() {
+  flush_all();
   check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
   for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
 }
@@ -362,9 +407,11 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
                             kernarg, descriptor.kernarg_size, nullptr, 0,
                             HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
         "hrx_stream_dispatch");
-  check(hrx_stream_flush(s), "hrx_stream_flush");
   if (sync_after_launch()) {
+    flush_all();
     check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  } else {
+    recorded(s);
   }
 }
 
@@ -465,6 +512,7 @@ hrx_stream_t stream_create() {
 
 void stream_destroy(hrx_stream_t stream) {
   if (!stream) return;
+  flush_all();
   check(hrx_stream_synchronize(stream), "hrx_stream_synchronize");
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   auto it = g_streams.find(stream);
@@ -474,15 +522,19 @@ void stream_destroy(hrx_stream_t stream) {
   }
   StreamQueue q = it->second;
   g_streams.erase(it);
+  g_unflushed.erase(stream);
   hrx_stream_release(stream);
   release_stream_queue(q);
 }
 
 void stream_synchronize(hrx_stream_t stream) {
+  flush_all();
   check(hrx_stream_synchronize(resolve(stream)), "hrx_stream_synchronize");
 }
 
+// HRX's query compares only submitted work, so pending work is flushed first.
 bool stream_query(hrx_stream_t stream) {
+  flush_all();
   bool complete = false;
   check(hrx_stream_query(resolve(stream), &complete), "hrx_stream_query");
   return complete;
@@ -625,7 +677,7 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     check(hrx_stream_copy_buffer(s, r->second.buffer, offset(r, src), d->second.buffer,
                                  offset(d, dst), bytes),
           "hrx_stream_copy_buffer");
-    check(hrx_stream_flush(s), "hrx_stream_flush");
+    recorded(s);
   } else if (d) {
     // Host<->device copies are ordered on their stream: the host range stays
     // live until the stream reaches the transfer.
@@ -652,7 +704,7 @@ void memset_async(void* dst, int value, std::size_t bytes, hrx_stream_t stream) 
   check(hrx_stream_fill_buffer(s, d->second.buffer,
                                reinterpret_cast<uintptr_t>(dst) - d->first, bytes, &pattern, 1),
         "hrx_stream_fill_buffer");
-  check(hrx_stream_flush(s), "hrx_stream_flush");
+  recorded(s);
 }
 
 PointerKind pointer_kind(const void* pointer) {
