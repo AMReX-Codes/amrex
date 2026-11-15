@@ -273,7 +273,9 @@ hrx_stream_t resolve(hrx_stream_t stream) {
   return stream ? stream : g_default_stream;
 }
 
-// Operations recorded on each stream since its last flush (AMREX_LOOM_FLUSH_EVERY > 1).
+// Operations recorded on each stream since its last flush when batching
+// (AMREX_LOOM_FLUSH_EVERY != 1). Includes external streams (Gpu::setExternalGpuStream),
+// which are not in g_streams.
 std::unordered_map<hrx_stream_t, unsigned> g_unflushed;
 
 // Submits every stream's pending recording. Completion points call this before
@@ -286,6 +288,9 @@ void flush_all() {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   check(hrx_stream_flush(g_default_stream), "hrx_stream_flush");
   for (auto& [s, q] : g_streams) check(hrx_stream_flush(s), "hrx_stream_flush");
+  for (auto& [s, count] : g_unflushed) {
+    if (count) check(hrx_stream_flush(s), "hrx_stream_flush");
+  }
   g_unflushed.clear();
 }
 
@@ -296,10 +301,9 @@ void recorded(hrx_stream_t s) {
     check(hrx_stream_flush(s), "hrx_stream_flush");
     return;
   }
-  if (every == 0) return;
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   unsigned& count = g_unflushed[s];
-  if (++count >= every) {
+  if (++count >= every && every != 0) {
     check(hrx_stream_flush(s), "hrx_stream_flush");
     count = 0;
   }
