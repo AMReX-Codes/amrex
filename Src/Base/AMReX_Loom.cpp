@@ -100,14 +100,15 @@ bool sync_after_launch() {
 }
 
 // How many dispatches, copies and fills a stream records before submitting
-// them as one recording (AMREX_LOOM_FLUSH_EVERY). 1, the default, submits
-// each launch on its own, as HIP does. 0 submits only at completion points:
-// stream and device synchronization, stream queries, frees and stream
-// destruction, which all flush every stream first (flush_all).
+// them as one recording (AMREX_LOOM_FLUSH_EVERY, default 32). Completion
+// points (stream and device synchronization, stream queries, frees and stream
+// destruction) flush every stream first (flush_all), whatever the setting.
+// 0 submits only at completion points; 1 submits each launch on its own, as
+// HIP does. On CNS, 32 gave the shortest steps (0 was close behind).
 unsigned flush_every() {
   static const unsigned every = [] {
     const char* value = std::getenv("AMREX_LOOM_FLUSH_EVERY");
-    return value && *value ? static_cast<unsigned>(std::strtoul(value, nullptr, 10)) : 1u;
+    return value && *value ? static_cast<unsigned>(std::strtoul(value, nullptr, 10)) : 32u;
   }();
   return every;
 }
