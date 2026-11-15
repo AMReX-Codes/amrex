@@ -100,18 +100,41 @@ bool sync_after_launch() {
   return sync;
 }
 
-// How many dispatches, copies and fills a stream records before submitting
-// them as one recording (AMREX_LOOM_FLUSH_EVERY, default 32). Completion
-// points (stream and device synchronization, stream queries, frees and stream
-// destruction) flush every stream first (flush_all), whatever the setting.
-// 0 submits only at completion points; 1 submits each launch on its own, as
-// HIP does. On CNS, 32 gave the shortest steps (0 was close behind).
+// How many operations a stream records before submitting them as one
+// recording (AMREX_LOOM_FLUSH_EVERY, default 32): kernel launches in batch
+// mode, and copies and fills in either mode. Completion points (stream and
+// device synchronization, stream queries, frees and stream destruction) flush
+// every stream first (flush_all), whatever the setting. 0 submits only at
+// completion points; 1 submits each operation on its own.
 unsigned flush_every() {
   static const unsigned every = [] {
     const char* value = std::getenv("AMREX_LOOM_FLUSH_EVERY");
     return value && *value ? static_cast<unsigned>(std::strtoul(value, nullptr, 10)) : 32u;
   }();
   return every;
+}
+
+// How kernel launches reach the GPU (AMREX_LOOM_SUBMIT):
+//   immediate (default)  each launch is its own hrx_queue_dispatch on the
+//                        stream's queue, chained on the stream's timeline. With
+//                        no extra barriers it takes HRX's agent-scope argument
+//                        acquisition, as HIP's dispatch packets do, and starts
+//                        as soon as it is launched;
+//   batch                launches are recorded on the stream and submitted as
+//                        one recording per AMREX_LOOM_FLUSH_EVERY operations.
+// Both pay a system-scope acquire and release at each completion point. On
+// CNS (MI250X), immediate gave 1.22x/1.14x HIP's step time at 64^3/128^3 and
+// batch 1.38x/1.20x.
+enum class Submit { immediate, batch };
+Submit submit_mode() {
+  static const Submit mode = [] {
+    const char* value = std::getenv("AMREX_LOOM_SUBMIT");
+    if (!value || !*value || std::strcmp(value, "immediate") == 0) return Submit::immediate;
+    if (std::strcmp(value, "batch") == 0) return Submit::batch;
+    std::fprintf(stderr, "amrex loom: AMREX_LOOM_SUBMIT=%s is not immediate or batch\n", value);
+    std::abort();
+  }();
+  return mode;
 }
 
 }  // namespace
@@ -279,6 +302,8 @@ hrx_stream_t resolve(hrx_stream_t stream) {
 // (AMREX_LOOM_FLUSH_EVERY != 1). Includes external streams (Gpu::setExternalGpuStream),
 // which are not in g_streams.
 std::unordered_map<hrx_stream_t, unsigned> g_unflushed;
+// Streams with immediate dispatches since their last completion point.
+std::unordered_map<hrx_stream_t, bool> g_unreleased;
 
 // Submits every stream's pending recording. Completion points call this before
 // waiting on or querying any one stream: HRX's query sees only submitted work,
@@ -288,6 +313,15 @@ std::unordered_map<hrx_stream_t, unsigned> g_unflushed;
 void flush_all() {
   initialize();
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  // Immediate dispatches carry no system-scope barriers. A stream recording
+  // begins with a system-scope acquire and ends with a system-scope release
+  // (hrx_stream_flush), so an empty one after them publishes their writes,
+  // including those cached in L2 for pinned host memory, before the stream's
+  // timeline point, and discards stale L2 lines before the host's next access.
+  for (auto& [s, pending] : g_unreleased) {
+    if (pending) check(hrx_stream_barrier(s, nullptr), "hrx_stream_barrier");
+  }
+  g_unreleased.clear();
   check(hrx_stream_flush(g_default_stream), "hrx_stream_flush");
   for (auto& [s, q] : g_streams) check(hrx_stream_flush(s), "hrx_stream_flush");
   for (auto& [s, count] : g_unflushed) {
@@ -324,6 +358,40 @@ std::unordered_map<hrx_stream_t, Staging> g_staging;
 void release_staging(hrx_stream_t s) {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   g_staging.erase(s);
+}
+
+// Submits one kernel directly to |s|'s queue, ordered after everything already
+// on |s| and before everything later, by waiting on the stream's current
+// timeline point and signaling the next one (AMREX_LOOM_SUBMIT=immediate).
+void dispatch_immediate(hrx_stream_t s, hrx_executable_t executable, uint32_t ordinal,
+                        const hrx_dispatch_config_t& config, const void* kernarg,
+                        std::size_t kernarg_size) {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  // Copies or fills still recorded on |s| come first.
+  check(hrx_stream_flush(s), "hrx_stream_flush");
+  g_unflushed.erase(s);
+  hrx_timeline_point_t after{};
+  check(hrx_stream_get_timeline_position(s, &after), "hrx_stream_get_timeline_position");
+  hrx_semaphore_t timeline = nullptr;
+  check(hrx_stream_get_semaphore(s, &timeline), "hrx_stream_get_semaphore");
+  uint64_t done = 0;
+  check(hrx_stream_advance_timeline(s, &done), "hrx_stream_advance_timeline");
+  hrx_semaphore_t wait_semaphore = after.semaphore;
+  uint64_t wait_value = after.value;
+  const hrx_semaphore_list_t waits{&wait_semaphore, &wait_value, after.value ? 1u : 0u};
+  const hrx_semaphore_list_t signals{&timeline, &done, 1};
+
+  // Empty barrier lists request no extra cache operations, which keeps the
+  // dispatch eligible for HRX's agent-scope acquisition of its arguments.
+  // Ordering on the queue comes from the timeline wait; host visibility comes
+  // from the next completion point (flush_all).
+  static const hrx_barrier_list_t no_barriers{0, nullptr};
+  static const hrx_queue_barriers_t barriers{&no_barriers, &no_barriers};
+  g_unreleased[s] = true;
+  check(hrx_queue_dispatch(hrx_stream_get_queue(s), &waits, &signals, executable, ordinal,
+                           &config, kernarg, kernarg_size, nullptr, 0, &barriers,
+                           HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
+        "hrx_queue_dispatch");
 }
 
 void sync_all() {
@@ -428,6 +496,15 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
   config.workgroup_size[1] = block.y;
   config.workgroup_size[2] = block.z;
   hrx_stream_t s = resolve(stream);
+  if (submit_mode() == Submit::immediate) {
+    dispatch_immediate(s, executable, descriptor.export_ordinal, config, kernarg,
+                       descriptor.kernarg_size);
+    if (sync_after_launch()) {
+      flush_all();
+      check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+    }
+    return;
+  }
   check(hrx_stream_dispatch(s, executable, descriptor.export_ordinal, &config,
                             kernarg, descriptor.kernarg_size, nullptr, 0,
                             HRX_DISPATCH_FLAG_CUSTOM_DIRECT_ARGUMENTS),
@@ -549,6 +626,7 @@ void stream_destroy(hrx_stream_t stream) {
   g_streams.erase(it);
   g_unflushed.erase(stream);
   g_staging.erase(stream);
+  g_unreleased.erase(stream);
   hrx_stream_release(stream);
   release_stream_queue(q);
 }
