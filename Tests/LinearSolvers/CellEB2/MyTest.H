@@ -60,6 +60,9 @@ private:
 
     int composite_solve = 0;
     bool eb_neumann = false;    // homogeneous Neumann on the EB instead of Dirichlet
+    // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
+    // HypreMLABecLap::setBCoeffsOnCentroids) instead of the face centers
+    bool beta_on_centroid = false;
     amrex::Real acoef_value = 0.0;
     amrex::Real ghost_value = 0.0; // in phi's ghost cells off the domain boundary
     amrex::Vector<int> is_periodic{AMREX_D_DECL(0,0,0)};

@@ -22,6 +22,10 @@
 #                                    the EB cuts the coarse/fine face at a Dirichlet wall
 #   eb2.geom_type = rotated_box      tilted walls (fluid inside a rotated box)
 #   null_acoef = 1                   no a given to HypreMLABecLap (zero)
+#   prob_type = 2 beta_on_centroid = 1   b at the face centroids (MLEBABecLap's
+#                                    Location::FaceCentroid; prob_type 1 has
+#                                    b = 1, for which the location does not
+#                                    matter)
 #   prob_type = 3 eb2.sphere_radius = 0.35 (0.43 in 3D)   the EB cuts the convex
 #                                    corners (and edges) of the fine level; MLMG
 #                                    leaves the ghost cell outside two coarse/fine
