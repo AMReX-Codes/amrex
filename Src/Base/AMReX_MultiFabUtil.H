@@ -547,7 +547,8 @@ namespace amrex
      * Return a volume weighted sum of MultiFabs of AMR data.  The sum is
      * perform on a single component of the data.  If the MultiFabs are
      * built with EB Factories, the cut cell volume fraction will be
-     * included in the weight.
+     * included in the weight.  Without EB, cell volumes follow the
+     * coordinate system (Cartesian, RZ or spherical).
      */
     Real volumeWeightedSum (Vector<MultiFab const*> const& mf, int icomp,
                             Vector<Geometry> const& geom,
