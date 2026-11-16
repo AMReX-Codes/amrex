@@ -305,6 +305,24 @@ void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
 
 AMREX_GPU_HOST_DEVICE
 inline
+void amrex_compute_divergence_rz (Box const& bx, Array4<Real> const& divu,
+                                  Array4<Real const> const& u,
+                                  Array4<Real const> const& ax,
+                                  Array4<Real const> const& vol) noexcept
+{
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+
+    for     (int n = 0; n < divu.nComp(); ++n) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            divu(i,0,0,n) = (ax(i+1,0,0,0)*u(i+1,0,0,n)-ax(i,0,0,0)*u(i,0,0,n)) / vol(i,0,0,0);
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
 void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
                              Array4<Real const> const& u,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

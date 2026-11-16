@@ -266,6 +266,7 @@ namespace amrex
                            MFInfo const& info = MFInfo());
 
     //! Computes divergence of face-data stored in the umac MultiFab.
+    //! In RZ and spherical geometry, face areas and cell volumes are used.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom);
 
