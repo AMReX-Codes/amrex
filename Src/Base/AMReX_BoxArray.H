@@ -1077,7 +1077,8 @@ public:
      * \brief Set element \p i to \p ibox if no coarsening transformer is active.
      *
      * This mutator is valid only when the `BoxArray` is cell/nodal converted but
-     * not coarsened by a `BATransformer`.
+     * not coarsened by a `BATransformer`. `set(0, ibox)` also sets the index
+     * type of the whole `BoxArray` to that of \p ibox.
      *
      * \param i Box index.
      * \param ibox New box value.

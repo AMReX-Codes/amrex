@@ -849,11 +849,14 @@ BoxArray::convert (Box (*fp)(const Box&))
     if (N > 0) {
         uniqify();
 
+        // set(0) changes m_bat, so read the boxes through a copy.
+        BATransformer const bat = m_bat;
+        set(0,fp(bat(m_ref->m_abox[0])));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < N; ++i) {
-            set(i,fp((*this)[i]));
+        for (int i = 1; i < N; ++i) {
+            set(i,fp(bat(m_ref->m_abox[i])));
         }
     }
     return *this;
@@ -1745,10 +1748,11 @@ intersect (const BoxArray& ba,
     BoxArray r(N);
 
     if (N > 0) {
+        r.set(0, isects[0].second); // sets the index type of r
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < N; i++)
+        for (int i = 1; i < N; i++)
         {
             r.set(i, isects[i].second);
         }
@@ -1771,10 +1775,11 @@ intersect (const BoxArray& ba,
     BoxArray r(N);
 
     if (N > 0) {
+        r.set(0, isects[0].second); // sets the index type of r
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < N; i++)
+        for (int i = 1; i < N; i++)
         {
             r.set(i, isects[i].second);
         }
