@@ -2605,11 +2605,21 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
         auto info = AsyncOut::GetWriteInfo(myproc);
         if (! myfabs->empty()) {
+            // The first rank with FABs among those sharing this file truncates it.
+            bool first = true;
+            if (info.ispot > 0) {
+                for (int k = 0; k < n_global_fabs; ++k) {
+                    if (dm[k] >= myproc-info.ispot && dm[k] < myproc) {
+                        first = false;
+                        break;
+                    }
+                }
+            }
             std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
             std::ofstream ofs;
             ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-            ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
-                                                          : (std::ios::binary | std::ios::app));
+            ofs.open(file_name.c_str(), first ? (std::ios::binary | std::ios::trunc)
+                                              : (std::ios::binary | std::ios::app));
             if (!ofs.good()) { amrex::FileOpenFailed(file_name); }
             for (auto const& fab : *myfabs) {
                 fabio->write_header(ofs, fab, fab.nComp());
