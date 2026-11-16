@@ -391,7 +391,8 @@ namespace amrex
         BoxArray crse_S_fine_BA = fine_BA;
         crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
+        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,
+                             MFInfo().SetArena(The_Async_Arena()),FArrayBoxFactory());
 
         MultiFab fvolume;
         fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
