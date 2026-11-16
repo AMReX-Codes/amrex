@@ -2543,7 +2543,12 @@ struct BoxIndexerND
         IntVectND<dim> retval = lo;
 
         auto ic = UInt(icell);
-        for (int i=dim-1; i>0; --i) {
+        // Loom schedules only increasing counted loops; count up and index down.
+#ifdef AMREX_USE_LOOM
+        [[loom::unroll]]
+#endif
+        for (int n=0; n<dim-1; ++n) {
+            int const i = dim-1-n;
             UInt quotient, remainder;
             fdm[i-1](quotient, remainder, ic);
             retval[i] += int(quotient);
