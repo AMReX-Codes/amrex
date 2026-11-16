@@ -37,6 +37,12 @@
 //  Ascent Repo: http://github.com/alpine-dav/ascent
 //  Ascent Docs: http://ascent.readthedocs.io/en/latest/
 //
+// ParaView Catalyst:
+//  Docs: https://catalyst-in-situ.readthedocs.io/en/latest/
+//
+// VisIt:
+//  Docs: https://visit-sphinx-github-user-manual.readthedocs.io/en/latest/
+//
 //
 // Or ping Cyrus Harrison <cyrush@llnl.gov> or Matt Larsen <<larsen30@llnl.gov>
 ///////////////////////////////////////////////////////////////////////////////
@@ -46,7 +52,8 @@
 ///  * 2D + 3D
 ///  * single + multi-level (w/o nesting)
 ///  * ghosts (indicator field created using `grow`)
-///  * particles
+///  * particles, as an implicit points topology: needs Ascent 0.9.3+,
+///    ParaView (Catalyst) 6.0+, VisIt 3.3.0+
 ///
 /// TODO:
 ///  * AMR nesting

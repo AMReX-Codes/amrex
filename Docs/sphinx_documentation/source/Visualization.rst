@@ -983,6 +983,31 @@ particularly useful:
    arbitrarily large number of MPI processes, allowing for rapid rendering of
    large time series of data.
 
+.. _sec:visualization:blueprint:
+
+In Situ: Conduit Mesh Blueprint
+===============================
+
+For in situ visualization and analysis, AMReX describes its data in the
+`Conduit Mesh Blueprint <https://llnl-conduit.readthedocs.io/en/latest/blueprint_mesh.html>`__.
+This needs AMReX built with Conduit (CMake: ``AMReX_CONDUIT=ON``, GNU Make: ``USE_CONDUIT=TRUE``).
+The functions in ``AMReX_Conduit_Blueprint.H`` describe MultiFabs
+(``amrex::SingleLevelToBlueprint``, ``amrex::MultiLevelToBlueprint``) and particles
+(``amrex::ParticleContainerToBlueprint``), and ``amrex::WriteBlueprintFiles`` writes them to files.
+
+The data is not copied: the Blueprint arrays refer to the arrays of AMReX, in host or in GPU memory.
+Data in GPU device memory can only be read by tools that read GPU memory.
+With managed memory (``amrex.the_arena_is_managed = 1``), tools on the host can read it as well.
+
+Particles are an implicit points topology: each particle position is a point, and the particle
+components are fields on these points.
+Reading particles needs these versions or newer:
+
+* `Ascent <https://ascent.readthedocs.io>`__ 0.9.3, for in situ rendering and analysis,
+* `ParaView <https://www.paraview.org>`__ 6.0, for in situ visualization with
+  `Catalyst <https://catalyst-in-situ.readthedocs.io>`__,
+* `VisIt <https://visit-dav.github.io/visit-website/>`__ 3.3.0, for Blueprint files.
+
 .. [1]
    It is convenient to use the
    magic command ``%matplotlib inline`` in order to render matplotlib
