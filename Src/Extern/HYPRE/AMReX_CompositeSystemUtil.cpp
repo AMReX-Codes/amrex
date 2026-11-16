@@ -1,9 +1,13 @@
 #include <AMReX_CompositeSystemUtil.H>
 #include <AMReX_Hypre.H>
+#include <AMReX_Reduce.H>
 
 #include <_hypre_parcsr_mv.h>
 
 #include <algorithm>
+#include <cmath>
+#include <stdexcept>
+#include <utility>
 
 namespace amrex::composite {
 
@@ -103,6 +107,150 @@ void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector
         if (e < nd) { dd[e] = sum; } else { od[e-nd] = sum; }
     });
     Gpu::streamSynchronize(); // before hypre uses the matrix
+}
+
+bool SetupReuse::rescale (Gpu::DeviceVector<Real>& vals, Long n, bool new_setup, MPI_Comm comm,
+                          int verbose, std::string const& prefix)
+{
+    BL_PROFILE("composite::SetupReuse::rescale");
+    AMREX_ALWAYS_ASSERT(n >= 0 && n <= Long(vals.size()));
+    auto* v = vals.data();
+    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                             { return v[i]*v[i]; })
+                         : Real(0.0);
+    ParallelAllReduce::Sum(norm2, comm);
+    // No setup matrix to match: this is it
+    new_setup = new_setup || !(setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0));
+    bool changed = false;
+    // have_vals and capture are the same on all ranks, so that the
+    // reduction below is collective
+    if (!new_setup && max_change > Real(0.0) && have_vals && !capture) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(setup_vals.size(), n),
+            "composite::SetupReuse: the matrix pattern changed since the kept setup");
+        // The change of the scaled matrix since the setup, relative to the
+        // setup matrix
+        const Real s = std::sqrt(setup_norm2 / norm2);
+        auto const* v0 = setup_vals.data();
+        Real d2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                              { Real d = s*v[i] - v0[i]; return d*d; })
+                          : Real(0.0);
+        ParallelAllReduce::Sum(d2, comm);
+        const Real change = std::sqrt(d2 / setup_norm2);
+        if (change > max_change) {
+            if (verbose) {
+                amrex::Print() << prefix << ": the matrix changed by " << change
+                               << " since the kept setup; redoing the setup\n";
+            }
+            changed = true;
+        }
+    }
+    if (new_setup || changed) {
+        setup_norm2 = norm2;
+        scale = Real(1.0);
+    } else {
+        scale = std::sqrt(setup_norm2 / norm2);
+        const Real s = scale;
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { v[i] *= s; });
+        Gpu::streamSynchronize();
+    }
+    if (max_change > Real(0.0) && (new_setup || changed || capture)) {
+        // The reference: the (scaled) values the setup is, or was, done for
+        setup_vals.resize(n);
+        Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.begin()+n, setup_vals.begin());
+        Gpu::streamSynchronize();
+        have_vals = true;
+    }
+    capture = false;
+    return changed;
+}
+
+ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception,
+                             Real reltol, Real abstol, int maxiter, MPI_Comm comm,
+                             int verbose, std::string const& prefix,
+                             std::function<bool(Real)> const& converged,
+                             std::function<void()> const& restore_x)
+{
+    ReusedSolve r;
+    // With a reused setup, a hypre error or a non-finite residual is caught
+    // and retried below like a solve that does not converge.  hypre's error
+    // flag is per rank, so the decision is made collective: the solve itself
+    // ran on every rank, and the iteration count comes from a rank that
+    // reports one (HypreIJIface::solve counts nothing after an error)
+    ij.setThrowException(throw_exception || reused);
+    int blew_up = 0;
+    try {
+        ij.solve(reltol, abstol, maxiter);
+    } catch (std::runtime_error const&) {
+        if (!reused) { throw; }
+        blew_up = 1;
+    }
+    ij.setThrowException(throw_exception);
+    r.num_iters = static_cast<int>(ij.getNumIters());
+    r.final_res = ij.getFinalResidualNorm();
+    if (reused) {
+        ParallelAllReduce::Max(blew_up, comm);
+        ParallelAllReduce::Max(r.num_iters, comm);
+    }
+    if (reused && (blew_up || !converged(r.final_res))) {
+        // The reused setup may have become too poor a preconditioner for the
+        // current matrix: redo it and continue from the current x (from the
+        // initial guess after a blow-up)
+        if (verbose) {
+            amrex::Print() << prefix << ": no convergence with the reused setup ("
+                           << r.num_iters << " iterations); redoing the setup\n";
+        }
+        if (blew_up || !std::isfinite(r.final_res)) { restore_x(); }
+        ij.setNeedSetup();
+        ij.solve(reltol, abstol, maxiter);
+        r.num_iters += static_cast<int>(ij.getNumIters());
+        r.final_res = ij.getFinalResidualNorm();
+        r.redone = true;
+    }
+    return r;
+}
+
+ReusedSolve algmg_solve_kept (AlgMG<Real>& mg, SpMatrix<Real>& mat, bool kept,
+                              bool throw_exception, AlgVector<Real>& x,
+                              AlgVector<Real> const& b, Real bnorm, MPI_Comm comm,
+                              int verbose, std::string const& prefix,
+                              std::function<bool(Real)> const& converged,
+                              std::function<void()> const& restore_x)
+{
+    ReusedSolve r;
+    auto residual = [&] () {
+        return (bnorm > Real(0.0)) ? mg.getResidualNorm() / bnorm : Real(0.0);
+    };
+    // With a kept hierarchy, a blow-up is caught and retried below like a
+    // solve that does not converge (AlgMG decides it on global norms; the
+    // reduction keeps every rank on the same path regardless)
+    mg.setThrowException(throw_exception || kept);
+    int blew_up = 0;
+    try {
+        mg.solve(x, b);
+    } catch (std::runtime_error const&) {
+        if (!kept) { throw; }
+        blew_up = 1;
+    }
+    mg.setThrowException(throw_exception);
+    r.num_iters = mg.getNumIters();
+    r.final_res = residual();
+    if (kept) { ParallelAllReduce::Max(blew_up, comm); }
+    if (kept && (blew_up || !converged(r.final_res))) {
+        // The kept hierarchy may be too poor for the current matrix: build a
+        // new one and continue from the current x (from the initial guess
+        // after a blow-up)
+        if (verbose) {
+            amrex::Print() << prefix << ": no convergence with the kept AlgMG hierarchy ("
+                           << r.num_iters << " iterations); rebuilding it\n";
+        }
+        if (blew_up) { restore_x(); }
+        mg.define(mat);
+        mg.solve(x, b);
+        r.num_iters += mg.getNumIters();
+        r.final_res = residual();
+        r.redone = true;
+    }
+    return r;
 }
 
 }

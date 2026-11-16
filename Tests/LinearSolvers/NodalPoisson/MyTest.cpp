@@ -210,15 +210,42 @@ MyTest::solve ()
             }
             for (int isolve = 1; isolve < mlhypre_num_solves; ++isolve) {
                 for (int ilev = 0; ilev <= max_level; ++ilev) {
-                    sigma2[ilev].mult(Real(2.0), 0, 1, sigma2[ilev].nGrow());
-                    hyp_rhs[ilev].mult(Real(2.0), 0, 1, 0);
+                    if (mlhypre_sigma_nonuniform) {
+                        // sigma *= 2 + cos(2 pi x)/2: a change the scaling to
+                        // the kept setup's matrix cannot absorb
+                        auto const dx = geom[ilev].CellSizeArray();
+                        auto const problo = geom[ilev].ProbLoArray();
+                        auto const& sa = sigma2[ilev].arrays();
+                        amrex::ParallelFor(sigma2[ilev], sigma2[ilev].nGrowVect(),
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+                        {
+                            amrex::ignore_unused(j,k);
+                            Real const x = problo[0] + (Real(i) + Real(0.5))*dx[0];
+                            sa[b](i,j,k) *= Real(2.0) + Real(0.5)*std::cos(Real(2.0)*std::numbers::pi_v<Real>*x);
+                        });
+                        Gpu::streamSynchronize();
+                    } else {
+                        sigma2[ilev].mult(Real(2.0), 0, 1, sigma2[ilev].nGrow());
+                        hyp_rhs[ilev].mult(Real(2.0), 0, 1, 0);
+                    }
                     linop.setSigma(ilev, sigma2[ilev]);
                     MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
                     const Box& interior = amrex::surroundingNodes(
                         amrex::grow(geom[ilev].Domain(), -1));
                     solution[ilev].setVal(0.0, interior, 0, 1, 0);
                 }
+                if (mlhypre_sigma_nonuniform) {
+                    // A new problem: MLMG solves it too (its operator is
+                    // updated at the solve)
+                    for (int ilev = 0; ilev <= max_level; ++ilev) {
+                        MultiFab::Copy(sol_mlmg[ilev], solution[ilev], 0, 0, 1, 0);
+                    }
+                    mlmg.solve(GetVecOfPtrs(sol_mlmg), GetVecOfConstPtrs(rhs), reltol, 0.0);
+                }
                 hyp.setReuseSolverSetup(true);
+                if (isolve == 1 && mlhypre_reuse_max_change > Real(0.0)) {
+                    hyp.setReuseSetupMaxChange(mlhypre_reuse_max_change);
+                }
                 hyp.updateMatrix();
                 hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
                 compare_with_mlmg();
@@ -385,6 +412,8 @@ MyTest::readParameters ()
     pp.query("const_solution", const_solution);
     pp.query("mlhypre_nan_dirichlet_rhs", mlhypre_nan_dirichlet_rhs);
     pp.query("mlhypre_num_solves", mlhypre_num_solves);
+    pp.query("mlhypre_sigma_nonuniform", mlhypre_sigma_nonuniform);
+    pp.query("mlhypre_reuse_max_change", mlhypre_reuse_max_change);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mlhypre_nan_dirichlet_rhs || (use_mlhypre && !periodic),
                                      "mlhypre_nan_dirichlet_rhs requires use_mlhypre = 1 and periodic = 0");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!const_solution || (use_mlhypre && !periodic),

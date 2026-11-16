@@ -124,7 +124,7 @@ public:
      * With setReuseSolverSetup(true) the values are updated in place and
      * the hypre solver setup, or the AlgMG hierarchy, is kept (see
      * HypreMLABecLap::setReuseSolverSetup); otherwise the setup is redone
-     * at the next solve.
+     * at the next solve.  Collective over the operator's communicator.
      */
     void updateMatrix ();
     /**
@@ -132,13 +132,20 @@ public:
      * HypreMLABecLap::setReuseSolverSetup: the kept setup only
      * approximates the updated operator, and a solve with it that does not
      * converge redoes the setup and continues once before failing.  Can be
-     * set at any time.
+     * set at any time; with the hypre backend, the first updateMatrix()
+     * after it was turned on assembles the matrix again (the in-place
+     * updates need the slots of an assembly with reuse on) and the setup is
+     * redone at the next solve.  With reuse on, the setup is redone only
+     * when the matrix is not updated in place, after resetSolverSetup(),
+     * and by the reuse controls below (`<prefix>.recompute_preconditioner`
+     * is off); with reuse off, after every updateMatrix() (and on every
+     * solve if that option is on).
      */
-    void setReuseSolverSetup (bool v) noexcept { m_reuse_setup = v; }
+    void setReuseSolverSetup (bool v);
     //! With setup reuse, the matrix of a later updateMatrix() is scaled to
     //! the 2-norm of the one the kept setup was done for, and the right-hand
     //! side with it (as for HypreMLABecLap).  The factor of the last update.
-    [[nodiscard]] Real getMatrixScale () const noexcept { return m_matrix_scale; }
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_reuse.scale; }
     //! With setup reuse: redo the setup at the next solve when a solve with
     //! a reused setup needs more than \p n iterations (0: never; this is
     //! also `<prefix>.reuse_setup_max_iter`)
@@ -146,8 +153,10 @@ public:
     //! Redo the setup at the next solve when the matrix, scaled to the kept
     //! setup's, has changed by more than this fraction (2-norm) since that
     //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
-    //! copy of the setup matrix's values.
-    void setReuseSetupMaxChange (Real f) noexcept { m_reuse_max_change = f; }
+    //! copy of the setup matrix's values; set after the kept setup, or
+    //! after a solve redid the setup, the reference is the matrix of the
+    //! next updateMatrix().
+    void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
     void resetSolverSetup () {
         if (m_ij) { m_ij->setNeedSetup(); }
@@ -157,9 +166,8 @@ public:
     //! Internal: called by the constructor and updateMatrix (public only
     //! for CUDA extended lambdas)
     void buildMatrix ();
-    void rescaleToSetup (Gpu::DeviceVector<Real>& vals);
-    //! Internal: the assembled triplets (this rank's rows) to the backend's
-    //! matrix (public only for CUDA extended lambdas)
+    //! Internal: the assembled triplets to the backend's matrix (public
+    //! only for CUDA extended lambdas)
     void populateMatrix (Gpu::DeviceVector<BigInt>& rows, Gpu::DeviceVector<BigInt>& cols,
                          Gpu::DeviceVector<Real>& vals);
 
@@ -249,12 +257,14 @@ private:
     // hypre matrix has been assembled once (then zeroed and assembled again)
     bool m_reuse_setup = false;
     int m_reuse_max_iter = 0;
-    // Setup reuse: the squared 2-norm of the matrix values the kept setup was
-    // done for, and the factor the current matrix is scaled by to match it
-    Real m_setup_norm2 = 0.0;
-    Real m_matrix_scale = 1.0;
-    Real m_reuse_max_change = 0.0;
-    Gpu::DeviceVector<Real> m_setup_vals; // with reuse_setup_max_change
+    //! The scaling of a later matrix to the kept setup's (and the change
+    //! check of reuse_setup_max_change)
+    composite::SetupReuse m_reuse;
+    //! `<prefix>.recompute_preconditioner` (hypre backend): redo the setup
+    //! on every solve.  Off by default, like AMReX's other hypre solvers:
+    //! the setup is redone when the matrix changes (updateMatrix), and with
+    //! reuse on, the flag is off regardless
+    bool m_recompute_pp = false;
     bool m_matrix_assembled = false;
     bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
     composite::EntryGather m_ij_gather;

@@ -135,7 +135,7 @@ public:
     //! 2-norm of the one the kept setup was done for, and the right-hand side
     //! with it: a uniform change of the coefficients (by a time step, say)
     //! leaves the kept setup exact.  The factor of the last setup.
-    [[nodiscard]] Real getMatrixScale () const noexcept { return m_matrix_scale; }
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_reuse.scale; }
     //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
     //! the next solve when a solve with a reused setup needs more than \p n
     //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
@@ -144,8 +144,9 @@ public:
     //! matrix, scaled to the kept setup's, has changed by more than this
     //! fraction (2-norm) since that setup (0: never; this is also
     //! `<prefix>.reuse_setup_max_change`).  Keeps a copy of the setup
-    //! matrix's values.
-    void setReuseSetupMaxChange (Real f) noexcept { m_reuse_max_change = f; }
+    //! matrix's values; set after the kept setup, or after a solve redid
+    //! the setup, the reference is the matrix of the next setup().
+    void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {
         if (m_ij_solver) { m_ij_solver->setNeedSetup(); }
@@ -215,7 +216,6 @@ public:
     void buildIJMaps ();
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
-    void rescaleToSetup (Gpu::DeviceVector<Real>& vals);
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                   Real a_reltol, Real a_abstol);
 
@@ -329,12 +329,9 @@ private:
     //! AlgMG backend: the last setup kept the hierarchy
     bool m_algmg_kept = false;
     int m_reuse_max_iter = 0;
-    // Setup reuse: the squared 2-norm of the matrix values the kept setup was
-    // done for, and the factor the current matrix is scaled by to match it
-    Real m_setup_norm2 = 0.0;
-    Real m_matrix_scale = 1.0;
-    Real m_reuse_max_change = 0.0;
-    Gpu::DeviceVector<Real> m_setup_vals; // with reuse_setup_max_change
+    //! The scaling of a later matrix to the kept setup's (and the change
+    //! check of reuse_setup_max_change)
+    composite::SetupReuse m_reuse;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;

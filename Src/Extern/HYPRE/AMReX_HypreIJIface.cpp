@@ -256,6 +256,10 @@ void HypreIJIface::solve (
     HYPRE_IJVectorGetObject(m_rhs, (void**)&m_parRhs);
     HYPRE_IJVectorGetObject(m_sln, (void**)&m_parSln);
 
+    // Nothing stale is reported if a hypre error ends the solve early
+    m_num_iterations = 0;
+    m_final_res_norm = HypreRealType(0.0);
+
     if (m_write_files) {
         const std::string matfile = amrex::Concatenate(
             m_file_prefix + "_A", static_cast<int>(m_write_counter)) + ".out";

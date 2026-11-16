@@ -4,6 +4,7 @@
 
 #include <AMReX_AlgMG.H>
 #include <AMReX_GpuContainers.H>
+#include <AMReX_HypreIJIface.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_ParmParse.H>
@@ -15,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <limits>
 #include <map>
@@ -99,6 +101,100 @@ bool ij_entry_slots (HYPRE_IJMatrix A, Gpu::DeviceVector<HYPRE_BigInt> const& ro
 //! Overwrite the values of the assembled hypre IJ matrix \p A with the sums
 //! of the new triplet values \p vals, as grouped by ij_entry_slots
 void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector<Real> const& vals);
+
+/**
+ * \brief The state of setup reuse (HypreMLABecLap::setReuseSolverSetup,
+ * HypreMLNodeLap::setReuseSolverSetup).
+ *
+ * A kept solver setup (hypre) or AlgMG hierarchy is for the matrix it was
+ * done with.  A later matrix is scaled to that matrix's 2-norm (of the
+ * triplet values, which fix the ratio) and the right-hand side with it, so
+ * that a uniform change of the coefficients, by a time step say, leaves the
+ * kept setup exact; otherwise its smoother weights and coarse corrections
+ * grow with the change until the preconditioner diverges.  With a
+ * threshold (reuse_setup_max_change), a copy of the setup matrix's values
+ * is kept and the change of the scaled matrix since the setup is measured
+ * against it.
+ */
+struct SetupReuse
+{
+    Real setup_norm2 = 0.0;  //!< squared 2-norm of the setup matrix's values
+    Real scale = 1.0;        //!< the current matrix (and rhs) is scaled by this
+    Real max_change = 0.0;   //!< redo the setup beyond this change (0: never)
+    //! The setup matrix's values (max_change > 0); valid on all ranks or none
+    Gpu::DeviceVector<Real> setup_vals;
+    bool have_vals = false;
+    //! The next matrix becomes the reference: the threshold was set after
+    //! the kept setup, or a solve redid the setup for its (scaled) matrix
+    bool capture = false;
+
+    //! The change threshold (see rescale)
+    void setMaxChange (Real f)
+    {
+        max_change = f;
+        if (f > Real(0.0)) {
+            capture = !have_vals;
+        } else {
+            setup_vals.clear();
+            have_vals = false;
+            capture = false;
+        }
+    }
+
+    //! A solve redid the setup for the current scaled matrix
+    void setupRedone () { capture = (max_change > Real(0.0)); }
+
+    /**
+     * \brief Scale the first \p n values of \p vals (on the device; the rest,
+     * a pinned row's identity say, stay) to the setup matrix, or make this
+     * matrix the setup matrix (\p new_setup: the setup is done for it next).
+     * Collective over \p comm.  Returns true when the scaled matrix has
+     * changed by more than max_change since the setup; this matrix is then
+     * the setup matrix and the caller redoes the setup.
+     */
+    bool rescale (Gpu::DeviceVector<Real>& vals, Long n, bool new_setup, MPI_Comm comm,
+                  int verbose, std::string const& prefix);
+};
+
+//! Iterations (of both attempts, if the setup was redone), final relative
+//! residual norm, and whether the setup was redone
+struct ReusedSolve
+{
+    int num_iters = 0;
+    Real final_res = 0.0;
+    bool redone = false;
+};
+
+/**
+ * \brief Solve with \p ij.  With a reused setup (\p reused: kept from an
+ * earlier matrix), a solve that blows up (a hypre error on any rank, or a
+ * non-finite residual) or does not converge (\p converged, of the final
+ * relative residual norm) is retried once with the setup redone, from the
+ * current solution or, after a blow-up, from the initial guess
+ * (\p restore_x reloads it); the caller's failure policy
+ * (\p throw_exception) applies to the retry.  Collective over \p comm.
+ */
+ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception,
+                             Real reltol, Real abstol, int maxiter, MPI_Comm comm,
+                             int verbose, std::string const& prefix,
+                             std::function<bool(Real)> const& converged,
+                             std::function<void()> const& restore_x);
+
+/**
+ * \brief Solve with \p mg, whose tolerances and iteration limit are set.
+ * With a kept hierarchy (\p kept: from an earlier matrix), a solve that blows
+ * up or does not converge (\p converged, of the residual norm relative to
+ * \p bnorm) is retried once with the hierarchy rebuilt for \p mat, from the
+ * current solution or, after a blow-up, from the initial guess
+ * (\p restore_x reloads it); the caller's failure policy
+ * (\p throw_exception) applies to the retry.  Collective over \p comm.
+ */
+ReusedSolve algmg_solve_kept (AlgMG<Real>& mg, SpMatrix<Real>& mat, bool kept,
+                              bool throw_exception, AlgVector<Real>& x,
+                              AlgVector<Real> const& b, Real bnorm, MPI_Comm comm,
+                              int verbose, std::string const& prefix,
+                              std::function<bool(Real)> const& converged,
+                              std::function<void()> const& restore_x);
 
 //! Scientific notation for messages (std::to_string prints 0.000000 for 1e-7)
 inline std::string to_sci (double x)
@@ -301,19 +397,21 @@ void localize_triplets (Gpu::DeviceVector<I>& rows, Gpu::DeviceVector<I>& cols,
  * and OwnedCSR::toSpMatrix.
  *
  * Triplets of rows owned by other ranks are sent to their owners
- * (localize_triplets, collective over comm).  The triplets of each row are
- * sorted by (column, triplet index) and duplicates are summed in that order,
- * so the values do not depend on thread scheduling.  The triplet arrays are
- * consumed.
+ * (localize_triplets, collective over comm) unless they already are
+ * (\p localized).  The triplets of each row are sorted by (column, triplet
+ * index) and duplicates are summed in that order, so the values do not
+ * depend on thread scheduling.  The triplet arrays are consumed.
  */
 inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVector<Long>& cols,
                                   Gpu::DeviceVector<Real>& vals, Long row_begin, Long nrows,
                                   Vector<Long> const& rank_offset, MPI_Comm comm,
-                                  SpMatrix<Real>& mat)
+                                  SpMatrix<Real>& mat, bool localized = false)
 {
     BL_PROFILE("composite::triplets_to_spmatrix");
     AMREX_ALWAYS_ASSERT(rows.size() == cols.size() && rows.size() == vals.size());
-    localize_triplets(rows, cols, vals, row_begin, nrows, rank_offset, comm);
+    if (!localized) {
+        localize_triplets(rows, cols, vals, row_begin, nrows, rank_offset, comm);
+    }
 
     // Bucket the triplet indices by row
     const auto ntrip = Long(rows.size());

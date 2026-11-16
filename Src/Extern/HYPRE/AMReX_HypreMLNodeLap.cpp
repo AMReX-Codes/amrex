@@ -3,7 +3,6 @@
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Reduce.H>
 #include <AMReX_Scan.H>
 
 #ifdef AMREX_USE_EB
@@ -295,7 +294,10 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
         pp.query("reuse_setup_max_iter", m_reuse_max_iter);
-        pp.query("reuse_setup_max_change", m_reuse_max_change);
+        Real reuse_max_change = 0.0;
+        pp.query("reuse_setup_max_change", reuse_max_change);
+        m_reuse.setMaxChange(reuse_max_change);
+        pp.query("recompute_preconditioner", m_recompute_pp);
     }
 
     numberUnknowns();
@@ -315,6 +317,9 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
     if (m_backend == Backend::hypre) {
         m_ij = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ilower), IJInt(m_iupper), m_verbose);
         m_ij->parse_inputs(m_prefix);
+        // The setup is redone when the matrix changes (updateMatrix); see
+        // setReuseSolverSetup
+        m_ij->setRecomputePreconditioner(m_recompute_pp);
         m_A = m_ij->A();
         m_b = m_ij->b();
         m_x = m_ij->x();
@@ -860,18 +865,22 @@ void HypreMLNodeLap::buildMatrix ()
     }
 
     // One array of triplets, with the identity row of the pinned unknown
+    // last; a level's chunk is freed once copied
     const bool pin_here = (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper);
     Long ntot = pin_here ? 1 : 0;
     for (auto const& t : chunks) { ntot += Long(t.rows.size()); }
     Gpu::DeviceVector<BigInt> rows(ntot), cols(ntot);
     Gpu::DeviceVector<Real> vals(ntot);
     Long off = 0;
-    for (auto const& t : chunks) {
+    for (auto& t : chunks) {
         Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
         Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
         Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
         off += Long(t.rows.size());
+        Gpu::streamSynchronize();
+        t = Triplets{};
     }
+    chunks.clear();
     if (pin_here) {
         BigInt* pr = rows.data();
         BigInt* pc = cols.data();
@@ -882,73 +891,48 @@ void HypreMLNodeLap::buildMatrix ()
             pc[off] = BigInt(pin);
             pv[off] = Real(1.0);
         });
+        Gpu::streamSynchronize();
     }
-    Gpu::streamSynchronize();
-    chunks.clear();
 
-    // The coarse/fine couplings reach the rows of other ranks: every rank
-    // gets the triplets of its rows (in an order that depends only on the
-    // pattern), for the in-place updates and the dumps
-    composite::localize_triplets(rows, cols, vals, Long(m_ilower), m_iupper - m_ilower + 1,
-                                 m_rank_offset, m_comm);
-    rescaleToSetup(vals);
+    // Setup reuse: whether the setup (hypre) or the hierarchy (AlgMG) is
+    // done anew for this matrix, or kept and the matrix scaled to the kept
+    // one's (composite::SetupReuse).  The hypre matrix is updated in place
+    // only through the slots of an earlier assembly with reuse on; otherwise
+    // it is assembled again and the setup redone (populateMatrix).
+    bool new_setup = true;
+    if (m_backend == Backend::hypre) {
+        new_setup = !m_reuse_setup || m_ij_gather.empty() || m_ij->setupPending();
+    } else {
+        new_setup = !m_reuse_setup || !m_algmg || m_algmg_reset;
+    }
+    // The pinned row's identity entry stays 1 and does not count: it is of
+    // order one, not of the order of the operator's entries
+    const Long nscaled = pin_here ? ntot-1 : ntot;
+    if (m_reuse.rescale(vals, nscaled, new_setup, m_comm, m_verbose, m_prefix)) {
+        if (m_backend == Backend::hypre) { m_ij->setNeedSetup(); }
+        else { m_algmg_reset = true; }
+    }
+
+    // The coarse/fine couplings reach the rows of other ranks.  For the
+    // in-place updates, the AlgMG matrix and the dumps, every rank gets the
+    // triplets of its rows (in an order that depends only on the pattern);
+    // hypre's assembly routes them itself.
+    if (m_reuse_setup || m_backend != Backend::hypre ||
+        composite::dump_pending(m_dump_prefix, m_dump_max)) {
+        composite::localize_triplets(rows, cols, vals, Long(m_ilower), m_iupper - m_ilower + 1,
+                                     m_rank_offset, m_comm);
+    }
     populateMatrix(rows, cols, vals);
 }
 
-void HypreMLNodeLap::rescaleToSetup (Gpu::DeviceVector<Real>& vals)
+void HypreMLNodeLap::setReuseSolverSetup (bool v)
 {
-    // A kept setup (the hypre solver setup or the AlgMG hierarchy) is for the
-    // matrix it was done with.  A later matrix is scaled to that matrix's
-    // 2-norm (of the triplet values, which fix the ratio) and loadRHS scales
-    // the right-hand side the same way: a uniform change of sigma, by a time
-    // step say, then leaves the kept setup exact, where its smoother weights
-    // and coarse corrections would otherwise grow with the change until the
-    // preconditioner diverges.
-    auto const n = Long(vals.size());
-    auto const* v = vals.data();
-    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                                             { return v[i]*v[i]; })
-                         : Real(0.0);
-    ParallelAllReduce::Sum(norm2, m_comm);
-    const bool new_setup = (m_backend == Backend::hypre)
-        ? (!m_ij || m_ij->setupPending())
-        : (!m_algmg || m_algmg_reset || !m_reuse_setup);
-    bool changed = false;
-    if (!new_setup && m_reuse_max_change > Real(0.0) && std::cmp_equal(m_setup_vals.size(), n) &&
-        m_setup_norm2 > Real(0.0) && norm2 > Real(0.0)) {
-        // The change of the scaled matrix since the setup, relative to the
-        // setup matrix (reuse_setup_max_change)
-        const Real s = std::sqrt(m_setup_norm2 / norm2);
-        auto const* v0 = m_setup_vals.data();
-        Real d2 = Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                                    { Real d = s*v[i] - v0[i]; return d*d; });
-        ParallelAllReduce::Sum(d2, m_comm);
-        const Real change = std::sqrt(d2 / m_setup_norm2);
-        if (change > m_reuse_max_change) {
-            if (m_verbose) {
-                amrex::Print() << m_prefix << ": the matrix changed by " << change
-                               << " since the kept setup; redoing the setup\n";
-            }
-            if (m_backend == Backend::hypre) { m_ij->setNeedSetup(); }
-            else { m_algmg_reset = true; }
-            changed = true;
-        }
-    }
-    if (new_setup || changed || !(m_setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0))) {
-        m_setup_norm2 = norm2;
-        m_matrix_scale = Real(1.0);
-        if (m_reuse_max_change > Real(0.0)) {
-            m_setup_vals.resize(n);
-            Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.end(), m_setup_vals.begin());
-            Gpu::streamSynchronize();
-        }
-    } else {
-        m_matrix_scale = std::sqrt(m_setup_norm2 / norm2);
-        const Real s = m_matrix_scale;
-        auto* pv = vals.data();
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { pv[i] *= s; });
-        Gpu::streamSynchronize();
-    }
+    m_reuse_setup = v;
+    // With reuse, the setup is redone only when the matrix is not updated
+    // in place, after resetSolverSetup() and by the reuse controls (see
+    // buildMatrix and populateMatrix); otherwise after every updateMatrix
+    // and, with <prefix>.recompute_preconditioner, on every solve
+    if (m_ij) { m_ij->setRecomputePreconditioner(v ? false : m_recompute_pp); }
 }
 
 void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
@@ -996,6 +980,9 @@ void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
             HYPRE_IJMatrixAssemble(m_A);
             Gpu::hypreSynchronize();
         }
+        // Not updated in place: a kept setup is for the earlier matrix, so
+        // it is redone at the next solve (buildMatrix counted on it)
+        m_ij->setNeedSetup();
         m_matrix_assembled = true;
         m_ij_gather.clear();
         if (m_reuse_setup && !m_ij_gather_failed &&
@@ -1070,7 +1057,7 @@ void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
             });
             Gpu::streamSynchronize();
             composite::triplets_to_spmatrix(lrows, lcols, vals, Long(m_ilower), nrows,
-                                            m_rank_offset, m_comm, *spA);
+                                            m_rank_offset, m_comm, *spA, true);
         }
         // With setup reuse, keep the hierarchy for the new matrix; it is
         // only kept if it has been set up (solved with) since its define()
@@ -1203,7 +1190,7 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
     // Scaled system: b' = s b, and the matrix scale of the kept setup
     Real bnorm2 = 0.0;
     for (Long r = 0; r < nrows; ++r) {
-        bvec[r] *= svec[r] * m_matrix_scale;
+        bvec[r] *= svec[r] * m_reuse.scale;
         bnorm2 += bvec[r]*bvec[r];
     }
     ParallelAllReduce::Sum(bnorm2, m_comm);
@@ -1340,7 +1327,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                                        *m_geom.back().CellSize(2));
     // Also scaled like the right-hand side, to the kept setup
     const Real abstol = (a_abstol > Real(0.0))
-        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) * m_matrix_scale : Real(0.0);
+        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) * m_reuse.scale : Real(0.0);
 
     if (m_backend == Backend::hypre) {
         Gpu::DeviceVector<BigInt> d_rows(nrows);
@@ -1348,6 +1335,7 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
             Vector<BigInt> rowids(nrows);
             std::iota(rowids.begin(), rowids.end(), static_cast<BigInt>(m_ilower));
             Gpu::copyAsync(Gpu::hostToDevice, rowids.begin(), rowids.end(), d_rows.begin());
+            Gpu::streamSynchronize(); // before rowids is freed
         }
         auto load = [&] (HYPRE_IJVector v, Vector<Real> const& h) {
             HYPRE_IJVectorInitialize(v);
@@ -1363,53 +1351,24 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         load(m_b, m_bvec);
         load(m_x, m_xvec);
 
-        // With setup reuse the setup is redone only after resetSolverSetup()
-        // or an assembly that could not update the matrix in place
-        m_ij->setRecomputePreconditioner(!m_reuse_setup);
         // A setup kept from an earlier matrix, not one done for this solve
         const bool reused = m_reuse_setup && !m_ij->setupPending();
-        // With a reused setup, a hypre error or a non-finite residual is
-        // caught (the residual norm is global, so every rank takes the same
-        // path) and retried below like a solve that does not converge; the
-        // caller's failure policy applies to the retry
-        m_ij->setThrowException(m_throw_exception || reused);
-        bool blew_up = false;
-        try {
-            m_ij->solve(a_reltol, abstol, a_maxiter);
-        } catch (std::runtime_error const&) {
-            if (!reused) { throw; }
-            blew_up = true;
-        }
-        m_ij->setThrowException(m_throw_exception);
-        m_num_iters = static_cast<int>(m_ij->getNumIters());
-        m_final_res = m_ij->getFinalResidualNorm();
-        auto converged_now = [&] () {
-            return (m_final_res <= a_reltol) || (abstol > Real(0.0) && m_final_res*m_bnorm <= abstol);
-        };
-        if (reused && (blew_up || !converged_now())) {
-            // The reused setup may have become too poor a preconditioner for
-            // the current matrix: redo it and continue from the current x
-            // (from the initial guess after a blow-up)
-            if (m_verbose) {
-                amrex::Print() << m_prefix << ": no convergence with the reused setup ("
-                               << m_num_iters << " iterations); redoing the setup\n";
-            }
-            if (blew_up || !std::isfinite(m_final_res)) { load(m_x, m_xvec); }
-            m_ij->setNeedSetup();
-            m_ij->solve(a_reltol, abstol, a_maxiter);
-            m_num_iters += static_cast<int>(m_ij->getNumIters());
-            m_final_res = m_ij->getFinalResidualNorm();
+        auto const r = composite::ij_solve_reused(*m_ij, reused, m_throw_exception, a_reltol,
+                                                  abstol, a_maxiter, m_comm, m_verbose, m_prefix,
+            [&] (Real res) {
+                return (res <= a_reltol) || (abstol > Real(0.0) && res*m_bnorm <= abstol);
+            },
+            [&] () { load(m_x, m_xvec); });
+        m_num_iters = r.num_iters;
+        m_final_res = r.final_res;
+        if (r.redone) {
+            m_reuse.setupRedone();
         } else if (reused && m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
             m_ij->setNeedSetup(); // for the next solve
         }
 
         if (nrows > 0) {
-            Vector<BigInt> rowids(nrows);
-            std::iota(rowids.begin(), rowids.end(), static_cast<BigInt>(m_ilower));
-            Gpu::DeviceVector<BigInt> d_rows(nrows);
             Gpu::DeviceVector<Real> d_x(nrows);
-            Gpu::copyAsync(Gpu::hostToDevice, rowids.begin(), rowids.end(), d_rows.begin());
-            Gpu::streamSynchronize();
             HYPRE_IJVectorGetValues(m_x, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_x.data());
             Gpu::hypreSynchronize();
             Gpu::copyAsync(Gpu::deviceToHost, d_x.begin(), d_x.end(), m_xvec.begin());
@@ -1432,41 +1391,21 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(abstol);
         m_algmg->setMaxIter(a_maxiter);
-        // With a kept hierarchy, a blow-up is caught (all ranks see the same
-        // global residual) and retried below like a solve that does not converge
-        m_algmg->setThrowException(m_throw_exception || m_algmg_kept);
-        bool blew_up = false;
-        try {
-            m_algmg->solve(x, b);
-        } catch (std::runtime_error const&) {
-            if (!m_algmg_kept) { throw; }
-            blew_up = true;
-        }
-        m_algmg->setThrowException(m_throw_exception);
-        auto residual = [&] () {
-            return (m_bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / m_bnorm : Real(0.0);
-        };
-        m_num_iters = m_algmg->getNumIters();
-        m_final_res = residual();
-        const bool kept_converged = (m_final_res <= a_reltol) ||
-            (abstol > Real(0.0) && m_final_res*m_bnorm <= abstol);
-        if (m_algmg_kept && (blew_up || !kept_converged)) {
-            // The kept hierarchy may be too poor for the current matrix: build
-            // a new one and continue from the current x (from the initial
-            // guess after a blow-up)
-            if (m_verbose) {
-                amrex::Print() << m_prefix << ": no convergence with the kept AlgMG hierarchy ("
-                               << m_num_iters << " iterations); rebuilding it\n";
-            }
-            if (blew_up) {
+        auto const r = composite::algmg_solve_kept(*m_algmg, *m_spA, m_algmg_kept,
+                                                   m_throw_exception, x, b, m_bnorm, m_comm,
+                                                   m_verbose, m_prefix,
+            [&] (Real res) {
+                return (res <= a_reltol) || (abstol > Real(0.0) && res*m_bnorm <= abstol);
+            },
+            [&] () {
                 Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), x.data());
                 Gpu::streamSynchronize();
-            }
-            m_algmg->define(*m_spA);
+            });
+        m_num_iters = r.num_iters;
+        m_final_res = r.final_res;
+        if (r.redone) {
             m_algmg_kept = false;
-            m_algmg->solve(x, b);
-            m_num_iters += m_algmg->getNumIters();
-            m_final_res = residual();
+            m_reuse.setupRedone();
         } else if (m_algmg_kept && m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
             m_algmg_reset = true; // for the next solve or update
         }

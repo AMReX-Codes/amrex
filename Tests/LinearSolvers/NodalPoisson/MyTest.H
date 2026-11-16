@@ -83,6 +83,13 @@ private:
     // and the rhs scaled by 2 (the same solution), the matrix updated in
     // place and the solver setup kept (HypreMLNodeLap::updateMatrix)
     int mlhypre_num_solves = 1;
+    // mlhypre_num_solves: scale sigma by a factor that varies in x instead
+    // (the rhs unchanged, so a new problem that MLMG solves too): the kept
+    // setup then only approximates the operator
+    int mlhypre_sigma_nonuniform = 0;
+    // mlhypre_num_solves: HypreMLNodeLap::setReuseSetupMaxChange after the
+    // first solve (the setup redone once the matrix has changed by more)
+    amrex::Real mlhypre_reuse_max_change = 0.0;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the

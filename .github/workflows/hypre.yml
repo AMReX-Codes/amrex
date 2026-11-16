@@ -259,6 +259,14 @@ jobs:
                 mlhypre_num_solves=3 do_plots=0
             mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
                 mlhypre_num_solves=3 hypre_mlnodelap.reuse_setup_max_iter=1 do_plots=0
+            # singular (the pinned row stays out of the scaling); and a change
+            # of sigma varying in x, which the kept setup only approximates:
+            # reuse_setup_max_change, set after the first solve, redoes it
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                periodic=1 mlhypre_max_diff=1.e-5 mlhypre_num_solves=3 do_plots=0
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_num_solves=3 mlhypre_sigma_nonuniform=1 mlhypre_reuse_max_change=0.1 \
+                do_plots=0
         done
         # sub-communicators, and failures that must throw (NaN rhs or initial guess)
         for b in hypre algmg; do
