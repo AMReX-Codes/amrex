@@ -74,7 +74,7 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
 
    find_package(CUDAToolkit REQUIRED)
    foreach(D IN LISTS AMReX_SPACEDIM)
-       target_link_libraries(amrex_${D}d PUBLIC CUDA::curand)
+       target_link_libraries(amrex_${D}d PUBLIC CUDA::cuda_driver CUDA::curand)
 
        if (AMReX_LINEAR_SOLVERS)
            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
