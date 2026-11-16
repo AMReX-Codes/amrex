@@ -37,7 +37,7 @@
 //  Ascent Repo: http://github.com/alpine-dav/ascent
 //  Ascent Docs: http://ascent.readthedocs.io/en/latest/
 //
-// ParaView Catalyst:
+// ParaView Catalyst 2:
 //  Docs: https://catalyst-in-situ.readthedocs.io/en/latest/
 //
 // VisIt:

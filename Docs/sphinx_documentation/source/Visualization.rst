@@ -1005,7 +1005,7 @@ Reading particles needs these versions or newer:
 
 * `Ascent <https://ascent.readthedocs.io>`__ 0.9.3, for in situ rendering and analysis,
 * `ParaView <https://www.paraview.org>`__ 6.0, for in situ visualization with
-  `Catalyst <https://catalyst-in-situ.readthedocs.io>`__,
+  `Catalyst 2 <https://catalyst-in-situ.readthedocs.io>`__,
 * `VisIt <https://visit-dav.github.io/visit-website/>`__ 3.3.0, for Blueprint files.
 
 .. [1]
