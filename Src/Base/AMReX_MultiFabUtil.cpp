@@ -753,10 +753,15 @@ namespace amrex
         MultiFab areay;
 #endif
         if (!geom.IsCartesian()) {
-            geom.GetVolume(volume, ba, dm, 0);
-            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            // The async arena keeps the data alive for kernels in a no-sync region.
+            const MFInfo info = MFInfo().SetArena(The_Async_Arena());
+            volume.define(ba, dm, 1, 0, info);
+            geom.GetVolume(volume);
+            areax.define(amrex::convert(ba,IntVect::TheDimensionVector(0)), dm, 1, 0, info);
+            geom.GetFaceArea(areax, 0);
 #if (AMREX_SPACEDIM == 2)
-            geom.GetFaceArea(areay, ba, dm, 1, 0);
+            areay.define(amrex::convert(ba,IntVect::TheDimensionVector(1)), dm, 1, 0, info);
+            geom.GetFaceArea(areay, 1);
 #endif
         }
 #endif
