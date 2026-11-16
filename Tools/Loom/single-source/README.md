@@ -1,6 +1,6 @@
-# Single-source LOOM build of AMReX
+# Single-source Loom build of AMReX
 
-This directory reproduces the single-source LOOM test: AMReX's single-GPU tests
+This directory reproduces the single-source Loom test: AMReX's single-GPU tests
 built with one C++ frontend (cxx) for both host and device code, and one set of
 libc++ headers for both. Each file is compiled by Loom's offload driver,
 `loom-cxx`, which parses and type-checks it once with cxx and gives that one
@@ -87,7 +87,7 @@ Then, from `loom-work` (on a GPU node for the last step):
 
 ```bash
 $S/build-hrx.sh     # loom-cxx (with cxx and its MLIR back end), libhrx  (build/hrx)
-$S/build-amrex.sh   # AMReX LOOM backend and the six tests               (build/amrex)
+$S/build-amrex.sh   # AMReX Loom backend and the six tests               (build/amrex)
 $S/run-tests.sh     # ctest for the six tests, then the CNS check
 ```
 
