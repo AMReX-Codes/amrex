@@ -1,7 +1,7 @@
 # Runs the test suite and publishes the results to the AMReX dashboard at
 # https://my.cdash.org/index.php?project=AMReX
 #
-#   ctest -S /path/to/amrex/Tools/CTest/submit.cmake [-C <config>]
+#   ctest -S /path/to/amrex/Tools/CTest/submit.cmake [-C <config>] [-j <N>]
 #
 # The build must already be configured and built; multi-config generators
 # such as Visual Studio need -C <config>. Driven by environment
@@ -9,7 +9,7 @@
 #
 #   CDASH_SOURCE_DIR   top of the AMReX source tree
 #   CDASH_BINARY_DIR   the configured build directory
-#   CDASH_BUILD_NAME   label for this configuration, e.g. nvidia-h100-cuda
+#   CDASH_BUILD_NAME   label for this configuration, e.g. nvidia-h200-cuda-single
 #   CDASH_SITE         where it ran, e.g. hpsf-gitlab
 #   CDASH_TRACK        dashboard track; defaults to Nightly
 #   CDASH_AUTH_TOKEN   bearer token, if the project requires authentication

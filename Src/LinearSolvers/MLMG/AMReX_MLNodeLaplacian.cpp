@@ -1246,4 +1246,24 @@ template class MLNodeLaplacianT<MultiFab>;
 template class MLNodeLaplacianT<fMultiFab>;
 #endif
 
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+// Many members are defined in the other AMReX_MLNodeLaplacian_*.cpp files.
+// With link-time optimization GCC makes the references to them from this
+// file weak, and a linker does not take an object file out of a static
+// library for a weak reference.  These are strong references to each file.
+// Nothing calls this function.
+void mlndlap_link_parts ()
+{
+    mlndlap_anchor_sync();
+    mlndlap_anchor_sten();
+    mlndlap_anchor_misc();
+    mlndlap_anchor_matrix();
+#ifdef AMREX_USE_EB
+    mlndlap_anchor_eb();
+#endif
+}
+}
+/// \endcond
+
 }

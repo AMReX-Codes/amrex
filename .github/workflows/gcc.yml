@@ -471,7 +471,10 @@ jobs:
       # /home/runner/work/amrex/amrex/Src/Particle/AMReX_ParticleContainerI.H:2652:26: note: ‘p’ declared here
       # auto p = ptd[i];
       #
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
+      # With AMReX_IPO=ON, at link time:
+      # /usr/include/c++/12/bits/char_traits.h:425:56: error: ‘__builtin_memcpy’ writing 36 bytes into a region of size 16 overflows the destination [-Werror=stringop-overflow=]
+      #
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-stringop-overflow"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -495,6 +498,7 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
+            -DAMReX_IPO=ON              \
             -DCMAKE_C_COMPILER=$(which gcc-12)     \
             -DCMAKE_CXX_COMPILER=$(which g++-12)   \
             -DCMAKE_CXX_STANDARD=20     \

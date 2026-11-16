@@ -386,11 +386,23 @@ void amrex_avgdown (int i, int j, int k, int n, Array4<T> const& crse,
     const int jj = j*facy;
     const int kk = k*facz;
     T c = 0;
-    for (int kref = 0; kref < facz; ++kref) {
-    for (int jref = 0; jref < facy; ++jref) {
-    for (int iref = 0; iref < facx; ++iref) {
-        c += fine(ii+iref,jj+jref,kk+kref,n+fcomp);
-    }}}
+    if (facx == 2 && facy == 2 && facz == 2) {
+        // Same order of additions as the loops below
+        c += fine(ii  ,jj  ,kk  ,n+fcomp);
+        c += fine(ii+1,jj  ,kk  ,n+fcomp);
+        c += fine(ii  ,jj+1,kk  ,n+fcomp);
+        c += fine(ii+1,jj+1,kk  ,n+fcomp);
+        c += fine(ii  ,jj  ,kk+1,n+fcomp);
+        c += fine(ii+1,jj  ,kk+1,n+fcomp);
+        c += fine(ii  ,jj+1,kk+1,n+fcomp);
+        c += fine(ii+1,jj+1,kk+1,n+fcomp);
+    } else {
+        for (int kref = 0; kref < facz; ++kref) {
+        for (int jref = 0; jref < facy; ++jref) {
+        for (int iref = 0; iref < facx; ++iref) {
+            c += fine(ii+iref,jj+jref,kk+kref,n+fcomp);
+        }}}
+    }
     crse(i,j,k,n+ccomp) = volfrac * c;
 }
 

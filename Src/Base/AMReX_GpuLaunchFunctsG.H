@@ -403,6 +403,7 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
     amrex::ignore_unused(pf);
 
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * ec.numBlocks.x;
@@ -419,11 +420,11 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                    for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
-                        int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
-                                                          std::uint64_t(item.get_local_range(0)));
+                        int n_active_threads = amrex::min(indexer.numPts()-icell+UInt(item.get_local_id(0)),
+                                                          UInt(item.get_local_range(0)));
                         if constexpr (detail::is_big_kernel<L>()) {
                             detail::call_f_intvect_handler(*pf,
                                                            iv, Gpu::Handler{&item,
@@ -446,7 +447,7 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                    for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
                         if constexpr (detail::is_big_kernel<L>()) {
@@ -473,6 +474,7 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
     amrex::ignore_unused(pf);
 
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * ec.numBlocks.x;
@@ -489,11 +491,11 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                    for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
-                        int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
-                                                          std::uint64_t(item.get_local_range(0)));
+                        int n_active_threads = amrex::min(indexer.numPts()-icell+UInt(item.get_local_id(0)),
+                                                          UInt(item.get_local_range(0)));
                         if constexpr (detail::is_big_kernel<L>()) {
                             detail::call_f_intvect_ncomp_handler(*pf, iv, ncomp,
                                                                  Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
@@ -514,7 +516,7 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                    for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
                         if constexpr (detail::is_big_kernel<L>()) {
@@ -583,6 +585,7 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f)
     amrex::ignore_unused(pf);
 
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
@@ -600,7 +603,7 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f)
                 auto const tid = item.get_global_id(0);
                 auto engine = engine_acc.load(tid);
                 RandomEngine rand_eng{&engine};
-                for (std::uint64_t icell = tid, stride = item.get_global_range(0);
+                for (UInt icell = UInt(tid), stride = UInt(item.get_global_range(0));
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
                     if constexpr (detail::is_big_kernel<L>()) {
@@ -628,6 +631,7 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
     amrex::ignore_unused(pf);
 
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
@@ -645,7 +649,7 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
                 auto const tid = item.get_global_id(0);
                 auto engine = engine_acc.load(tid);
                 RandomEngine rand_eng{&engine};
-                for (std::uint64_t icell = tid, stride = item.get_global_range(0);
+                for (UInt icell = UInt(tid), stride = UInt(item.get_global_range(0));
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
                     if constexpr (detail::is_big_kernel<L>()) {
@@ -674,6 +678,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND
     amrex::ignore_unused(pf1,pf2);
 
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(), box2.numPts()));
     const auto nthreads_per_block = ec.numThreads.x;
@@ -688,7 +693,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-                for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
@@ -728,6 +733,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     amrex::ignore_unused(pf1,pf2,pf3);
 
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max({box1.numPts(),box2.numPts(),box3.numPts()}));
@@ -743,7 +749,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = amrex::max(indexer1.numPts(), indexer2.numPts(), indexer3.numPts());
-                for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
@@ -790,6 +796,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     amrex::ignore_unused(pf1,pf2);
 
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(),box2.numPts()));
     const auto nthreads_per_block = ec.numThreads.x;
@@ -804,7 +811,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-                for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
@@ -845,6 +852,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     amrex::ignore_unused(pf1,pf2,pf3);
 
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max({box1.numPts(),box2.numPts(),box3.numPts()}));
@@ -860,7 +868,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = amrex::max(indexer1.numPts(), indexer2.numPts(), indexer3.numPts());
-                for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
+                for (UInt icell = UInt(item.get_global_id(0)), stride = UInt(item.get_global_range(0));
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
@@ -959,12 +967,13 @@ void launch (BoxND<dim> const& box, L const& f)
     if (box.isEmpty()) { return; }
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto type = box.ixType();
     for (auto const& ec : nec) {
-        const auto start_idx = std::uint64_t(ec.start_idx);
+        const auto start_idx = UInt(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            auto icell = UInt(MT)*blockIdx.x+threadIdx.x + start_idx;
             if (icell < indexer.numPts()) {
                 auto iv = indexer.intVect(icell);
                 f(BoxND<dim>(iv,iv,type));
@@ -1013,17 +1022,18 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
-        const auto start_idx = std::uint64_t(ec.start_idx);
+        const auto start_idx = UInt(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            auto icell = UInt(MT)*blockIdx.x+threadIdx.x + start_idx;
             if (icell < indexer.numPts()) {
                 auto iv = indexer.intVect(icell);
                 detail::call_f_intvect_handler(f, iv,
-                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                    (std::uint64_t)MT)));
+                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(UInt)threadIdx.x),
+                    (UInt)MT)));
             }
         });
     }
@@ -1041,17 +1051,18 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
-        const auto start_idx = std::uint64_t(ec.start_idx);
+        const auto start_idx = UInt(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            auto icell = UInt(MT)*blockIdx.x+threadIdx.x + start_idx;
             if (icell < indexer.numPts()) {
                 auto iv = indexer.intVect(icell);
                 detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
-                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                    (std::uint64_t)MT)));
+                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(UInt)threadIdx.x),
+                    (UInt)MT)));
             }
         });
     }
@@ -1098,6 +1109,7 @@ ParallelForRNG (BoxND<dim> const& box, L const& f)
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
                         amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
@@ -1105,7 +1117,7 @@ ParallelForRNG (BoxND<dim> const& box, L const& f)
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
-        for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
+        for (UInt icell = UInt(tid), stride = UInt(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_engine(f, iv, engine);
         }
@@ -1127,6 +1139,7 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
                         amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
@@ -1134,7 +1147,7 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
-        for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
+        for (UInt icell = UInt(tid), stride = UInt(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_ncomp_engine(f, iv, ncomp, engine);
         }
@@ -1155,12 +1168,13 @@ ParallelFor (Gpu::KernelInfo const&,
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(),box2.numPts()));
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
+        for (UInt icell = UInt(MT)*blockIdx.x+threadIdx.x, stride = UInt(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -1189,13 +1203,14 @@ ParallelFor (Gpu::KernelInfo const&,
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max({box1.numPts(),box2.numPts(),box3.numPts()}));
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
-        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
+        for (UInt icell = UInt(MT)*blockIdx.x+threadIdx.x, stride = UInt(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -1227,12 +1242,13 @@ ParallelFor (Gpu::KernelInfo const&,
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(),box2.numPts()));
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
+        for (UInt icell = UInt(MT)*blockIdx.x+threadIdx.x, stride = UInt(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -1262,13 +1278,14 @@ ParallelFor (Gpu::KernelInfo const&,
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max({box1.numPts(),box2.numPts(),box3.numPts()}));
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
-        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
+        for (UInt icell = UInt(MT)*blockIdx.x+threadIdx.x, stride = UInt(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);

@@ -446,6 +446,20 @@ double powi (double x, int n) noexcept
 #endif
 }
 
+//! High 32 bits of the 64-bit product of a and b.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint32_t umulhi32 (std::uint32_t a, std::uint32_t b)
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::mul_hi(a,b);
+#else
+    AMREX_IF_ON_DEVICE(( return __umulhi(a, b); ))
+    AMREX_IF_ON_HOST((
+        return std::uint32_t((std::uint64_t(a) * std::uint64_t(b)) >> 32);
+    ))
+#endif
+}
+
 #if defined(AMREX_INT128_SUPPORTED)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
@@ -729,6 +743,60 @@ struct FastDivmodU64
     void operator() (std::uint64_t &quotient, std::uint64_t &remainder, std::uint64_t dividend) const
     {
         quotient = divmod(remainder, dividend);
+    }
+};
+
+/**
+ * \brief Fast division and modulus by a fixed 32-bit divisor, as
+ * FastDivmodU64, for dividends below 2^32-1.
+ *
+ * The quotient is a 32-bit multiply-high and a shift, which on GPUs is much
+ * cheaper than the 64-bit version.
+ */
+struct FastDivmodU32
+{
+    std::uint32_t divisor = 0;
+    std::uint32_t multiplier = 1U;
+    unsigned int shift_right = 0;
+    unsigned int round_up = 0;
+
+    //! Precompute the constants, in host code only.
+    FastDivmodU32 (std::uint32_t divisor_)
+        : divisor(divisor_)
+    {
+        if (divisor) {
+            for (auto x = divisor; x >>= 1; ) { ++shift_right; }
+            if ((divisor & (divisor - 1)) == 0) {
+                multiplier = 0;
+            } else {
+                std::uint64_t power_of_two = (std::uint64_t(1) << shift_right);
+                std::uint64_t n = power_of_two << 32;
+                auto multiplier_lo = std::uint32_t(n / divisor);
+                n += power_of_two;
+                multiplier = std::uint32_t(n / divisor);
+                round_up = (multiplier_lo == multiplier ? 1 : 0);
+            }
+        }
+    }
+
+    FastDivmodU32 () = default;
+
+    //! floor(dividend / divisor), for dividend < 2^32-1.
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::uint32_t divide (std::uint32_t dividend) const
+    {
+        auto x = dividend;
+        if (multiplier) {
+            x = amrex::Math::umulhi32(dividend + round_up, multiplier);
+        }
+        return (x >> shift_right);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void operator() (std::uint32_t &quotient, std::uint32_t &remainder, std::uint32_t dividend) const
+    {
+        quotient = divide(dividend);
+        remainder = dividend - quotient * divisor;
     }
 };
 

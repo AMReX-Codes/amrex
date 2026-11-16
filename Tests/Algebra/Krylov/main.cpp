@@ -27,7 +27,7 @@ int main (int argc, char* argv[])
         Real a = Real(1);
         Real dx = Real(2)*amrex::Math::pi<Real>()/Real(domain.length(0));
 
-        BoxIndexer box_indexer(domain);
+        BoxIndexerND<AMREX_SPACEDIM,std::uint64_t> box_indexer(domain);
 
         {
             auto* rhs = bvec.data();

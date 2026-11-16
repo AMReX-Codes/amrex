@@ -158,12 +158,15 @@ public:
             host_offsets.push_back(host_offsets.back() + kv.second);
         }
 
+        m_bins.resize(0);
         m_bins.resize(host_bins.size());
         Gpu::copyAsync(Gpu::hostToDevice, host_bins.begin(), host_bins.end(), m_bins.begin());
 
+        m_offsets.resize(0);
         m_offsets.resize(host_offsets.size());
         Gpu::copyAsync(Gpu::hostToDevice, host_offsets.begin(), host_offsets.end(), m_offsets.begin());
 
+        m_perm.resize(0);
         m_perm.resize(host_perm.size());
         Gpu::copyAsync(Gpu::hostToDevice, host_perm.begin(), host_perm.end(), m_perm.begin());
 

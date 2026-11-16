@@ -58,15 +58,11 @@ private:
    static void calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
          const std::array<Real,3>& normal, const std::array<Real,3>& centroid) ;
 
-   // Fills the alpha vector
-   static void calc_alpha(std::array<Real,12>& alpha,
+   // Collect on-plane corners once and intersections on strictly crossing edges.
+   static void calc_intersects(int& int_count,
+         std::array<std::array<Real,3>,12>& points,
          const std::array<Real,3>& n0, Real p,
-         const std::array<std::array<Real,3>,8>& vertex,
-         const Real* dx) ;
-
-   // Fills count and flags selecting the alphas which are in (0,1)
-   static void calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-         const std::array<Real,12>& alpha) ;
+         const std::array<std::array<Real,3>,8>& vertex, const Real* dx) ;
 
    void print_points(std::ofstream& myfile) const;
    void print_connectivity(std::ofstream& myfile) const;

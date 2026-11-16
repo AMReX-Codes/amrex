@@ -474,6 +474,20 @@ extern template class MLNodeLaplacianT<MultiFab>;
 extern template class MLNodeLaplacianT<fMultiFab>;
 #endif
 
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    // One empty function per AMReX_MLNodeLaplacian_*.cpp, for mlndlap_link_parts.
+    void mlndlap_anchor_sync ();
+    void mlndlap_anchor_sten ();
+    void mlndlap_anchor_misc ();
+    void mlndlap_anchor_matrix ();
+#ifdef AMREX_USE_EB
+    void mlndlap_anchor_eb ();
+#endif
+    void mlndlap_link_parts ();
+}
+/// \endcond
+
 //! Double precision nodal Laplacian.
 using MLNodeLaplacian = MLNodeLaplacianT<MultiFab>;
 

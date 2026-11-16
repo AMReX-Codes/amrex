@@ -1127,3 +1127,5 @@ template void MLNodeLaplacianT<fMultiFab>::reflux (int, fMultiFab&, const fMulti
 #endif
 
 }
+
+namespace amrex::detail { void mlndlap_anchor_sync () {} } // see mlndlap_link_parts

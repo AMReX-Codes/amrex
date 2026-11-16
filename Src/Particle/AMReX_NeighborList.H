@@ -404,7 +404,9 @@ public:
         // First pass: count the number of neighbors for each particle
         //---------------------------------------------------------------------------------------------------------
         const int np_size  = (num_bin_types > 1) ? np_total : np_real;
+        m_nbor_counts.resize(0);
         m_nbor_counts.resize( np_size+1, 0);
+        m_nbor_offsets.resize(0);
         m_nbor_offsets.resize(np_size+1);
 
         auto* pnbor_counts = m_nbor_counts.dataPtr();
@@ -468,6 +470,7 @@ public:
         unsigned int total_nbors;
         Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
 
+        m_nbor_list.resize(0);
         m_nbor_list.resize(total_nbors);
         auto* pm_nbor_list = m_nbor_list.dataPtr();
 

@@ -357,8 +357,15 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     clearNeighbors();
 
     if (this->use_comms_arena) {
-        snd_buffer.setArena(The_Comms_Arena());
-        rcv_buffer.setArena(The_Comms_Arena());
+        // Free the old memory with its own arena before switching arenas.
+        if (snd_buffer.arena() != The_Comms_Arena()) {
+            snd_buffer.free_async();
+            snd_buffer.setArena(The_Comms_Arena());
+        }
+        if (rcv_buffer.arena() != The_Comms_Arena()) {
+            rcv_buffer.free_async();
+            rcv_buffer.setArena(The_Comms_Arena());
+        }
     }
 
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
@@ -378,6 +385,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
             Gpu::streamSynchronize();
             communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, pinned_rcv_buffer);
         } else {
+            pinned_snd_buffer.clear(); // avoid copying stale data on growth
             pinned_snd_buffer.resize(snd_buffer.size());
             Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
             neighbor_copy_plan.buildMPIFinish(this->BufferMap());
@@ -385,6 +393,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
             communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
 
+        rcv_buffer.clear(); // avoid copying stale data on growth
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
         communicateParticlesFinish(neighbor_copy_plan);

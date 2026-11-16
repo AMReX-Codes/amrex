@@ -1938,6 +1938,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         e.dxinv = m_geom[ilev].InvCellSizeArray();
         e.sa = a_ascalar;
         e.sb = a_bscalar;
+        e.beta_on_centroid = m_beta_on_centroid;
         e.fixed_pt = fixed_pt;
         e.cid = m_cell_id[ilev]->const_array(mfi);
         if (ilev > 0) {
@@ -2553,16 +2554,17 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
             auto const& fmask_a = m_fine_masks[clev].const_array(mfi);
             BoxIndexer box_indexer(mfi.validbox());
 #ifdef AMREX_USE_GPU
+            using UInt = BoxIndexer::UInt;
             auto tot = Scan::PrefixSum<int>
-                (std::uint64_t(mfi.validbox().numPts()),
-                 [=] AMREX_GPU_DEVICE (std::uint64_t index) -> int
+                (box_indexer.numPts(),
+                 [=] AMREX_GPU_DEVICE (UInt index) -> int
                  {
                      auto ijk = box_indexer(index);
                      IntVect ivm(ijk);
                      ivm[idim] -= 1;
                      return int(fmask_a(ijk) != fmask_a(ivm));
                  },
-                 [=] AMREX_GPU_DEVICE (Long index, int psum)
+                 [=] AMREX_GPU_DEVICE (UInt index, int psum)
                  {
                      auto ijk = box_indexer(index);
                      IntVect ivm(ijk);

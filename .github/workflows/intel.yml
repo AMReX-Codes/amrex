@@ -53,6 +53,7 @@ jobs:
             -DAMReX_FFT=ON                                 \
             -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_ARRAY4_64BIT_INDEX=ON                  \
             -DAMReX_FORTRAN=ON                             \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DAMReX_SYCL_AOT=ON                            \

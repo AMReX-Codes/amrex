@@ -919,6 +919,19 @@ sparse matrix:
   ``5e7``) are written one per rank, as ``<file>.<rank>`` (on one rank, always
   one file).
 
+In EB builds, the constructor that takes per-level factories assembles
+:cpp:`MLEBABecLap`'s composite operator when a factory has cut cells (IJ mode
+only).  The rows are weighted by the volume fraction, the fluxes across
+coarse/fine faces are the area-weighted fine fluxes, and the coarse cells
+under a finer level hold the EB average of their fine cells.
+:cpp:`setEBDirichlet` and :cpp:`setEBHomogDirichlet` set the boundary
+condition on the EB (homogeneous Neumann without them), and
+:cpp:`setBCoeffsOnCentroids(true)` takes the ``b`` coefficients at the face
+centroids, as :cpp:`MLEBABecLap::setBCoeffs` with ``Location::FaceCentroid``
+(by default they are at the face centers).  ``hypre_mlabeclap.eb_scaling``
+(default 1) scales the unknowns by the inverse square root of the volume
+fraction, so that the rows of small cut cells count in the residual norm.
+
 The number of rows of the composite system must fit in ``HYPRE_Int``, so
 systems with more than about :math:`2^{31}` cells need HYPRE built with
 ``--enable-bigint``.  Like the default mode, the IJ mode runs on the

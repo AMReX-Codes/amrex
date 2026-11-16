@@ -39,16 +39,16 @@
  *
  * Like MLMG with maxorder 3 and an interpolation half width of 1 (which
  * matters in 2D only), both with and without EB; Dirichlet or Neumann
- * domain boundaries, refinement ratios 2 and 4; b at the face centers and
- * phi at the cell centers (MLEBABecLap's default locations, not its face
- * centroid and cell centroid options).  A ghost cell outside two faces
- * whose inner cells are off the level's grids, which MLEBABecLap::applyBC
- * does not fill (MLMG uses the solution's ghost value there, e.g. in the EB
- * Dirichlet stencil of a cut cell in that corner), is filled at the lowest
- * order: outside two coarse/fine faces (a convex corner of the grids) with
- * the coarse interpolation at the face; outside a physical boundary and the
- * coarse/fine boundary (or in a domain corner) with the boundary value, or
- * for Neumann the inner cell's.
+ * domain boundaries, refinement ratios 2 and 4; phi at the cell centers
+ * (MLEBABecLap's default, not its cell centroid option) and b at the face
+ * centers (the default) or at the face centroids (setBCoeffsOnCentroids).
+ * A ghost cell outside two faces whose inner cells are off the level's
+ * grids, which MLEBABecLap::applyBC does not fill (MLMG uses the solution's
+ * ghost value there, e.g. in the EB Dirichlet stencil of a cut cell in that
+ * corner), is filled at the lowest order: outside two coarse/fine faces (a
+ * convex corner of the grids) with the coarse interpolation at the face;
+ * outside a physical boundary and the coarse/fine boundary (or in a domain
+ * corner) with the boundary value, or for Neumann the inner cell's.
  * Untested with EB: level 0 with coarse boundary data (a_coarse_bc).
  *
  * `<prefix>.eb_scaling` (default 1): with EB, scale the unknowns by
@@ -122,6 +122,15 @@ public:
                          Vector<MultiFab const*> const& a_beta);
     //! EB operator: homogeneous Dirichlet boundary condition on the EB
     void setEBHomogDirichlet (Vector<MultiFab const*> const& a_beta);
+    /**
+     * \brief EB operator: the b coefficients of the following setups are at
+     * the face centroids, as with MLEBABecLap::setBCoeffs and
+     * Location::FaceCentroid (the gradient at a cut face is interpolated
+     * toward the face centroid and multiplied by that face's b), instead of
+     * at the face centers (\p v false, the default, where b times the
+     * gradient is interpolated).  Without cut cells the two are the same.
+     */
+    void setBCoeffsOnCentroids (bool v) noexcept { m_beta_on_centroid = v; }
 
     /**
      * \brief IJ mode only: let setup() be called again with new coefficients
@@ -152,9 +161,11 @@ public:
      * \param a_ascalar   Scalar applied to the diagonal term.
      * \param a_bscalar   Scalar applied to the diffusive term.
      * \param a_acoefs    Level-by-level `a` coefficients.
-     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients;
-     *                    a missing or null entry means 1 on that level (with EB,
-     *                    the coarse faces under a finer level then hold 1 too).
+     * \param a_bcoefs    Level-by-level arrays of face-based `b` coefficients (at
+     *                    the face centers, or with EB and setBCoeffsOnCentroids at
+     *                    the face centroids); a missing or null entry means 1 on
+     *                    that level (with EB, the coarse faces under a finer level
+     *                    then hold 1 too).
      * \param a_levelbcdata BC data per level; a missing or null entry means zero.
      *                    On a level with a physical boundary the data must have
      *                    a ghost cell (the boundary values are read from it).
@@ -345,6 +356,7 @@ private:
     //! the last setup, and the EB Dirichlet data for the next one
     bool m_eb = false;
     bool m_eb_scaling = true;
+    bool m_beta_on_centroid = false;
     Vector<MultiFab> m_eb_scale;
     Vector<std::unique_ptr<FabArray<BaseFab<Long>>>> m_crse_id;
     Vector<MultiFab> m_crse_scale;

@@ -1527,3 +1527,5 @@ template void MLNodeLaplacianT<fMultiFab>::compRHS (const Vector<fMultiFab*>&, c
 /// \endcond
 
 }
+
+namespace amrex::detail { void mlndlap_anchor_misc () {} } // see mlndlap_link_parts

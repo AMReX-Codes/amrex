@@ -729,6 +729,7 @@ public:
             AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
             const int nblocks = nblocks_per_box * nboxes;
             const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+            const Math::FastDivmodU32 fdm_box(nblocks_per_box);
 
             auto const& stream = Gpu::gpuStream();
             auto pdst = reduce_data.devicePtr(stream);
@@ -761,14 +762,15 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox = iblock / nblocks_per_box;
-                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                    std::uint32_t ibox, ib;
+                    fdm_box(ibox, ib, std::uint32_t(iblock));
+                    auto icell = BoxIndexer::UInt(ib)*AMREX_GPU_MAX_THREADS + BoxIndexer::UInt(threadIdx.x);
 
                     BoxIndexer const& indexer = dp_boxes[ibox];
                     if (icell < indexer.numPts()) {
                         auto [i, j, k] = indexer(icell);
                         Reduce::detail::mf_call_f<Tag, F, ReduceTuple, Ps...>
-                            (f, ibox, i, j, k, ncomp, r);
+                            (f, int(ibox), i, j, k, ncomp, r);
                     }
                 }
 #ifdef AMREX_USE_SYCL
@@ -790,6 +792,7 @@ public:
         auto dp = reduce_data.devicePtr(stream);
         int& nblocks = reduce_data.nBlocks(stream);
         const BoxIndexerND<dim> indexer(box);
+        using UInt = typename BoxIndexerND<dim>::UInt;
         IndexTypeND<dim> ixtype = box.ixType();
         constexpr int nitems_per_thread = 4;
         Long nblocks_ec = (box.numPts() + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
@@ -817,8 +820,8 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
-                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+            for (UInt icell = UInt(AMREX_GPU_MAX_THREADS)*UInt(blockIdx.x)+UInt(threadIdx.x),
+                 stride = UInt(AMREX_GPU_MAX_THREADS)*UInt(gridDim.x);
                  icell < indexer.numPts();
                  icell += stride)
             {
@@ -1237,6 +1240,7 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
     const BoxIndexerND<dim> indexer(box);
+    using UInt = typename BoxIndexerND<dim>::UInt;
     auto ec = Gpu::ExecutionConfig(box.numPts());
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
@@ -1252,8 +1256,8 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*gh.blockIdx()+gh.threadIdx(),
-                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gh.gridDim();
+            for (UInt icell = UInt(AMREX_GPU_MAX_THREADS)*UInt(gh.blockIdx())+UInt(gh.threadIdx()),
+                 stride = UInt(AMREX_GPU_MAX_THREADS)*UInt(gh.gridDim());
                  icell < indexer.numPts() && !r;
                  icell += stride)
             {
@@ -1276,8 +1280,8 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
         if (!has_any)
         {
             int r = false;
-            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
-                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+            for (UInt icell = UInt(AMREX_GPU_MAX_THREADS)*UInt(blockIdx.x)+UInt(threadIdx.x),
+                 stride = UInt(AMREX_GPU_MAX_THREADS)*UInt(gridDim.x);
                  icell < indexer.numPts() && !r;
                  icell += stride)
             {

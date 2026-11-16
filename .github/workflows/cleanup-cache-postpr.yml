@@ -21,25 +21,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Clean up ccache
+        # Pass workflow_run fields through env so the shell never parses them.
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          REPO=${{ github.repository }}
-
           # For debugging cat ${GITHUB_EVENT_PATH} to see the payload.
 
-          pr_head_sha=${{ github.event.workflow_run.head_sha }}
-          pr_number=$(gh pr list --state all --search $pr_head_sha --json number --jq '.[0].number')
+          pr_number=$(gh pr list --state all --search "$HEAD_SHA" --json number --jq '.[0].number')
           echo "Post-PR cache cleanup for PR ${pr_number}"
-          BRANCH=refs/pull/${pr_number}/merge
+          BRANCH="refs/pull/${pr_number}/merge"
 
           # Setting this to not fail the workflow while deleting cache keys.
           set +e
 
           # Note that `gh cache delete` has no ref filter, so we delete by
           # cache id, not by key.
-          ids=$(gh cache list -L 100 -R $REPO --ref $BRANCH --json id --jq '.[].id')
+          ids=$(gh cache list -L 100 -R "$REPO" --ref "$BRANCH" --json id --jq '.[].id')
           for i in $ids
           do
             # `|| true` so that a failed deletion does not fail the step: the
             # step's exit status is that of the last command run.
-            gh cache delete "$i" -R $REPO || true
+            gh cache delete "$i" -R "$REPO" || true
           done
