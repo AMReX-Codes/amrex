@@ -107,6 +107,16 @@ int main(int argc, char* argv[])
         n = pp.countval("integers3");
         AMREX_ALWAYS_ASSERT(n == 2 && iv3 == std::vector<int>({1,2}));
 
+        std::vector<std::vector<int>> ivv2;
+        pp.getarr("nested_arrays_of_ints_2", ivv2);
+        n = pp.countval("nested_arrays_of_ints_2");
+        AMREX_ALWAYS_ASSERT(n == 2 && ivv2 == ivv);
+
+        std::vector<std::vector<std::string>> svv5;
+        pp.getarr("nested_arrays_of_strings_5", svv5);
+        n = pp.countval("nested_arrays_of_strings_5");
+        AMREX_ALWAYS_ASSERT(n == 2 && svv5 == svv);
+
         // Test indexed access to TOML arrays via get("name", val, ival)
         int ival;
         pp.get("integers", ival, 0);
