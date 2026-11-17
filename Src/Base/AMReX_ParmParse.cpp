@@ -1726,7 +1726,7 @@ ParmParse::addfile (std::string const& filename) {
     {
         auto const path = inputs_file_path(filename);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            FileExists(path),
+            !filename.empty() && FileExists(path),
             "ParmParse::addfile: file does not exist: " + path
         );
     }

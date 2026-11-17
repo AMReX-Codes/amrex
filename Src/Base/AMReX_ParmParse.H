@@ -1770,7 +1770,8 @@ public:
 
     //! Add keys and values from a file to the end of the PP table.  This
     //! function must be called on all MPI processes because it contains a
-    //! call to MPI_Bcast.
+    //! call to MPI_Bcast.  If the environment variable
+    //! AMREX_INPUTS_FILE_PREFIX is set, it is put in front of filename.
     static void addfile (std::string const& filename);
 
     static bool QueryUnusedInputs ();
