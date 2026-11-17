@@ -86,13 +86,13 @@ int main (int argc, char* argv[])
         volatile U vzero = 0;
         const U zero = vzero;
 
-        // Use a subnormal number, or the smallest normal number if the build
-        // flushes subnormal numbers to zero (e.g., with fast math).
-        volatile Real vtiny = std::numeric_limits<Real>::denorm_min();
+        // Use a subnormal number, or the smallest normal number if the host or
+        // the device flushes subnormal numbers to zero (e.g., with fast math).
+        MultiFab probe(ba, dm, 1, 0);
+        probe.setVal(std::numeric_limits<Real>::denorm_min());
         volatile Real vone = Real(1.);
-        volatile Real vprod = vtiny*vone;
-        const Real prod = vprod;
-        const U tiny = (std::bit_cast<U>(prod) == U(0)) ? (U(1) << nman) : U(1);
+        probe.mult(vone, 0, 1);
+        const U tiny = (std::bit_cast<U>(probe.min(0)) == U(1)) ? U(1) : (U(1) << nman);
 
         const Bits b{.inf = expo + zero, .minf = (sign | expo) + zero,
                      .nan = (expo | (U(1) << (nman-1))) + zero,
