@@ -1057,6 +1057,21 @@ namespace amrex
                                 * a[box_no](i,j,k,icomp);
                         }
                     });
+                } else if (geom[ilev].IsRZ()) {
+                    const auto rlo = geom[ilev].ProbLo(0);
+                    reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                   noexcept -> Real
+                    {
+                        if (m[box_no](i,j,k)) {
+                            return Real(0.);
+                        } else {
+                            constexpr Real pi = std::numbers::pi_v<Real>;
+                            Real ri = rlo + dx[0]*Real(i);
+                            Real ro = ri + dx[0];
+                            return pi*dx[0]*(ro+ri) * a[box_no](i,j,k,icomp);
+                        }
+                    });
                 } else
 #elif (AMREX_SPACEDIM == 2)
                 if (geom[ilev].IsRZ()) {
@@ -1072,6 +1087,26 @@ namespace amrex
                             Real ro = ri + dx[0];
                             constexpr Real pi = std::numbers::pi_v<Real>;
                             return pi*dx[1]*dx[0]*(ro+ri)
+                                * a[box_no](i,j,k,icomp);
+                        }
+                    });
+                } else if (geom[ilev].IsSPHERICAL()) {
+                    const auto rlo = geom[ilev].ProbLo(0);
+                    const auto tlo = geom[ilev].ProbLo(1);
+                    reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                   noexcept -> Real
+                    {
+                        if (m[box_no](i,j,k)) {
+                            return Real(0.);
+                        } else {
+                            constexpr Real pi = std::numbers::pi_v<Real>;
+                            Real ri = rlo + dx[0]*Real(i);
+                            Real ro = ri + dx[0];
+                            Real ti = tlo + dx[1]*Real(j);
+                            Real to = ti + dx[1];
+                            return Real(2./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
+                                * (std::cos(ti)-std::cos(to))
                                 * a[box_no](i,j,k,icomp);
                         }
                     });
@@ -1121,6 +1156,17 @@ namespace amrex
                     return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
                         * a[box_no](i,j,k,icomp);
                 });
+            } else if (geom[nlevels-1].IsRZ()) {
+                const auto rlo = geom[nlevels-1].ProbLo(0);
+                reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                               noexcept -> Real
+                {
+                    constexpr Real pi = std::numbers::pi_v<Real>;
+                    Real ri = rlo + dx[0]*Real(i);
+                    Real ro = ri + dx[0];
+                    return pi*dx[0]*(ro+ri) * a[box_no](i,j,k,icomp);
+                });
             } else
 #elif (AMREX_SPACEDIM == 2)
             if (geom[nlevels-1].IsRZ()) {
@@ -1133,6 +1179,22 @@ namespace amrex
                     Real ro = ri + dx[0];
                     constexpr Real pi = std::numbers::pi_v<Real>;
                     return pi*dx[1]*dx[0]*(ro+ri)
+                        * a[box_no](i,j,k,icomp);
+                });
+            } else if (geom[nlevels-1].IsSPHERICAL()) {
+                const auto rlo = geom[nlevels-1].ProbLo(0);
+                const auto tlo = geom[nlevels-1].ProbLo(1);
+                reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                               noexcept -> Real
+                {
+                    constexpr Real pi = std::numbers::pi_v<Real>;
+                    Real ri = rlo + dx[0]*Real(i);
+                    Real ro = ri + dx[0];
+                    Real ti = tlo + dx[1]*Real(j);
+                    Real to = ti + dx[1];
+                    return Real(2./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
+                        * (std::cos(ti)-std::cos(to))
                         * a[box_no](i,j,k,icomp);
                 });
             } else
