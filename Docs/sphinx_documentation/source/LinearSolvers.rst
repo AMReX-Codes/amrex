@@ -595,59 +595,41 @@ to 3. With embedded boundaries, AlgMG, PETSc and hypre's IJ interface support
 orders up to 3. MLMG lowers a higher order to what the solver supports, and the
 operator keeps that order afterwards.
 
-Nodal Divergence at Walls
-=========================
+Nodal Divergence at Domain Boundaries
+=====================================
 
-In a nodal projection, :cpp:`MLNodeLaplacian::compRHS` computes the divergence of the
-cell-centered velocity (and adds the optional cell-centered source) at the nodes. By
-default, this is first order at nodes on a wall (a Neumann domain face) and on an inflow
-face. In a viscous flow with no-slip walls, the wall-normal velocity left by the projection
-in the cells next to the wall is then off by :math:`(h^2/8)\, \partial^2 u_n / \partial n^2`.
-A viscous operator divides this by :math:`h^2`, so the wall-normal pressure gradient in those
-cells has an :math:`O(1)` error, and the pressure is only first order at the wall. Calling
+At nodes on a domain face with a :cpp:`Neumann` or :cpp:`inflow` boundary condition, such as a
+wall or an inflow face, :cpp:`MLNodeLaplacian::compRHS` computes the divergence of the
+cell-centered velocity, and the optional cell-centered source, to first order. After a
+projection, the normal velocity in the cells next to the face is then off by :math:`O(h^2)`.
+That is harmless by itself, but a cell-centered viscous operator such as :cpp:`MLABecLaplacian`
+or :cpp:`MLTensorOp` with a Dirichlet condition on the same face divides it by :math:`h^2`. The
+two default treatments together give an :math:`O(1)` error in the normal component of the
+viscous term next to the face, which a projection method passes on to the pressure gradient.
+For such flows, call
 
 .. highlight:: c++
 
 ::
 
-    void setWallDivuCorrection (bool on);
+    void setBoundaryDivuCorrection (bool on);
 
-with ``true`` on the :cpp:`MLNodeLaplacian` object takes the velocity and the source a quarter
-cell from the wall instead, extrapolated linearly from the first two layers of cells. At
-domain edges and corners, this is done in each wall direction. The default is ``false``, the
-original stencil. With AMReX-Hydro's :cpp:`NodalProjector`, call it on the projector's operator
+with ``true`` on the :cpp:`MLNodeLaplacian` object to make the divergence second order at those
+nodes, and use :cpp:`maxorder = 3` (see above) for the viscous operator, whose default stencil
+has an :math:`O(1)` error of its own next to a Dirichlet boundary. The default is ``false``.
+The correction is not supported with RZ coordinates, and it is not applied at nodes on the
+coarse/fine boundary or next to cut cells. With a cell-centered source, the corrected
+right-hand side no longer sums exactly to the integral of the source; the difference is
+:math:`O(h^2)`. For details and convergence results, we refer the reader to
+``amrex/Tests/LinearSolvers/NodalProjectionWall``.
+
+For example, with AMReX-Hydro's :cpp:`NodalProjector`, call it on the projector's operator
 before projecting:
 
 ::
 
-    nodal_projector.getLinOp().setWallDivuCorrection(true);
+    nodal_projector.getLinOp().setBoundaryDivuCorrection(true);
     nodal_projector.project(...);
-
-Inflow faces are treated like walls: the projection's control volumes are cut in half there
-in the same way, and the ghost cells hold the inflow velocity on the face. The correction is
-not supported with RZ coordinates: :cpp:`compRHS` aborts if :cpp:`setRZCorrection(true)` is also
-set. It is not applied at nodes on the coarse/fine boundary or in the sync residual.
-With embedded boundaries, it is applied at the wall nodes whose nearby cells are all regular
-(the first two layers of cells and the ghost cells, on both sides of the node), so the result
-does not depend on the box layout. Where the correction stops along a wall, next to the EB, the
-cells at the transition have an :math:`O(1)` error in the tangential pressure gradient, about as
-large as the error that the uncorrected wall has in the normal one.
-
-Volume conservation. Without a source, the correction keeps it exact: the sum of the
-right-hand side over the control volumes equals the flux through the domain boundary, as with
-the original stencil. The source part does not. The corrected source at a wall node is a
-better integral over its half control volume, but the sum over all control volumes then
-differs from the sum of the cell-centered source over the cells by :math:`O(h^2)` for a smooth
-source. In a closed domain, the solver removes this difference as a uniform offset of the
-right-hand side; with an outflow, the flux through the outflow differs from the integral of
-the source by the same amount. Momentum is not affected, and neither are quantities that an
-application transports with separately projected face velocities (as incflo and IAMR do with
-the MAC projection).
-
-With the default :cpp:`maxorder = 2` (see above), the viscous operator itself has an
-:math:`O(1)` truncation error in the cells next to a Dirichlet wall. That error remains
-with the correction, so to get the full benefit, use :cpp:`maxorder = 3` for the viscous
-solve as well. ``Tests/LinearSolvers/NodalProjectionWall`` measures both errors.
 
 
 Curvilinear Coordinates

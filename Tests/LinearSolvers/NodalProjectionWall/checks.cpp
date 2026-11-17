@@ -1,5 +1,5 @@
 // The checks of MLNodeLaplacian::compRHS without a solve (checks = 1): the nodal divergence
-// at walls with and without MLNodeLaplacian::setWallDivuCorrection, its consistency with a
+// at walls with and without MLNodeLaplacian::setBoundaryDivuCorrection, its consistency with a
 // cell-centred source, its volume conservation, and the wall nodes of a two-level hierarchy.
 // The checks with a known answer stop the test (amrex::Abort in main) if they fail.
 
@@ -74,7 +74,7 @@ std::array<Real,4> divu_wall_check (int n, int max_grid_size)
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {});
@@ -164,7 +164,7 @@ std::array<Real,3> source_wall_check (int n, int max_grid_size)
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {&src});
@@ -240,7 +240,7 @@ void burggraf_corner_rhs (int n, int max_grid_size)
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {});
@@ -338,7 +338,7 @@ Real volume_conservation_check (int n, int max_grid_size, int closed, int zwall)
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     linop.compRHS({&rhs}, {&vel}, {}, {});
@@ -448,7 +448,7 @@ std::array<Real,6> amr_wall_check (int n, int max_grid_size, int field)
         linop.setSigma(lev, sigma[lev]);
         rhs[lev].define(amrex::convert(ba[lev], IntVect::TheNodeVector()), dm[lev], 1, 0);
     }
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     linop.compRHS({&rhs[0], &rhs[1]}, {&vel[0], &vel[1]}, {}, {});
 
     DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});

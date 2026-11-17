@@ -2,7 +2,7 @@
 # Resolutions (cells per side of the unit square, multiples of 8); h = 1/n
 n_cell = 32 64 128 256
 max_grid_size = 32
-# MLNodeLaplacian::setWallDivuCorrection: 0 off, 1 on
+# MLNodeLaplacian::setBoundaryDivuCorrection: 0 off, 1 on
 wall_corr = 1
 # The checks of compRHS without a solve
 checks = 1

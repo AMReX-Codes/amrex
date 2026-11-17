@@ -122,39 +122,30 @@ public :
     }
 
     /**
-     * \brief Second-order nodal divergence at walls (Neumann domain faces) and inflow faces.
+     * \brief Second-order nodal divergence at nodes on Neumann and inflow domain faces.
      *
-     * By default, the right-hand side built by compRHS is first order at nodes on a wall: it
-     * takes the tangential velocity, and the cell-centered source, of the first layer of cells
-     * as constant over the wall node's half control volume. After the projection, the
-     * wall-normal velocity in the cells next to a no-slip wall is then off by
-     * (h^2/8) d^2u_n/dn^2, which a viscous operator turns into an O(1) error in the wall-normal
-     * pressure gradient. With this option, both are instead taken a quarter cell from the
-     * wall, extrapolated linearly from the first two layers of cells. At domain edges and
-     * corners, the extrapolation is done in each wall direction.
+     * By default, compRHS is first order at these nodes (walls and inflow faces): it takes the
+     * tangential velocity, and the cell-centered source, of the first layer of cells as constant
+     * over the node's half control volume. After a projection, the normal velocity in the cells
+     * next to the face is then off by (h^2/8) d^2u_n/dn^2. A cell-centered viscous operator
+     * (MLABecLaplacian, MLTensorOp) with a Dirichlet condition on the face turns this into an
+     * O(1) error in the normal component. With this option, both terms are taken a quarter
+     * cell from the face instead, extrapolated linearly from the first two layers of cells, in
+     * each such direction at domain edges and corners. The ghost cells must hold the normal
+     * velocity on the face, as compRHS already assumes.
      *
-     * Inflow faces are treated like walls. The correction assumes, as compRHS does, that the
-     * ghost cells hold the normal velocity on the face. It is not supported with RZ
-     * coordinates: compRHS aborts if setRZCorrection(true) is also set. It is not applied at
-     * nodes on the coarse/fine boundary or in the sync residual. With EB, it is applied at
-     * the wall nodes whose nearby cells are all regular (the first two layers of cells and the
-     * ghost cells, on both sides of the node), so the result does not depend on the box layout.
-     * Where the correction stops along a wall, next to the EB, the cells at the transition have
-     * an O(1) error in the tangential pressure gradient, about as large as the error that the
-     * uncorrected wall has in the normal one.
-     *
-     * Volume conservation: the velocity part of the correction keeps it exact, so the sum of
-     * the right-hand side over the control volumes still equals the flux through the domain
-     * boundary. The source part does not: the sum of the corrected source over the control
-     * volumes differs from the sum of the cell-centered source over the cells by O(h^2) for a
-     * smooth source. In a closed domain the solver removes this difference as a uniform
-     * offset of the right-hand side. Momentum is not affected.
+     * Not supported with RZ (compRHS aborts if setRZCorrection(true) is also set). Not applied
+     * at coarse/fine nodes or in the sync residual. With EB, applied only at nodes whose
+     * nearby cells (two layers and the ghost cells, on both sides) are all regular. Without a
+     * source the discrete volume balance is unchanged; with one, the corrected right-hand side
+     * differs from the integral of the source by O(h^2). See
+     * Tests/LinearSolvers/NodalProjectionWall.
      *
      * \param on false (the default): the original stencil. true: the correction.
      */
-    void setWallDivuCorrection (bool on) noexcept {
-        m_wall_divu_corr = on;
-        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setWallDivuCorrection(on); });
+    void setBoundaryDivuCorrection (bool on) noexcept {
+        m_bndry_divu_corr = on;
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setBoundaryDivuCorrection(on); });
     }
 
     /**
@@ -429,7 +420,7 @@ protected:
     {
         MLNodeLinOpT<MF>::spCopySettings();
         if (m_is_rz) { setRZCorrection(true); }
-        setWallDivuCorrection(m_wall_divu_corr);
+        setBoundaryDivuCorrection(m_bndry_divu_corr);
         setNormalizationThreshold(m_normalization_threshold);
         setGaussSeidel(m_use_gauss_seidel);
         setHarmonicAverage(m_use_harmonic_average);
@@ -477,7 +468,7 @@ protected:
 private:
 
     int m_is_rz = 0;
-    bool m_wall_divu_corr = false;
+    bool m_bndry_divu_corr = false;
 
     RT m_const_sigma = RT(0.0);
     RT m_sp_sigma_scale = RT(1.0);

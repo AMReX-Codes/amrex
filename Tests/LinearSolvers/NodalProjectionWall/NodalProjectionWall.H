@@ -6,7 +6,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
-// MLNodeLaplacian::setWallDivuCorrection for every compRHS and projection of the test (input
+// MLNodeLaplacian::setBoundaryDivuCorrection for every compRHS and projection of the test (input
 // wall_corr)
 extern bool wall_corr;
 

@@ -200,7 +200,7 @@ T mlndlap_wall_src (IntVect const& iv, int t, int mt,
 }
 
 // Second-order nodal divergence at walls and inflow faces (both called walls here, see
-// mlndlap_walls; MLNodeLaplacian::setWallDivuCorrection).  The control volume of a wall node is
+// mlndlap_walls; MLNodeLaplacian::setBoundaryDivuCorrection).  The control volume of a wall node is
 // half a cell in each wall direction (a quarter cell at a 2D corner).  mlndlap_divu evaluates
 // the fluxes through its faces, and the tangential derivatives, at the first cell centres,
 // h/2 from each wall; their mean over the control volume is their value at h/4 to second

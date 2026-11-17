@@ -1,4 +1,4 @@
-// Tests MLNodeLaplacian::setWallDivuCorrection, the second-order nodal divergence at walls
+// Tests MLNodeLaplacian::setBoundaryDivuCorrection, the second-order nodal divergence at walls
 // and inflow faces, and shows the error it removes: after a nodal projection, a viscous
 // operator applied to the velocity has an O(1) error in the wall-normal component in the cells
 // next to a no-slip wall.  See README.md.

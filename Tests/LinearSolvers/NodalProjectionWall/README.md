@@ -1,7 +1,11 @@
 # NodalProjectionWall
 
-Tests `MLNodeLaplacian::setWallDivuCorrection`, the second-order nodal divergence at walls
-(Neumann domain faces) and inflow faces.
+Tests `MLNodeLaplacian::setBoundaryDivuCorrection`, the second-order nodal divergence at nodes on
+`Neumann` and `inflow` domain faces (walls and inflow faces, both called walls below).
+
+The default nodal divergence and the default cell-centred viscous operators (`MLABecLaplacian`,
+`MLTensorOp`) are each accurate enough on their own, but their errors interact next to a wall:
+the first leaves an O(h^2) offset in the normal velocity, and the second divides it by h^2.
 
 ## The problem
 
@@ -19,9 +23,17 @@ nearly the same in each of the first few cells, a step from 0 at the wall, so a 
 gradient takes it: the pressure is only first order at the wall. The cell-centred source of
 div(u) = S is integrated over the same half control volume, with the same error.
 
-`setWallDivuCorrection(true)` takes these terms a quarter cell from the wall, extrapolated
+`setBoundaryDivuCorrection(true)` takes these terms a quarter cell from the wall, extrapolated
 linearly from the first two layers of cells, (5/4) layer 1 - (1/4) layer 2, in each wall direction
-at domain edges and corners. Inflow faces are treated like walls.
+at domain edges and corners. Inflow faces are treated like walls: their control volumes are cut in
+half in the same way, and the ghost cells hold the inflow velocity on the face. Outflow faces
+(`Dirichlet`, phi = 0) have no divergence equation and are not affected.
+
+With EB, the correction is applied at the wall nodes whose nearby cells are all regular (the first
+two layers of cells and the ghost cells, on both sides of the node), so the result does not depend
+on the box layout. Where it stops along a wall, next to the EB, the cells at the transition have an
+O(1) error in the tangential pressure gradient, about as large as the error that the uncorrected
+wall has in the normal one.
 
 ## Build and run
 
@@ -82,11 +94,11 @@ and neither are quantities transported with separately projected face velocities
 
 ## The convergence study
 
-With `study = 1` the test projects known divergence-free velocities with `MLNodeLaplacian`, the
-way incflo calls AMReX-Hydro's `NodalProjector` (velocity ghost cells set to 0, sigma = 1), and
-applies the viscous operators incflo uses to the projected velocity: `MLABecLaplacian` per
-component and `MLTensorOp`, with Dirichlet walls and `maxorder` 2, 3 and 4. It prints the errors
-and checks nothing. The numbers below are from `inputs` with 8 MPI ranks, `wall_corr = 0` (off)
+With `study = 1` the test projects known divergence-free velocities with `MLNodeLaplacian`, set up
+as incflo calls AMReX-Hydro's `NodalProjector` (velocity ghost cells 0 on walls, sigma = 1, mass
+inflow as `inflow` and pressure outflow as `Dirichlet`), and applies two cell-centred viscous
+operators to the projected velocity: `MLABecLaplacian` per component and `MLTensorOp`, with
+Dirichlet walls and `maxorder` 2, 3 and 4. It prints the errors and checks nothing. The numbers below are from `inputs` with 8 MPI ranks, `wall_corr = 0` (off)
 and `1` (on); h = 1/n.
 
 ### Burggraf cavity (`burggraf`)

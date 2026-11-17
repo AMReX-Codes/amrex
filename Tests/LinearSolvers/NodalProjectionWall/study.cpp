@@ -1,7 +1,9 @@
 // The convergence study (study = 1): projections of the Burggraf cavity flow (burggraf), a
 // channel with an inflow face and a pressure outflow, and a uniform inflow against no-slip walls
-// (channel), and a closed 3D box (box3d, 3D only), with the viscous operators incflo uses
-// applied to the projected velocity.  It prints tables (see README.md) and checks nothing.
+// (channel), and a closed 3D box (box3d, 3D only), with two cell-centred viscous operators
+// applied to the projected velocity.  The projection and the viscous operators are set up as
+// incflo sets them up with AMReX-Hydro's NodalProjector.  It prints tables (see README.md) and
+// checks nothing.
 
 #include "NodalProjectionWall.H"
 
@@ -115,8 +117,8 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
     ba.maxSize(max_grid_size);
     DistributionMapping const dm(ba);
 
-    // Exact velocity in the valid cells, zero in the ghost cells (incflo calls setBndry(0) on
-    // the velocity before the projection)
+    // Exact velocity in the valid cells, zero in the ghost cells (the wall ghost cells of
+    // the velocity are set to 0 before the projection)
     MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
     MultiFab lap_exact(ba, dm, AMREX_SPACEDIM, 0);
     vel.setVal(0.0);
@@ -151,7 +153,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab sigma(ba, dm, 1, 0);
         sigma.setVal(1.0);
         linop.setSigma(0, sigma);
-        linop.setWallDivuCorrection(wall_corr);
+        linop.setBoundaryDivuCorrection(wall_corr);
 
         BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
         MultiFab rhs(nba, dm, 1, 0);
@@ -196,7 +198,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
         vel.FillBoundary(geom.periodicity());
     }
 
-    // 2. The viscous operators, as incflo sets them up: L_h u = div(grad u) per component
+    // 2. The viscous operators: L_h u = div(grad u) per component
     //    (MLABecLaplacian), or div(grad u + grad u^T) - 2/3 grad(div u) (MLTensorOp, no bulk
     //    viscosity).  Both reduce to lap u for a divergence-free u.
     Array<LinOpBCType,AMREX_SPACEDIM> const vbc{AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -321,7 +323,7 @@ Result run (int n, int max_grid_size, Real rtol, int verbose)
 // Where a wall meets an inflow or an outflow face.  The channel flow above (chu, chv) on
 // [0,1]^2, with no-slip walls at y = 0 and 1 (Neumann for phi), an inflow face at x = 0
 // (LinOpBCType::inflow, the inflow velocity in the ghost cells) and a pressure outflow at x = 1
-// (phi = 0, LinOpBCType::Dirichlet), as incflo sets up mass inflow and pressure outflow.  In 3D
+// (phi = 0, LinOpBCType::Dirichlet), as for a mass inflow and a pressure outflow.  In 3D
 // the velocity does not depend on z, w = 0, and z is periodic.
 struct ChannelResult
 {
@@ -358,8 +360,7 @@ ChannelResult channel_run (int n, int max_grid_size, Real rtol, int verbose)
 
     // Exact velocity in the valid cells.  Ghost cells: zero at the walls, the inflow velocity
     // on the face at x = 0 (compRHS ignores its tangential part), and first-order extrapolation
-    // at the outflow, as incflo fills them (the outflow nodes are Dirichlet, so compRHS does not
-    // use those).
+    // at the outflow (the outflow nodes are Dirichlet, so compRHS does not use those).
     MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
     vel.setVal(0.0);
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
@@ -417,7 +418,7 @@ ChannelResult channel_run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab sigma(ba, dm, 1, 0);
         sigma.setVal(1.0);
         linop.setSigma(0, sigma);
-        linop.setWallDivuCorrection(wall_corr);
+        linop.setBoundaryDivuCorrection(wall_corr);
 
         MultiFab rhs(nba, dm, 1, 0);
         MultiFab phi(nba, dm, 1, 1);
@@ -488,7 +489,7 @@ ChannelResult channel_run (int n, int max_grid_size, Real rtol, int verbose)
             r.e_wall_out[m] = Real(0.5) * (a(i,0,0,1) + a(i,n-1,0,1)) / dw(i);
         }
         // The inflow face: the normal component u, delta = (h^2/8) u_xx, u_xx = G'(y).  (The
-        // outflow face is left out: incflo's viscous solve is Neumann there, so an offset of the
+        // outflow face is left out: the viscous solve is Neumann there, so an offset of the
         // velocity next to it does not become an O(1) force.)
         num = 0;
         den = 0;
@@ -661,7 +662,7 @@ Box3dResult box3d_run (int n, int max_grid_size, Real rtol, int verbose)
         MultiFab sigma(ba, dm, 1, 0);
         sigma.setVal(1.0);
         linop.setSigma(0, sigma);
-        linop.setWallDivuCorrection(wall_corr);
+        linop.setBoundaryDivuCorrection(wall_corr);
         BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
         MultiFab rhs(nba, dm, 1, 0);
         MultiFab phi(nba, dm, 1, 1);
@@ -889,7 +890,7 @@ std::array<Real,6> uniform_inflow_run (int n, int max_grid_size, Real rtol, int 
     MultiFab sigma(ba, dm, 1, 0);
     sigma.setVal(1.0);
     linop.setSigma(0, sigma);
-    linop.setWallDivuCorrection(wall_corr);
+    linop.setBoundaryDivuCorrection(wall_corr);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
     MultiFab rhs(nba, dm, 1, 0);
     MultiFab phi(nba, dm, 1, 1);
