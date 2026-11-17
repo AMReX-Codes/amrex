@@ -867,7 +867,16 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
     {
         RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
 
-        if (efficiency) { *efficiency = 1; }
+        if (efficiency) {
+            // We have at most one box on a rank here.
+            const Long wmax = wgts.empty() ? Long(0) : *std::max_element(wgts.begin(), wgts.end());
+            if (nprocs < 2 || wmax <= 0) {
+                *efficiency = 1;
+            } else {
+                const Long wsum = std::accumulate(wgts.begin(), wgts.end(), Long(0));
+                *efficiency = static_cast<Real>(wsum) / (static_cast<Real>(nprocs) * static_cast<Real>(wmax));
+            }
+        }
     }
     else
     {
