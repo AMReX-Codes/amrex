@@ -198,75 +198,6 @@ std::array<Real,3> source_wall_check (int n, int max_grid_size)
     return {max_int, max_wall, corner};
 }
 
-// Where the divergence error sits near a corner: the Burggraf velocity is divergence-free,
-// so compRHS should return zero; prints rhs / h^2 on the 3x3 nodes at the (0,0) corner
-// (node (0,0) is the corner, (i,0) are on the y = 0 wall, (0,j) on the x = 0 wall), and at the
-// lid corner (0,n).
-void burggraf_corner_rhs (int n, int max_grid_size)
-{
-    Real const h = Real(1)/Real(n);
-#if (AMREX_SPACEDIM == 3)
-    int const nz = 8;
-#endif
-    Box const domain(IntVect(0), IntVect(AMREX_D_DECL(n-1, n-1, nz-1)));
-    RealBox const rb({AMREX_D_DECL(Real(0), Real(0), Real(0))},
-                     {AMREX_D_DECL(Real(1), Real(1), Real(nz)*h)});
-    Array<int,AMREX_SPACEDIM> const is_periodic{AMREX_D_DECL(0, 0, 1)};
-    Geometry const geom(domain, rb, CoordSys::cartesian, is_periodic);
-    BoxArray ba(domain);
-    ba.maxSize(max_grid_size);
-    DistributionMapping const dm(ba);
-
-    MultiFab vel(ba, dm, AMREX_SPACEDIM, 1);
-    vel.setVal(0.0);
-    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.validbox();
-        auto const& v = vel.array(mfi);
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            Real const x = (Real(i)+Real(0.5))*h;
-            Real const y = (Real(j)+Real(0.5))*h;
-            v(i,j,k,0) =  Real(8) * bf(x) * bg1(y);
-            v(i,j,k,1) = -Real(8) * bf1(x) * bg(y);
-        });
-    }
-    vel.FillBoundary(geom.periodicity());
-
-    Array<LinOpBCType,AMREX_SPACEDIM> const bc{AMREX_D_DECL(LinOpBCType::Neumann,
-                                                            LinOpBCType::Neumann,
-                                                            LinOpBCType::Periodic)};
-    MLNodeLaplacian linop({geom}, {ba}, {dm});
-    linop.setDomainBC(bc, bc);
-    MultiFab sigma(ba, dm, 1, 0);
-    sigma.setVal(1.0);
-    linop.setSigma(0, sigma);
-    linop.setBoundaryDivuCorrection(wall_corr);
-    BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
-    MultiFab rhs(nba, dm, 1, 0);
-    linop.compRHS({&rhs}, {&vel}, {}, {});
-
-    // Gather the corner blocks on the I/O rank: (0,0) and the lid corner (0,n)
-    for (int cj0 : {0, n-2}) {
-    Box const cbox(IntVect(AMREX_D_DECL(0, cj0, 0)), IntVect(AMREX_D_DECL(2, cj0+2, 0)));
-    BoxArray const cba(cbox);
-    DistributionMapping const cdm(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
-    MultiFab cmf(cba, cdm, 1, 0, MFInfo().SetArena(The_Pinned_Arena()));
-    cmf.ParallelCopy(rhs, 0, 0, 1);
-    Gpu::streamSynchronize();
-    for (MFIter mfi(cmf); mfi.isValid(); ++mfi) {
-        auto const& r = cmf.const_array(mfi);
-        amrex::Print() << "  n = " << n << ((cj0 == 0) ? "  corner (0,0)" : "  lid corner (0,n)") << "\n";
-        for (int j = cj0+2; j >= cj0; --j) {
-            char line[256];
-            std::snprintf(line, sizeof(line), "    j=%-4d  %12.4f  %12.4f  %12.4f\n", j,
-                          double(r(0,j,0)/(h*h)), double(r(1,j,0)/(h*h)), double(r(2,j,0)/(h*h)));
-            amrex::Print() << line;
-        }
-        amrex::Print() << "              i=0           i=1           i=2\n";
-    }
-    }
-}
-
 // Volume conservation of compRHS, with no solve.  The cell velocity is random, so it changes by
 // O(1) from cell to cell, as it does next to a corner where the boundary data do not match.
 // Walls at y = 0 and 1, and at x = 0 and 1 either walls too (closed = 1) or inflow faces with
@@ -381,15 +312,8 @@ Real volume_conservation_check (int n, int max_grid_size, int closed, int zwall)
 // Returns, at k = 0:
 //   [0] rhs / (h/4), mean over the coarse bottom-wall nodes i = n/8 .. 3n/8 - 1;
 //   [1] rhs / (h/4), h the fine cell size, mean over the fine bottom-wall nodes two fine cells
-//       or more from the ends of the fine level;
-//   [2], [3] rhs at the coarse/fine nodes on the bottom wall, i = 3n/8 and 5n/8;
-//   [4] rhs at the corner of the fine level away from the wall, (3n/8, n/4);
-//   [5] max |rhs| / (h/4) over the other coarse/fine nodes, on the sides and the top of the
-//       fine level.
-// [2] to [4] are corners of the coarse/fine boundary, where the stencil is not exact even for a
-// linear shear: it takes the velocity in each cell as constant, and the error that leaves, which
-// cancels between the four cells of a uniform node, does not where they differ in size.
-std::array<Real,6> amr_wall_check (int n, int max_grid_size, int field)
+//       or more from the ends of the fine level.
+std::array<Real,2> amr_wall_check (int n, int max_grid_size, int field)
 {
     Real const h = Real(1)/Real(n);
 #if (AMREX_SPACEDIM == 3)
@@ -460,7 +384,7 @@ std::array<Real,6> amr_wall_check (int n, int max_grid_size, int field)
     }
     Gpu::streamSynchronize();
 
-    std::array<Real,6> r{};
+    std::array<Real,2> r{};
     if (ParallelDescriptor::IOProcessor()) {
         auto const& c = rhs1[0][0].const_array();
         auto const& f = rhs1[1][0].const_array();
@@ -471,13 +395,6 @@ std::array<Real,6> amr_wall_check (int n, int max_grid_size, int field)
         int nf = 0;
         for (int i = 2*ilo+2; i <= 2*ihi-2; ++i) { r[1] += f(i,0,0) / qf; ++nf; }
         r[1] /= Real(nf);
-        r[2] = c(ilo,0,0);
-        r[3] = c(ihi,0,0);
-        r[4] = c(ilo,jhi,0);
-        for (int j = 1; j < jhi; ++j) {
-            r[5] = std::max({r[5], std::abs(c(ilo,j,0)/qc), std::abs(c(ihi,j,0)/qc)});
-        }
-        for (int i = ilo+1; i < ihi; ++i) { r[5] = std::max(r[5], std::abs(c(i,jhi,0)/qc)); }
     }
     ParallelDescriptor::Bcast(r.data(), r.size(), ParallelDescriptor::IOProcessorNumber());
     return r;
@@ -558,30 +475,20 @@ int run_checks (Vector<int> const& n_cell, int max_grid_size)
 
     amrex::Print() << "\nTwo levels, fine level (ratio 2) on the bottom wall over the coarse cells\n"
                    << "[3n/8, 5n/8) x [0, n/4).  rhs / (h/4), h of the node's level, on the coarse\n"
-                   << "and fine wall nodes away from the coarse/fine boundary (1 uncorrected, 0\n"
-                   << "corrected, for u = (x y, -y^2/2)); rhs at the corners of the coarse/fine\n"
-                   << "boundary: on the wall, and at (3n/8, n/4); max |rhs| / (h/4) at the other\n"
-                   << "coarse/fine nodes\n"
-                   << "               wall / (h/4)              rhs at the c/f corners             other c/f\n"
-                   << "     n      coarse       fine     wall i=3n/8  wall i=5n/8  (3n/8,n/4)     / (h/4)\n";
+                   << "and fine wall nodes away from the coarse/fine boundary (u = (x y, -y^2/2):\n"
+                   << "1 uncorrected, 0 corrected; u = (y, 0): 0)\n"
+                   << "     n      coarse       fine\n";
     for (int field = 0; field < 2; ++field) {
         amrex::Print() << ((field == 0) ? "  u = (x y, -y^2/2)\n" : "  u = (y, 0)\n");
         Real const expected = (field == 0) ? wall_expected : Real(0);
         for (int n : n_cell) {
             auto const q = amr_wall_check(n, max_grid_size, field);
-            std::snprintf(line, sizeof(line), "  %4d   %9.4f  %9.4f     %10.3e   %10.3e   %10.3e   %9.4f\n",
-                          n, double(q[0]), double(q[1]), double(q[2]), double(q[3]),
-                          double(q[4]), double(q[5]));
+            std::snprintf(line, sizeof(line), "  %4d   %9.4f  %9.4f\n",
+                          n, double(q[0]), double(q[1]));
             amrex::Print() << line;
             check(std::abs(q[0]-expected) < tol && std::abs(q[1]-expected) < tol,
                   "wall divergence on the coarse and fine levels", n);
         }
-    }
-
-    amrex::Print() << "\nBurggraf (div u = 0): rhs / h^2 on the 3x3 nodes at the (0,0) corner and at the\n"
-                   << "lid corner (0,n)\n";
-    for (int n : n_cell) {
-        burggraf_corner_rhs(n, max_grid_size);
     }
     amrex::Print() << '\n';
     return nfail;

@@ -9,7 +9,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        continue()
     endif ()
 
-    set(_sources main.cpp checks.cpp study.cpp NodalProjectionWall.H)
+    set(_sources main.cpp checks.cpp NodalProjectionWall.H)
 
     set(_input_files inputs-ci)
 

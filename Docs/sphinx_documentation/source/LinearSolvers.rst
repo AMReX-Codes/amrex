@@ -620,7 +620,7 @@ has an :math:`O(1)` error of its own next to a Dirichlet boundary. The default i
 The correction is not supported with RZ coordinates, and it is not applied at nodes on the
 coarse/fine boundary or next to cut cells. With a cell-centered source, the corrected
 right-hand side no longer sums exactly to the integral of the source; the difference is
-:math:`O(h^2)`. For details and convergence results, we refer the reader to
+:math:`O(h^2)`. For details, we refer the reader to
 ``amrex/Tests/LinearSolvers/NodalProjectionWall``.
 
 For example, with AMReX-Hydro's :cpp:`NodalProjector`, call it on the projector's operator
