@@ -1081,21 +1081,6 @@ void read_array_1d (std::vector<std::string>& ref, std::string const& str)
     }
 }
 
-bool balanced_brackets (std::string const& str, std::string::size_type ib,
-                        std::string::size_type ie)
-{
-    if (ie-ib >= 3) {
-        if (str[ib] == '[' && str[ib+1] == '"' &&
-            str[ie] == ']' && str[ie-1] == '"') {
-            return !is_escaped_quote(str, ie-1);
-        } else {
-            return false;
-        }
-    } else {
-        return false;
-    }
-}
-
 template <typename T>
 void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
 {
@@ -1106,19 +1091,21 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
         pos = find_next_unquoted(str, pos+1, '[');
         if (pos != std::string::npos) {
             auto open_pos = pos;
+            auto inner = pos;
             while (true) {
                 pos = find_next_unquoted(str, pos+1, ']');
-                if (pos != std::string::npos) {
-                    if constexpr (std::is_same_v<T,std::string>) {
-                        if (!balanced_brackets(str, open_pos, pos)) {
-                            continue; // continue the searching for ']'
-                        }
-                    }
+                inner = find_next_unquoted(str, inner+1, '[');
+                if ((pos != std::string::npos) && (inner < pos)) {
+                    continue; // this ] closes an unquoted [ inside the row
+                } else if (pos != std::string::npos) {
                     ref.resize(row_index+1);
                     try {
                         read_array_1d(ref[row_index], str.substr(open_pos, pos-open_pos+1));
                     } catch (...) {
                         throw;
+                    }
+                    if (ref[row_index].empty()) {
+                        throw std::runtime_error("ParmParse: empty array in nested arrays\n");
                     }
                     break;
                 } else {
@@ -1280,12 +1267,12 @@ bool is_toml_array (std::string const& token)
         token.back() == ']';
 }
 
-// Checks if token matches $$ARR[[...]]
+// Checks if token matches $$ARR[[...]] or, with a trailing comma, $$ARR[[...],]
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
     return sz >= 9 && token.starts_with("$$ARR[[") &&
-        token.ends_with("]]");
+        (token.ends_with("]]") || token.ends_with("],]"));
 }
 
 // Checks if token matches $$ARR[...] but not $$ARR[[...]]
@@ -1983,7 +1970,7 @@ ParmParse::countval (std::string_view name,
         } else {
             std::string::size_type pos = find_next_unquoted(token, 0, '[');
             while (true) {
-                pos = find_next_unquoted(token, pos+1, ',');
+                pos = find_next_array_sep(token, pos+1);
                 if (pos != std::string::npos) {
                     if (pos+1 < token.size() && token[pos+1] != ']') {
                         // Note that we don't need to worry about ", ]",

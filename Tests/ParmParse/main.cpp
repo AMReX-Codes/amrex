@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
         // [] arrays whose elements contain commas
         std::vector<IntVect> iva;
         pp.getarr("iva", iva);
-        AMREX_ALWAYS_ASSERT(iva.size() == 2 &&
+        AMREX_ALWAYS_ASSERT(iva.size() == 2 && pp.countval("iva") == 2 &&
                             iva[0] == IntVect(AMREX_D_DECL(1,2,3)) &&
                             iva[1] == IntVect(AMREX_D_DECL(4,5,6)));
         std::vector<IntVect> ivs;
@@ -78,8 +78,13 @@ int main(int argc, char* argv[])
                             ivs[2] == IntVect(AMREX_D_DECL(7,8,9)));
         std::vector<Box> ba;
         pp.getarr("ba", ba);
-        AMREX_ALWAYS_ASSERT(ba.size() == 2 && ba[0] == box &&
+        AMREX_ALWAYS_ASSERT(ba.size() == 2 && pp.countval("ba") == 2 && ba[0] == box &&
                             ba[1] == Box(IntVect(0), IntVect(3)));
+        std::vector<std::vector<std::string>> svv;
+        pp.getarr("svv", svv);
+        AMREX_ALWAYS_ASSERT(pp.countval("svv") == 3 &&
+                            svv == std::vector<std::vector<std::string>>(
+                                {{"aaa","b b"},{"ccc"},{"d]d","eee"}}));
 
         double f0 = -1;
         pp.query("f", f0);

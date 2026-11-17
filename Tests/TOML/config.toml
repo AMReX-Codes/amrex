@@ -85,6 +85,14 @@ integers3 = [
   1,
   2, # this is ok
 ]
+nested_arrays_of_ints_2 = [
+  [ 1, 2 ],
+  [3, 4, 5], # this is ok too
+]
+nested_arrays_of_strings_5 = [
+  ["aaa", "bbb",],
+  ["ccc",],
+]
 
 floats = [1.0, 2.0, 3.0]
 booleans = [true, false]
