@@ -1802,6 +1802,18 @@ template <class T>
 void
 BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
+    // clear() subtracts truesize/nvar cells, so fix the count for the new nvar.
+    // Lower it first and raise it last so reallocation does not inflate the HWM.
+    Long dcells = 0;
+    if (this->dptr && this->ptr_owner && n != this->nvar) {
+        Long const old_cells = (this->nvar > 0) ? this->truesize/this->nvar : 0;
+        Long const new_cells = (n > 0) ? this->truesize/n : 0;
+        dcells = new_cells - old_cells;
+    }
+    if (dcells < 0) {
+        amrex::update_fab_stats(dcells, 0, sizeof(T));
+    }
+
     this->nvar   = n;
     this->domain = b;
 
@@ -1838,6 +1850,10 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         clear();
 
         define();
+    }
+
+    if (dcells > 0) {
+        amrex::update_fab_stats(dcells, 0, sizeof(T));
     }
 }
 
