@@ -13,6 +13,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 
 using namespace amrex;
 
@@ -21,12 +22,12 @@ namespace {
 // A pseudo-random number in [-1, 1] for cell (i,j,k) and component c, the same on every run
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real hash_unit (int i, int j, int k, int c)
 {
-    unsigned s = (unsigned(i)*73856093u) ^ (unsigned(j)*19349663u) ^ (unsigned(k)*83492791u)
-                 ^ (unsigned(c)*2654435761u);
+    unsigned s = (unsigned(i)*73856093U) ^ (unsigned(j)*19349663U) ^ (unsigned(k)*83492791U)
+                 ^ (unsigned(c)*2654435761U);
     s ^= s >> 13;
-    s *= 0x5bd1e995u;
+    s *= 0x5bd1e995U;
     s ^= s >> 15;
-    return Real(s & 0xffffffu) / Real(0xffffff) * Real(2) - Real(1);
+    return Real(s & 0xffffffU) / Real(0xffffff) * Real(2) - Real(1);
 }
 
 // Direct check of the nodal divergence stencil at a wall, with no solve: u = (x y, -y^2/2) is
@@ -85,7 +86,9 @@ std::array<Real,4> divu_wall_check (int n, int max_grid_size)
 
     // Interior nodes: max |rhs|.  Bottom-wall nodes (j = 0), corners left out: mean and
     // spread of rhs / (h/4).
-    Real max_int = 0, sum_wall = 0, min_wall = 1.e30, max_wall = -1.e30;
+    Real max_int = 0, sum_wall = 0;
+    Real min_wall = std::numeric_limits<Real>::max();
+    Real max_wall = std::numeric_limits<Real>::lowest();
     int nwall = 0;
     int const e = n/8;
     for (MFIter mfi(rhs_h); mfi.isValid(); ++mfi) {
@@ -373,7 +376,7 @@ std::array<Real,2> amr_wall_check (int n, int max_grid_size, int field)
         rhs[lev].define(amrex::convert(ba[lev], IntVect::TheNodeVector()), dm[lev], 1, 0);
     }
     linop.setBoundaryDivuCorrection(wall_corr);
-    linop.compRHS({&rhs[0], &rhs[1]}, {&vel[0], &vel[1]}, {}, {});
+    linop.compRHS(GetVecOfPtrs(rhs), GetVecOfPtrs(vel), {}, {});
 
     DistributionMapping const dm1(Vector<int>{ParallelDescriptor::IOProcessorNumber()});
     Vector<MultiFab> rhs1(2);
@@ -390,8 +393,9 @@ std::array<Real,2> amr_wall_check (int n, int max_grid_size, int field)
         auto const& f = rhs1[1][0].const_array();
         Real const qc = Real(0.25)*h;
         Real const qf = Real(0.25)*h/Real(2);
-        for (int i = n/8; i < ilo; ++i) { r[0] += c(i,0,0) / qc; }
-        r[0] /= Real(ilo - n/8);
+        int const i0 = n/8;
+        for (int i = i0; i < ilo; ++i) { r[0] += c(i,0,0) / qc; }
+        r[0] /= Real(ilo - i0);
         int nf = 0;
         for (int i = 2*ilo+2; i <= 2*ihi-2; ++i) { r[1] += f(i,0,0) / qf; ++nf; }
         r[1] /= Real(nf);
@@ -412,8 +416,14 @@ int run_checks (Vector<int> const& n_cell, int max_grid_size)
             amrex::Print() << "  FAILED: " << what << ", n = " << n << "\n";
         }
     };
-    // Rounding errors of rhs relative to its terms, which are O(1/h)
-    Real const tol = Real(1.e-10);
+    // Rounding errors of rhs, whose terms are O(1/h), and of the volume-conservation sums
+#ifdef AMREX_USE_FLOAT
+    Real const tol = 1.e-3F;
+    Real const vol_tol = 1.e-5F;
+#else
+    Real const tol = 1.e-10;
+    Real const vol_tol = 1.e-12;
+#endif
     // What the wall nodes of u = (x y, -y^2/2) give, rhs / (h/4)
     Real const wall_expected = wall_corr ? Real(0) : Real(1);
     char line[256];
@@ -469,7 +479,7 @@ int run_checks (Vector<int> const& n_cell, int max_grid_size)
 #endif
         amrex::Print() << line;
         for (auto const v : q) {
-            check(std::abs(v) < Real(1.e-12), "volume conservation", n);
+            check(std::abs(v) < vol_tol, "volume conservation", n);
         }
     }
 
