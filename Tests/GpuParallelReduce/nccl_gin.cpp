@@ -109,6 +109,8 @@ int main (int argc, char** argv)
                     rank, iteration, output[0], output[count], output[count-1], output[2*count-1]);
         std::fflush(stdout);
     }
+    // Keep the GIN resources alive until every peer kernel has completed.
+    check_mpi(MPI_Barrier(amrex_test_gin_communicator()), "GIN completion barrier");
     if (amrex_test_gin_close(fixture) != 0) { fail("close GIN fixture"); }
     check_nccl(ncclCommFinalize(comm), "finalize NCCL");
     check_nccl(ncclCommDestroy(comm), "destroy NCCL");
