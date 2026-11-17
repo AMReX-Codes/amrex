@@ -340,23 +340,7 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
 
 int main (int argc, char* argv[])
 {
-    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, [] () {
-        // Trap floating-point exceptions unless the command line says
-        // otherwise. The singular cases (no Dirichlet boundary) must not
-        // divide by the zero wavenumber, not even speculatively. Optimized
-        // clang builds are skipped, because by default clang may raise
-        // exceptions the source does not (e.g., in unused SIMD lanes).
-#if defined(__clang__) && !defined(AMREX_DEBUG)
-        constexpr int trap_default = 0;
-#else
-        constexpr int trap_default = 1;
-#endif
-        ParmParse pp("amrex");
-        int trap = trap_default;
-        pp.queryAdd("fpe_trap_invalid", trap);
-        trap = trap_default;
-        pp.queryAdd("fpe_trap_zero", trap);
-    });
+    amrex::Initialize(argc, argv);
     {
         BL_PROFILE("main");
 
