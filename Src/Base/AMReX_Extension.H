@@ -98,7 +98,9 @@
 #define AMREX_FORCE_INLINE __forceinline__
 
 #elif defined(AMREX_USE_LOOM)
-#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
+// LOOM: the importer does not read always_inline, so [[loom::inline]] asks it
+// to expand the helper into its callers; the host compile keeps always_inline.
+#define AMREX_FORCE_INLINE [[loom::inline]] inline __attribute__((always_inline))
 
 #elif defined(AMREX_CXX_INTEL)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
