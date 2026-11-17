@@ -1617,7 +1617,9 @@ MPI_Op Mpi_op ()
                 out[i] = F()(in[i],out[i]);
             }
         };
-        BL_MPI_REQUIRE( MPI_Op_create(user_fn, 1, &mpi_op) );
+        // F keeps inout on ties, so the op is not commutative. Declaring it
+        // so makes MPI combine in rank order and all ranks get the same result.
+        BL_MPI_REQUIRE( MPI_Op_create(user_fn, 0, &mpi_op) );
         m_mpi_ops.push_back(&mpi_op);
     }
     return mpi_op;
