@@ -124,13 +124,14 @@ int mlndlap_cell_index (int ivd, int walld, int m, int s) noexcept
 // holds the normal velocity on the face (zero at a wall, the inflow velocity at an inflow face);
 // otherwise the derivative (u_d(hi) - u_d(lo))/h across the node; both averaged over the cells
 // in the non-wall directions.
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
+T mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
                         GpuArray<int,AMREX_SPACEDIM> const& wall,
-                        Array4<Real const> const& vel,
-                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                        Array4<T const> const& vel,
+                        GpuArray<std::type_identity_t<T>,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real sum = Real(0.0);
+    T sum = T(0.0);
     int cnt = 0;
     // Enumerate the cells: for non-wall directions other than d, both sides.
     int ns[AMREX_SPACEDIM];
@@ -150,10 +151,10 @@ Real mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
         if (wall[d] >= 0) {
             // Flux out of the control volume through its face h/2 from the wall: + at a
             // lo wall, - at a hi wall, as in mlndlap_divu.
-            Real const sgn = (wall[d] == 0) ? Real(1.0) : Real(-1.0);
+            T const sgn = (wall[d] == 0) ? T(1.0) : T(-1.0);
             IntVect ghost(cell);
             ghost[d] += (wall[d] == 0) ? -1 : 1;
-            sum += sgn * Real(2.0) * dxinv[d] * (vel(cell, d) - vel(ghost, d));
+            sum += sgn * T(2.0) * dxinv[d] * (vel(cell, d) - vel(ghost, d));
         } else {
             IntVect clo(cell), chi(cell);
             clo[d] = iv[d] - 1;
@@ -162,18 +163,19 @@ Real mlndlap_wall_term (IntVect const& iv, int d, int t, int mt,
         }
         ++cnt;
     }
-    return sum / Real(cnt);
+    return sum / T(cnt);
 }
 
 // The stencil's source term at a wall node (after the Neumann scaling): the mean of rhcc
 // over the cells touching the node, with wall direction t at row mt and the other wall
 // directions at row 0.
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real mlndlap_wall_src (IntVect const& iv, int t, int mt,
+T mlndlap_wall_src (IntVect const& iv, int t, int mt,
                        GpuArray<int,AMREX_SPACEDIM> const& wall,
-                       Array4<Real const> const& rhcc) noexcept
+                       Array4<T const> const& rhcc) noexcept
 {
-    Real sum = Real(0.0);
+    T sum = T(0.0);
     int cnt = 0;
     int ns[AMREX_SPACEDIM];
     for (int o = 0; o < AMREX_SPACEDIM; ++o) {
@@ -192,7 +194,7 @@ Real mlndlap_wall_src (IntVect const& iv, int t, int mt,
         sum += rhcc(cell);
         ++cnt;
     }
-    return sum / Real(cnt);
+    return sum / T(cnt);
 }
 
 }
@@ -206,10 +208,11 @@ Real mlndlap_wall_src (IntVect const& iv, int t, int mt,
 // extrapolation from the first two rows of cells in every wall direction t that is not the
 // component's own direction: 1/4 [T(row 0 in t) - T(row 1 in t)].  At domain edges and
 // corners (nodes on two or three walls) this is done in each wall direction.
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_divu_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
-                             Array4<Real const> const& vel, Array4<int const> const& msk,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
+void mlndlap_divu_wall_corr (int i, int j, int k, Array4<T> const& rhs,
+                             Array4<std::type_identity_t<T> const> const& vel, Array4<int const> const& msk,
+                             GpuArray<std::type_identity_t<T>,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
@@ -218,11 +221,11 @@ void mlndlap_divu_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
     GpuArray<int,AMREX_SPACEDIM> wall;
     int const nwall = nodelap_detail::mlndlap_walls(iv, nddom, lobc, hibc, wall);
     if (nwall == 0) { return; }
-    Real corr = Real(0.0);
+    T corr = T(0.0);
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         for (int t = 0; t < AMREX_SPACEDIM; ++t) {
             if (t == d || wall[t] < 0) { continue; }
-            corr += Real(0.25) * (nodelap_detail::mlndlap_wall_term(iv, d, t, 0, wall, vel, dxinv)
+            corr += T(0.25) * (nodelap_detail::mlndlap_wall_term(iv, d, t, 0, wall, vel, dxinv)
                                 - nodelap_detail::mlndlap_wall_term(iv, d, t, 1, wall, vel, dxinv));
         }
     }
@@ -231,9 +234,10 @@ void mlndlap_divu_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
 
 // The same for a cell-centred source: its control-volume mean is its value at h/4 from
 // each wall, while mlndlap_rhcc (after the Neumann scaling) uses the first-row mean.
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_rhcc_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
-                             Array4<Real const> const& rhcc, Array4<int const> const& msk,
+void mlndlap_rhcc_wall_corr (int i, int j, int k, Array4<T> const& rhs,
+                             Array4<std::type_identity_t<T> const> const& rhcc, Array4<int const> const& msk,
                              Box const& nddom,
                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
@@ -243,10 +247,10 @@ void mlndlap_rhcc_wall_corr (int i, int j, int k, Array4<Real> const& rhs,
     GpuArray<int,AMREX_SPACEDIM> wall;
     int const nwall = nodelap_detail::mlndlap_walls(iv, nddom, lobc, hibc, wall);
     if (nwall == 0) { return; }
-    Real corr = Real(0.0);
+    T corr = T(0.0);
     for (int t = 0; t < AMREX_SPACEDIM; ++t) {
         if (wall[t] < 0) { continue; }
-        corr += Real(0.25) * (nodelap_detail::mlndlap_wall_src(iv, t, 0, wall, rhcc)
+        corr += T(0.25) * (nodelap_detail::mlndlap_wall_src(iv, t, 0, wall, rhcc)
                             - nodelap_detail::mlndlap_wall_src(iv, t, 1, wall, rhcc));
     }
     rhs(i,j,k) += corr;

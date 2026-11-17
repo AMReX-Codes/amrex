@@ -152,7 +152,10 @@ public :
      *
      * \param on false (the default): the original stencil. true: the correction.
      */
-    void setWallDivuCorrection (bool on) noexcept { m_wall_divu_corr = on; }
+    void setWallDivuCorrection (bool on) noexcept {
+        m_wall_divu_corr = on;
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setWallDivuCorrection(on); });
+    }
 
     /**
      * \brief Threshold for normalization (prevents dividing by tiny averages).
@@ -426,6 +429,7 @@ protected:
     {
         MLNodeLinOpT<MF>::spCopySettings();
         if (m_is_rz) { setRZCorrection(true); }
+        setWallDivuCorrection(m_wall_divu_corr);
         setNormalizationThreshold(m_normalization_threshold);
         setGaussSeidel(m_use_gauss_seidel);
         setHarmonicAverage(m_use_harmonic_average);
