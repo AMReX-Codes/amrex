@@ -210,7 +210,10 @@ Geometry::GetVolume (MultiFab&       vol,
                      const DistributionMapping& dm,
                      int             ngrow) const
 {
-    vol.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
+    // In a GPU no-sync region, the caller may free vol before kernels using it finish.
+    MFInfo info;
+    if (Gpu::inLaunchRegion() && Gpu::inNoSyncRegion()) { info.SetArena(The_Async_Arena()); }
+    vol.define(grds,dm,1,ngrow,info,FArrayBoxFactory());
     GetVolume(vol);
 }
 
@@ -269,7 +272,10 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             dir,
                     int             ngrow) const
 {
-    dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
+    // See GetVolume for the arena.
+    MFInfo info;
+    if (Gpu::inLaunchRegion() && Gpu::inNoSyncRegion()) { info.SetArena(The_Async_Arena()); }
+    dloga.define(grds,dm,1,ngrow,info,FArrayBoxFactory());
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -308,7 +314,10 @@ Geometry::GetFaceArea (MultiFab&       area,
 {
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
-    area.define(edge_boxes,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
+    // See GetVolume for the arena.
+    MFInfo info;
+    if (Gpu::inLaunchRegion() && Gpu::inNoSyncRegion()) { info.SetArena(The_Async_Arena()); }
+    area.define(edge_boxes,dm,1,ngrow,info,FArrayBoxFactory());
 
     GetFaceArea(area, dir);
 }

@@ -391,7 +391,8 @@ namespace amrex
         BoxArray crse_S_fine_BA = fine_BA;
         crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
+        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,
+                             MFInfo().SetArena(The_Async_Arena()),FArrayBoxFactory());
 
         MultiFab fvolume;
         fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
@@ -745,14 +746,19 @@ namespace amrex
                      AMREX_ASSERT(divu.nComp()==umac[1]->nComp());,
                      AMREX_ASSERT(divu.nComp()==umac[2]->nComp()));
 
-#if (AMREX_SPACEDIM==2)
+#if (AMREX_SPACEDIM < 3)
         const auto& ba = divu.boxArray();
         const auto& dm = divu.DistributionMap();
-        MultiFab volume, areax, areay;
-        if (geom.IsRZ()) {
+        MultiFab volume, areax;
+#if (AMREX_SPACEDIM == 2)
+        MultiFab areay;
+#endif
+        if (!geom.IsCartesian()) {
             geom.GetVolume(volume, ba, dm, 0);
             geom.GetFaceArea(areax, ba, dm, 0, 0);
+#if (AMREX_SPACEDIM == 2)
             geom.GetFaceArea(areay, ba, dm, 1, 0);
+#endif
         }
 #endif
 
@@ -769,15 +775,18 @@ namespace amrex
                          Array4<Real const> const& varr = umac[1]->const_array(mfi);,
                          Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
-#if (AMREX_SPACEDIM==2)
-            if (geom.IsRZ()) {
+#if (AMREX_SPACEDIM < 3)
+            if (!geom.IsCartesian()) {
                 Array4<Real const> const&  ax =  areax.array(mfi);
+#if (AMREX_SPACEDIM == 2)
                 Array4<Real const> const&  ay =  areay.array(mfi);
+#endif
                 Array4<Real const> const& vol = volume.array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
                 {
-                    amrex_compute_divergence_rz(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),ax,ay,vol);
+                    amrex_compute_divergence_rz(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),
+                                                AMREX_D_DECL(ax,ay,az),vol);
                 });
             } else
 #endif
