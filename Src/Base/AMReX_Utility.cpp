@@ -94,7 +94,10 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   BL_PROFILE("UtilCreateCleanDirectory()")
   if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
-      std::string newoldname(path + ".old." + amrex::UniqueString());
+      // Strip trailing '/' so the new name is not inside path.
+      std::string oldname(path);
+      while (oldname.size() > 1 && oldname.back() == '/') { oldname.pop_back(); }
+      std::string newoldname(oldname + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << '\n';
@@ -102,7 +105,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
       if (amrex::FileExists(newoldname)) {
           FileSystem::RemoveAll(newoldname);
       }
-      if (std::rename(path.c_str(), newoldname.c_str())) {
+      if (std::rename(oldname.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
       }
     }
@@ -149,7 +152,10 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
   BL_PROFILE("UtilRenameDirectoryToOld()")
   if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
-      std::string newoldname(path + ".old." + amrex::UniqueString());
+      // Strip trailing '/' so the new name is not inside path.
+      std::string oldname(path);
+      while (oldname.size() > 1 && oldname.back() == '/') { oldname.pop_back(); }
+      std::string newoldname(oldname + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << '\n';
@@ -157,7 +163,7 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
       if (amrex::FileExists(newoldname)) {
           FileSystem::RemoveAll(newoldname);
       }
-      if (std::rename(path.c_str(), newoldname.c_str())) {
+      if (std::rename(oldname.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
       }
     }
@@ -584,7 +590,10 @@ bool amrex::StreamRetry::TryFileOutput()
         bTryOutput = false;
       } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
-          const std::string& badFileName = amrex::Concatenate(fileName + ".bad",
+          // Strip trailing '/' so the new name is not inside fileName.
+          std::string oldname(fileName);
+          while (oldname.size() > 1 && oldname.back() == '/') { oldname.pop_back(); }
+          const std::string& badFileName = amrex::Concatenate(oldname + ".bad",
                                                                tries - 1, 2);
           if (amrex::Verbose() > 1) {
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
@@ -593,7 +602,7 @@ bool amrex::StreamRetry::TryFileOutput()
           if (amrex::FileExists(badFileName)) {
               FileSystem::RemoveAll(badFileName);
           }
-          if (std::rename(fileName.c_str(), badFileName.c_str())) {
+          if (std::rename(oldname.c_str(), badFileName.c_str())) {
               amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");
           }
         }
