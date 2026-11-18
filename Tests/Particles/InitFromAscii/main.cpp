@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <utility>
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -93,8 +94,8 @@ void test_init_ascii (TestParams& parms)
                 sums[1] += p.rdata(1);
             }
             for (int comp = 0; comp < 2; ++comp) {
-                AMREX_ALWAYS_ASSERT(Long(soa.GetRealData(comp).size()) == np);
-                AMREX_ALWAYS_ASSERT(Long(soa.GetIntData(comp).size()) == np);
+                AMREX_ALWAYS_ASSERT(std::cmp_equal(soa.GetRealData(comp).size(), np));
+                AMREX_ALWAYS_ASSERT(std::cmp_equal(soa.GetIntData(comp).size(), np));
                 Vector<ParticleReal> r(np);
                 Gpu::copy(Gpu::deviceToHost, soa.GetRealData(comp).begin(),
                           soa.GetRealData(comp).end(), r.begin());
