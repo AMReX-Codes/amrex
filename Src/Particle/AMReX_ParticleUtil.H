@@ -812,40 +812,71 @@ void clearEmptyEntries (C& c)
 }
 
 /**
- * \brief Resize a tile to np particles, setting to zero the values the resize adds
- *        to its real and int SoA components (compile-time and runtime).
+ * \brief Check that every SoA component of a tile holds one value per particle and
+ *        that the tile has nreal real and nint int SoA components.
  *
- * The particle data (AoS or idcpu) is resized but not initialized.
+ * Use it to skip resizeAndZeroNewSoA when there is nothing to do.
  */
 template <typename PTile>
-void resizeAndZeroNewSoA (PTile& ptile, Long np)
+bool soaIsSized (PTile const& ptile, int nreal, int nint)
 {
-    auto& soa = ptile.GetStructOfArrays();
-    int const nreal = soa.NumRealComps();
-    int const nint  = soa.NumIntComps();
-    Vector<Long> old_real(nreal);
-    Vector<Long> old_int(nint);
-    for (int i = 0; i < nreal; ++i) { old_real[i] = std::ssize(soa.GetRealData(i)); }
-    for (int i = 0; i < nint;  ++i) { old_int[i]  = std::ssize(soa.GetIntData(i)); }
-
-    ptile.resize(np);
-
-    bool launched = false;
-    for (int i = 0; i < nreal; ++i) {
-        if (old_real[i] < np) {
-            ParticleReal* p = soa.GetRealData(i).dataPtr() + old_real[i];
-            ParallelFor(np - old_real[i], [=] AMREX_GPU_DEVICE (Long k) noexcept { p[k] = 0; });
-            launched = true;
-        }
+    if constexpr (PTile::ParticleType::is_rtsoa_particle) {
+        // all components of a ParticleTileRT share one size
+        amrex::ignore_unused(ptile, nreal, nint);
+        return true;
+    } else {
+        auto const& soa = ptile.GetStructOfArrays();
+        if (soa.NumRealComps() != nreal || soa.NumIntComps() != nint) { return false; }
+        auto const np = static_cast<std::size_t>(ptile.numParticles());
+        for (int i = 0; i < nreal; ++i) { if (soa.GetRealData(i).size() != np) { return false; } }
+        for (int i = 0; i < nint;  ++i) { if (soa.GetIntData(i).size()  != np) { return false; } }
+        return true;
     }
-    for (int i = 0; i < nint; ++i) {
-        if (old_int[i] < np) {
-            int* p = soa.GetIntData(i).dataPtr() + old_int[i];
-            ParallelFor(np - old_int[i], [=] AMREX_GPU_DEVICE (Long k) noexcept { p[k] = 0; });
-            launched = true;
+}
+
+/**
+ * \brief Resize a tile to np particles, setting to zero the values the resize adds
+ *        to its runtime SoA components.
+ *
+ * With zero_compile_time, the values added to the compile-time SoA components are
+ * set to zero too; otherwise they are not initialized, and neither is the particle
+ * data (AoS or idcpu).
+ */
+template <typename PTile>
+void resizeAndZeroNewSoA (PTile& ptile, Long np, bool zero_compile_time = false)
+{
+    auto const n = static_cast<std::size_t>(np);
+    if constexpr (PTile::ParticleType::is_rtsoa_particle) {
+        // all components of a ParticleTileRT share one size and are runtime components
+        amrex::ignore_unused(zero_compile_time);
+        auto const old_n = static_cast<std::size_t>(ptile.numParticles());
+        ptile.resize(n);
+        if (n <= old_n) { return; }
+        auto const ptd = ptile.getParticleTileData();
+        int const nreal = ptile.NumRealComps();
+        int const nint  = ptile.NumIntComps();
+        auto zero = [=] AMREX_GPU_HOST_DEVICE (std::size_t i) noexcept {
+            for (int j = 0; j < nreal; ++j) { ptd.rdata(j, i) = 0; }
+            for (int j = 0; j < nint;  ++j) { ptd.idata(j, i) = 0; }
+        };
+        if (ptile.arena()->isDeviceAccessible()) {
+            ParallelFor(n - old_n, [=] AMREX_GPU_DEVICE (std::size_t k) noexcept { zero(old_n + k); });
+            Gpu::streamSynchronize();
+        } else {
+            for (std::size_t i = old_n; i < n; ++i) { zero(i); }
         }
+    } else {
+        auto& soa = ptile.GetStructOfArrays();
+        int const first_real = zero_compile_time ? 0 : PTile::NAR;
+        int const first_int  = zero_compile_time ? 0 : PTile::NAI;
+        // PODVector::resize(n, value) fills on the host or the device, depending on
+        // where the vector's memory lives
+        for (int i = first_real; i < soa.NumRealComps(); ++i) { soa.GetRealData(i).resize(n, ParticleReal(0)); }
+        for (int i = first_int;  i < soa.NumIntComps();  ++i) { soa.GetIntData(i).resize(n, 0); }
+        // resizes the other components and the particle data, and invalidates the
+        // tile's cached pointers
+        ptile.resize(n);
     }
-    if (launched) { Gpu::streamSynchronize(); }
 }
 
 /**

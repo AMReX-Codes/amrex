@@ -88,8 +88,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Long how_many_read = 0;
 
     Gpu::HostVector<ParticleType> nparticles;
-    Vector<Gpu::HostVector<Real> > nreals(0);
-    if (extradata > NStructReal) { nreals.resize(extradata - NStructReal); }
+    // the extra values beyond the first NStructReal go to the SoA real components,
+    // starting with component 0
+    const int nsoa = std::max(extradata - NStructReal, 0);
+    Vector<Gpu::HostVector<Real> > nreals(nsoa);
 
     if (MyProc < NReaders)
     {
@@ -114,7 +116,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         ParticleType p, p_rep;
         Vector<Real> r;
 
-        if (extradata > NStructReal) { r.resize(extradata - NStructReal); }
+        r.resize(nsoa);
 
         const int Chunk = cnt / NReaders;
 
@@ -189,7 +191,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             p.cpu() = MyProc;
 
             nparticles.push_back(p);
-            if(nreals.size() > extradata - NStructReal) {
+            if (nsoa > 0) {
                 for (int n = NStructReal; n < extradata; n++)
                 {
                     nreals[n-NStructReal].push_back(r[n-NStructReal]);
@@ -249,7 +251,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                             nparticles.push_back(p_rep);
 
-                            if (nreals.size() > extradata - NStructReal) {
+                            if (nsoa > 0) {
                                 for (int n = NStructReal; n < extradata; n++)
                                 {
                                     nreals[n-NStructReal].push_back(r[n-NStructReal]);
@@ -281,7 +283,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, Vector<Gpu::HostVector<ParticleReal> > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -302,18 +304,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                     host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
-                    if (nreals.size() > extradata - NStructReal && NArrayReal > 0)
+                    if (nsoa > 0)
                     {
+                        auto& attribs = host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+                        attribs.resize(nsoa);
                         for (int n = NStructReal; n < extradata; n++)
                         {
-                            Real rdata = nreals[n-NStructReal].back();
-                            host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                            attribs[n-NStructReal].push_back(static_cast<ParticleReal>(nreals[n-NStructReal].back()));
                         }
                     }
 
                     nparticles.pop_back();
 
-                    if (nreals.size() > extradata - NStructReal)
+                    if (nsoa > 0)
                     {
                         for (int n = NStructReal; n < extradata; n++)
                         {
@@ -336,18 +339,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto& dst_tile = DefineAndReturnParticleTile(lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
+                // the file may not give every SoA component: zero them all first
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size, true);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                if (std::ssize(host_real_attribs[lev][std::make_pair(grid, tile)]) > NArrayReal) {
-                    for (int i = 0; i < NArrayReal; ++i) {
-                        Gpu::copyAsync(Gpu::hostToDevice,
-                                       host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
-                                       host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
-                                       dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
-                    }
+                auto const& attribs = host_real_attribs[lev][std::make_pair(grid, tile)];
+                for (int i = 0; i < std::ssize(attribs); ++i) {
+                    Gpu::copyAsync(Gpu::hostToDevice, attribs[i].begin(), attribs[i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
             }
         }
@@ -370,7 +371,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, Vector<Gpu::HostVector<ParticleReal> > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -382,18 +383,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                if (std::ssize(host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]) >
-                    extradata - NStructReal) {
+                if (nsoa > 0) {
+                    auto& attribs = host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+                    attribs.resize(nsoa);
                     for (int n = NStructReal; n < extradata; n++)
                     {
-                        Real rdata = nreals[n-NStructReal].back();
-                        host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                        attribs[n-NStructReal].push_back(static_cast<ParticleReal>(nreals[n-NStructReal].back()));
                     }
                 }
 
                 nparticles.pop_back();
 
-                if (nreals.size() > extradata - NStructReal) {
+                if (nsoa > 0) {
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         nreals[n-NStructReal].pop_back();
@@ -413,15 +414,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto& dst_tile = DefineAndReturnParticleTile(lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
+                // the file may not give every SoA component: zero them all first
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size, true);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copyAsync(Gpu::hostToDevice,
-                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
-                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                auto const& attribs = host_real_attribs[lev][std::make_pair(grid, tile)];
+                for (int i = 0; i < std::ssize(attribs); ++i) {
+                    Gpu::copyAsync(Gpu::hostToDevice, attribs[i].begin(), attribs[i].end(),
                                    dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
             }
@@ -859,7 +860,7 @@ InitFromBinaryFile (const std::string& file,
                 auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size, true);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
@@ -901,7 +902,7 @@ InitFromBinaryFile (const std::string& file,
     for (int lev = 0; lev < std::ssize(m_particles); ++lev) {
         for (auto& kv : m_particles[lev]) {
             auto& ptile = DefineAndReturnParticleTile(lev, kv.first.first, kv.first.second);
-            particle_detail::resizeAndZeroNewSoA(ptile, ptile.numParticles());
+            particle_detail::resizeAndZeroNewSoA(ptile, ptile.numParticles(), true);
         }
     }
     //

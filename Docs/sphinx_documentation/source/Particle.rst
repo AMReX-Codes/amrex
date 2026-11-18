@@ -415,17 +415,24 @@ runtime component, or resize the tile once you are done adding particles:
    {
        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
 
-       // add particles to particle_tile as above, then either set the
-       // runtime components of each new particle...
-       for (int i = 0; i < NumRuntimeRealComps(); ++i) {
-           particle_tile.push_back_real(NArrayReal + i, 0.0);
-       }
-       for (int i = 0; i < NumRuntimeIntComps(); ++i) {
-           particle_tile.push_back_int(NArrayInt + i, 0);
+       // for each particle you add...
+       for (...) {
+           // add the particle as above...
+           particle_tile.push_back(p);
+           particle_tile.push_back_real(real_attribs);
+           particle_tile.push_back_int(int_attribs);
+           // ... then add one value for each of its runtime components
+           for (int i = 0; i < NumRuntimeRealComps(); ++i) {
+               particle_tile.push_back_real(NArrayReal + i, 0.0);
+           }
+           for (int i = 0; i < NumRuntimeIntComps(); ++i) {
+               particle_tile.push_back_int(NArrayInt + i, 0);
+           }
        }
 
-       // ... or, after all particles are added, size them all at once
-       // (the new values are not initialized)
+       // ... or, instead of the two inner loops over runtime components,
+       // size all components once after the particles are added
+       // (the new runtime values are not initialized)
        // particle_tile.resize(particle_tile.numParticles());
    }
 
