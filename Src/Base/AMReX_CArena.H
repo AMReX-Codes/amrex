@@ -400,11 +400,13 @@ protected:
             int l = m_nodes[idx].m_left;
             int r = m_nodes[idx].m_right;
             m_nodes[idx].m_height = 1 + std::max(getHeight(l), getHeight(r));
-            m_nodes[idx].m_max_subtree_size = std::max({
+            m_nodes[idx].m_max_subtree_size = std::max(
                 m_nodes[idx].m_node.size(),
-                getMax(l),
-                getMax(r)
-            });
+                std::max(
+                    getMax(l),
+                    getMax(r)
+                )
+            );
         }
 
         int rotateRight (int y) {
