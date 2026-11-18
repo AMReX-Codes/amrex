@@ -9,6 +9,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_Print.H>
 
+#include <array>
 #include <string>
 
 using namespace amrex;
@@ -250,7 +251,8 @@ template <class PCBase>
 void testRuntimeComps (std::string const& layout, InitKind kind)
 {
     Box const domain(IntVect(0), IntVect(3));
-    RealBox const real_box({AMREX_D_DECL(0., 0., 0.)}, {AMREX_D_DECL(4., 4., 4.)});
+    RealBox const real_box(std::array<Real, AMREX_SPACEDIM>{AMREX_D_DECL(0., 0., 0.)},
+                           std::array<Real, AMREX_SPACEDIM>{AMREX_D_DECL(4., 4., 4.)});
     Geometry const geom(domain, real_box, CoordSys::cartesian, {AMREX_D_DECL(1, 1, 1)});
     BoxArray const ba(domain);
     DistributionMapping const dm(ba);
