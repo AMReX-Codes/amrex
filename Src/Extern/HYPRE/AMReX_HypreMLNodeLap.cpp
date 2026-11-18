@@ -1080,6 +1080,12 @@ void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
         if (m_reuse_setup && !m_ij_gather_failed &&
             !composite::ij_entry_slots(m_A, rows, cols, m_comm, m_ij_gather)) {
             m_ij_gather_failed = true; // for this matrix; not tried again
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": hypre dropped an entry; the matrix is assembled "
+                               << "again at every update (the setup is kept)\n";
+            }
+        } else if (m_verbose > 1 && m_reuse_setup && !m_ij_gather.empty()) {
+            amrex::Print() << m_prefix << ": later updates are in place\n";
         }
     }
 
@@ -1458,8 +1464,13 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         if (r.redone || !reused) {
             m_reuse.setupDone();
         } else if (m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": " << m_num_iters << " iterations with the reused "
+                               << "setup, more than reuse_setup_max_iter; redoing it at the next solve\n";
+            }
             m_ij->setNeedSetup(); // for the next solve
         }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
 
         if (nrows > 0) {
             Gpu::DeviceVector<Real> d_x(nrows);
@@ -1503,8 +1514,13 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         if (r.redone || !kept) {
             m_reuse.setupDone();
         } else if (m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": " << m_num_iters << " iterations with the kept "
+                               << "hierarchy, more than reuse_setup_max_iter; rebuilding it at the next solve\n";
+            }
             m_algmg_reset = true; // for the next solve or update
         }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
         Gpu::copyAsync(Gpu::deviceToHost, x.data(), x.data()+nrows, m_xvec.begin());
         Gpu::streamSynchronize();
     }

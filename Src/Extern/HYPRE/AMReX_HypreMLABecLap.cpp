@@ -1184,7 +1184,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         BL_PROFILE("HypreMLABecLap::ij_assemble");
         // The host CSR is needed for AlgMG and for pending dumps
         // AlgMG with a known pattern builds its matrix on the device
-        const bool alg_direct = (m_backend == Backend::algmg) && !m_alg_gather.empty();
+        const bool alg_direct = (m_backend == Backend::algmg) && m_reuse_setup && !m_alg_gather.empty();
         const bool need_csr = ((m_backend == Backend::algmg) && !alg_direct) ||
                               composite::dump_pending(m_dump_prefix, m_dump_max);
         const Long nrows = m_ij_upper - m_ij_lower + 1;
@@ -1288,6 +1288,13 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 if (m_reuse_setup && !m_ij_gather_failed &&
                     !composite::ij_entry_slots(m_ij_solver->A(), rows, cols, m_comm, m_ij_gather)) {
                     m_ij_gather_failed = true; // for this matrix; not tried again
+                    if (m_verbose) {
+                        amrex::Print() << m_parmparse_prefix << ": hypre dropped an entry; the "
+                                       << "matrix is assembled again at every setup (the solver "
+                                       << "setup is kept)\n";
+                    }
+                } else if (m_verbose > 1 && m_reuse_setup && !m_ij_gather.empty()) {
+                    amrex::Print() << m_parmparse_prefix << ": later setups update the matrix in place\n";
                 }
             }
         } else {
@@ -2195,8 +2202,14 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         if (r.redone || !reused) {
             m_reuse.setupDone();
         } else if (m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_parmparse_prefix << ": " << num_iterations
+                               << " iterations with the reused setup, more than "
+                               << "reuse_setup_max_iter; redoing it at the next solve\n";
+            }
             m_ij_solver->setNeedSetup(); // for the next solve
         }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
 
         if (nrows > 0) {
             BL_PROFILE("HypreMLABecLap::ij_vectors_out");
@@ -2236,8 +2249,14 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         if (r.redone || !kept) {
             m_reuse.setupDone();
         } else if (m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_parmparse_prefix << ": " << num_iterations
+                               << " iterations with the kept hierarchy, more than "
+                               << "reuse_setup_max_iter; rebuilding it at the next solve\n";
+            }
             m_algmg_reset = true; // for the next solve or setup
         }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
         Gpu::copyAsync(Gpu::deviceToDevice, ax.data(), ax.data()+nrows, xvec.begin());
         Gpu::streamSynchronize();
     }

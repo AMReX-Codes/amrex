@@ -130,7 +130,19 @@ public:
      * operator (see resetSolverSetup()).  With EB, the boundary condition
      * types and whether setEBDirichlet() was called must not change.
      */
-    void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    void setReuseSolverSetup (bool v)
+    {
+        m_reuse_setup = v;
+        if (!v) {
+            // The slots of the in-place updates are of a setup with reuse on
+            // (the hypre solver is made anew anyway); the next setup with
+            // reuse on finds them again
+            m_ij_gather.clear();
+            m_alg_gather.clear();
+            m_alg_row_offset.clear();
+            m_alg_col_index.clear();
+        }
+    }
     //! With setup reuse, the matrix of a later setup() is scaled to the
     //! 2-norm of the one the kept setup was done for, and the right-hand side
     //! with it: a uniform change of the coefficients (by a time step, say)

@@ -251,6 +251,9 @@ struct ReusedSolve
     int num_iters = 0;
     Real final_res = 0.0;
     bool redone = false;
+    //! The message of the std::runtime_error a solve threw (with
+    //! setThrowException): the caller does its bookkeeping, then throws it
+    std::string error;
 };
 
 /**

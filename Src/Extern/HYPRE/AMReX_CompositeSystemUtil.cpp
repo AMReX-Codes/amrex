@@ -125,8 +125,12 @@ ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception
     int blew_up = 0;
     try {
         ij.solve(reltol, abstol, maxiter);
-    } catch (std::runtime_error const&) {
-        if (!reused) { throw; }
+    } catch (std::runtime_error const& e) {
+        if (!reused) { // the caller's policy: it throws after its bookkeeping
+            ij.setThrowException(throw_exception);
+            r.error = e.what();
+            return r;
+        }
         blew_up = 1;
     }
     ij.setThrowException(throw_exception);
@@ -146,10 +150,14 @@ ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception
         }
         if (blew_up || !std::isfinite(r.final_res)) { restore_x(); }
         ij.setNeedSetup();
-        ij.solve(reltol, abstol, maxiter);
+        r.redone = true; // also if the solve throws: the setup is done first
+        try {
+            ij.solve(reltol, abstol, maxiter);
+        } catch (std::runtime_error const& e) {
+            r.error = e.what();
+        }
         r.num_iters += static_cast<int>(ij.getNumIters());
         r.final_res = ij.getFinalResidualNorm();
-        r.redone = true;
     }
     return r;
 }
@@ -172,8 +180,12 @@ ReusedSolve algmg_solve_kept (AlgMG<Real>& mg, SpMatrix<Real>& mat, bool kept,
     int blew_up = 0;
     try {
         mg.solve(x, b);
-    } catch (std::runtime_error const&) {
-        if (!kept) { throw; }
+    } catch (std::runtime_error const& e) {
+        if (!kept) { // the caller's policy: it throws after its bookkeeping
+            mg.setThrowException(throw_exception);
+            r.error = e.what();
+            return r;
+        }
         blew_up = 1;
     }
     mg.setThrowException(throw_exception);
@@ -190,10 +202,14 @@ ReusedSolve algmg_solve_kept (AlgMG<Real>& mg, SpMatrix<Real>& mat, bool kept,
         }
         if (blew_up) { restore_x(); }
         mg.define(mat);
-        mg.solve(x, b);
+        r.redone = true; // also if the solve throws: the hierarchy is built first
+        try {
+            mg.solve(x, b);
+        } catch (std::runtime_error const& e) {
+            r.error = e.what();
+        }
         r.num_iters += mg.getNumIters();
         r.final_res = residual();
-        r.redone = true;
     }
     return r;
 }
