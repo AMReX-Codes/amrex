@@ -202,7 +202,8 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
         {
             auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-            dfab(i,j,k,dcomp+n) = proj(sfab,si,scomp+n);
+            dfab(i,j,k,dcomp+n) = detail::call_projection(proj, sfab, si, scomp+n,
+                                                          Dim3{.x = i, .y = j, .z = k});
         });
     }
 }
@@ -249,7 +250,8 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& sfab = amrex::makeArray4((T const*)(tags[itag].first), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
                 auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
+                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n,
+                                                                   Dim3{.x = i, .y = j, .z = k});
             });
         }
         return;
@@ -264,7 +266,8 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
                 auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
+                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n,
+                                                                   Dim3{.x = i, .y = j, .z = k});
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
             AMREX_ASSERT(dptr <= recv_data[ircv] + recv_size[ircv]);
@@ -305,7 +308,8 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
                                                             Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-        tag.dfab(i,j,k,dcomp+n) = proj(tag.sfab, si, scomp+n);
+        tag.dfab(i,j,k,dcomp+n) = detail::call_projection(proj, tag.sfab, si, scomp+n,
+                                                          Dim3{.x = i, .y = j, .z = k});
     });
 }
 
@@ -361,7 +365,8 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-        tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
+        tag.dfab(i,j,k,scomp+n) = detail::call_projection(proj, tag.sfab, si, n,
+                                                          Dim3{.x = i, .y = j, .z = k});
     });
 
     // There is Gpu::streamSynchronize in ParallelFor above
@@ -972,44 +977,41 @@ private:
     int nx, ny, nz;
 };
 
+/**
+ * \brief Component mapping for a vector field in spherical (theta, phi, r) coordinates, to be
+ * used with SphThetaPhiRIndexMapping.
+ *
+ * The vector is stored in components a_start_index, a_start_index+1 and a_start_index+2
+ * (theta, phi, r) in the coordinate basis (d/dtheta, d/dphi, d/dr). In ghost cells beyond
+ * a pole, the theta component changes sign. In ghost cells through the origin (r < 0), the
+ * theta and r components change sign. All other values are copied.
+ */
 struct SphThetaPhiRComponentMapping
 {
     SphThetaPhiRComponentMapping (Box const& a_domain, int a_start_index)
         : nx(a_domain.length(0)),
-          ny(a_domain.length(1)),
-          nz(a_domain.length(2)),
-          scomp(a_start_index) {}
+          scomp(a_start_index)
+    {
+        AMREX_ASSERT(a_domain.smallEnd() == 0);
+    }
 
     template <typename T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
-    T operator()(Array4<const T> const& a, Dim3 const& ijk, int n) const noexcept
+    T operator() (Array4<const T> const& a, Dim3 const& src, int n, Dim3 const& dst) const noexcept
     {
-        const int i = ijk.x;
-        const int j = ijk.y;
-        const int k = ijk.z;
-        auto r = a(i,j,k,n);
-        if (n == scomp) {
-            if ((i >= 0 && i <  nx) &&
-                (j <  0 || j >= ny) &&
-                (k >= 0 && k <  nz)) {
-                return r;
-            } else {
-                // We do not need to worry about the theta-lo/r-lo edge,
-                // theta-hi/r-lo edge, and r > r-hi.
-                return -r;
-            }
-        } else if (n == scomp+2) {
-            if (k < 0) {
-                return -r;
-            } else {
-                return r;
-            }
+        T const r = a(src.x, src.y, src.z, n);
+        bool const origin = (dst.z < 0);
+        bool const pole = (dst.x < 0) || (dst.x >= nx);
+        if ((n == scomp) && (origin || pole)) {
+            return -r;
+        } else if ((n == scomp+2) && origin) {
+            return -r;
         } else {
             return r;
         }
     }
 private:
-    int nx, ny, nz;
+    int nx;
     int scomp;
 };
 

@@ -276,10 +276,31 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 //
 
 //! \brief This type trait tests if a type P is a projection for FAB.
+//!
+//! A projection is called as `proj(src, src_index, comp)`. A projection that also takes the
+//! index of the cell being filled, `proj(src, src_index, comp, dst_index)`, is called that way.
 template <typename P, BaseFabType FAB>
 struct IsFabProjection
-    : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int>
+    : Disjunction<
+        IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int>,
+        IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int, Dim3>>
 {};
+
+namespace detail {
+    //! Call a projection, passing the destination index if it takes one.
+    template <typename Proj, typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T call_projection (Proj const& proj, Array4<T const> const& src, Dim3 const& src_index, int comp,
+                       Dim3 const& dst_index) noexcept
+    {
+        if constexpr (IsCallableR<T, Proj, Array4<T const>, Dim3, int, Dim3>::value) {
+            return proj(src, src_index, comp, dst_index);
+        } else {
+            amrex::ignore_unused(dst_index);
+            return proj(src, src_index, comp);
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                          [FabProjection.Identity]
