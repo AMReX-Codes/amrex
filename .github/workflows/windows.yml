@@ -98,6 +98,10 @@ jobs:
     - uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
     - name: Set Up MSVC
       uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+    - name: Set Up LLVM
+      uses: ZhongRuoyu/setup-llvm@06534d1c97e2480387924bd4b1c0fefb35e302a7
+      with:
+        llvm-version: 22
     - name: Build & Install
       shell: cmd
       run: |
