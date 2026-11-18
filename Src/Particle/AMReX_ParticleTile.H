@@ -838,22 +838,45 @@ struct ParticleTile
                 "Make sure to call setArena() on the ParticleContainer before initialization or "
                 "to pass an Arena to ParticleTile::define()");
 
+            // A tile that was filled before it was defined (e.g. created with
+            // GetParticles(lev)[index]) holds memory from the allocator's default
+            // arena. Move that data to a_arena instead of only switching the
+            // allocator, so the memory is freed through the arena it came from.
+            auto set_arena = [a_arena] (auto& vec) {
+                using Vec = std::remove_reference_t<decltype(vec)>;
+                if (vec.arena() == a_arena) {
+                    vec.setArena(a_arena);
+                    return;
+                }
+                Vec tmp{typename Vec::allocator_type(a_arena)};
+                if (!vec.empty()) {
+                    tmp.resize(vec.size(), GrowthStrategy::Exact);
+                    // refer to the allocators as base classes, without copying them
+                    using Alloc = typename Vec::allocator_type;
+                    amrex::detail::memCopyImpl(tmp.data(), vec.data(),
+                                               vec.size()*sizeof(typename Vec::value_type),
+                                               static_cast<Alloc const&>(tmp),
+                                               static_cast<Alloc const&>(vec));
+                }
+                vec.swap(tmp); // tmp now frees the old memory with the old arena
+            };
+
             if constexpr (ParticleType::is_soa_particle) {
-                GetStructOfArrays().GetIdCPUData().setArena(a_arena);
+                set_arena(GetStructOfArrays().GetIdCPUData());
             } else {
-                m_aos_tile().setArena(a_arena);
+                set_arena(m_aos_tile());
             }
             for (int j = 0; j < NumRealComps(); ++j) {
-                GetStructOfArrays().GetRealData(j).setArena(a_arena);
+                set_arena(GetStructOfArrays().GetRealData(j));
             }
             for (int j = 0; j < NumIntComps(); ++j) {
-                GetStructOfArrays().GetIntData(j).setArena(a_arena);
+                set_arena(GetStructOfArrays().GetIntData(j));
             }
 
-            m_runtime_r_ptrs.setArena(a_arena);
-            m_runtime_i_ptrs.setArena(a_arena);
-            m_runtime_r_cptrs.setArena(a_arena);
-            m_runtime_i_cptrs.setArena(a_arena);
+            set_arena(m_runtime_r_ptrs);
+            set_arena(m_runtime_i_ptrs);
+            set_arena(m_runtime_r_cptrs);
+            set_arena(m_runtime_i_cptrs);
         }
 
         m_runtime_r_ptrs.resize(a_num_runtime_real);

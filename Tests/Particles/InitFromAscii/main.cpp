@@ -1,4 +1,6 @@
+#include <cstdlib>
 #include <iostream>
+#include <utility>
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -60,6 +62,57 @@ void test_init_ascii (TestParams& parms)
                                 });
 
     AMREX_ALWAYS_ASSERT(tot == 8010);
+
+    // The same file, with the extra values split between the struct, a compile-time
+    // SoA component and a runtime one. The int components are not in the file and
+    // should be zero.
+    using SoAParticleContainer = ParticleContainer<2, 0, 1, 1>;
+    SoAParticleContainer soaPC(geom, dmap, ba);
+    soaPC.AddRealComp("runtime_real");
+    soaPC.AddIntComp("runtime_int");
+
+    soaPC.InitFromAsciiFile("particles.txt", 1 + AMREX_SPACEDIM);
+
+    AMREX_ALWAYS_ASSERT(soaPC.TotalNumberOfParticles() == 8);
+
+    // sums of the four extra columns in particles.txt
+    Vector<Real> const expected{8000, -1, 4, 7};
+    Vector<Real> sums(4, 0);
+    Vector<Long> int_sums(2, 0);
+    for (int lev = 0; lev <= soaPC.finestLevel(); ++lev) {
+        for (auto& kv : soaPC.GetParticles(lev)) {
+            auto const& ptile = kv.second;
+            auto const np = ptile.numParticles();
+            auto const& soa = ptile.GetStructOfArrays();
+            AMREX_ALWAYS_ASSERT(soa.NumRealComps() == 2 && soa.NumIntComps() == 2);
+
+            Vector<SoAParticleContainer::ParticleType> aos(np);
+            Gpu::copy(Gpu::deviceToHost, ptile.GetArrayOfStructs().begin(),
+                      ptile.GetArrayOfStructs().end(), aos.begin());
+            for (auto const& p : aos) {
+                sums[0] += p.rdata(0);
+                sums[1] += p.rdata(1);
+            }
+            for (int comp = 0; comp < 2; ++comp) {
+                AMREX_ALWAYS_ASSERT(std::cmp_equal(soa.GetRealData(comp).size(), np));
+                AMREX_ALWAYS_ASSERT(std::cmp_equal(soa.GetIntData(comp).size(), np));
+                Vector<ParticleReal> r(np);
+                Gpu::copy(Gpu::deviceToHost, soa.GetRealData(comp).begin(),
+                          soa.GetRealData(comp).end(), r.begin());
+                for (auto v : r) { sums[2+comp] += v; }
+                Vector<int> iv(np);
+                Gpu::copy(Gpu::deviceToHost, soa.GetIntData(comp).begin(),
+                          soa.GetIntData(comp).end(), iv.begin());
+                for (auto v : iv) { int_sums[comp] += std::abs(v); }
+            }
+        }
+    }
+    ParallelDescriptor::ReduceRealSum(sums.data(), int(sums.size()));
+    ParallelDescriptor::ReduceLongSum(int_sums.data(), int(int_sums.size()));
+    for (int i = 0; i < 4; ++i) {
+        AMREX_ALWAYS_ASSERT(sums[i] == expected[i]);
+    }
+    AMREX_ALWAYS_ASSERT(int_sums[0] == 0 && int_sums[1] == 0);
 }
 
 int main(int argc, char* argv[])

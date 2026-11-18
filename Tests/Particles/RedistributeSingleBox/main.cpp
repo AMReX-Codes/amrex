@@ -1,12 +1,15 @@
 // On a single process with a single level, box and tile, Redistribute() works in place.
 // This test checks that this leaves the container exactly as the full algorithm does
 // (same particles, positions and order, in the same tiles), for AoS and pure SoA
-// particles, and that it is used when it should be and not otherwise.
+// particles, and that it is used when it should be and not otherwise. It also checks
+// that the Init* routines leave the runtime components sized to the particle count
+// and set to zero.
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Particles.H>
 #include <AMReX_Print.H>
 
+#include <array>
 #include <string>
 
 using namespace amrex;
@@ -241,6 +244,99 @@ void testAll (std::string const& layout)
     }
 }
 
+//! after each Init* routine, the runtime components must be sized to the particle count and zero
+enum struct InitKind { Random, RandomPerBox, OnePerCell, NRandomPerCell };
+
+template <class PCBase>
+void testRuntimeComps (std::string const& layout, InitKind kind)
+{
+    Box const domain(IntVect(0), IntVect(3));
+    RealBox const real_box(std::array<Real, AMREX_SPACEDIM>{AMREX_D_DECL(0., 0., 0.)},
+                           std::array<Real, AMREX_SPACEDIM>{AMREX_D_DECL(4., 4., 4.)});
+    Geometry const geom(domain, real_box, CoordSys::cartesian, {AMREX_D_DECL(1, 1, 1)});
+    BoxArray const ba(domain);
+    DistributionMapping const dm(ba);
+
+    bool const early_out = ParticleContainerBase::redistribute_early_out;
+    ParticleContainerBase::redistribute_early_out = true;
+
+    PCBase pc(geom, dm, ba);
+    pc.AddRealComp();
+    pc.AddIntComp();
+    using PData = typename PCBase::ParticleInitData;
+    std::string init_name;
+    if (kind == InitKind::Random) {
+        init_name = "InitRandom";
+        pc.InitRandom(8, 42, PData{});
+    } else if constexpr (!PCBase::ParticleType::is_soa_particle) {
+        // these only support AoS particles
+        if (kind == InitKind::RandomPerBox) {
+            init_name = "InitRandomPerBox";
+            pc.InitRandomPerBox(2, 42, PData{});
+        } else if (kind == InitKind::OnePerCell) {
+            init_name = "InitOnePerCell";
+            pc.InitOnePerCell(0.5, 0.5, 0.5, PData{});
+        } else {
+            init_name = "InitNRandomPerCell";
+            pc.InitNRandomPerCell(2, PData{});
+        }
+    }
+
+    ParticleContainerBase::redistribute_early_out = early_out;
+
+    Long n_wrong = 0;
+    for (auto& kv : pc.GetParticles(0)) {
+        auto& ptile = kv.second;
+        auto const& soa = ptile.GetStructOfArrays();
+        auto const np = static_cast<std::size_t>(ptile.numParticles());
+        int const nr = soa.NumRealComps() - PCBase::NArrayReal;
+        int const ni = soa.NumIntComps() - PCBase::NArrayInt;
+        if (nr != 1 || ni != 1) { ++n_wrong; continue; }
+        if (soa.GetRealData(PCBase::NArrayReal).size() != np) { ++n_wrong; }
+        if (soa.GetIntData(PCBase::NArrayInt).size() != np) { ++n_wrong; }
+        if (n_wrong > 0) { continue; }
+
+        // the Init* routines set the runtime components to zero
+        Vector<ParticleReal> h_r(np);
+        Vector<int> h_i(np);
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(PCBase::NArrayReal).begin(),
+                  soa.GetRealData(PCBase::NArrayReal).end(), h_r.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(PCBase::NArrayInt).begin(),
+                  soa.GetIntData(PCBase::NArrayInt).end(), h_i.begin());
+        for (std::size_t i = 0; i < np; ++i) {
+            if (h_r[i] != ParticleReal(0) || h_i[i] != 0) { ++n_wrong; break; }
+        }
+
+        // writing the runtime components must stay in bounds
+        auto ptd = ptile.getParticleTileData();
+        ParallelFor(ptile.numParticles(), [=] AMREX_GPU_DEVICE (int i)
+        {
+            ptd.m_runtime_rdata[0][i] = ParticleReal(i);
+            ptd.m_runtime_idata[0][i] = i;
+        });
+        Gpu::streamSynchronize();
+    }
+    ParallelAllReduce::Sum(n_wrong, ParallelContext::CommunicatorSub());
+
+    Long const np_total = pc.TotalNumberOfParticles();
+    amrex::Print() << layout << " runtime_comps " << init_name << ": particles " << np_total
+                   << ", tiles with unsized or nonzero runtime components " << n_wrong << "\n";
+
+    AMREX_ALWAYS_ASSERT(np_total > 0);
+    AMREX_ALWAYS_ASSERT(n_wrong == 0);
+}
+
+template <class PC>
+void testRuntimeCompsAll (std::string const& layout)
+{
+    testRuntimeComps<PC>(layout, InitKind::Random);
+    if constexpr (!PC::ParticleType::is_soa_particle) {
+        testRuntimeComps<PC>(layout, InitKind::RandomPerBox);
+        testRuntimeComps<PC>(layout, InitKind::OnePerCell);
+        testRuntimeComps<PC>(layout, InitKind::NRandomPerCell);
+    }
+}
+
 }
 
 int main (int argc, char* argv[])
@@ -249,6 +345,8 @@ int main (int argc, char* argv[])
     {
         testAll<ParticleContainer<1, 1, 2, 1>>("AoS");
         testAll<ParticleContainerPureSoA<AMREX_SPACEDIM + 2, 1>>("SoA");
+        testRuntimeCompsAll<ParticleContainer<1, 1, 2, 1>>("AoS");
+        testRuntimeCompsAll<ParticleContainerPureSoA<AMREX_SPACEDIM + 2, 1>>("SoA");
         amrex::Print() << "PASSED\n";
     }
     amrex::Finalize();
