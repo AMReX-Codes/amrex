@@ -137,6 +137,29 @@ int main (int argc, char* argv[])
                                 color[0] == my_namespace::MyColor::cyan &&
                                 color[1] == my_namespace::MyColor::yellow &&
                                 color[2] == my_namespace::MyColor::orange);
+            // With a start index, only the requested elements are set.
+            std::vector<my_namespace::MyColor> color3(5, my_namespace::MyColor::cyan);
+            pp.queryarr("colors", color3, 1, 1);
+            AMREX_ALWAYS_ASSERT(color3 == std::vector<my_namespace::MyColor>(
+                                    {my_namespace::MyColor::cyan,
+                                     my_namespace::MyColor::yellow,
+                                     my_namespace::MyColor::cyan,
+                                     my_namespace::MyColor::cyan,
+                                     my_namespace::MyColor::cyan}));
+            // The vector is not shrunk.
+            std::vector<my_namespace::MyColor> color5(5, my_namespace::MyColor::yellow);
+            pp.queryarr("colors", color5);
+            AMREX_ALWAYS_ASSERT(color5 == std::vector<my_namespace::MyColor>(
+                                    {my_namespace::MyColor::cyan,
+                                     my_namespace::MyColor::yellow,
+                                     my_namespace::MyColor::orange,
+                                     my_namespace::MyColor::yellow,
+                                     my_namespace::MyColor::yellow}));
+            std::vector<my_namespace::MyColor> color4;
+            pp.getarr("colors", color4, 1, 2);
+            AMREX_ALWAYS_ASSERT(color4.size() == 3 &&
+                                color4[1] == my_namespace::MyColor::yellow &&
+                                color4[2] == my_namespace::MyColor::orange);
             amrex::Print() << "colors:";
             for (auto const& c : color) {
                 amrex::Print() << " " << amrex::getEnumNameString(c);

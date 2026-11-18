@@ -1393,7 +1393,8 @@ public:
         }
     }
 
-    //! Query an array of enum values using given name.
+    //! Query an array of enum values using given name. The vector is grown
+    //! if necessary to hold start_ix+num_val values, but never shrunk.
     template <typename T, typename ET = amrex_enum_traits<T>>
     requires (ET::value)
     int queryarr (std::string_view name,
@@ -1404,8 +1405,10 @@ public:
         std::vector<std::string> s;
         int exist = this->queryarr(name, s, start_ix, num_val);
         if (exist) {
-            ref.resize(s.size());
-            for (std::size_t i = 0; i < s.size(); ++i) {
+            // As in the other array overloads, grow the vector if
+            // necessary, but do not shrink it.
+            if (ref.size() < s.size()) { ref.resize(s.size()); }
+            for (auto i = std::size_t(start_ix); i < s.size(); ++i) {
                 try {
                     ref[i] = amrex::getEnum<T>(s[i]);
                 }  catch (...) {
@@ -1420,7 +1423,8 @@ public:
         return exist;
     }
 
-    //! Get an array of enum values using given name.
+    //! Get an array of enum values using given name. The vector is grown
+    //! if necessary to hold start_ix+num_val values, but never shrunk.
     template <typename T, typename ET = amrex_enum_traits<T>>
     requires (ET::value)
     void getarr (std::string_view name,
@@ -1430,8 +1434,10 @@ public:
     {
         std::vector<std::string> s;
         this->getarr(name, s, start_ix, num_val);
-        ref.resize(s.size());
-        for (std::size_t i = 0; i < s.size(); ++i) {
+        // As in the other array overloads, grow the vector if
+        // necessary, but do not shrink it.
+        if (ref.size() < s.size()) { ref.resize(s.size()); }
+        for (auto i = std::size_t(start_ix); i < s.size(); ++i) {
             try {
                 ref[i] = amrex::getEnum<T>(s[i]);
             }  catch (...) {
