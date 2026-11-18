@@ -551,7 +551,24 @@ int device_count() {
   return 1;
 }
 
-// HRX does not report these; values describe an MI200-class GCD.
+namespace {
+
+// A 32-bit device property from HRX, or |fallback| when HRX does not report it.
+int device_property(hrx_device_property_t property, int fallback) {
+  uint32_t value = 0;
+  hrx_status_t status = hrx_device_get_property(g_device, property, &value, sizeof(value));
+  if (!hrx_status_is_ok(status)) {
+    hrx_status_ignore(status);
+    return fallback;
+  }
+  return value ? static_cast<int>(value) : fallback;
+}
+
+}  // namespace
+
+// HRX reports memory, compute units and the maximum workgroup size. It does
+// not report the wavefront size or shared memory, so those, and the limits
+// with no HRX query, describe an MI200-class GCD.
 void device_properties(DeviceProperties* prop) {
   initialize();
   std::memset(prop, 0, sizeof(*prop));
@@ -563,11 +580,12 @@ void device_properties(DeviceProperties* prop) {
   prop->totalGlobalMem = total_bytes;
   prop->sharedMemPerBlock = 65536;
   prop->warpSize = 64;
-  prop->maxThreadsPerBlock = 1024;
-  prop->maxThreadsDim[0] = prop->maxThreadsDim[1] = prop->maxThreadsDim[2] = 1024;
+  prop->maxThreadsPerBlock = device_property(HRX_DEVICE_PROPERTY_MAX_WORKGROUP_SIZE, 1024);
+  prop->maxThreadsDim[0] = prop->maxThreadsDim[1] = prop->maxThreadsDim[2] =
+      prop->maxThreadsPerBlock;
   prop->maxGridSize[0] = 2147483647;
   prop->maxGridSize[1] = prop->maxGridSize[2] = 65535;
-  prop->multiProcessorCount = 104;
+  prop->multiProcessorCount = device_property(HRX_DEVICE_PROPERTY_COMPUTE_UNITS, 104);
   prop->maxThreadsPerMultiProcessor = 2048;
   prop->managedMemory = 0;
   prop->concurrentManagedAccess = 0;
