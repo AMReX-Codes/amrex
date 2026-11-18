@@ -193,9 +193,10 @@ protected:
             :
             m_block(a_block), m_owner(a_owner), m_size(a_size), m_stat(a_stat) {}
 
-        Node (const Node& rhs) noexcept
-            :
-            m_block(rhs.m_block), m_owner(rhs.m_owner), m_size(rhs.m_size), m_stat(rhs.m_stat) {}
+        Node (const Node& rhs) = default;
+        Node (Node&& rhs) = default;
+        Node& operator= (const Node& rhs) = default;
+        Node& operator= (Node&& rhs) = default;
 
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
