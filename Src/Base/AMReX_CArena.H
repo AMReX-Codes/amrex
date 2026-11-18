@@ -373,7 +373,7 @@ protected:
                 m_nodes[idx] = {node, node.size(), 1, -1, -1};
             } else {
                 idx = static_cast<int>(m_nodes.size());
-                m_nodes.emplace_back(node, node.size(), 1, -1, -1);
+                m_nodes.push_back(NodeWithSize{node, node.size(), 1, -1, -1});
             }
             return idx;
         }
