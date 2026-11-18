@@ -1282,7 +1282,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     resizeData();
 
     if (finest_level_in_file > finestLevel()) {
-        m_particles.resize(finest_level_in_file+1);
+        resizeParticleLevels(finest_level_in_file+1);
     }
 
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
