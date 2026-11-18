@@ -1379,7 +1379,8 @@ FillPolar (FabArray<FAB>& mf, Box const& domain);
  * \tparam FAB  MultiFab/FabArray type
  * \tparam DTOS Index mapping from destination from source. See
  *              SphThetaPhiRIndexMapping for an example.
- * \tparam Proj Component mapping from source to destination. See
+ * \tparam Proj Component mapping from source to destination. It may also take the
+ *              destination index; see IsFabProjection. See
  *              SphThetaPhiRComponentMapping for an example.
  *
  * \param mf    FabArray/MultiFab whose ghost cells need to be filled.
@@ -1423,7 +1424,8 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  * \tparam FAB  MultiFab/FabArray type
  * \tparam DTOS Index mapping from destination from source. See
  *              SphThetaPhiRIndexMapping for an example.
- * \tparam Proj Component mapping from source to destination. See
+ * \tparam Proj Component mapping from source to destination. It may also take the
+ *              destination index; see IsFabProjection. See
  *              SphThetaPhiRComponentMapping for an example.
  *
  * \param handler CommHandler returned by FillBoundary_nowait.
@@ -1463,7 +1465,8 @@ FillBoundary_finish (CommHandler handler,
  * \tparam FAB  MultiFab/FabArray type
  * \tparam DTOS Index mapping from destination from source. See
  *              SphThetaPhiRIndexMapping for an example.
- * \tparam Proj Component mapping from source to destination. See
+ * \tparam Proj Component mapping from source to destination. It may also take the
+ *              destination index; see IsFabProjection. See
  *              SphThetaPhiRComponentMapping for an example.
  *
  * \param mf    FabArray/MultiFab whose ghost cells need to be filled.

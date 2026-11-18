@@ -201,9 +201,9 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         auto const& dfab = dest.array      (tag.dstIndex);
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
         {
-            auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-            dfab(i,j,k,dcomp+n) = detail::call_projection(proj, sfab, si, scomp+n,
-                                                          Dim3{.x = i, .y = j, .z = k});
+            Dim3 const di{.x = i, .y = j, .z = k};
+            auto const si = dtos(di);
+            dfab(i,j,k,dcomp+n) = detail::call_projection(proj, sfab, si, scomp+n, di);
         });
     }
 }
@@ -249,9 +249,9 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& dfab = mf.array(tag.dstIndex);
             auto const& sfab = amrex::makeArray4((T const*)(tags[itag].first), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
-                auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n,
-                                                                   Dim3{.x = i, .y = j, .z = k});
+                Dim3 const di{.x = i, .y = j, .z = k};
+                auto const si = dtos(di);
+                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n, di);
             });
         }
         return;
@@ -265,9 +265,9 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& dfab = mf.array(tag.dstIndex);
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
-                auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n,
-                                                                   Dim3{.x = i, .y = j, .z = k});
+                Dim3 const di{.x = i, .y = j, .z = k};
+                auto const si = dtos(di);
+                dfab(i, j, k, dcomp + n) = detail::call_projection(proj, sfab, si, n, di);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
             AMREX_ASSERT(dptr <= recv_data[ircv] + recv_size[ircv]);
@@ -307,9 +307,9 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     ParallelFor(loc_copy_tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                             Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-        tag.dfab(i,j,k,dcomp+n) = detail::call_projection(proj, tag.sfab, si, scomp+n,
-                                                          Dim3{.x = i, .y = j, .z = k});
+        Dim3 const di{.x = i, .y = j, .z = k};
+        auto const si = dtos(di);
+        tag.dfab(i,j,k,dcomp+n) = detail::call_projection(proj, tag.sfab, si, scomp+n, di);
     });
 }
 
@@ -364,9 +364,9 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
     ParallelFor(tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
-        tag.dfab(i,j,k,scomp+n) = detail::call_projection(proj, tag.sfab, si, n,
-                                                          Dim3{.x = i, .y = j, .z = k});
+        Dim3 const di{.x = i, .y = j, .z = k};
+        auto const si = dtos(di);
+        tag.dfab(i,j,k,scomp+n) = detail::call_projection(proj, tag.sfab, si, n, di);
     });
 
     // There is Gpu::streamSynchronize in ParallelFor above
