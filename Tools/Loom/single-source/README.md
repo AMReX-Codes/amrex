@@ -65,7 +65,7 @@ mkdir loom-work && cd loom-work
 git clone -b loom-single-source https://github.com/BenWibking/cplusplus.git cplusplus
 git clone -b loom-single-source https://github.com/BenWibking/hrx.git hrx
 git clone -b loom-single-source https://github.com/BenWibking/amrex.git amrex
-git -C cplusplus checkout --detach 76b9a53238   # pinned cxx commit
+git -C cplusplus checkout --detach 715d6ea54a   # pinned cxx commit
 git -C hrx checkout --detach 47fc580fd8         # pinned HRX commit
 
 S=$PWD/amrex/Tools/Loom/single-source
