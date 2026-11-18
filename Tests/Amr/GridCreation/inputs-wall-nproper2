@@ -1,0 +1,21 @@
+# Only cells at the y-lo wall are tagged.  With n_proper = 2 level 1 cannot
+# hold a nested level 2 and only error buffer tags outside the domain are
+# left, so regridding from level 1 keeps level 1 as the finest level.
+# 3D: the second center tags nothing.  2D: two equal centers, and a third
+# one that tags nothing.
+geometry.prob_lo = 0. 0. 0.
+geometry.prob_hi = 1. 1. 1.
+geometry.is_periodic = 0 0 0
+
+amr.n_cell = 32 32 32
+amr.max_level = 2
+amr.n_proper = 2
+amr.blocking_factor = 8
+amr.max_grid_size = 32
+amr.n_error_buf = 1
+
+test.centers = 0.5 -99.98 0.5   -99.98 -99.98 -99.98
+test.radius = 100.
+test.initial_levels = 1
+test.regrid_lbase = 1
+test.expected_finest = 1

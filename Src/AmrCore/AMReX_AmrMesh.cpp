@@ -843,6 +843,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             //
             // Created new level, now generate efficient grids.
             //
+            int const prev_finest = new_finest;
             if ( !(useFixedCoarseGrids() && levc<useFixedUpToLevel()) ) {
                 new_finest = std::max(new_finest,levf);
             }
@@ -876,6 +877,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     }
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
+
+                // Only tags outside the domain were left: no new level.
+                if (new_bx.isEmpty() && (prev_finest < levf)) {
+                    new_finest = prev_finest;
+                    continue;
+                }
 
                 bool odd_ref_ratio = false;
                 for (auto const& rr : ref_ratio[levc]) {
