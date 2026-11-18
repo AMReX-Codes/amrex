@@ -203,6 +203,8 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                     new_size = total_size;
                 } else {
                     Node free_node = m_freelist.extractNode(next_it);
+                    free_node.block((char*)pt + new_size);
+                    free_node.size(left_size);
                     m_freelist.insertNode(free_node);
                 }
 #ifdef AMREX_TINY_PROFILING

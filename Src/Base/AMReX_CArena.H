@@ -197,6 +197,7 @@ protected:
         Node (Node&& rhs) = default;
         Node& operator= (const Node& rhs) = default;
         Node& operator= (Node&& rhs) = default;
+        ~Node () = default;
 
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
