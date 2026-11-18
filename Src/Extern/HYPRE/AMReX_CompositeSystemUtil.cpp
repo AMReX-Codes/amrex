@@ -113,7 +113,7 @@ bool SetupReuse::rescale (Gpu::DeviceVector<Real>& vals, Long n, bool new_setup,
                           int verbose, std::string const& prefix)
 {
     BL_PROFILE("composite::SetupReuse::rescale");
-    AMREX_ALWAYS_ASSERT(n >= 0 && n <= Long(vals.size()));
+    AMREX_ALWAYS_ASSERT(n >= 0 && std::cmp_less_equal(n, vals.size()));
     auto* v = vals.data();
     Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
                                              { return v[i]*v[i]; })
