@@ -636,6 +636,26 @@ bool isTrue(std::smatch const& sm)
     }
 }
 
+// The name of the inputs file to open: fname with the optional
+// AMREX_INPUTS_FILE_PREFIX directory in front.
+std::string
+inputs_file_path (std::string const& fname)
+{
+    std::string filename = fname;
+
+    // optional prefix to search files in
+    char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
+    if (amrex_inputs_file_prefix_c != nullptr && amrex_inputs_file_prefix_c[0] != 0) {
+        // we expect a directory path as the prefix: append a trailing "/" if missing
+        auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
+        if (amrex_inputs_file_prefix.back() != '/') {
+            amrex_inputs_file_prefix += "/";
+        }
+        filename = amrex_inputs_file_prefix + filename;
+    }
+    return filename;
+}
+
 void
 read_file (const char* fname, ParmParse::Table& tab)
 {
@@ -644,18 +664,7 @@ read_file (const char* fname, ParmParse::Table& tab)
     //
     if ( fname != nullptr && fname[0] != 0 )
     {
-        std::string filename = fname;
-
-        // optional prefix to search files in
-        char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
-        if (amrex_inputs_file_prefix_c != nullptr && amrex_inputs_file_prefix_c[0] != 0) {
-            // we expect a directory path as the prefix: append a trailing "/" if missing
-            auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
-            if (amrex_inputs_file_prefix.back() != '/') {
-                amrex_inputs_file_prefix += "/";
-            }
-            filename = amrex_inputs_file_prefix + filename;
-        }
+        std::string filename = inputs_file_path(fname);
 
 #ifdef AMREX_USE_MPI
         if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
@@ -1702,9 +1711,10 @@ ParmParse::addfile (std::string const& filename) {
     // check the file exists and give a user-friendly error
     if (ParallelDescriptor::IOProcessor())
     {
+        auto const path = inputs_file_path(filename);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            FileExists(filename),
-            "ParmParse::addfile: file does not exist: " + filename
+            !filename.empty() && FileExists(path),
+            "ParmParse::addfile: file does not exist: " + path
         );
     }
 
