@@ -101,6 +101,13 @@ jobs:
     - name: Build & Install
       shell: cmd
       run: |
+        rem Use the clang-cl shipped with Visual Studio, which matches its STL,
+        rem not the standalone LLVM in C:\Program Files\LLVM.
+        if not exist "%VCINSTALLDIR%Tools\Llvm\x64\bin\clang-cl.exe" exit /b 1
+        set "PATH=%VCINSTALLDIR%Tools\Llvm\x64\bin;%PATH%"
+        where clang-cl
+        clang-cl --version
+
         cmake -S . -B build   ^
               -G Ninja                  ^
               -DCMAKE_C_COMPILER=clang-cl ^
