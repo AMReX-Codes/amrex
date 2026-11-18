@@ -1658,7 +1658,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
                 // add the real...
                 for (int i = 0; i < NArrayReal; i++) {
-                    host_real_attribs[pld.m_lev][ind][i].push_back(pdata.real_array_data[i]);
+                    host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
                 }
 
                 // ... and int array data

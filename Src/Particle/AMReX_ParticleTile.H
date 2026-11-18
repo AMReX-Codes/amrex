@@ -851,9 +851,12 @@ struct ParticleTile
                 Vec tmp{typename Vec::allocator_type(a_arena)};
                 if (!vec.empty()) {
                     tmp.resize(vec.size(), GrowthStrategy::Exact);
+                    // refer to the allocators as base classes, without copying them
+                    using Alloc = typename Vec::allocator_type;
                     amrex::detail::memCopyImpl(tmp.data(), vec.data(),
                                                vec.size()*sizeof(typename Vec::value_type),
-                                               tmp.get_allocator(), vec.get_allocator());
+                                               static_cast<Alloc const&>(tmp),
+                                               static_cast<Alloc const&>(vec));
                 }
                 vec.swap(tmp); // tmp now frees the old memory with the old arena
             };
