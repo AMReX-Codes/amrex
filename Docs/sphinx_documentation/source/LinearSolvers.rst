@@ -983,9 +983,9 @@ except next to small cut cells, see ``eb_scaling``).
   :cpp:`setReuseSetupMaxIter()`, ``hypre_mlnodelap.reuse_setup_max_iter``,
   :cpp:`setReuseSetupMaxChange()` and ``hypre_mlnodelap.reuse_setup_max_change``
   work the same way, and a solve with a reused setup that does not converge
-  redoes the setup and continues once before failing.  Turned on after the
-  first solve, the hypre backend assembles the matrix once more at the next
-  :cpp:`updateMatrix()` and redoes the setup; later updates are in place.
+  redoes the setup and continues once before failing.  Turned on after a
+  solve, the next :cpp:`updateMatrix()` keeps that solve's setup (the hypre
+  backend assembles the matrix once more; later updates are in place).
 
 :cpp:`getNumIters()`, :cpp:`getFinalResidualNorm()` and
 :cpp:`setThrowException()` work as for :cpp:`HypreMLABecLap`, and so does the

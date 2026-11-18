@@ -332,6 +332,9 @@ private:
     //! The scaling of a later matrix to the kept setup's (and the change
     //! check of reuse_setup_max_change)
     composite::SetupReuse m_reuse;
+    //! EB: this rank's rows that do not depend on the coefficients (1), not
+    //! scaled to a kept setup; empty without EB
+    Gpu::DeviceVector<char> m_fixed_rows;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;

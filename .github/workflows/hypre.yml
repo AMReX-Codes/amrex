@@ -267,6 +267,13 @@ jobs:
             mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
                 mlhypre_num_solves=3 mlhypre_sigma_nonuniform=1 mlhypre_reuse_max_change=0.1 \
                 do_plots=0
+            # reuse off (the default): the matrix assembled again at every
+            # update, the other rank's rows added to the assembled hypre
+            # matrix, and the setup redone; and reuse turned on, then off
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_num_solves=3 mlhypre_reuse_setup=0 do_plots=0
+            mpiexec -n 2 ./main2d.gnu.MPI.ex inputs-mlhypre hypre_mlnodelap.backend=$b \
+                mlhypre_num_solves=3 mlhypre_reuse_off_solve=2 do_plots=0
         done
         # sub-communicators, and failures that must throw (NaN rhs or initial guess)
         for b in hypre algmg; do

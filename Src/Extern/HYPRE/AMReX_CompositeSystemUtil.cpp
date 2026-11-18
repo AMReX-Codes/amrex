@@ -109,61 +109,6 @@ void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector
     Gpu::streamSynchronize(); // before hypre uses the matrix
 }
 
-bool SetupReuse::rescale (Gpu::DeviceVector<Real>& vals, Long n, bool new_setup, MPI_Comm comm,
-                          int verbose, std::string const& prefix)
-{
-    BL_PROFILE("composite::SetupReuse::rescale");
-    AMREX_ALWAYS_ASSERT(n >= 0 && std::cmp_less_equal(n, vals.size()));
-    auto* v = vals.data();
-    Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                                             { return v[i]*v[i]; })
-                         : Real(0.0);
-    ParallelAllReduce::Sum(norm2, comm);
-    // No setup matrix to match: this is it
-    new_setup = new_setup || !(setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0));
-    bool changed = false;
-    // have_vals and capture are the same on all ranks, so that the
-    // reduction below is collective
-    if (!new_setup && max_change > Real(0.0) && have_vals && !capture) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(setup_vals.size(), n),
-            "composite::SetupReuse: the matrix pattern changed since the kept setup");
-        // The change of the scaled matrix since the setup, relative to the
-        // setup matrix
-        const Real s = std::sqrt(setup_norm2 / norm2);
-        auto const* v0 = setup_vals.data();
-        Real d2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                                              { Real d = s*v[i] - v0[i]; return d*d; })
-                          : Real(0.0);
-        ParallelAllReduce::Sum(d2, comm);
-        const Real change = std::sqrt(d2 / setup_norm2);
-        if (change > max_change) {
-            if (verbose) {
-                amrex::Print() << prefix << ": the matrix changed by " << change
-                               << " since the kept setup; redoing the setup\n";
-            }
-            changed = true;
-        }
-    }
-    if (new_setup || changed) {
-        setup_norm2 = norm2;
-        scale = Real(1.0);
-    } else {
-        scale = std::sqrt(setup_norm2 / norm2);
-        const Real s = scale;
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { v[i] *= s; });
-        Gpu::streamSynchronize();
-    }
-    if (max_change > Real(0.0) && (new_setup || changed || capture)) {
-        // The reference: the (scaled) values the setup is, or was, done for
-        setup_vals.resize(n);
-        Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.begin()+n, setup_vals.begin());
-        Gpu::streamSynchronize();
-        have_vals = true;
-    }
-    capture = false;
-    return changed;
-}
-
 ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception,
                              Real reltol, Real abstol, int maxiter, MPI_Comm comm,
                              int verbose, std::string const& prefix,

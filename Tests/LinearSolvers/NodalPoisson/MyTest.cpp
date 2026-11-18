@@ -233,6 +233,17 @@ MyTest::solve ()
                     const Box& interior = amrex::surroundingNodes(
                         amrex::grow(geom[ilev].Domain(), -1));
                     solution[ilev].setVal(0.0, interior, 0, 1, 0);
+                    if (overset) { // the known nodes keep their values
+                        auto const& ma = omask[ilev].const_arrays();
+                        auto const& sa = solution[ilev].arrays();
+                        auto const& ea = exact_solution[ilev].const_arrays();
+                        amrex::ParallelFor(solution[ilev],
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+                        {
+                            if (ma[b](i,j,k) == 0) { sa[b](i,j,k) = ea[b](i,j,k); }
+                        });
+                        Gpu::streamSynchronize();
+                    }
                 }
                 if (mlhypre_sigma_nonuniform) {
                     // A new problem: MLMG solves it too (its operator is
@@ -242,7 +253,10 @@ MyTest::solve ()
                     }
                     mlmg.solve(GetVecOfPtrs(sol_mlmg), GetVecOfConstPtrs(rhs), reltol, 0.0);
                 }
-                hyp.setReuseSolverSetup(true);
+                if (mlhypre_reuse_setup) {
+                    hyp.setReuseSolverSetup(mlhypre_reuse_off_solve <= 0 ||
+                                            isolve < mlhypre_reuse_off_solve);
+                }
                 if (isolve == 1 && mlhypre_reuse_max_change > Real(0.0)) {
                     hyp.setReuseSetupMaxChange(mlhypre_reuse_max_change);
                 }
@@ -414,6 +428,8 @@ MyTest::readParameters ()
     pp.query("mlhypre_num_solves", mlhypre_num_solves);
     pp.query("mlhypre_sigma_nonuniform", mlhypre_sigma_nonuniform);
     pp.query("mlhypre_reuse_max_change", mlhypre_reuse_max_change);
+    pp.query("mlhypre_reuse_setup", mlhypre_reuse_setup);
+    pp.query("mlhypre_reuse_off_solve", mlhypre_reuse_off_solve);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mlhypre_nan_dirichlet_rhs || (use_mlhypre && !periodic),
                                      "mlhypre_nan_dirichlet_rhs requires use_mlhypre = 1 and periodic = 0");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!const_solution || (use_mlhypre && !periodic),

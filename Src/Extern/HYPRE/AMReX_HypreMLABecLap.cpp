@@ -1216,7 +1216,16 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         const bool new_setup = (m_backend == Backend::hypre)
             ? (!m_reuse_setup || !m_ij_solver || m_ij_solver->setupPending())
             : (!m_reuse_setup || !m_algmg || m_algmg_reset);
-        if (m_reuse.rescale(vals, ntot, new_setup, m_comm, m_verbose, m_parmparse_prefix)) {
+        // The rows that do not depend on the coefficients (EB: the identity
+        // rows of covered and isolated cells, the average-down rows of cells
+        // covered by the finer level) stay and do not count, like their
+        // right-hand sides (solveIJ); the triplets are local here
+        auto const* pfixed = m_fixed_rows.empty() ? nullptr : m_fixed_rows.data();
+        auto const* prows = rows.data();
+        Long const row0 = m_ij_lower;
+        if (m_reuse.rescale(vals, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                            { return !pfixed || !pfixed[prows[i] - row0]; },
+                            new_setup, m_comm, m_verbose, m_parmparse_prefix)) {
             if (m_backend == Backend::hypre) { m_ij_solver->setNeedSetup(); }
             else { m_algmg_reset = true; }
         }
@@ -1983,20 +1992,28 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         {
             Long n = 0;
             Real bcrhs;
-            hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
-                                [&] (Long, Long, Real) { ++n; }, bcrhs);
+            (void) hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
+                                       [&] (Long, Long, Real) { ++n; }, bcrhs);
             pcount[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)] = n;
         });
     }
     const Long ntrip = Scan::ExclusiveSum(ncells, count.data(), offset.data(), Scan::retSum);
 
-    // Pass 2: the triplets, at the cells' offsets, and the right-hand side
-    // terms of the boundary values
+    // Pass 2: the triplets, at the cells' offsets, the right-hand side
+    // terms of the boundary values, and the rows that do not depend on the
+    // coefficients (not scaled to a kept setup: setup())
     Triplets& t = chunks.emplace_back();
     t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
     auto* prows = t.rows.data();
     auto* pcols = t.cols.data();
     auto* pvals = t.vals.data();
+    if (m_fixed_rows.empty()) {
+        m_fixed_rows.resize(m_ij_upper - m_ij_lower + 1);
+        Gpu::fillAsync(m_fixed_rows.begin(), m_fixed_rows.end(),
+                       [] AMREX_GPU_DEVICE (char& f, Long) { f = 0; });
+    }
+    auto* pfixed = m_fixed_rows.data();
+    Long const row0 = m_ij_lower;
     for (MFIter mfi(m_eb_bcrhs[ilev]); mfi.isValid(); ++mfi) {
         HypMLABecLapEB const* pe = d_ebs.data() + mfi.LocalIndex();
         Box const& vbx = ebs[mfi.LocalIndex()].vbx;
@@ -2007,7 +2024,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
         amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Long n = poff[(Long(k-lo.z)*len.y + (j-lo.y))*len.x + (i-lo.x)];
-            hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
+            bool const fixed = hypmlabeclap_eb_row(*pe, IntVect(AMREX_D_DECL(i,j,k)),
                                 [&] (Long r, Long c, Real v)
                                 {
                                     prows[n] = HYPRE_BigInt(r);
@@ -2015,6 +2032,7 @@ void HypreMLABecLap::buildEBTriplets (int ilev, Real a_ascalar, Real a_bscalar,
                                     pvals[n] = v;
                                     ++n;
                                 }, bcrhs(i,j,k));
+            if (fixed) { pfixed[pe->cid(i,j,k) - row0] = 1; }
         });
     }
     int const err = error.dataValue();
@@ -2107,7 +2125,11 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
     if (m_reuse.scale != Real(1.0)) { // the matrix is scaled to the kept setup
         const Real s = m_reuse.scale;
         auto* pb = bvec.data();
-        amrex::ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept { pb[i] *= s; });
+        auto const* pfixed = m_fixed_rows.empty() ? nullptr : m_fixed_rows.data();
+        amrex::ParallelFor(nrows, [=] AMREX_GPU_DEVICE (Long i) noexcept
+        {
+            if (!pfixed || !pfixed[i]) { pb[i] *= s; }  // not the unscaled rows
+        });
     }
     Gpu::streamSynchronize();
     BL_PROFILE_VAR_STOP(blp_load);
@@ -2168,9 +2190,11 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             [&] () { set_assembled(x, xvec.data()); });
         num_iterations = r.num_iters;
         final_res = r.final_res;
-        if (r.redone) {
-            m_reuse.setupRedone();
-        } else if (reused && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+        // A setup done at this solve (fresh, or redone in the retry) is for
+        // the current matrix
+        if (r.redone || !reused) {
+            m_reuse.setupDone();
+        } else if (m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
             m_ij_solver->setNeedSetup(); // for the next solve
         }
 
@@ -2196,7 +2220,8 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(Real(0.0));
         m_algmg->setMaxIter(m_maxiter);
-        auto const r = composite::algmg_solve_kept(*m_algmg, *m_spA, m_algmg_kept,
+        const bool kept = m_algmg_kept;
+        auto const r = composite::algmg_solve_kept(*m_algmg, *m_spA, kept,
                                                    m_throw_exception, ax, ab, ab.norm2(), m_comm,
                                                    m_verbose, m_parmparse_prefix,
             [=] (Real res) { return res <= a_reltol; },
@@ -2206,10 +2231,11 @@ void HypreMLABecLap::solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab co
             });
         num_iterations = r.num_iters;
         final_res = r.final_res;
-        if (r.redone) {
-            m_algmg_kept = false;
-            m_reuse.setupRedone();
-        } else if (m_algmg_kept && m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
+        if (r.redone) { m_algmg_kept = false; }
+        // A hierarchy built at this solve is for the current matrix
+        if (r.redone || !kept) {
+            m_reuse.setupDone();
+        } else if (m_reuse_max_iter > 0 && num_iterations > m_reuse_max_iter) {
             m_algmg_reset = true; // for the next solve or setup
         }
         Gpu::copyAsync(Gpu::deviceToDevice, ax.data(), ax.data()+nrows, xvec.begin());

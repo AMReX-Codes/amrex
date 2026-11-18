@@ -132,14 +132,13 @@ public:
      * HypreMLABecLap::setReuseSolverSetup: the kept setup only
      * approximates the updated operator, and a solve with it that does not
      * converge redoes the setup and continues once before failing.  Can be
-     * set at any time; with the hypre backend, the first updateMatrix()
-     * after it was turned on assembles the matrix again (the in-place
-     * updates need the slots of an assembly with reuse on) and the setup is
-     * redone at the next solve.  With reuse on, the setup is redone only
-     * when the matrix is not updated in place, after resetSolverSetup(),
-     * and by the reuse controls below (`<prefix>.recompute_preconditioner`
-     * is off); with reuse off, after every updateMatrix() (and on every
-     * solve if that option is on).
+     * set at any time: turned on after a solve, the next updateMatrix()
+     * keeps that solve's setup (with the hypre backend it assembles the
+     * matrix once more, scaled to the kept setup's; later updates are in
+     * place).  With reuse on, the setup is redone only after
+     * resetSolverSetup() and by the reuse controls below
+     * (`<prefix>.recompute_preconditioner` is off); with reuse off, after
+     * every updateMatrix() (and on every solve if that option is on).
      */
     void setReuseSolverSetup (bool v);
     //! With setup reuse, the matrix of a later updateMatrix() is scaled to
@@ -234,6 +233,14 @@ private:
     std::string m_dump_prefix;
     Long m_dump_gather_max = 50000000;
 
+    // The hypre matrix assembled (again) from triplets: zeroed
+    // if assembled before, the triplets added, assembled
+    void ijBeginAssembly ();
+    void ijAddTriplets (Gpu::DeviceVector<BigInt> const& rows,
+                        Gpu::DeviceVector<BigInt> const& cols,
+                        Gpu::DeviceVector<Real> const& vals);
+    void ijEndAssembly ();
+
     // Owned rows of the assembled matrix (AlgMG backend and dumps)
     composite::OwnedCSR m_csr;
     std::unique_ptr<SpMatrix<Real>> m_spA;
@@ -267,6 +274,9 @@ private:
     bool m_recompute_pp = false;
     bool m_matrix_assembled = false;
     bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
+    //! This rank's triplets (without the pinned row), fixed by the grids and
+    //! masks; -1 before the first build
+    Long m_ntrip = -1;
     composite::EntryGather m_ij_gather;
     //! AlgMG backend: the pattern of the CSR matrix and the slots of the
     //! triplets in it; a new hierarchy at the next update or solve; and

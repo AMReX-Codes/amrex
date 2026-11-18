@@ -8,6 +8,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_Scan.H>
 #include <AMReX_SpMatrix.H>
 #include <AMReX_Vector.H>
@@ -15,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -22,6 +24,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 
 /**
  * \file AMReX_CompositeSystemUtil.H
@@ -108,13 +111,13 @@ void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector
  *
  * A kept solver setup (hypre) or AlgMG hierarchy is for the matrix it was
  * done with.  A later matrix is scaled to that matrix's 2-norm (of the
- * triplet values, which fix the ratio) and the right-hand side with it, so
- * that a uniform change of the coefficients, by a time step say, leaves the
- * kept setup exact; otherwise its smoother weights and coarse corrections
- * grow with the change until the preconditioner diverges.  With a
- * threshold (reuse_setup_max_change), a copy of the setup matrix's values
- * is kept and the change of the scaled matrix since the setup is measured
- * against it.
+ * triplet values that depend on the coefficients, which fix the ratio) and
+ * the right-hand side with it, so that a uniform change of the coefficients,
+ * by a time step say, leaves the kept setup exact; otherwise its smoother
+ * weights and coarse corrections grow with the change until the
+ * preconditioner diverges.  With a threshold (reuse_setup_max_change), a
+ * copy of the setup matrix's values is kept and the change of the scaled
+ * matrix since the setup is measured against it.
  */
 struct SetupReuse
 {
@@ -125,8 +128,12 @@ struct SetupReuse
     Gpu::DeviceVector<Real> setup_vals;
     bool have_vals = false;
     //! The next matrix becomes the reference: the threshold was set after
-    //! the kept setup, or a solve redid the setup for its (scaled) matrix
+    //! the kept setup, or a solve did the setup for a scaled matrix
     bool capture = false;
+    //! The setup matrix on record is the current matrix, unscaled (the last
+    //! update made it the setup matrix); otherwise the current matrix is
+    //! scaled to an earlier one
+    bool current = false;
 
     //! The change threshold (see rescale)
     void setMaxChange (Real f)
@@ -141,19 +148,100 @@ struct SetupReuse
         }
     }
 
-    //! A solve redid the setup for the current scaled matrix
-    void setupRedone () { capture = (max_change > Real(0.0)); }
+    //! A solve did the setup for the current matrix.  Done for a matrix
+    //! scaled to an earlier setup's (after resetSolverSetup(),
+    //! reuse_setup_max_iter, or the retry of a solve that did not converge),
+    //! the norm on record still describes it but the kept values do not: the
+    //! next update becomes the reference of the change check.
+    void setupDone ()
+    {
+        if (!current) {
+            capture = (max_change > Real(0.0));
+            current = true;
+        }
+    }
+
+    //! The current matrix, assembled without its triplets held, is the setup
+    //! matrix; \p norm2 is the global squared 2-norm of its values.  No values
+    //! are kept: with a threshold, the next update becomes the reference.
+    void setSetupMatrix (Real norm2)
+    {
+        setup_norm2 = norm2;
+        scale = Real(1.0);
+        current = true;
+        setup_vals.clear();
+        have_vals = false;
+        capture = (max_change > Real(0.0));
+    }
 
     /**
-     * \brief Scale the first \p n values of \p vals (on the device; the rest,
-     * a pinned row's identity say, stay) to the setup matrix, or make this
-     * matrix the setup matrix (\p new_setup: the setup is done for it next).
-     * Collective over \p comm.  Returns true when the scaled matrix has
-     * changed by more than max_change since the setup; this matrix is then
-     * the setup matrix and the caller redoes the setup.
+     * \brief Scale the values of \p vals (on the device) for which
+     * \p scaled(i) is true to the setup matrix (the others, a pinned row's
+     * identity entry say, do not depend on the coefficients: they stay and
+     * do not count), or make this matrix the setup matrix (\p new_setup: the
+     * setup is done for it next).  Collective over \p comm.  Returns true
+     * when the scaled matrix has changed by more than max_change since the
+     * setup; this matrix is then the setup matrix and the caller redoes the
+     * setup.
      */
-    bool rescale (Gpu::DeviceVector<Real>& vals, Long n, bool new_setup, MPI_Comm comm,
-                  int verbose, std::string const& prefix);
+    template <class P>
+    bool rescale (Gpu::DeviceVector<Real>& vals, P const& scaled, bool new_setup,
+                  MPI_Comm comm, int verbose, std::string const& prefix)
+    {
+        BL_PROFILE("composite::SetupReuse::rescale");
+        const auto n = Long(vals.size());
+        auto* v = vals.data();
+        Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                                 { return scaled(i) ? v[i]*v[i] : Real(0.0); })
+                             : Real(0.0);
+        ParallelAllReduce::Sum(norm2, comm);
+        // No setup matrix to match: this is it
+        new_setup = new_setup || !(setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0));
+        bool changed = false;
+        // have_vals and capture are the same on all ranks, so that the
+        // reduction below is collective
+        if (!new_setup && max_change > Real(0.0) && have_vals && !capture) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(setup_vals.size(), n),
+                "composite::SetupReuse: the matrix pattern changed since the kept setup");
+            // The change of the scaled matrix since the setup, relative to
+            // the setup matrix
+            const Real s = std::sqrt(setup_norm2 / norm2);
+            auto const* v0 = setup_vals.data();
+            Real d2 = Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                        { Real d = scaled(i) ? s*v[i] - v0[i] : Real(0.0); return d*d; });
+            ParallelAllReduce::Sum(d2, comm);
+            const Real change = std::sqrt(d2 / setup_norm2);
+            if (change > max_change) {
+                if (verbose) {
+                    amrex::Print() << prefix << ": the matrix changed by " << change
+                                   << " since the kept setup; redoing the setup\n";
+                }
+                changed = true;
+            }
+        }
+        if (new_setup || changed) {
+            setup_norm2 = norm2;
+            scale = Real(1.0);
+        } else {
+            scale = std::sqrt(setup_norm2 / norm2);
+            const Real s = scale;
+            amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+            {
+                if (scaled(i)) { v[i] *= s; }
+            });
+            Gpu::streamSynchronize();
+        }
+        current = (new_setup || changed);
+        if (max_change > Real(0.0) && (new_setup || changed || capture)) {
+            // The reference: the (scaled) values the setup is, or was, done for
+            setup_vals.resize(n);
+            Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.end(), setup_vals.begin());
+            Gpu::streamSynchronize();
+            have_vals = true;
+        }
+        capture = false;
+        return changed;
+    }
 };
 
 //! Iterations (of both attempts, if the setup was redone), final relative

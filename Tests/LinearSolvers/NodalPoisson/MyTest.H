@@ -90,6 +90,13 @@ private:
     // mlhypre_num_solves: HypreMLNodeLap::setReuseSetupMaxChange after the
     // first solve (the setup redone once the matrix has changed by more)
     amrex::Real mlhypre_reuse_max_change = 0.0;
+    // mlhypre_num_solves: 0 leaves setup reuse off (the matrix is assembled
+    // again at every update and the setup redone); 1 turns it on before the
+    // first update
+    int mlhypre_reuse_setup = 1;
+    // mlhypre_num_solves: turn setup reuse off again before this repeated
+    // solve and the later ones (1-based; 0: never)
+    int mlhypre_reuse_off_solve = 0;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the
