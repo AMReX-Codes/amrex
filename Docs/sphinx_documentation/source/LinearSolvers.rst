@@ -595,6 +595,42 @@ to 3. With embedded boundaries, AlgMG, PETSc and hypre's IJ interface support
 orders up to 3. MLMG lowers a higher order to what the solver supports, and the
 operator keeps that order afterwards.
 
+Nodal Divergence at Domain Boundaries
+=====================================
+
+At nodes on a domain face with a :cpp:`Neumann` or :cpp:`inflow` boundary condition, such as a
+wall or an inflow face, :cpp:`MLNodeLaplacian::compRHS` computes the divergence of the
+cell-centered velocity, and the optional cell-centered source, to first order. After a
+projection, the normal velocity in the cells next to the face is then off by :math:`O(h^2)`.
+That is harmless by itself, but a cell-centered viscous operator such as :cpp:`MLABecLaplacian`
+or :cpp:`MLTensorOp` with a Dirichlet condition on the same face divides it by :math:`h^2`. The
+two default treatments together give an :math:`O(1)` error in the normal component of the
+viscous term next to the face, which a projection method passes on to the pressure gradient.
+For such flows, call
+
+.. highlight:: c++
+
+::
+
+    void setBoundaryDivuCorrection (bool on);
+
+with ``true`` on the :cpp:`MLNodeLaplacian` object to make the divergence second order at those
+nodes, and use :cpp:`maxorder = 3` (see above) for the viscous operator, whose default stencil
+has an :math:`O(1)` error of its own next to a Dirichlet boundary. The default is ``false``.
+The correction is not supported with RZ coordinates, and it is not applied at nodes on the
+coarse/fine boundary or next to cut cells. With a cell-centered source, the corrected
+right-hand side no longer sums exactly to the integral of the source; the difference is
+:math:`O(h^2)`. For details, we refer the reader to
+``amrex/Tests/LinearSolvers/NodalProjectionWall``.
+
+For example, with AMReX-Hydro's :cpp:`NodalProjector`, call it on the projector's operator
+before projecting:
+
+::
+
+    nodal_projector.getLinOp().setBoundaryDivuCorrection(true);
+    nodal_projector.project(...);
+
 
 Curvilinear Coordinates
 =======================
