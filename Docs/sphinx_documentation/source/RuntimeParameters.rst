@@ -888,7 +888,8 @@ for debugging.
    .. seealso::
       Use :py:data:`amrex.fpe_trap_invalid`, :py:data:`amrex.fpe_trap_zero`
       and :py:data:`amrex.fpe_trap_overflow` to enable ``FE_INVALID``,
-      ``FE_DIVBYZERO`` and ``FE_OVERFLOW`` trapping, respectively.
+      ``FE_DIVBYZERO`` and ``FE_OVERFLOW`` trapping, respectively. On macOS
+      with Apple silicon, see :py:data:`amrex.handle_sigill` instead.
 
 .. py:data:: amrex.handle_sigill
    :type: bool
@@ -896,6 +897,12 @@ for debugging.
 
    If both this flag and ``amrex.signal_handling`` are true, ``SIGILL``
    will be handled by AMReX.
+
+   .. seealso::
+      On macOS with Apple silicon, floating-point traps raise ``SIGILL``, so
+      :py:data:`amrex.fpe_trap_invalid`, :py:data:`amrex.fpe_trap_zero` and
+      :py:data:`amrex.fpe_trap_overflow` take effect only if ``SIGILL`` is
+      handled by AMReX.
 
 .. py:data:: amrex.handle_crt_reports
    :type: bool
@@ -920,25 +927,26 @@ for debugging.
    :type: bool
    :value: false
 
-    If ``SIGFPE`` is handled by AMReX and this flag is true, ``FE_INVALID``
-    (e.g., ``0/0``) trapping will be enabled. This flag has no effect on
-    Windows.
+    If ``SIGFPE`` (``SIGILL`` on macOS with Apple silicon) is handled by
+    AMReX and this flag is true, ``FE_INVALID`` (e.g., ``0/0``) trapping
+    will be enabled. This flag has no effect on Windows.
 
 .. py:data:: amrex.fpe_trap_zero
    :type: bool
    :value: false
 
-    If ``SIGFPE`` is handled by AMReX and this flag is true,
-    ``FE_DIVBYZERO`` (e.g., ``1/0``) trapping will be enabled. This flag has
-    no effect on Windows.
+    If ``SIGFPE`` (``SIGILL`` on macOS with Apple silicon) is handled by
+    AMReX and this flag is true, ``FE_DIVBYZERO`` (e.g., ``1/0``) trapping
+    will be enabled. This flag has no effect on Windows.
 
 .. py:data:: amrex.fpe_trap_overflow
    :type: bool
    :value: false
 
-    If ``SIGFPE`` is handled by AMReX and this flag is true, ``FE_OVERFLOW``
-    (i.e., the result is too large to be representable) trapping will be
-    enabled. This flag has no effect on Windows.
+    If ``SIGFPE`` (``SIGILL`` on macOS with Apple silicon) is handled by
+    AMReX and this flag is true, ``FE_OVERFLOW`` (i.e., the result is too
+    large to be representable) trapping will be enabled. This flag has no
+    effect on Windows.
 
 Extern
 ------

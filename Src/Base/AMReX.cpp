@@ -161,13 +161,8 @@ namespace {
     SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigill  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-#if defined(__linux__) && defined(__GLIBC__)
-    int           prev_fpe_excepts = 0;
-    int           curr_fpe_excepts = 0;
-#elif defined(__APPLE__) && defined(__x86_64__)
-    unsigned int  prev_fpe_mask = 0u;
-    unsigned int  curr_fpe_excepts = 0u;
-#endif
+    amrex::FPExcept prev_fpexcept = amrex::FPExcept::none;
+    amrex::FPExcept curr_fpexcept = amrex::FPExcept::none;
 }
 
 #ifdef AMREX_USE_HYPRE
@@ -652,53 +647,27 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
-            if (system::handle_sigfpe)
-            {
-                bool invalid = false, divbyzero=false, overflow=false;
-                pp.queryAdd("fpe_trap_invalid", invalid);
-                pp.queryAdd("fpe_trap_zero", divbyzero);
-                pp.queryAdd("fpe_trap_overflow", overflow);
-
-#if defined(__linux__) && defined(__GLIBC__)
-
-                curr_fpe_excepts = 0;
-                if (invalid)   { curr_fpe_excepts |= FE_INVALID;   }
-                if (divbyzero) { curr_fpe_excepts |= FE_DIVBYZERO; }
-                if (overflow)  { curr_fpe_excepts |= FE_OVERFLOW;  }
-                prev_fpe_excepts = fegetexcept();
-                if (curr_fpe_excepts != 0) {
-                    feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
-                }
-
-#elif defined(__APPLE__) && defined(__x86_64__)
-                prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
-                curr_fpe_excepts = 0u;
-                if (invalid)   { curr_fpe_excepts |= _MM_MASK_INVALID;  }
-                if (divbyzero) { curr_fpe_excepts |= _MM_MASK_DIV_ZERO; }
-                if (overflow)  { curr_fpe_excepts |= _MM_MASK_OVERFLOW; }
-                if (curr_fpe_excepts != 0u) {
-                    _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
-                }
-#endif
-            }
-
 #if defined(__APPLE__) && defined(__aarch64__)
-            if (system::handle_sigill)
-            {
-                bool invalid = false, divbyzero=false, overflow=false;
+            // FP traps raise SIGILL on Apple arm64
+            // SIGILL ref: https://developer.apple.com/forums/thread/689159
+            bool const handle_fp_traps = system::handle_sigill;
+#else
+            bool const handle_fp_traps = system::handle_sigfpe;
+#endif
+            bool invalid = false, divbyzero=false, overflow=false;
+            if (system::handle_sigfpe || handle_fp_traps) {
                 pp.queryAdd("fpe_trap_invalid", invalid);
                 pp.queryAdd("fpe_trap_zero", divbyzero);
                 pp.queryAdd("fpe_trap_overflow", overflow);
-
-                fenv_t env;
-                fegetenv(&env);
-                if (invalid)   { env.__fpcr |= __fpcr_trap_invalid;   }
-                if (divbyzero) { env.__fpcr |= __fpcr_trap_divbyzero; }
-                if (overflow)  { env.__fpcr |= __fpcr_trap_overflow;  }
-                fesetenv(&env);
-                // SIGILL ref: https://developer.apple.com/forums/thread/689159
             }
-#endif
+            if (handle_fp_traps)
+            {
+                curr_fpexcept = FPExcept::none;
+                if (invalid)   { curr_fpexcept = curr_fpexcept | FPExcept::invalid;  }
+                if (divbyzero) { curr_fpexcept = curr_fpexcept | FPExcept::zero;     }
+                if (overflow)  { curr_fpexcept = curr_fpexcept | FPExcept::overflow; }
+                prev_fpexcept = enableFPExcept(curr_fpexcept);
+            }
         }
 
 #ifdef AMREX_USE_HYPRE
@@ -944,18 +913,14 @@ amrex::Finalize (amrex::AMReX* pamrex)
         }
         if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
-#if defined(__linux__) && defined(__GLIBC__)
-#if !defined(__PGI) || (__PGIC__ >= 16)
-        if (curr_fpe_excepts != 0) {
-            fedisableexcept(curr_fpe_excepts);
-            feenableexcept(prev_fpe_excepts);
+        if (any(curr_fpexcept)) {
+            // undo the traps Initialize enabled, then enable the ones that were on before
+            amrex::ignore_unused(disableFPExcept(curr_fpexcept));
+            amrex::ignore_unused(enableFPExcept(prev_fpexcept));
+            // so that a later cycle that does not set traps leaves them alone
+            curr_fpexcept = FPExcept::none;
+            prev_fpexcept = FPExcept::none;
         }
-#endif
-#elif defined(__APPLE__) && defined(__x86_64__)
-        if (curr_fpe_excepts != 0u) {
-            _MM_SET_EXCEPTION_MASK(prev_fpe_mask);
-        }
-#endif
     }
 #endif
 
