@@ -333,10 +333,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
 
-                auto& dst_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+                auto& dst_tile = DefineAndReturnParticleTile(lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
@@ -410,10 +410,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
 
-                auto& dst_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+                auto& dst_tile = DefineAndReturnParticleTile(lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
@@ -856,10 +856,10 @@ InitFromBinaryFile (const std::string& file,
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
 
-                auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+                auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tile.size();
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
@@ -894,6 +894,16 @@ InitFromBinaryFile (const std::string& file,
     // Make tmp_particles the new m_particles.
     //
     tmp_particles.swap(m_particles);
+    //
+    // The tiles in tmp_particles were not defined: define them and size their
+    // SoA components to the particle count, with zero for the values they did not have.
+    //
+    for (int lev = 0; lev < std::ssize(m_particles); ++lev) {
+        for (auto& kv : m_particles[lev]) {
+            auto& ptile = DefineAndReturnParticleTile(lev, kv.first.first, kv.first.second);
+            particle_detail::resizeAndZeroNewSoA(ptile, ptile.numParticles());
+        }
+    }
     //
     // Add up all the particles read in to get the total number of particles.
     //
@@ -1154,7 +1164,7 @@ InitRandom (Long                    icount,
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
 
-                auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+                auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
                 auto old_size = dst_tile.size();
                 auto new_size = old_size;
                 if constexpr(!ParticleType::is_soa_particle)
@@ -1163,7 +1173,7 @@ InitRandom (Long                    icount,
                 } else {
                     new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
                 }
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 if constexpr(!ParticleType::is_soa_particle)
                 {
@@ -1307,7 +1317,7 @@ InitRandom (Long                    icount,
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
 
-                auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+                auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
                 auto old_size = dst_tile.size();
                 auto new_size = old_size;
                 if constexpr(!ParticleType::is_soa_particle)
@@ -1316,7 +1326,7 @@ InitRandom (Long                    icount,
                 } else {
                     new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
                 }
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 if constexpr(!ParticleType::is_soa_particle)
                 {
@@ -1435,22 +1445,29 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 amrex::Abort("ParticleContainer::InitRandomPerBox(): invalid particle");
             }
             AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-            std::pair<int, int> ind(pld.m_grid, pld.m_tile);
+            auto& ptile = DefineAndReturnParticleTile(pld.m_lev, pld.m_grid, pld.m_tile);
 
             // add the struct
-            m_particles[pld.m_lev][ind].push_back(p);
+            ptile.push_back(p);
 
             // add the real...
             for (int i = 0; i < NArrayReal; i++) {
-                m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
+                ptile.push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
             }
 
             // ... and int array data
             for (int i = 0; i < NArrayInt; i++) {
-                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                ptile.push_back_int(i, pdata.int_array_data[i]);
             }
 
         } } }
+    }
+
+    // size the runtime components, which the push_backs above do not fill, with zeros
+    for (auto& pmap : m_particles) {
+        for (auto& kv : pmap) {
+            particle_detail::resizeAndZeroNewSoA(kv.second, kv.second.numParticles());
+        }
     }
 
     if (m_verbose > 1)
@@ -1494,6 +1511,8 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
         ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        ptile_tmp.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                         &m_soa_rdata_names, &m_soa_idata_names);
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data
@@ -1531,8 +1550,12 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
             }
         }
 
-        m_particles[0][ind].resize(ptile_tmp.numParticles());
-        amrex::copyParticles(m_particles[0][ind], ptile_tmp);
+        // size the runtime components, which the push_backs above do not fill, with zeros
+        particle_detail::resizeAndZeroNewSoA(ptile_tmp, ptile_tmp.numParticles());
+
+        auto& dst_tile = DefineAndReturnParticleTile(0, ind.first, ind.second);
+        dst_tile.resize(ptile_tmp.numParticles());
+        amrex::copyParticles(dst_tile, ptile_tmp);
         Gpu::Device::streamSynchronize();
     }
 
@@ -1651,10 +1674,10 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 auto tid = kv.first.second;
                 const auto& src_tid = kv.second;
 
-                auto& dst_tile = GetParticles(host_lev)[std::make_pair(gid,tid)];
+                auto& dst_tile = DefineAndReturnParticleTile(host_lev, gid, tid);
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size + src_tid.size();
-                dst_tile.resize(new_size);
+                particle_detail::resizeAndZeroNewSoA(dst_tile, new_size);
 
                 Gpu::copyAsync(Gpu::hostToDevice, src_tid.begin(), src_tid.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);

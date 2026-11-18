@@ -812,6 +812,43 @@ void clearEmptyEntries (C& c)
 }
 
 /**
+ * \brief Resize a tile to np particles, setting to zero the values the resize adds
+ *        to its real and int SoA components (compile-time and runtime).
+ *
+ * The particle data (AoS or idcpu) is resized but not initialized.
+ */
+template <typename PTile>
+void resizeAndZeroNewSoA (PTile& ptile, Long np)
+{
+    auto& soa = ptile.GetStructOfArrays();
+    int const nreal = soa.NumRealComps();
+    int const nint  = soa.NumIntComps();
+    Vector<Long> old_real(nreal);
+    Vector<Long> old_int(nint);
+    for (int i = 0; i < nreal; ++i) { old_real[i] = std::ssize(soa.GetRealData(i)); }
+    for (int i = 0; i < nint;  ++i) { old_int[i]  = std::ssize(soa.GetIntData(i)); }
+
+    ptile.resize(np);
+
+    bool launched = false;
+    for (int i = 0; i < nreal; ++i) {
+        if (old_real[i] < np) {
+            ParticleReal* p = soa.GetRealData(i).dataPtr() + old_real[i];
+            ParallelFor(np - old_real[i], [=] AMREX_GPU_DEVICE (Long k) noexcept { p[k] = 0; });
+            launched = true;
+        }
+    }
+    for (int i = 0; i < nint; ++i) {
+        if (old_int[i] < np) {
+            int* p = soa.GetIntData(i).dataPtr() + old_int[i];
+            ParallelFor(np - old_int[i], [=] AMREX_GPU_DEVICE (Long k) noexcept { p[k] = 0; });
+            launched = true;
+        }
+    }
+    if (launched) { Gpu::streamSynchronize(); }
+}
+
+/**
  * \brief Where the GPU Redistribute() puts the particles of a single box on a single process.
  *
  * A valid particle stays in the box if, after the periodic shift, it is within nGrow

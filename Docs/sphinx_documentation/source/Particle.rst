@@ -302,7 +302,10 @@ Initializing Particle Data
 
 In the following code snippet, we demonstrate how to set particle initial
 conditions for both SoA and AoS data. We loop over all the tiles using
-:cpp:`MFIter`, and add as many particles as we want to each one.
+:cpp:`MFIter`, and add as many particles as we want to each one. We get each
+tile with :cpp:`DefineAndReturnParticleTile`, which creates the tile if it
+does not exist yet and sets it up for every component of the container,
+including any :ref:`components added at runtime <sec:Particles:Runtime>`.
 
 .. highlight:: c++
 
@@ -312,8 +315,7 @@ conditions for both SoA and AoS data. We loop over all the tiles using
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
 
         // ``particles'' starts off empty
-        auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
-                                            mfi.LocalTileIndex())];
+        auto& particles = DefineAndReturnParticleTile(lev, mfi);
 
         ParticleType p;
         p.id()   = ParticleType::NextID();
@@ -391,13 +393,18 @@ will be stored in Struct-of-Array style. To add a runtime component, use the
 Runtime-added components can be accessed like regular Struct-of-Array data.
 The new components will be added at the end of the compile-time defined ones.
 
-When you are using runtime components, it is crucial that when you are adding
-particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
-for each tile prior to adding any particles. This will make sure the space
-for the new components has been allocated. For example, in the above section
-on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
-the particle tile data using the :cpp:`GetParticles` method. If runtime components
-are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
+When you add particles to a container that has runtime components, get each
+tile with :cpp:`DefineAndReturnParticleTile` before adding any particles, as in
+the section on :ref:`initializing particle data <sec:Particles:Initializing>`.
+This makes sure the tile has storage for the runtime components. Do not create
+tiles by indexing the map returned by :cpp:`GetParticles` (for example,
+:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`): a tile created this way
+has no runtime components.
+
+Every component of a tile must hold one value per particle. :cpp:`push_back(p)`
+and the array overloads of :cpp:`push_back_real` and :cpp:`push_back_int` only
+add the components given as template parameters, so also add a value for each
+runtime component, or resize the tile once you are done adding particles:
 
 .. highlight:: c++
 
@@ -406,15 +413,25 @@ are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
    {
-       // instead of this...
-       // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
-       //                                     mfi.LocalTileIndex())];
-
-       // we do this...
        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
 
-       // add particles to particle_tile as above...
+       // add particles to particle_tile as above, then either set the
+       // runtime components of each new particle...
+       for (int i = 0; i < NumRuntimeRealComps(); ++i) {
+           particle_tile.push_back_real(NArrayReal + i, 0.0);
+       }
+       for (int i = 0; i < NumRuntimeIntComps(); ++i) {
+           particle_tile.push_back_int(NArrayInt + i, 0);
+       }
+
+       // ... or, after all particles are added, size them all at once
+       // (the new values are not initialized)
+       // particle_tile.resize(particle_tile.numParticles());
    }
+
+The built-in initialization routines of :cpp:`ParticleContainer`, such as
+:cpp:`InitRandom`, :cpp:`InitOnePerCell` and :cpp:`InitFromAsciiFile`, set the
+runtime components of the particles they create to zero.
 
 .. _sec:Particles:Iterating:
 

@@ -1491,6 +1491,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (ptile != nullptr)
     {
+        // A tile filled before it was defined has no runtime components yet. Define
+        // it and size them to the particle count, with zeros for the new values.
+        ptile = &DefineAndReturnParticleTile(0, gid, tid);
+        particle_detail::resizeAndZeroNewSoA(*ptile, ptile->numParticles());
+
 #ifdef AMREX_USE_GPU
         // the same particles stay, shifted the same way and in the same order, as in
         // partitionParticlesByDest()
