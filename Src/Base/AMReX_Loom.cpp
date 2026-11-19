@@ -354,10 +354,26 @@ struct Staging {
 };
 std::unordered_map<hrx_stream_t, Staging> g_staging;
 
+// Pinned staging for small pageable host-to-device copies under immediate
+// submission (copy_immediate), one per stream, bump-allocated. A range is
+// reused only after the stream is known complete: its completion point has
+// then run the system-scope barrier that discards stale L2 lines.
+struct PinnedRing {
+  uint8_t* base = nullptr;
+  std::size_t used = 0;
+};
+constexpr std::size_t kPinnedRingBytes = std::size_t(8) << 20;
+// Largest pageable source staged through the ring; larger ones use
+// hrx_stream_copy_h2d.
+constexpr std::size_t kPinnedRingCopyLimit = std::size_t(1) << 20;
+std::unordered_map<hrx_stream_t, PinnedRing> g_rings;
+
 // Frees |s|'s staging copies; the caller has waited for |s|.
 void release_staging(hrx_stream_t s) {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   g_staging.erase(s);
+  auto it = g_rings.find(s);
+  if (it != g_rings.end()) it->second.used = 0;
 }
 
 // Submits one kernel directly to |s|'s queue, ordered after everything already
@@ -394,6 +410,36 @@ void dispatch_immediate(hrx_stream_t s, hrx_executable_t executable, uint32_t or
         "hrx_queue_dispatch");
 }
 
+// Submits one copy directly to |s|'s queue, ordered like dispatch_immediate.
+// hrx_stream_copy_h2d/d2h would make HRX wait on the host for earlier work
+// before reading or writing host memory, and a stream recording carries
+// system-scope barriers; either leaves the GPU idle for tens of microseconds.
+// Both ends here are HRX buffers (device or pinned), so the copy needs neither:
+// host visibility comes from the next completion point (flush_all).
+void copy_immediate(hrx_stream_t s, hrx_buffer_t src, std::size_t src_offset, hrx_buffer_t dst,
+                    std::size_t dst_offset, std::size_t bytes) {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  // Copies or fills still recorded on |s| come first.
+  check(hrx_stream_flush(s), "hrx_stream_flush");
+  g_unflushed.erase(s);
+  hrx_timeline_point_t after{};
+  check(hrx_stream_get_timeline_position(s, &after), "hrx_stream_get_timeline_position");
+  hrx_semaphore_t timeline = nullptr;
+  check(hrx_stream_get_semaphore(s, &timeline), "hrx_stream_get_semaphore");
+  uint64_t done = 0;
+  check(hrx_stream_advance_timeline(s, &done), "hrx_stream_advance_timeline");
+  hrx_semaphore_t wait_semaphore = after.semaphore;
+  uint64_t wait_value = after.value;
+  const hrx_semaphore_list_t waits{&wait_semaphore, &wait_value, after.value ? 1u : 0u};
+  const hrx_semaphore_list_t signals{&timeline, &done, 1};
+  static const hrx_barrier_list_t no_barriers{0, nullptr};
+  static const hrx_queue_barriers_t barriers{&no_barriers, &no_barriers};
+  g_unreleased[s] = true;
+  check(hrx_queue_copy(hrx_stream_get_queue(s), &waits, &signals, src, src_offset, dst,
+                       dst_offset, bytes, &barriers),
+        "hrx_queue_copy");
+}
+
 void sync_all() {
   flush_all();
   check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
@@ -402,6 +448,7 @@ void sync_all() {
   // External streams' staging is released when they are synchronized.
   g_staging.erase(g_default_stream);
   for (auto& [s, q] : g_streams) g_staging.erase(s);
+  for (auto& [s, ring] : g_rings) ring.used = 0;
 }
 
 // Returns the allocation containing |address|, or nullptr for host memory.
@@ -645,6 +692,10 @@ void stream_destroy(hrx_stream_t stream) {
   g_unflushed.erase(stream);
   g_staging.erase(stream);
   g_unreleased.erase(stream);
+  if (auto ring = g_rings.find(stream); ring != g_rings.end()) {
+    pinned_free(ring->second.base);
+    g_rings.erase(ring);
+  }
   hrx_stream_release(stream);
   release_stream_queue(q);
 }
@@ -790,6 +841,23 @@ void pinned_free(void* pointer) {
   g_host_allocations.erase(it);
 }
 
+namespace {
+
+// Returns the pinned allocation containing |address|, or nullptr.
+const std::pair<const uintptr_t, hrx_buffer_t>* find_pinned(const void* address) {
+  auto a = reinterpret_cast<uintptr_t>(address);
+  auto it = g_host_allocations.upper_bound(a);
+  if (it == g_host_allocations.begin()) return nullptr;
+  --it;
+  std::size_t size = 0;
+  if (!hrx_status_is_ok(hrx_buffer_get_size(it->second, &size)) || a >= it->first + size) {
+    return nullptr;
+  }
+  return &*it;
+}
+
+}  // namespace
+
 void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t stream) {
   if (bytes == 0) return;
   hrx_stream_t s = resolve(stream);
@@ -804,6 +872,24 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
                                  offset(d, dst), bytes),
           "hrx_stream_copy_buffer");
     recorded(s);
+  } else if (const auto* pin = find_pinned(src);
+             d && pin && submit_mode() == Submit::immediate) {
+    copy_immediate(s, pin->second, offset(pin, src), d->second.buffer, offset(d, dst), bytes);
+  } else if (d && bytes <= kPinnedRingCopyLimit && submit_mode() == Submit::immediate) {
+    // A small pageable source is copied into |s|'s pinned staging now, so the
+    // caller may reuse it on return, as hipMemcpyAsync allows.
+    PinnedRing& ring = g_rings[s];
+    if (!ring.base) ring.base = static_cast<uint8_t*>(pinned_malloc(kPinnedRingBytes));
+    std::size_t at = (ring.used + 255) & ~std::size_t(255);
+    if (at + bytes > kPinnedRingBytes) {
+      stream_synchronize(s);  // resets ring.used
+      at = 0;
+    }
+    std::memcpy(ring.base + at, src, bytes);
+    ring.used = at + bytes;
+    const auto* staging = find_pinned(ring.base);
+    copy_immediate(s, staging->second, offset(staging, ring.base + at), d->second.buffer,
+                   offset(d, dst), bytes);
   } else if (d) {
     // HRX reads the host range when the transfer executes. A pinned source
     // (pinned_malloc) stays asynchronous, as with HIP; the caller keeps it
@@ -823,6 +909,9 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     }
     check(hrx_stream_copy_h2d(s, from, d->second.buffer, offset(d, dst), bytes),
           "hrx_stream_copy_h2d");
+  } else if (const auto* pin = find_pinned(dst);
+             r && pin && submit_mode() == Submit::immediate) {
+    copy_immediate(s, r->second.buffer, offset(r, src), pin->second, offset(pin, dst), bytes);
   } else if (r) {
     // HRX writes the host range when the transfer executes. A pinned
     // destination stays asynchronous; a pageable one is complete on return, as
@@ -881,6 +970,7 @@ void shutdown() {
     hrx_buffer_release(buffer);
   }
   g_host_allocations.clear();
+  g_rings.clear();
   for (auto& [address, allocation] : g_allocations) hrx_buffer_release(allocation.buffer);
   g_allocations.clear();
   for (auto& [code_object, executable] : g_executables) hrx_executable_release(executable);
