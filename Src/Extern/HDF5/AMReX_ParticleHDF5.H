@@ -505,48 +505,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     BL_PROFILE("ParticleContainer::CheckpointPostHDF5()");
 
-    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    std::ofstream HdrFile;
-    HdrFile.open(HdrFileNamePrePost.c_str(), std::ios::out | std::ios::app);
-
-    for(int lev(0); lev <= finestLevel(); ++lev) {
-        ParallelDescriptor::ReduceIntSum (whichPrePost[lev].dataPtr(), whichPrePost[lev].size(), IOProcNumber);
-        ParallelDescriptor::ReduceIntSum (countPrePost[lev].dataPtr(), countPrePost[lev].size(), IOProcNumber);
-        ParallelDescriptor::ReduceLongSum(wherePrePost[lev].dataPtr(), wherePrePost[lev].size(), IOProcNumber);
-
-
-        if(ParallelDescriptor::IOProcessor()) {
-            for(int j(0); j < whichPrePost[lev].size(); ++j) {
-                HdrFile << whichPrePost[lev][j] << ' ' << countPrePost[lev][j] << ' ' << wherePrePost[lev][j] << '\n';
-            }
-
-            const bool gotsome = (nParticlesAtLevelPrePost[lev] > 0);
-            if(gotsome && doUnlink) {
-//            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
-                // Unlink any zero-length data files.
-                Vector<Long> cnt(nOutFilesPrePost,0);
-
-                for(int i(0), N = countPrePost[lev].size(); i < N; ++i) {
-                    cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
-                }
-
-                for(int i(0), N = cnt.size(); i < N; ++i) {
-                    if(cnt[i] == 0) {
-                        std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
-                        FileSystem::Remove(FullFileName);
-                    }
-                }
-            }
-        }
-    }
-
-    if(ParallelDescriptor::IOProcessor()) {
-        HdrFile.flush();
-        HdrFile.close();
-        if( ! HdrFile.good()) {
-            amrex::Abort("ParticleContainer::CheckpointPostHDF5(): problem writing HdrFile");
-        }
-    }
+    // Unlike the native format, the HDF5 format has no separate text header
+    // and no per-rank data files. All the per-grid metadata needed by
+    // RestartHDF5 (the "nparticles_grid" dataset of each level) has already
+    // been written collectively into the HDF5 file by CheckpointHDF5, so
+    // there is nothing left to write here. In particular, we must not append
+    // anything to the HDF5 file. We only release the deferred bookkeeping.
+    whichPrePost.clear();
+    countPrePost.clear();
+    wherePrePost.clear();
+    filePrefixPrePost.clear();
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
