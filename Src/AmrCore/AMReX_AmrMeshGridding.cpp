@@ -48,6 +48,38 @@ AmrMesh::bfLev (int lev) const noexcept
     return bf;
 }
 
+Box
+AmrMesh::griddingRegion (int lev) const noexcept
+{
+    AMREX_ASSERT(lev >= 0 && lev < max_level);
+    if (!gridding_region.ok()) { return Geom(lev).Domain(); }
+    Box r = gridding_region;
+    for (int l = 0; l <= lev; ++l) {
+        if (l > 0) { r.refine(ref_ratio[l-1]); }
+        Box const& dom = Geom(l).Domain();
+        r &= dom;
+        IntVect const bf = bfLev(l);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int const b = bf[idim];
+            if (r.smallEnd(idim) > dom.smallEnd(idim)) {
+                r.setSmall(idim, amrex::coarsen(r.smallEnd(idim)+b-1, b)*b);
+            }
+            if (r.bigEnd(idim) < dom.bigEnd(idim)) {
+                r.setBig(idim, amrex::coarsen(r.bigEnd(idim)+1, b)*b-1);
+            }
+        }
+    }
+    return r;
+}
+
+bool
+AmrMesh::hasPartialCell (int lev, int idim) const noexcept
+{
+    Box const& dom = Geom(lev).Domain();
+    return dom.length(idim) % bfLev(lev)[idim] != 0
+        && griddingRegion(lev).bigEnd(idim) == dom.bigEnd(idim);
+}
+
 namespace {
 
 // A "partial" box touches the upper domain boundary in idim, is longer
@@ -153,7 +185,7 @@ AmrMesh::ChopGridsExtended (int lev, BoxArray& ba, int target_size) const
     if (lev > 0) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             unit[idim] = bfLev(lev-1)[idim] * ref_ratio[lev-1][idim];
-            if (idim != no_box_split_dir && domain.length(idim) % unit[idim] != 0) {
+            if (idim != no_box_split_dir && hasPartialCell(lev-1, idim)) {
                 slack[idim] = unit[idim] - 1;
                 partial_any = true;
             }
@@ -542,6 +574,21 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
         tags.setVal(p_n_comp_ba[levc],TagBox::CLEAR);
         p_n_comp_ba[levc].clear();
         //
+        // Remove cells outside the gridding region, and treat them as not
+        // properly nested below so that clusters are clipped to it.
+        //
+        Box const gr_c = amrex::coarsen(griddingRegion(levc), bf_lev[levc]);
+        bool const has_region = (gr_c != pc_domain[levc]);
+        if (has_region) {
+            BoxList outside;
+            outside.complementIn(pc_domain[levc], BoxArray(gr_c));
+            if (!outside.isEmpty()) {
+                tags.setVal(BoxArray(std::move(outside)), TagBox::CLEAR);
+            }
+            p_n_ba[levc] = amrex::intersect(p_n_ba[levc], gr_c);
+            std::erase_if(tags_proj, [&] (IntVect const& iv) { return !gr_c.contains(iv); });
+        }
+        //
         // Create initial cluster containing all tagged points.
         //
         Gpu::PinnedVector<IntVect> tagvec;
@@ -585,8 +632,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     Box const& pcd = pc_domain[levc];
                     IntVect paired(0);
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
-                            && pcd.length(idim) > 1)
+                        if (hasPartialCell(levc, idim) && pcd.length(idim) > 1)
                         {
                             paired[idim] = 1;
                         }
@@ -695,7 +741,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                             plain.maxSize(chunk);
                             IntVect fix(0);
                             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                                if (Geom(levc).Domain().length(idim) % bf_lev[levc][idim] != 0
+                                if (hasPartialCell(levc, idim)
                                     && b.bigEnd(idim) == pcd.bigEnd(idim)
                                     && b.length(idim) > chunk[idim])
                                 {
@@ -744,7 +790,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     new_bx.refine(bf_lev[levc]);
                     if (new_bx.size()>0) {
                         // Chop new grids outside domain
-                        new_bx.intersect(Geom(levc).Domain());
+                        new_bx.intersect(griddingRegion(levc));
                     }
 
                     //
@@ -760,6 +806,23 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                     new_grids[levf].refine(ref_ratio[levc]);
                 }
                 BL_ASSERT(new_grids[levf].isDisjoint());
+#ifdef AMREX_DEBUG
+                {
+                    // Grids are multiples of the grid unit except where they
+                    // reach a partial last cell at the upper domain boundary.
+                    Box const& fdom = Geom(levf).Domain();
+                    for (int i = 0; i < new_grids[levf].size(); ++i) {
+                        Box const& b = new_grids[levf][i];
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            int const unit = bf_lev[levc][idim] * ref_ratio[levc][idim];
+                            AMREX_ASSERT(amrex::coarsen(b.smallEnd(idim), unit)*unit == b.smallEnd(idim));
+                            AMREX_ASSERT(amrex::coarsen(b.bigEnd(idim)+1, unit)*unit == b.bigEnd(idim)+1
+                                         || (b.bigEnd(idim) == fdom.bigEnd(idim)
+                                             && hasPartialCell(levc, idim)));
+                        }
+                    }
+                }
+#endif
             }
         }
     }
@@ -840,14 +903,52 @@ AmrMesh::checkInputExtended ()
     }
 
     //
+    // Check the gridding region.
+    //
+    if (gridding_region.ok())
+    {
+        if (!domain.contains(gridding_region)) {
+            amrex::Print() << "gridding region " << gridding_region
+                           << " is not inside the domain " << domain << '\n';
+            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is not inside the domain");
+        }
+        if (refine_whole_domain_dir >= 0) {
+            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi does not work with refine_whole_domain_dir");
+        }
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geom(0).isPeriodic(idim) &&
+                (gridding_region.smallEnd(idim) != domain.smallEnd(idim) ||
+                 gridding_region.bigEnd(idim)   != domain.bigEnd(idim)))
+            {
+                amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi must span the domain in periodic directions");
+            }
+        }
+        for (int lev = 0; lev < max_level; ++lev) {
+            Box const gr = griddingRegion(lev);
+            if (!gr.ok()) {
+                amrex::Print() << "gridding region " << gridding_region << " has no cells on level "
+                               << lev << " once aligned to the blocking factor " << bfLev(lev) << '\n';
+                amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is too small");
+            }
+            if (verbose > 0) {
+                amrex::Print() << "Gridding region on level " << lev << ": " << gr << '\n';
+            }
+        }
+    }
+
+    //
     // Check that domain size is a multiple of blocking_factor[0].
     //   (only check if blocking_factor <= max_grid_size, and not in
-    //   no_box_split_dir where blocking_factor and max_grid_size are ignored)
+    //   no_box_split_dir where blocking_factor and max_grid_size are ignored,
+    //   nor where the gridding region keeps fine grids off the upper boundary)
     //
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
         int len = domain.length(idim);
-        if (idim != no_box_split_dir && blocking_factor[0][idim] <= max_grid_size[0][idim]) {
+        bool const region_inside = gridding_region.ok()
+            && gridding_region.bigEnd(idim) < domain.bigEnd(idim);
+        if (idim != no_box_split_dir && !region_inside
+            && blocking_factor[0][idim] <= max_grid_size[0][idim]) {
             if (len%blocking_factor[0][idim] != 0)
             {
                 amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
@@ -936,8 +1037,7 @@ AmrMesh::checkInputExtended ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const bf_lev = bfLev(i-1)[idim];
             int const unit = grid_unit(i,idim);
-            if (idim != no_box_split_dir && Geom(i-1).Domain().length(idim) % bf_lev != 0
-                && emgs[idim] < 2*unit)
+            if (idim != no_box_split_dir && hasPartialCell(i-1, idim) && emgs[idim] < 2*unit)
             {
                 amrex::Print() << "On level " << i << " in direction " << idim
                                << " max_grid_size is " << emgs[idim] << " and the grids are multiples of "

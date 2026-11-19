@@ -1211,12 +1211,15 @@ Amr::checkInputExtended ()
     }
     //
     // Check that domain size is a multiple of blocking_factor[0], except
-    // in no_box_split_dir where the blocking factor and max_grid_size are ignored.
+    // in no_box_split_dir where the blocking factor and max_grid_size are ignored,
+    // and where the gridding region keeps fine grids off the upper boundary.
     //
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (i != no_box_split_dir && len%blocking_factor[0][i] != 0) {
+        bool const region_inside = gridding_region.ok()
+            && gridding_region.bigEnd(i) < domain.bigEnd(i);
+        if (i != no_box_split_dir && !region_inside && len%blocking_factor[0][i] != 0) {
             amrex::Error("domain size not divisible by blocking_factor");
         }
     }
