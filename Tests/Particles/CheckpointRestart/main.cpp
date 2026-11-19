@@ -4,12 +4,48 @@
 #include <AMReX_Particles.H>
 
 #include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
                        Vector<BoxArray>& grids,
                        Vector<IntVect>& ref_ratio);
+
+// Write the particles with WriteAsciiFile and check the header and the
+// number of values on each particle line.
+template <class PC>
+void check_ascii_file (PC& pc, std::string const& filename, Long np_total,
+                       int nreal, int nint, int nvals_per_line)
+{
+    amrex::Print() << "Writing ascii particle file [" << filename << "] ..." << '\n';
+    pc.WriteAsciiFile(filename);
+
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ifstream ifs(filename);
+        Long np = 0;
+        int nstruct_real = 0, nstruct_int = 0, nr = 0, ni = 0;
+        ifs >> np >> nstruct_real >> nstruct_int >> nr >> ni;
+        AMREX_ALWAYS_ASSERT(np == np_total);
+        AMREX_ALWAYS_ASSERT(nr == nreal && ni == nint);
+
+        std::string line;
+        std::getline(ifs, line); // rest of the last header line
+        Long nlines = 0;
+        while (std::getline(ifs, line)) {
+            std::istringstream iss(line);
+            std::string val;
+            int nvals = 0;
+            while (iss >> val) { ++nvals; }
+            AMREX_ALWAYS_ASSERT(nvals == nvals_per_line);
+            ++nlines;
+        }
+        AMREX_ALWAYS_ASSERT(nlines == np_total);
+    }
+    amrex::Print() << " done \n";
+}
 void test ();
 
 int main(int argc, char* argv[])
@@ -140,6 +176,21 @@ void test ()
 
             amrex::Print() << " done \n";
         }
+
+        // Also exercise the CheckpointPre / CheckpointPost path
+        std::snprintf(fname, sizeof fname, "%splt_prepost", directory.c_str());
+        amrex::Print() << "Writing particle file [" << fname << "] with pre/post ..." << '\n';
+        myPC.SetUsePrePost(true);
+        myPC.CheckpointPre();
+        const Long np_total = myPC.TotalNumberOfParticles();
+        AMREX_ALWAYS_ASSERT(myPC.GetNParticlesPrePost() == np_total);
+        myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
+        myPC.CheckpointPost();
+        myPC.SetUsePrePost(false);
+        amrex::Print() << " done \n";
+
+        check_ascii_file(myPC, directory + "particles_ascii.txt", np_total, NArrayReal, NArrayInt,
+                         AMREX_SPACEDIM + NStructReal + 2 + NStructInt + NArrayReal + NArrayInt);
     }
 
     ParallelDescriptor::Barrier();
@@ -147,30 +198,83 @@ void test ()
     char directory_path[512];
     if (restart_check && nparticlefile > 0)
     {
-        MyPC newPC(geom, dmap, ba, ref_ratio);
-        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
-        newPC.Restart(directory_path, "particle0");
-
         using PType = typename MyPC::SuperParticleType;
 
-        for (int icomp=0; icomp<NStructReal+NArrayReal+NStructInt+NArrayInt; ++icomp)
+        for (const char* restart_dir : {"plt00000", "plt_prepost"})
         {
-            auto sm_new = amrex::ReduceSum(newPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
-                {
-                    return static_cast<Real>(p.rdata(1));
-                });
+            MyPC newPC(geom, dmap, ba, ref_ratio);
+            std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), restart_dir);
+            amrex::Print() << "Checking restart from [" << directory_path << "] ..." << '\n';
+            newPC.Restart(directory_path, "particle0");
 
-            auto sm_old = amrex::ReduceSum(myPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
-                {
-                    return static_cast<Real>(p.rdata(1));
-                });
+            AMREX_ALWAYS_ASSERT(newPC.TotalNumberOfParticles() == myPC.TotalNumberOfParticles());
 
-            ParallelDescriptor::ReduceRealSum(sm_new);
-            ParallelDescriptor::ReduceRealSum(sm_old);
+            {
+                // Weight each direction differently so that swapped
+                // coordinates would also be caught. The position indices are
+                // constants so that the clang static analyzer can see that
+                // they are in bounds.
+                auto sm_new = amrex::ReduceSum(newPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                    {
+                        return AMREX_D_TERM(  static_cast<Real>(p.pos(0)),
+                                            + static_cast<Real>(p.pos(1))*Real(2.),
+                                            + static_cast<Real>(p.pos(2))*Real(3.));
+                    });
 
-            AMREX_ALWAYS_ASSERT(sm_old == sm_new);
+                auto sm_old = amrex::ReduceSum(myPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                    {
+                        return AMREX_D_TERM(  static_cast<Real>(p.pos(0)),
+                                            + static_cast<Real>(p.pos(1))*Real(2.),
+                                            + static_cast<Real>(p.pos(2))*Real(3.));
+                    });
+
+                ParallelDescriptor::ReduceRealSum(sm_new);
+                ParallelDescriptor::ReduceRealSum(sm_old);
+
+                AMREX_ALWAYS_ASSERT(sm_old == sm_new);
+            }
+
+            for (int icomp=0; icomp<NStructReal+NArrayReal; ++icomp)
+            {
+                auto sm_new = amrex::ReduceSum(newPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                    {
+                        return static_cast<Real>(p.rdata(icomp));
+                    });
+
+                auto sm_old = amrex::ReduceSum(myPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                    {
+                        return static_cast<Real>(p.rdata(icomp));
+                    });
+
+                ParallelDescriptor::ReduceRealSum(sm_new);
+                ParallelDescriptor::ReduceRealSum(sm_old);
+
+                AMREX_ALWAYS_ASSERT(sm_old == sm_new);
+            }
+
+            for (int icomp=0; icomp<NStructInt+NArrayInt; ++icomp)
+            {
+                auto sm_new = amrex::ReduceSum(newPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Long
+                    {
+                        return static_cast<Long>(p.idata(icomp));
+                    });
+
+                auto sm_old = amrex::ReduceSum(myPC,
+                    [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Long
+                    {
+                        return static_cast<Long>(p.idata(icomp));
+                    });
+
+                ParallelDescriptor::ReduceLongSum(sm_new);
+                ParallelDescriptor::ReduceLongSum(sm_old);
+
+                AMREX_ALWAYS_ASSERT(sm_old == sm_new);
+            }
         }
     }
 }
