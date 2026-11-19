@@ -453,19 +453,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Long  maxnextid  = ParticleType::NextID();
 
     for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
-        const auto& pmap = m_particles[lev];
-        for (const auto& kv : pmap) {
-            const auto& aos = kv.second.GetArrayOfStructs();
-            for (int k = 0; k < aos.numParticles(); ++k) {
-                const ParticleType& p = aos[k];
-                if (p.id().is_valid()) {
-                    //
-                    // Only count (and checkpoint) valid particles.
-                    //
-                    nparticles++;
-                }
-            }
-        }
+        nparticles += NumberOfParticlesAtLevel(lev, true, true);
     }
     ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
 
@@ -729,18 +717,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     #ifdef AMREX_USE_MPI
-    // Collect the number of mf and total size of mf from each rank
+    // Collect the number of non-empty grids from each rank
     MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1,
                   ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
+    #else
+    all_mfi_cnt[0] = my_mfi_cnt;
+    #endif
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_mfi += all_mfi_cnt[i];
 
     // Create the int data
+    #ifdef AMREX_USE_MPI
     MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(),
                   &(all_mfi_int_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     #else
-    all_mfi_cnt[0] = my_mfi_cnt;
     all_mfi_int_total_size[0] = my_mfi_int_total_size;
     #endif
 
@@ -1293,6 +1284,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             std::string msg("ParticleContainer::RestartHDF5(): unable to open group ");
             msg += gname;
             amrex::Abort(msg.c_str());
+        }
+
+        htri_t const has_particles = H5Lexists(grp, "nparticles_grid", H5P_DEFAULT);
+        if (has_particles < 0) {
+            amrex::Abort("ParticleContainer::RestartHDF5(): unable to check for nparticles_grid dataset");
+        } else if (has_particles == 0) {
+            H5Gclose(grp);
+            continue;
         }
 
         dset = H5Dopen(grp, "nparticles_grid", H5P_DEFAULT);
