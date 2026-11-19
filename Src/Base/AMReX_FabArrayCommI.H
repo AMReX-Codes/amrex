@@ -829,8 +829,8 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         if (dest.arena()->isDevice() && !ParallelDescriptor::UseGpuAwareMpi()) {
             pb = (T*)The_Pinned_Arena()->alloc(sizeof(T)*count);
             Gpu::dtoh_memcpy_async(pb, p0, sizeof(T)*count);
-            Gpu::streamSynchronize();
         }
+        Gpu::streamSynchronize(); // MPI reads the data next
 #endif
         ParallelDescriptor::Bcast(pb, count, ParallelContext::global_to_local_rank(root_proc),
                                   ParallelContext::CommunicatorSub());

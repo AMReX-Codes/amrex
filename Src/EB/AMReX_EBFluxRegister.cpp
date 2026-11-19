@@ -337,7 +337,8 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
     {
         MultiFab grown_crse_data(m_crse_data.boxArray(), m_crse_data.DistributionMap(),
-                                 numcomp, 1, MFInfo(), FArrayBoxFactory());
+                                 numcomp, 1, MFInfo().SetArena(The_Async_Arena()),
+                                 FArrayBoxFactory());
         MultiFab::Copy(grown_crse_data, m_crse_data, srccomp, 0, numcomp, 0);
         grown_crse_data.FillBoundary(m_crse_geom.periodicity());
 
@@ -394,7 +395,8 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         // should go to the fine level
         BoxArray ba = fine_state.boxArray();
         ba.coarsen(m_ratio);
-        MultiFab cf(ba, fine_state.DistributionMap(), numcomp, 0, MFInfo(), FArrayBoxFactory());
+        MultiFab cf(ba, fine_state.DistributionMap(), numcomp, 0,
+                    MFInfo().SetArena(The_Async_Arena()), FArrayBoxFactory());
         cf.ParallelCopy(m_crse_data,srccomp,0,numcomp);
 
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());

@@ -1783,7 +1783,8 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
         MultiFab::Multiply(*this, wgt, 0, comp, 1, 0);
     }
 
-    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0,
+                   MFInfo().SetArena(The_Async_Arena()), Factory());
     tmpmf.setVal(Real(0.0));
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 

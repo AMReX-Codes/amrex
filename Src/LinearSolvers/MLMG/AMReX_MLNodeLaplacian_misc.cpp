@@ -1175,13 +1175,15 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
             rhcc[ilev] = std::make_unique<MF>(a_rhcc[ilev]->boxArray(),
-                                              a_rhcc[ilev]->DistributionMap(), 1, 1);
+                                              a_rhcc[ilev]->DistributionMap(), 1, 1,
+                                              MFInfo().SetArena(The_Async_Arena()));
             rhcc[ilev]->setVal(0.0);
             amrex::Copy(*rhcc[ilev], *a_rhcc[ilev], 0, 0, 1, 0);
             rhcc[ilev]->FillBoundary(geom.periodicity());
 
             rhs_cc[ilev] = std::make_unique<MF>(rhs[ilev]->boxArray(),
-                                                rhs[ilev]->DistributionMap(), 1, 0);
+                                                rhs[ilev]->DistributionMap(), 1, 0,
+                                                MFInfo().SetArena(The_Async_Arena()));
         }
 
         const auto dxinvarr = this->toRT(geom.InvCellSizeArray());

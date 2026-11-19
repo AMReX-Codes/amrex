@@ -339,7 +339,8 @@ void EdgeFluxRegister::Reflux (Array<MultiFab*,AMREX_SPACEDIM> const& B_crse) co
     Array<MultiFab,AMREX_SPACEDIM> E_cfine;
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        E_cfine[idim].define(m_E_crse[idim].boxArray(), m_E_crse[idim].DistributionMap(), m_ncomp, 0);
+        E_cfine[idim].define(m_E_crse[idim].boxArray(), m_E_crse[idim].DistributionMap(), m_ncomp, 0,
+                             MFInfo().SetArena(The_Async_Arena()));
         for (OrientationIter oit; oit.isValid(); ++oit) {
             auto face = oit();
             const int direction = face.coordDir();
@@ -407,7 +408,8 @@ void EdgeFluxRegister::Reflux (Array<MultiFab*,AMREX_SPACEDIM> const& B_crse) co
 
 #else /* 2D */
 
-    MultiFab E_cfine(m_E_crse.boxArray(), m_E_crse.DistributionMap(), m_ncomp, 0);
+    MultiFab E_cfine(m_E_crse.boxArray(), m_E_crse.DistributionMap(), m_ncomp, 0,
+                     MFInfo().SetArena(The_Async_Arena()));
 
     for (OrientationIter oit; oit.isValid(); ++oit) {
         auto face = oit();

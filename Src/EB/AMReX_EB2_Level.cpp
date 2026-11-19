@@ -648,6 +648,10 @@ namespace {
                 });
             }
         }
+#ifdef AMREX_USE_GPU
+        // The callers free srcmf, a temporary, right after this
+        if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
     }
 }
 
