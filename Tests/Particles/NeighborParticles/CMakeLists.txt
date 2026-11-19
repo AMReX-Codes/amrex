@@ -1,6 +1,6 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
 
-    set(_sources CheckPair.H Constants.H main.cpp  MDParticleContainer.cpp MDParticleContainer.H )
+    set(_sources CheckPair.H Constants.H main.cpp  MDParticleContainer.cpp MDParticleContainer.H GhostCopyTest.cpp )
 
     set(_input_files inputs  )
 
