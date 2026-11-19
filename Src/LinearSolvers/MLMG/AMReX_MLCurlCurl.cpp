@@ -291,6 +291,7 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
     {
         tag.dfab(i,j,k) = RT(0.0);
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 }
 
@@ -1242,6 +1243,9 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
         });
 #endif
     }
+#ifdef AMREX_USE_GPU
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 iMultiFab const& MLCurlCurl::getDotMask (int amrlev, int mglev, int idim) const

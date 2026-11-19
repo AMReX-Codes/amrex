@@ -1616,8 +1616,11 @@ tag,
         tag.dfab(i,j,k,n) = ...;
     });
 
-This copies the tags to the device and synchronizes the stream on every
-call.  When the same tags are used repeatedly, build a :cpp:`TagVector`
+This copies the tags to the device on every call.  Like other
+:cpp:`ParallelFor` calls, it is asynchronous: the kernel may still be
+running when the function returns.  Call :cpp:`Gpu::streamSynchronize()`
+before using the results on the host or freeing memory that the kernel
+uses.  When the same tags are used repeatedly, build a :cpp:`TagVector`
 from them once and pass it to :cpp:`ParallelFor` instead.  See the
 `TagParallelFor`_ tutorial.
 

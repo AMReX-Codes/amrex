@@ -930,7 +930,9 @@ void fill_physbc (MF& mf, Geometry const& geom,
                 tag.dfab(i,j,k) = tag.dfab(siv);
             }
         });
-#if !defined(AMREX_USE_GPU)
+#if defined(AMREX_USE_GPU)
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#else
     }
 #endif
 }

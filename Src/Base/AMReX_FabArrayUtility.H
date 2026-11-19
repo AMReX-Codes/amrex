@@ -2489,6 +2489,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
     {
         Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n), 1);
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 
     return mask;

@@ -1747,6 +1747,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
         Real* ptr = tag.dfab.ptr(i,j,k,n);
         Gpu::Atomic::AddNoRet(ptr, Real(1.0));
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 
     return p;

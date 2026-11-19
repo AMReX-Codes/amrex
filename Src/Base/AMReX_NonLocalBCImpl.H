@@ -311,6 +311,7 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         auto const si = dtos(di);
         tag.dfab(i,j,k,dcomp+n) = detail::call_projection(proj, tag.sfab, si, scomp+n, di);
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 }
 
 template <BaseFabType FAB, class DTOS, class Proj>
@@ -369,7 +370,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
         tag.dfab(i,j,k,scomp+n) = detail::call_projection(proj, tag.sfab, si, n, di);
     });
 
-    // There is Gpu::streamSynchronize in ParallelFor above
+    Gpu::streamSynchronize(); // recv buffer is freed by the caller
 
     if (pbuffer != recv_data[0]) {
         The_Arena()->free(pbuffer);

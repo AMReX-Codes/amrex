@@ -715,6 +715,7 @@ namespace amrex
         {
             tag.dfab(i,j,k,n) = fine_value;
         });
+        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
     }
     }
