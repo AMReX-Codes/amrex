@@ -87,7 +87,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow)) : this->m_gdb->refRatio(lev-1);
             mf_part[lev] = std::make_unique<MultiFab>(this->ParticleBoxArray(lev),
                                                       this->ParticleDistributionMap(lev),
-                                                      ncomp, ng);
+                                                      ncomp, ng,
+                                                      MFInfo().SetArena(The_Async_Arena()));
             mf_part[lev]->setVal(0.0);
         }
     }
@@ -116,7 +117,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const BoxArray& ba = mf[lev]->boxArray();
         const DistributionMapping& dm = mf[lev]->DistributionMap();
-        tmp[lev] = std::make_unique<MultiFab>(ba, dm, ncomp, 0);
+        tmp[lev] = std::make_unique<MultiFab>(ba, dm, ncomp, 0,
+                                              MFInfo().SetArena(The_Async_Arena()));
         tmp[lev]->setVal(0.0);
     }
 
@@ -224,10 +226,12 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     {
         mf_part[lev].define(pc.ParticleBoxArray(lev),
                             pc.ParticleDistributionMap(lev),
-                            mf[lev]->nComp(), ngrow);
+                            mf[lev]->nComp(), ngrow,
+                            MFInfo().SetArena(The_Async_Arena()));
         mf_tmp[lev].define( pc.ParticleBoxArray(lev),
                             pc.ParticleDistributionMap(lev),
-                            mf[lev]->nComp(), 0);
+                            mf[lev]->nComp(), 0,
+                            MFInfo().SetArena(The_Async_Arena()));
         mf_part[lev].setVal(0.0);
         mf_tmp[lev].setVal( 0.0);
     }
