@@ -260,7 +260,7 @@ protected:
             m_nodes.reserve(1024);
         }
 
-        int getFirstFit (std::size_t size) const {
+        [[nodiscard]] int getFirstFit (std::size_t size) const {
             int curr = m_root;
             if (curr == -1 || m_nodes[curr].m_max_subtree_size < size) {
                 return -1;
@@ -278,14 +278,14 @@ protected:
             return curr;
         }
 
-        std::size_t getLargestFreeBlock () const {
+        [[nodiscard]] std::size_t getLargestFreeBlock () const {
             if (m_root == -1) {
                 return 0;
             }
             return m_nodes[m_root].m_max_subtree_size;
         }
 
-        const Node& viewNode (int idx) const {
+        [[nodiscard]] const Node& viewNode (int idx) const {
             return m_nodes.at(idx).m_node;
         }
 
@@ -299,7 +299,7 @@ protected:
             m_root = insert(m_root, node);
         }
 
-        int find (const Node& node) const {
+        [[nodiscard]] int find (const Node& node) const {
             int curr = m_root;
             while (curr != -1) {
                 if (node < m_nodes[curr].m_node) {
@@ -313,7 +313,7 @@ protected:
             return curr;
         }
 
-        int findPredecessor (const Node& node) const {
+        [[nodiscard]] int findPredecessor (const Node& node) const {
             int curr = m_root;
             int pred = -1;
             while (curr != -1) {
@@ -327,7 +327,7 @@ protected:
             return pred;
         }
 
-        int findSuccessor (const Node& node) const {
+        [[nodiscard]] int findSuccessor (const Node& node) const {
             int curr = m_root;
             int succ = -1;
             while (curr != -1) {
@@ -341,7 +341,7 @@ protected:
             return succ;
         }
 
-        int size () const {
+        [[nodiscard]] int size () const {
             return static_cast<int>(m_nodes.size())
                 - static_cast<int>(m_free_node_indices.size());
         }
@@ -371,10 +371,16 @@ protected:
             if (!m_free_node_indices.empty()) {
                 idx = m_free_node_indices.back();
                 m_free_node_indices.pop_back();
-                m_nodes[idx] = {node, node.size(), 1, -1, -1};
+                m_nodes[idx] = {
+                    .m_node=node, .m_max_subtree_size=node.size(),
+                    .m_height=1, .m_left=-1, .m_right=-1
+                };
             } else {
                 idx = static_cast<int>(m_nodes.size());
-                m_nodes.push_back(NodeWithSize{node, node.size(), 1, -1, -1});
+                m_nodes.push_back(NodeWithSize{
+                    .m_node=node, .m_max_subtree_size=node.size(),
+                    .m_height=1, .m_left=-1, .m_right=-1
+                });
             }
             return idx;
         }
@@ -383,31 +389,31 @@ protected:
             m_free_node_indices.push_back(idx);
         }
 
-        std::size_t getMax (int idx) const {
+        [[nodiscard]] std::size_t getMax (int idx) const {
             return idx != -1 ? m_nodes[idx].m_max_subtree_size : 0;
         }
 
-        int getHeight (int idx) const {
+        [[nodiscard]] int getHeight (int idx) const {
             return idx != -1 ? m_nodes[idx].m_height : 0;
         }
 
-        int getBalance (int idx) const {
+        [[nodiscard]] int getBalance (int idx) const {
             return idx != -1 ?
                 getHeight(m_nodes[idx].m_left) - getHeight(m_nodes[idx].m_right) : 0;
         }
 
         void updateMetadata (int idx) {
-            if (idx == -1) return;
+            if (idx == -1) {
+                return;
+            }
             int l = m_nodes[idx].m_left;
             int r = m_nodes[idx].m_right;
             m_nodes[idx].m_height = 1 + std::max(getHeight(l), getHeight(r));
-            m_nodes[idx].m_max_subtree_size = std::max(
+            m_nodes[idx].m_max_subtree_size = std::max({
                 m_nodes[idx].m_node.size(),
-                std::max(
-                    getMax(l),
-                    getMax(r)
-                )
-            );
+                getMax(l),
+                getMax(r)
+            });
         }
 
         int rotateRight (int y) {
@@ -453,7 +459,9 @@ protected:
         }
 
         int insert (int idx, const Node& node) {
-            if (idx == -1) return createNode(node);
+            if (idx == -1) {
+                return createNode(node);
+            }
             if (node < m_nodes[idx].m_node) {
                 m_nodes[idx].m_left = insert(m_nodes[idx].m_left, node);
             } else {
@@ -462,7 +470,7 @@ protected:
             return balanceNode(idx);
         }
 
-        int findMin (int idx) const {
+        [[nodiscard]] int findMin (int idx) const {
             while (m_nodes[idx].m_left != -1) {
                 idx = m_nodes[idx].m_left;
             }
@@ -470,7 +478,9 @@ protected:
         }
 
         int remove (int idx, const Node& node) {
-            if (idx == -1) return -1;
+            if (idx == -1) {
+                return -1;
+            }
             if (node < m_nodes[idx].m_node) {
                 m_nodes[idx].m_left = remove(m_nodes[idx].m_left, node);
             } else if (m_nodes[idx].m_node < node) {
