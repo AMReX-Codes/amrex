@@ -39,27 +39,30 @@ function (install_amrex_targets)
        ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
        COMPATIBILITY AnyNewerVersion )
 
+   #
+   # Export install-tree
+   #   Always register targets in the export set so that superbuilds
+   #   (e.g., pyAMReX, WarpX, ImpactX) can reference them in their own
+   #   install(EXPORT).
+   #
+   install(
+      TARGETS       ${_targets}
+      EXPORT        AMReXTargets
+      ARCHIVE       DESTINATION lib
+      LIBRARY       DESTINATION lib
+      INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
+      PUBLIC_HEADER DESTINATION include
+      RUNTIME       DESTINATION bin
+      )
+
+   install( EXPORT AMReXTargets
+      NAMESPACE AMReX::
+      DESTINATION ${CMAKE_FILES_DIR} )
+
    if(AMReX_INSTALL)
        install( FILES
           ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
           ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
-          DESTINATION ${CMAKE_FILES_DIR} )
-
-       #
-       # Export install-tree
-       #
-       install(
-          TARGETS       ${_targets}
-          EXPORT        AMReXTargets
-          ARCHIVE       DESTINATION lib
-          LIBRARY       DESTINATION lib
-          INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
-          PUBLIC_HEADER DESTINATION include
-          RUNTIME       DESTINATION bin
-          )
-
-       install( EXPORT AMReXTargets
-          NAMESPACE AMReX::
           DESTINATION ${CMAKE_FILES_DIR} )
 
        #
