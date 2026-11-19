@@ -1953,6 +1953,15 @@ that needs to read the results of GPU work must still synchronize explicitly
 code that hands GPU data to a library that runs on its own stream (e.g.,
 HYPRE).
 
+.. note::
+
+   Reducing the number of synchronization points is generally desirable,
+   but it does not always make a code faster.  A no-sync region with a
+   single stream gives up the concurrency of multiple streams, so it can be
+   slower than the default of implicit synchronizations with multiple
+   streams.  Measure the performance of your application before switching
+   to a no-sync region with a single stream.
+
 .. _sec:gpu:external-streams:
 
 External GPU Streams
