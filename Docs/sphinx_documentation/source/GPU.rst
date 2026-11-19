@@ -1960,7 +1960,11 @@ HYPRE).
    single stream gives up the concurrency of multiple streams, so it can be
    slower than the default of implicit synchronizations with multiple
    streams.  Measure the performance of your application before switching
-   to a no-sync region with a single stream.
+   to a no-sync region with a single stream.  When doing so, keep in mind
+   that GPU kernels are launched asynchronously, so an ordinary host timer
+   may finish before the work launched inside it, and the time shows up
+   wherever the next synchronization happens.  Compare total run times, or
+   use synchronized timers (see :ref:`sec:gpu:profiling`).
 
 .. _sec:gpu:external-streams:
 
