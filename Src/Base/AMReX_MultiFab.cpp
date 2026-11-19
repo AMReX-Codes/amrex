@@ -1768,6 +1768,10 @@ MultiFab::AverageSync (const Periodicity& period)
     auto wgt = this->OverlapMask(period);
     wgt->invert(1.0, 0, 1);
     this->WeightedSync(*wgt, period);
+#ifdef AMREX_USE_GPU
+    // wgt is about to be freed
+    if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 void
