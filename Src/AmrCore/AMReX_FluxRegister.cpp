@@ -1,5 +1,4 @@
 #include <AMReX_Arena.H>
-#include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FluxReg_C.H>
 #include <AMReX_ParallelDescriptor.H>

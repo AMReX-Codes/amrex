@@ -6,9 +6,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_NonLocalBC.H>
 
-#include <AMReX_BArena.H>
-#include <AMReX_CArena.H>
-
 #ifdef AMREX_USE_GPU
 #include <AMReX_MFParallelForG.H>
 #endif

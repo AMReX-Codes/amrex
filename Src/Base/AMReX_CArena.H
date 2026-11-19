@@ -9,13 +9,13 @@
 
 #include <AMReX_Arena.H>
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <functional>
 #include <iosfwd>
 #include <map>
 #include <mutex>
-#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -193,6 +193,12 @@ protected:
             :
             m_block(a_block), m_owner(a_owner), m_size(a_size), m_stat(a_stat) {}
 
+        Node (const Node& rhs) = default;
+        Node (Node&& rhs) = default;
+        Node& operator= (const Node& rhs) = default;
+        Node& operator= (Node&& rhs) = default;
+        ~Node () = default;
+
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
         {
@@ -246,14 +252,272 @@ protected:
         MemStat* m_stat;
     };
 
+
+    class NodeTreeWithSize {
+    public:
+
+        NodeTreeWithSize () {
+            m_nodes.reserve(1024);
+        }
+
+        [[nodiscard]] int getFirstFit (std::size_t size) const {
+            int curr = m_root;
+            if (curr == -1 || m_nodes[curr].m_max_subtree_size < size) {
+                return -1;
+            }
+            while (curr != -1) {
+                int left = m_nodes[curr].m_left;
+                if (left != -1 && m_nodes[left].m_max_subtree_size >= size) {
+                    curr = left;
+                } else if (m_nodes[curr].m_node.size() >= size) {
+                    break;
+                } else {
+                    curr = m_nodes[curr].m_right;
+                }
+            }
+            return curr;
+        }
+
+        [[nodiscard]] std::size_t getLargestFreeBlock () const {
+            if (m_root == -1) {
+                return 0;
+            }
+            return m_nodes[m_root].m_max_subtree_size;
+        }
+
+        [[nodiscard]] const Node& viewNode (int idx) const {
+            return m_nodes.at(idx).m_node;
+        }
+
+        Node extractNode (int idx) {
+            Node node = m_nodes.at(idx).m_node;
+            m_root = remove(m_root, node);
+            return node;
+        }
+
+        void insertNode (const Node& node) {
+            m_root = insert(m_root, node);
+        }
+
+        [[nodiscard]] int find (const Node& node) const {
+            int curr = m_root;
+            while (curr != -1) {
+                if (node < m_nodes[curr].m_node) {
+                    curr = m_nodes[curr].m_left;
+                } else if (m_nodes[curr].m_node < node) {
+                    curr = m_nodes[curr].m_right;
+                } else {
+                    return curr;
+                }
+            }
+            return curr;
+        }
+
+        [[nodiscard]] int findPredecessor (const Node& node) const {
+            int curr = m_root;
+            int pred = -1;
+            while (curr != -1) {
+                if (node < m_nodes[curr].m_node) {
+                    curr = m_nodes[curr].m_left;
+                } else {
+                    pred = curr;
+                    curr = m_nodes[curr].m_right;
+                }
+            }
+            return pred;
+        }
+
+        [[nodiscard]] int findSuccessor (const Node& node) const {
+            int curr = m_root;
+            int succ = -1;
+            while (curr != -1) {
+                if (m_nodes[curr].m_node < node) {
+                    curr = m_nodes[curr].m_right;
+                } else {
+                    succ = curr;
+                    curr = m_nodes[curr].m_left;
+                }
+            }
+            return succ;
+        }
+
+        [[nodiscard]] int size () const {
+            return static_cast<int>(m_nodes.size())
+                - static_cast<int>(m_free_node_indices.size());
+        }
+
+        template<class F>
+        void iterate (const F& f) const {
+            iterate_imp(m_root, f);
+        }
+
+    private:
+
+        struct NodeWithSize {
+            Node m_node;
+            //! The max subtree block size lets us find the first-fit block quickly
+            std::size_t m_max_subtree_size;
+            int m_height;
+            int m_left;
+            int m_right;
+        };
+
+        std::vector<NodeWithSize> m_nodes;
+        std::vector<int> m_free_node_indices;
+        int m_root = -1;
+
+        int createNode (const Node& node) {
+            int idx;
+            if (!m_free_node_indices.empty()) {
+                idx = m_free_node_indices.back();
+                m_free_node_indices.pop_back();
+                m_nodes[idx] = {
+                    .m_node=node, .m_max_subtree_size=node.size(),
+                    .m_height=1, .m_left=-1, .m_right=-1
+                };
+            } else {
+                idx = static_cast<int>(m_nodes.size());
+                m_nodes.push_back(NodeWithSize{
+                    .m_node=node, .m_max_subtree_size=node.size(),
+                    .m_height=1, .m_left=-1, .m_right=-1
+                });
+            }
+            return idx;
+        }
+
+        void destroyNode (int idx) {
+            m_free_node_indices.push_back(idx);
+        }
+
+        [[nodiscard]] std::size_t getMax (int idx) const {
+            return idx != -1 ? m_nodes[idx].m_max_subtree_size : 0;
+        }
+
+        [[nodiscard]] int getHeight (int idx) const {
+            return idx != -1 ? m_nodes[idx].m_height : 0;
+        }
+
+        [[nodiscard]] int getBalance (int idx) const {
+            return idx != -1 ?
+                getHeight(m_nodes[idx].m_left) - getHeight(m_nodes[idx].m_right) : 0;
+        }
+
+        void updateMetadata (int idx) {
+            if (idx == -1) {
+                return;
+            }
+            int l = m_nodes[idx].m_left;
+            int r = m_nodes[idx].m_right;
+            m_nodes[idx].m_height = 1 + std::max(getHeight(l), getHeight(r));
+            m_nodes[idx].m_max_subtree_size = std::max({
+                m_nodes[idx].m_node.size(),
+                getMax(l),
+                getMax(r)
+            });
+        }
+
+        int rotateRight (int y) {
+            int x = m_nodes[y].m_left;
+            int T2 = m_nodes[x].m_right;
+
+            m_nodes[x].m_right = y;
+            m_nodes[y].m_left = T2;
+
+            updateMetadata(y);
+            updateMetadata(x);
+            return x;
+        }
+
+        int rotateLeft (int x) {
+            int y = m_nodes[x].m_right;
+            int T2 = m_nodes[y].m_left;
+
+            m_nodes[y].m_left = x;
+            m_nodes[x].m_right = T2;
+
+            updateMetadata(x);
+            updateMetadata(y);
+            return y;
+        }
+
+        int balanceNode (int idx) {
+            updateMetadata(idx);
+            int balance = getBalance(idx);
+            if (balance > 1) {
+                if (getBalance(m_nodes[idx].m_left) < 0) {
+                    m_nodes[idx].m_left = rotateLeft(m_nodes[idx].m_left);
+                }
+                return rotateRight(idx);
+            }
+            if (balance < -1) {
+                if (getBalance(m_nodes[idx].m_right) > 0) {
+                    m_nodes[idx].m_right = rotateRight(m_nodes[idx].m_right);
+                }
+                return rotateLeft(idx);
+            }
+            return idx;
+        }
+
+        int insert (int idx, const Node& node) {
+            if (idx == -1) {
+                return createNode(node);
+            }
+            if (node < m_nodes[idx].m_node) {
+                m_nodes[idx].m_left = insert(m_nodes[idx].m_left, node);
+            } else {
+                m_nodes[idx].m_right = insert(m_nodes[idx].m_right, node);
+            }
+            return balanceNode(idx);
+        }
+
+        [[nodiscard]] int findMin (int idx) const {
+            while (m_nodes[idx].m_left != -1) {
+                idx = m_nodes[idx].m_left;
+            }
+            return idx;
+        }
+
+        int remove (int idx, const Node& node) {
+            if (idx == -1) {
+                return -1;
+            }
+            if (node < m_nodes[idx].m_node) {
+                m_nodes[idx].m_left = remove(m_nodes[idx].m_left, node);
+            } else if (m_nodes[idx].m_node < node) {
+                m_nodes[idx].m_right = remove(m_nodes[idx].m_right, node);
+            } else {
+                if (m_nodes[idx].m_left == -1 || m_nodes[idx].m_right == -1) {
+                    int temp = (m_nodes[idx].m_left != -1) ?
+                        m_nodes[idx].m_left : m_nodes[idx].m_right;
+                    destroyNode(idx);
+                    return temp;
+                } else {
+                    int temp = findMin(m_nodes[idx].m_right);
+                    m_nodes[idx].m_node = m_nodes[temp].m_node;
+                    m_nodes[idx].m_max_subtree_size = m_nodes[temp].m_max_subtree_size;
+                    m_nodes[idx].m_right = remove(m_nodes[idx].m_right, m_nodes[temp].m_node);
+                }
+            }
+            return balanceNode(idx);
+        }
+
+        template<class F>
+        void iterate_imp (int idx, const F& f) const {
+            if (idx != -1) {
+                iterate_imp(m_nodes[idx].m_left, f);
+                f(m_nodes[idx].m_node);
+                iterate_imp(m_nodes[idx].m_right, f);
+            }
+        }
+    };
+
     //! The list of blocks allocated.
     std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**
-    * \brief The type of our freelist and blocklist.
-    * We use a set sorted from lo to hi memory addresses.
+    * \brief The type of our freelist.
     */
-    using NL = std::set<Node>;
+    using NL = NodeTreeWithSize;
 
     /**
     * \brief The free list of allocated but not currently used blocks.
