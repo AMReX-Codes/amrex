@@ -242,9 +242,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deterministic_fab_to_fab_tag (Array4CopyTag<T0,T1> const& tag, int tid, int scomp,
                                    int dcomp, int ncomp, F const& f) noexcept
 {
-    // Copy the box: binding a reference to a member of the pointer-holding
-    // tag would need its object storage under LOOM.
-    const Box dbox = tag.dbox;
+    const Box& dbox = tag.dbox;
     auto ncells = int(dbox.numPts());
     const auto len = amrex::length(dbox);
     const auto lo  = amrex::lbound(dbox);
