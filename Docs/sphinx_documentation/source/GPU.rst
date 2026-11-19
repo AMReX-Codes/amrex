@@ -2287,10 +2287,10 @@ As with :cpp:`MultiFab` data, these have been designed to minimize host / device
 take advantage of the GPU-aware MPI implementations available on platforms such as ORNL's Frontier.
 
 
+.. _sec:gpu:profiling:
+
 Profiling with GPUs
 ===================
-
-.. _sec:gpu:profiling:
 
 When profiling for GPUs, AMReX recommends ``nvprof``, NVIDIA's visual
 profiler.  ``nvprof`` returns data on how long each kernel launch lasted on
