@@ -360,7 +360,7 @@ namespace detail {
         static constexpr std::size_t get_exclusive_sum () noexcept {
             std::size_t arr[sizeof...(Is)] = {Is...};
             std::size_t sum = 0;
-            for (std::size_t k=0; k<J; ++k) {
+            for (std::size_t k=0; k!=J; ++k) {
                 sum += arr[k];
             }
             return sum;
