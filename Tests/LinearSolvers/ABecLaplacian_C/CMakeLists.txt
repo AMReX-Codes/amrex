@@ -78,6 +78,17 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        BASE_NAME LinearSolvers_ABecLaplacian_C_semicoarsening
        RUNTIME_SUBDIR semicoarsening ${_no_ctest})
 
+    # A three-level composite solve with a hidden direction (double precision:
+    # single precision composite solves do not reach the tolerance).
+    if ((D EQUAL 3) AND (NOT AMReX_PRECISION STREQUAL "SINGLE"))
+        set(_input_files  inputs-rt-poisson-lev )
+        setup_test(${D} _sources _input_files
+           BASE_NAME LinearSolvers_ABecLaplacian_C_hidden
+           RUNTIME_SUBDIR hidden
+           CMDLINE_PARAMS_AFTER_INPUTS "n_cell=1 32 32" max_grid_size=16 composite_solve=1
+                                       hidden_direction=0 multigrid_types=geometric)
+    endif ()
+
     unset(_no_ctest)
     unset(_sources)
     unset(_ctest_params)
