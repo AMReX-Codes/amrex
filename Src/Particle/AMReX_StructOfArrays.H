@@ -16,11 +16,13 @@ namespace amrex {
 
 template <int NReal, int NInt,
           template<class> class Allocator=DefaultAllocator,
-          bool use64BitIdCpu=false>
+          bool use64BitIdCpu=false,
+          class T_RealType=ParticleReal>
 struct StructOfArrays {
 
+    using RealType = T_RealType;
     using IdCPU = amrex::PODVector<uint64_t, Allocator<uint64_t> >;
-    using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
+    using RealVector = amrex::PODVector<RealType, Allocator<RealType> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
 
     void define (
@@ -313,9 +315,9 @@ struct StructOfArrays {
         }
     }
 
-    [[nodiscard]] GpuArray<ParticleReal*, NReal> realarray ()
+    [[nodiscard]] GpuArray<RealType*, NReal> realarray ()
     {
-        GpuArray<Real*, NReal> arr;
+        GpuArray<RealType*, NReal> arr;
         for (int i = 0; i < NReal; ++i)
         {
             arr[i] = m_rdata[i].dataPtr();

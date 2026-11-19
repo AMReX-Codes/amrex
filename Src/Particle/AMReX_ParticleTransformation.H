@@ -27,10 +27,10 @@ namespace amrex
  * \param dst_i the index in the destination to write to
  *
  */
-template <typename T_ParticleType, int NAR, int NAI>
+template <typename T_ParticleType, int NAR, int NAI, class RType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
-                   const ConstParticleTileData<T_ParticleType, NAR, NAI>& src,
+void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI, RType>& dst,
+                   const ConstParticleTileData<T_ParticleType, NAR, NAI, RType>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
@@ -73,10 +73,10 @@ void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
  * \param dst_i the index in the destination to write to
  *
  */
-template <typename T_ParticleType, int NAR, int NAI>
+template <typename T_ParticleType, int NAR, int NAI, class RType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void copyParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
-                   const ParticleTileData<T_ParticleType, NAR, NAI>& src,
+void copyParticle (const ParticleTileData<T_ParticleType, NAR, NAI, RType>& dst,
+                   const ParticleTileData<T_ParticleType, NAR, NAI, RType>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
@@ -115,10 +115,10 @@ void copyParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
  * \param dst_i the index in the destination to write to
  *
  */
-template <typename T_ParticleType, int NAR, int NAI>
+template <typename T_ParticleType, int NAR, int NAI, class RType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
-                   const ParticleTileData<T_ParticleType, NAR, NAI>& src,
+void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI, RType>& dst,
+                   const ParticleTileData<T_ParticleType, NAR, NAI, RType>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
