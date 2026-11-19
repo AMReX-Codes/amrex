@@ -1618,11 +1618,9 @@ tag,
 
 This copies the tags to the device on every call.  Like other
 :cpp:`ParallelFor` calls, it is asynchronous: the kernel may still be
-running when the function returns.  Call :cpp:`Gpu::streamSynchronize()`
-before using the results on the host or freeing memory that the kernel
-uses.  When the same tags are used repeatedly, build a :cpp:`TagVector`
-from them once and pass it to :cpp:`ParallelFor` instead.  See the
-`TagParallelFor`_ tutorial.
+running when the function returns.  When the same tags are used repeatedly,
+build a :cpp:`TagVector` from them once and pass it to :cpp:`ParallelFor`
+instead.  See the `TagParallelFor`_ tutorial.
 
 .. _`TagParallelFor`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-tagparallelfor
 
@@ -1946,12 +1944,14 @@ safe depends on the backend (CUDA and HIP synchronize the whole device
 before releasing memory, SYCL does not), so it must not be relied upon.
 The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
-stream-ordered fashion.  Communication functions such as
-:cpp:`FillBoundary` and :cpp:`ParallelCopy` may return with their unpack
-kernels still queued on the stream.  Host code that needs to read the
-results of GPU work must still synchronize explicitly (reductions such as
-:cpp:`MultiFab::sum` do this internally), and so must code that hands GPU
-data to a library that runs on its own stream (e.g., HYPRE).
+stream-ordered fashion.  AMReX functions that launch GPU kernels, including
+communication functions such as :cpp:`FillBoundary` and
+:cpp:`ParallelCopy`, may return with those kernels still queued on the
+stream, reading their sources and writing their destinations.  Host code
+that needs to read the results of GPU work must still synchronize explicitly
+(reductions such as :cpp:`MultiFab::sum` do this internally), and so must
+code that hands GPU data to a library that runs on its own stream (e.g.,
+HYPRE).
 
 .. _sec:gpu:external-streams:
 

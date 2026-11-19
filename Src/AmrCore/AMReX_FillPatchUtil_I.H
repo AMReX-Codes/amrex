@@ -372,8 +372,8 @@ namespace detail {
     requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
-                         *fpc.fact_crse_patch);
+        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0,
+                         MFInfo().SetArena(The_Async_Arena()), *fpc.fact_crse_patch);
         return mf_crse_patch;
     }
 
@@ -382,7 +382,7 @@ namespace detail {
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch,
-                         ncomp, 0, MFInfo(), *fpc.fact_crse_patch);
+                         ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *fpc.fact_crse_patch);
         return mf_crse_patch;
     }
 
@@ -390,8 +390,8 @@ namespace detail {
     requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
-                         *fpc.fact_fine_patch);
+        MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0,
+                         MFInfo().SetArena(The_Async_Arena()), *fpc.fact_fine_patch);
         return mf_fine_patch;
     }
 
@@ -400,7 +400,7 @@ namespace detail {
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_fine_patch(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch,
-                         ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+                         ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *fpc.fact_fine_patch);
         return mf_fine_patch;
     }
 
@@ -409,7 +409,8 @@ namespace detail {
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
-                            fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+                            fpc.dm_patch, ncomp, 0, MFInfo().SetArena(The_Async_Arena()),
+                            *fpc.fact_fine_patch);
         return mf_refined_patch;
     }
 
@@ -418,7 +419,8 @@ namespace detail {
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_crse_mask(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type),
-                        fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+                        fpc.dm_patch, ncomp, 0, MFInfo().SetArena(The_Async_Arena()),
+                        *fpc.fact_fine_patch);
         return mf_crse_mask;
     }
 
@@ -436,42 +438,48 @@ namespace detail {
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
+        return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
-        return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
+        return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
+        return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
-        return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
+        return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        return MF(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type), fpc.dm_patch, ncomp, 0);
+        return MF(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type), fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
+        return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0,
+                  MFInfo().SetArena(The_Async_Arena()));
     }
 
     template <MultiFabLike MF>

@@ -2317,6 +2317,10 @@ MLCellLinOpT<MF>::prepareForSolve ()
             }
         }
     }
+
+#ifdef AMREX_USE_GPU
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 template <typename MF>

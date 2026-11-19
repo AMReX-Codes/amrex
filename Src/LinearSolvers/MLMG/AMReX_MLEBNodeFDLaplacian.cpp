@@ -1068,9 +1068,11 @@ MLEBNodeFDLaplacian::prepareForSolve ()
                 bool const is_bottom = (mglev == nmglevs-1);
                 bool const remapped = (mglev > 0) &&
                     !amrex::isMFIterSafe(dmsk, *m_dirichlet_mask[amrlev][mglev-1]);
+                bool const use_tmp = is_bottom && remapped;
                 MultiFab tmp;
-                MultiFab& s = (is_bottom && remapped) ? tmp : m_row_scale[amrlev][mglev];
-                s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1);
+                MultiFab& s = use_tmp ? tmp : m_row_scale[amrlev][mglev];
+                s.define(dmsk.boxArray(), dmsk.DistributionMap(), 1, is_bottom ? 0 : 1,
+                         use_tmp ? MFInfo().SetArena(The_Async_Arena()) : MFInfo());
                 fill_row_scale(s, m_eb_pos[amrlev][mglev], dmsk);
                 if (!is_bottom) {
                     s.setBndry(Real(1.0));

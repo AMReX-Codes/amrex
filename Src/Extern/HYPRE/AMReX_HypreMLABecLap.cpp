@@ -2918,6 +2918,7 @@ void HypreMLABecLap::commBCoefs_local (int flev,
 
 #ifdef AMREX_USE_GPU
     unpack_bc(bc_local_tags, rr);
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 
 #endif
