@@ -1344,8 +1344,11 @@ public:
 
         // resize runtime SoA
         for (int lev = 0; lev < numLevels(); ++lev) {
-            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-                auto& tile = DefineAndReturnParticleTile(lev, pti);
+            // loop over all tiles, including empty ones that ParIter would skip
+            for (auto& kv : m_particles[lev]) {
+                auto& tile = kv.second;
+                tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                            &m_soa_rdata_names, &m_soa_idata_names, arena());
                 auto np = tile.numParticles();
                 if (np > 0) {
                     auto& soa = tile.GetStructOfArrays();
@@ -1377,8 +1380,11 @@ public:
 
         // resize runtime SoA
         for (int lev = 0; lev < numLevels(); ++lev) {
-            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-                auto& tile = DefineAndReturnParticleTile(lev, pti);
+            // loop over all tiles, including empty ones that ParIter would skip
+            for (auto& kv : m_particles[lev]) {
+                auto& tile = kv.second;
+                tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                            &m_soa_rdata_names, &m_soa_idata_names, arena());
                 auto np = tile.numParticles();
                 if (np > 0) {
                     auto& soa = tile.GetStructOfArrays();
