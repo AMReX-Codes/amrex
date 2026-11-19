@@ -336,6 +336,10 @@ public:
 
         [[nodiscard]] Long bytes () const;
 
+        //! refine(coarsen(ba_fine_patch, ratio), ratio), for the
+        //! face-centered FillPatch. Built on first use and kept registered.
+        [[nodiscard]] const BoxArray& refinedPatch (const IntVect& ratio) const;
+
         BoxArray            ba_crse_patch;
         BoxArray            ba_fine_patch;
         DistributionMapping dm_patch;
@@ -345,6 +349,10 @@ public:
         //! temporary patch FabArrays survive between FillPatch calls.
         std::unique_ptr<FabArrayBase> keep_crse_patch;
         std::unique_ptr<FabArrayBase> keep_fine_patch;
+        // For refinedPatch()
+        mutable BoxArray    ba_refined_patch;
+        mutable IntVect     m_refined_ratio{0};
+        mutable std::unique_ptr<FabArrayBase> keep_refined_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;

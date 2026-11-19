@@ -2078,6 +2078,20 @@ FabArrayBase::FPinfo::~FPinfo ()
 {
     if (keep_crse_patch) { keep_crse_patch->clearThisBD(true); }
     if (keep_fine_patch) { keep_fine_patch->clearThisBD(true); }
+    if (keep_refined_patch) { keep_refined_patch->clearThisBD(true); }
+}
+
+const BoxArray&
+FabArrayBase::FPinfo::refinedPatch (const IntVect& ratio) const
+{
+    if (m_refined_ratio != ratio) {
+        if (keep_refined_patch) { keep_refined_patch->clearThisBD(true); }
+        ba_refined_patch = amrex::refine(amrex::coarsen(ba_fine_patch, ratio), ratio);
+        keep_refined_patch = std::make_unique<FabArrayBase>(ba_refined_patch, dm_patch, 1, 0);
+        keep_refined_patch->addThisBD();
+        m_refined_ratio = ratio;
+    }
+    return ba_refined_patch;
 }
 
 Long
