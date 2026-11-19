@@ -1754,7 +1754,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << '\n';
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow,
+                            MFInfo().SetArena(The_Async_Arena()), mf.Factory());
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;
