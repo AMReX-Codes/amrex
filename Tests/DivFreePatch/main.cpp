@@ -338,6 +338,8 @@ void main_main ()
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
         setupMF(c_mf_faces[i], i);
+        // Random data: give faces shared by two boxes one value.
+        c_mf_faces[i].OverrideSync(c_geom.periodicity());
     }
 
     amrex::UtilCreateDirectoryDestructive("pltfiles");
@@ -494,6 +496,7 @@ void main_main ()
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
         setupMF(c_mf_faces[i], (i+1)%3, BoxArray(amrex::coarsen(f_geom.Domain(), ratio).convert(c_mf_faces[i].ixType())));
+        c_mf_faces[i].OverrideSync(c_geom.periodicity());
         Copy(f_mf_copy[i], f_mf_faces[i], 0, 0, 1, 0);
     }
 
