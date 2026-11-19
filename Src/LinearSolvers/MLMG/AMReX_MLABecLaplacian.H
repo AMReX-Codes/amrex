@@ -870,16 +870,18 @@ MLABecLaplacianT<MF>::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& crse_a_coeffs = m_a_coeffs[flev-1].front();
     auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
 
+    // We coarsen from the back of flev to the front of flev-1.
+    // So we use mg_coarsen_ratio (1 in the hidden direction).
+    IntVect ratio(this->mg_coarsen_ratio);
+    if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
+
     if (m_a_scalar != 0.0) {
-        // We coarsen from the back of flev to the front of flev-1.
-        // So we use mg_coarsen_ratio.
-        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, this->mg_coarsen_ratio);
+        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, ratio);
     }
 
     amrex::average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
                               amrex::GetArrOfPtrs(crse_b_coeffs),
-                              IntVect(this->mg_coarsen_ratio),
-                              this->m_geom[flev-1][0]);
+                              ratio, this->m_geom[flev-1][0]);
 }
 
 template <typename MF>
