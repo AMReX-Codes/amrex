@@ -2098,8 +2098,7 @@ Long
 FabArrayBase::FPinfo::bytes () const
 {
     auto cnt = sizeof(FabArrayBase::FPinfo);
-    cnt += sizeof(Box) * (ba_crse_patch.capacity() + ba_fine_patch.capacity()
-                          + ba_refined_patch.capacity());
+    cnt += sizeof(Box) * (ba_crse_patch.capacity() + ba_fine_patch.capacity());
     cnt += sizeof(int) * dm_patch.capacity();
     return static_cast<Long>(cnt);
 }
