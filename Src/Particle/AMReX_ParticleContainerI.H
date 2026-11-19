@@ -2017,7 +2017,8 @@ AssignCellDensitySingleLevel (int rho_index,
       // to make a temporary here and copy into mf_to_be_filled at the end.
       mf_pointer = new MultiFab(ParticleBoxArray(lev),
                                 ParticleDistributionMap(lev),
-                                ncomp, mf_to_be_filled.nGrow());
+                                ncomp, mf_to_be_filled.nGrow(),
+                                MFInfo().SetArena(The_Async_Arena()));
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread

@@ -440,7 +440,8 @@ MLTerrainPoisson::updateCoefs ()
 
         if (spike) {
             // Gather W and V at the ends of all blocks of each column.
-            MultiFab emf(m_spike_buf[mglev].boxArray(), m_dmap[0][mglev], 4, 0);
+            MultiFab emf(m_spike_buf[mglev].boxArray(), m_dmap[0][mglev], 4, 0,
+                         MFInfo().SetArena(The_Async_Arena()));
             auto const& ea = emf.arrays();
             auto const& spk = m_spike[mglev].const_arrays();
             ParallelFor(emf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int q)

@@ -72,7 +72,8 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=t
     } else {
         mf_pointer = new MF(pc.ParticleBoxArray(lev),
                             pc.ParticleDistributionMap(lev),
-                            mf.nComp(), mf.nGrowVect());
+                            mf.nComp(), mf.nGrowVect(),
+                            MFInfo().SetArena(The_Async_Arena()));
         mf_pointer->setVal(0.0);
     }
 
