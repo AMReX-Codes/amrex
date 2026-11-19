@@ -408,9 +408,7 @@ namespace detail {
     requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        AMREX_ASSERT(fpc.ba_refined_patch == amrex::refine(amrex::coarsen(fpc.ba_fine_patch, ratio), ratio));
-        amrex::ignore_unused(ratio);
-        MF mf_refined_patch(amrex::convert(fpc.ba_refined_patch, idx_type),
+        MF mf_refined_patch(amrex::convert(fpc.refinedPatch(ratio), idx_type),
                             fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
         return mf_refined_patch;
     }
@@ -466,9 +464,7 @@ namespace detail {
     requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        AMREX_ASSERT(fpc.ba_refined_patch == amrex::refine(amrex::coarsen(fpc.ba_fine_patch, ratio), ratio));
-        amrex::ignore_unused(ratio);
-        return MF(amrex::convert(fpc.ba_refined_patch, idx_type), fpc.dm_patch, ncomp, 0);
+        return MF(amrex::convert(fpc.refinedPatch(ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <MultiFabLike MF>

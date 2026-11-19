@@ -1906,6 +1906,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_coarsener(coarsener.clone()),
       m_index_space(index_space)
 {
+    amrex::ignore_unused(fdomain,cdomain);
     BL_PROFILE("FPinfo::FPinfo()");
 
     const BoxArray& srcba = srcfa.boxArray();
@@ -2039,10 +2040,6 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     ba_fine_patch.define(std::move(bl));
     dm_patch.KnapSackProcessorMap(ba_fine_patch, ParallelContext::NProcsSub());
 
-    // Used by make_mf_refined_patch in the face-centered FillPatch
-    IntVect const ratio = fdomain.length() / cdomain.length();
-    ba_refined_patch = amrex::refine(amrex::coarsen(ba_fine_patch, ratio), ratio);
-
 #ifdef AMREX_USE_EB
     if (index_space)
     {
@@ -2052,7 +2049,12 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
                                            dm_patch,
                                            {0,0,0}, EBSupport::basic);
         int ng = 1; // to avoid dengerate box
-        BoxArray const& eb_ba_fine_patch = ratio.allLE(2) ? ba_fine_patch : ba_refined_patch;
+        BoxArray eb_ba_fine_patch = ba_fine_patch;
+        IntVect ratio = fdomain.length() / cdomain.length();
+        if ( ! ratio.allLE(2)) {
+            // This is needed for make_mf_refined_patch in FillPatch
+            eb_ba_fine_patch.coarsen(ratio).refine(ratio);
+        }
         fact_fine_patch = makeEBFabFactory(index_space,
                                            index_space->getGeometry(fdomain),
                                            eb_ba_fine_patch,
@@ -2070,8 +2072,6 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     keep_crse_patch->addThisBD();
     keep_fine_patch = std::make_unique<FabArrayBase>(ba_fine_patch, dm_patch, 1, 0);
     keep_fine_patch->addThisBD();
-    keep_refined_patch = std::make_unique<FabArrayBase>(ba_refined_patch, dm_patch, 1, 0);
-    keep_refined_patch->addThisBD();
 }
 
 FabArrayBase::FPinfo::~FPinfo ()
@@ -2079,6 +2079,19 @@ FabArrayBase::FPinfo::~FPinfo ()
     if (keep_crse_patch) { keep_crse_patch->clearThisBD(true); }
     if (keep_fine_patch) { keep_fine_patch->clearThisBD(true); }
     if (keep_refined_patch) { keep_refined_patch->clearThisBD(true); }
+}
+
+const BoxArray&
+FabArrayBase::FPinfo::refinedPatch (const IntVect& ratio) const
+{
+    if (m_refined_ratio != ratio) {
+        if (keep_refined_patch) { keep_refined_patch->clearThisBD(true); }
+        ba_refined_patch = amrex::refine(amrex::coarsen(ba_fine_patch, ratio), ratio);
+        keep_refined_patch = std::make_unique<FabArrayBase>(ba_refined_patch, dm_patch, 1, 0);
+        keep_refined_patch->addThisBD();
+        m_refined_ratio = ratio;
+    }
+    return ba_refined_patch;
 }
 
 Long
