@@ -364,7 +364,7 @@ struct PinnedRing {
 };
 constexpr std::size_t kPinnedRingBytes = std::size_t(8) << 20;
 // Largest pageable source staged through the ring; larger ones use
-// hrx_stream_copy_h2d.
+// hrx_stream_copy_h2d_linear.
 constexpr std::size_t kPinnedRingCopyLimit = std::size_t(1) << 20;
 std::unordered_map<hrx_stream_t, PinnedRing> g_rings;
 
@@ -411,7 +411,7 @@ void dispatch_immediate(hrx_stream_t s, hrx_executable_t executable, uint32_t or
 }
 
 // Submits one copy directly to |s|'s queue, ordered like dispatch_immediate.
-// hrx_stream_copy_h2d/d2h would make HRX wait on the host for earlier work
+// hrx_stream_copy_h2d_linear/d2h_linear would make HRX wait on the host for earlier work
 // before reading or writing host memory, and a stream recording carries
 // system-scope barriers; either leaves the GPU idle for tens of microseconds.
 // Both ends here are HRX buffers (device or pinned), so the copy needs neither:
@@ -435,9 +435,9 @@ void copy_immediate(hrx_stream_t s, hrx_buffer_t src, std::size_t src_offset, hr
   static const hrx_barrier_list_t no_barriers{0, nullptr};
   static const hrx_queue_barriers_t barriers{&no_barriers, &no_barriers};
   g_unreleased[s] = true;
-  check(hrx_queue_copy(hrx_stream_get_queue(s), &waits, &signals, src, src_offset, dst,
+  check(hrx_queue_copy_linear(hrx_stream_get_queue(s), &waits, &signals, src, src_offset, dst,
                        dst_offset, bytes, &barriers),
-        "hrx_queue_copy");
+        "hrx_queue_copy_linear");
 }
 
 void sync_all() {
@@ -868,9 +868,9 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     return reinterpret_cast<uintptr_t>(p) - a->first;
   };
   if (d && r) {
-    check(hrx_stream_copy_buffer(s, r->second.buffer, offset(r, src), d->second.buffer,
+    check(hrx_stream_copy_buffer_linear(s, r->second.buffer, offset(r, src), d->second.buffer,
                                  offset(d, dst), bytes),
-          "hrx_stream_copy_buffer");
+          "hrx_stream_copy_buffer_linear");
     recorded(s);
   } else if (const auto* pin = find_pinned(src);
              d && pin && submit_mode() == Submit::immediate) {
@@ -907,8 +907,8 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
       staging.buffers.push_back(std::move(copy));
       staging.bytes += bytes;
     }
-    check(hrx_stream_copy_h2d(s, from, d->second.buffer, offset(d, dst), bytes),
-          "hrx_stream_copy_h2d");
+    check(hrx_stream_copy_h2d_linear(s, from, d->second.buffer, offset(d, dst), bytes),
+          "hrx_stream_copy_h2d_linear");
   } else if (const auto* pin = find_pinned(dst);
              r && pin && submit_mode() == Submit::immediate) {
     copy_immediate(s, r->second.buffer, offset(r, src), pin->second, offset(pin, dst), bytes);
@@ -916,8 +916,8 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     // HRX writes the host range when the transfer executes. A pinned
     // destination stays asynchronous; a pageable one is complete on return, as
     // hipMemcpyAsync makes it.
-    check(hrx_stream_copy_d2h(s, r->second.buffer, offset(r, src), dst, bytes),
-          "hrx_stream_copy_d2h");
+    check(hrx_stream_copy_d2h_linear(s, r->second.buffer, offset(r, src), dst, bytes),
+          "hrx_stream_copy_d2h_linear");
     if (pointer_kind(dst) != PointerKind::pinned) stream_synchronize(s);
   } else {
     std::memmove(dst, src, bytes);
@@ -934,9 +934,9 @@ void memset_async(void* dst, int value, std::size_t bytes, hrx_stream_t stream) 
     return;
   }
   uint8_t pattern = static_cast<uint8_t>(value);
-  check(hrx_stream_fill_buffer(s, d->second.buffer,
-                               reinterpret_cast<uintptr_t>(dst) - d->first, bytes, &pattern, 1),
-        "hrx_stream_fill_buffer");
+  check(hrx_stream_fill_buffer_linear(s, d->second.buffer,
+                                      reinterpret_cast<uintptr_t>(dst) - d->first, bytes, &pattern, 1),
+        "hrx_stream_fill_buffer_linear");
   recorded(s);
 }
 
