@@ -1363,7 +1363,8 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
         AMREX_ALWAYS_ASSERT(amrrr == 2 || amrrr == 4);
 
         frhs[ilev] = std::make_unique<MF>(amrex::coarsen(rhs[ilev+1]->boxArray(),amrrr),
-                                          rhs[ilev+1]->DistributionMap(), 1, 0);
+                                          rhs[ilev+1]->DistributionMap(), 1, 0,
+                                          MFInfo().SetArena(The_Async_Arena()));
 
         const Box& ccfdom = fgeom.Domain();
         const auto fdxinv = this->toRT(fgeom.InvCellSizeArray());
@@ -1461,7 +1462,8 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
     {
         const Geometry& cgeom = this->m_geom[ilev][0];
 
-        MF crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
+        MF crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0,
+                MFInfo().SetArena(The_Async_Arena()));
         crhs.setVal(0.0);
         crhs.ParallelAdd(*frhs[ilev], cgeom.periodicity());
 

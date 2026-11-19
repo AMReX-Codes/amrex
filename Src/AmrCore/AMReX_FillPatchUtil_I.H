@@ -1131,7 +1131,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
     MF mf_crse_patch;
     IntVect send_ghost(0), recv_ghost(0);
     if constexpr (std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
-        mf_crse_patch.define(amrex::coarsen(ba,ratio), dm, ncomp, fbc.src_ghost);
+        mf_crse_patch.define(amrex::coarsen(ba,ratio), dm, ncomp, fbc.src_ghost, MFInfo().SetArena(The_Async_Arena()));
         send_ghost = fbc.cghost;
         recv_ghost = fbc.src_ghost;
     } else {
@@ -1151,11 +1151,11 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
         if (index_space) {
             auto factory = makeEBFabFactory(index_space, cgeom, ba_crse_patch, dm,
                                             {0,0,0}, EBSupport::basic);
-            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
+            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *factory);
         } else
 #endif
         {
-            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0);
+            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
         }
         detail::mf_set_domain_bndry (mf_crse_patch, cgeom);
     }
@@ -1272,9 +1272,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 
 #ifdef AMREX_USE_EB
         auto crse_factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
-        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *crse_factory);
+        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *crse_factory);
 #else
-        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0);
+        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
 #endif
         detail::mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
@@ -1473,19 +1473,19 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
             auto factory = makeEBFabFactory(index_space, geom[level-1], ba1,
                                             mf.DistributionMap(), {0,0,0},
                                             EBSupport::basic);
-            cmf1.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo(), *factory);
+            cmf1.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *factory);
             if (!ba2.empty()) {
                 auto factory2 = makeEBFabFactory(index_space, geom[level-1], ba2,
                                                  dm2, {0,0,0},
                                                  EBSupport::basic);
-                cmf2.define(ba2, dm2, ncomp, 0, MFInfo(), *factory2);
+                cmf2.define(ba2, dm2, ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *factory2);
             }
         } else
 #endif
         {
-            cmf1.define(ba1, mf.DistributionMap(), ncomp, 0);
+            cmf1.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
             if (!ba2.empty()) {
-                cmf2.define(ba2, dm2, ncomp, 0);
+                cmf2.define(ba2, dm2, ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
             }
         }
 
@@ -1520,20 +1520,20 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                 auto factory = makeEBFabFactory(index_space, geom[level-1], ba1,
                                                 mf.DistributionMap(), {0,0,0},
                                                 EBSupport::basic);
-                cmf_tmp.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo(), *factory);
+                cmf_tmp.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *factory);
             } else {
                 auto factory = makeEBFabFactory(index_space, geom[level-1], ba2,
                                                 dm2, {0,0,0},
                                                 EBSupport::basic);
-                cmf_tmp.define(ba2, dm2, ncomp, 0, MFInfo(), *factory);
+                cmf_tmp.define(ba2, dm2, ncomp, 0, MFInfo().SetArena(The_Async_Arena()), *factory);
             }
         } else
 #endif
         {
             if (ba2.empty()) {
-                cmf_tmp.define(ba1, mf.DistributionMap(), ncomp, 0);
+                cmf_tmp.define(ba1, mf.DistributionMap(), ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
             } else {
-                cmf_tmp.define(ba2, dm2, ncomp, 0);
+                cmf_tmp.define(ba2, dm2, ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
             }
         }
 

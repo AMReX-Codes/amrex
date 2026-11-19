@@ -348,7 +348,8 @@ MLTerrainPoisson::updateCoefs ()
     for (int mglev = 0; mglev < nmglevs; ++mglev) {
         if (mglev > 0) {
             IntVect const ratio = coarsenRatio(mglev);
-            MultiFab zp_tmp(amrex::convert(m_grids[0][mglev], IntVect(1)), m_dmap[0][mglev], 1, 1);
+            MultiFab zp_tmp(amrex::convert(m_grids[0][mglev], IntVect(1)), m_dmap[0][mglev], 1, 1,
+                            MFInfo().SetArena(The_Async_Arena()));
             amrex::average_down_nodal(*zp, zp_tmp, ratio);
             fillZPhysGhost(zp_tmp, mglev);
             zp_crse = std::move(zp_tmp);
@@ -462,15 +463,17 @@ MLTerrainPoisson::updateCoefs ()
             auto& clu = m_col_lu[mglev];
             BoxArray const& cba = clu.boxArray();
             DistributionMapping const& cdm = clu.DistributionMap();
-            MultiFab crx(amrex::convert(cba,IntVect(1,0,1)), cdm, 1, 0);
-            MultiFab cry(amrex::convert(cba,IntVect(0,1,1)), cdm, 1, 0);
-            MultiFab czf(amrex::convert(cba,IntVect(0,0,1)), cdm, 3, 0);
+            MFInfo const async_info = MFInfo().SetArena(The_Async_Arena());
+            MultiFab crx(amrex::convert(cba,IntVect(1,0,1)), cdm, 1, 0, async_info);
+            MultiFab cry(amrex::convert(cba,IntVect(0,1,1)), cdm, 1, 0, async_info);
+            MultiFab czf(amrex::convert(cba,IntVect(0,0,1)), cdm, 3, 0, async_info);
             crx.ParallelCopy(m_rx[mglev]);
             cry.ParallelCopy(m_ry[mglev]);
             czf.ParallelCopy(m_zf[mglev]);
             Array<MultiFab,AMREX_SPACEDIM> carea;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                carea[idim].define(amrex::convert(cba, IntVect::TheDimensionVector(idim)), cdm, 1, 0);
+                carea[idim].define(amrex::convert(cba, IntVect::TheDimensionVector(idim)), cdm, 1, 0,
+                                   async_info);
                 carea[idim].ParallelCopy(m_area[mglev][idim]);
             }
 #ifdef AMREX_USE_OMP
