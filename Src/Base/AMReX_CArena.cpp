@@ -111,8 +111,6 @@ CArena::alloc_protected (std::size_t nbytes)
             //
             // Add leftover chunk to free list.
             //
-            // Insert with a hint -- should be largest block in the set.
-            //
             void* block = static_cast<char*>(vp) + nbytes;
 
             m_freelist.insertNode(Node(block, vp, N-nbytes));
@@ -149,8 +147,6 @@ CArena::alloc_protected (std::size_t nbytes)
         {
             //
             // Insert remainder of free block back into freelist.
-            //
-            // Insert with a hint -- right after the current block being split.
             //
             Node freeblock = free_node;
 

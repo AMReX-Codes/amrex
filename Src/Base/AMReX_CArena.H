@@ -16,7 +16,6 @@
 #include <iosfwd>
 #include <map>
 #include <mutex>
-#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -516,8 +515,7 @@ protected:
     std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**
-    * \brief The type of our freelist and blocklist.
-    * We use a set sorted from lo to hi memory addresses.
+    * \brief The type of our freelist.
     */
     using NL = NodeTreeWithSize;
 
