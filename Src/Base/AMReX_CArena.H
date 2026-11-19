@@ -9,6 +9,7 @@
 
 #include <AMReX_Arena.H>
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <functional>

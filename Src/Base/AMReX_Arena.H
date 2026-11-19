@@ -404,6 +404,11 @@ protected:
     /// \endcond
 };
 
+namespace detail {
+//! Bytes in use and reserved in arena, or zeros if it does not report usage.
+std::pair<std::size_t,std::size_t> arena_bytes (Arena* arena);
+}
+
 }
 
 #endif /*BL_ARENA_H*/

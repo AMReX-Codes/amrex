@@ -6,7 +6,6 @@
 #include <AMReX_Enum.H>
 #include <AMReX_BiCGStab_MV.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_CArena.H>
 #include <AMReX_GMRES_MV.H>
 #include <AMReX_PCG_MV.H>
 #include <AMReX_ParallelReduce.H>
@@ -74,15 +73,6 @@ bool csr_row_has_state (CsrView<T const,Index> const& csr, Long row,
         if (state[csr.col_index[idx]] == c) { return true; }
     }
     return false;
-}
-
-//! Bytes in use and reserved in The_Arena, or zeros if it does not report usage.
-inline std::pair<std::size_t,std::size_t> arena_bytes ()
-{
-    if (auto* carena = dynamic_cast<CArena*>(The_Arena())) {
-        return {carena->heap_space_actually_used(), carena->heap_space_used()};
-    }
-    return {0, 0};
 }
 
 //! Walks a row of A together with the matching row of S (both sorted
