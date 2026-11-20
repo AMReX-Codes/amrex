@@ -430,10 +430,10 @@ After :cpp:`EB2::Build`, call
 This builds face-centered data for every face direction on the levels of the
 EB index space. The data may be unavailable on some levels, typically coarse
 ones, and building a face-centered factory there aborts. Check
-:cpp:`eb_level.hasFCData(face_dir)` first. It works for implicit-function
-and STL geometries, but not for an EB read from a checkpoint file. If levels are added to the index space
-afterwards (e.g., with :cpp:`EB2::addFineLevels`), call :cpp:`EB2::BuildFC`
-again to build the data for the new levels.
+:cpp:`eb_level.hasFCData(face_dir)` first. It works for implicit-function and
+STL geometries, but not for an EB read from a checkpoint file. If levels are
+added to the index space afterwards (e.g., with :cpp:`EB2::addFineLevels`),
+call :cpp:`EB2::BuildFC` again to build the data for the new levels.
 
 A factory for the face-centered data in direction ``face_dir`` (0 for
 :math:`x`, 1 for :math:`y` and 2 for :math:`z`) takes it as an extra argument:
