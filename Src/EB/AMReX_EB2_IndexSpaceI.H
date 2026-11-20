@@ -223,7 +223,7 @@ IndexSpaceImp<G>::buildAllFCData ()
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
         for (int ilev = 0; ilev < int(m_gslevel.size()); ++ilev) {
             m_gslevel[ilev].buildFCData(m_gshop, face_dir, EB2::max_grid_size,
-                                        m_extend_domain_face, m_num_coarsen_opt);
+                                        m_extend_domain_face, m_num_coarsen_opt-ilev);
         }
     }
 }

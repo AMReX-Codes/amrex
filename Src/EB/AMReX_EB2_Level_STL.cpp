@@ -9,6 +9,10 @@ STLLevel::STLLevel (IndexSpace const* is, STLtools const& stl_tools, const Geome
 {
     BL_PROFILE("EB2::STLLevel()-fine");
 
+    if (amrex::Verbose() > 0 && extend_domain_face == false) {
+        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
+    }
+
 #if (AMREX_SPACEDIM == 3)
     bool test_marching_cubes = false;
     {

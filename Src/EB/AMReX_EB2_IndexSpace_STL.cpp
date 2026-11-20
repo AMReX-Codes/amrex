@@ -127,6 +127,15 @@ IndexSpaceSTL::setShift (int direction, int ncells)
 void
 IndexSpaceSTL::buildAllFCData ()
 {
+    // Do not reread the STL file if there is nothing to build.
+    bool all_built = true;
+    for (auto const& lev : m_stllevel) {
+        for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+            all_built = all_built && lev.hasFCData(face_dir);
+        }
+    }
+    if (all_built) { return; }
+
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
     STLtools stl_tools;
@@ -134,9 +143,9 @@ IndexSpaceSTL::buildAllFCData ()
     stl_tools.read_stl_file(m_stl_file, m_stl_scale, m_stl_center, m_stl_reverse_normal);
 
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
-        for (auto& lev : m_stllevel) {
-            lev.buildFCData(stl_tools, face_dir, EB2::max_grid_size,
-                            m_extend_domain_face, m_num_coarsen_opt);
+        for (int ilev = 0; ilev < int(m_stllevel.size()); ++ilev) {
+            m_stllevel[ilev].buildFCData(stl_tools, face_dir, EB2::max_grid_size,
+                                         m_extend_domain_face, m_num_coarsen_opt-ilev);
         }
     }
 }

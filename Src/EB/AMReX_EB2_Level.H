@@ -373,6 +373,10 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
+    if (amrex::Verbose() > 0 && extend_domain_face == false) {
+        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
+    }
+
     define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
 }
 
@@ -381,10 +385,6 @@ void
 GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
                               int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
 {
-    if (amrex::Verbose() > 0 && extend_domain_face == false) {
-        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
-    }
-
     BL_PROFILE("EB2::GShopLevel()-prepare_grids");
 
     m_extrude_coarse_levels = extend_domain_face;
