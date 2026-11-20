@@ -687,6 +687,26 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect(nghost);
 
+    // A cross stencil needs only the parts of bx in the face ghost regions
+    // of the valid box vbx.
+    auto for_each_face_part = [&nghost] (Box const& bx, Box const& vbx, auto const& f)
+    {
+        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+        {
+            Box lo = vbx;
+            lo.setSmall(dir, vbx.smallEnd(dir) - nghost[dir]);
+            lo.setBig  (dir, vbx.smallEnd(dir) - 1);
+            lo &= bx;
+            if (lo.ok()) { f(lo); }
+
+            Box hi = vbx;
+            hi.setSmall(dir, vbx.bigEnd(dir) + 1);
+            hi.setBig  (dir, vbx.bigEnd(dir) + nghost[dir]);
+            hi &= bx;
+            if (hi.ok()) { f(hi); }
+        }
+    };
+
     auto& send_tags = *cmd.m_SndTags;
 
     for (int i = 0; i < nlocal; ++i)
@@ -788,13 +808,21 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                 for (auto const& blbx : bl)
                 {
                     if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-                        const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
-                        for (auto const& it_tile : tilelist)
+                        auto add_local = [&] (Box const& b)
                         {
-                            cmd.m_LocTags->emplace_back(it_tile, it_tile+pit, krcv, ksnd);
-                        }
-                        if (check_local) {
-                            bl_local.push_back(blbx);
+                            const BoxList tilelist(b, FabArrayBase::comm_tile_size);
+                            for (auto const& it_tile : tilelist)
+                            {
+                                cmd.m_LocTags->emplace_back(it_tile, it_tile+pit, krcv, ksnd);
+                            }
+                            if (check_local) {
+                                bl_local.push_back(b);
+                            }
+                        };
+                        if (cross) {
+                            for_each_face_part(blbx, vbx, add_local);
+                        } else {
+                            add_local(blbx);
                         }
                     } else if (MyProc == dm[krcv]) {
                         recv_tags[src_owner].emplace_back(blbx, blbx+pit, krcv, ksnd);
@@ -843,27 +871,11 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
 
                 for (auto const& tag : cctv)
                 {
-                    const Box& bx = tag.dbox;
                     const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
-                    const Box& dstvbx = ba[tag.dstIndex];
-                    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+                    for_each_face_part(tag.dbox, ba[tag.dstIndex], [&] (Box const& b)
                     {
-                        Box lo = dstvbx;
-                        lo.setSmall(dir, dstvbx.smallEnd(dir) - nghost[dir]);
-                        lo.setBig  (dir, dstvbx.smallEnd(dir) - 1);
-                        lo &= bx;
-                        if (lo.ok()) {
-                            cctv_tags_cross.emplace_back(lo, lo+d2s, tag.dstIndex, tag.srcIndex);
-                        }
-
-                        Box hi = dstvbx;
-                        hi.setSmall(dir, dstvbx.bigEnd(dir) + 1);
-                        hi.setBig  (dir, dstvbx.bigEnd(dir) + nghost[dir]);
-                        hi &= bx;
-                        if (hi.ok()) {
-                            cctv_tags_cross.emplace_back(hi, hi+d2s, tag.dstIndex, tag.srcIndex);
-                        }
-                    }
+                        cctv_tags_cross.emplace_back(b, b+d2s, tag.dstIndex, tag.srcIndex);
+                    });
                 }
 
                 cctv.swap(cctv_tags_cross);
