@@ -440,10 +440,44 @@ void copy_immediate(hrx_stream_t s, hrx_buffer_t src, std::size_t src_offset, hr
         "hrx_queue_copy_linear");
 }
 
+// How completion points wait for a stream (AMREX_LOOM_SYNC_WAIT):
+//   poll (default)  spin on hrx_semaphore_query until the stream's timeline
+//                   point is reached, then hrx_stream_synchronize, which then
+//                   returns at once. HIP's stream synchronization spins too;
+//   block           hrx_stream_synchronize alone. It sleeps in
+//                   hrx_semaphore_wait, whose wake-up costs 15-25 us more than
+//                   HIP's synchronization after short waits and about 120 us
+//                   more after waits of a few milliseconds (MI250X).
+// On CNS (MI250X), poll is 0.1-1.0 ms per step faster than block.
+bool sync_poll() {
+  static const bool poll = [] {
+    const char* value = std::getenv("AMREX_LOOM_SYNC_WAIT");
+    if (!value || !*value || std::strcmp(value, "poll") == 0) return true;
+    if (std::strcmp(value, "block") == 0) return false;
+    std::fprintf(stderr, "amrex loom: AMREX_LOOM_SYNC_WAIT=%s is not poll or block\n", value);
+    std::abort();
+  }();
+  return poll;
+}
+
+void wait_stream(hrx_stream_t s) {
+  if (sync_poll()) {
+    hrx_timeline_point_t point{};
+    check(hrx_stream_get_timeline_position(s, &point), "hrx_stream_get_timeline_position");
+    if (point.semaphore && point.value) {
+      uint64_t value = 0;
+      do {
+        check(hrx_semaphore_query(point.semaphore, &value), "hrx_semaphore_query");
+      } while (value < point.value);
+    }
+  }
+  check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+}
+
 void sync_all() {
   flush_all();
-  check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
-  for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  wait_stream(g_default_stream);
+  for (auto& [s, q] : g_streams) wait_stream(s);
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   // External streams' staging is released when they are synchronized.
   g_staging.erase(g_default_stream);
@@ -548,7 +582,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
                        descriptor.kernarg_size);
     if (sync_after_launch()) {
       flush_all();
-      check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+      wait_stream(s);
     }
     return;
   }
@@ -558,7 +592,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
         "hrx_stream_dispatch");
   if (sync_after_launch()) {
     flush_all();
-    check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+    wait_stream(s);
   } else {
     recorded(s);
   }
@@ -680,7 +714,7 @@ hrx_stream_t stream_create() {
 void stream_destroy(hrx_stream_t stream) {
   if (!stream) return;
   flush_all();
-  check(hrx_stream_synchronize(stream), "hrx_stream_synchronize");
+  wait_stream(stream);
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   auto it = g_streams.find(stream);
   if (it == g_streams.end()) {
@@ -703,7 +737,7 @@ void stream_destroy(hrx_stream_t stream) {
 void stream_synchronize(hrx_stream_t stream) {
   flush_all();
   hrx_stream_t s = resolve(stream);
-  check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  wait_stream(s);
   release_staging(s);
 }
 
