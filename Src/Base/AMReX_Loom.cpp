@@ -735,6 +735,71 @@ void stream_destroy(hrx_stream_t stream) {
   release_stream_queue(q);
 }
 
+// A cross-stream wait is a barrier on |waiter|'s queue that waits for both
+// streams' timeline points and advances |waiter|'s timeline, so the GPU orders
+// the streams and the host does not wait. Visibility (AMREX_LOOM_JOIN_VISIBILITY):
+//   agent (default)  no extra cache operations: both queues run on one GPU,
+//                    whose L2 holds the writes, as for consecutive dispatches;
+//   system           HRX's conservative system acquire and release.
+bool join_system_visibility() {
+  static const bool system = [] {
+    const char* v = std::getenv("AMREX_LOOM_JOIN_VISIBILITY");
+    if (!v || !*v || std::strcmp(v, "agent") == 0) return false;
+    if (std::strcmp(v, "system") == 0) return true;
+    std::fprintf(stderr, "amrex loom: AMREX_LOOM_JOIN_VISIBILITY=%s is not agent or system\n", v);
+    std::abort();
+  }();
+  return system;
+}
+
+void stream_wait_streams(hrx_stream_t waiter, const hrx_stream_t* waited, int n) {
+  hrx_stream_t w = resolve(waiter);
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  std::vector<hrx_semaphore_t> wait_semaphores;
+  std::vector<uint64_t> wait_values;
+  bool unreleased = false;
+  for (int i = 0; i < n; ++i) {
+    hrx_stream_t v = resolve(waited[i]);
+    if (v == w) continue;
+    check(hrx_stream_flush(v), "hrx_stream_flush");
+    g_unflushed.erase(v);
+    hrx_timeline_point_t vp{};
+    check(hrx_stream_get_timeline_position(v, &vp), "hrx_stream_get_timeline_position");
+    if (!vp.semaphore || !vp.value) continue;  // nothing has been queued on it
+    wait_semaphores.push_back(vp.semaphore);
+    wait_values.push_back(vp.value);
+    if (g_unreleased.count(v) && g_unreleased[v]) unreleased = true;
+  }
+  if (wait_semaphores.empty()) return;
+  check(hrx_stream_flush(w), "hrx_stream_flush");
+  g_unflushed.erase(w);
+  hrx_timeline_point_t wp{};
+  check(hrx_stream_get_timeline_position(w, &wp), "hrx_stream_get_timeline_position");
+  if (wp.semaphore && wp.value) {
+    wait_semaphores.push_back(wp.semaphore);
+    wait_values.push_back(wp.value);
+  }
+  hrx_semaphore_t timeline = nullptr;
+  check(hrx_stream_get_semaphore(w, &timeline), "hrx_stream_get_semaphore");
+  uint64_t done = 0;
+  check(hrx_stream_advance_timeline(w, &done), "hrx_stream_advance_timeline");
+  const hrx_semaphore_list_t waits{wait_semaphores.data(), wait_values.data(),
+                                   static_cast<uint32_t>(wait_semaphores.size())};
+  const hrx_semaphore_list_t signals{&timeline, &done, 1};
+  static const hrx_barrier_list_t no_barriers{0, nullptr};
+  static const hrx_queue_barriers_t agent{&no_barriers, &no_barriers};
+  // The waited streams' immediate work still needs its system-scope release at
+  // the next completion point, which now also covers |waiter|.
+  if (unreleased) g_unreleased[w] = true;
+  check(hrx_queue_barrier(hrx_stream_get_queue(w), &waits, &signals,
+                          join_system_visibility() ? nullptr : &agent),
+        "hrx_queue_barrier");
+}
+
+void stream_wait_stream(hrx_stream_t waiter, hrx_stream_t waited) {
+  stream_wait_streams(waiter, &waited, 1);
+}
+
 void stream_synchronize(hrx_stream_t stream) {
   flush_all();
   hrx_stream_t s = resolve(stream);

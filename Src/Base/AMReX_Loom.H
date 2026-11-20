@@ -59,6 +59,11 @@ hrx_stream_t stream_create ();
 void stream_destroy (hrx_stream_t stream);
 //! Flushes |stream| and waits for its work.
 void stream_synchronize (hrx_stream_t stream);
+// Work queued on |waiter| after this call waits, on the GPU, for all work
+// queued on |waited| before it (Gpu::Device::streamWaitStream).
+void stream_wait_stream (hrx_stream_t waiter, hrx_stream_t waited);
+// Same for several streams at once, with one queue operation on |waiter|.
+void stream_wait_streams (hrx_stream_t waiter, const hrx_stream_t* waited, int n);
 //! True when all work submitted to |stream| has completed.
 bool stream_query (hrx_stream_t stream);
 

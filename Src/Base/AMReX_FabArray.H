@@ -2252,6 +2252,11 @@ FabArray<FAB>::build_arrays () const
             MFIter::currentDepth() > 0)
         {
             Gpu::streamSynchronize();
+        } else if (Gpu::inStreamOrderedRegion() && Gpu::numGpuStreams() > 1 &&
+                   MFIter::currentDepth() > 0)
+        {
+            // Ordered on the GPU instead: the loop's other streams wait for the copy.
+            Gpu::Device::streamsWaitCurrent();
         }
 #endif
     }

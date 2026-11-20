@@ -206,6 +206,7 @@ namespace amrex::Gpu {
         int m_i;
         bool m_threadsafe;
         bool m_sync;
+        bool m_join = false; //!< Gpu::StreamOrderedRegion: fork/join on the GPU
     };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
