@@ -441,10 +441,15 @@ A factory for the face-centered data in direction ``face_dir`` (0 for
 ::
 
     EB2::Level const& eb_level = EB2::IndexSpace::top().getLevel(geom);
-    EBFArrayBoxFactory fc_factory(eb_level, geom, ba, dm, ngrow, EBSupport::full, face_dir);
+    int ng = 2;
+    EBFArrayBoxFactory fc_factory(eb_level, geom, ba, dm, {ng, ng, ng},
+                                  EBSupport::full, face_dir);
 
-Here ``ba`` is the usual cell-centered :cpp:`BoxArray`. :cpp:`faceDir()`
-returns ``face_dir`` for a face-centered factory and -1 for a cell-centered one.
+Here ``ba`` is the usual cell-centered :cpp:`BoxArray`. A :cpp:`MultiFab`
+built with this factory must use the face-centered :cpp:`BoxArray`
+``amrex::convert(ba, IntVect::TheDimensionVector(face_dir))`` and the same
+``dm``. :cpp:`faceDir()` returns ``face_dir`` for a face-centered factory and
+-1 for a cell-centered one.
 
 A face-centered factory provides the same data as a cell-centered one (see
 section `Embedded Boundary Data`_), except for the level set, but for the
@@ -463,12 +468,13 @@ control volumes centered on the faces:
   at the next index in ``idim`` is its high face. This differs from the
   cell-centered data, where ``getAreaFrac()[idim]`` is nodal in ``idim`` only.
 
-- Edge centroids have the index types of the cell-centered data, except that
-  ``face_dir`` is always nodal.
+- Edge centroids, ``getEdgeCent()[idim]``, are for the edges along ``idim``.
+  They are nodal in every direction except ``idim``, where they are
+  cell-centered, unless ``idim`` is ``face_dir``, in which case they are
+  nodal in every direction.
 
-The face-centered data are computed by coarsening an EB built at twice the
-resolution. They can therefore differ slightly from the cell-centered data
-and from an EB computed directly on the staggered grid.
+The face-centered data can differ slightly from the cell-centered data and
+from an EB computed directly on the staggered grid.
 
 
 Embedded Boundary Data Structures
