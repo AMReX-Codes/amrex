@@ -354,10 +354,12 @@ public:
     //! Build face-centered EB data for every face direction from one transient 2x refined level.
     void buildFCData (G const& gshop, int max_grid_size, bool extend_domain_face, int num_crse_opt);
 
-private:
-
+    // public for cuda
     void buildFCDir (GShopLevel<G> const& fine, BoxArray const& fc_base_grids,
                      BoxArray const& fc_covered_grids, int face_dir);
+
+private:
+
     void skipFC (int face_dir, char const* why);
 
     Box m_bounding_box;
