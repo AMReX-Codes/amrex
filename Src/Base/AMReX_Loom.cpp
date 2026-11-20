@@ -18,6 +18,7 @@
 
 #include <AMReX_GpuQualifiers.H>  // AMREX_LOOM_DYNAMIC_SHARED_BYTES
 #include <AMReX_Loom.H>
+#include <AMReX_LoomLaunch.H>
 #include <AMReX_LoomRandom.H>
 #include <hrx_runtime.h>
 #include <loomcxx/kernel_ref.h>
@@ -892,6 +893,45 @@ const std::pair<const uintptr_t, hrx_buffer_t>* find_pinned(const void* address)
 
 }  // namespace
 
+// Host-to-device copies of at most AMREX_LOOM_COPY_KERNEL_MAX bytes (default
+// 64 KiB; 0 disables) from pinned memory, including pageable sources staged in
+// the stream's pinned ring, run as a copy kernel on the stream instead of an
+// HRX queue copy, as HIP copies small transfers with a blit kernel. The
+// kernel reads the pinned source through its device address.
+std::size_t copy_kernel_max() {
+  static const std::size_t limit = [] {
+    const char* value = std::getenv("AMREX_LOOM_COPY_KERNEL_MAX");
+    return value && *value ? static_cast<std::size_t>(std::strtoull(value, nullptr, 10))
+                           : std::size_t(64) << 10;
+  }();
+  return limit;
+}
+
+void copy_kernel(hrx_stream_t s, void* dst, const void* src, std::size_t bytes) {
+  constexpr int kThreads = 256;
+  const bool words = ((reinterpret_cast<uintptr_t>(dst) | reinterpret_cast<uintptr_t>(src) |
+                       bytes) & 7u) == 0;
+  if (words) {
+    auto* d = static_cast<uint64_t*>(dst);
+    const auto* r = static_cast<const uint64_t*>(src);
+    const unsigned n = static_cast<unsigned>(bytes / 8);
+    amrex_loom::launch_fixed<kThreads>((n + kThreads - 1) / kThreads, kThreads, 0, s,
+        [=] AMREX_GPU_DEVICE () {
+          const unsigned i = loom::kernel::workgroup::id.x * kThreads + loom::kernel::workitem::id.x;
+          if (i < n) d[i] = r[i];
+        });
+  } else {
+    auto* d = static_cast<unsigned char*>(dst);
+    const auto* r = static_cast<const unsigned char*>(src);
+    const unsigned n = static_cast<unsigned>(bytes);
+    amrex_loom::launch_fixed<kThreads>((n + kThreads - 1) / kThreads, kThreads, 0, s,
+        [=] AMREX_GPU_DEVICE () {
+          const unsigned i = loom::kernel::workgroup::id.x * kThreads + loom::kernel::workitem::id.x;
+          if (i < n) d[i] = r[i];
+        });
+  }
+}
+
 void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t stream) {
   if (bytes == 0) return;
   hrx_stream_t s = resolve(stream);
@@ -908,7 +948,11 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     recorded(s);
   } else if (const auto* pin = find_pinned(src);
              d && pin && submit_mode() == Submit::immediate) {
-    copy_immediate(s, pin->second, offset(pin, src), d->second.buffer, offset(d, dst), bytes);
+    if (bytes <= copy_kernel_max()) {
+      copy_kernel(s, dst, src, bytes);
+    } else {
+      copy_immediate(s, pin->second, offset(pin, src), d->second.buffer, offset(d, dst), bytes);
+    }
   } else if (d && bytes <= kPinnedRingCopyLimit && submit_mode() == Submit::immediate) {
     // A small pageable source is copied into |s|'s pinned staging now, so the
     // caller may reuse it on return, as hipMemcpyAsync allows.
@@ -921,9 +965,13 @@ void memcpy_async(void* dst, const void* src, std::size_t bytes, hrx_stream_t st
     }
     std::memcpy(ring.base + at, src, bytes);
     ring.used = at + bytes;
-    const auto* staging = find_pinned(ring.base);
-    copy_immediate(s, staging->second, offset(staging, ring.base + at), d->second.buffer,
-                   offset(d, dst), bytes);
+    if (bytes <= copy_kernel_max()) {
+      copy_kernel(s, dst, ring.base + at, bytes);
+    } else {
+      const auto* staging = find_pinned(ring.base);
+      copy_immediate(s, staging->second, offset(staging, ring.base + at), d->second.buffer,
+                     offset(d, dst), bytes);
+    }
   } else if (d) {
     // HRX reads the host range when the transfer executes. A pinned source
     // (pinned_malloc) stays asynchronous, as with HIP; the caller keeps it
