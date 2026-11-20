@@ -263,10 +263,19 @@ void
 CNS::printTotal () const
 {
     const MultiFab& S_new = get_new_data(State_Type);
-    std::array<Real,5> tot;
-    for (int comp = 0; comp < 5; ++comp) {
-        tot[comp] = S_new.sum(comp,true) * geom.ProbSize();
-    }
+    // The five totals in one reduction (one kernel and one wait, not five).
+    auto const& sa = S_new.const_arrays();
+    auto const r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum>{},
+                             TypeList<Real,Real,Real,Real,Real>{}, S_new, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            -> GpuTuple<Real,Real,Real,Real,Real>
+        {
+            auto const& a = sa[box_no];
+            return {a(i,j,k,0), a(i,j,k,1), a(i,j,k,2), a(i,j,k,3), a(i,j,k,4)};
+        });
+    std::array<Real,5> tot{amrex::get<0>(r), amrex::get<1>(r), amrex::get<2>(r),
+                           amrex::get<3>(r), amrex::get<4>(r)};
+    for (auto& t : tot) { t *= geom.ProbSize(); }
 #ifdef BL_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
