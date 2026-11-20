@@ -172,6 +172,7 @@ public:
         // trimmed and two adjacent covered boxes need no special treatment.
         BoxArray m_covered_grids_fc;
         bool m_built = false;
+        bool m_skipped = false; // tried, but this level cannot have face-centered data
     };
 
     /**
@@ -192,6 +193,12 @@ public:
     [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
         return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
                m_fc_data[face_dir] && m_fc_data[face_dir]->m_built;
+    }
+
+    //! Check if building face-centered data for face_dir has been tried, successfully or not.
+    [[nodiscard]] bool triedFCData (int face_dir) const noexcept {
+        return face_dir >= 0 && face_dir < AMREX_SPACEDIM && m_fc_data[face_dir] &&
+               (m_fc_data[face_dir]->m_built || m_fc_data[face_dir]->m_skipped);
     }
 
     //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
@@ -886,7 +893,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
         m_fc_data[face_dir] = std::make_unique<FCData>();
     }
 
-    if (m_fc_data[face_dir]->m_built) { return; }
+    if (triedFCData(face_dir)) { return; }
 
     if (m_allregular) {
         // An all-regular level carries no MultiFabs, and there is nothing to coarsen. Mark the
@@ -918,12 +925,14 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
     refined_cc_level = transient_level.get();
 
     // Leave the data unbuilt; a face-centered factory on this level would then fail.
+    // Remember the attempt so that later BuildFC calls do not repeat it.
     auto skip = [&] (char const* why) {
         if (amrex::Verbose() > 0) {
             amrex::Print() << "AMReX EB: no face-centered data for face_dir " << face_dir
                            << " on domain " << m_geom.Domain() << ": " << why << '\n';
         }
-        m_fc_data[face_dir].reset();
+        m_fc_data[face_dir] = std::make_unique<FCData>();
+        m_fc_data[face_dir]->m_skipped = true;
     };
 
     // Coarse levels can have features too thin for their 2x rebuild to see.

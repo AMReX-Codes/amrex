@@ -128,13 +128,13 @@ void
 IndexSpaceSTL::buildAllFCData ()
 {
     // Do not reread the STL file if there is nothing to build.
-    bool all_built = true;
+    bool all_tried = true;
     for (auto const& lev : m_stllevel) {
         for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
-            all_built = all_built && lev.hasFCData(face_dir);
+            all_tried = all_tried && lev.triedFCData(face_dir);
         }
     }
-    if (all_built) { return; }
+    if (all_tried) { return; }
 
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
