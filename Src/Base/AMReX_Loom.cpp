@@ -461,6 +461,86 @@ bool sync_poll() {
   return poll;
 }
 
+// Stream-ordered frees. A freed buffer is released once every AMReX stream has
+// passed the timeline point it had reached when the buffer was freed, checked at
+// later completion points, so freeing never makes the host wait for the GPU.
+// AMREX_LOOM_FREE=sync restores the old behavior (synchronize, then release).
+struct PendingFree {
+  std::vector<std::pair<hrx_semaphore_t, uint64_t>> points;
+  hrx_buffer_t buffer;
+  bool pinned;  // unmap before release
+};
+std::vector<PendingFree> g_pending_frees;
+
+bool sync_free() {
+  static const bool sync = [] {
+    const char* v = std::getenv("AMREX_LOOM_FREE");
+    if (!v || !*v || std::strcmp(v, "ordered") == 0) return false;
+    if (std::strcmp(v, "sync") == 0) return true;
+    std::fprintf(stderr, "amrex loom: AMREX_LOOM_FREE=%s is not ordered or sync\n", v);
+    std::abort();
+  }();
+  return sync;
+}
+
+void release_buffer(hrx_buffer_t buffer, bool pinned) {
+  if (pinned) hrx_status_ignore(hrx_buffer_unmap(buffer));
+  hrx_buffer_release(buffer);
+}
+
+// Releases every pending buffer whose recorded points have all been reached.
+void reap_pending_frees() {
+  std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  for (auto it = g_pending_frees.begin(); it != g_pending_frees.end();) {
+    bool done = true;
+    for (auto& [semaphore, value] : it->points) {
+      uint64_t reached = 0;
+      check(hrx_semaphore_query(semaphore, &reached), "hrx_semaphore_query");
+      if (reached < value) { done = false; break; }
+    }
+    if (done) {
+      release_buffer(it->buffer, it->pinned);
+      it = g_pending_frees.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+// Drops |s|'s points from pending frees (callers have waited for |s|, so they
+// are reached) so that no pending free refers to a destroyed stream's semaphore.
+void forget_stream_points(hrx_stream_t s) {
+  hrx_semaphore_t semaphore = nullptr;
+  check(hrx_stream_get_semaphore(s, &semaphore), "hrx_stream_get_semaphore");
+  for (auto& pending : g_pending_frees) {
+    auto& pts = pending.points;
+    pts.erase(std::remove_if(pts.begin(), pts.end(),
+                             [&](auto const& p) { return p.first == semaphore; }),
+              pts.end());
+  }
+}
+
+void sync_all();
+
+void free_buffer(hrx_buffer_t buffer, bool pinned) {
+  if (sync_free()) {
+    sync_all();
+    release_buffer(buffer, pinned);
+    return;
+  }
+  flush_all();  // submit pending recordings so their timeline points exist
+  PendingFree pending{{}, buffer, pinned};
+  auto add = [&](hrx_stream_t s) {
+    hrx_timeline_point_t point{};
+    check(hrx_stream_get_timeline_position(s, &point), "hrx_stream_get_timeline_position");
+    if (point.semaphore && point.value) pending.points.emplace_back(point.semaphore, point.value);
+  };
+  add(g_default_stream);
+  for (auto& [s, q] : g_streams) add(s);
+  g_pending_frees.push_back(std::move(pending));
+  reap_pending_frees();
+}
+
 void wait_stream(hrx_stream_t s) {
   if (sync_poll()) {
     hrx_timeline_point_t point{};
@@ -473,6 +553,7 @@ void wait_stream(hrx_stream_t s) {
     }
   }
   check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  if (!g_pending_frees.empty()) reap_pending_frees();
 }
 
 void sync_all() {
@@ -717,6 +798,7 @@ void stream_destroy(hrx_stream_t stream) {
   flush_all();
   wait_stream(stream);
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
+  forget_stream_points(stream);
   auto it = g_streams.find(stream);
   if (it == g_streams.end()) {
     std::fprintf(stderr, "amrex loom: stream_destroy of a stream not from stream_create\n");
@@ -888,6 +970,12 @@ void* device_malloc(std::size_t bytes) {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   if (bytes == 0) bytes = 1;
   hrx_buffer_t buffer = allocate_buffer(bytes, HRX_MEMORY_TYPE_DEVICE_LOCAL, "allocation");
+  if (!buffer && !g_pending_frees.empty()) {
+    // Out of memory: wait for the GPU so the pending frees can be released.
+    sync_all();
+    reap_pending_frees();
+    buffer = allocate_buffer(bytes, HRX_MEMORY_TYPE_DEVICE_LOCAL, "allocation");
+  }
   if (!buffer) return nullptr;
   void* pointer = device_address(buffer);
   g_allocations[reinterpret_cast<uintptr_t>(pointer)] = {buffer, bytes};
@@ -902,9 +990,9 @@ void device_free(void* pointer) {
     std::fprintf(stderr, "amrex loom: device_free of %p, not from device_malloc\n", pointer);
     std::abort();
   }
-  sync_all();
-  hrx_buffer_release(it->second.buffer);
+  const hrx_buffer_t buffer = it->second.buffer;
   g_allocations.erase(it);
+  free_buffer(buffer, /*pinned=*/false);
 }
 
 void* pinned_malloc(std::size_t bytes) {
@@ -935,10 +1023,9 @@ void pinned_free(void* pointer) {
     std::fprintf(stderr, "amrex loom: pinned_free of %p, not from pinned_malloc\n", pointer);
     std::abort();
   }
-  sync_all();
-  hrx_status_ignore(hrx_buffer_unmap(it->second));
-  hrx_buffer_release(it->second);
+  const hrx_buffer_t buffer = it->second;
   g_host_allocations.erase(it);
+  free_buffer(buffer, /*pinned=*/true);
 }
 
 namespace {
@@ -1112,6 +1199,8 @@ void shutdown() {
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   if (!g_initialized) return;
   sync_all();
+  for (auto& pending : g_pending_frees) release_buffer(pending.buffer, pending.pinned);
+  g_pending_frees.clear();
   for (auto& [host, buffer] : g_host_allocations) {
     hrx_status_ignore(hrx_buffer_unmap(buffer));
     hrx_buffer_release(buffer);
