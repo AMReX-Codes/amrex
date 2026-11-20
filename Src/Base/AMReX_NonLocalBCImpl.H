@@ -7,6 +7,8 @@
 #include <AMReX_Config.H>
 #include <AMReX_TypeTraits.H>
 
+#include <algorithm>
+
 namespace amrex::NonLocalBC {
 struct Rotate90ClockWise {
     AMREX_GPU_HOST_DEVICE
@@ -393,6 +395,57 @@ MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const Dis
     define(dstba, dstdm, dstbox, srcba, srcdm, ngrow, dtos);
 }
 
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    // Sort the tags of each process by source and destination box.
+    void sort_tags (FabArrayBase::MapOfCopyComTagContainers& tags);
+
+    // Send tags of MultiBlockCommMetaData for a monotone index mapping, from
+    // the source boxes this process owns. The destination boxes are found
+    // with the inverse image of the source box. Not part of define, which
+    // must stay small to be optimized well.
+    template <typename DTOS>
+    void multiblock_send_tags (FabArrayBase::MapOfCopyComTagContainers& snd_tags,
+                               const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
+                               const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
+                               DTOS const& dtos)
+    {
+        const int myproc = ParallelDescriptor::MyProc();
+        auto const& dst_owners = dstdm.ProcessorMap();
+        if (std::all_of(dst_owners.begin(), dst_owners.end(), [=] (int p) { return p == myproc; })) {
+            return; // nothing to send
+        }
+        std::vector<std::pair<int, Box>> isects;
+        for (int k = 0, N = static_cast<int>(srcba.size()); k < N; ++k) {
+            if (srcdm[k] != myproc) {
+                continue;
+            }
+            const Box src_gbox = grow(srcba[k], ngrow);
+            const Box src_gbox_mapped_in_dst = InverseImage(dtos, src_gbox).setType(dstba.ixType()) & dstbox;
+            if (src_gbox_mapped_in_dst.isEmpty()) {
+                continue;
+            }
+            dstba.intersections(src_gbox_mapped_in_dst, isects, false, ngrow);
+            for (auto const& isect : isects) {
+                const int i = isect.first;
+                const int dest_owner = dstdm[i];
+                if (dest_owner == myproc) {
+                    continue;
+                }
+                const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
+                const Box src_box = Image(dtos, partial_dstbox).setType(srcba.ixType()) & src_gbox;
+                if (src_box.ok()) {
+                    const Box inverse_image = InverseImage(dtos, src_box).setType(dstba.ixType());
+                    if ((inverse_image & partial_dstbox).ok()) {
+                        snd_tags[dest_owner].emplace_back(inverse_image, src_box, i, k);
+                    }
+                }
+            }
+        }
+    }
+}
+/// \endcond
+
 template <typename DTOS>
 requires (IsIndexMapping<DTOS>::value)
 void
@@ -404,8 +457,14 @@ MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     const int myproc = ParallelDescriptor::MyProc();
+    // For a monotone index mapping, a process loops over its own destination
+    // boxes only, and finds its send tags from its own source boxes below.
+    constexpr bool own_boxes_only = IsMonotoneIndexMapping<DTOS>::value;
     for (int i = 0, N = static_cast<int>(dstba.size()); i < N; ++i) {
         const int dest_owner = dstdm[i];
+        if (own_boxes_only && dest_owner != myproc) {
+            continue;
+        }
         const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
         if (partial_dstbox.isEmpty()) {
             continue;
@@ -439,6 +498,13 @@ MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping
                 }
             }
         }
+    }
+
+    if constexpr (IsMonotoneIndexMapping<DTOS>::value) {
+        detail::multiblock_send_tags(*m_SndTags, dstba, dstdm, dstbox, srcba, srcdm, ngrow, dtos);
+        // Send and receive tags are found in different orders.
+        detail::sort_tags(*m_SndTags);
+        detail::sort_tags(*m_RcvTags);
     }
 }
 

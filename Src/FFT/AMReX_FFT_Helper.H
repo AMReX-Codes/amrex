@@ -2168,4 +2168,13 @@ namespace detail
 
 }
 
+/// \cond DOXYGEN_IGNORE
+namespace amrex::NonLocalBC {
+    template <> struct IsMonotoneIndexMapping<FFT::Swap01> : std::true_type {};
+    template <> struct IsMonotoneIndexMapping<FFT::Swap02> : std::true_type {};
+    template <> struct IsMonotoneIndexMapping<FFT::RotateFwd> : std::true_type {};
+    template <> struct IsMonotoneIndexMapping<FFT::RotateBwd> : std::true_type {};
+}
+/// \endcond
+
 #endif
