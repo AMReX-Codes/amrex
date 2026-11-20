@@ -72,6 +72,9 @@ public:
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
+    //! Hands this stream's pending frees to \p other. Valid once \p other's
+    //! queued work is ordered after this stream's (Device::joinStreams).
+    void move_wait_list_to (StreamManager& other);
 };
 #endif
 
@@ -165,6 +168,34 @@ public:
 #endif
 
     static bool clearFreeAsyncBuffer () noexcept;
+
+#ifdef AMREX_USE_GPU
+    /**
+     * Makes work queued on \p waiter after this call wait, on the GPU, for all
+     * work queued on \p waited before it. The host does not wait.
+     */
+    static void streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept;
+#endif
+
+    /**
+     * Fork for a loop over \p n items on AMReX's streams (MFIter, StreamIter):
+     * streams 1 .. min(n, numGpuStreams())-1 wait on the GPU for the work
+     * queued on stream 0. No effect with a single stream.
+     */
+    static void forkStreams (int n) noexcept;
+
+    /**
+     * Join after such a loop: stream 0 waits on the GPU for streams
+     * 1 .. min(n, numGpuStreams())-1 and takes over their pending
+     * Gpu::freeAsync memory. No effect with a single stream.
+     */
+    static void joinStreams (int n) noexcept;
+
+    /**
+     * Every other AMReX stream waits on the GPU for the work queued on the
+     * current stream (for data a multi-stream loop's other streams read).
+     */
+    static void streamsWaitCurrent () noexcept;
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
