@@ -152,9 +152,10 @@ public:
     //! Redo the setup at the next solve when the matrix, scaled to the kept
     //! setup's, has changed by more than this fraction (2-norm) since that
     //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
-    //! copy of the setup matrix's values; set after the kept setup, or
-    //! after a solve redid the setup, the reference is the matrix of the
-    //! next updateMatrix().
+    //! copy of the setup matrix's values (with the hypre backend, also with
+    //! reuse off, so that the matrix of a setup kept later is the
+    //! reference); set after the kept setup, or after a solve redid the
+    //! setup, the reference is the matrix of the next updateMatrix().
     void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
     void resetSolverSetup () {

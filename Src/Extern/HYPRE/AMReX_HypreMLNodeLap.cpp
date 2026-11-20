@@ -547,13 +547,16 @@ void HypreMLNodeLap::buildMatrix ()
     };
     // The triplets of all levels are held in one array when the matrix is
     // updated in place or built from them on this rank (setup reuse, AlgMG,
-    // dumps); otherwise each box's are added to the hypre matrix and freed,
-    // so that at most one box's are in memory.  Their number is fixed by the
-    // grids and masks: known from the first build, the array is allocated
-    // once and the boxes fill it in place of a chunk each.
+    // dumps), and when the change threshold needs this matrix's values as
+    // the reference of a setup kept later; otherwise each box's are added to
+    // the hypre matrix and freed, so that at most one box's are in memory.
+    // Their number is fixed by the grids and masks: known from the first
+    // build, the array is allocated once and the boxes fill it in place of a
+    // chunk each.
     const bool pin_here = (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper);
     const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
-    const bool hold = m_reuse_setup || m_backend != Backend::hypre || need_csr;
+    const bool hold = m_reuse_setup || m_backend != Backend::hypre || need_csr ||
+                      m_reuse.max_change > Real(0.0);
     const bool direct_fill = hold && m_ntrip >= 0;
     Vector<Triplets> chunks;
     Gpu::DeviceVector<BigInt> rows, cols;
