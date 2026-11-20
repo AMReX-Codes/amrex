@@ -150,3 +150,8 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   (`AMREX_LOOM_SYNC_WAIT=poll`), as HIP does. `AMREX_LOOM_SYNC_WAIT=block`
   sleeps in libhrx's wait instead, which frees the core but wakes up later:
   on CNS it costs 0.1-1.0 ms per step.
+- Small copies: host-to-device copies of up to `AMREX_LOOM_COPY_KERNEL_MAX`
+  bytes (default 65536) from pinned memory, or from pageable memory staged in
+  the stream's pinned buffer, run as a copy kernel on the stream, as HIP does
+  with its blit kernels. `AMREX_LOOM_COPY_KERNEL_MAX=0` submits them as HRX
+  queue copies instead, which on CNS is 0.2-2.3 ms per step slower.
