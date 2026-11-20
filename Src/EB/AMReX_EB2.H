@@ -283,7 +283,10 @@ void addRegularCoarseLevels (int num_new_coarse_levels);
  *
  * Must be called after EB2::Build() has created the cell-centered EB geometry.
  * Supported for implicit-function and STL geometries, not for an EB read from a
- * checkpoint file.
+ * checkpoint file. Some levels, typically coarse ones, may get no face-centered data;
+ * check EB2::Level::hasFCData before building a face-centered factory. Levels added later
+ * by addFineLevels or addRegularCoarseLevels have none until BuildFC is called again,
+ * which builds only the new levels.
  */
 void BuildFC ();
 

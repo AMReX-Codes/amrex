@@ -5,6 +5,7 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_Level.H>
 #include <AMReX_Algorithm.H>
+#include <sstream>
 #include <utility>
 
 namespace amrex {
@@ -96,9 +97,12 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
       m_face_dir(face_dir)
 {
     AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_level.hasFCData(face_dir),
-        "EBDataCollection: no face-centered data for face_dir on this level; "
-        "call EB2::BuildFC, whose output says why a level has none");
+    if (!a_level.hasFCData(face_dir)) {
+        std::ostringstream msg;
+        msg << "EBDataCollection: no face-centered data for face_dir " << face_dir
+            << " on domain " << a_geom.Domain() << ": " << a_level.whyNoFCData(face_dir);
+        amrex::Abort(msg.str());
+    }
 
     // For FC mode, we create new MultiFabs and fill from Level's FC data
     const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());

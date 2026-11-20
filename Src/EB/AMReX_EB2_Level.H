@@ -175,6 +175,7 @@ public:
         BoxArray m_covered_grids_fc;
         bool m_built = false;
         bool m_skipped = false; // tried, but this level cannot have face-centered data
+        char const* m_skip_reason = nullptr;
     };
 
     /**
@@ -203,10 +204,11 @@ public:
                (m_fc_data[face_dir]->m_built || m_fc_data[face_dir]->m_skipped);
     }
 
-    //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
-    [[nodiscard]] const FCData& getFCData (int face_dir) const {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
-        return *m_fc_data[face_dir];
+    //! Why there is no face-centered data for face_dir, or nullptr if there is.
+    [[nodiscard]] char const* whyNoFCData (int face_dir) const noexcept {
+        if (hasFCData(face_dir)) { return nullptr; }
+        if (triedFCData(face_dir)) { return m_fc_data[face_dir]->m_skip_reason; }
+        return "EB2::BuildFC has not been called for this level";
     }
 
     //! Fill face-centered volume fractions for face_dir.
@@ -1046,6 +1048,7 @@ GShopLevel<G>::skipFC (int face_dir, char const* why)
     }
     m_fc_data[face_dir] = std::make_unique<FCData>();
     m_fc_data[face_dir]->m_skipped = true;
+    m_fc_data[face_dir]->m_skip_reason = why;
 }
 
 template <typename G>
