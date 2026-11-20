@@ -576,9 +576,9 @@ namespace detail {
                     MF mf_solution( amrex::coarsen(mf_refined_patch.boxArray(), ratio), mf_refined_patch.DistributionMap(),
                                     ncomp, 0, MFInfo().SetAlloc(false) );
 
-                    const FabArrayBase::CPC mask_cpc( mf_solution, IntVect::TheZeroVector(),
-                                                      mf_known, IntVect::TheZeroVector(),
-                                                      cgeom.periodicity());
+                    const FabArrayBase::CPC& mask_cpc = mf_solution.getCPC(IntVect::TheZeroVector(),
+                                                                           mf_known, IntVect::TheZeroVector(),
+                                                                           cgeom.periodicity());
 
                     solve_mask.setVal(1);                       // Values to solve.
                     solve_mask.setVal(0, mask_cpc, 0, ncomp);   // Known values.
@@ -754,9 +754,9 @@ namespace detail {
                     MF mf_solution( amrex::coarsen(mf_refined_patch[d].boxArray(), ratio), mf_refined_patch[d].DistributionMap(),
                                     ncomp, 0, MFInfo().SetAlloc(false) );
 
-                    const FabArrayBase::CPC mask_cpc( mf_solution, IntVect::TheZeroVector(),
-                                                      mf_known, IntVect::TheZeroVector(),
-                                                      cgeom.periodicity() );
+                    const FabArrayBase::CPC& mask_cpc = mf_solution.getCPC(IntVect::TheZeroVector(),
+                                                                           mf_known, IntVect::TheZeroVector(),
+                                                                           cgeom.periodicity());
 
                     solve_mask[d].setVal(1);                       // Values to solve.
                     solve_mask[d].setVal(0, mask_cpc, 0, ncomp);   // Known values.
