@@ -492,7 +492,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 
-#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize(); amrex::BLProfileSync::InitParams()
+#define BL_TINY_PROFILE_INITIALIZE()   do { amrex::TinyProfiler::Initialize(); amrex::BLProfileSync::InitParams(); } while (0)
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
 #define BL_TINY_PROFILE_MEMORYINITIALIZE()  amrex::TinyProfiler::MemoryInitialize()
@@ -549,7 +549,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
-#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true); amrex::TinyProfiler::MemoryFinalize(true)
+#define BL_PROFILE_TINY_FLUSH() do { amrex::TinyProfiler::Finalize(true); amrex::TinyProfiler::MemoryFinalize(true); } while (0)
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
