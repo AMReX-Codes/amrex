@@ -190,7 +190,7 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     {
         fab_to_fab_other(tags, scomp, dcomp, ncomp, std::forward<F>(f));
     }
-    // Note that Tag ParalleFor has a stream sync call in the end.
+    Gpu::streamSynchronize(); // masks are temporaries
 }
 
 template <typename T0, typename T1>
@@ -670,7 +670,7 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
         ((void)0);
     }
 
-    // Note that fab_to_fab is synchronous.
+    Gpu::streamSynchronize(); // src_fabs are temporaries
 }
 
 template <class FAB>

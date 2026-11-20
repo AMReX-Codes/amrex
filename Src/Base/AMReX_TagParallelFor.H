@@ -287,9 +287,8 @@ struct TagVector {
 
     void undefine () {
         if (defined) {
-            Gpu::streamSynchronize();
-            The_Pinned_Arena()->free(h_buffer);
-            The_Arena()->free(d_buffer);
+            if (h_buffer) { Gpu::freeAsync(The_Pinned_Arena(), h_buffer); }
+            if (d_buffer) { Gpu::freeAsync(The_Arena(), d_buffer); }
             h_buffer = nullptr;
             d_buffer = nullptr;
             d_tags = nullptr;
@@ -474,6 +473,8 @@ void ParallelFor (TagVector<TagType> const& tv, F const& f)
             }
         });
 }
+
+// The Vector versions are asynchronous, like ParallelFor on a Box.
 
 template <class TagType, class F>
 requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Box>)

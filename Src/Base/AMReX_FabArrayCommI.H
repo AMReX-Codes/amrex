@@ -581,6 +581,9 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
             PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op,
                          deterministic && (op == FabArrayBase::ADD));
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         }
         else
 #endif
@@ -684,6 +687,9 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             {
                 PC_local_gpu(thecpc, src, SC, DC, NC, op,
                              deterministic && (op == FabArrayBase::ADD));
+                if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+                    Gpu::streamSynchronize();
+                }
             }
             else
 #endif
@@ -823,8 +829,8 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         if (dest.arena()->isDevice() && !ParallelDescriptor::UseGpuAwareMpi()) {
             pb = (T*)The_Pinned_Arena()->alloc(sizeof(T)*count);
             Gpu::dtoh_memcpy_async(pb, p0, sizeof(T)*count);
-            Gpu::streamSynchronize();
         }
+        Gpu::streamSynchronize(); // MPI reads the data next
 #endif
         ParallelDescriptor::Bcast(pb, count, ParallelContext::global_to_local_rank(root_proc),
                                   ParallelContext::CommunicatorSub());
@@ -1310,6 +1316,9 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 
     if (ParallelContext::NProcsSub() == 1) {
         detail::fbv_copy(local_tags);
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
         return;
     }
 
@@ -1475,6 +1484,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
         }
 
         detail::fbv_copy(send_tags);
+        Gpu::streamSynchronize();
 
         FabArray<FAB>::PostSnds(send_data, send_size, send_rank, send_reqs, SeqNum);
     }
@@ -1486,6 +1496,9 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 
     if (N_locs > 0) {
         detail::fbv_copy(local_tags);
+        if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+            Gpu::streamSynchronize();
+        }
 #if !defined(AMREX_DEBUG)
         ParallelDescriptor::Test(recv_reqs, recv_flag, recv_stat);
 #endif
@@ -1500,6 +1513,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 #endif
 
         detail::fbv_copy(recv_tags);
+        Gpu::streamSynchronize();
 
         amrex::The_Comms_Arena()->free(the_recv_data);
     }

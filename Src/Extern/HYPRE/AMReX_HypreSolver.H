@@ -415,7 +415,8 @@ HypreSolver<MSS>::fill_global_id ()
         for (int ivar = 0; ivar < m_nvars; ++ivar) {
             global_id_raii.emplace_back(m_global_id[ivar].boxArray(),
                                         m_global_id[ivar].DistributionMap(),
-                                        1, m_global_id[ivar].nGrowVect());
+                                        1, m_global_id[ivar].nGrowVect(),
+                                        MFInfo().SetArena(The_Async_Arena()));
             p_global_id.push_back(&(global_id_raii[ivar]));
         }
     }

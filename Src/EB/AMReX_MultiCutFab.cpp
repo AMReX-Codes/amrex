@@ -152,7 +152,8 @@ MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int nco
     // FabArray<CutFab>::ParallelCopy would read and write unallocated CutFabs,
     // so the transfer is done with dense MultiFabs.
     MultiFab dstmf = ToMultiFab(0._rt, 0._rt);
-    dstmf.ParallelCopy(src.ToMultiFab(0._rt, 0._rt), scomp, dcomp, ncomp, sng, dng, period);
+    MultiFab const srcmf = src.ToMultiFab(0._rt, 0._rt);
+    dstmf.ParallelCopy(srcmf, scomp, dcomp, ncomp, sng, dng, period);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -169,6 +170,11 @@ MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int nco
             });
         }
     }
+
+#ifdef AMREX_USE_GPU
+    // srcmf and dstmf are about to be freed
+    if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 MultiFab

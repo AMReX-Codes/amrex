@@ -258,6 +258,10 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
                                                    this->m_dmap[amrlev][mglev], 1, 1);
             osm->ParallelCopy(*(this->m_overset_mask[amrlev][mglev]));
             std::swap(osm, this->m_overset_mask[amrlev][mglev]);
+#ifdef AMREX_USE_GPU
+            // The old mask is about to be freed
+            if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
         }
     }
 

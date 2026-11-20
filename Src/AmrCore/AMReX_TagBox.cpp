@@ -356,6 +356,10 @@ mapPeriodicRemoveDuplicatesOverlapping (TagBoxArray& tags, const Geometry& geom)
             });
         }
         std::swap(tags, result);
+#ifdef AMREX_USE_GPU
+        // The temporaries are about to be freed
+        if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
     }
     else
     {
@@ -418,6 +422,10 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
                 }
             });
         }
+#ifdef AMREX_USE_GPU
+        // The temporaries are about to be freed
+        if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
     }
     else
     {
@@ -782,6 +790,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
     {
         tag.dfab(i,j,k) = val;
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 }
 

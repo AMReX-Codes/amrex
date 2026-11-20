@@ -275,7 +275,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         dpdn_tmp[idim].define(amrex::convert(m_grids[0],
                                              IntVect::TheDimensionVector(idim)),
-                          m_dmap[0], 1, 0);
+                              m_dmap[0], 1, 0, MFInfo().SetArena(The_Async_Arena()));
     }
     m_poisson_1->get_dpdn_on_domain_faces(GetArrOfPtrs(dpdn_tmp), *sol_1[0]);
 

@@ -455,8 +455,8 @@ FabSetT<MF>::linComb (value_type a, const MF& mfa, int a_comp,
     BL_ASSERT(mfa.boxArray() == mfb.boxArray());
     BL_ASSERT(boxArray() != mfa.boxArray());
 
-    MF bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo());
-    MF bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo());
+    MF bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo().SetArena(The_Async_Arena()));
+    MF bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo().SetArena(The_Async_Arena()));
 
     const auto huge = static_cast<value_type>(sizeof(value_type) == 8 ? 1.e200 : 1.e30);
 

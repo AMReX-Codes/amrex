@@ -192,7 +192,7 @@ extern "C" {
         const Vector<int>& li_leaf_to_full = famrcore->octree_li_leaf_to_full[flev];
         const IntVect& rr = famrcore->refRatio(flev-1);
 
-        MultiFab lmf(amrex::coarsen(lba,rr),ldm,ncomp,0);
+        MultiFab lmf(amrex::coarsen(lba,rr),ldm,ncomp,0,MFInfo().SetArena(The_Async_Arena()));
 
         MultiFab fvolume;
         const Geometry& fgeom = famrcore->Geom(flev);

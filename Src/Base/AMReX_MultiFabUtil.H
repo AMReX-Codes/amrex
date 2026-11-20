@@ -1452,6 +1452,10 @@ FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
 {
     auto [fa3, fa2] = ReduceToPlaneMF2<Op>(direction, domain, mf, f);
     fa3.ParallelCopy(fa2);
+#ifdef AMREX_USE_GPU
+    // fa2 is about to be freed
+    if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
     return std::move(fa3);
 }
 
