@@ -87,6 +87,16 @@ namespace {
 
 namespace amrex::Gpu {
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+namespace {
+// One reusable event per waited stream (Device::streamWaitStream): a wait
+// captures the event's state when it is enqueued, so recording the event
+// again later does not affect it.
+std::mutex g_stream_event_mutex;
+std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_events;
+}
+#endif
+
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
 int Device::num_device_partners = 1;
@@ -217,6 +227,24 @@ StreamManager::free_async (Arena* arena, void* mem) {
     } else {
         arena->free(mem);
     }
+}
+
+void
+StreamManager::move_wait_list_to (StreamManager& other) {
+    if (&other == this) { return; }
+    decltype(m_free_wait_list) moved{};
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_free_wait_list.swap(moved);
+    }
+    if (moved.empty()) { return; }
+    std::size_t other_size = 0;
+    {
+        std::lock_guard<std::mutex> lock(other.m_mutex);
+        other.m_free_wait_list.insert(other.m_free_wait_list.end(), moved.begin(), moved.end());
+        other_size = other.m_free_wait_list.size();
+    }
+    if (other_size > 100) { other.sync(); }
 }
 
 std::size_t
@@ -630,6 +658,17 @@ Device::Finalize ()
 #ifdef AMREX_USE_GPU
     streamSynchronizeAll();
     Device::profilerStop();
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    {
+        std::lock_guard<std::mutex> lock(g_stream_event_mutex);
+        for (auto& [stream, event] : g_stream_events) {
+            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(event));,
+                               AMREX_CUDA_SAFE_CALL(cudaEventDestroy(event)); )
+        }
+        g_stream_events.clear();
+    }
+#endif
 
 #ifdef AMREX_USE_SYCL
     for (auto& s : gpu_stream_pool) {
@@ -1174,6 +1213,92 @@ Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noe
                  "memory is freed.");
 }
 #endif
+
+#ifdef AMREX_USE_GPU
+void
+Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
+{
+#if defined(AMREX_USE_LOOM)
+    amrex_loom::stream_wait_stream(waiter, waited);
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (waiter == waited) { return; }
+    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
+    {
+        std::lock_guard<std::mutex> lock(g_stream_event_mutex);
+        auto it = g_stream_events.find(waited);
+        if (it == g_stream_events.end()) {
+            AMREX_HIP_OR_CUDA(
+                AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
+                AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
+            g_stream_events.emplace(waited, event);
+        } else {
+            event = it->second;
+        }
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipEventRecord(event, waited));
+            AMREX_HIP_SAFE_CALL(hipStreamWaitEvent(waiter, event, 0));,
+            AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, waited));
+            AMREX_CUDA_SAFE_CALL(cudaStreamWaitEvent(waiter, event, 0)); )
+    }
+#else
+    // No GPU-side cross-queue wait here: order on the host.
+    amrex::ignore_unused(waiter);
+    Device::streamSynchronize(waited);
+#endif
+}
+#endif
+
+void
+Device::forkStreams (int n) noexcept
+{
+#ifdef AMREX_USE_GPU
+    const int nstreams = std::min(n, numGpuStreams());
+    for (int i = 1; i < nstreams; ++i) {
+        streamWaitStream(gpu_stream_pool[i].getStream(), gpu_stream_pool[0].getStream());
+    }
+#else
+    amrex::ignore_unused(n);
+#endif
+}
+
+void
+Device::joinStreams (int n) noexcept
+{
+#ifdef AMREX_USE_GPU
+    const int nstreams = std::min(n, numGpuStreams());
+#if defined(AMREX_USE_LOOM)
+    // One queue operation on stream 0 that waits for all the others.
+    if (nstreams > 1) {
+        Vector<gpuStream_t> waited;
+        for (int i = 1; i < nstreams; ++i) { waited.push_back(gpu_stream_pool[i].getStream()); }
+        amrex_loom::stream_wait_streams(gpu_stream_pool[0].getStream(), waited.data(), nstreams-1);
+    }
+#else
+    for (int i = 1; i < nstreams; ++i) {
+        streamWaitStream(gpu_stream_pool[0].getStream(), gpu_stream_pool[i].getStream());
+    }
+#endif
+    for (int i = 1; i < nstreams; ++i) {
+        gpu_stream_pool[i].move_wait_list_to(gpu_stream_pool[0]);
+    }
+#else
+    amrex::ignore_unused(n);
+#endif
+}
+
+void
+Device::streamsWaitCurrent () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (numGpuStreams() <= 1) { return; }
+    const gpuStream_t current = gpuStream();
+    for (int i = 0; i < numGpuStreams(); ++i) {
+        if (!(gpu_stream_pool[i].getStream() == current)) {
+            streamWaitStream(gpu_stream_pool[i].getStream(), current);
+        }
+    }
+#endif
+}
 
 bool
 Device::clearFreeAsyncBuffer () noexcept
