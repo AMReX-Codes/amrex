@@ -2232,7 +2232,10 @@ FabArray<FAB>::build_arrays () const
                 entries[li+n] = e;
             }
             m_dp_loom_entries = The_Arena()->alloc(2*n*sizeof(E));
-            Gpu::htod_memcpy(m_dp_loom_entries, entries.data(), 2*n*sizeof(E));
+            // Asynchronous: the LOOM runtime stages pageable host-to-device
+            // sources at the call, so |entries| may go out of scope, and
+            // kernels on this stream are ordered after the copy.
+            Gpu::htod_memcpy_async(m_dp_loom_entries, entries.data(), 2*n*sizeof(E));
             m_arrays.base = base;
             m_arrays.dt = (E const*)m_dp_loom_entries;
             m_arrays.valid = true;
