@@ -70,12 +70,23 @@ public:
     //! Apply a periodic shift (in cells) to the entire IndexSpace.
     void setShift (int direction, int ncells) override;
 
+    //! Build face-centered EB data for every face direction. Rereads the STL file.
+    void buildAllFCData () override;
+
 private:
 
     Vector<STLLevel> m_stllevel;
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
     Vector<int> m_ngrow;
+
+    std::string m_stl_file;
+    Real m_stl_scale;
+    Array<Real,3> m_stl_center;
+    int m_stl_reverse_normal;
+    bool m_bvh_optimization;
+    bool m_extend_domain_face;
+    int m_num_coarsen_opt;
 };
 
 }

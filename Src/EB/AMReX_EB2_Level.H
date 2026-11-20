@@ -172,6 +172,7 @@ public:
         // trimmed and two adjacent covered boxes need no special treatment.
         BoxArray m_covered_grids_fc;
         bool m_built = false;
+        bool m_skipped = false; // tried, but this level cannot have face-centered data
     };
 
     /**
@@ -192,6 +193,12 @@ public:
     [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
         return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
                m_fc_data[face_dir] && m_fc_data[face_dir]->m_built;
+    }
+
+    //! Check if building face-centered data for face_dir has been tried, successfully or not.
+    [[nodiscard]] bool triedFCData (int face_dir) const noexcept {
+        return face_dir >= 0 && face_dir < AMREX_SPACEDIM && m_fc_data[face_dir] &&
+               (m_fc_data[face_dir]->m_built || m_fc_data[face_dir]->m_skipped);
     }
 
     //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
@@ -345,7 +352,8 @@ public:
     }
 
     //! Build face-centered EB data for face_dir. Builds refined CC transiently.
-    void buildFCData (G const& gshop, int face_dir, int max_grid_size);
+    void buildFCData (G const& gshop, int face_dir, int max_grid_size,
+                      bool extend_domain_face, int num_crse_opt);
 
 private:
 
@@ -372,6 +380,10 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
+    if (amrex::Verbose() > 0 && extend_domain_face == false) {
+        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
+    }
+
     define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
 }
 
@@ -380,10 +392,6 @@ void
 GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
                               int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
 {
-    if (amrex::Verbose() > 0 && extend_domain_face == false) {
-        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
-    }
-
     BL_PROFILE("EB2::GShopLevel()-prepare_grids");
 
     m_extrude_coarse_levels = extend_domain_face;
@@ -873,7 +881,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
 template <typename G>
 void
-GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size,
+                            bool extend_domain_face, int num_crse_opt)
 {
     BL_PROFILE("EB2::GShopLevel::buildFCData");
 
@@ -884,7 +893,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         m_fc_data[face_dir] = std::make_unique<FCData>();
     }
 
-    if (m_fc_data[face_dir]->m_built) { return; }
+    if (triedFCData(face_dir)) { return; }
 
     if (m_allregular) {
         // An all-regular level carries no MultiFabs, and there is nothing to coarsen. Mark the
@@ -905,9 +914,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // An even max_grid_size keeps the refined grids coarsenable by 2, and a doubled ngrow
     // makes the face-centered data reach at least as far outside the domain as m_ngrow.
     Geometry refined_geom = amrex::refine(m_geom, 2);
-    transient_level = std::make_unique<GShopLevel<G>>(
-        m_parent, gshop, refined_geom,
-        std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()), true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
+    transient_level = std::make_unique<GShopLevel<G>>(m_parent, refined_geom);
+    transient_level->define_fine(gshop, refined_geom,
+        std::max(2, max_grid_size - max_grid_size%2), std::max(4, 2*m_ngrow.max()),
+        extend_domain_face, num_crse_opt);
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
@@ -915,12 +925,14 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     refined_cc_level = transient_level.get();
 
     // Leave the data unbuilt; a face-centered factory on this level would then fail.
+    // Remember the attempt so that later BuildFC calls do not repeat it.
     auto skip = [&] (char const* why) {
         if (amrex::Verbose() > 0) {
             amrex::Print() << "AMReX EB: no face-centered data for face_dir " << face_dir
                            << " on domain " << m_geom.Domain() << ": " << why << '\n';
         }
-        m_fc_data[face_dir].reset();
+        m_fc_data[face_dir] = std::make_unique<FCData>();
+        m_fc_data[face_dir]->m_skipped = true;
     };
 
     // Coarse levels can have features too thin for their 2x rebuild to see.

@@ -165,6 +165,11 @@ IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(num_new_coarse_levels <= 30,
                                      "IndexSpaceImp::addRegularCoarseLevels: num_new_coarse_levels too large");
 
+    // The existing levels move down by num_new_coarse_levels; keep their coarse probing.
+    if (m_num_coarsen_opt > 0) {
+        m_num_coarsen_opt += num_new_coarse_levels;
+    }
+
     auto nlevs_old = int(m_gslevel.size());
     int nlevs_new = nlevs_old + num_new_coarse_levels;
 
@@ -222,7 +227,8 @@ IndexSpaceImp<G>::buildAllFCData ()
 {
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
         for (int ilev = 0; ilev < int(m_gslevel.size()); ++ilev) {
-            m_gslevel[ilev].buildFCData(m_gshop, face_dir, EB2::max_grid_size);
+            m_gslevel[ilev].buildFCData(m_gshop, face_dir, EB2::max_grid_size,
+                                        m_extend_domain_face, m_num_coarsen_opt-ilev);
         }
     }
 }
