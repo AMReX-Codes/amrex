@@ -195,8 +195,16 @@ MyTest::solve ()
                     }
                 }
             };
+            auto check_iters = [&] ()
+            {
+                if (mlhypre_max_iters >= 0 && hyp.getNumIters() > mlhypre_max_iters) {
+                    amrex::Abort("HypreMLNodeLap took " + std::to_string(hyp.getNumIters()) +
+                                 " iterations, more than mlhypre_max_iters");
+                }
+            };
             hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
             compare_with_mlmg();
+            check_iters();
             // mlhypre_num_solves > 1: sigma and the right-hand side scaled by
             // 2 (the same solution), the matrix updated in place with the
             // solver setup kept, and solved again from the same initial guess.
@@ -233,17 +241,6 @@ MyTest::solve ()
                     const Box& interior = amrex::surroundingNodes(
                         amrex::grow(geom[ilev].Domain(), -1));
                     solution[ilev].setVal(0.0, interior, 0, 1, 0);
-                    if (overset) { // the known nodes keep their values
-                        auto const& ma = omask[ilev].const_arrays();
-                        auto const& sa = solution[ilev].arrays();
-                        auto const& ea = exact_solution[ilev].const_arrays();
-                        amrex::ParallelFor(solution[ilev],
-                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
-                        {
-                            if (ma[b](i,j,k) == 0) { sa[b](i,j,k) = ea[b](i,j,k); }
-                        });
-                        Gpu::streamSynchronize();
-                    }
                 }
                 if (mlhypre_sigma_nonuniform) {
                     // A new problem: MLMG solves it too (its operator is
@@ -263,6 +260,7 @@ MyTest::solve ()
                 hyp.updateMatrix();
                 hyp.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(hyp_rhs), reltol, 0.0, max_iter);
                 compare_with_mlmg();
+                check_iters();
             }
 #else
             amrex::Abort("use_mlhypre requires USE_HYPRE=TRUE");
@@ -430,6 +428,9 @@ MyTest::readParameters ()
     pp.query("mlhypre_reuse_max_change", mlhypre_reuse_max_change);
     pp.query("mlhypre_reuse_setup", mlhypre_reuse_setup);
     pp.query("mlhypre_reuse_off_solve", mlhypre_reuse_off_solve);
+    pp.query("mlhypre_max_iters", mlhypre_max_iters);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(use_mlhypre && overset),
+                                     "HypreMLNodeLap does not support overset masks");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!mlhypre_nan_dirichlet_rhs || (use_mlhypre && !periodic),
                                      "mlhypre_nan_dirichlet_rhs requires use_mlhypre = 1 and periodic = 0");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!const_solution || (use_mlhypre && !periodic),

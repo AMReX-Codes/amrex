@@ -155,9 +155,10 @@ public:
     //! IJ mode with setup reuse: redo the setup at the next solve when the
     //! matrix, scaled to the kept setup's, has changed by more than this
     //! fraction (2-norm) since that setup (0: never; this is also
-    //! `<prefix>.reuse_setup_max_change`).  Keeps a copy of the setup
-    //! matrix's values; set after the kept setup, or after a solve redid
-    //! the setup, the reference is the matrix of the next setup().
+    //! `<prefix>.reuse_setup_max_change`).  Keeps a copy of the values of
+    //! every matrix built while it is set.  Set after the matrix was built
+    //! (before or after its solver setup), or after a solve redid the
+    //! setup, the reference is the matrix of the next setup().
     void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {

@@ -97,6 +97,10 @@ private:
     // mlhypre_num_solves: turn setup reuse off again before this repeated
     // solve and the later ones (1-based; 0: never)
     int mlhypre_reuse_off_solve = 0;
+    // mlhypre: abort when a solve takes more iterations than this (-1:
+    // none), to check that a kept setup is as good as a fresh one, or that
+    // a reuse control redid it
+    int mlhypre_max_iters = -1;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the

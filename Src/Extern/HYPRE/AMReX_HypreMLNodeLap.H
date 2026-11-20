@@ -64,6 +64,10 @@ using MLNodeLaplacian = MLNodeLaplacianT<MultiFab>;
  * - `<prefix>.eb_scaling` (default 1): in EB builds, scale the unknowns by
  *   1/sqrt(nodal fluid fraction) so that rows next to small cut cells count
  *   in the residual norm.
+ * - `<prefix>.reuse_setup_max_iter`, `<prefix>.reuse_setup_max_change`:
+ *   the setup reuse controls (setReuseSetupMaxIter, setReuseSetupMaxChange).
+ * - `<prefix>.recompute_preconditioner` (default 0): redo the solver setup
+ *   on every solve (hypre backend; off with setup reuse).
  */
 class HypreMLNodeLap
 {
@@ -152,10 +156,11 @@ public:
     //! Redo the setup at the next solve when the matrix, scaled to the kept
     //! setup's, has changed by more than this fraction (2-norm) since that
     //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
-    //! copy of the setup matrix's values (with the hypre backend, also with
-    //! reuse off, so that the matrix of a setup kept later is the
-    //! reference); set after the kept setup, or after a solve redid the
-    //! setup, the reference is the matrix of the next updateMatrix().
+    //! copy of the values of every matrix built while it is set, reuse on
+    //! or off, so that the matrix of a setup kept later is the reference.
+    //! Set after the matrix was built (before or after its setup), or after
+    //! a solve redid the setup, the reference is the matrix of the next
+    //! updateMatrix().
     void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
     void resetSolverSetup () {

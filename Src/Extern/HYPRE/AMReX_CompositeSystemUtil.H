@@ -161,9 +161,9 @@ struct SetupReuse
         }
     }
 
-    //! The current matrix, assembled without its triplets held, is the setup
-    //! matrix; \p norm2 is the global squared 2-norm of its values.  No values
-    //! are kept: with a threshold, the next update becomes the reference.
+    //! The current matrix, assembled without its triplets held (which the
+    //! callers do only without a threshold), is the setup matrix; \p norm2
+    //! is the global squared 2-norm of its values.  No values are kept.
     void setSetupMatrix (Real norm2)
     {
         setup_norm2 = norm2;
@@ -171,7 +171,6 @@ struct SetupReuse
         current = true;
         setup_vals.clear();
         have_vals = false;
-        capture = (max_change > Real(0.0));
     }
 
     /**
