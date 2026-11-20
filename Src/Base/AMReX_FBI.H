@@ -667,7 +667,8 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
 
     detail::fab_to_fab(loc_copy_tags_1, 0, 0, ncomp,
                        detail::CellStore<value_type, value_type>{});
-    if (deterministic || ! amrex::HasAtomicAdd<value_type>::value) {
+    const bool use_deterministic = deterministic || ! amrex::HasAtomicAdd<value_type>::value;
+    if (use_deterministic) {
         detail::deterministic_fab_to_fab(loc_copy_tags_2, 0, 0, ncomp,
                                          detail::CellAdd<value_type,value_type>{});
     } else {
@@ -678,7 +679,8 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
         ((void)0);
     }
 
-    if (Gpu::inNoSyncRegion()) {
+    // The deterministic sum always synchronizes the stream.
+    if (Gpu::inNoSyncRegion() && !use_deterministic) {
         Gpu::freeAsync(The_Arena(), src_buf);
     } else {
         Gpu::streamSynchronize();
