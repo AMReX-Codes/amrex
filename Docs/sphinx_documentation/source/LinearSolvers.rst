@@ -930,11 +930,18 @@ sparse matrix:
   with new coefficients (on the same grids) updates the matrix values in
   place and keeps the solver setup (with the AlgMG backend, the hierarchy:
   :cpp:`AlgMG::updateMatrix`) until :cpp:`resetSolverSetup()`.  It can be
-  turned on before or after the first :cpp:`setup`.  A solve with a reused
-  setup that does not converge redoes the setup and continues once before
-  failing; :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
+  turned on before or after the first :cpp:`setup`.  The kept setup stays
+  exact under a uniform change of the coefficients (by a time step, say) and
+  only approximates the operator otherwise.  A solve with a reused setup
+  that does not converge redoes the setup and continues once before failing;
+  :cpp:`hypre_mlabeclap.reuse_setup_max_iter` (or
   :cpp:`setReuseSetupMaxIter`) also redoes it at the next solve when a solve
-  with a reused setup needed more iterations.
+  with a reused setup needed more iterations, and
+  :cpp:`hypre_mlabeclap.reuse_setup_max_change` (or
+  :cpp:`setReuseSetupMaxChange`) at the next :cpp:`setup` whose matrix has
+  changed by more than that fraction since the setup (relative 2-norm, with
+  a uniform change factored out), at the cost of a copy of the matrix
+  values.
 
 - In both modes, :cpp:`getNumIters()` and :cpp:`getFinalResidualNorm()`
   report the last solve; when a solve redid a reused setup and continued,
@@ -1014,6 +1021,20 @@ except next to small cut cells, see ``eb_scaling``).
 - :cpp:`hypre_mlnodelap.eb_scaling`: default true.  In EB builds, scale the
   unknowns by :math:`1/\sqrt{\text{nodal fluid fraction}}` so that the rows
   of nodes next to small cut cells count in the residual norm.
+
+- :cpp:`HypreMLNodeLap::updateMatrix()`: assemble the matrix again from the
+  operator's current ``sigma`` (the same grids, boundary conditions and
+  masks), for example for a projection whose coefficient changes every time
+  step; the solver setup is redone at the next solve.  With
+  :cpp:`setReuseSolverSetup(true)` the values are updated in place and the
+  hypre solver setup, or the AlgMG hierarchy, is kept, as for
+  :cpp:`HypreMLABecLap`: :cpp:`resetSolverSetup()`,
+  :cpp:`setReuseSetupMaxIter()`, ``hypre_mlnodelap.reuse_setup_max_iter``,
+  :cpp:`setReuseSetupMaxChange()` and ``hypre_mlnodelap.reuse_setup_max_change``
+  work the same way, and a solve with a reused setup that does not converge
+  redoes the setup and continues once before failing.  Turned on after a
+  solve, the next :cpp:`updateMatrix()` keeps that solve's setup (the hypre
+  backend assembles the matrix once more; later updates are in place).
 
 :cpp:`getNumIters()`, :cpp:`getFinalResidualNorm()` and
 :cpp:`setThrowException()` work as for :cpp:`HypreMLABecLap`, and so does the

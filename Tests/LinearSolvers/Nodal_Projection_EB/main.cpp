@@ -48,6 +48,10 @@ int main (int argc, char* argv[])
         int use_hypre  = 0;
         int use_mlhypre = 0;  // also solve with HypreMLNodeLap and compare with MLMG
         Real mlhypre_max_diff = -1.0;  // if positive: abort if the velocity correction differs more (relative)
+        // solves of the same HypreMLNodeLap after the first, each with sigma
+        // and the rhs scaled by 2 (the same phi), the matrix updated in
+        // place and the solver setup kept
+        int mlhypre_num_solves = 1;
         Vector<std::string> multigrid_types{"geometric"};
 
         Real obstacle_radius = Real(0.10);
@@ -62,6 +66,7 @@ int main (int argc, char* argv[])
             pp.query("use_hypre", use_hypre);
             pp.query("use_mlhypre", use_mlhypre);
             pp.query("mlhypre_max_diff", mlhypre_max_diff);
+            pp.query("mlhypre_num_solves", mlhypre_num_solves);
             pp.queryarr("multigrid_types", multigrid_types);
         }
 
@@ -331,6 +336,37 @@ int main (int argc, char* argv[])
                            << dfmax << " (max " << fmax << ")\n";
             if (mlhypre_max_diff > Real(0.0) && !(dfmax <= mlhypre_max_diff*fmax)) {
                 amrex::Abort("HypreMLNodeLap differs from MLMG by more than mlhypre_max_diff");
+            }
+
+            // mlhypre_num_solves > 1: sigma and the right-hand side scaled by
+            // 2 (the same phi, the velocity correction scaled by 2), the matrix
+            // updated in place with the solver setup kept, solved again from zero
+            MultiFab rhs2(rhs.boxArray(), rhs.DistributionMap(), 1, rhs.nGrowVect(), MFInfo(), factory);
+            MultiFab::Copy(rhs2, rhs, 0, 0, 1, rhs.nGrowVect());
+            Real scale = Real(1.0);
+            for (int isolve = 1; isolve < mlhypre_num_solves; ++isolve) {
+                scale *= Real(2.0);
+                sigma.mult(Real(2.0), 0, 1, sigma.nGrow());
+                matrix.setSigma(0, sigma);
+                rhs2.mult(Real(2.0), 0, 1, rhs2.nGrow());
+                phi_h.setVal(0.0);
+                hyp.setReuseSolverSetup(true);
+                hyp.updateMatrix();
+                hyp.solve({&phi_h}, {&rhs2}, reltol, abstol, 200);
+                fluxes_h.setVal(0.0);
+                nodal_solver.getFluxes({&fluxes_h}, {&phi_h});
+                fluxes_h.mult(Real(1.0)/scale, 0, AMREX_SPACEDIM, 0);
+                MultiFab::Copy(dflux, fluxes_h, 0, 0, AMREX_SPACEDIM, 0);
+                MultiFab::Subtract(dflux, fluxes, 0, 0, AMREX_SPACEDIM, 0);
+                dfmax = 0.0;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    dfmax = std::max(dfmax, dflux.norm0(d));
+                }
+                amrex::Print() << "HypreMLNodeLap update " << isolve << " vs MLMG: "
+                               << "max |d(sigma grad phi)| = " << dfmax << " (max " << fmax << ")\n";
+                if (mlhypre_max_diff > Real(0.0) && !(dfmax <= mlhypre_max_diff*fmax)) {
+                    amrex::Abort("HypreMLNodeLap (updated) differs from MLMG by more than mlhypre_max_diff");
+                }
             }
         }
 #endif

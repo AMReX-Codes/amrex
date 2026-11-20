@@ -256,6 +256,10 @@ void HypreIJIface::solve (
     HYPRE_IJVectorGetObject(m_rhs, (void**)&m_parRhs);
     HYPRE_IJVectorGetObject(m_sln, (void**)&m_parSln);
 
+    // Nothing stale is reported if a hypre error ends the solve early
+    m_num_iterations = 0;
+    m_final_res_norm = HypreRealType(0.0);
+
     if (m_write_files) {
         const std::string matfile = amrex::Concatenate(
             m_file_prefix + "_A", static_cast<int>(m_write_counter)) + ".out";
@@ -267,8 +271,10 @@ void HypreIJIface::solve (
 
     m_solverSetTolPtr(m_solver, rel_tol);
     m_solverSetMaxIterPtr(m_solver, max_iter);
-    if ((abs_tol > 0.0) && (m_solverSetAbsTolPtr != nullptr)) {
-        m_solverSetAbsTolPtr(m_solver, abs_tol);
+    // Set every time: hypre keeps the last absolute tolerance, so a solve
+    // without one after a solve with one would still use it
+    if (m_solverSetAbsTolPtr != nullptr) {
+        m_solverSetAbsTolPtr(m_solver, (abs_tol > 0.0) ? abs_tol : m_abs_tol_input);
     }
 
     // setup
@@ -318,6 +324,7 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
     pp.queryAdd("overwrite_existing_matrix_files", m_overwrite_files);
     pp.queryAdd("adjust_singular_matrix", m_adjust_singular_matrix);
     pp.queryAdd("abort_on_hypre_error", m_abort_on_hypre_error);
+    pp.query("atol", m_abs_tol_input);
 
     if (m_verbose > 2) {
         amrex::Print() << "HYPRE: solver = " << m_solver_name

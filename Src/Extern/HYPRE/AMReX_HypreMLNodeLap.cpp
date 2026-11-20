@@ -3,6 +3,7 @@
 #include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_Scan.H>
 
 #ifdef AMREX_USE_EB
@@ -13,6 +14,7 @@
 #include <limits>
 #include <cmath>
 #include <stdexcept>
+#include <utility>
 #include <array>
 #include <numeric>
 
@@ -251,6 +253,11 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
     const bool rap = (m_linop->m_coarsening_strategy == MLNodeLaplacian::CoarseningStrategy::RAP);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!rap || !m_linop->m_use_mapped,
         "HypreMLNodeLap: mesh mapping requires the Sigma coarsening strategy");
+    // The known nodes of an overset mask are Dirichlet nodes inside the
+    // domain; the matrix only knows the Dirichlet nodes of the domain faces
+    // and of the coarse/fine boundaries
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_linop->m_overset_dirichlet_mask,
+        "HypreMLNodeLap: overset masks are not supported");
 
     m_comm = m_linop->Communicator();
     m_nprocs = ParallelDescriptor::NProcs(m_comm);
@@ -292,6 +299,11 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
         m_dump_prefix = m_prefix;
         pp.query("dump_prefix", m_dump_prefix);
         pp.query("dump_gather_max", m_dump_gather_max);
+        pp.query("reuse_setup_max_iter", m_reuse_max_iter);
+        Real reuse_max_change = 0.0;
+        pp.query("reuse_setup_max_change", reuse_max_change);
+        m_reuse.setMaxChange(reuse_max_change);
+        pp.query("recompute_preconditioner", m_recompute_pp);
     }
 
     numberUnknowns();
@@ -311,6 +323,9 @@ HypreMLNodeLap::HypreMLNodeLap (MLNodeLaplacian const& a_linop, std::string a_pr
     if (m_backend == Backend::hypre) {
         m_ij = std::make_unique<HypreIJIface>(m_comm, IJInt(m_ilower), IJInt(m_iupper), m_verbose);
         m_ij->parse_inputs(m_prefix);
+        // The setup is redone when the matrix changes (updateMatrix); see
+        // setReuseSolverSetup
+        m_ij->setRecomputePreconditioner(m_recompute_pp);
         m_A = m_ij->A();
         m_b = m_ij->b();
         m_x = m_ij->x();
@@ -516,87 +531,43 @@ void HypreMLNodeLap::buildMatrix ()
     BL_PROFILE("HypreMLNodeLap::buildMatrix()");
 
     // Every cell emits the (row, column, value) triplets of its element
-    // matrix mapped through the hanging-node constraints, on the device.
-    // They go to hypre (which sums duplicates and routes off-rank rows), to
-    // the AlgMG matrix (built on the device) and, for dumps, to an owned-row
-    // CSR on the host, one AMR level at a time.
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_dbc.empty(), "HypreMLNodeLap::buildMatrix called twice");
+    // matrix mapped through the hanging-node constraints, on the device,
+    // one AMR level at a time.  populateMatrix passes them to the backend;
+    // a repeated call (updateMatrix) emits them in the same order, so that
+    // the values of an assembled matrix can be updated in place.  The
+    // couplings to the Dirichlet domain nodes are rebuilt with them.
+    m_dbc.clear();
     const int finest = m_nlevels-1;
     m_pin_gid = (m_linop->isSingular(0) && m_nglobal > 0) ? 0 : -1;
     Long const pin = m_pin_gid;
-    const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
-    const bool algmg_dev = (m_backend == Backend::algmg) && !need_csr;
 
     struct Triplets {
         Gpu::DeviceVector<BigInt> rows, cols;
         Gpu::DeviceVector<Real> vals;
     };
+    // The triplets of all levels are held in one array when the matrix is
+    // updated in place or built from them on this rank (setup reuse, AlgMG,
+    // dumps), and when the change threshold needs this matrix's values as
+    // the reference of a setup kept later; otherwise each box's are added to
+    // the hypre matrix and freed, so that at most one box's are in memory.
+    // Their number is fixed by the grids and masks: known from the first
+    // build, the array is allocated once and the boxes fill it in place of a
+    // chunk each.
+    const bool pin_here = (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper);
+    const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
+    const bool hold = m_reuse_setup || m_backend != Backend::hypre || need_csr ||
+                      m_reuse.max_change > Real(0.0);
+    const bool direct_fill = hold && m_ntrip >= 0;
     Vector<Triplets> chunks;
-    Vector<composite::Triplet> host_trips;
-    Gpu::DeviceVector<Long> alg_rows, alg_cols;
-    Gpu::DeviceVector<Real> alg_vals;
-    auto flush = [&] ()
-    {
-        Long ntot = 0;
-        for (auto const& t : chunks) { ntot += Long(t.rows.size()); }
-        Gpu::DeviceVector<BigInt> rows(ntot), cols(ntot);
-        Gpu::DeviceVector<Real> vals(ntot);
-        Long off = 0;
-        for (auto const& t : chunks) {
-            Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+off);
-            Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+off);
-            off += Long(t.rows.size());
-        }
-        Gpu::streamSynchronize();
-        chunks.clear();
-        if (m_backend == Backend::hypre && ntot > 0) {
-            Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
-            // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
-            constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
-            for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
-                auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
-                HYPRE_IJMatrixAddToValues(m_A, n, ones.data()+n0, rows.data()+n0,
-                                          cols.data()+n0, vals.data()+n0);
-                Gpu::hypreSynchronize();
-            }
-        }
-        if (algmg_dev && ntot > 0) {
-            const auto n0 = Long(alg_rows.size());
-            alg_rows.resize(n0+ntot);
-            alg_cols.resize(n0+ntot);
-            alg_vals.resize(n0+ntot);
-            auto const* r = rows.data();
-            auto const* c = cols.data();
-            auto const* v = vals.data();
-            auto* ar = alg_rows.data() + n0;
-            auto* ac = alg_cols.data() + n0;
-            auto* av = alg_vals.data() + n0;
-            amrex::ParallelFor(ntot, [=] AMREX_GPU_DEVICE (Long n) noexcept
-            {
-                ar[n] = r[n];
-                ac[n] = c[n];
-                av[n] = v[n];
-            });
-            Gpu::streamSynchronize();
-        }
-        if (need_csr && ntot > 0) {
-            Vector<BigInt> hr(ntot), hc(ntot);
-            Vector<Real> hv(ntot);
-            Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
-            Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
-            Gpu::copyAsync(Gpu::deviceToHost, vals.begin(), vals.end(), hv.begin());
-            Gpu::streamSynchronize();
-            const Long n0 = host_trips.size();
-            host_trips.resize(n0 + ntot);
-            for (Long n = 0; n < ntot; ++n) {
-                auto& t = host_trips[n0+n];
-                t.row = hr[n];
-                t.col = hc[n];
-                t.val = hv[n];
-            }
-        }
-    };
+    Gpu::DeviceVector<BigInt> rows, cols;
+    Gpu::DeviceVector<Real> vals;
+    if (direct_fill) {
+        const Long ntot = m_ntrip + (pin_here ? 1 : 0);
+        rows.resize(ntot); cols.resize(ntot); vals.resize(ntot);
+    }
+    Long off = 0;               // triplets built so far
+    Real norm2_local = 0.0;     // of the values flushed to hypre
+    if (!hold) { ijBeginAssembly(); }
 
     for (int lev = 0; lev < m_nlevels; ++lev) {
         // Device copies of the ids
@@ -777,12 +748,25 @@ void HypreMLNodeLap::buildMatrix ()
             const Long ntrip = Scan::ExclusiveSum(ncells, pcount, offset.data(), Scan::retSum);
             if (ntrip == 0) { Gpu::streamSynchronize(); continue; }
 
-            // Pass 2: the triplets
-            Triplets& t = chunks.emplace_back();
-            t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
-            BigInt* prow = t.rows.data();
-            BigInt* pcol = t.cols.data();
-            Real* pval = t.vals.data();
+            // Pass 2: the triplets, into the box's part of the array of all
+            // levels or into a chunk of its own
+            BigInt* prow = nullptr;
+            BigInt* pcol = nullptr;
+            Real* pval = nullptr;
+            if (direct_fill) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(off + ntrip <= m_ntrip,
+                    "HypreMLNodeLap: the number of triplets changed between builds");
+                prow = rows.data() + off;
+                pcol = cols.data() + off;
+                pval = vals.data() + off;
+            } else {
+                Triplets& t = chunks.emplace_back();
+                t.rows.resize(ntrip); t.cols.resize(ntrip); t.vals.resize(ntrip);
+                prow = t.rows.data();
+                pcol = t.cols.data();
+                pval = t.vals.data();
+            }
+            off += ntrip;
             Long const* poff = offset.data();
             amrex::ParallelFor(ccbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -823,6 +807,17 @@ void HypreMLNodeLap::buildMatrix ()
             });
             // sync: the 'continue's below free count/offset
             Gpu::streamSynchronize();
+            if (!hold) {
+                // Reuse off, hypre backend: the box's triplets go to the
+                // matrix now and are freed; their norm is kept for a setup
+                // kept later (setReuseSolverSetup)
+                Triplets& t = chunks.back();
+                auto const* pv = t.vals.data();
+                norm2_local += Reduce::Sum<Real>(ntrip, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                                 { return pv[i]*pv[i]; });
+                ijAddTriplets(t.rows, t.cols, t.vals);
+                chunks.clear();
+            }
 
             // Couplings of the unknowns to Dirichlet domain nodes, directly or
             // through the interpolation of hanging nodes, whose values (taken
@@ -919,62 +914,273 @@ void HypreMLNodeLap::buildMatrix ()
         }
         // gid_d/cgid_d are freed at the end of this iteration
         Gpu::streamSynchronize();
-        flush();
     }
 
-    const bool pin_here = (m_pin_gid >= m_ilower && m_pin_gid <= m_iupper);
-    if (m_backend == Backend::hypre) {
+    if (m_ntrip < 0) {
+        m_ntrip = off;
+    } else {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(off == m_ntrip,
+            "HypreMLNodeLap: the number of triplets changed between builds");
+    }
+
+    if (!hold) {
+        // The identity row of the pinned unknown, then the assembly.  Reuse is
+        // off: the setup is redone at the next solve.  The matrix's norm is
+        // recorded for a setup kept later (setReuseSolverSetup)
         if (pin_here) {
-            Gpu::DeviceVector<BigInt> r(1, BigInt(m_pin_gid));
+            Gpu::DeviceVector<BigInt> r(1, BigInt(pin));
             Gpu::DeviceVector<Real> v(1, Real(1.0));
-            Gpu::DeviceVector<HYPRE_Int> o(1, 1);
-            HYPRE_IJMatrixAddToValues(m_A, 1, o.data(), r.data(), r.data(), v.data());
-            Gpu::hypreSynchronize();
+            ijAddTriplets(r, r, v);
         }
-        HYPRE_IJMatrixAssemble(m_A);
+        ijEndAssembly();
+        m_ij->setNeedSetup();
+        ParallelAllReduce::Sum(norm2_local, m_comm);
+        m_reuse.setSetupMatrix(norm2_local);
+        m_csr = composite::OwnedCSR{};
+        return;
     }
 
-    if (need_csr) {
-        BL_PROFILE("HypreMLNodeLap::buildCSR()");
-        if (pin_here) {
-            auto& t = host_trips.emplace_back();
-            t.row = m_pin_gid;
-            t.col = m_pin_gid;
-            t.val = Real(1.0);
+    // One array of the triplets of all levels, with the identity row of the
+    // pinned unknown last; a chunk is freed once copied
+    if (!direct_fill) {
+        const Long ntot = off + (pin_here ? 1 : 0);
+        rows.resize(ntot); cols.resize(ntot); vals.resize(ntot);
+        Long c = 0;
+        for (auto& t : chunks) {
+            Gpu::copyAsync(Gpu::deviceToDevice, t.rows.begin(), t.rows.end(), rows.begin()+c);
+            Gpu::copyAsync(Gpu::deviceToDevice, t.cols.begin(), t.cols.end(), cols.begin()+c);
+            Gpu::copyAsync(Gpu::deviceToDevice, t.vals.begin(), t.vals.end(), vals.begin()+c);
+            c += Long(t.rows.size());
+            Gpu::streamSynchronize();
+            t = Triplets{};
         }
-        host_trips = composite::exchange_triplets(std::move(host_trips), m_rank_offset, m_comm);
-        m_csr.define(m_ilower, m_iupper - m_ilower + 1, std::move(host_trips));
+        chunks.clear();
+    }
+    if (pin_here) {
+        BigInt* pr = rows.data();
+        BigInt* pc = cols.data();
+        Real* pv = vals.data();
+        amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) noexcept
+        {
+            pr[off] = BigInt(pin);
+            pc[off] = BigInt(pin);
+            pv[off] = Real(1.0);
+        });
+        Gpu::streamSynchronize();
     }
 
-    if (m_backend == Backend::algmg) {
-        m_spA = std::make_unique<SpMatrix<Real>>();
-        if (algmg_dev) {
-            if (pin_here) {
-                const auto n0 = Long(alg_rows.size());
-                alg_rows.resize(n0+1);
-                alg_cols.resize(n0+1);
-                alg_vals.resize(n0+1);
-                auto* ar = alg_rows.data();
-                auto* ac = alg_cols.data();
-                auto* av = alg_vals.data();
-                amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) noexcept
-                {
-                    ar[n0] = pin;
-                    ac[n0] = pin;
-                    av[n0] = Real(1.0);
-                });
+    // Setup reuse: whether the setup (hypre) or the hierarchy (AlgMG) is
+    // done anew for this matrix, or kept and the matrix scaled to the kept
+    // one's (composite::SetupReuse).  With reuse on, a hypre matrix that is
+    // assembled again rather than updated in place (the first update after
+    // reuse was turned on, or hypre dropped an entry) keeps the setup too.
+    bool new_setup = true;
+    if (m_backend == Backend::hypre) {
+        new_setup = !m_reuse_setup || m_ij->setupPending();
+    } else {
+        new_setup = !m_reuse_setup || !m_algmg || m_algmg_reset;
+    }
+    // The pinned row's identity entry stays 1 and does not count: it is of
+    // order one, not of the order of the operator's entries
+    const Long nscaled = off;
+    if (m_reuse.rescale(vals, [=] AMREX_GPU_DEVICE (Long i) noexcept { return i < nscaled; },
+                        new_setup, m_comm, m_verbose, m_prefix)) {
+        if (m_backend == Backend::hypre) { m_ij->setNeedSetup(); }
+        else { m_algmg_reset = true; }
+    }
+
+    // The coarse/fine couplings reach the rows of other ranks.  For the
+    // in-place updates, the AlgMG matrix and the dumps, every rank gets the
+    // triplets of its rows (in an order that depends only on the pattern)
+    composite::localize_triplets(rows, cols, vals, Long(m_ilower), m_iupper - m_ilower + 1,
+                                 m_rank_offset, m_comm);
+    populateMatrix(rows, cols, vals);
+}
+
+void HypreMLNodeLap::ijBeginAssembly ()
+{
+    if (m_matrix_assembled) { // zero, then add and assemble again
+        BL_PROFILE("HypreMLNodeLap::ij_zero");
+        HYPRE_IJMatrixSetConstantValues(m_A, Real(0.0));
+        HYPRE_IJMatrixInitialize(m_A);
+        Gpu::hypreSynchronize();
+    }
+}
+
+void HypreMLNodeLap::ijAddTriplets (Gpu::DeviceVector<BigInt> const& rows,
+                                    Gpu::DeviceVector<BigInt> const& cols,
+                                    Gpu::DeviceVector<Real> const& vals)
+{
+    const auto ntot = Long(rows.size());
+    if (ntot == 0) { return; }
+    BL_PROFILE("HYPRE_IJMatrixAddToValues");
+    Gpu::DeviceVector<HYPRE_Int> ones(ntot, 1);
+    // HYPRE_IJMatrixAddToValues takes the count as HYPRE_Int
+    constexpr Long max_chunk = std::numeric_limits<HYPRE_Int>::max();
+    for (Long n0 = 0; n0 < ntot; n0 += max_chunk) {
+        auto const n = HYPRE_Int(std::min(max_chunk, ntot-n0));
+        HYPRE_IJMatrixAddToValues(m_A, n, ones.data()+n0, rows.data()+n0,
+                                  cols.data()+n0, vals.data()+n0);
+        Gpu::hypreSynchronize();
+    }
+}
+
+void HypreMLNodeLap::ijEndAssembly ()
+{
+    BL_PROFILE("HYPRE_IJMatrixAssemble");
+    HYPRE_IJMatrixAssemble(m_A);
+    Gpu::hypreSynchronize();
+    m_matrix_assembled = true;
+    m_ij_gather.clear();
+}
+
+void HypreMLNodeLap::setReuseSolverSetup (bool v)
+{
+    m_reuse_setup = v;
+    // With reuse, the setup is redone only after resetSolverSetup() and by
+    // the reuse controls (see buildMatrix); otherwise after every
+    // updateMatrix and, with <prefix>.recompute_preconditioner, on every
+    // solve
+    if (m_ij) { m_ij->setRecomputePreconditioner(v ? false : m_recompute_pp); }
+    if (!v) {
+        // The slots of the in-place updates are of an assembly with reuse
+        // on; the next update with reuse on assembles again and finds them
+        m_ij_gather.clear();
+        m_alg_gather.clear();
+        m_alg_row_offset.clear();
+        m_alg_col_index.clear();
+    }
+}
+
+void HypreMLNodeLap::populateMatrix (Gpu::DeviceVector<BigInt>& rows,
+                                     Gpu::DeviceVector<BigInt>& cols,
+                                     Gpu::DeviceVector<Real>& vals)
+{
+    BL_PROFILE("HypreMLNodeLap::populateMatrix()");
+    const Long nrows = m_iupper - m_ilower + 1;
+    const auto ntot = Long(rows.size());
+    const bool need_csr = composite::dump_pending(m_dump_prefix, m_dump_max);
+    const bool hypre_backend = (m_backend == Backend::hypre);
+
+    // In-place update of the assembled matrix (setup reuse): the same
+    // pattern, new values
+    const bool direct = hypre_backend && m_reuse_setup && !m_ij_gather.empty();
+    const bool alg_direct = !hypre_backend && m_reuse_setup && !m_alg_gather.empty();
+    if (direct || alg_direct) {
+        auto const& gather = direct ? m_ij_gather : m_alg_gather;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gather.numTriplets() == ntot,
+            "HypreMLNodeLap: the matrix pattern changed between updates with setup reuse");
+    }
+    if (direct) {
+        composite::ij_update_values(m_A, m_ij_gather, vals);
+    } else if (hypre_backend) {
+        ijBeginAssembly();
+        ijAddTriplets(rows, cols, vals);
+        ijEndAssembly();
+        // With reuse off, the setup is redone at the next solve; with reuse
+        // on it is kept, the values having been scaled to it (buildMatrix)
+        if (!m_reuse_setup) { m_ij->setNeedSetup(); }
+        if (m_reuse_setup && !m_ij_gather_failed &&
+            !composite::ij_entry_slots(m_A, rows, cols, m_comm, m_ij_gather)) {
+            m_ij_gather_failed = true; // for this matrix; not tried again
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": hypre dropped an entry; the matrix is assembled "
+                               << "again at every update (the setup is kept)\n";
             }
-            composite::triplets_to_spmatrix(alg_rows, alg_cols, alg_vals, m_ilower,
-                                            m_iupper - m_ilower + 1, m_rank_offset, m_comm, *m_spA);
-        } else {
-            m_csr.toSpMatrix(*m_spA, m_rank_offset);
+        } else if (m_verbose > 1 && m_reuse_setup && !m_ij_gather.empty()) {
+            amrex::Print() << m_prefix << ": later updates are in place\n";
         }
-        m_algmg = std::make_unique<AlgMG<Real>>(*m_spA);
-        m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
-        // V-cycles alone can stall on composite AMR systems; S is symmetric
-        composite::algmg_parse_options(*m_algmg, m_prefix, AlgMGKrylovSolver::pcg);
     }
-    if (!composite::dump_pending(m_dump_prefix, m_dump_max)) { m_csr = composite::OwnedCSR{}; }
+
+    // Owned-row CSR on the host: for the dumps, and once for the slots of
+    // the triplets in the AlgMG matrix (later updates gather into it)
+    const bool alg_slots = !hypre_backend && m_reuse_setup && !alg_direct;
+    if (need_csr || alg_slots) {
+        BL_PROFILE("HypreMLNodeLap::buildCSR()");
+        Vector<BigInt> hr(ntot), hc(ntot);
+        Vector<Real> hv(ntot);
+        Gpu::copyAsync(Gpu::deviceToHost, rows.begin(), rows.end(), hr.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, cols.begin(), cols.end(), hc.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, vals.begin(), vals.end(), hv.begin());
+        Gpu::streamSynchronize();
+        Vector<composite::Triplet> trips(ntot);
+        for (Long n = 0; n < ntot; ++n) {
+            trips[n] = composite::Triplet{.row = Long(hr[n]), .col = Long(hc[n]), .val = hv[n]};
+        }
+        m_csr.define(Long(m_ilower), nrows, std::move(trips));
+        if (alg_slots) {
+            Vector<Long> slots(ntot);
+            for (Long n = 0; n < ntot; ++n) {
+                auto const r = Long(hr[n]) - Long(m_ilower);
+                auto const* b = m_csr.col_index.data() + m_csr.row_offset[r];
+                auto const* e = m_csr.col_index.data() + m_csr.row_offset[r+1];
+                slots[n] = Long(std::lower_bound(b, e, Long(hc[n])) - m_csr.col_index.data());
+            }
+            m_alg_row_offset.resize(m_csr.row_offset.size());
+            m_alg_col_index.resize(m_csr.col_index.size());
+            Gpu::copyAsync(Gpu::hostToDevice, m_csr.row_offset.begin(), m_csr.row_offset.end(),
+                           m_alg_row_offset.begin());
+            Gpu::copyAsync(Gpu::hostToDevice, m_csr.col_index.begin(), m_csr.col_index.end(),
+                           m_alg_col_index.begin());
+            Gpu::streamSynchronize();
+            composite::define_gather(m_alg_gather, slots, m_csr.nnz());
+        }
+    }
+
+    if (!hypre_backend) {
+        auto spA = std::make_unique<SpMatrix<Real>>();
+        if (alg_direct || alg_slots) {
+            BL_PROFILE("HypreMLNodeLap::algmg_matrix");
+            SpMatrix<Real>::csr_type csr;
+            csr.nnz = Long(m_alg_col_index.size());
+            csr.mat.resize(csr.nnz);
+            csr.col_index.resize(csr.nnz);
+            csr.row_offset.resize(m_alg_row_offset.size());
+            Gpu::copyAsync(Gpu::deviceToDevice, m_alg_row_offset.begin(), m_alg_row_offset.end(),
+                           csr.row_offset.begin());
+            Gpu::copyAsync(Gpu::deviceToDevice, m_alg_col_index.begin(), m_alg_col_index.end(),
+                           csr.col_index.begin());
+            composite::gather_sum(m_alg_gather, vals.data(), csr.mat.data(), csr.nnz);
+            spA->define(AlgPartition(m_rank_offset), std::move(csr), CsrSorted{true});
+        } else if (need_csr) {
+            m_csr.toSpMatrix(*spA, m_rank_offset);
+        } else {
+            // On the device, from the triplets (consumed)
+            Gpu::DeviceVector<Long> lrows(ntot), lcols(ntot);
+            auto const* pr = rows.data();
+            auto const* pc = cols.data();
+            auto* plr = lrows.data();
+            auto* plc = lcols.data();
+            amrex::ParallelFor(ntot, [=] AMREX_GPU_DEVICE (Long n) noexcept
+            {
+                plr[n] = Long(pr[n]);
+                plc[n] = Long(pc[n]);
+            });
+            Gpu::streamSynchronize();
+            composite::triplets_to_spmatrix(lrows, lcols, vals, Long(m_ilower), nrows,
+                                            m_rank_offset, m_comm, *spA, true);
+        }
+        // With setup reuse, keep the hierarchy for the new matrix; it is
+        // only kept if it has been set up (solved with) since its define()
+        if (m_algmg && m_reuse_setup && !m_algmg_reset) {
+            m_algmg_kept = m_algmg->updateMatrix(*spA);
+        } else {
+            m_algmg_kept = false;
+            m_algmg = std::make_unique<AlgMG<Real>>(*spA);
+            m_algmg->setVerbose(m_verbose > 1 ? m_verbose-1 : 0);
+            // V-cycles alone can stall on composite AMR systems; S is symmetric
+            composite::algmg_parse_options(*m_algmg, m_prefix, AlgMGKrylovSolver::pcg);
+        }
+        m_algmg_reset = false;
+        m_spA = std::move(spA); // after m_algmg has let go of the old matrix
+    }
+    if (!need_csr) { m_csr = composite::OwnedCSR{}; }
+}
+
+void HypreMLNodeLap::updateMatrix ()
+{
+    BL_PROFILE("HypreMLNodeLap::updateMatrix()");
+    buildMatrix();
 }
 
 void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
@@ -1082,10 +1288,10 @@ void HypreMLNodeLap::loadRHS (Vector<MultiFab const*> const& a_rhs,
         }
     }
 
-    // Scaled system: b' = s b
+    // Scaled system: b' = s b, and the matrix scale of the kept setup
     Real bnorm2 = 0.0;
     for (Long r = 0; r < nrows; ++r) {
-        bvec[r] *= svec[r];
+        bvec[r] *= svec[r] * m_reuse.scale;
         bnorm2 += bvec[r]*bvec[r];
     }
     ParallelAllReduce::Sum(bnorm2, m_comm);
@@ -1220,40 +1426,57 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     const Real fine_vol = AMREX_D_TERM(m_geom.back().CellSize(0),
                                        *m_geom.back().CellSize(1),
                                        *m_geom.back().CellSize(2));
+    // Also scaled like the right-hand side, to the kept setup
     const Real abstol = (a_abstol > Real(0.0))
-        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) : Real(0.0);
+        ? a_abstol * fine_vol / Real(AMREX_D_TERM(2,*2,*2)) * m_reuse.scale : Real(0.0);
 
     if (m_backend == Backend::hypre) {
-        HYPRE_IJVectorInitialize(m_b);
-        HYPRE_IJVectorInitialize(m_x);
+        Gpu::DeviceVector<BigInt> d_rows(nrows);
         if (nrows > 0) {
             Vector<BigInt> rowids(nrows);
             std::iota(rowids.begin(), rowids.end(), static_cast<BigInt>(m_ilower));
-            Gpu::DeviceVector<BigInt> d_rows(nrows);
-            Gpu::DeviceVector<Real> d_b(nrows), d_x(nrows);
             Gpu::copyAsync(Gpu::hostToDevice, rowids.begin(), rowids.end(), d_rows.begin());
-            Gpu::copyAsync(Gpu::hostToDevice, m_bvec.begin(), m_bvec.end(), d_b.begin());
-            Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), d_x.begin());
-            Gpu::streamSynchronize();
-            HYPRE_IJVectorSetValues(m_b, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_b.data());
-            HYPRE_IJVectorSetValues(m_x, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_x.data());
-            Gpu::hypreSynchronize();
+            Gpu::streamSynchronize(); // before rowids is freed
         }
-        HYPRE_IJVectorAssemble(m_b);
-        HYPRE_IJVectorAssemble(m_x);
+        auto load = [&] (HYPRE_IJVector v, Vector<Real> const& h) {
+            HYPRE_IJVectorInitialize(v);
+            if (nrows > 0) {
+                Gpu::DeviceVector<Real> d(nrows);
+                Gpu::copyAsync(Gpu::hostToDevice, h.begin(), h.end(), d.begin());
+                Gpu::streamSynchronize();
+                HYPRE_IJVectorSetValues(v, static_cast<HYPRE_Int>(nrows), d_rows.data(), d.data());
+                Gpu::hypreSynchronize();
+            }
+            HYPRE_IJVectorAssemble(v);
+        };
+        load(m_b, m_bvec);
+        load(m_x, m_xvec);
 
-        m_ij->setThrowException(m_throw_exception);
-        m_ij->solve(a_reltol, abstol, a_maxiter);
-        m_num_iters = static_cast<int>(m_ij->getNumIters());
-        m_final_res = m_ij->getFinalResidualNorm();
+        // A setup kept from an earlier matrix, not one done for this solve
+        const bool reused = m_reuse_setup && !m_ij->setupPending();
+        auto const r = composite::ij_solve_reused(*m_ij, reused, m_throw_exception, a_reltol,
+                                                  abstol, a_maxiter, m_comm, m_verbose, m_prefix,
+            [&] (Real res) {
+                return (res <= a_reltol) || (abstol > Real(0.0) && res*m_bnorm <= abstol);
+            },
+            [&] () { load(m_x, m_xvec); });
+        m_num_iters = r.num_iters;
+        m_final_res = r.final_res;
+        // A setup done at this solve (fresh, or redone in the retry) is for
+        // the current matrix
+        if (r.redone || !reused) {
+            m_reuse.setupDone();
+        } else if (m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": " << m_num_iters << " iterations with the reused "
+                               << "setup, more than reuse_setup_max_iter; redoing it at the next solve\n";
+            }
+            m_ij->setNeedSetup(); // for the next solve
+        }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
 
         if (nrows > 0) {
-            Vector<BigInt> rowids(nrows);
-            std::iota(rowids.begin(), rowids.end(), static_cast<BigInt>(m_ilower));
-            Gpu::DeviceVector<BigInt> d_rows(nrows);
             Gpu::DeviceVector<Real> d_x(nrows);
-            Gpu::copyAsync(Gpu::hostToDevice, rowids.begin(), rowids.end(), d_rows.begin());
-            Gpu::streamSynchronize();
             HYPRE_IJVectorGetValues(m_x, static_cast<HYPRE_Int>(nrows), d_rows.data(), d_x.data());
             Gpu::hypreSynchronize();
             Gpu::copyAsync(Gpu::deviceToHost, d_x.begin(), d_x.end(), m_xvec.begin());
@@ -1266,13 +1489,41 @@ void HypreMLNodeLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         Gpu::copyAsync(Gpu::hostToDevice, m_bvec.begin(), m_bvec.end(), b.data());
         Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), x.data());
         Gpu::streamSynchronize();
-        m_algmg->setThrowException(m_throw_exception);
+        if (m_algmg_reset) {
+            // resetSolverSetup() or reuse_setup_max_iter since the last
+            // setup: a new hierarchy for the current matrix
+            m_algmg->define(*m_spA);
+            m_algmg_kept = false;
+            m_algmg_reset = false;
+        }
         m_algmg->setRelTol(a_reltol);
         m_algmg->setAbsTol(abstol);
         m_algmg->setMaxIter(a_maxiter);
-        m_algmg->solve(x, b);
-        m_num_iters = m_algmg->getNumIters();
-        m_final_res = (m_bnorm > Real(0.0)) ? m_algmg->getResidualNorm() / m_bnorm : Real(0.0);
+        const bool kept = m_algmg_kept;
+        auto const r = composite::algmg_solve_kept(*m_algmg, *m_spA, kept,
+                                                   m_throw_exception, x, b, m_bnorm, m_comm,
+                                                   m_verbose, m_prefix,
+            [&] (Real res) {
+                return (res <= a_reltol) || (abstol > Real(0.0) && res*m_bnorm <= abstol);
+            },
+            [&] () {
+                Gpu::copyAsync(Gpu::hostToDevice, m_xvec.begin(), m_xvec.end(), x.data());
+                Gpu::streamSynchronize();
+            });
+        m_num_iters = r.num_iters;
+        m_final_res = r.final_res;
+        if (r.redone) { m_algmg_kept = false; }
+        // A hierarchy built at this solve is for the current matrix
+        if (r.redone || !kept) {
+            m_reuse.setupDone();
+        } else if (m_reuse_max_iter > 0 && m_num_iters > m_reuse_max_iter) {
+            if (m_verbose) {
+                amrex::Print() << m_prefix << ": " << m_num_iters << " iterations with the kept "
+                               << "hierarchy, more than reuse_setup_max_iter; rebuilding it at the next solve\n";
+            }
+            m_algmg_reset = true; // for the next solve or update
+        }
+        if (!r.error.empty()) { throw std::runtime_error(r.error); }
         Gpu::copyAsync(Gpu::deviceToHost, x.data(), x.data()+nrows, m_xvec.begin());
         Gpu::streamSynchronize();
     }

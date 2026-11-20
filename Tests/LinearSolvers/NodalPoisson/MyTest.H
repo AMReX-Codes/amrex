@@ -79,6 +79,28 @@ private:
     int const_solution = 0;
     // mlhypre: NaN rhs at the Dirichlet domain nodes, which must not be used
     int mlhypre_nan_dirichlet_rhs = 0;
+    // mlhypre: solves of the same object after the first, each with sigma
+    // and the rhs scaled by 2 (the same solution), the matrix updated in
+    // place and the solver setup kept (HypreMLNodeLap::updateMatrix)
+    int mlhypre_num_solves = 1;
+    // mlhypre_num_solves: scale sigma by a factor that varies in x instead
+    // (the rhs unchanged, so a new problem that MLMG solves too): the kept
+    // setup then only approximates the operator
+    int mlhypre_sigma_nonuniform = 0;
+    // mlhypre_num_solves: HypreMLNodeLap::setReuseSetupMaxChange after the
+    // first solve (the setup redone once the matrix has changed by more)
+    amrex::Real mlhypre_reuse_max_change = 0.0;
+    // mlhypre_num_solves: 0 leaves setup reuse off (the matrix is assembled
+    // again at every update and the setup redone); 1 turns it on before the
+    // first update
+    int mlhypre_reuse_setup = 1;
+    // mlhypre_num_solves: turn setup reuse off again before this repeated
+    // solve and the later ones (1-based; 0: never)
+    int mlhypre_reuse_off_solve = 0;
+    // mlhypre: abort when a solve takes more iterations than this (-1:
+    // none), to check that a kept setup is as good as a fresh one, or that
+    // a reuse control redid it
+    int mlhypre_max_iters = -1;
     amrex::Vector<std::string> multigrid_types{"geometric"};
     amrex::MultigridType multigrid_type = amrex::MultigridType::geometric;
     //! Testing aid, not for normal use: a non-negative value overrides the
