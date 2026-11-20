@@ -524,6 +524,8 @@ InitFromBinaryFile (const std::string& file,
 
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     tmp_particles.resize(finestLevel()+1);
+    tileConfig(); // makes sure there is one
+    for (auto& pmap : tmp_particles) { pmap.setConfig(m_tile_config); }
 
     resizeData();
 
@@ -888,7 +890,7 @@ InitFromBinaryFile (const std::string& file,
                 ParticleVector().swap(aos);
             }
 
-            ParticleLevel().swap(pmap);
+            pmap.clear();
         }
     }
     //
@@ -896,13 +898,12 @@ InitFromBinaryFile (const std::string& file,
     //
     tmp_particles.swap(m_particles);
     //
-    // The tiles in tmp_particles were not defined: define them and size their
-    // SoA components to the particle count, with zero for the values they did not have.
+    // Only the particle data was moved into tmp_particles: size the SoA components
+    // to the particle count, with zero for the values they did not have.
     //
-    for (int lev = 0; lev < std::ssize(m_particles); ++lev) {
-        for (auto& kv : m_particles[lev]) {
-            auto& ptile = DefineAndReturnParticleTile(lev, kv.first.first, kv.first.second);
-            particle_detail::resizeAndZeroNewSoA(ptile, ptile.numParticles(), true);
+    for (auto& pmap : m_particles) {
+        for (auto& kv : pmap) {
+            particle_detail::resizeAndZeroNewSoA(kv.second, kv.second.numParticles(), true);
         }
     }
     //
@@ -1401,7 +1402,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     std::mt19937 mt(iseed);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    resizeParticleLevels(m_gdb->finestLevel()+1);
 
     for (int lev = 0; lev < std::ssize(m_particles); lev++)
     {
@@ -1513,7 +1514,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         RealBox grid_box (grid,dx,geom.ProbLo());
         ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
         ptile_tmp.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
-                         &m_soa_rdata_names, &m_soa_idata_names);
+                         &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names);
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data

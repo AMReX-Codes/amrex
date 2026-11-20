@@ -15,6 +15,7 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_ParticleLevel.H>
 
 #include <string>
 
@@ -266,11 +267,11 @@ public:
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
     [[nodiscard]] Arena* arena () const {
-        return m_arena;
+        return m_tile_config ? m_tile_config->arena : nullptr;
     }
 
     void SetArena (Arena* a) {
-        m_arena = a;
+        tileConfig().arena = a;
     }
 
     static const std::string& CheckpointVersion ();
@@ -319,7 +320,20 @@ protected:
     std::unique_ptr<ParGDB> m_gdb_object = std::make_unique<ParGDB>();
     ParGDBBase* m_gdb{nullptr};
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
-    Arena* m_arena = nullptr;
+    //! What new particle tiles are set up with. It is shared with the ParticleLevels,
+    //! so that the tiles they create get all the components and the arena.
+    std::shared_ptr<ParticleTileConfig> m_tile_config = std::make_shared<ParticleTileConfig>();
+
+    //! m_tile_config, re-created if this container was moved from
+    ParticleTileConfig& tileConfig () {
+        if (!m_tile_config) { m_tile_config = std::make_shared<ParticleTileConfig>(); }
+        return *m_tile_config;
+    }
+
+    [[nodiscard]] ParticleTileConfig const& tileConfig () const {
+        static const ParticleTileConfig empty{};
+        return m_tile_config ? *m_tile_config : empty;
+    }
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable IntVect redistribute_mask_nghost = IntVect(std::numeric_limits<int>::min());

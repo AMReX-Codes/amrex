@@ -306,6 +306,9 @@ conditions for both SoA and AoS data. We loop over all the tiles using
 tile with :cpp:`DefineAndReturnParticleTile`, which creates the tile if it
 does not exist yet and sets it up for every component of the container,
 including any :ref:`components added at runtime <sec:Particles:Runtime>`.
+Indexing the map of tiles returned by :cpp:`GetParticles`, for example
+:cpp:`GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())]`,
+creates and sets up a tile in the same way.
 
 .. highlight:: c++
 
@@ -393,13 +396,18 @@ will be stored in Struct-of-Array style. To add a runtime component, use the
 Runtime-added components can be accessed like regular Struct-of-Array data.
 The new components will be added at the end of the compile-time defined ones.
 
-When you add particles to a container that has runtime components, get each
-tile with :cpp:`DefineAndReturnParticleTile` before adding any particles, as in
-the section on :ref:`initializing particle data <sec:Particles:Initializing>`.
-This makes sure the tile has storage for the runtime components. Do not create
-tiles by indexing the map returned by :cpp:`GetParticles` (for example,
-:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`): a tile created this way
-has no runtime components.
+A tile created with :cpp:`DefineAndReturnParticleTile`, or by indexing the map
+returned by :cpp:`GetParticles` (for example,
+:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`), has storage for all the
+runtime components that have been added to the container, as in the section on
+:ref:`initializing particle data <sec:Particles:Initializing>`. A tile added to
+that map in other ways, for example with :cpp:`insert` or :cpp:`emplace`, is
+added as it is given.
+
+For a container with a :cpp:`PolymorphicArenaAllocator`, a tile created by
+indexing the map before :cpp:`SetArena` has been called gets its components,
+but uses the container's arena only once it is defined with it, for example by
+:cpp:`DefineAndReturnParticleTile` or :cpp:`Redistribute`.
 
 Every component of a tile must hold one value per particle. :cpp:`push_back(p)`
 and the array overloads of :cpp:`push_back_real` and :cpp:`push_back_int` only

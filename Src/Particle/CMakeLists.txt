@@ -31,6 +31,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_StructOfArrays.H
        AMReX_ArrayOfStructs.H
        AMReX_ParticleTile.H
+       AMReX_ParticleLevel.H
        AMReX_ParticleTileRT.H
        AMReX_MakeParticle.H
        AMReX_NeighborParticlesCPUImpl.H
