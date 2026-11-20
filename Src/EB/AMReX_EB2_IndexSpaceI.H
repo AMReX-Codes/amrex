@@ -165,6 +165,11 @@ IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(num_new_coarse_levels <= 30,
                                      "IndexSpaceImp::addRegularCoarseLevels: num_new_coarse_levels too large");
 
+    // The existing levels move down by num_new_coarse_levels; keep their coarse probing.
+    if (m_num_coarsen_opt > 0) {
+        m_num_coarsen_opt += num_new_coarse_levels;
+    }
+
     auto nlevs_old = int(m_gslevel.size());
     int nlevs_new = nlevs_old + num_new_coarse_levels;
 
