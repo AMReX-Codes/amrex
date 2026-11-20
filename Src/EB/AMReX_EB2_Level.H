@@ -138,6 +138,8 @@ public:
     bool hasEBInfo () const noexcept { return m_has_eb_info; }
     //! Populate the cut-cell mask into \p cutcellmask.
     void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
+    //! Populate the face-centered cut-cell mask, nodal in \p face_dir, into \p cutcellmask.
+    void fillCutCellMaskFC (iMultiFab& cutcellmask, int face_dir, const Geometry& geom) const;
 
     /**
      * \brief Shift this level by \p ncells cells along direction \p direction (for periodic tiling).

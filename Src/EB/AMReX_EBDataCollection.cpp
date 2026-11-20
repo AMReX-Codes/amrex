@@ -159,9 +159,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     }
 
     if (! a_level.hasEBInfo()) {
-        m_cutcellmask = new iMultiFab(a_ba, a_dm, 1, 0, MFInfo(),
+        m_cutcellmask = new iMultiFab(fc_grids, a_dm, 1, 0, MFInfo(),
                                       DefaultFabFactory<IArrayBox>());
-        a_level.fillCutCellMask(*m_cutcellmask, m_geom);
+        a_level.fillCutCellMaskFC(*m_cutcellmask, face_dir, m_geom);
     }
 
     if (! a_level.isAllRegular()) {
