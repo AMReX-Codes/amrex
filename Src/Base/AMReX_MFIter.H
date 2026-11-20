@@ -237,6 +237,8 @@ protected:
     DeviceSync device_sync;
     DeviceSync device_sync_pre{true};
     DeviceSync device_sync_post{true};
+    //! Gpu::StreamOrderedRegion: fork from and join into stream 0 on the GPU.
+    DeviceSync device_join{false};
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;
