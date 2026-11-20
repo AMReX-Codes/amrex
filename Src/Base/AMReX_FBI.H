@@ -639,17 +639,25 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
     loc_copy_tags_1.reserve(N_locs);
     loc_copy_tags_2.reserve(N_locs);
 
-    Vector<FAB> src_fabs(N_locs);
+    // The source data are copied to one temporary buffer first.
+    Long npts = 0;
+    for (auto const& tag : LocTags) {
+        npts += tag.sbox.numPts();
+    }
+    auto* src_buf = static_cast<value_type*>
+        (The_Arena()->alloc(std::size_t(npts)*std::size_t(ncomp)*sizeof(value_type)));
+    auto* p = src_buf;
     for (int itag = 0; itag < N_locs; ++itag) {
         const CopyComTag& tag = LocTags[itag];
-        src_fabs[itag].resize(tag.sbox,ncomp);
+        auto const& src = amrex::makeArray4(p, tag.sbox, ncomp);
+        p += tag.sbox.numPts()*ncomp;
         loc_copy_tags_1.push_back(
-            TagType{.dfab = src_fabs[itag].array(), .dindex = -1,
+            TagType{.dfab = src, .dindex = -1,
                     .sfab = this->const_array(tag.srcIndex,scomp), .dbox = tag.sbox,
                     .offset = Dim3{.x = 0, .y = 0, .z = 0}});
         loc_copy_tags_2.push_back(
             TagType{.dfab = this->array(tag.dstIndex,scomp), .dindex = tag.dstIndex,
-                    .sfab = src_fabs[itag].const_array(), .dbox = tag.dbox,
+                    .sfab = src, .dbox = tag.dbox,
                     .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
     }
 
@@ -670,7 +678,12 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
         ((void)0);
     }
 
-    Gpu::streamSynchronize(); // src_fabs are temporaries
+    if (Gpu::inNoSyncRegion()) {
+        Gpu::freeAsync(The_Arena(), src_buf);
+    } else {
+        Gpu::streamSynchronize();
+        The_Arena()->free(src_buf);
+    }
 }
 
 template <class FAB>
