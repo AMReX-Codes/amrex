@@ -96,7 +96,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
       m_geom(a_geom),
       m_face_dir(face_dir)
 {
-    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
+    AMREX_ALWAYS_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
     if (!a_level.hasFCData(face_dir)) {
         std::ostringstream msg;
         msg << "EBDataCollection: no face-centered data for face_dir " << face_dir
