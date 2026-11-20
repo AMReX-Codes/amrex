@@ -20,6 +20,29 @@ namespace amrex {
       IntVect periodic_shift;
   };
 
+namespace detail {
+
+/// Component lists for the same-rank ghost refresh on the CPU
+/// (updateNeighborsCPU). Only the components flagged for ghost communication
+/// are copied, and from a group of per-body "slot" arrays (contact history)
+/// only the occupied slots. A slot is empty when both its keys are -1; the key
+/// arrays and the payload arrays are runtime components, the payload being
+/// nblocks blocks of nslots entries each (block b, slot s at real0 + b*nslots + s).
+struct GhostCopyPlan
+{
+    Vector<int> ct_real;   ///< flagged compile-time array reals (index into rdata)
+    Vector<int> rt_real;   ///< flagged runtime reals outside the slot group
+    Vector<int> ct_int;    ///< flagged compile-time array ints (index into idata)
+    Vector<int> rt_int;    ///< flagged runtime ints outside the slot group
+    int nslots  = 0;       ///< slots per body, 0 = no slot group
+    int key_cpu = 0;       ///< first runtime int of the slot cpu keys
+    int key_id  = 0;       ///< first runtime int of the slot id keys
+    int real0   = 0;       ///< first runtime real of the slot payload
+    int nblocks = 0;       ///< payload blocks of nslots reals
+};
+
+} // namespace detail
+
 ///
 /// This is a container for particles that undergo short-range interactions.
 /// In addition to the normal ParticleContainer methods, each tile contains a "neighbor
@@ -323,6 +346,35 @@ public:
     void setRealCommComp (int i, bool value);
     void setIntCommComp (int i, bool value);
 
+    ///
+    /// Declare a group of per-body slot arrays among the runtime components
+    /// (for example contact history): nslots slots per body, the cpu keys at
+    /// runtime int key_cpu + s, the id keys at key_id + s, and nblocks blocks
+    /// of nslots reals from runtime real real0 (block b, slot s at
+    /// real0 + b*nslots + s). A slot is empty when both its keys are -1. With
+    /// the group declared, the masked same-rank ghost refresh on the CPU (see
+    /// setGhostCopyMasked) copies the payload of the occupied slots only. All
+    /// the components of the group must be flagged for ghost communication,
+    /// otherwise the group is ignored.
+    ///
+    void setGhostSlotGroup (int nslots, int key_cpu, int key_id, int real0, int nblocks)
+    {
+        ghost_slot_n       = nslots;
+        ghost_slot_key_cpu = key_cpu;
+        ghost_slot_key_id  = key_id;
+        ghost_slot_real0   = real0;
+        ghost_slot_nblocks = nblocks;
+    }
+
+    ///
+    /// true: the same-rank ghost refresh on the CPU (updateNeighbors) copies
+    /// only the components flagged for ghost communication, as the MPI path
+    /// does, and from a declared slot group only the occupied slots.
+    /// false (default): it copies every component of every ghost.
+    ///
+    void setGhostCopyMasked (bool flag) { ghost_copy_masked = flag; }
+    [[nodiscard]] bool ghostCopyMasked () const { return ghost_copy_masked; }
+
     ParticleTile& GetNeighbors (int lev, int grid, int tile)
     {
         return neighbors[lev][std::make_pair(grid,tile)];
@@ -404,6 +456,71 @@ protected:
     [[nodiscard]] int numRealCommComps () const { return RealCommCompStart + this->NumRealComps(); }
     [[nodiscard]] int numIntCommComps () const { return IntCommCompStart + this->NumIntComps(); }
 
+    ///
+    /// Lists of the components the same-rank ghost refresh has to copy, from
+    /// the ghost flags and the slot group (see setGhostSlotGroup).
+    ///
+    [[nodiscard]] detail::GhostCopyPlan makeGhostCopyPlan () const
+    {
+        detail::GhostCopyPlan plan;
+        constexpr int rcs = RealCommCompStart;
+        constexpr int ics = IntCommCompStart;
+        const int nrc = this->NumRealComps();
+        const int nic = this->NumIntComps();
+        const int nrt = nrc - T_NArrayReal;   // runtime reals
+        const int nit = nic - T_NArrayInt;    // runtime ints
+
+        // The group is used only if it lies inside the runtime components
+        // with distinct key arrays, and every component of it is flagged.
+        bool grp = (ghost_slot_n > 0) && (ghost_slot_nblocks > 0)
+            && (ghost_slot_real0 >= 0)
+            && (ghost_slot_real0 + ghost_slot_nblocks*ghost_slot_n <= nrt)
+            && (ghost_slot_key_cpu >= 0) && (ghost_slot_key_id >= 0)
+            && (ghost_slot_key_cpu + ghost_slot_n <= nit)
+            && (ghost_slot_key_id  + ghost_slot_n <= nit)
+            && (ghost_slot_key_cpu + ghost_slot_n <= ghost_slot_key_id
+                || ghost_slot_key_id + ghost_slot_n <= ghost_slot_key_cpu);
+        if (grp) {
+            for (int k = 0; grp && k < ghost_slot_nblocks*ghost_slot_n; ++k) {
+                grp = ghost_real_comp[rcs + T_NArrayReal + ghost_slot_real0 + k] != 0;
+            }
+            for (int k = 0; grp && k < ghost_slot_n; ++k) {
+                grp = ghost_int_comp[ics + T_NArrayInt + ghost_slot_key_cpu + k] != 0
+                   && ghost_int_comp[ics + T_NArrayInt + ghost_slot_key_id  + k] != 0;
+            }
+        }
+        if (grp) {
+            plan.nslots  = ghost_slot_n;
+            plan.key_cpu = ghost_slot_key_cpu;
+            plan.key_id  = ghost_slot_key_id;
+            plan.real0   = ghost_slot_real0;
+            plan.nblocks = ghost_slot_nblocks;
+        }
+
+        for (int ii = 0; ii < nrc; ++ii) {
+            if (!ghost_real_comp[rcs + ii]) { continue; }
+            if (ii < T_NArrayReal) {
+                plan.ct_real.push_back(ii);
+            } else {
+                int const jr = ii - T_NArrayReal;
+                if (grp && jr >= plan.real0 && jr < plan.real0 + plan.nblocks*plan.nslots) { continue; }
+                plan.rt_real.push_back(jr);
+            }
+        }
+        for (int ii = 0; ii < nic; ++ii) {
+            if (!ghost_int_comp[ics + ii]) { continue; }
+            if (ii < T_NArrayInt) {
+                plan.ct_int.push_back(ii);
+            } else {
+                int const jr = ii - T_NArrayInt;
+                if (grp && ((jr >= plan.key_cpu && jr < plan.key_cpu + plan.nslots) ||
+                            (jr >= plan.key_id  && jr < plan.key_id  + plan.nslots))) { continue; }
+                plan.rt_int.push_back(jr);
+            }
+        }
+        return plan;
+    }
+
     void cacheNeighborInfo (amrex::Real search_radius = amrex::Real(0));
 
     ///
@@ -483,6 +600,14 @@ protected:
 
     Vector<int> ghost_real_comp;
     Vector<int> ghost_int_comp;
+
+    // Slot group and mode of the same-rank ghost refresh (CPU)
+    int ghost_slot_n       = 0;
+    int ghost_slot_key_cpu = 0;
+    int ghost_slot_key_id  = 0;
+    int ghost_slot_real0   = 0;
+    int ghost_slot_nblocks = 0;
+    bool ghost_copy_masked = false;
 
     static bool use_mask;
 
