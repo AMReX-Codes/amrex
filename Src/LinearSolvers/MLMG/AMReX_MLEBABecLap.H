@@ -381,6 +381,9 @@ protected:
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
     bool isEBInhomogNeumann () const noexcept { return m_eb_neumann_flux[0] != nullptr; }
 
+    //! Abort if the EB boundary conditions are inconsistent (mixed, or missing on a level).
+    void checkEBBC () const;
+
     //! Store b_EB * dphidn; \p beta, or \p beta_vals (one per component, device memory) if it is null.
     void setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFab* beta,
                            Real const* beta_vals);

@@ -129,6 +129,18 @@ MyTest::solve ()
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
         singular = mleb.isSingular(0);
 
+        if (eb_neumann_inhomog) {
+            // compResidual must include the EB Neumann term, as the solve does
+            Vector<MultiFab> res(max_level+1);
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                res[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+            }
+            mlmg.compResidual(amrex::GetVecOfPtrs(res), amrex::GetVecOfPtrs(phi),
+                              amrex::GetVecOfConstPtrs(rhs));
+            amrex::Print() << "Level 0: max |compResidual| = " << res[0].norm0()
+                           << " (max |rhs| = " << rhs[0].norm0() << ")\n";
+        }
+
         // Test getEBFluxes
         mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
 
@@ -628,6 +640,8 @@ MyTest::readParameters ()
 #endif
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre || composite_solve,
                                      "use_mlhypre needs composite_solve");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(eb_neumann && eb_neumann_inhomog),
+                                     "eb_neumann and eb_neumann_inhomog are exclusive");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre || !eb_neumann_inhomog,
                                      "HypreMLABecLap does not support eb_neumann_inhomog");
     pp.query("mlhypre_num_setups", mlhypre_num_setups);

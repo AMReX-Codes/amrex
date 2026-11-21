@@ -665,9 +665,24 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 }
 
 void
+MLEBABecLap::checkEBBC () const
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(isEBDirichlet() && isEBInhomogNeumann()),
+        "MLEBABecLap: setEBNeumann cannot be combined with setEBDirichlet or setEBHomogDirichlet");
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            (m_eb_neumann_flux[amrlev] != nullptr) == isEBInhomogNeumann(),
+            "MLEBABecLap: setEBNeumann must be called on every AMR level");
+    }
+}
+
+void
 MLEBABecLap::setEBNeumann (int amrlev, const MultiFab& dphidn, const MultiFab& beta)
 {
     AMREX_ALWAYS_ASSERT(beta.nComp() == 1 || beta.nComp() == getNComp());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(beta.boxArray() == m_grids[amrlev][0] &&
+                                     beta.DistributionMap() == m_dmap[amrlev][0],
+        "MLEBABecLap::setEBNeumann: beta must have the level's BoxArray and DistributionMapping");
     setEBNeumannImpl(amrlev, dphidn, &beta, nullptr);
 }
 
@@ -775,6 +790,7 @@ MLEBABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     for (MFIter mfi(rhs, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        // Only single-valued fabs have EB data (MultiCutFab); EB2 makes no multi-valued cells
         if (flags[mfi].getType(bx) != FabType::singlevalued) { continue; }
 
         Array4<Real> const& rhsfab = rhs.array(mfi);
@@ -955,13 +971,7 @@ MLEBABecLap::prepareForSolve ()
         }
     }
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(isEBDirichlet() && isEBInhomogNeumann()),
-        "MLEBABecLap: setEBNeumann cannot be combined with setEBDirichlet or setEBHomogDirichlet");
-    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            (m_eb_neumann_flux[amrlev] != nullptr) == isEBInhomogNeumann(),
-            "MLEBABecLap: setEBNeumann must be called on every AMR level");
-    }
+    checkEBBC();
 
     applyRobinBCTermsCoeffs();
 
@@ -1601,6 +1611,8 @@ void
 MLEBABecLap::update ()
 {
     if (MLCellABecLap::needsUpdate()) { MLCellABecLap::update(); }
+
+    checkEBBC();
 
     applyRobinBCTermsCoeffs();
 
