@@ -96,8 +96,7 @@ private:
     Vector<int> m_ngrow;
     EBSupport m_support;
     Geometry m_geom;
-    bool m_is_fc = false;  //!< True if this is face-centered data
-    int m_face_dir = -1;   //!< Face direction (0=x, 1=y, 2=z) if m_is_fc is true
+    int m_face_dir = -1;   //!< Face direction for face-centered data, -1 for cell-centered
 
     // have to use pointer to break include loop
 

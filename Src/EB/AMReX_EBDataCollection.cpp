@@ -5,6 +5,7 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_Level.H>
 #include <AMReX_Algorithm.H>
+#include <sstream>
 #include <utility>
 
 namespace amrex {
@@ -93,12 +94,15 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     : m_ngrow(std::move(a_ngrow)),
       m_support(a_support),
       m_geom(a_geom),
-      m_is_fc(true),
       m_face_dir(face_dir)
 {
-    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_level.hasFCData(face_dir),
-        "EBDataCollection: FC data not available for face_dir");
+    AMREX_ALWAYS_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
+    if (!a_level.hasFCData(face_dir)) {
+        std::ostringstream msg;
+        msg << "EBDataCollection: no face-centered data for face_dir " << face_dir
+            << " on domain " << a_geom.Domain() << ": " << a_level.whyNoFCData(face_dir);
+        amrex::Abort(msg.str());
+    }
 
     // For FC mode, we create new MultiFabs and fill from Level's FC data
     const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
@@ -159,9 +163,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     }
 
     if (! a_level.hasEBInfo()) {
-        m_cutcellmask = new iMultiFab(a_ba, a_dm, 1, 0, MFInfo(),
+        m_cutcellmask = new iMultiFab(fc_grids, a_dm, 1, 0, MFInfo(),
                                       DefaultFabFactory<IArrayBox>());
-        a_level.fillCutCellMask(*m_cutcellmask, m_geom);
+        a_level.fillCutCellMaskFC(*m_cutcellmask, face_dir, m_geom);
     }
 
     if (! a_level.isAllRegular()) {

@@ -1068,6 +1068,30 @@ Level::fillCutCellMask (iMultiFab& cutcellmask, const Geometry&) const
 }
 
 void
+Level::fillCutCellMaskFC (iMultiFab& cutcellmask, int face_dir, const Geometry&) const
+{
+    if (!m_has_eb_info) {
+        // The control volume on node i in face_dir overlaps cells i-1 and i.
+        IntVect const ng = IntVect::TheDimensionVector(face_dir);
+        iMultiFab cc_mask(amrex::convert(cutcellmask.boxArray(), IntVect::TheZeroVector()),
+                          cutcellmask.DistributionMap(), 1, ng);
+        cc_mask.setVal(0);
+        cc_mask.ParallelCopy(m_cutcellmask,0,0,1,IntVect(0),ng,-m_shift,
+                             m_geom.periodicity());
+        auto const& ma = cutcellmask.arrays();
+        auto const& ca = cc_mask.const_arrays();
+        ParallelFor(cutcellmask,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+            IntVect lo(AMREX_D_DECL(i,j,k));
+            lo[face_dir] -= 1;
+            ma[bno](i,j,k) = int(ca[bno](i,j,k) || ca[bno](lo));
+        });
+        Gpu::streamSynchronize();
+    }
+}
+
+void
 Level::write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const
 {
     ChkptFile chkptFile(fname);

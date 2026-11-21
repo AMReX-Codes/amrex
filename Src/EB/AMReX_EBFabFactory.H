@@ -169,6 +169,8 @@ private:
     EB2::Level const* m_parent = nullptr;
     Gpu::DeviceVector<Array4<Real const>> m_eb_data;
     int m_face_dir = -1;  //!< Face direction (0=x, 1=y, 2=z) or -1 for cell-centered
+
+    void setEBData ();
 };
 
 /// \ingroup amrex_eb

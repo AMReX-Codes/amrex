@@ -138,6 +138,8 @@ public:
     bool hasEBInfo () const noexcept { return m_has_eb_info; }
     //! Populate the cut-cell mask into \p cutcellmask.
     void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
+    //! Populate the face-centered cut-cell mask, nodal in \p face_dir, into \p cutcellmask.
+    void fillCutCellMaskFC (iMultiFab& cutcellmask, int face_dir, const Geometry& geom) const;
 
     /**
      * \brief Shift this level by \p ncells cells along direction \p direction (for periodic tiling).
@@ -173,6 +175,7 @@ public:
         BoxArray m_covered_grids_fc;
         bool m_built = false;
         bool m_skipped = false; // tried, but this level cannot have face-centered data
+        char const* m_skip_reason = nullptr;
     };
 
     /**
@@ -201,10 +204,11 @@ public:
                (m_fc_data[face_dir]->m_built || m_fc_data[face_dir]->m_skipped);
     }
 
-    //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
-    [[nodiscard]] const FCData& getFCData (int face_dir) const {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(hasFCData(face_dir), "EB2::Level: FC data not available for face_dir");
-        return *m_fc_data[face_dir];
+    //! Why there is no face-centered data for face_dir, or nullptr if there is.
+    [[nodiscard]] char const* whyNoFCData (int face_dir) const noexcept {
+        if (hasFCData(face_dir)) { return nullptr; }
+        if (triedFCData(face_dir)) { return m_fc_data[face_dir]->m_skip_reason; }
+        return "EB2::BuildFC has not been called for this level";
     }
 
     //! Fill face-centered volume fractions for face_dir.
@@ -293,7 +297,7 @@ protected:
     IntVect m_shift{0};
     IndexSpace const* m_parent;
 
-    //! Face-centered data storage: [0]=x-face, [1]=y-face, [2]=z-face
+    //! Face-centered data, one per face direction
     Array<std::unique_ptr<FCData>, AMREX_SPACEDIM> m_fc_data;
 
 private:
@@ -1019,7 +1023,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int max_grid_size,
         mvmc_error = b;
     }
     if (mvmc_error) {
-        amrex::Abort("GShopLevel::buildFCData: MVMC error");
+        for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+            skipFC(face_dir, "multi-valued or multi-cut cells at twice the resolution");
+        }
+        return;
     }
 
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
@@ -1041,6 +1048,7 @@ GShopLevel<G>::skipFC (int face_dir, char const* why)
     }
     m_fc_data[face_dir] = std::make_unique<FCData>();
     m_fc_data[face_dir]->m_skipped = true;
+    m_fc_data[face_dir]->m_skip_reason = why;
 }
 
 template <typename G>
@@ -1094,6 +1102,7 @@ GShopLevel<G>::buildFCDir (GShopLevel<G> const& fine, BoxArray const& fc_base_gr
 
     // Define FC MultiFabs
     BoxArray fc_grids = amrex::convert(fc_base_grids, IntVect::TheDimensionVector(face_dir));
+    // coarsen_from_fine writes the area fractions on boxes that are nodal in each direction
     const int ng = 3;
     fc_cellflag.define(fc_grids, fc_dmap, 1, ng);
     fc_volfrac.define(fc_grids, fc_dmap, 1, ng);
