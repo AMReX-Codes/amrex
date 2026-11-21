@@ -442,8 +442,8 @@ void copy_immediate(hrx_stream_t s, hrx_buffer_t src, std::size_t src_offset, hr
 
 void sync_all() {
   flush_all();
-  check(hrx_stream_synchronize(g_default_stream), "hrx_stream_synchronize");
-  for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  check(hrx_stream_synchronize(g_default_stream, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
+  for (auto& [s, q] : g_streams) check(hrx_stream_synchronize(s, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   // External streams' staging is released when they are synchronized.
   g_staging.erase(g_default_stream);
@@ -548,7 +548,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
                        descriptor.kernarg_size);
     if (sync_after_launch()) {
       flush_all();
-      check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+      check(hrx_stream_synchronize(s, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
     }
     return;
   }
@@ -558,7 +558,7 @@ void amrex_loom::dispatch(const loom::kernel::descriptor& descriptor, const void
         "hrx_stream_dispatch");
   if (sync_after_launch()) {
     flush_all();
-    check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+    check(hrx_stream_synchronize(s, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
   } else {
     recorded(s);
   }
@@ -680,7 +680,7 @@ hrx_stream_t stream_create() {
 void stream_destroy(hrx_stream_t stream) {
   if (!stream) return;
   flush_all();
-  check(hrx_stream_synchronize(stream), "hrx_stream_synchronize");
+  check(hrx_stream_synchronize(stream, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
   std::lock_guard<std::recursive_mutex> lock(g_mutex);
   auto it = g_streams.find(stream);
   if (it == g_streams.end()) {
@@ -703,7 +703,7 @@ void stream_destroy(hrx_stream_t stream) {
 void stream_synchronize(hrx_stream_t stream) {
   flush_all();
   hrx_stream_t s = resolve(stream);
-  check(hrx_stream_synchronize(s), "hrx_stream_synchronize");
+  check(hrx_stream_synchronize(s, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
   release_staging(s);
 }
 
@@ -775,7 +775,7 @@ hrx_buffer_t allocate_buffer(std::size_t bytes, hrx_memory_type_t type, const ch
     hrx_status_ignore(status);
     return nullptr;
   }
-  check(hrx_stream_synchronize(g_default_stream), what);
+  check(hrx_stream_synchronize(g_default_stream, HRX_WAIT_FLAG_NONE), what);
   return buffer;
 }
 
