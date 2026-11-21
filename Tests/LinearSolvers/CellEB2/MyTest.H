@@ -66,9 +66,7 @@ private:
     bool eb_neumann_inhomog = false;
     // Abort if a level's volume-fraction-weighted max error exceeds this
     // (negative: not checked)
-    amrex::Real max_error = -1.0;
-    bool singular = false; // set by solve
-    // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
+    amrex::Real max_error = -1.0;    // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
     // HypreMLABecLap::setBCoeffsOnCentroids) instead of the face centers
     bool beta_on_centroid = false;
     amrex::Real acoef_value = 0.0;

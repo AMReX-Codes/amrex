@@ -721,8 +721,12 @@ MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFa
                                                                *m_factory[amrlev][mglev]);
     }
 
+    m_eb_neumann_flux[amrlev]->setVal(0.0);
+    m_needs_update = true;
+
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    if (factory == nullptr) { return; }
+    const FabArray<EBCellFlagFab>& flags = factory->getMultiEBCellFlagFab();
     const bool beta_all_comps = beta && beta->nComp() == ncomp;
 
     MFItInfo mfi_info;
@@ -733,31 +737,21 @@ MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFa
     for (MFIter mfi(*m_eb_neumann_flux[amrlev], mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Array4<Real> const& fout = m_eb_neumann_flux[amrlev]->array(mfi);
-        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (FabType::regular == t || FabType::covered == t) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-            {
-                fout(i,j,k,n) = 0.0;
-            });
-        } else {
-            Array4<Real const> const& gin = dphidn.const_array(mfi);
-            Array4<Real const> const& betain = beta ? beta->const_array(mfi)
-                                                    : Array4<Real const>{};
-            const auto& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-            {
-                if (flag(i,j,k).isSingleValued()) {
-                    Real b = betain ? betain(i,j,k,beta_all_comps ? n : 0) : beta_vals[n];
-                    fout(i,j,k,n) = b * gin(i,j,k,n);
-                } else {
-                    fout(i,j,k,n) = 0.0;
-                }
-            });
-        }
-    }
+        if (flags[mfi].getType(bx) != FabType::singlevalued) { continue; }
 
-    m_needs_update = true;
+        Array4<Real> const& fout = m_eb_neumann_flux[amrlev]->array(mfi);
+        Array4<Real const> const& gin = dphidn.const_array(mfi);
+        Array4<Real const> const& betain = beta ? beta->const_array(mfi)
+                                                : Array4<Real const>{};
+        const auto& flag = flags.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            if (flag(i,j,k).isSingleValued()) {
+                Real b = betain ? betain(i,j,k,beta_all_comps ? n : 0) : beta_vals[n];
+                fout(i,j,k,n) = b * gin(i,j,k,n);
+            }
+        });
+    }
 }
 
 void
@@ -1656,8 +1650,9 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
     const int mglev = 0;
     const int namrlevs = NAMRLevels();
     const bool is_eb_dirichlet =  isEBDirichlet();
+    const bool is_eb_inhomog_neumann = isEBInhomogNeumann();
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
-        if (isEBInhomogNeumann()) {
+        if (is_eb_inhomog_neumann) {
             // The flux is -b_EB * dphi/dn, which is given
             a_flux[amrlev]->setVal(0.0);
             MultiFab::Saxpy(*a_flux[amrlev], Real(-1.0), *m_eb_neumann_flux[amrlev],

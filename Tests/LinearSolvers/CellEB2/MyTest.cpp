@@ -73,6 +73,8 @@ MyTest::solve ()
     static int ipass = 0;
     ++ipass;
 
+    bool singular = false;
+
     if (composite_solve)
     {
         BL_PROFILE_REGION("COMPOSITE_SOLVE-pass"+std::to_string(ipass));
@@ -129,16 +131,22 @@ MyTest::solve ()
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
         singular = mleb.isSingular(0);
 
-        if (eb_neumann_inhomog) {
+        if (eb_neumann_inhomog && !singular) {
             // compResidual must include the EB Neumann term, as the solve does
+            // (a singular problem's rhs would also need the solvability offset)
             Vector<MultiFab> res(max_level+1);
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 res[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
             }
             mlmg.compResidual(amrex::GetVecOfPtrs(res), amrex::GetVecOfPtrs(phi),
                               amrex::GetVecOfConstPtrs(rhs));
-            amrex::Print() << "Level 0: max |compResidual| = " << res[0].norm0()
-                           << " (max |rhs| = " << rhs[0].norm0() << ")\n";
+            Real const rmax = res[0].norm0();
+            Real const bmax = rhs[0].norm0();
+            amrex::Print() << "Level 0: max |compResidual| = " << rmax
+                           << " (max |rhs| = " << bmax << ")\n";
+            if (!(rmax <= 1.e-6*bmax)) {
+                amrex::Abort("compResidual does not match the converged solve");
+            }
         }
 
         // Test getEBFluxes
