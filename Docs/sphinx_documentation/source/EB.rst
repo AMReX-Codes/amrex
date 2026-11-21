@@ -747,8 +747,9 @@ Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
 have been discussed in Chapter :ref:`Chap:LinearSolvers`.
 
 AMReX supports multi-level
-1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
-or inhomogeneous Dirichlet boundary conditions on the EB faces, and
+1) cell-centered solvers with homogeneous Neumann, inhomogeneous Neumann,
+homogeneous Dirichlet, or inhomogeneous Dirichlet boundary conditions on
+the EB faces, and
 2) nodal solvers with homogeneous Neumann boundary conditions,
 or inflow velocity conditions on the EB faces.
 
@@ -792,6 +793,24 @@ To set inhomogeneous Dirichlet boundary conditions, call
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number (i.e. the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+
+To set inhomogeneous Neumann boundary conditions, call
+
+.. highlight:: c++
+
+::
+
+    ml_ebabeclap->setEBNeumann(lev, dphidn_on_eb, coeff);
+
+where dphidn_on_eb is the MultiFab holding the normal derivative
+:math:`\partial\phi/\partial n` at the EB face centroid of every cut cell,
+with :math:`n` the unit normal pointing out of the fluid and into the body,
+and coeff is as above. Call it on every AMR level; it cannot be combined
+with the Dirichlet calls. The prescribed flux enters the right-hand side,
+so if the problem is singular (no Dirichlet boundary and no :math:`a` term)
+the solver makes it solvable with the EB flux included, as it does for
+inhomogeneous Neumann conditions on the domain boundary.
+:cpp:`getEBFluxes` returns :math:`-\beta\,\partial\phi/\partial n`.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable

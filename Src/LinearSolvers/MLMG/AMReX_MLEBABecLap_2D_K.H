@@ -308,6 +308,30 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<Real> const& y,
     }
 }
 
+// Inhomogeneous Neumann on the EB: rhs += beta * b_EB * dphi/dn * (EB length) / (cell area),
+// with the area weighting of the EB flux in mlebabeclap_adotx(_centroid).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_eb_neumann_rhs (int i, int j, int k, int n,
+                                 Array4<Real> const& rhs,
+                                 Array4<Real const> const& bdphidn,
+                                 Array4<EBCellFlag const> const& flag,
+                                 Array4<Real const> const& vfrc,
+                                 Array4<Real const> const& apx,
+                                 Array4<Real const> const& apy,
+                                 Array4<Real const> const& ba,
+                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                 Real beta) noexcept
+{
+    if (flag(i,j,k).isSingleValued()) {
+        Real ry = dxinv[0]/dxinv[1];
+        Real dapx = (apx(i,j,k)-apx(i+1,j,k)) * ry;
+        Real dapy = (apy(i,j,k)-apy(i,j+1,k));
+        Real anorminv = Real(1.0)/std::hypot(dapx,dapy);
+        Real ebarea = get_eb_area(ba(i,j,k), dapx*anorminv, dapy*anorminv, ry);
+        rhs(i,j,k,n) += beta*dxinv[1] * ebarea * bdphidn(i,j,k,n) / vfrc(i,j,k);
+    }
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_ebflux (int i, int j, int k, int n,
                          Array4<Real> const& feb,

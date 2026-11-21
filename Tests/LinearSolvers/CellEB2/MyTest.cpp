@@ -93,7 +93,11 @@ MyTest::solve ()
             mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]), beta_loc);
         }
 
-        if (!eb_neumann) {
+        if (eb_neumann_inhomog) {
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                mleb.setEBNeumann(ilev, dphidn_eb[ilev], bcoef_eb[ilev]);
+            }
+        } else if (!eb_neumann) {
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 mleb.setEBDirichlet(ilev, phieb[ilev], bcoef_eb[ilev]);
             }
@@ -123,6 +127,7 @@ MyTest::solve ()
         const Real tol_rel = reltol;
         const Real tol_abs = 0.0;
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+        singular = mleb.isSingular(0);
 
         // Test getEBFluxes
         mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
@@ -152,7 +157,9 @@ MyTest::solve ()
             mleb.setACoeffs(0, acoef[ilev]);
             mleb.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef[ilev]), beta_loc);
 
-            if (!eb_neumann) {
+            if (eb_neumann_inhomog) {
+                mleb.setEBNeumann(0, dphidn_eb[ilev], bcoef_eb[ilev]);
+            } else if (!eb_neumann) {
                 mleb.setEBDirichlet(0, phieb[ilev], bcoef_eb[ilev]);
             }
 
@@ -172,13 +179,27 @@ MyTest::solve ()
             const Real tol_rel = reltol;
             const Real tol_abs = 0.0;
             mlmg.solve({&phi[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+            if (ilev == 0) { singular = mleb.isSingular(0); }
 
             // Test getEBFluxes
             mleb.getEBFluxes({&fluxeb_sol[ilev]}, {&phi[ilev]});
         }
     }
 
-    if (verbose > 0) {
+    if (singular && eb_neumann_inhomog) {
+        // The solution is unique up to a constant: remove the mean error of level 0
+        MultiFab diff(grids[0], dmap[0], 1, 0, MFInfo(), *factory[0]);
+        MultiFab::LinComb(diff, 1.0, phi[0], 0, -1.0, phiexact[0], 0, 0, 1, 0);
+        auto const& vfrac = factory[0]->getVolFrac();
+        Real const mean = MultiFab::Dot(diff, 0, vfrac, 0, 1, 0) / vfrac.sum(0);
+        amrex::Print() << "Singular problem: subtracting the mean error " << mean << '\n';
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            phi[ilev].plus(-mean, 0, 1, 0);
+            amrex::EB_set_covered(phi[ilev], 0, 1, 0, 0.0);
+        }
+    }
+
+    if (verbose > 0 || max_error >= 0.0) {
         for (int ilev = 0; ilev <= max_level; ++ilev)
         {
             MultiFab mf(phi[ilev].boxArray(),phi[ilev].DistributionMap(), 1, 0);
@@ -192,6 +213,9 @@ MyTest::solve ()
             Real norminf = mf.norm0();
             Real norm1 = mf.norm1()*AMREX_D_TERM((1.0_rt/n_cell), *(1.0_rt/n_cell), *(1.0_rt/n_cell));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
+            if (max_error >= 0.0 && !(norminf <= max_error)) {
+                amrex::Abort("The weighted max error exceeds max_error");
+            }
         }
         for (int ilev = 0; ilev <= max_level; ++ilev)
         {
@@ -576,6 +600,8 @@ MyTest::readParameters ()
 
     pp.query("composite_solve", composite_solve);
     pp.query("eb_neumann", eb_neumann);
+    pp.query("eb_neumann_inhomog", eb_neumann_inhomog);
+    pp.query("max_error", max_error);
     pp.query("acoef", acoef_value);
     pp.query("ghost_value", ghost_value);
     // Exactly AMREX_SPACEDIM values: a shorter list is an error
@@ -602,6 +628,8 @@ MyTest::readParameters ()
 #endif
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre || composite_solve,
                                      "use_mlhypre needs composite_solve");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!use_mlhypre || !eb_neumann_inhomog,
+                                     "HypreMLABecLap does not support eb_neumann_inhomog");
     pp.query("mlhypre_num_setups", mlhypre_num_setups);
     pp.query("mlhypre_max_diff", mlhypre_max_diff);
     pp.query("mlhypre_max_fine_res", mlhypre_max_fine_res);
@@ -683,6 +711,7 @@ MyTest::initData ()
     acoef.resize(nlevels);
     bcoef.resize(nlevels);
     bcoef_eb.resize(nlevels);
+    dphidn_eb.resize(nlevels);
     fluxeb_sol.resize(nlevels);
     fluxeb_exact.resize(nlevels);
 
@@ -782,6 +811,18 @@ MyTest::initData ()
                 });
             }
         }
+        // dphi/dn on the EB (n out of the fluid) from the exact EB flux -b_EB dphi/dn
+        dphidn_eb[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        for (MFIter mfi(dphidn_eb[ilev]); mfi.isValid(); ++mfi) {
+            auto const& g = dphidn_eb[ilev].array(mfi);
+            auto const& feb = fluxeb_exact[ilev].const_array(mfi);
+            auto const& beb = bcoef_eb[ilev].const_array(mfi);
+            amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                g(i,j,k) = (beb(i,j,k) != 0.0) ? -feb(i,j,k)/beb(i,j,k) : 0.0;
+            });
+        }
+
         // b = 1 on the finer levels: given to HypreMLABecLap as null (1) or
         // explicitly (2), and to MLMG
         if (null_fine_bcoef && ilev > 0) {
