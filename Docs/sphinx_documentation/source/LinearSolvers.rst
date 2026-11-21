@@ -680,6 +680,11 @@ The usage of this EB-specific class is essentially the same as
 :cpp:`MLABecLaplacian`.
 
 The default boundary condition on EB faces is homogeneous Neumann.
+A Dirichlet domain boundary that the EB covers completely (no part of the
+face is open to the fluid) does not fix the solution, so with Neumann EB
+faces and no :math:`a` term the problem is singular even though the domain
+boundary conditions are Dirichlet; :cpp:`MLEBABecLap` detects this and the
+solver treats the problem as singular, as it does for an all-Neumann domain.
 
 To set homogeneous Dirichlet boundary conditions, call
 

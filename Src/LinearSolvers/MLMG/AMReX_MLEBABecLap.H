@@ -335,7 +335,7 @@ protected:
 
     //! Set m_is_singular for each AMR level.
     void computeSingular ();
-    //! True if a Dirichlet face of the domain touches a cell not covered by the EB on \p amrlev.
+    //! True if a Dirichlet face of the domain is open to the fluid (area fraction > 0) on \p amrlev.
     [[nodiscard]] bool hasActiveDirichletBoundary (int amrlev) const;
 
     //! Average coefficients down across all AMR and MG levels.
