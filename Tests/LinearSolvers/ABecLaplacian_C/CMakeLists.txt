@@ -44,6 +44,15 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        RUNTIME_SUBDIR robin
        CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} mixed_precision=1 max_error=${_robin_max_error})
 
+    # Two-level composite solve with inhomogeneous Neumann BC; checks that
+    # compResidual includes the boundary terms on both levels.
+    set(_input_files  inputs-inhomNeumann )
+
+    setup_test(${D} _sources _input_files
+       BASE_NAME LinearSolvers_ABecLaplacian_C_inhomNeumann
+       RUNTIME_SUBDIR inhomNeumann
+       CMDLINE_PARAMS_AFTER_INPUTS ${_ctest_params} max_level=1 verbose=1)
+
     # A composite solve with variable coefficients and single precision
     # multigrid cycles.  The error bound is for double precision.
     if (NOT AMReX_PRECISION STREQUAL "SINGLE")

@@ -405,13 +405,15 @@ MyTest::solveABecLaplacianInhomNeumann ()
             }
             mlmg.compResidual(GetVecOfPtrs(res), GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs));
             Real rmax = 0.0;
-            Real bmax = 0.0;
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 rmax = std::max(rmax, res[ilev].norm0());
-                bmax = std::max(bmax, rhs[ilev].norm0());
             }
-            amrex::Print() << "max |compResidual| = " << rmax << " (max |rhs| = " << bmax << ")\n";
-            if (!(rmax <= Real(1.e-6)*bmax)) {
+            // The solve stopped at tol_rel times the larger of the initial
+            // residual and rhs norms (with the boundary terms), so allow a
+            // factor of 10 on that for the difference in norms
+            Real const rtol = Real(10.)*tol_rel*std::max(mlmg.getInitResidual(), mlmg.getInitRHS());
+            amrex::Print() << "max |compResidual| = " << rmax << " (allowed " << rtol << ")\n";
+            if (!(rmax <= rtol)) {
                 amrex::Abort("compResidual does not match the converged solve");
             }
         }

@@ -1570,23 +1570,23 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     prepareLinOp();
 
 
+    // The rhs with the metric, Neumann and inhomogeneous Neumann/Robin terms
+    // that the solve adds, in all dimensions (the metric term is a no-op in
+    // 3D); kept for every level because reflux uses the finer level's
+    Vector<MF> rhstmp(namrlevs);
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
-        const MF* prhs = a_rhs[alev];
-        // The same RHS terms as in prepareForSolve, in all dimensions
-        // (the metric term is a no-op in 3D)
         int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
-        MF rhstmp(boxArray(*prhs), DistributionMap(*prhs), ncomp, nghost,
-                  MFInfo().SetArena(The_Async_Arena()), *linop.Factory(alev));
-        LocalCopy(rhstmp, *prhs, 0, 0, ncomp, IntVect(nghost));
-        linop.applyMetricTerm(alev, 0, rhstmp);
-        linop.unimposeNeumannBC(alev, rhstmp);
-        linop.applyInhomogNeumannTerm(alev, rhstmp);
-        prhs = &rhstmp;
-        linop.solutionResidual(alev, *a_res[alev], sol[alev], *prhs, crse_bcdata);
+        rhstmp[alev] = MF(boxArray(*a_rhs[alev]), DistributionMap(*a_rhs[alev]), ncomp, nghost,
+                          MFInfo().SetArena(The_Async_Arena()), *linop.Factory(alev));
+        LocalCopy(rhstmp[alev], *a_rhs[alev], 0, 0, ncomp, IntVect(nghost));
+        linop.applyMetricTerm(alev, 0, rhstmp[alev]);
+        linop.unimposeNeumannBC(alev, rhstmp[alev]);
+        linop.applyInhomogNeumannTerm(alev, rhstmp[alev]);
+        linop.solutionResidual(alev, *a_res[alev], sol[alev], rhstmp[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
-            linop.reflux(alev, *a_res[alev], sol[alev], *prhs,
-                         *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
+            linop.reflux(alev, *a_res[alev], sol[alev], rhstmp[alev],
+                         *a_res[alev+1], sol[alev+1], rhstmp[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
                 // EB operators are double only.
