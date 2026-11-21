@@ -395,6 +395,26 @@ MyTest::solveABecLaplacianInhomNeumann ()
 #endif
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+
+        // compResidual must add the boundary terms to the rhs as the solve
+        // does, so the residual of the converged solution is small
+        if (!mlabec.isSingular(0)) {
+            Vector<MultiFab> res(nlevels);
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                res[ilev].define(grids[ilev], dmap[ilev], 1, 0);
+            }
+            mlmg.compResidual(GetVecOfPtrs(res), GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs));
+            Real rmax = 0.0;
+            Real bmax = 0.0;
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                rmax = std::max(rmax, res[ilev].norm0());
+                bmax = std::max(bmax, rhs[ilev].norm0());
+            }
+            amrex::Print() << "max |compResidual| = " << rmax << " (max |rhs| = " << bmax << ")\n";
+            if (!(rmax <= Real(1.e-6)*bmax)) {
+                amrex::Abort("compResidual does not match the converged solve");
+            }
+        }
     }
     else
     {

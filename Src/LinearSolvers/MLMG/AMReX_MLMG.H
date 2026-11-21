@@ -1573,16 +1573,16 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
         const MF* prhs = a_rhs[alev];
-#if (AMREX_SPACEDIM != 3)
+        // The same RHS terms as in prepareForSolve, in all dimensions
+        // (the metric term is a no-op in 3D)
         int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
         MF rhstmp(boxArray(*prhs), DistributionMap(*prhs), ncomp, nghost,
-                  MFInfo(), *linop.Factory(alev));
+                  MFInfo().SetArena(The_Async_Arena()), *linop.Factory(alev));
         LocalCopy(rhstmp, *prhs, 0, 0, ncomp, IntVect(nghost));
         linop.applyMetricTerm(alev, 0, rhstmp);
         linop.unimposeNeumannBC(alev, rhstmp);
         linop.applyInhomogNeumannTerm(alev, rhstmp);
         prhs = &rhstmp;
-#endif
         linop.solutionResidual(alev, *a_res[alev], sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], sol[alev], *prhs,
