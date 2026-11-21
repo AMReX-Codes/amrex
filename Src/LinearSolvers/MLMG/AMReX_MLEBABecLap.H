@@ -189,12 +189,11 @@ public:
     /**
      * \brief Specify inhomogeneous Neumann data on EB faces.
      *
-     * The EB carries the condition \f$\partial\phi/\partial n = g\f$, where
-     * \f$n\f$ is the unit normal pointing out of the fluid region and into
-     * the embedded body.  The flux through the EB face is then
-     * \f$-\beta\,b_{EB}\,g\f$, which is what getEBFluxes() returns (without
-     * the scalar \f$\beta\f$).  Without this call, the EB is homogeneous
-     * Neumann (\f$g = 0\f$).
+     * The EB carries the condition dphi/dn = g, where n is the unit normal
+     * pointing out of the fluid region and into the embedded body.  The flux
+     * through the EB face is then -beta*b_EB*g, which is what getEBFluxes()
+     * returns (without the scalar beta).  Without this call, the EB is
+     * homogeneous Neumann (g = 0).
      *
      * Call this on every AMR level.  It cannot be combined with
      * setEBDirichlet() or setEBHomogDirichlet().  If no other boundary
@@ -204,10 +203,10 @@ public:
      * domain boundary.
      *
      * \param amrlev AMR level index.
-     * \param dphidn Normal derivative \f$g\f$ at the EB face centroids, one
+     * \param dphidn Normal derivative g at the EB face centroids, one
      *               component per solution component.  It must have the
      *               level's BoxArray and DistributionMapping.
-     * \param beta   Coefficient \f$b_{EB}\f$ at the EB face centroids, with
+     * \param beta   Coefficient b_EB at the EB face centroids, with
      *               one or getNComp() components.
      */
     void setEBNeumann (int amrlev, const MultiFab& dphidn, const MultiFab& beta);
@@ -384,9 +383,11 @@ protected:
     //! Abort if the EB boundary conditions are inconsistent (mixed, or missing on a level).
     void checkEBBC () const;
 
+public: // for cuda
     //! Store b_EB * dphidn; \p beta, or \p beta_vals (one per component, device memory) if it is null.
     void setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFab* beta,
                            Real const* beta_vals);
+protected:
 
     //! Average coefficients down across all AMR and MG levels.
     void averageDownCoeffs ();
