@@ -59,6 +59,10 @@ protected:
 * __device__ operator() that can work on a cell/node for boundaries not
 * handled by amrex::fab_filcc/fab_filnd.  For face and nodal data, it is
 * also called on the faces and nodes on the domain boundary.
+*
+* For nodal data, and face data in 1D, ghosts get the boundary value before F
+* is called: reflect/hoextrap BCs are not applied and reflect_odd does not
+* zero the boundary value.
 */
 template <class F>
 class GpuBndryFuncFab
@@ -100,7 +104,10 @@ struct FabFillNoOp
     {}
 };
 
-//! This cpu version calls function working on FArrayBox
+//! This cpu version calls function working on FArrayBox.
+//! For nodal data, and face data in 1D, ghosts get the boundary value before
+//! the user function is called: reflect/hoextrap BCs are not applied and
+//! reflect_odd does not zero the boundary value.
 class CpuBndryFuncFab
 {
 public:
