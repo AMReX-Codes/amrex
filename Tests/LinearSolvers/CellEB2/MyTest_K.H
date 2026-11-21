@@ -240,19 +240,19 @@ void mytest_set_phi_boundary (int i, int j, int k, amrex::Array4<amrex::Real> co
         amrex::Real x, y;
         const auto dlo = amrex::lbound(dbx);
         const auto dhi = amrex::ubound(dbx);
+        // On the domain faces, which are at prob_hi - 0.5 on the high sides
         if (i < dlo.x) {
-            x = -0.5;
+            x = dlo.x*dx[0] - 0.5;
             y = (j+0.5)*dx[1] - 0.5;
         } else if (i > dhi.x) {
-            x = 0.5;
+            x = (dhi.x+1)*dx[0] - 0.5;
             y = (j+0.5)*dx[1] - 0.5;
         } else if (j < dlo.y) {
             x = (i+0.5)*dx[0] - 0.5;
-            y = -0.5;
-
+            y = dlo.y*dx[1] - 0.5;
         } else if (j > dhi.y) {
             x = (i+0.5)*dx[0] - 0.5;
-            y = 0.5;
+            y = (dhi.y+1)*dx[1] - 0.5;
         } else {
             x = (i+0.5)*dx[0] - 0.5;
             y = (j+0.5)*dx[1] - 0.5;
