@@ -64,11 +64,12 @@ private:
     // derivative instead of Dirichlet; a singular problem's error is
     // measured up to a constant
     bool eb_neumann_inhomog = false;
-    // Abort if a level's volume-fraction-weighted max error exceeds this
-    // (negative: not checked)
-    amrex::Real max_error = -1.0;    // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
+    // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
     // HypreMLABecLap::setBCoeffsOnCentroids) instead of the face centers
     bool beta_on_centroid = false;
+    // Abort if a level's volume-fraction-weighted max error exceeds this
+    // (negative: not checked)
+    amrex::Real max_error = -1.0;
     amrex::Real acoef_value = 0.0;
     amrex::Real ghost_value = 0.0; // in phi's ghost cells off the domain boundary
     amrex::Vector<int> is_periodic{AMREX_D_DECL(0,0,0)};
