@@ -146,10 +146,11 @@ check allows a relative difference of 1e-10 (`CNS_RTOL` overrides it).
   `AMREX_LOOM_FLUSH_EVERY` operations (default 32). Either way, every stream
   is submitted and made visible to the host at each synchronization.
   `AMREX_LOOM_SYNC_LAUNCH=1` waits after every launch, for debugging.
-- Synchronization: by default the host spins until a stream's work is done
-  (`AMREX_LOOM_SYNC_WAIT=poll`), as HIP does. `AMREX_LOOM_SYNC_WAIT=block`
-  sleeps in libhrx's wait instead, which frees the core but wakes up later:
-  on CNS it costs 0.1-1.0 ms per step.
+- Synchronization: by default the host waits with libhrx's active wait
+  (`AMREX_LOOM_SYNC_WAIT=active`, `HRX_WAIT_FLAG_ACTIVE`): the waiting thread
+  spins on the device's completion signal and retires the work itself, as HIP
+  spins. `AMREX_LOOM_SYNC_WAIT=block` sleeps in libhrx's wait instead, which
+  frees the core but wakes up later: on CNS it costs 0.1-1.0 ms per step.
 - Small copies: host-to-device copies of up to `AMREX_LOOM_COPY_KERNEL_MAX`
   bytes (default 65536) from pinned memory, or from pageable memory staged in
   the stream's pinned buffer, run as a copy kernel on the stream, as HIP does

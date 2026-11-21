@@ -442,23 +442,22 @@ void copy_immediate(hrx_stream_t s, hrx_buffer_t src, std::size_t src_offset, hr
 }
 
 // How completion points wait for a stream (AMREX_LOOM_SYNC_WAIT):
-//   poll (default)  spin on hrx_semaphore_query until the stream's timeline
-//                   point is reached, then hrx_stream_synchronize, which then
-//                   returns at once. HIP's stream synchronization spins too;
-//   block           hrx_stream_synchronize alone. It sleeps in
-//                   hrx_semaphore_wait, whose wake-up costs 15-25 us more than
-//                   HIP's synchronization after short waits and about 120 us
-//                   more after waits of a few milliseconds (MI250X).
-// On CNS (MI250X), poll is 0.1-1.0 ms per step faster than block.
-bool sync_poll() {
-  static const bool poll = [] {
+//   active (default)  HRX_WAIT_FLAG_ACTIVE: the calling thread spins on the
+//                     device's completion signal and retires the work itself,
+//                     as HIP's stream synchronization spins.
+//   block             HRX_WAIT_FLAG_NONE: sleeps until a completion worker
+//                     wakes it, which costs 15-25 us more than HIP's
+//                     synchronization after short waits and about 120 us more
+//                     after waits of a few milliseconds (MI250X).
+hrx_wait_flags_t sync_wait_flags() {
+  static const hrx_wait_flags_t flags = []() -> hrx_wait_flags_t {
     const char* value = std::getenv("AMREX_LOOM_SYNC_WAIT");
-    if (!value || !*value || std::strcmp(value, "poll") == 0) return true;
-    if (std::strcmp(value, "block") == 0) return false;
-    std::fprintf(stderr, "amrex loom: AMREX_LOOM_SYNC_WAIT=%s is not poll or block\n", value);
+    if (!value || !*value || std::strcmp(value, "active") == 0) return HRX_WAIT_FLAG_ACTIVE;
+    if (std::strcmp(value, "block") == 0) return HRX_WAIT_FLAG_NONE;
+    std::fprintf(stderr, "amrex loom: AMREX_LOOM_SYNC_WAIT=%s is not active or block\n", value);
     std::abort();
   }();
-  return poll;
+  return flags;
 }
 
 // Stream-ordered frees. A freed buffer is released once every AMReX stream has
@@ -542,17 +541,7 @@ void free_buffer(hrx_buffer_t buffer, bool pinned) {
 }
 
 void wait_stream(hrx_stream_t s) {
-  if (sync_poll()) {
-    hrx_timeline_point_t point{};
-    check(hrx_stream_get_timeline_position(s, &point), "hrx_stream_get_timeline_position");
-    if (point.semaphore && point.value) {
-      uint64_t value = 0;
-      do {
-        check(hrx_semaphore_query(point.semaphore, &value), "hrx_semaphore_query");
-      } while (value < point.value);
-    }
-  }
-  check(hrx_stream_synchronize(s, HRX_WAIT_FLAG_NONE), "hrx_stream_synchronize");
+  check(hrx_stream_synchronize(s, sync_wait_flags()), "hrx_stream_synchronize");
   if (!g_pending_frees.empty()) reap_pending_frees();
 }
 
