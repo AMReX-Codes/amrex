@@ -1570,9 +1570,8 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     prepareLinOp();
 
 
-    // The rhs with the metric, Neumann and inhomogeneous Neumann/Robin terms
-    // that the solve adds, in all dimensions (the metric term is a no-op in
-    // 3D); kept for every level because reflux uses the finer level's
+    // The rhs with the boundary terms the solve adds; kept for every level
+    // because reflux uses the finer level's
     Vector<MF> rhstmp(namrlevs);
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
