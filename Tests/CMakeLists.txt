@@ -132,6 +132,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_LINEAR_SOLVERS)
       add_subdirectory("LinearSolvers/ABecLaplacian_C")
+      add_subdirectory("LinearSolvers/OpenBC")
       add_subdirectory("LinearSolvers/FDNodalPoisson")
    endif()
 
