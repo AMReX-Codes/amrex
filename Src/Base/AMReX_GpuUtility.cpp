@@ -36,7 +36,7 @@ void
 StreamIter::init () noexcept // NOLINT
 {
     amrex::ignore_unused(m_threadsafe);
-    amrex::ignore_unused(m_sync);
+    amrex::ignore_unused(m_sync, m_join);
 #if defined(AMREX_USE_GPU)
     if (m_sync) {
 #ifdef AMREX_USE_OMP
