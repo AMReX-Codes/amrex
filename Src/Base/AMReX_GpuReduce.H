@@ -253,7 +253,7 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
     }
 }
 
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_LOOM)
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
@@ -262,8 +262,13 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T shuffle_down (T x, int offset) noexcept
 {
+#if defined(AMREX_USE_LOOM)
+    return LoomDevice::shuffleDown(x, static_cast<unsigned>(offset),
+                                   unsigned(Gpu::Device::warp_size));
+#else
     return AMREX_HIP_OR_CUDA(__shfl_down(x, offset),
                              __shfl_down_sync(0xffffffff, x, offset));
+#endif
 }
 
 // If other sizeof is needed, we can implement it later.
@@ -316,7 +321,11 @@ template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
 {
+#if defined(AMREX_USE_LOOM)
+    [[loom::workgroup]] T shared[warpSize];
+#else
     __shared__ T shared[warpSize];
+#endif
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
     x = warp_reduce(x);
@@ -324,9 +333,15 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     // if this reduction call is occurring multiple times in a kernel,
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
+#if defined(AMREX_USE_LOOM)
+    LoomDevice::syncThreads();
+    if (lane == 0) { shared[wid] = x; }
+    LoomDevice::syncThreads();
+#else
     __syncthreads();
     if (lane == 0) { shared[wid] = x; }
     __syncthreads();
+#endif
     bool b = (threadIdx.x == 0) || (threadIdx.x < blockDim.x / warpSize);
     x =  b ? shared[lane] : x0;
     if (wid == 0) { x = warp_reduce(x); }

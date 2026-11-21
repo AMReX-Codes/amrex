@@ -22,7 +22,9 @@
 
 #ifdef AMREX_USE_GPU
 namespace amrex {
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_LOOM)
+using gpuDeviceProp_t = amrex_loom::DeviceProperties;
+#elif defined(AMREX_USE_HIP)
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuDeviceProp_t = cudaDeviceProp;
@@ -72,6 +74,9 @@ public:
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
+    //! Hands this stream's pending frees to \p other. Valid once \p other's
+    //! queued work is ordered after this stream's (Device::joinStreams).
+    void move_wait_list_to (StreamManager& other);
 };
 #endif
 
@@ -166,6 +171,34 @@ public:
 
     static bool clearFreeAsyncBuffer () noexcept;
 
+#ifdef AMREX_USE_GPU
+    /**
+     * Makes work queued on \p waiter after this call wait, on the GPU, for all
+     * work queued on \p waited before it. The host does not wait.
+     */
+    static void streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept;
+#endif
+
+    /**
+     * Fork for a loop over \p n items on AMReX's streams (MFIter, StreamIter):
+     * streams 1 .. min(n, numGpuStreams())-1 wait on the GPU for the work
+     * queued on stream 0. No effect with a single stream.
+     */
+    static void forkStreams (int n) noexcept;
+
+    /**
+     * Join after such a loop: stream 0 waits on the GPU for streams
+     * 1 .. min(n, numGpuStreams())-1 and takes over their pending
+     * Gpu::freeAsync memory. No effect with a single stream.
+     */
+    static void joinStreams (int n) noexcept;
+
+    /**
+     * Every other AMReX stream waits on the GPU for the work queued on the
+     * current stream (for data a multi-stream loop's other streams read).
+     */
+    static void streamsWaitCurrent () noexcept;
+
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
     static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
@@ -209,7 +242,7 @@ public:
 
     static std::string deviceVendor() noexcept
     {
-#if defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__)
+#if defined(AMREX_USE_LOOM) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__))
         return std::string("AMD");
 #elif defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_NVIDIA__))
         // Using HIP on NVIDIA GPUs isn't currently supported by AMReX
@@ -227,12 +260,19 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+#ifdef AMREX_USE_LOOM
+    // Documented exclusion: no managed memory under LOOM, whatever the runtime reports.
+    static int managedMemorySupported () noexcept { return 0; }
+#else
     static int managedMemorySupported () noexcept { return device_prop.managedMemory; }
+#endif
 
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
 #if defined(AMREX_USE_HIP)
     static AMREX_EXPORT constexpr int warp_size = AMREX_AMDGCN_WAVEFRONT_SIZE;
+#elif defined(AMREX_USE_LOOM)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_LOOM_SUBGROUP_SIZE;
 #elif defined(AMREX_USE_SYCL)
     static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else
@@ -443,6 +483,8 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
+#elif defined(AMREX_USE_LOOM)
+    amrex_loom::memcpy_async(p_d, p_h, sz, gpuStream());
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpuStream()));,
@@ -457,6 +499,8 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
+#elif defined(AMREX_USE_LOOM)
+    amrex_loom::memcpy_async(p_h, p_d, sz, gpuStream());
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
@@ -471,6 +515,8 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
+#elif defined(AMREX_USE_LOOM)
+    amrex_loom::memcpy_async(p_d_dst, p_d_src, sz, gpuStream());
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice, gpuStream()));,
@@ -538,7 +584,10 @@ void memcpy_from_host_to_device_global_async (T& dg, const void* src,
                                               std::size_t nbytes,
                                               std::size_t offset = 0)
 {
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+    amrex::ignore_unused(dg, src, nbytes, offset);
+    amrex::Abort("AMReX LOOM backend: device global variables are not supported");
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbolAsync(dg, src, nbytes, offset,
                                                  cudaMemcpyHostToDevice,
                                                  Device::gpuStream()));
@@ -561,7 +610,10 @@ void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
                                               std::size_t nbytes,
                                               std::size_t offset = 0)
 {
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_LOOM)
+    amrex::ignore_unused(dst, dg, nbytes, offset);
+    amrex::Abort("AMReX LOOM backend: device global variables are not supported");
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemcpyFromSymbolAsync(dst, dg, nbytes, offset,
                                                    cudaMemcpyDeviceToHost,
                                                    Device::gpuStream()));

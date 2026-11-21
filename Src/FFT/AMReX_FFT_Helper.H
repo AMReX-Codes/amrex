@@ -31,6 +31,8 @@
 #    include <rocfft.h>
 #  endif
 #  include <hip/hip_complex.h>
+#elif defined(AMREX_USE_LOOM)
+#  error "AMReX LOOM backend: FFT needs a vendor FFT library (rocFFT under HIP); build with AMReX_FFT=OFF"
 #elif defined(AMREX_USE_SYCL)
 #  if __has_include(<oneapi/mkl/dft.hpp>) // oneAPI 2025.0
 #    include <oneapi/mkl/dft.hpp>

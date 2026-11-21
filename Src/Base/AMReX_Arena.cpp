@@ -222,6 +222,42 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 
 #ifdef AMREX_USE_GPU
     }
+#if defined(AMREX_USE_LOOM)
+    // LOOM: HRX buffers through amrex_loom; nullptr means out of memory.
+    else if (arena_info.device_use_hostalloc)
+    {
+        p = amrex_loom::pinned_malloc(nbytes);
+        if (!p) {
+            freeUnused_protected();
+            p = amrex_loom::pinned_malloc(nbytes);
+        }
+        if (!p) {
+            amrex::ErrorStream() <<
+                "Out of CPU pinned memory: got nullptr from host malloc\n";
+            throw_out_of_memory("CPU pinned memory", nbytes,
+                                "amrex_loom::pinned_malloc returned nullptr");
+        }
+    }
+    else
+    {
+        std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
+        if (nbytes >= free_mem_avail) {
+            freeUnused_protected(); // For CArena, mutex has already acquired
+        }
+        // Documented exclusion: the LOOM backend has no managed memory.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!arena_info.device_use_managed_memory,
+                                         "Managed memory is not supported on this system");
+        p = amrex_loom::device_malloc(nbytes);
+        if (!p) {
+            freeUnused_protected();
+            p = amrex_loom::device_malloc(nbytes);
+        }
+        if (!p) {
+            throw_out_of_memory("GPU device memory", nbytes,
+                                "amrex_loom::device_malloc returned nullptr");
+        }
+    }
+#else
     else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA_OR_SYCL(
@@ -367,6 +403,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             }
         }
     }
+#endif // AMREX_USE_LOOM
 #endif
     AMREX_ALWAYS_ASSERT(p != nullptr);
     return p;
@@ -390,17 +427,25 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
     }
     else if (arena_info.device_use_hostalloc)
     {
+#if defined(AMREX_USE_LOOM)
+        amrex_loom::pinned_free(p);
+#else
         AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));,
              sycl::free(p,Gpu::Device::syclContext()));
+#endif
     }
     else
     {
+#if defined(AMREX_USE_LOOM)
+        amrex_loom::device_free(p);
+#else
         AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFree(p));,
              sycl::free(p,Gpu::Device::syclContext()));
+#endif
     }
 #endif
 }

@@ -72,6 +72,16 @@ if (AMReX_HIP)
    endif ()
 endif()
 
+# LOOM
+if (AMReX_LOOM)
+   add_amrex_define( AMREX_USE_LOOM NO_LEGACY )
+   # Device code is written on Loom's loomcxx API (AMReX_LoomDevice.H); the
+   # host runtime is libhrx (AMReX_Loom.H). Subgroup (wavefront) width of the
+   # supported AMD targets (gfx90a and gfx94x run wave64).
+   add_amrex_define( AMREX_LOOM_SUBGROUP_SIZE=64 NO_LEGACY )
+   add_amrex_define( NDEBUG )  # device assertions compile out
+endif()
+
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
    add_amrex_define(AMREX_USE_FLOAT)

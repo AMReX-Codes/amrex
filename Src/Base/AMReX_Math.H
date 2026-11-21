@@ -74,9 +74,13 @@ namespace detail {
     U fp_opaque (U v) noexcept
     {
 #if defined(AMREX_MATH_ISNAN_BITS) && (defined(__GNUC__) || defined(__clang__))
-#  if defined(__HIP_DEVICE_COMPILE__)
+#  if defined(AMREX_USE_HIP) && defined(__HIP_DEVICE_COMPILE__)
         __asm__("" : "+v"(v));
 #  else
+        // On a LOOM device no barrier is needed: Loom's fast-math permissions
+        // are flags on individual floating-point operations and do not
+        // constrain other uses of their operands, so a bit test cannot be
+        // folded. The host arm is the only one with the barrier.
         AMREX_IF_ON_HOST((__asm__("" : "+r"(v));))
 #  endif
 #endif
@@ -219,6 +223,10 @@ double cospi (double x)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
+#elif defined(AMREX_USE_LOOM)
+    // cospi(x) is cos(2*pi*(x/2)); halving is exact.
+    AMREX_IF_ON_DEVICE(( return loom::scalar::costurnsf(0.5*x); ))
+    AMREX_IF_ON_HOST(( return std::cos(pi<double>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( return ::cospi(x); ))
     AMREX_IF_ON_HOST(( return std::cos(pi<double>()*x); ))
@@ -231,6 +239,10 @@ float cospi (float x)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
+#elif defined(AMREX_USE_LOOM)
+    // cospi(x) is cos(2*pi*(x/2)); halving is exact.
+    AMREX_IF_ON_DEVICE(( return loom::scalar::costurnsf(0.5f*x); ))
+    AMREX_IF_ON_HOST(( return std::cos(pi<float>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( return ::cospif(x); ))
     AMREX_IF_ON_HOST(( return std::cos(pi<float>()*x); ))
@@ -243,6 +255,10 @@ double sinpi (double x)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
+#elif defined(AMREX_USE_LOOM)
+    // sinpi(x) is sin(2*pi*(x/2)); halving is exact.
+    AMREX_IF_ON_DEVICE(( return loom::scalar::sinturnsf(0.5*x); ))
+    AMREX_IF_ON_HOST(( return std::sin(pi<double>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( return ::sinpi(x); ))
     AMREX_IF_ON_HOST(( return std::sin(pi<double>()*x); ))
@@ -255,6 +271,10 @@ float sinpi (float x)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
+#elif defined(AMREX_USE_LOOM)
+    // sinpi(x) is sin(2*pi*(x/2)); halving is exact.
+    AMREX_IF_ON_DEVICE(( return loom::scalar::sinturnsf(0.5f*x); ))
+    AMREX_IF_ON_HOST(( return std::sin(pi<float>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( return ::sinpif(x); ))
     AMREX_IF_ON_HOST(( return std::sin(pi<float>()*x); ))
@@ -305,6 +325,12 @@ std::pair<double,double> sincos (double x)
     std::pair<double,double> r;
 #if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE((
+        r.first = loom::scalar::sinf(x);
+        r.second = loom::scalar::cosf(x);
+    ))
+    AMREX_IF_ON_HOST(( detail::sincos(x, &r.first, &r.second); ))
 #else
     AMREX_IF_ON_DEVICE(( ::sincos(x, &r.first, &r.second); ))
     AMREX_IF_ON_HOST(( detail::sincos(x, &r.first, &r.second); ))
@@ -319,6 +345,12 @@ std::pair<float,float> sincos (float x)
     std::pair<float,float> r;
 #if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE((
+        r.first = loom::scalar::sinf(x);
+        r.second = loom::scalar::cosf(x);
+    ))
+    AMREX_IF_ON_HOST(( detail::sincosf(x, &r.first, &r.second); ))
 #else
     AMREX_IF_ON_DEVICE(( ::sincosf(x, &r.first, &r.second); ))
     AMREX_IF_ON_HOST(( detail::sincosf(x, &r.first, &r.second); ))
@@ -349,6 +381,12 @@ std::pair<double,double> sincospi (double x)
     std::pair<double,double> r;
 #if defined(AMREX_USE_SYCL)
     r = sincos(pi<double>()*x);
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE((
+        r.first = loom::scalar::sinturnsf(0.5*x);
+        r.second = loom::scalar::costurnsf(0.5*x);
+    ))
+    AMREX_IF_ON_HOST(( r = sincos(pi<double>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( ::sincospi(x, &r.first, &r.second); ))
     AMREX_IF_ON_HOST(( r = sincos(pi<double>()*x); ))
@@ -363,6 +401,12 @@ std::pair<float,float> sincospi (float x)
     std::pair<float,float> r;
 #if defined(AMREX_USE_SYCL)
     r = sincos(pi<float>()*x);
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE((
+        r.first = loom::scalar::sinturnsf(0.5f*x);
+        r.second = loom::scalar::costurnsf(0.5f*x);
+    ))
+    AMREX_IF_ON_HOST(( r = sincos(pi<float>()*x); ))
 #else
     AMREX_IF_ON_DEVICE(( ::sincospif(x, &r.first, &r.second); ))
     AMREX_IF_ON_HOST(( r = sincos(pi<float>()*x); ))
@@ -452,6 +496,8 @@ std::uint32_t umulhi32 (std::uint32_t a, std::uint32_t b)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::mul_hi(a,b);
+#elif defined(AMREX_USE_LOOM)
+    return std::uint32_t((std::uint64_t(a) * std::uint64_t(b)) >> 32);
 #else
     AMREX_IF_ON_DEVICE(( return __umulhi(a, b); ))
     AMREX_IF_ON_HOST((
@@ -466,6 +512,20 @@ std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
 {
 #if defined(AMREX_USE_SYCL)
     return sycl::mul_hi(a,b);
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE((
+        // 64x64 -> high 64 bits from 32-bit halves.
+        std::uint64_t const a_lo = a & 0xffffffffULL, a_hi = a >> 32;
+        std::uint64_t const b_lo = b & 0xffffffffULL, b_hi = b >> 32;
+        std::uint64_t const lo_lo = a_lo * b_lo, hi_lo = a_hi * b_lo;
+        std::uint64_t const lo_hi = a_lo * b_hi, hi_hi = a_hi * b_hi;
+        std::uint64_t const cross = (lo_lo >> 32) + (hi_lo & 0xffffffffULL) + lo_hi;
+        return hi_hi + (hi_lo >> 32) + (cross >> 32);
+    ))
+    AMREX_IF_ON_HOST((
+        auto tmp = amrex::UInt128_t(a) * amrex::UInt128_t(b);
+        return std::uint64_t(tmp >> 64);
+    ))
 #else
     AMREX_IF_ON_DEVICE(( return __umul64hi(a, b); ))
     AMREX_IF_ON_HOST((
@@ -555,6 +615,8 @@ double rsqrt (double x)
     double r;
 #if defined(AMREX_USE_SYCL)
     AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE(( r = loom::scalar::rsqrtf(x); ))
 #else
     AMREX_IF_ON_DEVICE(( r = ::rsqrt(x); ))
 #endif
@@ -569,6 +631,8 @@ float rsqrt (float x)
     float r;
 #if defined(AMREX_USE_SYCL)
     AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#elif defined(AMREX_USE_LOOM)
+    AMREX_IF_ON_DEVICE(( r = loom::scalar::rsqrtf(x); ))
 #else
     AMREX_IF_ON_DEVICE(( r = ::rsqrtf(x); ))
 #endif
