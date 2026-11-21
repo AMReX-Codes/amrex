@@ -287,12 +287,10 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
             Box const& rhobox = rhofab->box();
 #if (AMREX_SPACEDIM == 3)
             Long leng = gfab->box().numPts();
-            if (m_info.twod_mode) {
-                AMREX_ASSERT(gfab->box().length(2) == 1 &&
-                             leng == (rhobox.length(0) * rhobox.length(1)));
-            } else {
-                AMREX_ASSERT(leng == rhobox.numPts());
-            }
+            AMREX_ASSERT(m_info.twod_mode
+                         ? (gfab->box().length(2) == 1 &&
+                            leng == (rhobox.length(0) * rhobox.length(1)))
+                         : (leng == rhobox.numPts()));
 #endif
             amrex::ParallelForOMP(rhobox.numPts(), [=] AMREX_GPU_DEVICE (Long i)
             {
