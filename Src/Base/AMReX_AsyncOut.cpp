@@ -1,5 +1,6 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX_BackgroundThread.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
@@ -92,13 +93,27 @@ WriteInfo GetWriteInfo (int rank)
     return WriteInfo{.ifile = ifile, .ispot = ispot, .nspots = nspots};
 }
 
+namespace {
+// The job may read host memory that GPU work queued before the submission is
+// still writing (e.g., device-to-host copies into pinned buffers). Outside a
+// no-sync region, the loops that queued that work have already waited for it.
+void wait_for_queued_gpu_work ()
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronizeAll(); }
+#endif
+}
+}
+
 void Submit (std::function<void()>&& a_f)
 {
+    wait_for_queued_gpu_work();
     s_thread->Submit(std::move(a_f));
 }
 
 void Submit (std::function<void()> const& a_f)
 {
+    wait_for_queued_gpu_work();
     s_thread->Submit(a_f);
 }
 

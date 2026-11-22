@@ -49,6 +49,9 @@ WriteInfo GetWriteInfo (int rank);
 
 /**
  * \brief Submit a job functor to the asynchronous writer thread.
+ *
+ * GPU work queued before the call has finished before the job runs, also in
+ * a Gpu::NoSyncRegion, so the job can read host memory that the GPU wrote.
  * \param a_f Functor that performs the output operations.
  * \ingroup amrex_io
  */

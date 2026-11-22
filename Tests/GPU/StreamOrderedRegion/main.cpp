@@ -1,5 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Arena.H>
+#include <AMReX_AsyncOut.H>
+#include <AMReX_FileSystem.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
@@ -8,6 +10,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #include <atomic>
 #include <chrono>
@@ -27,10 +31,16 @@ using namespace amrex;
  *    that stream before it, and the work queued on that stream after it must
  *    see the loop's work.
  *
+ *    Also for loops on a single stream (MFItInfo::SetNumStreams(1), or a
+ *    StreamIter in a Gpu::SingleStreamRegion).
+ *
  * 2. FabArray::arrays() built for the first time in a StreamIter iteration
  *    must be usable from the loop's other streams.
  *
- * 3. Memory released with Gpu::freeAsync on a stream while another thread
+ * 3. VisMF::AsyncWrite (amrex.async_out=1) in the region writes the data
+ *    that the GPU work queued before it produces (smoke test).
+ *
+ * 4. Memory released with Gpu::freeAsync on a stream while another thread
  *    joins that stream (Gpu::Device::joinStreams) must not be freed before
  *    the kernels queued ahead of it on that stream finish. This is a stress
  *    test: the window it probes is narrow, and on CUDA it is usually
@@ -67,7 +77,25 @@ Long spin_iters_per_ms ()
     }
 }
 
-enum struct LoopKind { MFIter, StreamIterInfo, StreamIterPlain };
+enum struct LoopKind {
+    MFIter, StreamIterInfo, StreamIterPlain, MFIterOneStream, StreamIterSingleStreamRegion
+};
+constexpr LoopKind all_loop_kinds[] = {
+    LoopKind::MFIter, LoopKind::StreamIterInfo, LoopKind::StreamIterPlain,
+    LoopKind::MFIterOneStream, LoopKind::StreamIterSingleStreamRegion
+};
+
+const char* loop_name (LoopKind kind)
+{
+    switch (kind) {
+    case LoopKind::MFIter: return "MFIter";
+    case LoopKind::StreamIterInfo: return "StreamIter(n, StreamItInfo)";
+    case LoopKind::StreamIterPlain: return "StreamIter(n)";
+    case LoopKind::MFIterOneStream: return "MFIter(SetNumStreams(1))";
+    case LoopKind::StreamIterSingleStreamRegion: return "StreamIter in SingleStreamRegion";
+    }
+    return "";
+}
 
 // Runs a multi-stream loop (MFIter or StreamIter) over the boxes of mf from
 // inside an MFIter iteration on stream 1, checks that the loop sees the work
@@ -75,8 +103,7 @@ enum struct LoopKind { MFIter, StreamIterInfo, StreamIterPlain };
 int test_nested_loop (MultiFab const& mf, Long iters_per_ms, LoopKind kind,
                       bool warmup = false)
 {
-    const char* name = (kind == LoopKind::MFIter) ? "MFIter"
-        : (kind == LoopKind::StreamIterInfo) ? "StreamIter(n, StreamItInfo)" : "StreamIter(n)";
+    const char* name = loop_name(kind);
     const int nboxes = mf.local_size();
 
     Gpu::DeviceVector<int> written(1, 0);  // set on stream 1 before the loop
@@ -117,6 +144,15 @@ int test_nested_loop (MultiFab const& mf, Long iters_per_ms, LoopKind kind,
                     body(sit());
                 }
             } else if (kind == LoopKind::StreamIterPlain) {
+                for (Gpu::StreamIter sit(nboxes); sit.isValid(); ++sit) {
+                    body(sit());
+                }
+            } else if (kind == LoopKind::MFIterOneStream) {
+                for (MFIter mfi(mf, MFItInfo().SetNumStreams(1)); mfi.isValid(); ++mfi) {
+                    body(mfi.LocalIndex());
+                }
+            } else if (kind == LoopKind::StreamIterSingleStreamRegion) {
+                Gpu::SingleStreamRegion single_stream;
                 for (Gpu::StreamIter sit(nboxes); sit.isValid(); ++sit) {
                     body(sit());
                 }
@@ -210,6 +246,48 @@ int test_stream_iter_arrays (BoxArray const& ba, Long iters_per_ms, bool warmup 
         return 1;
     }
     amrex::Print() << "PASS StreamIter arrays\n";
+    return 0;
+}
+
+// Writes a MultiFab with VisMF::AsyncWrite (amrex.async_out=1) in a
+// StreamOrderedRegion right after filling it, then reads the file back. A
+// smoke test: AsyncWrite's own min/max reduction waits for the device before
+// its device-to-host copies, and those copies usually finish before the
+// writer thread reads them, so a missing wait in AsyncOut::Submit is not
+// reliably caught here.
+int test_async_write (BoxArray const& ba)
+{
+    if (!AsyncOut::UseAsyncOut()) {
+        amrex::Print() << "SKIP async write: amrex.async_out is off\n";
+        return 0;
+    }
+    const std::string dir = "StreamOrderedRegion_async";
+    const std::string name = dir + "/mf";
+    amrex::UtilCreateCleanDirectory(dir, true);
+    constexpr Real value = 42.0;
+    MultiFab mf(ba, DistributionMapping(ba), 1, 0);
+    mf.setVal(0.0);
+    Gpu::synchronize();
+
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        mf.setVal(value);
+        VisMF::AsyncWrite(mf, name);
+    }
+    AsyncOut::Finish();
+
+    MultiFab in;
+    VisMF::Read(in, name);
+    const Real lo = in.min(0);
+    const Real hi = in.max(0);
+    ParallelDescriptor::Barrier();
+    if (ParallelDescriptor::IOProcessor()) { FileSystem::RemoveAll(dir); }
+    if (lo != value || hi != value) {
+        amrex::Print() << "FAIL async write: file holds values in [" << lo << ", " << hi
+                       << "], expected " << value << "\n";
+        return 1;
+    }
+    amrex::Print() << "PASS async write\n";
     return 0;
 }
 
@@ -327,7 +405,11 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
 int main (int argc, char* argv[])
 {
     int nfail = 0;
-    amrex::Initialize(argc, argv);
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, [] () {
+        ParmParse pp("amrex");
+        int async_out = 1;  // for test_async_write
+        pp.queryAdd("async_out", async_out);
+    });
     {
         if (Gpu::Device::numGpuStreams() < 2) {
             amrex::Print() << "SKIP: needs at least 2 GPU streams\n";
@@ -348,12 +430,10 @@ int main (int argc, char* argv[])
             } else {
                 // Launch every kernel once first: loading a kernel's module on its
                 // first launch (e.g., CUDA lazy loading) can wait for the device.
-                for (auto kind : {LoopKind::MFIter, LoopKind::StreamIterInfo,
-                                  LoopKind::StreamIterPlain}) {
+                for (auto kind : all_loop_kinds) {
                     test_nested_loop(mf, iters_per_ms, kind, true);
                 }
-                for (auto kind : {LoopKind::MFIter, LoopKind::StreamIterInfo,
-                                  LoopKind::StreamIterPlain}) {
+                for (auto kind : all_loop_kinds) {
                     nfail += test_nested_loop(mf, iters_per_ms, kind);
                 }
             }
@@ -368,6 +448,7 @@ int main (int argc, char* argv[])
                 ba2.shift(IntVect(1000));
                 nfail += test_stream_iter_arrays(ba2, iters_per_ms);
             }
+            nfail += test_async_write(ba);
             nfail += test_join_concurrent_free(iters_per_ms, ntrials);
         }
     }
