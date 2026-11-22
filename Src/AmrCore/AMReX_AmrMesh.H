@@ -476,6 +476,9 @@ protected:
     //! True if ref_ratio[lev] is odd (and not 1) in some direction.
     [[nodiscard]] bool hasOddRefRatio (int lev) const noexcept;
 
+    //! Validate the gridding region with the current blocking factors.
+    void checkGriddingRegion () const;
+
     //! Disable the iterate-on-new-grids loop for the next MakeNewGrids call.
     void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }
 

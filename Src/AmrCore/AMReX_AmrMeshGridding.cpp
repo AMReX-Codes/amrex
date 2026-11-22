@@ -880,6 +880,53 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
 }
 
 void
+AmrMesh::checkGriddingRegion () const
+{
+    if (!gridding_region.ok()) { return; }
+    Box const& domain = Geom(0).Domain();
+    if (!domain.contains(gridding_region)) {
+        amrex::Print() << "gridding region " << gridding_region
+                       << " is not inside the domain " << domain << '\n';
+        amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is not inside the domain");
+    }
+    if (refine_whole_domain_dir >= 0) {
+        amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi does not work with refine_whole_domain_dir");
+    }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geom(0).isPeriodic(idim) &&
+            (gridding_region.smallEnd(idim) != domain.smallEnd(idim) ||
+             gridding_region.bigEnd(idim)   != domain.bigEnd(idim)))
+        {
+            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi must span the domain in periodic directions");
+        }
+    }
+    for (int lev = 0; lev < max_level; ++lev) {
+        Box const gr = griddingRegion(lev);
+        if (!gr.ok()) {
+            amrex::Print() << "gridding region " << gridding_region << " has no cells on level "
+                           << lev << " once aligned to the blocking factor " << bfLev(lev) << '\n';
+            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is too small");
+        }
+        // A partial last cell is paired with the cell before it, which
+        // must therefore be in the region too.
+        IntVect const bf = bfLev(lev);
+        Box const pcd = amrex::coarsen(Geom(lev).Domain(), bf);
+        Box const grc = amrex::coarsen(gr, bf);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (hasPartialCell(lev, idim) && pcd.length(idim) > 1 && grc.length(idim) < 2) {
+                amrex::Print() << "gridding region " << gridding_region << " on level " << lev
+                               << " in direction " << idim << " holds only the partial last block of "
+                               << bf[idim] << " cells at the upper domain boundary\n";
+                amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is too small");
+            }
+        }
+        if (verbose > 0) {
+            amrex::Print() << "Gridding region on level " << lev << ": " << gr << '\n';
+        }
+    }
+}
+
+void
 AmrMesh::checkInputExtended ()
 {
     if (max_level < 0) {
@@ -916,52 +963,7 @@ AmrMesh::checkInputExtended ()
 #endif
     }
 
-    //
-    // Check the gridding region.
-    //
-    if (gridding_region.ok())
-    {
-        if (!domain.contains(gridding_region)) {
-            amrex::Print() << "gridding region " << gridding_region
-                           << " is not inside the domain " << domain << '\n';
-            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is not inside the domain");
-        }
-        if (refine_whole_domain_dir >= 0) {
-            amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi does not work with refine_whole_domain_dir");
-        }
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geom(0).isPeriodic(idim) &&
-                (gridding_region.smallEnd(idim) != domain.smallEnd(idim) ||
-                 gridding_region.bigEnd(idim)   != domain.bigEnd(idim)))
-            {
-                amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi must span the domain in periodic directions");
-            }
-        }
-        for (int lev = 0; lev < max_level; ++lev) {
-            Box const gr = griddingRegion(lev);
-            if (!gr.ok()) {
-                amrex::Print() << "gridding region " << gridding_region << " has no cells on level "
-                               << lev << " once aligned to the blocking factor " << bfLev(lev) << '\n';
-                amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is too small");
-            }
-            // A partial last cell is paired with the cell before it, which
-            // must therefore be in the region too.
-            IntVect const bf = bfLev(lev);
-            Box const pcd = amrex::coarsen(Geom(lev).Domain(), bf);
-            Box const grc = amrex::coarsen(gr, bf);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (hasPartialCell(lev, idim) && pcd.length(idim) > 1 && grc.length(idim) < 2) {
-                    amrex::Print() << "gridding region " << gridding_region << " on level " << lev
-                                   << " in direction " << idim << " holds only the partial last block of "
-                                   << bf[idim] << " cells at the upper domain boundary\n";
-                    amrex::Error("Amr::checkInput: amr.gridding_region_lo/hi is too small");
-                }
-            }
-            if (verbose > 0) {
-                amrex::Print() << "Gridding region on level " << lev << ": " << gr << '\n';
-            }
-        }
-    }
+    checkGriddingRegion();
 
     //
     // Check that domain size is a multiple of blocking_factor[0].

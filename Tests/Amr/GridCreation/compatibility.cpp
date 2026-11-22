@@ -253,6 +253,10 @@ void test_amr_validation () {
             ref_ratio[0] = IntVect(3);
             ref_ratio[0][AMREX_SPACEDIM-1] = 1;
         }
+        void region (Box const& b) {
+            no_box_split_dir = AMREX_SPACEDIM-1;
+            gridding_region = b;
+        }
     };
     RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Driver driver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
@@ -270,6 +274,18 @@ void test_amr_validation () {
     driver.odd_ratio();
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
 #endif
+
+    // The gridding region is checked with the blocking factor set after
+    // the constructor.  x = 30:31 has a block of 2 on level 0, but none
+    // once the blocks are 8 cells.
+    Driver rdriver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
+    Box region(IntVect(0), IntVect(31));
+    region.setSmall(0, 30);
+    rdriver.region(region);
+    rdriver.SetBlockingFactor(Vector<int>{1, 4});
+    rdriver.checkInput();
+    rdriver.SetBlockingFactor(16);
+    rejects([&] { rdriver.checkInput(); }, "gridding_region_lo/hi is too small");
 }
 #endif
 

@@ -1102,6 +1102,9 @@ Amr::checkInput ()
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
     }
+    if (gridding_region.ok()) {
+        amrex::Error("amr.gridding_region_lo/hi requires amr.no_box_split_dir");
+    }
     //
     // Check that blocking_factor is a power of 2.
     //
@@ -1223,6 +1226,7 @@ Amr::checkInputExtended ()
             amrex::Error("domain size not divisible by blocking_factor");
         }
     }
+    checkGriddingRegion();
     //
     // Check that max_grid_size is even, except in no_box_split_dir and in
     // directions with an odd refinement ratio.
