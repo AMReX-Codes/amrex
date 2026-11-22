@@ -335,6 +335,27 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
         Saxpy(*a_sol[ilev], RT(-1), cor[ilev], 0, 0, nComp(*a_sol[ilev]), IntVect(0));
     }
 
+    // MLMG's sol may alias the GMRES scratch freed by now.  Point it at
+    // a_sol as MLMG::solve does, so that getFluxes etc. work afterwards.
+    m_mlmg->sol.resize(m_nlevels);
+    m_mlmg->sol_is_alias.resize(m_nlevels, true);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        if ((m_mlmg->cf_strategy == MG::CFStrategy::ghostnodes) ||
+            (nGrowVect(*a_sol[ilev]) == m_mlmg->ngSol()))
+        {
+            m_mlmg->sol[ilev] = m_linop->makeAlias(*a_sol[ilev]);
+            m_mlmg->sol_is_alias[ilev] = true;
+        } else {
+            if (m_mlmg->sol_is_alias[ilev]) {
+                m_mlmg->sol[ilev] = m_linop->make(ilev, 0, m_mlmg->ngSol());
+                m_mlmg->sol_is_alias[ilev] = false;
+            }
+            LocalCopy(m_mlmg->sol[ilev], *a_sol[ilev], 0, 0, nComp(*a_sol[ilev]), IntVect(0));
+            setBndry(m_mlmg->sol[ilev], RT(0), 0, nComp(*a_sol[ilev]));
+        }
+    }
+    m_mlmg->prepareForFluxes(Vector<MF const*>(a_sol.begin(), a_sol.end()));
+
     m_mlmg->setBottomSolver(mlmg_bottom_solver);
     m_mlmg->setVerbose(mlmg_verbose);
     m_mlmg->setBottomVerbose(mlmg_bottom_verbose);
