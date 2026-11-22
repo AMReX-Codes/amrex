@@ -15,6 +15,7 @@
 #include <limits>
 
 using namespace amrex;
+using namespace amrex::literals;
 
 MyTest::MyTest ()
 {
@@ -189,7 +190,7 @@ MyTest::solve ()
             MultiFab::Multiply(mf, vfrc, 0, 0, 1, 0);
 
             Real norminf = mf.norm0();
-            Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
+            Real norm1 = mf.norm1()*AMREX_D_TERM((1.0_rt/n_cell), *(1.0_rt/n_cell), *(1.0_rt/n_cell));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
         }
         for (int ilev = 0; ilev <= max_level; ++ilev)
@@ -588,7 +589,7 @@ MyTest::readParameters ()
     }
     pp.query("null_fine_bcoef", null_fine_bcoef);
     pp.query("null_acoef", null_acoef);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!null_acoef || acoef_value == 0.0, "null_acoef needs acoef = 0");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!null_acoef || acoef_value == 0.0_rt, "null_acoef needs acoef = 0");
     pp.query("beta_on_centroid", beta_on_centroid);
     pp.query("nan_in_covered", nan_in_covered);
     pp.query("domain_bc", domain_bc);
