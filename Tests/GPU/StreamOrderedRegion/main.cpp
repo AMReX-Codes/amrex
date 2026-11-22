@@ -34,8 +34,14 @@ using namespace amrex;
  *    Also for loops on a single stream (MFItInfo::SetNumStreams(1), or a
  *    StreamIter in a Gpu::SingleStreamRegion).
  *
- * 2. FabArray::arrays() built for the first time in a StreamIter iteration
- *    must be usable from the loop's other streams.
+ *    A nested loop that does not fork onto other streams (one outside the
+ *    launch region, an AllBoxes MFIter, or a StreamIter with device_sync)
+ *    must leave the current stream as it found it, so that the work queued
+ *    after it on that stream sees the work queued before it.
+ *
+ * 2. FabArray::arrays() built for the first time in a StreamIter or MFIter
+ *    iteration must be usable from the loop's other streams, also after
+ *    another loop nested in that iteration has finished.
  *
  * 3. VisMF::AsyncWrite (amrex.async_out=1) in the region writes the data
  *    that the GPU work queued before it produces (smoke test).
@@ -204,9 +210,98 @@ int test_nested_loop (MultiFab const& mf, Long iters_per_ms, LoopKind kind,
     return nfail;
 }
 
-// Builds the arrays of a new MultiFab in iteration 1 of a StreamIter loop,
+enum struct NoForkKind { MFIterHost, MFIterAllBoxes, StreamIterDeviceSync };
+constexpr NoForkKind all_nofork_kinds[] = {
+    NoForkKind::MFIterHost, NoForkKind::MFIterAllBoxes, NoForkKind::StreamIterDeviceSync
+};
+
+const char* nofork_name (NoForkKind kind)
+{
+    switch (kind) {
+    case NoForkKind::MFIterHost: return "MFIter outside launch region";
+    case NoForkKind::MFIterAllBoxes: return "MFIter(AllBoxes)";
+    case NoForkKind::StreamIterDeviceSync: return "StreamIter(device_sync)";
+    }
+    return "";
+}
+
+// Runs a loop that does not fork onto other streams from inside an MFIter
+// iteration on stream 1, between a slow producer and a consumer queued on
+// that stream, and checks that the consumer sees the producer's result.
+int test_nested_nofork_loop (MultiFab const& mf, Long iters_per_ms, NoForkKind kind,
+                             bool warmup = false)
+{
+    const char* name = nofork_name(kind);
+    const int nboxes = mf.local_size();
+
+    Gpu::DeviceVector<int> written(1, 0);
+    Gpu::DeviceVector<int> seen(1, -1);
+    Gpu::DeviceVector<unsigned> sink(1, 0);
+    auto* pw = written.data();
+    auto* ps = seen.data();
+    auto* pk = sink.data();
+    const Long long_wait = warmup ? 0 : 50 * iters_per_ms;
+    int origin = -1;
+    int after = -1;
+    int count = 0;
+    Gpu::synchronize();
+
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        for (MFIter omfi(mf); omfi.isValid(); ++omfi) {
+            if (omfi.LocalIndex() != 1) { continue; }
+            origin = Gpu::Device::streamIndex();
+
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                pk[0] = spin(long_wait);
+                pw[0] = 1;
+            });
+
+            if (kind == NoForkKind::MFIterHost) {
+                Gpu::LaunchSafeGuard lsg(false);
+                for (MFIter mfi(mf); mfi.isValid(); ++mfi) { ++count; }
+            } else if (kind == NoForkKind::MFIterAllBoxes) {
+                const unsigned char flags = MFIter::AllBoxes;
+                for (MFIter mfi(mf, flags); mfi.isValid(); ++mfi) { ++count; }
+            } else {
+                Gpu::StreamItInfo info;
+                info.device_sync = true;
+                for (Gpu::StreamIter sit(nboxes, info); sit.isValid(); ++sit) { ++count; }
+            }
+
+            after = Gpu::Device::streamIndex();
+            amrex::single_task([=] AMREX_GPU_DEVICE () { ps[0] = pw[0]; });
+        }
+    }
+    Gpu::synchronize();
+    if (warmup) { return 0; }
+
+    int h_seen = 0;
+    Gpu::copy(Gpu::deviceToHost, seen.begin(), seen.end(), &h_seen);
+
+    int nfail = 0;
+    if (after != origin) {
+        amrex::Print() << "FAIL nested " << name << ": current stream after the loop is "
+                       << after << ", expected " << origin << "\n";
+        ++nfail;
+    }
+    if (h_seen != 1) {
+        amrex::Print() << "FAIL nested " << name << ": work queued after the loop ran "
+                       << "before the work queued ahead of it on stream " << origin << "\n";
+        ++nfail;
+    }
+    if (nfail == 0) {
+        amrex::Print() << "PASS nested " << name << " (origin stream " << origin
+                       << ", " << count << " items)\n";
+    }
+    return nfail;
+}
+
+// Builds the arrays of a new MultiFab in iteration 1 of a StreamIter loop (or
+// an MFIter loop, after a nested MFIter has finished in that iteration),
 // behind a slow kernel on stream 1, and reads them in iteration 2.
-int test_stream_iter_arrays (BoxArray const& ba, Long iters_per_ms, bool warmup = false)
+int test_loop_arrays (BoxArray const& ba, Long iters_per_ms, bool outer_mfiter,
+                      bool warmup = false)
 {
     MultiFab mf(ba, DistributionMapping(ba), 1, 0);
     const int n = mf.local_size();
@@ -217,22 +312,32 @@ int test_stream_iter_arrays (BoxArray const& ba, Long iters_per_ms, bool warmup 
     const Long long_wait = warmup ? 0 : 50 * iters_per_ms;
     Gpu::synchronize();
 
+    auto body = [&] (int i) {
+        if (i == 1) {
+            if (outer_mfiter) {
+                // A nested loop that has finished must not hide the outer one.
+                for (MFIter mfi(mf); mfi.isValid(); ++mfi) {}
+            }
+            amrex::single_task([=] AMREX_GPU_DEVICE () { pk[0] = spin(long_wait); });
+            amrex::ignore_unused(mf.const_arrays());  // first use: copied to the device
+        } else if (i == 2) {
+            auto const& ma = mf.const_arrays();
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                for (int b = 0; b < n; ++b) { plo[b] = ma[b].begin[0]; }
+            });
+        }
+    };
     {
         Gpu::StreamOrderedRegion stream_ordered;
-        for (Gpu::StreamIter sit(n); sit.isValid(); ++sit) {
-            if (sit() == 1) {
-                amrex::single_task([=] AMREX_GPU_DEVICE () { pk[0] = spin(long_wait); });
-                amrex::ignore_unused(mf.const_arrays());  // first use: copied to the device
-            } else if (sit() == 2) {
-                auto const& ma = mf.const_arrays();
-                amrex::single_task([=] AMREX_GPU_DEVICE () {
-                    for (int b = 0; b < n; ++b) { plo[b] = ma[b].begin[0]; }
-                });
-            }
+        if (outer_mfiter) {
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi) { body(mfi.LocalIndex()); }
+        } else {
+            for (Gpu::StreamIter sit(n); sit.isValid(); ++sit) { body(sit()); }
         }
     }
     Gpu::synchronize();
     if (warmup) { return 0; }
+    const char* name = outer_mfiter ? "MFIter arrays after nested MFIter" : "StreamIter arrays";
 
     Vector<int> h_lo(n);
     Gpu::copy(Gpu::deviceToHost, lo.begin(), lo.end(), h_lo.begin());
@@ -241,11 +346,11 @@ int test_stream_iter_arrays (BoxArray const& ba, Long iters_per_ms, bool warmup 
         if (h_lo[b] != mf.fabbox(mf.IndexArray()[b]).smallEnd(0)) { ++nwrong; }
     }
     if (nwrong > 0) {
-        amrex::Print() << "FAIL StreamIter arrays: " << nwrong << " of " << n
+        amrex::Print() << "FAIL " << name << ": " << nwrong << " of " << n
                        << " Array4s read before their copy to the device\n";
         return 1;
     }
-    amrex::Print() << "PASS StreamIter arrays\n";
+    amrex::Print() << "PASS " << name << "\n";
     return 0;
 }
 
@@ -433,20 +538,28 @@ int main (int argc, char* argv[])
                 for (auto kind : all_loop_kinds) {
                     test_nested_loop(mf, iters_per_ms, kind, true);
                 }
+                for (auto kind : all_nofork_kinds) {
+                    test_nested_nofork_loop(mf, iters_per_ms, kind, true);
+                }
                 for (auto kind : all_loop_kinds) {
                     nfail += test_nested_loop(mf, iters_per_ms, kind);
+                }
+                for (auto kind : all_nofork_kinds) {
+                    nfail += test_nested_nofork_loop(mf, iters_per_ms, kind);
                 }
             }
 
             if (mf.local_size() < 3) {
-                amrex::Print() << "SKIP StreamIter arrays: needs at least 3 local boxes\n";
+                amrex::Print() << "SKIP loop arrays: needs at least 3 local boxes\n";
             } else {
                 // The boxes differ from the warm-up's, so that a device table
                 // left over from it cannot pass for the new one.
-                test_stream_iter_arrays(ba, iters_per_ms, true);
-                BoxArray ba2 = ba;
-                ba2.shift(IntVect(1000));
-                nfail += test_stream_iter_arrays(ba2, iters_per_ms);
+                for (bool outer_mfiter : {false, true}) {
+                    test_loop_arrays(ba, iters_per_ms, outer_mfiter, true);
+                    BoxArray ba2 = ba;
+                    ba2.shift(IntVect(1000));
+                    nfail += test_loop_arrays(ba2, iters_per_ms, outer_mfiter);
+                }
             }
             nfail += test_async_write(ba);
             nfail += test_join_concurrent_free(iters_per_ms, ntrials);

@@ -256,11 +256,9 @@ MFIter::Finalize ()
     }
 
     AMREX_GPU_ERROR_CHECK();
-    if (device_join) {
-        Gpu::Device::setStreamIndex(stream_origin);
-    } else {
-        Gpu::Device::resetStreamIndex();
-    }
+    // Restore the stream that was current before the loop (0 outside a
+    // Gpu::StreamOrderedRegion).
+    Gpu::Device::setStreamIndex(stream_origin);
 #endif
 
     if (m_fa) {
@@ -277,8 +275,9 @@ MFIter::Finalize ()
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    {
-        depth = 0;
+    if (depth_counted) {
+        depth_counted.flag = false;
+        --depth;
     }
 }
 
@@ -290,9 +289,18 @@ MFIter::Initialize ()
 #endif
     {
         ++depth;
+        depth_counted.flag = true;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inStreamOrderedRegion()) {
+        // Work queued after the loop, e.g., later in an iteration of an
+        // enclosing loop, stays on the stream that was current before it.
+        stream_origin = Gpu::Device::streamIndex();
+    }
+#endif
 
     if (flags & AllBoxes)  // a very special case
     {
@@ -392,7 +400,6 @@ MFIter::Initialize ()
             // in an iteration of an enclosing MFIter). This includes a loop on
             // one stream that is not the current one.
             device_join.flag = true;
-            stream_origin = Gpu::Device::streamIndex();
 #ifdef AMREX_USE_OMP
 #pragma omp single
 #endif

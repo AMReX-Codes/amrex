@@ -239,7 +239,10 @@ protected:
     DeviceSync device_sync_post{true};
     //! Gpu::StreamOrderedRegion: fork from and join into stream_origin on the GPU.
     DeviceSync device_join{false};
-    int stream_origin = 0; //!< stream index current when the loop started
+    //! Gpu::StreamOrderedRegion: stream index current when the loop started,
+    //! restored when it ends.
+    int stream_origin = 0;
+    DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;

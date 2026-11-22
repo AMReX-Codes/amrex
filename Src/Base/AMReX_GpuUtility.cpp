@@ -57,6 +57,10 @@ StreamIter::init () noexcept // NOLINT
     amrex::ignore_unused(m_sync, m_join, m_origin);
 #if defined(AMREX_USE_GPU)
     ++s_stream_iter_depth;
+    if (Gpu::inStreamOrderedRegion()) {
+        // Work queued after the loop stays on the stream current before it.
+        m_origin = Gpu::Device::streamIndex();
+    }
     if (m_sync) {
 #ifdef AMREX_USE_OMP
 #pragma omp single
@@ -64,7 +68,6 @@ StreamIter::init () noexcept // NOLINT
         Gpu::streamSynchronize();
     } else if (Gpu::inStreamOrderedRegion()) {
         m_join = true;
-        m_origin = Gpu::Device::streamIndex();
 #ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
@@ -100,11 +103,8 @@ StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
         Gpu::Device::joinStreams(m_n, m_origin);
     }
     AMREX_GPU_ERROR_CHECK();
-    if (m_join) {
-        Gpu::Device::setStreamIndex(m_origin);
-    } else {
-        Gpu::Device::resetStreamIndex();
-    }
+    // 0 outside a Gpu::StreamOrderedRegion
+    Gpu::Device::setStreamIndex(m_origin);
     --s_stream_iter_depth;
 #endif
 }
