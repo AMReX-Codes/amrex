@@ -1686,7 +1686,7 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             if (mg_independent_coarsening) {
                 // A direction that cannot be coarsened gets ratio 1, and one whose
                 // cells are 1.5 times longer than the shortest coarsenable waits.
-                Real hmin = std::numeric_limits<Real>::max();
+                Real hmin = std::numeric_limits<Real>::max() * Real(0.1);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     if (is_coarsenable[idim] && rr_level[idim] > 1) {
                         hmin = std::min(hmin, dx0[idim]*Real(accum_coarsen_ratio.back()[idim]));
@@ -1836,7 +1836,7 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             if (mg_independent_coarsening) {
                 // A direction that cannot be coarsened gets ratio 1, and one whose
                 // cells are 1.5 times longer than the shortest coarsenable waits.
-                Real hmin = std::numeric_limits<Real>::max();
+                Real hmin = std::numeric_limits<Real>::max() * Real(0.1);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     if (is_coarsenable[idim] && rr_level[idim] > 1) {
                         hmin = std::min(hmin, dx0[idim]*Real(rr_vec[idim]));
