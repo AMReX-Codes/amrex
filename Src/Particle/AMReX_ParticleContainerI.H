@@ -1653,13 +1653,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<ParticleTileType*> ptile_ptrs;
     Vector<int> plevs;
     Vector<int*> new_size_ptrs;
-#ifndef AMREX_USE_GPU
     Vector<Gpu::DeviceVector<int>*> box_ptrs;
     Vector<Gpu::DeviceVector<int>*> level_ptrs;
     Vector<Gpu::DeviceVector<int>*> tile_ptrs;
     Vector<Gpu::DeviceVector<int>*> src_index_ptrs;
     Vector<Gpu::DeviceVector<IntVect>*> periodic_shift_ptrs;
-#endif
     std::size_t num_tiles = 0;
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev) {
         for (auto const& kv : m_particles[lev]) {
@@ -1672,13 +1670,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ptile_ptrs.reserve(num_tiles);
     plevs.reserve(num_tiles);
     new_size_ptrs.reserve(num_tiles);
-#ifndef AMREX_USE_GPU
     box_ptrs.reserve(num_tiles);
     level_ptrs.reserve(num_tiles);
     tile_ptrs.reserve(num_tiles);
     src_index_ptrs.reserve(num_tiles);
     periodic_shift_ptrs.reserve(num_tiles);
-#endif
     for (int lev = lev_min; lev <= finest_lev_particles; lev++) {
         auto& pmap = m_particles[lev];
         for (auto& kv : pmap)
@@ -1693,8 +1689,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto& new_size = new_sizes[lev][index];
             new_size = 0;
             new_size_ptrs.push_back(&new_size);
-#ifndef AMREX_USE_GPU
+            // Create this tile's entries in op's maps here, before the
+            // OpenMP loop below: inserting into a std::map is not
+            // thread-safe. On GPU the loop resizes them to the number of
+            // particles that move.
+#ifdef AMREX_USE_GPU
+            op.resize(kv.first.first, kv.first.second, lev, 0);
+#else
             op.resize(kv.first.first, kv.first.second, lev, static_cast<int>(np));
+#endif
             auto& boxes = op.m_boxes[lev][index];
             auto& levels = op.m_levels[lev][index];
             auto& tiles = op.m_tiles[lev][index];
@@ -1705,7 +1708,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tile_ptrs.push_back(&tiles);
             src_index_ptrs.push_back(&src_indices);
             periodic_shift_ptrs.push_back(&periodic_shift);
-#endif
         }
     }
 #endif
@@ -1723,12 +1725,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         const size_t np = src_tile.numParticles();
         if (np == 0) {continue;}
 
-#ifndef AMREX_USE_GPU
         auto& boxes = *box_ptrs[pmap_it];
         auto& levels = *level_ptrs[pmap_it];
         auto& tiles = *tile_ptrs[pmap_it];
         auto& src_indices = *src_index_ptrs[pmap_it];
         auto& periodic_shift = *periodic_shift_ptrs[pmap_it];
+#ifndef AMREX_USE_GPU
         *new_size_ptrs[pmap_it] = hostPartitionTile(src_tile,
                                                     lev, gid, tid,
                                                     lev_min, lev_max, nGrow, use_mask_lookup,
@@ -1744,14 +1746,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         int num_move = np - num_stay;
         *new_size_ptrs[pmap_it] = num_stay;
-        op.resize(gid, tid, lev, num_move);
+        boxes.resize(num_move);
+        levels.resize(num_move);
+        tiles.resize(num_move);
+        src_indices.resize(num_move);
+        periodic_shift.resize(num_move, IntVect(AMREX_D_DECL(0,0,0)));
 
-        auto index = std::make_pair(gid, tid);
-        auto* p_boxes = op.m_boxes[lev][index].dataPtr();
-        auto* p_levs = op.m_levels[lev][index].dataPtr();
-        auto* p_tiles = op.m_tiles[lev][index].dataPtr();
-        auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
-        auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
+        auto* p_boxes = boxes.dataPtr();
+        auto* p_levs = levels.dataPtr();
+        auto* p_tiles = tiles.dataPtr();
+        auto* p_src_indices = src_indices.dataPtr();
+        auto* p_periodic_shift = periodic_shift.dataPtr();
         auto ptd = src_tile.getParticleTileData();
 
         amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
