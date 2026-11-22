@@ -599,6 +599,10 @@ int main (int argc, char* argv[])
             }
             mesh.SetFinestLevel(new_finest);
         }
+        // Check the grids made from level 0 before they are replaced below.
+        for (int lev = 1; lev <= mesh.finestLevel(); ++lev) {
+            check_level(mesh, lev);
+        }
         // Regrid from a nonzero base level too.
         int lbase = mesh.finestLevel()-1;
         pp.query("regrid_lbase", lbase);

@@ -246,7 +246,9 @@ value such as :cpp:`amr.blocking_factor = 8` can be used for all levels.
 The level 0 grids still cover the whole domain, so in such a direction they
 are not all multiples of the level 0 :cpp:`blocking_factor`.
 
-Proper nesting is computed with respect to the domain, not the box.  The
+At the sides of the box inside the domain, each finer level is kept
+properly nested in the level below, as it would be at the edge of the
+coarser grids, so only level 1 grids reach the box's edge.  The
 gridding region requires :cpp:`amr.no_box_split_dir`, must lie inside the
 domain, must span the domain in periodic directions, and cannot be combined
 with :cpp:`amr.refine_whole_domain_dir`.

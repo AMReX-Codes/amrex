@@ -369,12 +369,24 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
     Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
     BoxList p_n, p_n_comp;
 
+    // Cells outside the gridding region are not properly nested.  Adding
+    // them before the complement is carried to the next level keeps finer
+    // grids n_proper cells inside the coarser grids at the region's edge.
+    auto add_outside_region = [&] (BoxList& comp, int lev) {
+        if (!gridding_region.ok()) { return; }
+        BoxList outside;
+        outside.complementIn(pc_domain[lev],
+                             BoxArray(amrex::coarsen(griddingRegion(lev), bf_lev[lev])));
+        comp.join(outside);
+    };
+
     BoxList bl_base = grids[lbase].simplified_list();
     bl_base.coarsen(bf_lev[lbase]);
     p_n_comp.parallelComplementIn(pc_domain[lbase],bl_base);
     bl_base.clear();
     p_n_comp.simplify();
     p_n_comp.accrete(n_proper);
+    add_outside_region(p_n_comp, lbase);
     if (geom[lbase].isAnyPeriodic()) {
         ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
     }
@@ -400,6 +412,7 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
         p_n_comp.refine(bf_lev[i-1]*ref_ratio[i-1]);
         p_n_comp.coarsen(bf_lev[i]);
         p_n_comp.accrete(n_proper);
+        add_outside_region(p_n_comp, i);
 
         if (geom[i].isAnyPeriodic()) {
             ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
@@ -574,18 +587,12 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
         tags.setVal(p_n_comp_ba[levc],TagBox::CLEAR);
         p_n_comp_ba[levc].clear();
         //
-        // Remove cells outside the gridding region, and treat them as not
-        // properly nested below so that clusters are clipped to it.
+        // Cells outside the gridding region were removed above with the
+        // ones outside the proper nesting domain.  Do the same for the
+        // projected tags that fall outside the TagBoxArray.
         //
-        Box const gr_c = amrex::coarsen(griddingRegion(levc), bf_lev[levc]);
-        bool const has_region = (gr_c != pc_domain[levc]);
-        if (has_region) {
-            BoxList outside;
-            outside.complementIn(pc_domain[levc], BoxArray(gr_c));
-            if (!outside.isEmpty()) {
-                tags.setVal(BoxArray(std::move(outside)), TagBox::CLEAR);
-            }
-            p_n_ba[levc] = amrex::intersect(p_n_ba[levc], gr_c);
+        if (gridding_region.ok()) {
+            Box const gr_c = amrex::coarsen(griddingRegion(levc), bf_lev[levc]);
             std::erase_if(tags_proj, [&] (IntVect const& iv) { return !gr_c.contains(iv); });
         }
         //
@@ -809,12 +816,16 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
 #ifdef AMREX_DEBUG
                 {
                     // Grids are multiples of the grid unit except where they
-                    // reach a partial last cell at the upper domain boundary.
+                    // reach a partial last cell at the upper domain boundary,
+                    // or where max_grid_size is smaller than the unit and
+                    // the grids were chopped after refining.
                     Box const& fdom = Geom(levf).Domain();
+                    IntVect const emgs = effectiveMaxGridSize(levf);
                     for (int i = 0; i < new_grids[levf].size(); ++i) {
                         Box const& b = new_grids[levf][i];
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             int const unit = bf_lev[levc][idim] * ref_ratio[levc][idim];
+                            if (idim != no_box_split_dir && emgs[idim] < unit) { continue; }
                             AMREX_ASSERT(amrex::coarsen(b.smallEnd(idim), unit)*unit == b.smallEnd(idim));
                             AMREX_ASSERT(amrex::coarsen(b.bigEnd(idim)+1, unit)*unit == b.bigEnd(idim)+1
                                          || (b.bigEnd(idim) == fdom.bigEnd(idim)
