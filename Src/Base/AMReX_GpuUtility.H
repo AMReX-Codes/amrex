@@ -202,7 +202,7 @@ namespace amrex::Gpu {
         bool m_sync;
         bool m_join = false; //!< Gpu::StreamOrderedRegion: fork/join on the GPU
         int m_origin = 0; //!< stream index current when the loop started
-        int m_nfork = 0; //!< number of streams forked (Gpu::StreamOrderedRegion)
+        int m_nstreams = 0; //!< number of streams the loop runs on
     };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

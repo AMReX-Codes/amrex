@@ -68,6 +68,8 @@ int main (int argc, char* argv[])
             amr.coarseTimeStep(stop_time);
         }
 
+        // The steps' GPU work is ordered on the GPU: wait for it to finish.
+        Gpu::synchronize();
         timer_advance = amrex::second() - timer_advance;
 
         // Write final checkpoint and plotfile

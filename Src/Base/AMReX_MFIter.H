@@ -216,13 +216,24 @@ public:
 protected:
 
     /**
-     * In a Gpu::StreamOrderedRegion, makes the GPU work queued after this
-     * call on the loop's streams wait for the work queued before it on the
-     * current stream. For a derived iterator that queues work on the current
-     * stream after the MFIter constructor forked the streams, which the
-     * loop's iterations must see (e.g., FillPatchIterator).
+     * Orders the loop's streams after the GPU work queued so far on the
+     * current stream: on the GPU in a Gpu::StreamOrderedRegion, otherwise by
+     * synchronizing the current stream when the loop runs on more than one
+     * stream. For a derived iterator that queues work on the current stream
+     * after the MFIter constructor, which the loop's iterations must see
+     * (e.g., FillPatchIterator).
      */
-    void forkStreamsFromCurrent ();
+    void orderStreamsAfterCurrent ();
+
+    /**
+     * Stops counting this MFIter in activeLoops() until resumeLoopCount().
+     * Returns whether it was counted. For a derived iterator that runs other
+     * loops before its own iterations start (e.g., FillPatchIterator).
+     */
+    bool suspendLoopCount ();
+
+    //! Counts this MFIter in activeLoops() again after suspendLoopCount().
+    void resumeLoopCount ();
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
@@ -258,8 +269,10 @@ protected:
     //! Gpu::StreamOrderedRegion: stream index current when the loop started,
     //! restored when it ends.
     int stream_origin = 0;
-    //! Gpu::StreamOrderedRegion: number of streams forked (and joined).
-    int fork_streams = 0;
+    //! Number of streams the loop runs on (Gpu::Device::beginLoopStreams);
+    //! in a Gpu::StreamOrderedRegion, also the number forked and joined.
+    int loop_streams = 0;
+    DeviceSync streams_counted{false}; //!< whether beginLoopStreams was called
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
     DeviceSync loop_counted{false}; //!< whether this MFIter incremented active_loops
 

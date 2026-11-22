@@ -267,7 +267,12 @@ MFIter::Finalize ()
         // Later work on the stream that was current before the loop waits on
         // the GPU for every stream the loop used.
         Gpu::Device::joinStreams(std::min(endIndex, streams), stream_origin);
-        Gpu::Device::endLoopStreams(fork_streams);
+    }
+    // Whichever of the above ran (a loop in a Gpu::StreamOrderedRegion can
+    // still synchronize, e.g., with MFItInfo::SetDeviceSync(true)).
+    if (streams_counted) {
+        streams_counted.flag = false;
+        Gpu::Device::endLoopStreams(loop_streams);
     }
 
     AMREX_GPU_ERROR_CHECK();
@@ -423,6 +428,8 @@ MFIter::Initialize ()
 #endif
             Gpu::streamSynchronize();
         }
+        loop_streams = std::min({static_cast<int>(index_map->size()), streams,
+                                 Gpu::numGpuStreams()});
         if (Gpu::inStreamOrderedRegion()) {
             // The streams this loop uses wait on the GPU for the work queued
             // before it on the current stream (not necessarily stream 0, e.g.,
@@ -438,11 +445,12 @@ MFIter::Initialize ()
             // region) and hang. forkStreams is thread-safe, and the extra
             // waits only order the streams after work they already follow.
             device_join.flag = true;
-            fork_streams = std::min({static_cast<int>(index_map->size()), streams,
-                                     Gpu::numGpuStreams()});
-            Gpu::Device::forkStreams(fork_streams, stream_origin);
-            Gpu::Device::beginLoopStreams(fork_streams);
+            Gpu::Device::forkStreams(loop_streams, stream_origin);
         }
+        // Every loop, also one that synchronizes: Gpu::Device::streamsWaitCurrent
+        // orders the streams of all active loops.
+        Gpu::Device::beginLoopStreams(loop_streams);
+        streams_counted.flag = true;
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
@@ -451,13 +459,38 @@ MFIter::Initialize ()
 }
 
 void
-MFIter::forkStreamsFromCurrent ()
+MFIter::orderStreamsAfterCurrent ()
 {
 #ifdef AMREX_USE_GPU
     if (device_join) {
-        Gpu::Device::forkStreams(fork_streams, Gpu::Device::streamIndex());
+        Gpu::Device::forkStreams(loop_streams, Gpu::Device::streamIndex());
+    } else if (Gpu::inLaunchRegion() && !Gpu::inNoSyncRegion() && loop_streams > 1) {
+        Gpu::streamSynchronize();
     }
 #endif
+}
+
+bool
+MFIter::suspendLoopCount ()
+{
+    if (!loop_counted) { return false; }
+    loop_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+    --active_loops;
+    return true;
+}
+
+void
+MFIter::resumeLoopCount ()
+{
+    if (loop_counted) { return; }
+    loop_counted.flag = true;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+    ++active_loops;
 }
 
 Box

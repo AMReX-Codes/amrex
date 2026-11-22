@@ -100,7 +100,7 @@ std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_event
 
 #ifdef AMREX_USE_GPU
 namespace {
-// g_loop_streams[n]: number of active loops that forked streams 0 .. n-1
+// g_loop_streams[n]: number of active loops that run on streams 0 .. n-1
 // (Device::beginLoopStreams). Device::streamsWaitCurrent only orders those.
 std::array<std::atomic<int>, AMREX_GPU_MAX_STREAMS+1> g_loop_streams{};
 }
@@ -1290,11 +1290,11 @@ void
 Device::streamsWaitCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
-    // The streams the active loops forked, not numGpuStreams(): inside a
+    // The streams the active loops run on, not numGpuStreams(): inside a
     // SingleStreamRegion (or with an external stream) nested in a
     // multi-stream loop, the loop's other iterations still run on the other
-    // pool streams. Streams no active loop forked are left alone: under
-    // graph capture they would join the capture and never be joined back.
+    // pool streams. Streams no active loop uses are left alone: under graph
+    // capture they would join the capture and never be joined back.
     int nstreams = 0;
     for (int n = max_gpu_streams; n > 0; --n) {
         if (g_loop_streams[n].load(std::memory_order_relaxed) > 0) {
@@ -1302,8 +1302,7 @@ Device::streamsWaitCurrent () noexcept
             break;
         }
     }
-    // No forked loop is active (e.g., only synchronizing loops): order all
-    // pool streams.
+    // No loop is active: order all pool streams.
     if (nstreams == 0) { nstreams = max_gpu_streams; }
     if (nstreams <= 1) { return; }
     std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};

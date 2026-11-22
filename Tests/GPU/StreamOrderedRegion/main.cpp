@@ -59,7 +59,12 @@ using namespace amrex;
  * 6. With CUDA, a loop over fewer boxes than there are GPU streams that
  *    builds FabArray::arrays() while the current stream is captured into a
  *    CUDA graph must not pull the streams it does not use into the capture,
- *    and the graph must read the arrays correctly.
+ *    and the graph must read the arrays correctly. Also after a loop that
+ *    synchronizes (MFItInfo::SetDeviceSync(true)) in the same region.
+ *
+ * 7. FabArray::arrays() built in a Gpu::StreamOrderedRegion nested in an
+ *    iteration of a synchronizing multi-stream MFIter must be usable from
+ *    that loop's other streams.
  */
 
 namespace {
@@ -437,7 +442,11 @@ int test_nested_host_mfiter_omp ()
 // capture ends, so that work queued on it meanwhile, e.g., by another thread,
 // would be captured too or fail. (CUDA does not report such a stream as
 // unjoined when no work was queued on it.)
-int test_graph_capture_arrays (bool warmup = false)
+//
+// With synced_mf, a loop over its boxes that synchronizes the host
+// (MFItInfo::SetDeviceSync(true)) runs first in the same region: it must not
+// leave its streams counted as in use after it ends.
+int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool warmup = false)
 {
     BoxArray ba(Box(IntVect(1000), IntVect(AMREX_D_DECL(1007,1003,1003))));
     ba.maxSize(4);  // 2 boxes
@@ -456,6 +465,9 @@ int test_graph_capture_arrays (bool warmup = false)
     int ncaptured = 0;  // streams the loop does not use found in the capture
     {
         Gpu::StreamOrderedRegion stream_ordered;
+        if (synced_mf) {
+            for (MFIter mfi(*synced_mf, MFItInfo().SetDeviceSync(true)); mfi.isValid(); ++mfi) {}
+        }
         const cudaStream_t s = Gpu::gpuStream();
         if (!warmup) {
             AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(s, cudaStreamCaptureModeRelaxed));
@@ -515,10 +527,71 @@ int test_graph_capture_arrays (bool warmup = false)
                        << " Array4s read wrong in the graph\n";
         return 1;
     }
-    amrex::Print() << "PASS graph capture of arrays in a 2-box loop\n";
+    amrex::Print() << "PASS graph capture of arrays in a 2-box loop"
+                   << (synced_mf ? " after a synchronizing loop" : "") << "\n";
     return 0;
 }
 #endif
+
+// An outer MFIter outside any Gpu::StreamOrderedRegion (it synchronizes, and
+// runs its iterations on several streams). In iteration 1, a region with a
+// one-stream MFIter builds the arrays of a new MultiFab behind a slow kernel;
+// iteration 2, on another stream, reads them. The arrays must be ordered for
+// the outer loop's streams, not just the inner loop's one.
+int test_arrays_in_region_in_synced_loop (BoxArray const& ba, Long iters_per_ms,
+                                          bool warmup = false)
+{
+    MultiFab outer(ba, DistributionMapping(ba), 1, 0);
+    BoxArray ba2 = ba;
+    if (!warmup) { ba2.shift(IntVect(2000)); }  // differ from the warm-up's
+    MultiFab mf(ba2, DistributionMapping(ba2), 1, 0);
+    const int n = mf.local_size();
+    Gpu::DeviceVector<int> lo(n, -1);
+    Gpu::DeviceVector<unsigned> sink(1, 0);
+    auto* plo = lo.data();
+    auto* pk = sink.data();
+    const Long long_wait = warmup ? 0 : 50 * iters_per_ms;
+    int stream1 = -1;
+    int stream2 = -1;
+    Gpu::synchronize();
+
+    for (MFIter omfi(outer); omfi.isValid(); ++omfi) {
+        const int i = omfi.LocalIndex();
+        if (i == 1) {
+            stream1 = Gpu::Device::streamIndex();
+            Gpu::StreamOrderedRegion stream_ordered;
+            for (MFIter mfi(mf, MFItInfo().SetNumStreams(1)); mfi.isValid(); ++mfi) {
+                if (mfi.LocalIndex() != 0) { continue; }
+                amrex::single_task([=] AMREX_GPU_DEVICE () { pk[0] = spin(long_wait); });
+                amrex::ignore_unused(mf.const_arrays());  // first use: copied to the device
+            }
+        } else if (i == 2) {
+            stream2 = Gpu::Device::streamIndex();
+            auto const& ma = mf.const_arrays();
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                for (int b = 0; b < n; ++b) { plo[b] = ma[b].begin[0]; }
+            });
+        }
+    }
+    Gpu::synchronize();
+    if (warmup) { return 0; }
+
+    Vector<int> h_lo(n);
+    Gpu::copy(Gpu::deviceToHost, lo.begin(), lo.end(), h_lo.begin());
+    int nwrong = 0;
+    for (int b = 0; b < n; ++b) {
+        if (h_lo[b] != mf.fabbox(mf.IndexArray()[b]).smallEnd(0)) { ++nwrong; }
+    }
+    if (nwrong > 0) {
+        amrex::Print() << "FAIL arrays in region in synchronizing loop: " << nwrong << " of "
+                       << n << " Array4s read on stream " << stream2
+                       << " before their copy to the device\n";
+        return 1;
+    }
+    amrex::Print() << "PASS arrays in region in synchronizing loop (streams " << stream1
+                   << ", " << stream2 << ")\n";
+    return 0;
+}
 
 // Forwards to The_Arena and counts frees of watched memory whose kernel has
 // not finished yet.
@@ -690,9 +763,19 @@ int main (int argc, char* argv[])
 #ifdef AMREX_USE_OMP
             nfail += test_nested_host_mfiter_omp();
 #endif
+            // Before the graph capture tests: a loop-stream count leaked by
+            // one of them would hide a failure here.
+            if (mf.local_size() < 3) {
+                amrex::Print() << "SKIP arrays in region in synchronizing loop: "
+                               << "needs at least 3 local boxes\n";
+            } else {
+                test_arrays_in_region_in_synced_loop(ba, iters_per_ms, true);
+                nfail += test_arrays_in_region_in_synced_loop(ba, iters_per_ms);
+            }
 #ifdef AMREX_USE_CUDA
-            test_graph_capture_arrays(true);
+            test_graph_capture_arrays(nullptr, true);
             nfail += test_graph_capture_arrays();
+            nfail += test_graph_capture_arrays(&mf);
 #endif
         }
     }

@@ -2411,10 +2411,11 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     amrex::ignore_unused(run_on_device);
 
 #ifdef AMREX_USE_GPU
-    // Below, the host reads mf (min/max, copies) unless the work runs on the
-    // device in stream order. In a no-sync region, GPU work queued earlier
-    // may still be writing it.
-    if (!run_on_device && Gpu::inNoSyncRegion()) {
+    // In a no-sync region, GPU work queued earlier may still be writing mf.
+    // Below, the host reads it (min/max, copies) unless the work runs on the
+    // device; and the device copies are ordered after that work only in a
+    // Gpu::StreamOrderedRegion.
+    if (Gpu::inNoSyncRegion() && (!run_on_device || !Gpu::inStreamOrderedRegion())) {
         Gpu::streamSynchronizeAll();
     }
 #endif

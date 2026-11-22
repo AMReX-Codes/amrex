@@ -683,7 +683,8 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
     // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
     // increment from the MFIter constructor, so the count stays balanced
-    // when MFIter::Finalize runs. It still counts in MFIter::activeLoops().
+    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() except
+    // during Initialize.
     if (depth_counted) {
         depth_counted.flag = false;
         --MFIter::depth;
@@ -732,7 +733,8 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
     // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
     // increment from the MFIter constructor, so the count stays balanced
-    // when MFIter::Finalize runs. It still counts in MFIter::activeLoops().
+    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() except
+    // during Initialize.
     if (depth_counted) {
         depth_counted.flag = false;
         --MFIter::depth;
@@ -1009,6 +1011,11 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE("FillPatchIterator::Initialize");
 
+    // The work below runs before this loop's iterations start: arrays built
+    // in it outside a nested loop need no ordering for this loop's streams
+    // here, since orderStreamsAfterCurrent below covers them.
+    const bool was_counted = suspendLoopCount();
+
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= idx && idx < AmrLevel::desc_lst.size());
@@ -1112,10 +1119,11 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              ncomp,
                                              time);
 
-    // The MFIter constructor forked the loop's streams before the work above
-    // was queued on the current stream. In a Gpu::StreamOrderedRegion, order
-    // them after it, so that iterations on other streams see filled m_fabs.
-    forkStreamsFromCurrent();
+    // The MFIter constructor ordered the loop's streams before the work above
+    // was queued on the current stream. Order them after it, so that
+    // iterations on other streams see filled m_fabs.
+    orderStreamsAfterCurrent();
+    if (was_counted) { resumeLoopCount(); }
 }
 
 void

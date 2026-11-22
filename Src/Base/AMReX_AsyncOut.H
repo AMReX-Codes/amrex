@@ -50,10 +50,12 @@ WriteInfo GetWriteInfo (int rank);
 /**
  * \brief Submit a job functor to the asynchronous writer thread.
  *
- * GPU work queued before the call has finished before the job runs, so the
- * job can read host memory that the GPU wrote. In a Gpu::NoSyncRegion
- * (including a Gpu::StreamOrderedRegion), this call waits for all GPU
- * streams to finish their queued work.
+ * In a Gpu::NoSyncRegion (including a Gpu::StreamOrderedRegion), this call
+ * waits for all GPU streams to finish their queued work, so the job can read
+ * host memory that the GPU wrote. Outside one, it does not wait: the caller
+ * must make sure that GPU work the job depends on has finished (MFIter loops
+ * synchronize at their end, but, e.g., a Gpu::dtoh_memcpy_async outside one
+ * does not).
  * \param a_f Functor that performs the output operations.
  * \ingroup amrex_io
  */
