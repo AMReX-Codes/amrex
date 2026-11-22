@@ -1,6 +1,9 @@
 #include <AMReX.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_ParmParse.H>
 #include "MyTest.H"
+
+#include <optional>
 
 int main (int argc, char* argv[])
 {
@@ -31,13 +34,33 @@ int main (int argc, char* argv[])
 
     {
         BL_PROFILE("main");
+        // stream_ordered = 1: run each solve in a Gpu::StreamOrderedRegion.
+        // nsolves: repeat the solves, for timing.
+        bool stream_ordered = false;
+        int nsolves = 1;
+        {
+            amrex::ParmParse pp;
+            pp.query("stream_ordered", stream_ordered);
+            pp.query("nsolves", nsolves);
+        }
         MyTest mytest;
+        amrex::Gpu::synchronize();
+        const double t0 = amrex::second();
         bool first = true;
-        for (auto const& mgt : mytest.getMultigridTypes()) {
-            if (!mytest.setMultigridType(mgt)) { continue; }
-            if (!first) { mytest.initData(); } // restore the initial guess
-            first = false;
-            mytest.solve();
+        for (int isolve = 0; isolve < nsolves; ++isolve) {
+            for (auto const& mgt : mytest.getMultigridTypes()) {
+                if (!mytest.setMultigridType(mgt)) { continue; }
+                if (!first) { mytest.initData(); } // restore the initial guess
+                first = false;
+                std::optional<amrex::Gpu::StreamOrderedRegion> ordered_region;
+                if (stream_ordered) { ordered_region.emplace(); }
+                mytest.solve();
+            }
+        }
+        amrex::Gpu::synchronize();
+        if (nsolves > 1) {
+            amrex::Print() << "Solve time (" << nsolves << " solves) = "
+                           << amrex::second() - t0 << "\n";
         }
         mytest.writePlotfile();
     }
