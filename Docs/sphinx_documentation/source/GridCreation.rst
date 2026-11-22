@@ -251,4 +251,6 @@ properly nested in the level below, as it would be at the edge of the
 coarser grids, so only level 1 grids reach the box's edge.  The
 gridding region requires :cpp:`amr.no_box_split_dir`, must lie inside the
 domain, must span the domain in periodic directions, and cannot be combined
-with :cpp:`amr.refine_whole_domain_dir`.
+with :cpp:`amr.refine_whole_domain_dir`.  Where it reaches a partial last
+block at the upper domain boundary, it must also include the block before
+it, because the two are always refined together.

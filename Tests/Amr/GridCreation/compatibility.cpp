@@ -361,6 +361,29 @@ void test_no_box_split () {
         Box const fdom = amrex::refine(geom.Domain(), 2);
         AMREX_ALWAYS_ASSERT(ba1.minimalBox() == fdom && ba1.numPts() == fdom.numPts());
     }
+    {
+        // A gridding region must not hold only the partial last block,
+        // which is paired with the block before it.
+        AmrInfo info3;
+        info3.max_level = 1;
+        info3.no_box_split_dir = AMREX_SPACEDIM-1;
+        info3.blocking_factor = {IntVect(1), IntVect(8)};
+        info3.max_grid_size = {IntVect(64), IntVect(128)};
+        info3.refine_grid_layout = false;
+        IntVect n_cell(64);
+        n_cell[0] = 145;
+        Box const dom(IntVect(0), n_cell-1);
+        info3.gridding_region = dom;
+        info3.gridding_region.setSmall(0, 144);
+        rejects([&] { Mesh invalid(geometry(n_cell), info3); },
+                "gridding_region_lo/hi is too small");
+        // Two blocks are enough.
+        info3.gridding_region.setSmall(0, 140);
+        Mesh mesh(geometry(n_cell), info3);
+        regrid(mesh);
+        AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 1);
+        AMREX_ALWAYS_ASSERT(mesh.boxArray(1).minimalBox().bigEnd(0) == 2*n_cell[0]-1);
+    }
 #endif
 }
 
