@@ -190,7 +190,8 @@ After the solver returns successfully, if needed, we can call
                        const Vector<MultiFab const*>& a_rhs);
 
 to compute the residual (i.e., :math:`f - L(\phi)`) given the solution and
-the right-hand side.  For cell-centered solvers, we can also call the
+the right-hand side.  As in the solve, :math:`f` includes the contributions of
+inhomogeneous Neumann and Robin boundary conditions.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
 :math:`-\beta \nabla \phi`.
 
