@@ -2195,9 +2195,12 @@ FabArray<FAB>::build_arrays () const
         if (!Gpu::inNoSyncRegion() && Gpu::numGpuStreams() > 1 && in_loop)
         {
             Gpu::streamSynchronize();
-        } else if (Gpu::inStreamOrderedRegion() && Gpu::numGpuStreams() > 1 && in_loop)
+        } else if (Gpu::inStreamOrderedRegion() && Gpu::Device::streamPoolSize() > 1 && in_loop)
         {
-            // Ordered on the GPU instead: the loop's other streams wait for the copy.
+            // Ordered on the GPU instead: the loop's other streams wait for
+            // the copy. Check the pool size, not numGpuStreams(), which is 1
+            // inside a SingleStreamRegion even when an enclosing loop still
+            // runs its other iterations on other streams.
             Gpu::Device::streamsWaitCurrent();
         }
 #endif

@@ -394,11 +394,14 @@ MFIter::Initialize ()
 #endif
             Gpu::streamSynchronize();
         }
-        if (Gpu::inLaunchRegion() && Gpu::inStreamOrderedRegion()) {
+        if (Gpu::inStreamOrderedRegion()) {
             // The streams this loop uses wait on the GPU for the work queued
             // before it on the current stream (not necessarily stream 0, e.g.,
             // in an iteration of an enclosing MFIter). This includes a loop on
-            // one stream that is not the current one.
+            // one stream that is not the current one, and a loop outside the
+            // launch region: its body still runs on a different stream than
+            // the current one (see setStreamIndex below), so async copies or
+            // frees queued there must be ordered too.
             device_join.flag = true;
 #ifdef AMREX_USE_OMP
 #pragma omp single

@@ -1954,8 +1954,8 @@ code that hands GPU data to a library that runs on its own stream (e.g.,
 HYPRE).
 
 :cpp:`Gpu::StreamOrderedRegion` is a no-sync region that keeps the
-concurrency of multiple streams.  Inside it, an :cpp:`MFIter` or
-:cpp:`Gpu::StreamIter` loop that uses more than one stream orders its
+concurrency of multiple streams.  Inside it, every :cpp:`MFIter` or
+:cpp:`Gpu::StreamIter` loop, whatever its number of streams, orders its
 streams on the GPU instead of synchronizing the host: before the loop, the
 streams it uses wait for the work already queued on the current stream
 (stream 0, or the stream of an enclosing :cpp:`MFIter` iteration), and after

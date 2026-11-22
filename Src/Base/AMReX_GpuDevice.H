@@ -115,6 +115,16 @@ public:
 #endif
     }
 
+    //! Number of streams in AMReX's pool, whether or not a SingleStreamRegion
+    //! or an external stream is active (unlike numGpuStreams()).
+    static int streamPoolSize () noexcept {
+#ifdef AMREX_USE_GPU
+        return max_gpu_streams;
+#else
+        return 1;
+#endif
+    }
+
     static void setStreamIndex (int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
@@ -195,8 +205,10 @@ public:
     static void joinStreams (int n, int origin) noexcept;
 
     /**
-     * Makes the GPU work queued after this call on every AMReX stream wait
-     * for the work queued before it on the current stream.
+     * Makes the GPU work queued after this call on every stream in AMReX's
+     * pool wait for the work queued before it on the current stream. This
+     * includes all pool streams even inside a SingleStreamRegion, since an
+     * enclosing loop may still be running its other iterations on them.
      */
     static void streamsWaitCurrent () noexcept;
 
@@ -297,6 +309,8 @@ private:
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
     static AMREX_EXPORT Vector<StreamManager> gpu_stream_pool; // The size of this is max_gpu_stream
+    //! Whether \p s is one of the streams in gpu_stream_pool.
+    static bool isPoolStream (gpuStream_t s) noexcept;
     // The non-owning gpu_stream_index is used to store the current stream index that will be used.
     // gpu_stream_index is a vector so that it's thread safe to write to it.
     static AMREX_EXPORT Vector<int> gpu_stream_index; // The size of this is omp_max_threads

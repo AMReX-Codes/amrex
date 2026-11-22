@@ -1156,13 +1156,24 @@ Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noe
 #endif
 
 #ifdef AMREX_USE_GPU
+bool
+Device::isPoolStream (gpuStream_t s) noexcept
+{
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == s) { return true; }
+    }
+    return false;
+}
+
 namespace {
 // Makes work queued on each of the \p nwaiters streams \p waiters after this
 // call wait for the work queued on \p waited before it, with one event
 // record for all of them. The host does not wait (except on SYCL). The event
 // is cached only if \p waited is one of AMReX's pool streams (\p cache), so
 // that streams created and destroyed by the application do not accumulate
-// events.
+// events. It is also not cached while \p waited is being captured into a
+// graph: an event recorded during capture must not be waited on later from a
+// stream that is not capturing.
 void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t waited,
                           bool cache) noexcept
 {
@@ -1174,6 +1185,16 @@ void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t 
     for (int i = 0; i < nwaiters; ++i) {
         if (waiters[i] == waited) { continue; }
         if (!recorded) {
+            if (cache) {
+                AMREX_HIP_OR_CUDA(hipStreamCaptureStatus, cudaStreamCaptureStatus) status{};
+                AMREX_HIP_OR_CUDA(
+                    AMREX_HIP_SAFE_CALL(hipStreamIsCapturing(waited, &status));,
+                    AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(waited, &status)); )
+                if (status != AMREX_HIP_OR_CUDA(hipStreamCaptureStatusNone,
+                                                cudaStreamCaptureStatusNone)) {
+                    cache = false;
+                }
+            }
             auto it = cache ? g_stream_events.find(waited) : g_stream_events.end();
             if (it == g_stream_events.end()) {
                 AMREX_HIP_OR_CUDA(
@@ -1216,11 +1237,7 @@ void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t 
 void
 Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 {
-    bool pool_stream = false;
-    for (auto& mgr : gpu_stream_pool) {
-        if (mgr.getStream() == waited) { pool_stream = true; break; }
-    }
-    streams_wait_stream(&waiter, 1, waited, pool_stream);
+    streams_wait_stream(&waiter, 1, waited, isPoolStream(waited));
 }
 #endif
 
@@ -1264,14 +1281,18 @@ void
 Device::streamsWaitCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
-    const int nstreams = numGpuStreams();
+    // All pool streams, not numGpuStreams(): inside a SingleStreamRegion (or
+    // with an external stream) nested in a multi-stream loop, the loop's other
+    // iterations still run on the other pool streams.
+    const int nstreams = max_gpu_streams;
     if (nstreams <= 1) { return; }
     std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
     for (int i = 0; i < nstreams; ++i) {
         waiters[i] = gpu_stream_pool[i].getStream();
     }
     // Cache the event only for a pool stream, not an external one.
-    streams_wait_stream(waiters.data(), nstreams, gpuStream(), external_stream_stack.empty());
+    const gpuStream_t current = gpuStream();
+    streams_wait_stream(waiters.data(), nstreams, current, isPoolStream(current));
 #endif
 }
 
