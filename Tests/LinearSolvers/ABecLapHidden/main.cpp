@@ -220,6 +220,19 @@ int main (int argc, char* argv[])
             }
         }
 
+        // The fluxes on the box faces only (as in reflux), zero on both faces
+        // of the hidden direction
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            flux[idim].setVal(Real(1.0));
+        }
+        for (MFIter mfi(phi_exact); mfi.isValid(); ++mfi) {
+            MLABecLaplacian::FFlux(mfi.validbox(), geom.InvCellSize(), Real(1.0),
+                                   {AMREX_D_DECL(&bcoef[0][mfi], &bcoef[1][mfi], &bcoef[2][mfi])},
+                                   {AMREX_D_DECL(&flux[0][mfi], &flux[1][mfi], &flux[2][mfi])},
+                                   phi_exact[mfi], 1, 1, hd);
+        }
+        failed("face-only flux in the hidden direction", flux[hd].norminf(0), Real(0.0));
+
         // The solve
         MultiFab phi(ba, dm, 1, 1);
         phi.setVal(Real(0.0));

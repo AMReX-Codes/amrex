@@ -8,12 +8,12 @@ set(_input_files inputs)
 setup_test(3 _sources _input_files)
 
 # More cases on the same executable: each hidden direction, a singular
-# operator, Jacobi smoothing, and semicoarsening, whose line solve is host
-# only.
+# operator, Jacobi smoothing, and semicoarsening along z and along x, whose
+# line solve is host only.
 set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/3d)
 set(_cases hidden0 hidden2 singular jacobi)
 if (AMReX_GPU_BACKEND STREQUAL NONE)
-    list(APPEND _cases semicoarsening)
+    list(APPEND _cases semicoarsening semicoarsening_x)
 endif ()
 foreach (_case IN LISTS _cases)
     set(_name LinearSolvers_ABecLapHidden_${_case}_3d)
@@ -26,9 +26,12 @@ foreach (_case IN LISTS _cases)
         set(_args ascalar=0 "bc_lo=periodic neumann neumann" "bc_hi=periodic neumann neumann")
     elseif (_case STREQUAL "jacobi")
         set(_args use_gauss_seidel=0)
-    else ()
+    elseif (_case STREQUAL "semicoarsening")
         set(_args semicoarsening=1 semicoarsening_direction=2 max_semicoarsening_level=3
                   "prob_hi=1.0 1.0 0.125")
+    else ()
+        set(_args semicoarsening=1 semicoarsening_direction=0 max_semicoarsening_level=3
+                  "prob_hi=0.125 1.0 1.0")
     endif ()
     set(_cmd ${_exe_dir}/Test_LinearSolvers_ABecLapHidden_3d inputs ${_args})
     if (AMReX_OMP)

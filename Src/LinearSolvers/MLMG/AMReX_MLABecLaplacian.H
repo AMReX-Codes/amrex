@@ -1445,6 +1445,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         int blen = box.length(0);
         if (hidden_direction == 0) {
             flux[0]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[0]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 0), 0, ncomp);
         } else {
             AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
@@ -1457,6 +1458,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         blen = box.length(1);
         if (hidden_direction == 1) {
             flux[1]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[1]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 1), 0, ncomp);
         } else {
             AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
@@ -1470,6 +1472,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         blen = box.length(2);
         if (hidden_direction == 2) {
             flux[2]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[2]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 2), 0, ncomp);
         } else {
             AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
