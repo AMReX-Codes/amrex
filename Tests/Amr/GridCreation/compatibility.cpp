@@ -360,6 +360,12 @@ void test_no_box_split () {
         BoxArray const& ba1 = mesh.boxArray(1);
         Box const fdom = amrex::refine(geom.Domain(), 2);
         AMREX_ALWAYS_ASSERT(ba1.minimalBox() == fdom && ba1.numPts() == fdom.numPts());
+
+        // The last block of 4 cells holds only cell 64, so a gridding
+        // region holding only that block is too small.
+        info2.gridding_region = geom.Domain();
+        info2.gridding_region.setSmall(0, 64);
+        rejects([&] { Mesh invalid(geom, info2); }, "gridding_region_lo/hi is too small");
     }
     {
         // A gridding region must not hold only the partial last block,

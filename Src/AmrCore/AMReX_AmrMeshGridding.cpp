@@ -75,8 +75,11 @@ AmrMesh::griddingRegion (int lev) const noexcept
 bool
 AmrMesh::hasPartialCell (int lev, int idim) const noexcept
 {
+    // The domain need not start at 0, so check where its upper end is.
     Box const& dom = Geom(lev).Domain();
-    return dom.length(idim) % bfLev(lev)[idim] != 0
+    int const b = bfLev(lev)[idim];
+    int const hi1 = dom.bigEnd(idim)+1;
+    return amrex::coarsen(hi1, b)*b != hi1
         && griddingRegion(lev).bigEnd(idim) == dom.bigEnd(idim);
 }
 
