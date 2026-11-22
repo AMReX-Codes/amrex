@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 #include <AMReX_Vector.H>
 
-namespace amrex {
+namespace amrex::TwoD {
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -12,7 +12,7 @@ void mlabeclap_adotx (int i, int j, int, int n, Array4<T> const& y,
                       Array4<T const> const& a,
                       Array4<T const> const& bX,
                       Array4<T const> const& bY,
-                      GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<T,2> const& dxinv,
                       T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -32,7 +32,7 @@ void mlabeclap_adotx_os (int i, int j, int, int n, Array4<T> const& y,
                          Array4<T const> const& bX,
                          Array4<T const> const& bY,
                          Array4<int const> const& osm,
-                         GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                         GpuArray<T,2> const& dxinv,
                          T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -54,7 +54,7 @@ void mlabeclap_normalize (int i, int j, int, int n, Array4<T> const& x,
                           Array4<T const> const& a,
                           Array4<T const> const& bX,
                           Array4<T const> const& bY,
-                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                          GpuArray<T,2> const& dxinv,
                           T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -452,4 +452,11 @@ void overset_rescale_bcoef_y (Box const& box, Array4<T> const& bY, Array4<int co
 }
 
 }
+
+#if (AMREX_SPACEDIM == 2)
+namespace amrex {
+    using namespace TwoD;
+}
+#endif
+
 #endif
