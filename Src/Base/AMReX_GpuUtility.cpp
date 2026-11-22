@@ -54,7 +54,7 @@ void
 StreamIter::init () noexcept // NOLINT
 {
     amrex::ignore_unused(m_threadsafe);
-    amrex::ignore_unused(m_sync, m_join);
+    amrex::ignore_unused(m_sync, m_join, m_origin);
 #if defined(AMREX_USE_GPU)
     ++s_stream_iter_depth;
     if (m_sync) {
