@@ -10,6 +10,7 @@ namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 int MFIter::depth = 0;
+int MFIter::active_loops = 0;
 int MFIter::allow_multiple_mfiters = 0;
 
 int
@@ -27,6 +28,17 @@ MFIter::currentDepth ()
 #pragma omp atomic read
 #endif
     r = MFIter::depth;
+    return r;
+}
+
+int
+MFIter::activeLoops ()
+{
+    int r;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic read
+#endif
+    r = MFIter::active_loops;
     return r;
 }
 
@@ -278,9 +290,18 @@ MFIter::Finalize ()
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (depth_counted) {
-        depth_counted.flag = false;
-        --depth;
+    {
+        if (depth_counted) {
+            depth_counted.flag = false;
+            --depth;
+        }
+        if (loop_counted) {
+            loop_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+            --active_loops;
+        }
     }
 }
 
@@ -293,6 +314,11 @@ MFIter::Initialize ()
     {
         ++depth;
         depth_counted.flag = true;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+        ++active_loops;
+        loop_counted.flag = true;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }

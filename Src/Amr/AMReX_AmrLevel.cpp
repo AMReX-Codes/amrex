@@ -680,9 +680,10 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_leveldata(&leveldata),
     m_ncomp(0)
 {
-    // A FillPatchIterator does not count as an active MFIter: undo the
-    // depth increment from the MFIter constructor, so the count stays
-    // balanced when MFIter::Finalize runs.
+    // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
+    // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
+    // increment from the MFIter constructor, so the count stays balanced
+    // when MFIter::Finalize runs. It still counts in MFIter::activeLoops().
     if (depth_counted) {
         depth_counted.flag = false;
         --MFIter::depth;
@@ -728,9 +729,10 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(AmrLevel::desc_lst[idx].inRange(scomp,ncomp));
     BL_ASSERT(0 <= idx && idx < AmrLevel::desc_lst.size());
 
-    // A FillPatchIterator does not count as an active MFIter: undo the
-    // depth increment from the MFIter constructor, so the count stays
-    // balanced when MFIter::Finalize runs.
+    // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
+    // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
+    // increment from the MFIter constructor, so the count stays balanced
+    // when MFIter::Finalize runs. It still counts in MFIter::activeLoops().
     if (depth_counted) {
         depth_counted.flag = false;
         --MFIter::depth;

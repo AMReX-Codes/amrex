@@ -51,6 +51,15 @@ using namespace amrex;
  *    the kernels queued ahead of it on that stream finish. This is a stress
  *    test: the window it probes is narrow, and on CUDA it is usually
  *    shorter than a kernel launch, so it mainly catches regressions on HIP.
+ *
+ * 5. With OpenMP, an MFIter nested in each iteration of an MFIter run by an
+ *    active OpenMP team outside the launch region must not hang when the
+ *    team's threads run different numbers of outer iterations.
+ *
+ * 6. With CUDA, a loop over fewer boxes than there are GPU streams that
+ *    builds FabArray::arrays() while the current stream is captured into a
+ *    CUDA graph must not pull the streams it does not use into the capture,
+ *    and the graph must read the arrays correctly.
  */
 
 namespace {
@@ -396,6 +405,121 @@ int test_async_write (BoxArray const& ba)
     return 0;
 }
 
+#ifdef AMREX_USE_OMP
+// An outer MFIter run by an active OpenMP team outside the launch region, with
+// an MFIter nested in each iteration. With 5 boxes and 2 threads, the threads
+// run 3 and 2 outer iterations. A worksharing construct in the nested MFIter
+// would then be reached a different number of times by each thread and hang.
+int test_nested_host_mfiter_omp ()
+{
+    BoxArray ba(Box(IntVect(0), IntVect(AMREX_D_DECL(19,3,3))));
+    ba.maxSize(4);  // 5 boxes
+    MultiFab outer(ba, DistributionMapping(ba), 1, 0);
+    MultiFab inner(ba, DistributionMapping(ba), 1, 0);
+    long count = 0;
+    for (int rep = 0; rep < 10; ++rep) {
+        Gpu::StreamOrderedRegion stream_ordered;
+        Gpu::LaunchSafeGuard lsg(false);
+#pragma omp parallel num_threads(2) reduction(+:count)
+        for (MFIter omfi(outer); omfi.isValid(); ++omfi) {
+            for (MFIter mfi(inner); mfi.isValid(); ++mfi) { ++count; }
+        }
+    }
+    amrex::Print() << "PASS nested host MFIter in OpenMP team (" << count << " items)\n";
+    return 0;
+}
+#endif
+
+#ifdef AMREX_USE_CUDA
+// Captures, into a CUDA graph, an MFIter over 2 boxes whose iterations build
+// and read FabArray::arrays() for the first time. Only the loop's streams may
+// join the capture: a stream the loop does not use would stay in it until the
+// capture ends, so that work queued on it meanwhile, e.g., by another thread,
+// would be captured too or fail. (CUDA does not report such a stream as
+// unjoined when no work was queued on it.)
+int test_graph_capture_arrays (bool warmup = false)
+{
+    BoxArray ba(Box(IntVect(1000), IntVect(AMREX_D_DECL(1007,1003,1003))));
+    ba.maxSize(4);  // 2 boxes
+    MultiFab mf(ba, DistributionMapping(ba), 1, 0);
+    const int n = mf.local_size();
+    if (n >= Gpu::Device::streamPoolSize()) {
+        amrex::Print() << "SKIP graph capture: needs more GPU streams than local boxes\n";
+        return 0;
+    }
+    Gpu::DeviceVector<int> lo(n, -1);
+    auto* plo = lo.data();
+    Gpu::synchronize();
+
+    cudaGraph_t graph = nullptr;
+    cudaError_t end_status = cudaSuccess;
+    int ncaptured = 0;  // streams the loop does not use found in the capture
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        const cudaStream_t s = Gpu::gpuStream();
+        if (!warmup) {
+            AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(s, cudaStreamCaptureModeRelaxed));
+        }
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const int b = mfi.LocalIndex();
+            auto const& ma = mf.const_arrays();
+            amrex::single_task([=] AMREX_GPU_DEVICE () { plo[b] = ma[b].begin[0]; });
+            if (!warmup) {
+                const int idx = Gpu::Device::streamIndex();
+                for (int i = n; i < Gpu::Device::streamPoolSize(); ++i) {
+                    Gpu::Device::setStreamIndex(i);
+                    cudaStreamCaptureStatus status{};
+                    AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(Gpu::gpuStream(), &status));
+                    if (status != cudaStreamCaptureStatusNone) { ++ncaptured; }
+                }
+                Gpu::Device::setStreamIndex(idx);
+            }
+        }
+        if (!warmup) {
+            end_status = cudaStreamEndCapture(s, &graph);
+            (void)cudaGetLastError();
+        }
+    }
+    if (warmup) {
+        Gpu::synchronize();
+        return 0;
+    }
+    if (end_status != cudaSuccess) {
+        amrex::Print() << "FAIL graph capture: ending the capture failed with "
+                       << cudaGetErrorName(end_status) << "\n";
+        if (graph) { cudaGraphDestroy(graph); }
+        return 1;
+    }
+    if (ncaptured > 0) {
+        amrex::Print() << "FAIL graph capture: streams the loop does not use joined the "
+                       << "capture (" << ncaptured << " times)\n";
+        if (graph) { cudaGraphDestroy(graph); }
+        return 1;
+    }
+
+    cudaGraphExec_t exec = nullptr;
+    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&exec, graph, 0));
+    AMREX_CUDA_SAFE_CALL(cudaGraphLaunch(exec, Gpu::gpuStream()));
+    Gpu::synchronize();
+    AMREX_CUDA_SAFE_CALL(cudaGraphExecDestroy(exec));
+    AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graph));
+
+    Vector<int> h_lo(n);
+    Gpu::copy(Gpu::deviceToHost, lo.begin(), lo.end(), h_lo.begin());
+    int nwrong = 0;
+    for (int b = 0; b < n; ++b) {
+        if (h_lo[b] != mf.fabbox(mf.IndexArray()[b]).smallEnd(0)) { ++nwrong; }
+    }
+    if (nwrong > 0) {
+        amrex::Print() << "FAIL graph capture: " << nwrong << " of " << n
+                       << " Array4s read wrong in the graph\n";
+        return 1;
+    }
+    amrex::Print() << "PASS graph capture of arrays in a 2-box loop\n";
+    return 0;
+}
+#endif
+
 // Forwards to The_Arena and counts frees of watched memory whose kernel has
 // not finished yet.
 class WatchingArena final : public Arena
@@ -563,6 +687,13 @@ int main (int argc, char* argv[])
             }
             nfail += test_async_write(ba);
             nfail += test_join_concurrent_free(iters_per_ms, ntrials);
+#ifdef AMREX_USE_OMP
+            nfail += test_nested_host_mfiter_omp();
+#endif
+#ifdef AMREX_USE_CUDA
+            test_graph_capture_arrays(true);
+            nfail += test_graph_capture_arrays();
+#endif
         }
     }
     amrex::Finalize();

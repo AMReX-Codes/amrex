@@ -204,6 +204,13 @@ public:
 
     static int currentDepth ();
 
+    /**
+     * Number of active MFIter loops, including FillPatchIterator, which does
+     * not count in currentDepth() so that MFIters nested in its loop do not
+     * need allowMultipleMFIters.
+     */
+    static int activeLoops ();
+
     void Finalize ();
 
 protected:
@@ -254,6 +261,7 @@ protected:
     //! Gpu::StreamOrderedRegion: number of streams forked (and joined).
     int fork_streams = 0;
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
+    DeviceSync loop_counted{false}; //!< whether this MFIter incremented active_loops
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;
@@ -263,6 +271,7 @@ protected:
 
     static AMREX_EXPORT int nextDynamicIndex;
     static AMREX_EXPORT int depth;
+    static AMREX_EXPORT int active_loops;
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
