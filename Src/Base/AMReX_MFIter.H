@@ -272,6 +272,8 @@ protected:
     //! in a Gpu::StreamOrderedRegion, also the number forked and joined.
     int loop_streams = 0;
     DeviceSync streams_counted{false}; //!< whether beginLoopStreams was called
+    //! Gpu::StreamOrderedRegion, active OpenMP team: wait on the host instead.
+    DeviceSync team_sync{false};
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
     DeviceSync loop_counted{false}; //!< whether this MFIter incremented active_loops
 

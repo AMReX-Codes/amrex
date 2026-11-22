@@ -820,6 +820,16 @@ class FillPatchIterator
     //! Mutable reference to the internal MultiFab holding filled tiles.
     MultiFab& get_mf() noexcept { return m_fabs; }
 
+    //! Is the iterator valid? The first call starts counting this iterator
+    //! as an active loop (MFIter::activeLoops()).
+    [[nodiscard]] bool isValid () noexcept {
+        if (m_count_on_iterate) {
+            m_count_on_iterate = false;
+            resumeLoopCount();
+        }
+        return MFIter::isValid();
+    }
+
 private:
 
     void FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int ncomp);
@@ -833,6 +843,8 @@ private:
     std::vector< std::pair<int,int> > m_range;
     MultiFab                          m_fabs;
     int                               m_ncomp;
+    //! Whether isValid() still has to count this iterator as an active loop.
+    bool                              m_count_on_iterate = false;
 };
 
 class FillPatchIteratorHelper

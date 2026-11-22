@@ -683,12 +683,17 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
     // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
     // increment from the MFIter constructor, so the count stays balanced
-    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() except
-    // during Initialize.
+    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() only
+    // once its iterations start (isValid), and not during Initialize: many
+    // users never iterate it (e.g., AmrLevel::FillPatch uses get_mf()).
     if (depth_counted) {
         depth_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
         --MFIter::depth;
     }
+    m_count_on_iterate = suspendLoopCount();
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
@@ -733,12 +738,17 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
     // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
     // increment from the MFIter constructor, so the count stays balanced
-    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() except
-    // during Initialize.
+    // when MFIter::Finalize runs. It counts in MFIter::activeLoops() only
+    // once its iterations start (isValid), and not during Initialize: many
+    // users never iterate it (e.g., AmrLevel::FillPatch uses get_mf()).
     if (depth_counted) {
         depth_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
         --MFIter::depth;
     }
+    m_count_on_iterate = suspendLoopCount();
     Initialize(boxGrow,time,idx,scomp,ncomp);
 
 #ifdef BL_USE_TEAM
@@ -1011,9 +1021,10 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE("FillPatchIterator::Initialize");
 
-    // The work below runs before this loop's iterations start: arrays built
-    // in it outside a nested loop need no ordering for this loop's streams
-    // here, since orderStreamsAfterCurrent below covers them.
+    // The work below runs outside this loop's iterations: arrays built in it
+    // outside a nested loop need no ordering for this loop's streams here,
+    // since orderStreamsAfterCurrent below covers them. (Counted again only
+    // if the iterations had already started.)
     const bool was_counted = suspendLoopCount();
 
     BL_ASSERT(scomp >= 0);

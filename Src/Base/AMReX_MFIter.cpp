@@ -257,7 +257,15 @@ MFIter::Finalize ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync && device_sync_post) {
+    if (team_sync) {
+        // Each thread waits for the streams it may have used, so that work
+        // queued after the team (on the stream the loop started from) runs
+        // after the loop's work.
+        for (int i = 0; i < loop_streams; ++i) {
+            Gpu::Device::setStreamIndex(i);
+            Gpu::streamSynchronize();
+        }
+    } else if (device_sync && device_sync_post) {
         const int nstreams = std::min(endIndex, streams);
         for (int i = 0; i < nstreams; ++i) {
             Gpu::Device::setStreamIndex(i);
@@ -292,21 +300,19 @@ MFIter::Finalize ()
         m_fa.reset(nullptr);
     }
 
-#ifdef AMREX_USE_OMP
-#pragma omp master
-#endif
-    {
-        if (depth_counted) {
-            depth_counted.flag = false;
-            --depth;
-        }
-        if (loop_counted) {
-            loop_counted.flag = false;
+    if (depth_counted) {  // only on the master thread
+        depth_counted.flag = false;
 #ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
-            --active_loops;
-        }
+        --depth;
+    }
+    if (loop_counted) {  // on every thread
+        loop_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+        --active_loops;
     }
 }
 
@@ -317,16 +323,22 @@ MFIter::Initialize ()
 #pragma omp master
 #endif
     {
-        ++depth;
+        int d;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic capture
+#endif
+        d = ++depth;
         depth_counted.flag = true;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d == 1 || MFIter::allow_multiple_mfiters,
+            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
+    }
+    // Every thread, before its iterations start: FabArray::build_arrays in
+    // any thread's iteration must see this loop as active.
 #ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
-        ++active_loops;
-        loop_counted.flag = true;
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
-            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
-    }
+    ++active_loops;
+    loop_counted.flag = true;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inStreamOrderedRegion()) {
@@ -430,7 +442,21 @@ MFIter::Initialize ()
         }
         loop_streams = std::min({static_cast<int>(index_map->size()), streams,
                                  Gpu::numGpuStreams()});
-        if (Gpu::inStreamOrderedRegion()) {
+#ifdef AMREX_USE_OMP
+        // In an active OpenMP team, each thread's current stream is its own:
+        // only the master's is the stream the team started from, which the
+        // loop must fork from and join into. The threads cannot share it
+        // without a worksharing construct (see below), so the loop waits on
+        // the host instead: for all GPU work before it, and, in Finalize,
+        // for its streams.
+        const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
+#else
+        const bool in_team = false;
+#endif
+        if (Gpu::inStreamOrderedRegion() && in_team) {
+            team_sync.flag = true;
+            Gpu::synchronize();
+        } else if (Gpu::inStreamOrderedRegion()) {
             // The streams this loop uses wait on the GPU for the work queued
             // before it on the current stream (not necessarily stream 0, e.g.,
             // in an iteration of an enclosing MFIter). This includes a loop on
@@ -451,7 +477,12 @@ MFIter::Initialize ()
         // orders the streams of all active loops.
         Gpu::Device::beginLoopStreams(loop_streams);
         streams_counted.flag = true;
-        Gpu::Device::setStreamIndex(currentIndex%streams);
+        // A loop with no items keeps the current stream: nothing would order
+        // work queued on another one (e.g., the fill of a FillPatchIterator
+        // with no local boxes) with the work around the loop.
+        if (loop_streams > 0) {
+            Gpu::Device::setStreamIndex(currentIndex%streams);
+        }
 #endif
 
         typ = fabArray->boxArray().ixType();

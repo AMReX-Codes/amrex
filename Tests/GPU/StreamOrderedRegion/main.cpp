@@ -65,6 +65,8 @@ using namespace amrex;
  * 7. FabArray::arrays() built in a Gpu::StreamOrderedRegion nested in an
  *    iteration of a synchronizing multi-stream MFIter must be usable from
  *    that loop's other streams.
+ *
+ * 8. An MFIter with no local items keeps the current stream.
  */
 
 namespace {
@@ -649,6 +651,34 @@ int test_streamiter_sync_turned_on (Long iters_per_ms, bool warmup = false)
     return 0;
 }
 
+// An MFIter with no local items, constructed in an iteration on stream 1 of a
+// Gpu::StreamOrderedRegion, must keep stream 1 current: work queued before
+// its iterations (e.g., the fill of a FillPatchIterator) would otherwise go
+// to a stream that nothing orders with the work around the loop.
+int test_empty_loop_keeps_stream (MultiFab const& mf)
+{
+    MultiFab empty(BoxArray{}, DistributionMapping{}, 1, 0);
+    int origin = -1;
+    int during = -1;
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        for (MFIter omfi(mf); omfi.isValid(); ++omfi) {
+            if (omfi.LocalIndex() != 1) { continue; }
+            origin = Gpu::Device::streamIndex();
+            MFIter mfi(empty);
+            during = Gpu::Device::streamIndex();
+        }
+    }
+    Gpu::synchronize();
+    if (during != origin) {
+        amrex::Print() << "FAIL empty MFIter: current stream changed from " << origin
+                       << " to " << during << "\n";
+        return 1;
+    }
+    amrex::Print() << "PASS empty MFIter keeps the current stream (" << origin << ")\n";
+    return 0;
+}
+
 // Forwards to The_Arena and counts frees of watched memory whose kernel has
 // not finished yet.
 class WatchingArena final : public Arena
@@ -806,6 +836,7 @@ int main (int argc, char* argv[])
                 for (auto kind : all_nofork_kinds) {
                     nfail += test_nested_nofork_loop(mf, iters_per_ms, kind);
                 }
+                nfail += test_empty_loop_keeps_stream(mf);
             }
 
             if (mf.local_size() < 3) {
