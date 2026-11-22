@@ -1295,15 +1295,9 @@ Device::streamsWaitCurrent () noexcept
     // multi-stream loop, the loop's other iterations still run on the other
     // pool streams. Streams no active loop uses are left alone: under graph
     // capture they would join the capture and never be joined back.
-    int nstreams = 0;
-    for (int n = max_gpu_streams; n > 0; --n) {
-        if (g_loop_streams[n].load(std::memory_order_relaxed) > 0) {
-            nstreams = n;
-            break;
-        }
-    }
-    // No loop is active: order all pool streams.
-    if (nstreams == 0) { nstreams = max_gpu_streams; }
+    // With no loop on more than one stream active, nothing else needs the
+    // work queued on the current stream.
+    const int nstreams = loopStreams();
     if (nstreams <= 1) { return; }
     std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
     for (int i = 0; i < nstreams; ++i) {
@@ -1313,6 +1307,17 @@ Device::streamsWaitCurrent () noexcept
     const gpuStream_t current = gpuStream();
     streams_wait_stream(waiters.data(), nstreams, current, isPoolStream(current));
 #endif
+}
+
+int
+Device::loopStreams () noexcept
+{
+#ifdef AMREX_USE_GPU
+    for (int n = max_gpu_streams; n > 0; --n) {
+        if (g_loop_streams[n].load(std::memory_order_relaxed) > 0) { return n; }
+    }
+#endif
+    return 0;
 }
 
 void

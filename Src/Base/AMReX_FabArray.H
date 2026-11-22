@@ -2190,15 +2190,16 @@ FabArray<FAB>::build_arrays () const
         // before switching to other streams, so we only need to sync here
         // if we are already inside a multi-stream MFIter or StreamIter loop,
         // where later iterations may use the arrays on a different stream.
-        // Check the pool size, not numGpuStreams(), which is 1 inside a
-        // SingleStreamRegion even when an enclosing loop still runs its other
-        // iterations on other streams.
-        const bool in_loop = MFIter::activeLoops() > 0 ||
-                             Gpu::StreamIter::currentDepth() > 0;
-        if (!Gpu::inNoSyncRegion() && Gpu::Device::streamPoolSize() > 1 && in_loop)
+        // Check the streams of the active loops, not numGpuStreams(), which
+        // is 1 inside a SingleStreamRegion even when an enclosing loop still
+        // runs its other iterations on other streams.
+        const bool in_multi_stream_loop =
+            (MFIter::activeLoops() > 0 || Gpu::StreamIter::currentDepth() > 0) &&
+            Gpu::Device::loopStreams() > 1;
+        if (!Gpu::inNoSyncRegion() && in_multi_stream_loop)
         {
             Gpu::streamSynchronize();
-        } else if (Gpu::inStreamOrderedRegion() && Gpu::Device::streamPoolSize() > 1 && in_loop)
+        } else if (Gpu::inStreamOrderedRegion() && in_multi_stream_loop)
         {
             // Ordered on the GPU instead: the loop's other streams wait for
             // the copy.

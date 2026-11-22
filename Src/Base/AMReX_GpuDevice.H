@@ -215,12 +215,18 @@ public:
     static void endLoopStreams (int n) noexcept;
 
     /**
+     * Number of streams used by the active loop that uses the most
+     * (beginLoopStreams), or 0 when no loop is active.
+     */
+    static int loopStreams () noexcept;
+
+    /**
      * Makes the GPU work queued after this call on the streams used by the
      * active loops (beginLoopStreams) wait for the work queued before
      * it on the current stream. This includes those streams even inside a
      * SingleStreamRegion, since an enclosing loop may still be running its
-     * other iterations on them. With no loop active, every stream in AMReX's
-     * pool waits.
+     * other iterations on them. Does nothing unless an active loop uses more
+     * than one stream.
      */
     static void streamsWaitCurrent () noexcept;
 

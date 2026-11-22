@@ -39,7 +39,10 @@ StreamIter::currentDepth () noexcept
 }
 
 StreamIter::StreamIter (int n, bool is_thread_safe) noexcept
-    : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(!Gpu::inStreamOrderedRegion())
+    // Synchronizes unless in a Gpu::StreamOrderedRegion whose no-sync mode
+    // is still on (Gpu::setNoSyncRegion(false) turns host syncs back on).
+    : m_n(n), m_i(0), m_threadsafe(is_thread_safe),
+      m_sync(!(Gpu::inStreamOrderedRegion() && Gpu::inNoSyncRegion()))
 {
     init();
 }

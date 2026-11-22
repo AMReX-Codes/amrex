@@ -8,6 +8,7 @@
 #include <AMReX_GpuUtility.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_OpenMP.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #include <AMReX_Utility.H>
@@ -17,7 +18,6 @@
 #include <chrono>
 #include <map>
 #include <mutex>
-#include <thread>
 #include <vector>
 
 using namespace amrex;
@@ -46,8 +46,8 @@ using namespace amrex;
  * 3. VisMF::AsyncWrite (amrex.async_out=1) in the region writes the data
  *    that the GPU work queued before it produces (smoke test).
  *
- * 4. Memory released with Gpu::freeAsync on a stream while another thread
- *    joins that stream (Gpu::Device::joinStreams) must not be freed before
+ * 4. (With OpenMP.) Memory released with Gpu::freeAsync on a stream while
+ *    another thread joins that stream (Gpu::Device::joinStreams) must not be freed before
  *    the kernels queued ahead of it on that stream finish. This is a stress
  *    test: the window it probes is narrow, and on CUDA it is usually
  *    shorter than a kernel launch, so it mainly catches regressions on HIP.
@@ -445,8 +445,10 @@ int test_nested_host_mfiter_omp ()
 //
 // With synced_mf, a loop over its boxes that synchronizes the host
 // (MFItInfo::SetDeviceSync(true)) runs first in the same region: it must not
-// leave its streams counted as in use after it ends.
-int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool warmup = false)
+// leave its streams counted as in use after it ends. With all_boxes, the
+// captured loop is an MFIter(AllBoxes), which runs on the current stream only.
+int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool all_boxes = false,
+                               bool warmup = false)
 {
     BoxArray ba(Box(IntVect(1000), IntVect(AMREX_D_DECL(1007,1003,1003))));
     ba.maxSize(4);  // 2 boxes
@@ -472,13 +474,13 @@ int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool warmup 
         if (!warmup) {
             AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(s, cudaStreamCaptureModeRelaxed));
         }
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            const int b = mfi.LocalIndex();
+        const int nused = all_boxes ? 1 : n;  // streams the loop uses
+        auto body = [&] (int b) {
             auto const& ma = mf.const_arrays();
             amrex::single_task([=] AMREX_GPU_DEVICE () { plo[b] = ma[b].begin[0]; });
             if (!warmup) {
                 const int idx = Gpu::Device::streamIndex();
-                for (int i = n; i < Gpu::Device::streamPoolSize(); ++i) {
+                for (int i = nused; i < Gpu::Device::streamPoolSize(); ++i) {
                     Gpu::Device::setStreamIndex(i);
                     cudaStreamCaptureStatus status{};
                     AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(Gpu::gpuStream(), &status));
@@ -486,6 +488,13 @@ int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool warmup 
                 }
                 Gpu::Device::setStreamIndex(idx);
             }
+        };
+        if (all_boxes) {
+            // One rank: the global index is the local one.
+            const unsigned char flags = MFIter::AllBoxes;
+            for (MFIter mfi(mf, flags); mfi.isValid(); ++mfi) { body(mfi.index()); }
+        } else {
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi) { body(mfi.LocalIndex()); }
         }
         if (!warmup) {
             end_status = cudaStreamEndCapture(s, &graph);
@@ -527,7 +536,8 @@ int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool warmup 
                        << " Array4s read wrong in the graph\n";
         return 1;
     }
-    amrex::Print() << "PASS graph capture of arrays in a 2-box loop"
+    amrex::Print() << "PASS graph capture of arrays in a 2-box "
+                   << (all_boxes ? "MFIter(AllBoxes) loop" : "loop")
                    << (synced_mf ? " after a synchronizing loop" : "") << "\n";
     return 0;
 }
@@ -593,6 +603,52 @@ int test_arrays_in_region_in_synced_loop (BoxArray const& ba, Long iters_per_ms,
     return 0;
 }
 
+// In a Gpu::StreamOrderedRegion with Gpu::setNoSyncRegion(false), a plain
+// StreamIter must synchronize at its end like outside the region: the host
+// reads the results of device-to-host copies queued in the loop right after
+// it, without waiting.
+int test_streamiter_sync_turned_on (Long iters_per_ms, bool warmup = false)
+{
+    constexpr int n = 4;
+    Gpu::DeviceVector<int> d(n, 0);
+    Gpu::DeviceVector<unsigned> sink(n, 0);
+    auto* pd = d.data();
+    auto* pk = sink.data();
+    auto* h = static_cast<int*>(The_Pinned_Arena()->alloc(n * sizeof(int)));
+    for (int i = 0; i < n; ++i) { h[i] = 0; }
+    const Long long_wait = warmup ? 0 : 50 * iters_per_ms;
+    Gpu::synchronize();
+
+    Vector<int> seen(n, -1);
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        const bool prev = Gpu::setNoSyncRegion(false);
+        for (Gpu::StreamIter sit(n); sit.isValid(); ++sit) {
+            const int i = sit();
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                pk[i] = spin(long_wait);
+                pd[i] = i + 1;
+            });
+            Gpu::dtoh_memcpy_async(h + i, pd + i, sizeof(int));
+        }
+        for (int i = 0; i < n; ++i) { seen[i] = h[i]; }  // no explicit wait
+        Gpu::setNoSyncRegion(prev);
+    }
+    Gpu::synchronize();
+    The_Pinned_Arena()->free(h);
+    if (warmup) { return 0; }
+
+    int nstale = 0;
+    for (int i = 0; i < n; ++i) { if (seen[i] != i + 1) { ++nstale; } }
+    if (nstale > 0) {
+        amrex::Print() << "FAIL StreamIter with no-sync turned off: " << nstale << " of " << n
+                       << " results read before the loop's copies finished\n";
+        return 1;
+    }
+    amrex::Print() << "PASS StreamIter with no-sync turned off\n";
+    return 0;
+}
+
 // Forwards to The_Arena and counts frees of watched memory whose kernel has
 // not finished yet.
 class WatchingArena final : public Arena
@@ -638,6 +694,7 @@ private:
 // One thread queues kernels on stream 1 and releases their memory with
 // Gpu::freeAsync while the main thread joins stream 1 into stream 0.
 // Synchronizing stream 0 afterwards must only free memory whose kernel is done.
+#ifdef AMREX_USE_OMP
 int test_join_concurrent_free (Long iters_per_ms, int ntrials)
 {
     constexpr int nbufs = 32;
@@ -655,9 +712,12 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
         }
         Gpu::synchronize();
 
+        // OpenMP threads, not a std::thread: AMReX keeps the current stream
+        // per OpenMP thread, so a std::thread would share the main thread's.
         std::atomic<bool> ready{false};
         std::atomic<bool> go{false};
-        std::thread worker([&] () {
+#pragma omp parallel num_threads(2)
+        if (omp_get_thread_num() == 1) {
             ready = true;
             while (!go) {}
             Gpu::Device::setStreamIndex(1);
@@ -670,15 +730,16 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
                 });
                 Gpu::freeAsync(&arena, bufs[k]);
             }
-        });
-        while (!ready) {}
-        go = true;
-        // Join at a different point of the worker's queueing in each trial.
-        const auto t0 = std::chrono::steady_clock::now();
-        const auto delay = std::chrono::microseconds(5 * (trial % 40));
-        while (std::chrono::steady_clock::now() - t0 < delay) {}
-        Gpu::Device::joinStreams(2, 0);
-        worker.join();
+            Gpu::Device::setStreamIndex(0);
+        } else {
+            while (!ready) {}
+            go = true;
+            // Join at a different point of the worker's queueing in each trial.
+            const auto t0 = std::chrono::steady_clock::now();
+            const auto delay = std::chrono::microseconds(5 * (trial % 40));
+            while (std::chrono::steady_clock::now() - t0 < delay) {}
+            Gpu::Device::joinStreams(2, 0);
+        }
 
         Gpu::Device::setStreamIndex(0);
         const int freed0 = arena.freed();
@@ -701,6 +762,7 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
                    << nmid << " joined mid-burst)\n";
     return 0;
 }
+#endif
 
 }
 
@@ -759,7 +821,15 @@ int main (int argc, char* argv[])
                 }
             }
             nfail += test_async_write(ba);
-            nfail += test_join_concurrent_free(iters_per_ms, ntrials);
+#ifdef AMREX_USE_OMP
+            if (OpenMP::get_max_threads() < 2) {
+                amrex::Print() << "SKIP join with concurrent freeAsync: needs 2 OpenMP threads\n";
+            } else {
+                nfail += test_join_concurrent_free(iters_per_ms, ntrials);
+            }
+#else
+            amrex::Print() << "SKIP join with concurrent freeAsync: needs OpenMP\n";
+#endif
 #ifdef AMREX_USE_OMP
             nfail += test_nested_host_mfiter_omp();
 #endif
@@ -772,10 +842,15 @@ int main (int argc, char* argv[])
                 test_arrays_in_region_in_synced_loop(ba, iters_per_ms, true);
                 nfail += test_arrays_in_region_in_synced_loop(ba, iters_per_ms);
             }
+            test_streamiter_sync_turned_on(iters_per_ms, true);
+            nfail += test_streamiter_sync_turned_on(iters_per_ms);
 #ifdef AMREX_USE_CUDA
-            test_graph_capture_arrays(nullptr, true);
+            test_graph_capture_arrays(nullptr, false, true);
             nfail += test_graph_capture_arrays();
             nfail += test_graph_capture_arrays(&mf);
+            if (ParallelDescriptor::NProcs() == 1) {
+                nfail += test_graph_capture_arrays(nullptr, true);
+            }
 #endif
         }
     }

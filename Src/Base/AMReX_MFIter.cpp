@@ -462,10 +462,10 @@ void
 MFIter::orderStreamsAfterCurrent ()
 {
 #ifdef AMREX_USE_GPU
-    if (device_join) {
+    // On the GPU, also outside a Gpu::StreamOrderedRegion: the host does
+    // not need to wait.
+    if (device_join || (Gpu::inLaunchRegion() && loop_streams > 1)) {
         Gpu::Device::forkStreams(loop_streams, Gpu::Device::streamIndex());
-    } else if (Gpu::inLaunchRegion() && !Gpu::inNoSyncRegion() && loop_streams > 1) {
-        Gpu::streamSynchronize();
     }
 #endif
 }

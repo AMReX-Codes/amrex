@@ -217,9 +217,8 @@ protected:
 
     /**
      * Orders the loop's streams after the GPU work queued so far on the
-     * current stream: on the GPU in a Gpu::StreamOrderedRegion, otherwise by
-     * synchronizing the current stream when the loop runs on more than one
-     * stream. For a derived iterator that queues work on the current stream
+     * current stream, on the GPU (the host does not wait). For a derived
+     * iterator that queues work on the current stream
      * after the MFIter constructor, which the loop's iterations must see
      * (e.g., FillPatchIterator).
      */
