@@ -815,10 +815,10 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                 BL_ASSERT(new_grids[levf].isDisjoint());
 #ifdef AMREX_DEBUG
                 {
-                    // Grids are multiples of the grid unit except where they
-                    // reach a partial last cell at the upper domain boundary,
-                    // or where max_grid_size is smaller than the unit and
-                    // the grids were chopped after refining.
+                    // Grid ends are multiples of the grid unit except at the
+                    // domain boundary, which need not be aligned to it, or
+                    // where max_grid_size is smaller than the unit and the
+                    // grids were chopped after refining.
                     Box const& fdom = Geom(levf).Domain();
                     IntVect const emgs = effectiveMaxGridSize(levf);
                     for (int i = 0; i < new_grids[levf].size(); ++i) {
@@ -826,10 +826,10 @@ AmrMesh::MakeNewGridsExtended (int lbase, Real time, int& new_finest, Vector<Box
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             int const unit = bf_lev[levc][idim] * ref_ratio[levc][idim];
                             if (idim != no_box_split_dir && emgs[idim] < unit) { continue; }
-                            AMREX_ASSERT(amrex::coarsen(b.smallEnd(idim), unit)*unit == b.smallEnd(idim));
+                            AMREX_ASSERT(amrex::coarsen(b.smallEnd(idim), unit)*unit == b.smallEnd(idim)
+                                         || b.smallEnd(idim) == fdom.smallEnd(idim));
                             AMREX_ASSERT(amrex::coarsen(b.bigEnd(idim)+1, unit)*unit == b.bigEnd(idim)+1
-                                         || (b.bigEnd(idim) == fdom.bigEnd(idim)
-                                             && hasPartialCell(levc, idim)));
+                                         || b.bigEnd(idim) == fdom.bigEnd(idim));
                         }
                     }
                 }

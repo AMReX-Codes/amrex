@@ -342,6 +342,25 @@ void test_no_box_split () {
             }
         }
     }
+    {
+        // A domain that does not start at 0 gives fine grids that end at
+        // the domain boundary, off the grid unit.
+        AmrInfo info2;
+        info2.max_level = 1;
+        info2.no_box_split_dir = AMREX_SPACEDIM-1;
+        info2.blocking_factor = {IntVect(8)};
+        info2.max_grid_size = {IntVect(256)};
+        info2.refine_grid_layout = false;
+        Geometry const geom(Box(IntVect(1), IntVect(64)),
+                            RealBox(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.)), 0,
+                            Array<int,AMREX_SPACEDIM>{});
+        Mesh mesh(geom, info2);
+        regrid(mesh);
+        AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 1);
+        BoxArray const& ba1 = mesh.boxArray(1);
+        Box const fdom = amrex::refine(geom.Domain(), 2);
+        AMREX_ALWAYS_ASSERT(ba1.minimalBox() == fdom && ba1.numPts() == fdom.numPts());
+    }
 #endif
 }
 
