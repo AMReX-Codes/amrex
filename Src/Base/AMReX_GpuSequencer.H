@@ -69,7 +69,8 @@ public:
  */
 enum class StreamEdge {
     Host, //!< The host waits for the earlier work.
-    Gpu   //!< The later stream waits on the GPU; the host does not wait.
+    Gpu,  //!< The later stream waits on the GPU; the host does not wait.
+    None  //!< The work is not put in order. The caller is responsible for it.
 };
 
 /**
@@ -89,7 +90,7 @@ public:
     Fan& operator= (Fan&&) = delete;
     Fan (Fan&& rhs) noexcept
         : m_origin(rhs.m_origin), m_width(std::exchange(rhs.m_width, 0)),
-          m_join(rhs.m_join)
+          m_join(rhs.m_join), m_ordered(rhs.m_ordered)
     {}
 
     //! Whether the fan is open (forked and not yet joined).
@@ -106,6 +107,7 @@ private:
     int m_origin = 0;
     int m_width = 0;
     StreamEdge m_join = StreamEdge::Host;
+    bool m_ordered = true;
 };
 
 /**
@@ -137,6 +139,12 @@ private:
  * the GPU (the later stream waits) is a property of the loop. It changes the
  * cost, not the order.
  *
+ * The invariant holds as long as every fork and join uses StreamEdge::Host
+ * or StreamEdge::Gpu. A loop outside a Gpu::StreamOrderedRegion that does not
+ * synchronize the host (MFItInfo::DisableDeviceSync, Gpu::NoSyncRegion) uses
+ * StreamEdge::None, as it always has: its streams are not ordered, and the
+ * caller is responsible for the order of its work.
+ *
  * All functions are thread-safe. Every thread has its own current stream,
  * which is kept by the backend.
  */
@@ -165,16 +173,25 @@ public:
          * join.
          */
         bool shared = false;
+        /**
+         * Whether the loop is in a Gpu::StreamOrderedRegion. An ordered fan
+         * with one lane stays on the origin, and join makes the origin the
+         * current stream again. A fan that is not ordered always uses pool
+         * streams 0 .. width-1 as its lanes (unless the origin is not a pool
+         * stream), and join makes stream 0 the current stream.
+         */
+        bool ordered = true;
     };
 
     /**
      * \brief Opens \p fan from the current stream (the origin).
      *
      * The fan has min(nitems, max_width, numPoolStreams()) lanes, at least
-     * one. With one lane, the lane is the origin itself and nothing has to be
-     * ordered. Otherwise the lanes are the pool streams 0 .. width-1 and are
-     * ordered after the work queued so far on the origin. The current stream
-     * does not change until lane() is called.
+     * one. With one lane, the lane of an ordered fan is the origin itself
+     * and nothing has to be ordered. Otherwise the lanes are the pool streams
+     * 0 .. width-1 and are ordered after the work queued so far on the origin
+     * (unless the fork edge is StreamEdge::None). The current stream does not
+     * change until lane() is called.
      */
     void fork (Fan& fan, ForkInfo const& info);
 
@@ -182,12 +199,14 @@ public:
     void lane (Fan const& fan, int i);
 
     /**
-     * \brief Closes \p fan and makes its origin the current stream.
+     * \brief Closes \p fan and makes its origin the current stream (stream
+     * 0 for a fan that is not ordered).
      *
      * The origin is ordered after the lanes. With StreamEdge::Host, the host
      * waits for every lane (also for a fan with one lane). With
      * StreamEdge::Gpu, frees deferred to the lanes are handed to the origin.
-     * Does nothing if the fan is not open.
+     * With StreamEdge::None, nothing is ordered. Does nothing if the fan is
+     * not open.
      */
     void join (Fan& fan);
 
@@ -197,7 +216,7 @@ public:
      *
      * For work queued in one iteration that other iterations depend on, such
      * as filling a cache that is shared by the iterations. Does nothing if no
-     * open fan has more than one lane.
+     * open fan has more than one lane, or if \p edge is StreamEdge::None.
      */
     void publish (StreamEdge edge);
 
@@ -255,9 +274,10 @@ inline void settle () noexcept
  * Iterations of an MFIter or Gpu::StreamIter loop may run on different
  * streams, without an order between them. Call this after queuing work in an
  * iteration that the other iterations depend on (e.g., after filling a
- * cache they share). Outside a no-sync region the host waits for the work;
- * in a no-sync region the other streams wait for it on the GPU. Does nothing
- * outside such loops.
+ * cache they share). Outside a no-sync region the host waits for the work.
+ * In a Gpu::StreamOrderedRegion the other streams wait for it on the GPU.
+ * In a plain Gpu::NoSyncRegion nothing is ordered. Does nothing outside such
+ * loops.
  */
 void publish () noexcept;
 

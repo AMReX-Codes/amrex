@@ -388,26 +388,42 @@ MFIter::openFan () const
 {
     m_fan_tried.flag = true;
 
-    // Outside the launch region the body queues no kernels: the loop stays
-    // on the current stream.
-    const int max_width = Gpu::inLaunchRegion() ? streams : 1;
+    using Edge = Gpu::StreamEdge;
+    const bool launch = Gpu::inLaunchRegion();
+    const bool all_boxes = (flags & AllBoxes) != 0;
+    const int nitems = static_cast<int>(index_map->size());
 #ifdef AMREX_USE_OMP
     const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
 #else
     const bool in_team = false;
 #endif
-    // A loop that does not synchronize is ordered on the GPU instead: its
-    // streams wait for the work queued before the loop, and the work queued
-    // after it waits for them.
-    Gpu::theSequencer().fork(m_fan, {
-            .nitems = static_cast<int>(index_map->size()),
-            .max_width = max_width,
-            .fork = (device_sync && device_sync_pre) ? Gpu::StreamEdge::Host
-                                                     : Gpu::StreamEdge::Gpu,
-            .join = (device_sync && device_sync_post) ? Gpu::StreamEdge::Host
-                                                      : Gpu::StreamEdge::Gpu,
-            .shared = in_team});
-    Gpu::theSequencer().lane(m_fan, currentIndex);
+
+    Gpu::Sequencer::ForkInfo info{.nitems = nitems, .shared = in_team};
+    info.ordered = Gpu::inStreamOrderedRegion();
+    if (info.ordered) {
+        // The loop is kept in program order. If it does not synchronize the
+        // host, its streams wait on the GPU for the work queued before the
+        // loop, and the work queued after it waits for them. Outside the
+        // launch region the body queues no kernels, so the loop stays on the
+        // current stream.
+        info.max_width = launch ? streams : 1;
+        info.fork = (device_sync && device_sync_pre) ? Edge::Host : Edge::Gpu;
+        info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::Gpu;
+    } else {
+        // Outside a Gpu::StreamOrderedRegion, a loop that synchronizes waits
+        // on the host before (if it uses more than one stream) and after. A
+        // loop that does not synchronize is not ordered.
+        info.max_width = streams;
+        info.fork = (launch && device_sync && device_sync_pre && !all_boxes &&
+                     streams > 1 && nitems > 1) ? Edge::Host : Edge::None;
+        info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::None;
+    }
+    Gpu::theSequencer().fork(m_fan, info);
+    // Outside a Gpu::StreamOrderedRegion, an AllBoxes loop starts on the
+    // current stream.
+    if (info.ordered || !all_boxes) {
+        Gpu::theSequencer().lane(m_fan, currentIndex);
+    }
 }
 #endif
 
@@ -547,7 +563,11 @@ MFIter::operator++ () noexcept
         // A loop that advances without having called isValid() (e.g., a
         // derived iterator with its own validity check) starts here.
         if (!m_fan_tried) { openFan(); }
-        if (m_fan.isOpen() && currentIndex < endIndex) {
+        // (With more than one lane outside the launch region, which only
+        // happens outside a Gpu::StreamOrderedRegion, the loop stays on its
+        // first stream.)
+        if (m_fan.isOpen() && currentIndex < endIndex &&
+            (Gpu::inLaunchRegion() || m_fan.width() == 1)) {
             Gpu::theSequencer().lane(m_fan, currentIndex);
         }
 #endif

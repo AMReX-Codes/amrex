@@ -15,6 +15,11 @@
 //
 // Backends that break one of the functions the sequencer relies on must be
 // detected, which shows that the checks can fail.
+//
+// The properties are checked for loops in a Gpu::StreamOrderedRegion (any mix
+// of host and GPU edges, nested), and for loops outside it that synchronize
+// the host (not nested). Loops outside it that do not synchronize are not
+// ordered, which the checks must detect too.
 
 #include <AMReX.H>
 #include <AMReX_GpuSequencer.H>
@@ -34,6 +39,10 @@ constexpr int npool = 4;
 constexpr int nstreams = npool + 1; // one stream outside the pool
 
 enum class Sabotage { None, DropOrder, DropWait, FreeOnTake };
+
+//! Ordered: loops in a Gpu::StreamOrderedRegion. Default: loops outside it
+//! that synchronize the host. NoSync: loops outside it that do not.
+enum class Mode { Ordered, Default, NoSync };
 
 struct Violation { std::string what; };
 
@@ -154,11 +163,13 @@ private:
 class Program
 {
 public:
-    Program (unsigned seed, Sabotage sabotage)
-        : m_rng(seed), m_backend(sabotage), m_sequencer(m_backend) {}
+    Program (unsigned seed, Sabotage sabotage, Mode mode)
+        : m_rng(seed), m_backend(sabotage), m_sequencer(m_backend), m_mode(mode) {}
 
     void run () {
-        if (pick(4) == 0) { m_backend.setCurrent(npool); } // start outside the pool
+        if (m_mode == Mode::Ordered && pick(4) == 0) {
+            m_backend.setCurrent(npool); // start outside the pool
+        }
         block(0, {});
         await();
         m_backend.finalize();
@@ -195,7 +206,10 @@ private:
         m_ops.push_back({n, m_path, published});
         for (int m : mems) { m_backend.use(m, n); }
         if (published) {
-            m_sequencer.publish(pick(2) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host);
+            m_sequencer.publish(m_mode == Mode::Ordered ? (pick(2) ? Gpu::StreamEdge::Gpu
+                                                                   : Gpu::StreamEdge::Host)
+                                : (m_mode == Mode::Default ? Gpu::StreamEdge::Host
+                                                           : Gpu::StreamEdge::None));
         }
     }
 
@@ -213,9 +227,20 @@ private:
             .fork = pick(3) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host,
             .join = pick(3) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host,
             .shared = (pick(8) == 0)};
+        if (m_mode != Mode::Ordered) {
+            // Like an MFIter outside a Gpu::StreamOrderedRegion: it waits on
+            // the host before the loop only if it uses more than one stream.
+            const bool multi = std::min(niter, info.max_width) > 1;
+            info.ordered = false;
+            info.shared = false;
+            info.fork = (m_mode == Mode::Default && multi) ? Gpu::StreamEdge::Host
+                                                           : Gpu::StreamEdge::None;
+            info.join = (m_mode == Mode::Default) ? Gpu::StreamEdge::Host
+                                                  : Gpu::StreamEdge::None;
+        }
         const int id = ++m_nloops;
         const Path outer = m_path;
-        const int origin = m_backend.current();
+        const int after = (m_mode == Mode::Ordered || niter == 0) ? m_backend.current() : 0;
         for (int i = 0; i < niter; ++i) {
             // Like MFIter, the loop opens at its first iteration.
             if (!fan.isOpen()) { m_sequencer.fork(fan, info); }
@@ -226,8 +251,8 @@ private:
         }
         m_path = outer;
         m_sequencer.join(fan);
-        if (m_backend.current() != origin) {
-            throw Violation{"join: the origin is not the current stream after the loop"};
+        if (m_backend.current() != after) {
+            throw Violation{"join: wrong current stream after the loop"};
         }
     }
 
@@ -254,7 +279,7 @@ private:
                 mine.pop_back();
                 launch({m}, false);
                 m_backend.deferFree(m);
-            } else if (depth < 3) {
+            } else if (depth < (m_mode == Mode::Ordered ? 3 : 1)) {
                 loop(depth, live);
             }
         }
@@ -264,17 +289,19 @@ private:
     std::mt19937 m_rng;
     MockBackend m_backend;
     Gpu::Sequencer m_sequencer;
+    Mode m_mode;
     std::vector<Op> m_ops;
     Path m_path;
     int m_nloops = 0;
 };
 
-int count_violations (int nprograms, Sabotage sabotage, std::string* first = nullptr)
+int count_violations (int nprograms, Sabotage sabotage, Mode mode = Mode::Ordered,
+                      std::string* first = nullptr)
 {
     int nviolations = 0;
     for (int seed = 0; seed < nprograms; ++seed) {
         try {
-            Program(static_cast<unsigned>(seed), sabotage).run();
+            Program(static_cast<unsigned>(seed), sabotage, mode).run();
         } catch (Violation const& v) {
             if (nviolations++ == 0 && first) {
                 *first = "seed " + std::to_string(seed) + ": " + v.what;
@@ -292,13 +319,25 @@ int main (int argc, char* argv[])
     int nfail = 0;
     {
         constexpr int nprograms = 5000;
-        std::string first;
-        const int n = count_violations(nprograms, Sabotage::None, &first);
-        amrex::Print() << "Sequencer: " << n << " of " << nprograms
-                       << " random programs violate an invariant\n";
-        if (n > 0) {
-            amrex::Print() << "  " << first << "\n";
-            ++nfail;
+        const std::pair<Mode, const char*> kept[] = {
+            {Mode::Ordered, "in a StreamOrderedRegion"},
+            {Mode::Default, "outside it, loops synchronize"}};
+        for (auto const& [mode, name] : kept) {
+            std::string first;
+            const int n = count_violations(nprograms, Sabotage::None, mode, &first);
+            amrex::Print() << "Sequencer (" << name << "): " << n << " of " << nprograms
+                           << " random programs violate an invariant\n";
+            if (n > 0) {
+                amrex::Print() << "  " << first << "\n";
+                ++nfail;
+            }
+        }
+        {
+            // Not ordered by design: the checks must see that.
+            const int n = count_violations(nprograms/10, Sabotage::None, Mode::NoSync);
+            amrex::Print() << "Sequencer (outside it, loops do not synchronize): unordered in "
+                           << n << " of " << nprograms/10 << " programs\n";
+            if (n == 0) { ++nfail; }
         }
 
         // The checks must be able to fail.

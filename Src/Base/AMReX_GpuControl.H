@@ -177,11 +177,6 @@ namespace Gpu {
      * This struct provides a RAII-style mechanism for disabling GPU
      * synchronization in MFIter by default.  Note that explicit calls to
      * Gpu::streamSynchronize and Gpu::synchronize still work.
-     *
-     * The GPU work stays in program order: a loop that does not synchronize
-     * the host orders its streams on the GPU instead (Gpu::Sequencer). The
-     * host waits only where it needs device results (e.g., reductions,
-     * device-to-host copies, Gpu::streamSynchronize).
      */
     struct [[nodiscard]] NoSyncRegion
     {
@@ -198,10 +193,15 @@ namespace Gpu {
     };
 
     /**
-     * A NoSyncRegion in which a Gpu::StreamIter loop constructed without a
-     * StreamItInfo does not synchronize the host either. (MFIter loops, and
-     * StreamIter loops with a StreamItInfo, are ordered on the GPU in any
-     * no-sync region.)
+     * RAII region in which MFIter and StreamIter loops still use multiple
+     * streams but do not synchronize the host. Like a NoSyncRegion, the host
+     * does not wait for the GPU at the start and end of each loop. Unlike a
+     * plain NoSyncRegion, the GPU work stays in program order: a loop's
+     * kernels run after the GPU work queued before the loop, and the GPU work
+     * queued after the loop runs after all of the loop's kernels, also when
+     * the loop is nested in an iteration of another loop. The host waits only
+     * where it needs device results (e.g., reductions, device-to-host copies,
+     * Gpu::streamSynchronize).
      */
     struct [[nodiscard]] StreamOrderedRegion
     {

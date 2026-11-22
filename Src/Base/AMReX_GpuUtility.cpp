@@ -41,9 +41,12 @@ StreamIter::init () noexcept // NOLINT
 {
     amrex::ignore_unused(m_threadsafe, m_sync);
 #if defined(AMREX_USE_GPU)
-    // A loop that does not synchronize is ordered on the GPU instead. A loop
-    // that is not thread-safe stays on the current stream.
-    const auto edge = m_sync ? StreamEdge::Host : StreamEdge::Gpu;
+    // In a Gpu::StreamOrderedRegion, a loop that does not synchronize is
+    // ordered on the GPU instead. Outside it, such a loop is not ordered. A
+    // loop that is not thread-safe uses one stream.
+    const bool ordered = Gpu::inStreamOrderedRegion();
+    const auto edge = m_sync ? StreamEdge::Host
+                             : (ordered ? StreamEdge::Gpu : StreamEdge::None);
 #ifdef AMREX_USE_OMP
     const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
 #else
@@ -51,7 +54,8 @@ StreamIter::init () noexcept // NOLINT
 #endif
     theSequencer().fork(m_fan, {.nitems = m_n,
                                 .max_width = m_threadsafe ? Gpu::numGpuStreams() : 1,
-                                .fork = edge, .join = edge, .shared = in_team});
+                                .fork = edge, .join = edge, .shared = in_team,
+                                .ordered = ordered});
     if (m_n > 0) { theSequencer().lane(m_fan, m_i); }
 #elif defined(AMREX_USE_OMP)
     int nthreads = omp_get_num_threads();
