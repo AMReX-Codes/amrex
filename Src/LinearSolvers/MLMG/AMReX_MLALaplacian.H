@@ -667,9 +667,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
                             vbx, redblack);
             });
         }
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
         return;
     }
 #endif

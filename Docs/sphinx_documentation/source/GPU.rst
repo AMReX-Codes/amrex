@@ -1930,9 +1930,24 @@ all their GPU work completed.  For example, :cpp:`MLMG::solve` uses it
 together with :cpp:`Gpu::SingleStreamRegion` when
 :cpp:`MLMG::setNoGpuSync(true)` has been called.
 
-Inside a no-sync region, all GPU work should be launched on a single stream
-(e.g., by also using :cpp:`Gpu::SingleStreamRegion`) unless the ordering
-between streams is managed explicitly.  Temporary :cpp:`MultiFab`\ s and
+A loop that does not synchronize the host is still kept in program order.
+Every :cpp:`MFIter` or :cpp:`Gpu::StreamIter` loop that does not synchronize
+(in a no-sync region, or with :cpp:`DisableDeviceSync`) orders its streams
+on the GPU instead: before the loop, the streams it uses wait for the work
+already queued on the current stream (stream 0, or the stream of an
+enclosing :cpp:`MFIter` iteration), and after the loop, that stream waits
+for all of them and is current again (with SYCL, the host synchronizes
+instead).  Work queued after the loop is therefore ordered after the whole
+loop, and :cpp:`Gpu::streamSynchronize()` (or its synonym
+:cpp:`Gpu::await()`) on the current stream waits for all the GPU work that
+precedes it in the program, whatever the number of streams.  Only the
+iterations of one loop have no order among them.  If an iteration queues GPU
+work that the other iterations depend on (e.g., it fills a cache they
+share), call :cpp:`Gpu::publish()` after queuing it.  Code that selects
+streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order them
+itself.  :cpp:`Gpu::Sequencer` implements this.
+
+Temporary :cpp:`MultiFab`\ s and
 :cpp:`FArrayBox`\ es that are created and destroyed inside the region should
 be allocated from :cpp:`The_Async_Arena()` (e.g., with
 :cpp:`MFInfo().SetArena(The_Async_Arena())`), which releases their device
@@ -1953,16 +1968,10 @@ that needs to read the results of GPU work must still synchronize explicitly
 code that hands GPU data to a library that runs on its own stream (e.g.,
 HYPRE).
 
-:cpp:`Gpu::StreamOrderedRegion` is a no-sync region that keeps the
-concurrency of multiple streams.  Inside it, every :cpp:`MFIter` or
-:cpp:`Gpu::StreamIter` loop, whatever its number of streams, orders its
-streams on the GPU instead of synchronizing the host: before the loop, the
-streams it uses wait for the work already queued on the current stream
-(stream 0, or the stream of an enclosing :cpp:`MFIter` iteration), and after
-the loop, that stream waits for all of them and is current again (with
-SYCL, the host synchronizes instead).  Work queued after the loop is
-therefore ordered after the whole loop, and the host waits only where it
-reads results or synchronizes explicitly.
+:cpp:`Gpu::StreamOrderedRegion` is a no-sync region in which a
+:cpp:`Gpu::StreamIter` loop constructed without a :cpp:`StreamItInfo` does
+not synchronize the host either.  In a plain :cpp:`Gpu::NoSyncRegion` such a
+loop still synchronizes.
 
 .. highlight:: c++
 

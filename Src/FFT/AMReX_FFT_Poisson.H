@@ -931,7 +931,7 @@ void fill_physbc (MF& mf, Geometry const& geom,
             }
         });
 #if defined(AMREX_USE_GPU)
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::settle();
 #else
     }
 #endif

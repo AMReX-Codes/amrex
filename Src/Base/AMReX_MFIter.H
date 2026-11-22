@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FabArrayBase.H>
+#include <AMReX_GpuSequencer.H>
 
 #include <memory>
 
@@ -173,7 +174,17 @@ public:
     void operator++ () noexcept;
 
     //! Is the iterator valid i.e. is it associated with a FAB?
-    [[nodiscard]] bool isValid () const noexcept { return currentIndex < endIndex; }
+    /**
+     * Is the iterator valid? In GPU builds, the first call that returns true
+     * starts the loop on its GPU streams: GPU work queued before it, also
+     * after the iterator was constructed, precedes the iterations.
+     */
+    [[nodiscard]] bool isValid () const noexcept {
+#ifdef AMREX_USE_GPU
+        if (!m_fan_tried && currentIndex < endIndex) { openFan(); }
+#endif
+        return currentIndex < endIndex;
+    }
 
     //! The index into the underlying BoxArray of the current FAB.
     [[nodiscard]] int index () const noexcept { return (*index_map)[currentIndex]; }
@@ -204,35 +215,9 @@ public:
 
     static int currentDepth ();
 
-    /**
-     * Number of active MFIter loops, including FillPatchIterator, which does
-     * not count in currentDepth() so that MFIters nested in its loop do not
-     * need allowMultipleMFIters.
-     */
-    static int activeLoops ();
-
     void Finalize ();
 
 protected:
-
-    /**
-     * Orders the loop's streams after the GPU work queued so far on the
-     * current stream, on the GPU (the host does not wait). For a derived
-     * iterator that queues work on the current stream
-     * after the MFIter constructor, which the loop's iterations must see
-     * (e.g., FillPatchIterator).
-     */
-    void orderStreamsAfterCurrent ();
-
-    /**
-     * Stops counting this MFIter in activeLoops() until resumeLoopCount().
-     * Returns whether it was counted. For a derived iterator that runs other
-     * loops before its own iterations start (e.g., FillPatchIterator).
-     */
-    bool suspendLoopCount ();
-
-    //! Counts this MFIter in activeLoops() again after suspendLoopCount().
-    void resumeLoopCount ();
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
@@ -263,19 +248,15 @@ protected:
     DeviceSync device_sync;
     DeviceSync device_sync_pre{true};
     DeviceSync device_sync_post{true};
-    //! Gpu::StreamOrderedRegion: fork from and join into stream_origin on the GPU.
-    DeviceSync device_join{false};
-    //! Gpu::StreamOrderedRegion: stream index current when the loop started,
-    //! restored when it ends.
-    int stream_origin = 0;
-    //! Number of streams the loop runs on (Gpu::Device::beginLoopStreams);
-    //! in a Gpu::StreamOrderedRegion, also the number forked and joined.
-    int loop_streams = 0;
-    DeviceSync streams_counted{false}; //!< whether beginLoopStreams was called
-    //! Gpu::StreamOrderedRegion, active OpenMP team: wait on the host instead.
-    DeviceSync team_sync{false};
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
-    DeviceSync loop_counted{false}; //!< whether this MFIter incremented active_loops
+
+#ifdef AMREX_USE_GPU
+    //! The loop on its GPU streams (Gpu::Sequencer), opened by isValid().
+    mutable Gpu::Fan m_fan;
+    //! Whether isValid() has opened m_fan, or Finalize() has run.
+    mutable DeviceSync m_fan_tried{false};
+    void openFan () const;
+#endif
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;
@@ -285,7 +266,6 @@ protected:
 
     static AMREX_EXPORT int nextDynamicIndex;
     static AMREX_EXPORT int depth;
-    static AMREX_EXPORT int active_loops;
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();

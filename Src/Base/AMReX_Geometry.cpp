@@ -237,9 +237,7 @@ Geometry::GetVolume (MultiFab& vol) const
             {
                 amrex_setvol(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, coord);
             });
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
+            Gpu::settle();
         } else
 #endif
         {
@@ -288,9 +286,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
         {
             amrex_setdloga(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, dir, coord);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -353,9 +349,7 @@ Geometry::GetFaceArea (MultiFab&       area,
             {
                 amrex_setarea(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, dir, coord);
             });
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
+            Gpu::settle();
         } else
 #endif
         {

@@ -8,6 +8,7 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
 
@@ -125,6 +126,13 @@ public:
 #endif
     }
 
+    /**
+     * Makes stream \p idx of AMReX's pool the calling thread's current
+     * stream. MFIter and Gpu::StreamIter loops select their streams
+     * themselves (Gpu::Sequencer). Code that calls this directly has to order
+     * the work on the streams it uses itself, e.g., with
+     * Gpu::streamSynchronize or Device::streamWaitStream.
+     */
     static void setStreamIndex (int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
@@ -187,48 +195,6 @@ public:
      */
     static void streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept;
 #endif
-
-    /**
-     * Makes the GPU work queued after this call on AMReX's streams
-     * 0 .. min(n, numGpuStreams())-1 wait for the work queued before it on
-     * stream \p origin. Used at the start of a loop over \p n items that
-     * runs on multiple streams.
-     */
-    static void forkStreams (int n, int origin) noexcept;
-
-    /**
-     * Makes the GPU work queued after this call on stream \p origin wait for
-     * the work queued before it on AMReX's streams
-     * 0 .. min(n, numGpuStreams())-1. Used at the end of such a loop. It is
-     * safe to call while other threads are still using those streams.
-     */
-    static void joinStreams (int n, int origin) noexcept;
-
-    /**
-     * Records that a loop runs its iterations on AMReX's streams 0 .. n-1
-     * until the matching endLoopStreams(n), whether it forked them
-     * (forkStreams) or synchronizes.
-     */
-    static void beginLoopStreams (int n) noexcept;
-
-    //! Ends a beginLoopStreams(n).
-    static void endLoopStreams (int n) noexcept;
-
-    /**
-     * Number of streams used by the active loop that uses the most
-     * (beginLoopStreams), or 0 when no loop is active.
-     */
-    static int loopStreams () noexcept;
-
-    /**
-     * Makes the GPU work queued after this call on the streams used by the
-     * active loops (beginLoopStreams) wait for the work queued before
-     * it on the current stream. This includes those streams even inside a
-     * SingleStreamRegion, since an enclosing loop may still be running its
-     * other iterations on them. Does nothing unless an active loop uses more
-     * than one stream.
-     */
-    static void streamsWaitCurrent () noexcept;
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
@@ -349,6 +315,7 @@ private:
 #endif
 
     friend StreamManager;
+    friend class DeviceSequencerBackend;
     friend struct ExternalGpuStreamRegion;
 #endif
 };

@@ -108,7 +108,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                   ascalar, bscalar, beta_on_centroid, phi_on_centroid);
             });
         }
-        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+        Gpu::settle();
     }
     else
 #endif
@@ -392,7 +392,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                 });
             }
         }
-        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+        Gpu::settle();
     }
     else
 #endif

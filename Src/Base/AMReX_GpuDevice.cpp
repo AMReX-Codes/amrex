@@ -1,6 +1,7 @@
 
 #include <AMReX_Arena.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_Machine.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -95,14 +96,6 @@ namespace {
 // again later does not affect it.
 std::mutex g_stream_event_mutex;
 std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_events;
-}
-#endif
-
-#ifdef AMREX_USE_GPU
-namespace {
-// g_loop_streams[n]: number of active loops that run on streams 0 .. n-1
-// (Device::beginLoopStreams). Device::streamsWaitCurrent only orders those.
-std::array<std::atomic<int>, AMREX_GPU_MAX_STREAMS+1> g_loop_streams{};
 }
 #endif
 
@@ -1250,95 +1243,67 @@ Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 }
 #endif
 
-void
-Device::forkStreams (int n, int origin) noexcept
-{
 #ifdef AMREX_USE_GPU
-    const int nstreams = std::min(n, numGpuStreams());
-    std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
-    for (int i = 0; i < nstreams; ++i) {
-        waiters[i] = gpu_stream_pool[i].getStream();
-    }
-    streams_wait_stream(waiters.data(), nstreams, gpu_stream_pool[origin].getStream(), true);
-#else
-    amrex::ignore_unused(n, origin);
-#endif
-}
+//! Gpu::Sequencer on AMReX's streams: 0 .. max_gpu_streams-1 are the pool
+//! streams, max_gpu_streams+k is entry k of the external stream stack.
+class DeviceSequencerBackend final
+    : public SequencerBackend
+{
+public:
+    [[nodiscard]] int numPoolStreams () const override { return Device::max_gpu_streams; }
 
-void
-Device::joinStreams (int n, int origin) noexcept
-{
-#ifdef AMREX_USE_GPU
-    const int nstreams = std::min(n, numGpuStreams());
-    for (int i = 0; i < nstreams; ++i) {
-        if (i != origin) {
-            // Take the frees before the wait is recorded: a free queued later
-            // (by another thread) can belong to work the wait does not cover,
-            // so it stays with its stream.
-            auto frees = gpu_stream_pool[i].take_wait_list();
-            streamWaitStream(gpu_stream_pool[origin].getStream(),
-                             gpu_stream_pool[i].getStream());
-            gpu_stream_pool[origin].add_to_wait_list(std::move(frees));
+    [[nodiscard]] int current () const override {
+        if (!Device::external_stream_stack.empty()) {
+            return Device::max_gpu_streams + static_cast<int>(Device::external_stream_stack.size()) - 1;
+        } else {
+            return Device::gpu_stream_index[OpenMP::get_thread_num()];
         }
     }
-#else
-    amrex::ignore_unused(n, origin);
-#endif
-}
 
-void
-Device::streamsWaitCurrent () noexcept
-{
-#ifdef AMREX_USE_GPU
-    // The streams the active loops run on, not numGpuStreams(): inside a
-    // SingleStreamRegion (or with an external stream) nested in a
-    // multi-stream loop, the loop's other iterations still run on the other
-    // pool streams. Streams no active loop uses are left alone: under graph
-    // capture they would join the capture and never be joined back.
-    // With no loop on more than one stream active, nothing else needs the
-    // work queued on the current stream.
-    const int nstreams = loopStreams();
-    if (nstreams <= 1) { return; }
-    std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
-    for (int i = 0; i < nstreams; ++i) {
-        waiters[i] = gpu_stream_pool[i].getStream();
+    void setCurrent (int stream) override {
+        // An external stream stays current until it is popped.
+        if (stream < Device::max_gpu_streams) { Device::setStreamIndex(stream); }
     }
-    // Cache the event only for a pool stream, not an external one.
-    const gpuStream_t current = gpuStream();
-    streams_wait_stream(waiters.data(), nstreams, current, isPoolStream(current));
-#endif
-}
 
-int
-Device::loopStreams () noexcept
-{
-#ifdef AMREX_USE_GPU
-    for (int n = max_gpu_streams; n > 0; --n) {
-        if (g_loop_streams[n].load(std::memory_order_relaxed) > 0) { return n; }
+    void order (int const* waiters, int n, int waited) override {
+        std::array<gpuStream_t, Sequencer::max_lanes> w{};
+        AMREX_ASSERT(n <= Sequencer::max_lanes);
+        for (int i = 0; i < n; ++i) { w[i] = manager(waiters[i]).getStream(); }
+        // Cache the event only for a pool stream, not an external one.
+        streams_wait_stream(w.data(), n, manager(waited).getStream(),
+                            waited < Device::max_gpu_streams);
     }
-#endif
-    return 0;
-}
 
-void
-Device::beginLoopStreams (int n) noexcept
-{
-#ifdef AMREX_USE_GPU
-    ++g_loop_streams[std::clamp(n, 0, AMREX_GPU_MAX_STREAMS)];
-#else
-    amrex::ignore_unused(n);
-#endif
-}
+    void wait (int stream) override { manager(stream).sync(); }
 
-void
-Device::endLoopStreams (int n) noexcept
+    void waitAll () override { Device::synchronize(); }
+
+    [[nodiscard]] FreeList takeFrees (int stream) override {
+        return manager(stream).take_wait_list();
+    }
+
+    void giveFrees (int stream, FreeList&& frees) override {
+        manager(stream).add_to_wait_list(std::move(frees));
+    }
+
+private:
+    [[nodiscard]] static StreamManager& manager (int stream) {
+        if (stream < Device::max_gpu_streams) {
+            return Device::gpu_stream_pool[stream];
+        } else {
+            return *Device::external_stream_stack[stream-Device::max_gpu_streams].manager;
+        }
+    }
+};
+
+Sequencer&
+theSequencer () noexcept
 {
-#ifdef AMREX_USE_GPU
-    --g_loop_streams[std::clamp(n, 0, AMREX_GPU_MAX_STREAMS)];
-#else
-    amrex::ignore_unused(n);
-#endif
+    static DeviceSequencerBackend backend;
+    static Sequencer sequencer(backend);
+    return sequencer;
 }
+#endif
 
 bool
 Device::clearFreeAsyncBuffer () noexcept

@@ -47,7 +47,7 @@ using namespace amrex;
  *    that the GPU work queued before it produces (smoke test).
  *
  * 4. (With OpenMP.) Memory released with Gpu::freeAsync on a stream while
- *    another thread joins that stream (Gpu::Device::joinStreams) must not be freed before
+ *    another thread joins that stream (Gpu::Sequencer::join) must not be freed before
  *    the kernels queued ahead of it on that stream finish. This is a stress
  *    test: the window it probes is narrow, and on CUDA it is usually
  *    shorter than a kernel launch, so it mainly catches regressions on HIP.
@@ -448,7 +448,7 @@ int test_nested_host_mfiter_omp ()
 // With synced_mf, a loop over its boxes that synchronizes the host
 // (MFItInfo::SetDeviceSync(true)) runs first in the same region: it must not
 // leave its streams counted as in use after it ends. With all_boxes, the
-// captured loop is an MFIter(AllBoxes), which runs on the current stream only.
+// captured loop is an MFIter(AllBoxes), which uses its streams like any loop.
 int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool all_boxes = false,
                                bool warmup = false)
 {
@@ -476,7 +476,7 @@ int test_graph_capture_arrays (MultiFab const* synced_mf = nullptr, bool all_box
         if (!warmup) {
             AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(s, cudaStreamCaptureModeRelaxed));
         }
-        const int nused = all_boxes ? 1 : n;  // streams the loop uses
+        const int nused = n;  // streams the loop uses
         auto body = [&] (int b) {
             auto const& ma = mf.const_arrays();
             amrex::single_task([=] AMREX_GPU_DEVICE () { plo[b] = ma[b].begin[0]; });
@@ -768,7 +768,11 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
             const auto t0 = std::chrono::steady_clock::now();
             const auto delay = std::chrono::microseconds(5 * (trial % 40));
             while (std::chrono::steady_clock::now() - t0 < delay) {}
-            Gpu::Device::joinStreams(2, 0);
+            Gpu::Fan fan;
+            Gpu::theSequencer().fork(fan, {.nitems = 2, .max_width = 2,
+                                           .fork = Gpu::StreamEdge::Gpu,
+                                           .join = Gpu::StreamEdge::Gpu});
+            Gpu::theSequencer().join(fan);
         }
 
         Gpu::Device::setStreamIndex(0);

@@ -10,7 +10,6 @@ namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 int MFIter::depth = 0;
-int MFIter::active_loops = 0;
 int MFIter::allow_multiple_mfiters = 0;
 
 int
@@ -28,17 +27,6 @@ MFIter::currentDepth ()
 #pragma omp atomic read
 #endif
     r = MFIter::depth;
-    return r;
-}
-
-int
-MFIter::activeLoops ()
-{
-    int r;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic read
-#endif
-    r = MFIter::active_loops;
     return r;
 }
 
@@ -257,36 +245,19 @@ MFIter::Finalize ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (team_sync) {
-        // Each thread waits for the streams it may have used, so that work
-        // queued after the team (on the stream the loop started from) runs
-        // after the loop's work.
-        for (int i = 0; i < loop_streams; ++i) {
-            Gpu::Device::setStreamIndex(i);
-            Gpu::streamSynchronize();
-        }
-    } else if (device_sync && device_sync_post) {
-        const int nstreams = std::min(endIndex, streams);
-        for (int i = 0; i < nstreams; ++i) {
-            Gpu::Device::setStreamIndex(i);
-            Gpu::streamSynchronize();
-        }
-    } else if (device_join) {
-        // Later work on the stream that was current before the loop waits on
-        // the GPU for every stream the loop used.
-        Gpu::Device::joinStreams(std::min(endIndex, streams), stream_origin);
+    // Orders the work queued after the loop after the loop's work (on the
+    // host if the loop synchronizes), and makes the stream that was current
+    // before the loop current again.
+    if (m_fan.isOpen()) {
+        Gpu::theSequencer().join(m_fan);
+    } else if (!m_fan_tried && device_sync && device_sync_post && beginIndex < endIndex) {
+        // An iterator with local boxes that was never iterated (e.g., one
+        // used only to index a FabArray, or a FillPatchIterator used only for
+        // its data) still returns with the GPU work queued so far completed.
+        Gpu::await();
     }
-    // Whichever of the above ran (a loop in a Gpu::StreamOrderedRegion can
-    // still synchronize, e.g., with MFItInfo::SetDeviceSync(true)).
-    if (streams_counted) {
-        streams_counted.flag = false;
-        Gpu::Device::endLoopStreams(loop_streams);
-    }
-
+    m_fan_tried.flag = true; // isValid() does not open the fan from now on
     AMREX_GPU_ERROR_CHECK();
-    // Restore the stream that was current before the loop (0 outside a
-    // Gpu::StreamOrderedRegion).
-    Gpu::Device::setStreamIndex(stream_origin);
 #endif
 
     if (m_fa) {
@@ -307,13 +278,6 @@ MFIter::Finalize ()
 #endif
         --depth;
     }
-    if (loop_counted) {  // on every thread
-        loop_counted.flag = false;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-        --active_loops;
-    }
 }
 
 void
@@ -332,22 +296,6 @@ MFIter::Initialize ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
-    // Every thread, before its iterations start: FabArray::build_arrays in
-    // any thread's iteration must see this loop as active.
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-    ++active_loops;
-    loop_counted.flag = true;
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inStreamOrderedRegion()) {
-        // Work queued after the loop, e.g., later in an iteration of an
-        // enclosing loop, stays on the stream that was current before it.
-        stream_origin = Gpu::Device::streamIndex();
-    }
-#endif
-
     if (flags & AllBoxes)  // a very special case
     {
         index_map    = &(fabArray->IndexArray());
@@ -430,99 +378,38 @@ MFIter::Initialize ()
 
         currentIndex = beginIndex;
 
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && device_sync && device_sync_pre &&
-            streams > 1 && (index_map->size() > 1)) {
-            // No need to call streamSynchronize when there is only single
-            // stream or only one box/tile.
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-            Gpu::streamSynchronize();
-        }
-        loop_streams = std::min({static_cast<int>(index_map->size()), streams,
-                                 Gpu::numGpuStreams()});
-#ifdef AMREX_USE_OMP
-        // In an active OpenMP team, each thread's current stream is its own:
-        // only the master's is the stream the team started from, which the
-        // loop must fork from and join into. The threads cannot share it
-        // without a worksharing construct (see below), so the loop waits on
-        // the host instead: for all GPU work before it, and, in Finalize,
-        // for its streams.
-        const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
-#else
-        const bool in_team = false;
-#endif
-        if (Gpu::inStreamOrderedRegion() && in_team) {
-            team_sync.flag = true;
-            Gpu::synchronize();
-        } else if (Gpu::inStreamOrderedRegion()) {
-            // The streams this loop uses wait on the GPU for the work queued
-            // before it on the current stream (not necessarily stream 0, e.g.,
-            // in an iteration of an enclosing MFIter). This includes a loop on
-            // one stream that is not the current one, and a loop outside the
-            // launch region: its body still runs on a different stream than
-            // the current one (see setStreamIndex below), so async copies or
-            // frees queued there must be ordered too.
-            //
-            // Each thread of an active OpenMP team forks: a worksharing
-            // construct here could be reached a different number of times by
-            // the team's threads (e.g., a nested MFIter outside the launch
-            // region) and hang. forkStreams is thread-safe, and the extra
-            // waits only order the streams after work they already follow.
-            device_join.flag = true;
-            Gpu::Device::forkStreams(loop_streams, stream_origin);
-        }
-        // Every loop, also one that synchronizes: Gpu::Device::streamsWaitCurrent
-        // orders the streams of all active loops.
-        Gpu::Device::beginLoopStreams(loop_streams);
-        streams_counted.flag = true;
-        // A loop with no items keeps the current stream: nothing would order
-        // work queued on another one (e.g., the fill of a FillPatchIterator
-        // with no local boxes) with the work around the loop.
-        if (loop_streams > 0) {
-            Gpu::Device::setStreamIndex(currentIndex%streams);
-        }
-#endif
-
         typ = fabArray->boxArray().ixType();
     }
 }
 
-void
-MFIter::orderStreamsAfterCurrent ()
-{
 #ifdef AMREX_USE_GPU
-    // On the GPU, also outside a Gpu::StreamOrderedRegion: the host does
-    // not need to wait.
-    if (device_join || (Gpu::inLaunchRegion() && loop_streams > 1)) {
-        Gpu::Device::forkStreams(loop_streams, Gpu::Device::streamIndex());
-    }
-#endif
-}
-
-bool
-MFIter::suspendLoopCount ()
-{
-    if (!loop_counted) { return false; }
-    loop_counted.flag = false;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-    --active_loops;
-    return true;
-}
-
 void
-MFIter::resumeLoopCount ()
+MFIter::openFan () const
 {
-    if (loop_counted) { return; }
-    loop_counted.flag = true;
+    m_fan_tried.flag = true;
+
+    // Outside the launch region the body queues no kernels: the loop stays
+    // on the current stream.
+    const int max_width = Gpu::inLaunchRegion() ? streams : 1;
 #ifdef AMREX_USE_OMP
-#pragma omp atomic update
+    const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
+#else
+    const bool in_team = false;
 #endif
-    ++active_loops;
+    // A loop that does not synchronize is ordered on the GPU instead: its
+    // streams wait for the work queued before the loop, and the work queued
+    // after it waits for them.
+    Gpu::theSequencer().fork(m_fan, {
+            .nitems = static_cast<int>(index_map->size()),
+            .max_width = max_width,
+            .fork = (device_sync && device_sync_pre) ? Gpu::StreamEdge::Host
+                                                     : Gpu::StreamEdge::Gpu,
+            .join = (device_sync && device_sync_post) ? Gpu::StreamEdge::Host
+                                                      : Gpu::StreamEdge::Gpu,
+            .shared = in_team});
+    Gpu::theSequencer().lane(m_fan, currentIndex);
 }
+#endif
 
 Box
 MFIter::tilebox () const noexcept
@@ -657,11 +544,11 @@ MFIter::operator++ () noexcept
         ++currentIndex;
 
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            Gpu::Device::setStreamIndex(currentIndex%streams);
-#ifdef AMREX_DEBUG
-//            Gpu::synchronize();
-#endif
+        // A loop that advances without having called isValid() (e.g., a
+        // derived iterator with its own validity check) starts here.
+        if (!m_fan_tried) { openFan(); }
+        if (m_fan.isOpen() && currentIndex < endIndex) {
+            Gpu::theSequencer().lane(m_fan, currentIndex);
         }
 #endif
     }

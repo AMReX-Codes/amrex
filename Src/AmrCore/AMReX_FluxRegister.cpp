@@ -675,9 +675,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                 fluxreg_reflux(bx, tag.dfab, dcomp, tag.sfab, ConstVolume{cvol}, nc, scale, face);
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -780,7 +778,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     {
         tag.dfab(i,j,k,n) = 0.0;
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::settle();
 #endif
 }
 

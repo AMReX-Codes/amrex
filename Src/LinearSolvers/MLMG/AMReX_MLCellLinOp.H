@@ -1334,9 +1334,7 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
             int kc = amrex::coarsen(k,ratio3.z);
             finema[box_no](i,j,k,n) += crsema[box_no](ic,jc,kc,n);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -2319,7 +2317,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
     }
 
 #ifdef AMREX_USE_GPU
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::settle();
 #endif
 }
 

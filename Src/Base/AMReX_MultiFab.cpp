@@ -350,9 +350,7 @@ MultiFab::AddProduct (MultiFab& dst,
             dstma[box_no](i,j,k,n+dstcomp) += src1ma[box_no](i,j,k,n+comp1)
                 *                             src2ma[box_no](i,j,k,n+comp2);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -1747,7 +1745,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
         Real* ptr = tag.dfab.ptr(i,j,k,n);
         Gpu::Atomic::AddNoRet(ptr, Real(1.0));
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::settle();
 #endif
 
     return p;

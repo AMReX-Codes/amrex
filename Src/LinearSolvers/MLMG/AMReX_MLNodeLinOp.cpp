@@ -507,9 +507,7 @@ MLNodeLinOpT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
     {
         if (maskma[bno](i,j,k)) { ma[bno](i,j,k,n) = RT(0.0); }
     });
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::settle();
 #ifdef AMREX_USE_EB
     if constexpr (std::is_same_v<MF,MultiFab>) {
         EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
@@ -553,9 +551,7 @@ MLNodeLinOpT<MF>::applyOverset (int amrlev, MF& mf) const
             ma[box_no](i,j,k,n) = RT(0.0);
         }
     });
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::settle();
 }
 
 template <typename MF>

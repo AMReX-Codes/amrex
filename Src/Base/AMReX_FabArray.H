@@ -248,9 +248,7 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
         {
             dstarr[box_no](i,j,k,dstcomp+n) = DT(srcarr[box_no](i,j,k,srccomp+n));
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -295,9 +293,7 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             dstfa[box_no](i,j,k,n+dstcomp) += srcfa[box_no](i,j,k,n+srccomp);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -2186,25 +2182,10 @@ FabArray<FAB>::build_arrays () const
         // The pinned buffer is not modified after this point and is freed
         // in stream order by clear_arrays(), so kernels launched on the
         // current stream are correctly ordered after the copy without a
-        // host sync. MFIter and StreamIter synchronize the current stream
-        // before switching to other streams, so we only need to sync here
-        // if we are already inside a multi-stream MFIter or StreamIter loop,
-        // where later iterations may use the arrays on a different stream.
-        // Check the streams of the active loops, not numGpuStreams(), which
-        // is 1 inside a SingleStreamRegion even when an enclosing loop still
-        // runs its other iterations on other streams.
-        const bool in_multi_stream_loop =
-            (MFIter::activeLoops() > 0 || Gpu::StreamIter::currentDepth() > 0) &&
-            Gpu::Device::loopStreams() > 1;
-        if (!Gpu::inNoSyncRegion() && in_multi_stream_loop)
-        {
-            Gpu::streamSynchronize();
-        } else if (Gpu::inStreamOrderedRegion() && in_multi_stream_loop)
-        {
-            // Ordered on the GPU instead: the loop's other streams wait for
-            // the copy.
-            Gpu::Device::streamsWaitCurrent();
-        }
+        // host sync. If we are inside a multi-stream MFIter or StreamIter
+        // loop, later iterations may use the arrays on a different stream,
+        // which has to be ordered after the copy.
+        Gpu::publish();
 #endif
     }
 }
@@ -2900,9 +2881,7 @@ FabArray<FAB>::setBndry (value_type val,
                         }
                     }
                 });
-                if (!Gpu::inNoSyncRegion()) {
-                    Gpu::streamSynchronize();
-                }
+                Gpu::settle();
             } else {
                 using Tag = Array4BoxTag<value_type>;
                 Vector<Tag> tags;
@@ -2945,9 +2924,7 @@ FabArray<FAB>::setBndry (value_type val,
                 {
                     tag.dfab(i,j,k,strt_comp+n) = val;
                 });
-                if (!Gpu::inNoSyncRegion()) {
-                    Gpu::streamSynchronize();
-                }
+                Gpu::settle();
             }
         } else
 #endif
@@ -3124,9 +3101,7 @@ FabArray<FAB>::setVal (value_type val,
         {
             fa[box_no](i,j,k,n+comp) = val;
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3183,9 +3158,7 @@ FabArray<FAB>::setVal (value_type val,
                 fa[box_no](i,j,k,n+comp) = val;
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3235,9 +3208,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
         {
             fa[box_no](i,j,k,n+comp) = std::abs(fa[box_no](i,j,k,n+comp));
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3272,9 +3243,7 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) += val;
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3311,9 +3280,7 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) += val;
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3350,9 +3317,7 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) *= val;
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3389,9 +3354,7 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) *= val;
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3428,9 +3391,7 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3467,9 +3428,7 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
                 fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3528,9 +3487,7 @@ void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& 
         {
             yma[box_no](i,j,k,ycomp+n) += a * xma[box_no](i,j,k,xcomp+n);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3576,9 +3533,7 @@ FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
             yfa[box_no](i,j,k,n+ycomp) = xfa[box_no](i,j,k,n+xcomp)
                 +                    a * yfa[box_no](i,j,k,n+ycomp);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3628,9 +3583,7 @@ void FabArray<FAB>::Saxpy_Xpay (FabArray<FAB>& y, value_type a1, FabArray<FAB> c
                                  + a2 * (yma [box_no](i,j,k,ycomp+n)
                                   + a1 * xma1[box_no](i,j,k,xcomp+n));
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3688,9 +3641,7 @@ void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB>
             y1ma[box_no](i,j,k,ycomp+n) += a1 * x1ma[box_no](i,j,k,xcomp+n);
             y2ma[box_no](i,j,k,ycomp+n) += a2 * x2ma[box_no](i,j,k,xcomp+n);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3744,9 +3695,7 @@ void FabArray<FAB>::Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
             y1ma[box_no](i,j,k,ycomp+n) += a1 * y2ma[box_no](i,j,k,ycomp+n);
             y2ma[box_no](i,j,k,ycomp+n) += a2 *  xma[box_no](i,j,k,xcomp+n);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -3799,9 +3748,7 @@ FabArray<FAB>::LinComb (FabArray<FAB>& dst,
             dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
                 +                            b*yma[box_no](i,j,k,ycomp+n);
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -4184,9 +4131,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
                 fab(i,j,k,n) = physbnd;
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     } else
 #endif
     {
@@ -4229,9 +4174,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
     {
         CMD_local_setVal_gpu(val, thecmd, scomp, ncomp);
         CMD_remote_setVal_gpu(val, thecmd, scomp, ncomp);
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::settle();
     }
     else
 #endif

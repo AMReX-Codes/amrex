@@ -6,6 +6,7 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -175,9 +176,6 @@ namespace amrex::Gpu {
 
         ~StreamIter ();
 
-        //! Number of StreamIter loops currently active (on any thread).
-        [[nodiscard]] static int currentDepth () noexcept;
-
         StreamIter (StreamIter const&) = delete;
         StreamIter (StreamIter &&) = delete;
         void operator= (StreamIter const&) = delete;
@@ -200,9 +198,9 @@ namespace amrex::Gpu {
         int m_i;
         bool m_threadsafe;
         bool m_sync;
-        bool m_join = false; //!< Gpu::StreamOrderedRegion: fork/join on the GPU
-        int m_origin = 0; //!< stream index current when the loop started
-        int m_nstreams = 0; //!< number of streams the loop runs on
+#ifdef AMREX_USE_GPU
+        Fan m_fan; //!< the loop on its GPU streams (Gpu::Sequencer)
+#endif
     };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
