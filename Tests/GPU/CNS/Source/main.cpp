@@ -4,6 +4,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Amr.H>
 
+#include <optional>
+
 //#include <CNS.H>
 
 using namespace amrex;
@@ -36,6 +38,13 @@ int main (int argc, char* argv[])
         pp.query("stop_time",stop_time);
     }
 
+    // Whether each coarse step runs in a Gpu::StreamOrderedRegion.
+    bool stream_ordered = true;
+    {
+        ParmParse pp("cns");
+        pp.query("stream_ordered", stream_ordered);
+    }
+
     if (strt_time < Real(0.0)) {
         amrex::Abort("MUST SPECIFY a non-negative strt_time");
     }
@@ -64,7 +73,8 @@ int main (int argc, char* argv[])
             //
             // Order the step's GPU work on the GPU: the host waits only for
             // results it reads (time step, printed totals).
-            [[maybe_unused]] Gpu::StreamOrderedRegion stream_ordered{};
+            std::optional<Gpu::StreamOrderedRegion> ordered_region;
+            if (stream_ordered) { ordered_region.emplace(); }
             amr.coarseTimeStep(stop_time);
         }
 
