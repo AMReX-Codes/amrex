@@ -175,6 +175,9 @@ namespace amrex::Gpu {
 
         ~StreamIter ();
 
+        //! Number of StreamIter loops currently active (on any thread).
+        [[nodiscard]] static int currentDepth () noexcept;
+
         StreamIter (StreamIter const&) = delete;
         StreamIter (StreamIter &&) = delete;
         void operator= (StreamIter const&) = delete;

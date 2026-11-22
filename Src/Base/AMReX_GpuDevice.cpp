@@ -1156,29 +1156,52 @@ Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noe
 #endif
 
 #ifdef AMREX_USE_GPU
+namespace {
+// Makes work queued on each of the \p nwaiters streams \p waiters after this
+// call wait for the work queued on \p waited before it, with one event
+// record for all of them. The host does not wait (except on SYCL).
+void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t waited) noexcept
+{
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    bool recorded = false;
+    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
+    std::lock_guard<std::mutex> lock(g_stream_event_mutex);
+    for (int i = 0; i < nwaiters; ++i) {
+        if (waiters[i] == waited) { continue; }
+        if (!recorded) {
+            auto it = g_stream_events.find(waited);
+            if (it == g_stream_events.end()) {
+                AMREX_HIP_OR_CUDA(
+                    AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
+                    AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
+                g_stream_events.emplace(waited, event);
+            } else {
+                event = it->second;
+            }
+            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventRecord(event, waited));,
+                               AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, waited)); )
+            recorded = true;
+        }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamWaitEvent(waiters[i], event, 0));,
+                           AMREX_CUDA_SAFE_CALL(cudaStreamWaitEvent(waiters[i], event, 0)); )
+    }
+#else
+    // SYCL: order on the host.
+    for (int i = 0; i < nwaiters; ++i) {
+        if (!(waiters[i] == waited)) {
+            Device::streamSynchronize(waited);
+            return;
+        }
+    }
+#endif
+}
+}
+
 void
 Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    if (waiter == waited) { return; }
-    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
-    {
-        std::lock_guard<std::mutex> lock(g_stream_event_mutex);
-        auto it = g_stream_events.find(waited);
-        if (it == g_stream_events.end()) {
-            AMREX_HIP_OR_CUDA(
-                AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
-                AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
-            g_stream_events.emplace(waited, event);
-        } else {
-            event = it->second;
-        }
-        AMREX_HIP_OR_CUDA(
-            AMREX_HIP_SAFE_CALL(hipEventRecord(event, waited));
-            AMREX_HIP_SAFE_CALL(hipStreamWaitEvent(waiter, event, 0));,
-            AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, waited));
-            AMREX_CUDA_SAFE_CALL(cudaStreamWaitEvent(waiter, event, 0)); )
-    }
+    streams_wait_stream(&waiter, 1, waited);
 #else
     // SYCL: order on the host.
     amrex::ignore_unused(waiter);
@@ -1192,12 +1215,11 @@ Device::forkStreams (int n, int origin) noexcept
 {
 #ifdef AMREX_USE_GPU
     const int nstreams = std::min(n, numGpuStreams());
+    std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
     for (int i = 0; i < nstreams; ++i) {
-        if (i != origin) {
-            streamWaitStream(gpu_stream_pool[i].getStream(),
-                             gpu_stream_pool[origin].getStream());
-        }
+        waiters[i] = gpu_stream_pool[i].getStream();
     }
+    streams_wait_stream(waiters.data(), nstreams, gpu_stream_pool[origin].getStream());
 #else
     amrex::ignore_unused(n, origin);
 #endif
@@ -1228,13 +1250,13 @@ void
 Device::streamsWaitCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (numGpuStreams() <= 1) { return; }
-    const gpuStream_t current = gpuStream();
-    for (int i = 0; i < numGpuStreams(); ++i) {
-        if (!(gpu_stream_pool[i].getStream() == current)) {
-            streamWaitStream(gpu_stream_pool[i].getStream(), current);
-        }
+    const int nstreams = numGpuStreams();
+    if (nstreams <= 1) { return; }
+    std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
+    for (int i = 0; i < nstreams; ++i) {
+        waiters[i] = gpu_stream_pool[i].getStream();
     }
+    streams_wait_stream(waiters.data(), nstreams, gpuStream());
 #endif
 }
 

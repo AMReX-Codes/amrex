@@ -1960,8 +1960,7 @@ streams on the GPU instead of synchronizing the host: before the loop, the
 streams it uses wait for the work already queued on the current stream
 (stream 0, or the stream of an enclosing :cpp:`MFIter` iteration), and after
 the loop, that stream waits for all of them and is current again (with
-events on CUDA and HIP; SYCL falls back to host synchronization).  Work
-queued after the loop is
+SYCL, the host synchronizes instead).  Work queued after the loop is
 therefore ordered after the whole loop, and the host waits only where it
 reads results or synchronizes explicitly.
 
@@ -1982,9 +1981,7 @@ reads results or synchronizes explicitly.
 
 The memory rules above still apply: temporaries created and destroyed
 inside the region should come from :cpp:`The_Async_Arena()` or be released
-with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).  Memory
-released this way on a stream that a loop used is handed to the loop's
-starting stream when the loop's streams are joined.
+with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).
 
 .. note::
 

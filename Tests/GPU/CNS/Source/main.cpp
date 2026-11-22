@@ -64,7 +64,7 @@ int main (int argc, char* argv[])
             //
             // Order the step's GPU work on the GPU: the host waits only for
             // results it reads (time step, printed totals).
-            Gpu::StreamOrderedRegion stream_ordered;
+            [[maybe_unused]] Gpu::StreamOrderedRegion stream_ordered{};
             amr.coarseTimeStep(stop_time);
         }
 

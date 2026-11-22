@@ -2188,14 +2188,14 @@ FabArray<FAB>::build_arrays () const
         // current stream are correctly ordered after the copy without a
         // host sync. MFIter and StreamIter synchronize the current stream
         // before switching to other streams, so we only need to sync here
-        // if we are already inside a multi-stream MFIter loop, where later
-        // iterations may use the arrays on a different stream.
-        if (!Gpu::inNoSyncRegion() && Gpu::numGpuStreams() > 1 &&
-            MFIter::currentDepth() > 0)
+        // if we are already inside a multi-stream MFIter or StreamIter loop,
+        // where later iterations may use the arrays on a different stream.
+        const bool in_loop = MFIter::currentDepth() > 0 ||
+                             Gpu::StreamIter::currentDepth() > 0;
+        if (!Gpu::inNoSyncRegion() && Gpu::numGpuStreams() > 1 && in_loop)
         {
             Gpu::streamSynchronize();
-        } else if (Gpu::inStreamOrderedRegion() && Gpu::numGpuStreams() > 1 &&
-                   MFIter::currentDepth() > 0)
+        } else if (Gpu::inStreamOrderedRegion() && Gpu::numGpuStreams() > 1 && in_loop)
         {
             // Ordered on the GPU instead: the loop's other streams wait for the copy.
             Gpu::Device::streamsWaitCurrent();

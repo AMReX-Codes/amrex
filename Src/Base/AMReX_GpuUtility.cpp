@@ -1,6 +1,8 @@
 
 #include <AMReX_GpuUtility.H>
 
+#include <atomic>
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -20,8 +22,24 @@ operator<< (std::ostream& os, const dim3& d)
 
 namespace Gpu {
 
+#ifdef AMREX_USE_GPU
+namespace {
+    std::atomic<int> s_stream_iter_depth{0};
+}
+#endif
+
+int
+StreamIter::currentDepth () noexcept
+{
+#ifdef AMREX_USE_GPU
+    return s_stream_iter_depth.load(std::memory_order_relaxed);
+#else
+    return 0;
+#endif
+}
+
 StreamIter::StreamIter (int n, bool is_thread_safe) noexcept
-    : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(true)
+    : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(!Gpu::inStreamOrderedRegion())
 {
     init();
 }
@@ -38,6 +56,7 @@ StreamIter::init () noexcept // NOLINT
     amrex::ignore_unused(m_threadsafe);
     amrex::ignore_unused(m_sync, m_join);
 #if defined(AMREX_USE_GPU)
+    ++s_stream_iter_depth;
     if (m_sync) {
 #ifdef AMREX_USE_OMP
 #pragma omp single
@@ -86,6 +105,7 @@ StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
     } else {
         Gpu::Device::resetStreamIndex();
     }
+    --s_stream_iter_depth;
 #endif
 }
 
