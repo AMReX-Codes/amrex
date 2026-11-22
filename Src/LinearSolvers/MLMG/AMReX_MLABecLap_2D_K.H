@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 #include <AMReX_Vector.H>
 
-namespace amrex {
+namespace amrex::TwoD {
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -12,7 +12,7 @@ void mlabeclap_adotx (int i, int j, int, int n, Array4<T> const& y,
                       Array4<T const> const& a,
                       Array4<T const> const& bX,
                       Array4<T const> const& bY,
-                      GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<T,2> const& dxinv,
                       T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -32,7 +32,7 @@ void mlabeclap_adotx_os (int i, int j, int, int n, Array4<T> const& y,
                          Array4<T const> const& bX,
                          Array4<T const> const& bY,
                          Array4<int const> const& osm,
-                         GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                         GpuArray<T,2> const& dxinv,
                          T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -54,7 +54,7 @@ void mlabeclap_normalize (int i, int j, int, int n, Array4<T> const& x,
                           Array4<T const> const& a,
                           Array4<T const> const& bX,
                           Array4<T const> const& bY,
-                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                          GpuArray<T,2> const& dxinv,
                           T alpha, T beta) noexcept
 {
     const T dhx = beta*dxinv[0]*dxinv[0];
@@ -306,6 +306,25 @@ void abec_jacobi_os (int i, int j, int, int n, Array4<T> const& phi,
 
 template <typename T>
 AMREX_FORCE_INLINE
+void tridiagonal_solve (T* a_ls, T* b_ls, T* c_ls, T* r_ls, T* u_ls, T* gam, int ilen)
+{
+    T bet = b_ls[0];
+    u_ls[0] = r_ls[0] / bet;
+
+    for (int i = 1; i <= ilen-1; i++) {
+        gam[i] = c_ls[i-1] / bet;
+        bet = b_ls[i] - a_ls[i]*gam[i];
+        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
+        u_ls[i] = (r_ls[i]-a_ls[i]*u_ls[i-1]) / bet;
+    }
+
+    for (int i = ilen-2; i >= 0; i--) {
+        u_ls[i] = u_ls[i] - gam[i+1]*u_ls[i+1];
+    }
+}
+
+template <typename T>
+AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
                 T alpha, Array4<T const> const& a,
@@ -327,13 +346,16 @@ void abec_gsrb_with_line_solve (
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    // The tridiagonal solve is done in the y-direction -- it should be the
-    // direction in which the mesh spacing is much larger than in x.
-
-    // This should be moved outside the kernel!
-    if (dhy <= dhx) { amrex::Abort("dhy is supposed to be much larger than dhx"); }
-
+    // idir is the direction in which we will do the tridiagonal solve --
+    //    it should be the direction in which the mesh spacing is much larger
+    //    than in the other direction
+    int idir = 1;
     int ilen = hi.y - lo.y + 1;
+
+    if (dhy <= dhx) {
+        idir = 0;
+        ilen = hi.x - lo.x + 1;
+    }
 
     Vector<T> ls_scratch(6*static_cast<std::size_t>(ilen));
     T* a_ls = ls_scratch.data();
@@ -345,72 +367,117 @@ void abec_gsrb_with_line_solve (
 
     // No SIMD pragma on the transverse loop: the scratch arrays above are
     // reused by every line.
-    for (int n = 0; n < nc; ++n) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if ((i+redblack)%2 == 0) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                    T gamma = alpha*a(i,j,0)
-                        +   dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
-                        +   dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
+    if (idir == 1) {
+        for (int n = 0; n < nc; ++n) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if ((i+redblack)%2 == 0) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        T gamma = alpha*a(i,j,0)
+                            +   dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
+                            +   dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
 
-                    T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
-                        ? f0(vlo.x,j,0,n) : T(0.0);
-                    T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
-                        ? f1(i,vlo.y,0,n) : T(0.0);
-                    T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
-                        ? f2(vhi.x,j,0,n) : T(0.0);
-                    T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
-                        ? f3(i,vhi.y,0,n) : T(0.0);
+                        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                            ? f0(vlo.x,j,0,n) : T(0.0);
+                        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                            ? f1(i,vlo.y,0,n) : T(0.0);
+                        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                            ? f2(vhi.x,j,0,n) : T(0.0);
+                        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                            ? f3(i,vhi.y,0,n) : T(0.0);
 
-                    T g_m_d = gamma
-                        - (dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
-                        +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3));
+                        T g_m_d = gamma
+                            - (dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+                            +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3));
 
-                    T rho =  dhx*( bX(i  ,j,0,n)*phi(i-1,j,0,n)
-                           +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
+                        T rho =  dhx*( bX(i  ,j,0,n)*phi(i-1,j,0,n)
+                               +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
 
-                    // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                    if (i == vlo.x && m0(vlo.x-1,j,0) > 0) {
-                        rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
-                    }
-                    if (i == vhi.x && m2(vhi.x+1,j,0) > 0) {
-                        rho -= dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n);
-                    }
+                        // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
+                        if (i == vlo.x && m0(vlo.x-1,j,0) > 0) {
+                            rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
+                        }
+                        if (i == vhi.x && m2(vhi.x+1,j,0) > 0) {
+                            rho -= dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n);
+                        }
 
-                    a_ls[j-lo.y] = -dhy*bY(i,j,0,n);
-                    b_ls[j-lo.y] =  g_m_d;
-                    c_ls[j-lo.y] = -dhy*bY(i,j+1,0,n);
-                    u_ls[j-lo.y] = T(0.);
-                    r_ls[j-lo.y] = rhs(i,j,0,n) + rho;
+                        a_ls[j-lo.y] = -dhy*bY(i,j,0,n);
+                        b_ls[j-lo.y] =  g_m_d;
+                        c_ls[j-lo.y] = -dhy*bY(i,j+1,0,n);
+                        u_ls[j-lo.y] = T(0.);
+                        r_ls[j-lo.y] = rhs(i,j,0,n) + rho;
 
-                    if (j == lo.y) {
-                        a_ls[j-lo.y] = T(0.);
-                        if (!(m1(i,vlo.y-1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
-                    }
-                    if (j == hi.y) {
-                        c_ls[j-lo.y] = T(0.);
-                        if (!(m3(i,vhi.y+1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
-                    }
-                }
-//                      This is the tridiagonal solve
-                {
-                    T bet = b_ls[0];
-                    u_ls[0] = r_ls[0] / bet;
-
-                    for (int jj = 1; jj <= ilen-1; jj++) {
-                        gam[jj] = c_ls[jj-1] / bet;
-                        bet = b_ls[jj] - a_ls[jj]*gam[jj];
-                        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
-                        u_ls[jj] = (r_ls[jj]-a_ls[jj]*u_ls[jj-1]) / bet;
+                        if (j == lo.y) {
+                            a_ls[j-lo.y] = T(0.);
+                            if (!(m1(i,vlo.y-1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
+                        }
+                        if (j == hi.y) {
+                            c_ls[j-lo.y] = T(0.);
+                            if (!(m3(i,vhi.y+1,0) > 0)) { r_ls[j-lo.y] += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
+                        }
                     }
 
-                    for (int jj = ilen-2; jj >= 0; jj--) {
-                                u_ls[jj] = u_ls[jj] - gam[jj+1]*u_ls[jj+1];
+                    tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        phi(i,j,0,n) = u_ls[j-lo.y];
                     }
                 }
+            }
+        }
+    } else {
+        for (int n = 0; n < nc; ++n) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                if ((j+redblack)%2 == 0) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        T gamma = alpha*a(i,j,0)
+                            +   dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
+                            +   dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
 
-                for (int j = lo.y; j <= hi.y; ++j) {
-                            phi(i,j,0,n) = u_ls[j-lo.y];
+                        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                            ? f0(vlo.x,j,0,n) : T(0.0);
+                        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                            ? f1(i,vlo.y,0,n) : T(0.0);
+                        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                            ? f2(vhi.x,j,0,n) : T(0.0);
+                        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                            ? f3(i,vhi.y,0,n) : T(0.0);
+
+                        T g_m_d = gamma
+                            - (dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+                            +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3));
+
+                        T rho =  dhy*( bY(i,j  ,0,n)*phi(i,j-1,0,n)
+                               +       bY(i,j+1,0,n)*phi(i,j+1,0,n) );
+
+                        // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
+                        if (j == vlo.y && m1(i,vlo.y-1,0) > 0) {
+                            rho -= dhy*bY(i,j  ,0,n)*phi(i,j-1,0,n);
+                        }
+                        if (j == vhi.y && m3(i,vhi.y+1,0) > 0) {
+                            rho -= dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n);
+                        }
+
+                        a_ls[i-lo.x] = -dhx*bX(i,j,0,n);
+                        b_ls[i-lo.x] =  g_m_d;
+                        c_ls[i-lo.x] = -dhx*bX(i+1,j,0,n);
+                        u_ls[i-lo.x] = T(0.);
+                        r_ls[i-lo.x] = rhs(i,j,0,n) + rho;
+
+                        if (i == lo.x) {
+                            a_ls[i-lo.x] = T(0.);
+                            if (!(m0(vlo.x-1,j,0) > 0)) { r_ls[i-lo.x] += dhx*bX(i,j,0,n)*phi(i-1,j,0,n); }
+                        }
+                        if (i == hi.x) {
+                            c_ls[i-lo.x] = T(0.);
+                            if (!(m2(vhi.x+1,j,0) > 0)) { r_ls[i-lo.x] += dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n); }
+                        }
+                    }
+
+                    tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        phi(i,j,0,n) = u_ls[i-lo.x];
+                    }
                 }
             }
         }
@@ -452,4 +519,11 @@ void overset_rescale_bcoef_y (Box const& box, Array4<T> const& bY, Array4<int co
 }
 
 }
+
+#if (AMREX_SPACEDIM == 2)
+namespace amrex {
+    using namespace TwoD;
+}
+#endif
+
 #endif

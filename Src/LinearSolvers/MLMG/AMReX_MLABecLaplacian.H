@@ -252,11 +252,14 @@ public:
      * \param sol       Cell-centered solution supplying gradients.
      * \param face_only Non-zero to fill faces only (skip centroids).
      * \param ncomp     Number of components to process.
+     * \param hidden_direction Hidden direction (LPInfo::setHiddenDirection), whose
+     *                  flux is set to zero, or -1.
      */
     static void FFlux (Box const& box, Real const* dxinv, RT bscalar,
                        Array<FAB const*, AMREX_SPACEDIM> const& bcoef,
                        Array<FAB*,AMREX_SPACEDIM> const& flux,
-                       FAB const& sol, int face_only, int ncomp);
+                       FAB const& sol, int face_only, int ncomp,
+                       int hidden_direction = -1);
 
     RT m_a_scalar = std::numeric_limits<RT>::quiet_NaN();
     RT m_b_scalar = std::numeric_limits<RT>::quiet_NaN();
@@ -964,8 +967,16 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
 
     const int ncomp = this->getNComp();
 
+#if (AMREX_SPACEDIM == 3)
+    // With a hidden direction the operator is two-dimensional: phi has no
+    // ghost cells in the hidden direction, so the 3D stencil cannot be used.
+    AMREX_ASSERT(!this->hasHiddenDimension() || !this->m_overset_mask[amrlev][mglev]);
+    const GpuArray<RT,2> dhinv {this->get_d0(dxinv[0], dxinv[1], dxinv[2]),
+                                this->get_d1(dxinv[0], dxinv[1], dxinv[2])};
+#endif
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion() && !this->hasHiddenDimension()) {
         const auto& xma = in.const_arrays();
         const auto& yma = out.arrays();
         const auto& ama = acoef.arrays();
@@ -1008,6 +1019,21 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
                          const auto& byfab = bycoef.array(mfi);,
                          const auto& bzfab = bzcoef.array(mfi););
+#if (AMREX_SPACEDIM == 3)
+            if (this->hasHiddenDimension()) {
+                Box const& bx2d = this->compactify(bx);
+                const auto& xfab2d = this->compactify(xfab);
+                const auto& yfab2d = this->compactify(yfab);
+                const auto& afab2d = this->compactify(afab);
+                const auto& b0fab2d = this->compactify(this->get_d0(bxfab,byfab,bzfab));
+                const auto& b1fab2d = this->compactify(this->get_d1(bxfab,byfab,bzfab));
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx2d, ncomp, i, j, k, n,
+                {
+                    TwoD::mlabeclap_adotx(i,j,k,n, yfab2d, xfab2d, afab2d, b0fab2d, b1fab2d,
+                                          dhinv, ascalar, bscalar);
+                });
+            } else
+#endif
             if (this->m_overset_mask[amrlev][mglev]) {
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
@@ -1034,7 +1060,13 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
     bool regular_coarsening = true;
     if (amrlev == 0 && mglev > 0) {
-        regular_coarsening = this->mg_coarsen_ratio_vec[mglev-1] == this->mg_coarsen_ratio;
+        IntVect ratio = this->mg_coarsen_ratio_vec[mglev-1];
+        // A hidden direction is never coarsened; it does not make the
+        // coarsening irregular.
+        if (this->hasHiddenDimension()) {
+            ratio[this->hiddenDirection()] = this->mg_coarsen_ratio;
+        }
+        regular_coarsening = ratio == this->mg_coarsen_ratio;
     }
 
     MF Ax;
@@ -1083,13 +1115,20 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                  const RT dhz = m_b_scalar/static_cast<RT>(h[2]*h[2]));
     const RT alpha = m_a_scalar;
 
+#if (AMREX_SPACEDIM == 3)
+    // With a hidden direction the smoother is two-dimensional (see Fapply)
+    AMREX_ASSERT(!this->hasHiddenDimension() || !this->m_overset_mask[amrlev][mglev]);
+    const RT dh0 = this->get_d0(dhx, dhy, dhz);
+    const RT dh1 = this->get_d1(dhx, dhy, dhz);
+#endif
+
 #ifdef AMREX_USE_GPU
     // The line solve taken for semi-coarsened levels is host only.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(regular_coarsening
                                      || this->m_overset_mask[amrlev][mglev]
                                      || Gpu::notInLaunchRegion(),
                                      "MLABecLaplacian::Fsmooth: line solve is not supported on GPU");
-    if (Gpu::inLaunchRegion()
+    if (Gpu::inLaunchRegion() && !this->hasHiddenDimension()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
         const auto& m0ma = mm0.const_arrays();
@@ -1240,6 +1279,55 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
 #endif
 
+#if (AMREX_SPACEDIM == 3)
+            if (this->hasHiddenDimension()) {
+                Box const& tbx2d = this->compactify(tbx);
+                Box const& vbx2d = this->compactify(vbx);
+                const auto& solnfab2d = this->compactify(solnfab);
+                const auto& rhsfab2d  = this->compactify(rhsfab);
+                const auto& afab2d    = this->compactify(afab);
+                const auto& b0fab2d = this->compactify(this->get_d0(bxfab,byfab,bzfab));
+                const auto& b1fab2d = this->compactify(this->get_d1(bxfab,byfab,bzfab));
+                // Low faces are 0, 1, 2 and high faces 3, 4, 5 (OrientationIter)
+                const auto& m0_2d = this->compactify(this->get_d0(m0,m1,m2));
+                const auto& m1_2d = this->compactify(this->get_d1(m0,m1,m2));
+                const auto& m2_2d = this->compactify(this->get_d0(m3,m4,m5));
+                const auto& m3_2d = this->compactify(this->get_d1(m3,m4,m5));
+                const auto& f0fab2d = this->compactify(this->get_d0(f0fab,f1fab,f2fab));
+                const auto& f1fab2d = this->compactify(this->get_d1(f0fab,f1fab,f2fab));
+                const auto& f2fab2d = this->compactify(this->get_d0(f3fab,f4fab,f5fab));
+                const auto& f3fab2d = this->compactify(this->get_d1(f3fab,f4fab,f5fab));
+                if (! regular_coarsening) {
+                    // Line solve for semi-coarsening. Host only, and tbx == vbx
+                    // because tiling is disabled above for this branch.
+                    TwoD::abec_gsrb_with_line_solve(tbx2d, solnfab2d, rhsfab2d, alpha, afab2d,
+                                                    dh0, dh1, b0fab2d, b1fab2d,
+                                                    m0_2d, m2_2d, m1_2d, m3_2d,
+                                                    f0fab2d, f2fab2d, f1fab2d, f3fab2d,
+                                                    vbx2d, redblack, nc);
+                } else if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx2d, nc, i, j, k, n,
+                    {
+                        TwoD::abec_gsrb(i,j,k,n, solnfab2d, rhsfab2d, alpha, afab2d,
+                                        dh0, dh1, b0fab2d, b1fab2d,
+                                        m0_2d, m2_2d, m1_2d, m3_2d,
+                                        f0fab2d, f2fab2d, f1fab2d, f3fab2d,
+                                        vbx2d, redblack);
+                    });
+                } else {
+                    const auto& axfab2d = this->compactify(Ax.const_array(mfi));
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx2d, nc, i, j, k, n,
+                    {
+                        TwoD::abec_jacobi(i,j,k,n, solnfab2d, rhsfab2d, axfab2d,
+                                          alpha, afab2d,
+                                          dh0, dh1, b0fab2d, b1fab2d,
+                                          m0_2d, m2_2d, m1_2d, m3_2d,
+                                          f0fab2d, f2fab2d, f1fab2d, f3fab2d,
+                                          vbx2d);
+                    });
+                }
+            } else
+#endif
             if (this->m_overset_mask[amrlev][mglev]) {
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
                 if (this->m_use_gauss_seidel) {
@@ -1329,7 +1417,7 @@ MLABecLaplacianT<MF>::FFlux (int amrlev, const MFIter& mfi,
           Array<FAB const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
                                                          &(m_b_coeffs[amrlev][mglev][1][mfi]),
                                                          &(m_b_coeffs[amrlev][mglev][2][mfi]))}},
-          flux, sol, face_only, ncomp);
+          flux, sol, face_only, ncomp, this->hiddenDirection());
 }
 
 template <typename MF>
@@ -1337,7 +1425,8 @@ void
 MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
                              Array<FAB const*, AMREX_SPACEDIM> const& bcoef,
                              Array<FAB*,AMREX_SPACEDIM> const& flux,
-                             FAB const& sol, int face_only, int ncomp)
+                             FAB const& sol, int face_only, int ncomp,
+                             int hidden_direction)
 {
     AMREX_D_TERM(const auto bx = bcoef[0]->const_array();,
                  const auto by = bcoef[1]->const_array();,
@@ -1347,57 +1436,86 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
                  const auto& fzarr = flux[2]->array(););
     const auto& solarr = sol.array();
 
+    // No flux crosses the faces of a hidden direction, and sol has no ghost
+    // cells in that direction to take a gradient with: the flux is zero.
     if (face_only)
     {
         RT fac = bscalar*static_cast<RT>(dxinv[0]);
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
-        {
-            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
-        });
+        if (hidden_direction == 0) {
+            flux[0]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[0]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 0), 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
+            {
+                mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
+            });
+        }
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*static_cast<RT>(dxinv[1]);
         blo = amrex::bdryLo(box, 1);
         blen = box.length(1);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
-        {
-            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
-        });
+        if (hidden_direction == 1) {
+            flux[1]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[1]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 1), 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
+            {
+                mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
+            });
+        }
 #endif
 #if (AMREX_SPACEDIM == 3)
         fac = bscalar*static_cast<RT>(dxinv[2]);
         blo = amrex::bdryLo(box, 2);
         blen = box.length(2);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
-        {
-            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
-        });
+        if (hidden_direction == 2) {
+            flux[2]->template setVal<RunOn::Device>(RT(0.0), blo, 0, ncomp);
+            flux[2]->template setVal<RunOn::Device>(RT(0.0), amrex::bdryHi(box, 2), 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
+            {
+                mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
+            });
+        }
 #endif
     }
     else
     {
         RT fac = bscalar*static_cast<RT>(dxinv[0]);
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
-        {
-            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
-        });
+        if (hidden_direction == 0) {
+            flux[0]->template setVal<RunOn::Device>(RT(0.0), bflux, 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
+            {
+                mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
+            });
+        }
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*static_cast<RT>(dxinv[1]);
         bflux = amrex::surroundingNodes(box, 1);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
-        {
-            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
-        });
+        if (hidden_direction == 1) {
+            flux[1]->template setVal<RunOn::Device>(RT(0.0), bflux, 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
+            {
+                mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
+            });
+        }
 #endif
 #if (AMREX_SPACEDIM == 3)
         fac = bscalar*static_cast<RT>(dxinv[2]);
         bflux = amrex::surroundingNodes(box, 2);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
-        {
-            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
-        });
+        if (hidden_direction == 2) {
+            flux[2]->template setVal<RunOn::Device>(RT(0.0), bflux, 0, ncomp);
+        } else {
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
+            {
+                mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
+            });
+        }
 #endif
     }
 }
@@ -1423,8 +1541,14 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
 
     const int ncomp = getNComp();
 
+#if (AMREX_SPACEDIM == 3)
+    // The diagonal of the two-dimensional operator of a hidden direction (see Fapply)
+    const GpuArray<RT,2> dhinv {this->get_d0(dxinv[0], dxinv[1], dxinv[2]),
+                                this->get_d1(dxinv[0], dxinv[1], dxinv[2])};
+#endif
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
+    if (Gpu::inLaunchRegion() && !this->hasHiddenDimension()) {
         const auto& ma = mf.arrays();
         const auto& ama = acoef.const_arrays();
         AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
@@ -1455,11 +1579,27 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
                          const auto& byfab = bycoef.array(mfi);,
                          const auto& bzfab = bzcoef.array(mfi););
 
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+#if (AMREX_SPACEDIM == 3)
+            if (this->hasHiddenDimension()) {
+                Box const& bx2d = this->compactify(bx);
+                const auto& fab2d = this->compactify(fab);
+                const auto& afab2d = this->compactify(afab);
+                const auto& b0fab2d = this->compactify(this->get_d0(bxfab,byfab,bzfab));
+                const auto& b1fab2d = this->compactify(this->get_d1(bxfab,byfab,bzfab));
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx2d, ncomp, i, j, k, n,
+                {
+                    TwoD::mlabeclap_normalize(i,j,k,n, fab2d, afab2d, b0fab2d, b1fab2d,
+                                              dhinv, ascalar, bscalar);
+                });
+            } else
+#endif
             {
-                mlabeclap_normalize(i,j,k,n, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                    dxinv, ascalar, bscalar);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_normalize(i,j,k,n, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                        dxinv, ascalar, bscalar);
+                });
+            }
         }
     }
 }
