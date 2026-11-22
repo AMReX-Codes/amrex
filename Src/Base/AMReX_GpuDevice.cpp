@@ -227,22 +227,24 @@ StreamManager::free_async (Arena* arena, void* mem) {
     }
 }
 
+Vector<std::pair<Arena*, void*>>
+StreamManager::take_wait_list () {
+    decltype(m_free_wait_list) taken{};
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_free_wait_list.swap(taken);
+    return taken;
+}
+
 void
-StreamManager::move_wait_list_to (StreamManager& other) {
-    if (&other == this) { return; }
-    decltype(m_free_wait_list) moved{};
+StreamManager::add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees) {
+    if (frees.empty()) { return; }
+    std::size_t free_wait_list_size = 0;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_free_wait_list.swap(moved);
+        m_free_wait_list.insert(m_free_wait_list.end(), frees.begin(), frees.end());
+        free_wait_list_size = m_free_wait_list.size();
     }
-    if (moved.empty()) { return; }
-    std::size_t other_size = 0;
-    {
-        std::lock_guard<std::mutex> lock(other.m_mutex);
-        other.m_free_wait_list.insert(other.m_free_wait_list.end(), moved.begin(), moved.end());
-        other_size = other.m_free_wait_list.size();
-    }
-    if (other_size > 100) { other.sync(); }
+    if (free_wait_list_size > 100) { sync(); }
 }
 
 std::size_t
@@ -1186,29 +1188,39 @@ Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 #endif
 
 void
-Device::forkStreams (int n) noexcept
+Device::forkStreams (int n, int origin) noexcept
 {
 #ifdef AMREX_USE_GPU
     const int nstreams = std::min(n, numGpuStreams());
-    for (int i = 1; i < nstreams; ++i) {
-        streamWaitStream(gpu_stream_pool[i].getStream(), gpu_stream_pool[0].getStream());
+    for (int i = 0; i < nstreams; ++i) {
+        if (i != origin) {
+            streamWaitStream(gpu_stream_pool[i].getStream(),
+                             gpu_stream_pool[origin].getStream());
+        }
     }
 #else
-    amrex::ignore_unused(n);
+    amrex::ignore_unused(n, origin);
 #endif
 }
 
 void
-Device::joinStreams (int n) noexcept
+Device::joinStreams (int n, int origin) noexcept
 {
 #ifdef AMREX_USE_GPU
     const int nstreams = std::min(n, numGpuStreams());
-    for (int i = 1; i < nstreams; ++i) {
-        streamWaitStream(gpu_stream_pool[0].getStream(), gpu_stream_pool[i].getStream());
-        gpu_stream_pool[i].move_wait_list_to(gpu_stream_pool[0]);
+    for (int i = 0; i < nstreams; ++i) {
+        if (i != origin) {
+            // Take the frees before the wait is recorded: a free queued later
+            // (by another thread) can belong to work the wait does not cover,
+            // so it stays with its stream.
+            auto frees = gpu_stream_pool[i].take_wait_list();
+            streamWaitStream(gpu_stream_pool[origin].getStream(),
+                             gpu_stream_pool[i].getStream());
+            gpu_stream_pool[origin].add_to_wait_list(std::move(frees));
+        }
     }
 #else
-    amrex::ignore_unused(n);
+    amrex::ignore_unused(n, origin);
 #endif
 }
 

@@ -1,0 +1,306 @@
+#include <AMReX.H>
+#include <AMReX_Arena.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_GpuControl.H>
+#include <AMReX_GpuDevice.H>
+#include <AMReX_GpuUtility.H>
+#include <AMReX_MFIter.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
+
+#include <atomic>
+#include <chrono>
+#include <map>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+using namespace amrex;
+
+/**
+ * Tests of the stream ordering of multi-stream loops in a
+ * Gpu::StreamOrderedRegion.
+ *
+ * 1. A loop started while a stream other than stream 0 is current (here,
+ *    nested in an MFIter iteration on stream 1) must see the work queued on
+ *    that stream before it, and the work queued on that stream after it must
+ *    see the loop's work.
+ *
+ * 2. Memory released with Gpu::freeAsync on a stream while another thread
+ *    joins that stream (Gpu::Device::joinStreams) must not be freed before
+ *    the kernels queued ahead of it on that stream finish. This is a stress
+ *    test: the window it probes is narrow, and on CUDA it is usually
+ *    shorter than a kernel launch, so it mainly catches regressions on HIP.
+ */
+
+namespace {
+
+// Dependent integer arithmetic that keeps one GPU thread busy for a while.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+unsigned spin (Long n) noexcept
+{
+    unsigned x = 1u;
+    for (Long i = 0; i < n; ++i) { x = x * 1664525u + 1013904223u; }
+    return x;
+}
+
+// Number of spin iterations that take about one millisecond on the GPU.
+Long spin_iters_per_ms ()
+{
+    Gpu::DeviceVector<unsigned> sink(1);
+    auto* p = sink.data();
+    Long n = 1 << 16;
+    while (true) {
+        Gpu::synchronize();
+        const double t0 = amrex::second();
+        amrex::single_task([=] AMREX_GPU_DEVICE () { p[0] = spin(n); });
+        Gpu::synchronize();
+        const double dt = amrex::second() - t0;
+        if (dt > 0.02 || n > (Long(1) << 40)) {
+            return std::max(Long(1), static_cast<Long>(static_cast<double>(n) * 1.e-3 / dt));
+        }
+        n *= 4;
+    }
+}
+
+// Runs a multi-stream loop (MFIter or StreamIter) over the boxes of mf from
+// inside an MFIter iteration on stream 1, checks that the loop sees the work
+// queued on stream 1 before it, and that work queued after it sees the loop's.
+int test_nested_loop (MultiFab const& mf, Long iters_per_ms, bool use_stream_iter,
+                      bool warmup = false)
+{
+    const char* name = use_stream_iter ? "StreamIter" : "MFIter";
+    const int nboxes = mf.local_size();
+
+    Gpu::DeviceVector<int> written(1, 0);  // set on stream 1 before the loop
+    Gpu::DeviceVector<int> seen(nboxes, -1);  // what each loop item read
+    Gpu::DeviceVector<unsigned> sink(nboxes, 0);
+    Gpu::DeviceVector<int> joined(1, -1);  // read on stream 1 after the loop
+    auto* pw = written.data();
+    auto* ps = seen.data();
+    auto* pk = sink.data();
+    auto* pj = joined.data();
+    const Long long_wait = warmup ? 0 : 50 * iters_per_ms;
+    const Long short_wait = warmup ? 0 : iters_per_ms / 4;
+    int origin = -1;
+    int after = -1;
+    Gpu::synchronize();
+
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+        for (MFIter omfi(mf); omfi.isValid(); ++omfi) {
+            if (omfi.LocalIndex() != 1) { continue; }
+            origin = Gpu::Device::streamIndex();
+
+            // Slow producer on the current stream.
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                pk[0] = spin(long_wait);
+                pw[0] = 1;
+            });
+
+            auto body = [&] (int b) {
+                amrex::single_task([=] AMREX_GPU_DEVICE () {
+                    const int v = pw[0];
+                    pk[b] = spin(short_wait);
+                    ps[b] = v;
+                });
+            };
+            if (use_stream_iter) {
+                for (Gpu::StreamIter sit(nboxes, Gpu::StreamItInfo{}); sit.isValid(); ++sit) {
+                    body(sit());
+                }
+            } else {
+                for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+                    body(mfi.LocalIndex());
+                }
+            }
+
+            after = Gpu::Device::streamIndex();
+            // Consumer of every loop item's result.
+            amrex::single_task([=] AMREX_GPU_DEVICE () {
+                int s = 0;
+                for (int b = 0; b < nboxes; ++b) { s += ps[b]; }
+                pj[0] = s;
+            });
+        }
+    }
+    Gpu::synchronize();
+    if (warmup) { return 0; }
+
+    Vector<int> h_seen(nboxes);
+    Gpu::copy(Gpu::deviceToHost, seen.begin(), seen.end(), h_seen.begin());
+    int h_joined = 0;
+    Gpu::copy(Gpu::deviceToHost, joined.begin(), joined.end(), &h_joined);
+
+    int nfail = 0;
+    int nstale = 0;
+    for (int v : h_seen) { if (v != 1) { ++nstale; } }
+    if (nstale > 0) {
+        amrex::Print() << "FAIL nested " << name << ": " << nstale << " of " << nboxes
+                       << " loop items ran before the work queued on stream " << origin
+                       << " ahead of the loop\n";
+        ++nfail;
+    }
+    if (after != origin) {
+        amrex::Print() << "FAIL nested " << name << ": current stream after the loop is "
+                       << after << ", expected " << origin << "\n";
+        ++nfail;
+    }
+    if (h_joined != nboxes) {
+        amrex::Print() << "FAIL nested " << name << ": work queued after the loop saw "
+                       << h_joined << " of " << nboxes << " loop results\n";
+        ++nfail;
+    }
+    if (nfail == 0) {
+        amrex::Print() << "PASS nested " << name << " (origin stream " << origin << ")\n";
+    }
+    return nfail;
+}
+
+// Forwards to The_Arena and counts frees of watched memory whose kernel has
+// not finished yet.
+class WatchingArena final : public Arena
+{
+public:
+    void* alloc (std::size_t sz) override { return The_Arena()->alloc(sz); }
+
+    void free (void* p) override {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            auto it = m_done.find(p);
+            if (it != m_done.end()) {
+                if (*(it->second) == 0) { ++m_early; }
+                m_done.erase(it);
+                ++m_freed;
+            }
+        }
+        The_Arena()->free(p);
+    }
+
+    void watch (void* p, volatile int* done) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_done[p] = done;
+    }
+
+    int early () {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_early;
+    }
+
+    int freed () {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_freed;
+    }
+
+private:
+    std::mutex m_mutex;
+    std::map<void*, volatile int*> m_done;
+    int m_early = 0;
+    int m_freed = 0;
+};
+
+// One thread queues kernels on stream 1 and releases their memory with
+// Gpu::freeAsync while the main thread joins stream 1 into stream 0.
+// Synchronizing stream 0 afterwards must only free memory whose kernel is done.
+int test_join_concurrent_free (Long iters_per_ms, int ntrials)
+{
+    constexpr int nbufs = 32;
+    WatchingArena arena;
+    auto* done = static_cast<int*>(The_Pinned_Arena()->alloc(nbufs * sizeof(int)));
+    const Long wait = iters_per_ms;
+    int nmid = 0;  // trials in which the join split the worker's frees
+
+    for (int trial = 0; trial < ntrials; ++trial) {
+        std::vector<void*> bufs(nbufs);
+        for (int k = 0; k < nbufs; ++k) {
+            done[k] = 0;
+            bufs[k] = arena.alloc(sizeof(unsigned));
+            arena.watch(bufs[k], done + k);
+        }
+        Gpu::synchronize();
+
+        std::atomic<bool> ready{false};
+        std::atomic<bool> go{false};
+        std::thread worker([&] () {
+            ready = true;
+            while (!go) {}
+            Gpu::Device::setStreamIndex(1);
+            for (int k = 0; k < nbufs; ++k) {
+                auto* p = static_cast<unsigned*>(bufs[k]);
+                volatile int* d = done + k;
+                amrex::single_task([=] AMREX_GPU_DEVICE () {
+                    *p = spin(wait);
+                    *d = 1;
+                });
+                Gpu::freeAsync(&arena, bufs[k]);
+            }
+        });
+        while (!ready) {}
+        go = true;
+        // Join at a different point of the worker's queueing in each trial.
+        const auto t0 = std::chrono::steady_clock::now();
+        const auto delay = std::chrono::microseconds(5 * (trial % 40));
+        while (std::chrono::steady_clock::now() - t0 < delay) {}
+        Gpu::Device::joinStreams(2, 0);
+        worker.join();
+
+        Gpu::Device::setStreamIndex(0);
+        const int freed0 = arena.freed();
+        Gpu::streamSynchronize();  // frees what the join handed to stream 0
+        const int moved = arena.freed() - freed0;
+        if (moved > 0 && moved < nbufs) { ++nmid; }
+        Gpu::synchronize();
+    }
+
+    The_Pinned_Arena()->free(done);
+
+    const int early = arena.early();
+    if (early > 0) {
+        amrex::Print() << "FAIL join with concurrent freeAsync: " << early
+                       << " buffers freed while their kernel was still running ("
+                       << ntrials << " trials, " << nmid << " joined mid-burst)\n";
+        return 1;
+    }
+    amrex::Print() << "PASS join with concurrent freeAsync (" << ntrials << " trials, "
+                   << nmid << " joined mid-burst)\n";
+    return 0;
+}
+
+}
+
+int main (int argc, char* argv[])
+{
+    int nfail = 0;
+    amrex::Initialize(argc, argv);
+    {
+        if (Gpu::Device::numGpuStreams() < 2) {
+            amrex::Print() << "SKIP: needs at least 2 GPU streams\n";
+        } else {
+            int ntrials = 100;
+            ParmParse pp;
+            pp.query("ntrials", ntrials);
+
+            const Long iters_per_ms = spin_iters_per_ms();
+
+            MFIter::allowMultipleMFIters(true);
+            BoxArray ba(Box(IntVect(0), IntVect(15)));
+            ba.maxSize(4);  // at least four boxes in any dimension
+            MultiFab mf(ba, DistributionMapping(ba), 1, 0);
+
+            if (mf.local_size() < 2) {
+                amrex::Print() << "SKIP nested loops: needs at least 2 local boxes\n";
+            } else {
+                // Launch every kernel once first: loading a kernel's module on its
+                // first launch (e.g., CUDA lazy loading) can wait for the device.
+                test_nested_loop(mf, iters_per_ms, false, true);
+                test_nested_loop(mf, iters_per_ms, true, true);
+                nfail += test_nested_loop(mf, iters_per_ms, false);
+                nfail += test_nested_loop(mf, iters_per_ms, true);
+            }
+            nfail += test_join_concurrent_free(iters_per_ms, ntrials);
+        }
+    }
+    amrex::Finalize();
+    return nfail == 0 ? 0 : 1;
+}

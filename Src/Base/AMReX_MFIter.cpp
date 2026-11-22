@@ -250,12 +250,17 @@ MFIter::Finalize ()
             Gpu::streamSynchronize();
         }
     } else if (device_join) {
-        // Later work on stream 0 waits on the GPU for every stream the loop used.
-        Gpu::Device::joinStreams(std::min(endIndex, streams));
+        // Later work on the stream that was current before the loop waits on
+        // the GPU for every stream the loop used.
+        Gpu::Device::joinStreams(std::min(endIndex, streams), stream_origin);
     }
 
     AMREX_GPU_ERROR_CHECK();
-    Gpu::Device::resetStreamIndex();
+    if (device_join) {
+        Gpu::Device::setStreamIndex(stream_origin);
+    } else {
+        Gpu::Device::resetStreamIndex();
+    }
 #endif
 
     if (m_fa) {
@@ -381,15 +386,17 @@ MFIter::Initialize ()
 #endif
             Gpu::streamSynchronize();
         }
-        if (Gpu::inLaunchRegion() && Gpu::inStreamOrderedRegion() &&
-            streams > 1 && (index_map->size() > 1)) {
+        if (Gpu::inLaunchRegion() && Gpu::inStreamOrderedRegion() && streams > 1) {
             // The streams this loop uses wait on the GPU for the work queued
-            // on stream 0 before it.
+            // before it on the current stream (not necessarily stream 0, e.g.,
+            // in an iteration of an enclosing MFIter).
             device_join.flag = true;
+            stream_origin = Gpu::Device::streamIndex();
 #ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
-            Gpu::Device::forkStreams(std::min(static_cast<int>(index_map->size()), streams));
+            Gpu::Device::forkStreams(std::min(static_cast<int>(index_map->size()), streams),
+                                     stream_origin);
         }
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif

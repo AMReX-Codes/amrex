@@ -72,9 +72,10 @@ public:
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
-    //! Hands this stream's pending frees to \p other. Valid once \p other's
-    //! queued work is ordered after this stream's (Device::joinStreams).
-    void move_wait_list_to (StreamManager& other);
+    //! Removes and returns this stream's pending frees (Device::joinStreams).
+    [[nodiscard]] Vector<std::pair<Arena*, void*>> take_wait_list ();
+    //! Adds frees whose memory this stream's queued work is ordered after.
+    void add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees);
 };
 #endif
 
@@ -178,18 +179,20 @@ public:
 #endif
 
     /**
-     * Fork for a loop over \p n items on AMReX's streams (MFIter, StreamIter):
-     * streams 1 .. min(n, numGpuStreams())-1 wait on the GPU for the work
-     * queued on stream 0. No effect with a single stream.
+     * Fork for a loop over \p n items on AMReX's streams (MFIter, StreamIter)
+     * that starts while stream \p origin is current: streams
+     * 0 .. min(n, numGpuStreams())-1 wait on the GPU for the work queued on
+     * stream \p origin.
      */
-    static void forkStreams (int n) noexcept;
+    static void forkStreams (int n, int origin) noexcept;
 
     /**
-     * Join after such a loop: stream 0 waits on the GPU for streams
-     * 1 .. min(n, numGpuStreams())-1 and takes over their pending
-     * Gpu::freeAsync memory. No effect with a single stream.
+     * Join after such a loop: stream \p origin waits on the GPU for streams
+     * 0 .. min(n, numGpuStreams())-1 and takes over the Gpu::freeAsync memory
+     * they had pending. It is safe to call while other threads still queue
+     * work and free memory on those streams.
      */
-    static void joinStreams (int n) noexcept;
+    static void joinStreams (int n, int origin) noexcept;
 
     /**
      * Every other AMReX stream waits on the GPU for the work queued on the
