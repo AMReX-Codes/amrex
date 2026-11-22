@@ -193,17 +193,15 @@ namespace Gpu {
     };
 
     /**
-     * RAII region in which GPU work is ordered on the GPU instead of by host
-     * synchronization. It is a NoSyncRegion (MFIter does not synchronize the
-     * host), and in addition MFIter and StreamIter loops that use more than
-     * one stream fork from and join into the current stream with GPU-side
-     * stream waits (Gpu::Device::streamWaitStream): every stream a loop uses
-     * waits for the work queued before the loop, and the current stream
-     * waits for every stream the loop used before any later work. Library
-     * code that would otherwise skip a cross-stream synchronization in a
-     * NoSyncRegion joins the streams instead. The host waits only where it
-     * reads device results (reductions, device-to-host copies) or explicitly
-     * calls Gpu::streamSynchronize.
+     * RAII region in which MFIter and StreamIter loops still use multiple
+     * streams but do not synchronize the host. Like a NoSyncRegion, the host
+     * does not wait for the GPU at the start and end of each loop. Unlike a
+     * plain NoSyncRegion, the GPU work stays in program order: a loop's
+     * kernels run after the GPU work queued before the loop, and the GPU work
+     * queued after the loop runs after all of the loop's kernels, also when
+     * the loop is nested in an iteration of another loop. The host waits only
+     * where it needs device results (e.g., reductions, device-to-host copies,
+     * Gpu::streamSynchronize).
      */
     struct [[nodiscard]] StreamOrderedRegion
     {

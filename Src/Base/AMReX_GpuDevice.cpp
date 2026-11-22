@@ -1159,22 +1159,31 @@ Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noe
 namespace {
 // Makes work queued on each of the \p nwaiters streams \p waiters after this
 // call wait for the work queued on \p waited before it, with one event
-// record for all of them. The host does not wait (except on SYCL).
-void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t waited) noexcept
+// record for all of them. The host does not wait (except on SYCL). The event
+// is cached only if \p waited is one of AMReX's pool streams (\p cache), so
+// that streams created and destroyed by the application do not accumulate
+// events.
+void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t waited,
+                          bool cache) noexcept
 {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     bool recorded = false;
+    bool temporary = false;
     AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
     std::lock_guard<std::mutex> lock(g_stream_event_mutex);
     for (int i = 0; i < nwaiters; ++i) {
         if (waiters[i] == waited) { continue; }
         if (!recorded) {
-            auto it = g_stream_events.find(waited);
+            auto it = cache ? g_stream_events.find(waited) : g_stream_events.end();
             if (it == g_stream_events.end()) {
                 AMREX_HIP_OR_CUDA(
                     AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
                     AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
-                g_stream_events.emplace(waited, event);
+                if (cache) {
+                    g_stream_events.emplace(waited, event);
+                } else {
+                    temporary = true;
+                }
             } else {
                 event = it->second;
             }
@@ -1185,8 +1194,15 @@ void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t 
         AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamWaitEvent(waiters[i], event, 0));,
                            AMREX_CUDA_SAFE_CALL(cudaStreamWaitEvent(waiters[i], event, 0)); )
     }
+    if (temporary) {
+        // The waits already queued still hold; the event's resources are
+        // released once it completes.
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(event)); )
+    }
 #else
     // SYCL: order on the host.
+    amrex::ignore_unused(cache);
     for (int i = 0; i < nwaiters; ++i) {
         if (!(waiters[i] == waited)) {
             Device::streamSynchronize(waited);
@@ -1200,13 +1216,11 @@ void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t 
 void
 Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 {
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    streams_wait_stream(&waiter, 1, waited);
-#else
-    // SYCL: order on the host.
-    amrex::ignore_unused(waiter);
-    Device::streamSynchronize(waited);
-#endif
+    bool pool_stream = false;
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == waited) { pool_stream = true; break; }
+    }
+    streams_wait_stream(&waiter, 1, waited, pool_stream);
 }
 #endif
 
@@ -1219,7 +1233,7 @@ Device::forkStreams (int n, int origin) noexcept
     for (int i = 0; i < nstreams; ++i) {
         waiters[i] = gpu_stream_pool[i].getStream();
     }
-    streams_wait_stream(waiters.data(), nstreams, gpu_stream_pool[origin].getStream());
+    streams_wait_stream(waiters.data(), nstreams, gpu_stream_pool[origin].getStream(), true);
 #else
     amrex::ignore_unused(n, origin);
 #endif
@@ -1256,7 +1270,8 @@ Device::streamsWaitCurrent () noexcept
     for (int i = 0; i < nstreams; ++i) {
         waiters[i] = gpu_stream_pool[i].getStream();
     }
-    streams_wait_stream(waiters.data(), nstreams, gpuStream());
+    // Cache the event only for a pool stream, not an external one.
+    streams_wait_stream(waiters.data(), nstreams, gpuStream(), external_stream_stack.empty());
 #endif
 }
 

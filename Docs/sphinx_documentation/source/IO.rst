@@ -91,6 +91,8 @@ We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
+.. _sec:io:async:
+
 Async Output
 ============
 
@@ -121,6 +123,12 @@ will throw an error.
 
 Note that async output always writes FAB data in the machine's native
 format.  The ``fab.format`` input parameter is ignored.
+
+With GPUs, data written by GPU work must be complete before the output
+thread reads it.  Inside a :cpp:`Gpu::NoSyncRegion` (including a
+:cpp:`Gpu::StreamOrderedRegion`), where AMReX does not otherwise wait for
+the GPU, submitting an async output job therefore waits for all GPU
+streams to finish their queued work.
 
 Async Output works for a wide range of AMReX calls, including:
 

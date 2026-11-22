@@ -1983,6 +1983,10 @@ The memory rules above still apply: temporaries created and destroyed
 inside the region should come from :cpp:`The_Async_Arena()` or be released
 with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).
 
+Async output (``amrex.async_out=1``, see :ref:`sec:io:async`) started inside
+any no-sync region, including a :cpp:`Gpu::StreamOrderedRegion`, waits for
+all GPU streams to finish before handing the data to the output thread.
+
 .. note::
 
    Reducing the number of synchronization points is generally desirable,

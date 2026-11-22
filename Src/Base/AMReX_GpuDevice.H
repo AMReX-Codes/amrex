@@ -179,24 +179,24 @@ public:
 #endif
 
     /**
-     * Fork for a loop over \p n items on AMReX's streams (MFIter, StreamIter)
-     * that starts while stream \p origin is current: streams
-     * 0 .. min(n, numGpuStreams())-1 wait on the GPU for the work queued on
-     * stream \p origin.
+     * Makes the GPU work queued after this call on AMReX's streams
+     * 0 .. min(n, numGpuStreams())-1 wait for the work queued before it on
+     * stream \p origin. Used at the start of a loop over \p n items that
+     * runs on multiple streams.
      */
     static void forkStreams (int n, int origin) noexcept;
 
     /**
-     * Join after such a loop: stream \p origin waits on the GPU for streams
-     * 0 .. min(n, numGpuStreams())-1 and takes over the Gpu::freeAsync memory
-     * they had pending. It is safe to call while other threads still queue
-     * work and free memory on those streams.
+     * Makes the GPU work queued after this call on stream \p origin wait for
+     * the work queued before it on AMReX's streams
+     * 0 .. min(n, numGpuStreams())-1. Used at the end of such a loop. It is
+     * safe to call while other threads are still using those streams.
      */
     static void joinStreams (int n, int origin) noexcept;
 
     /**
-     * Every other AMReX stream waits on the GPU for the work queued on the
-     * current stream (for data a multi-stream loop's other streams read).
+     * Makes the GPU work queued after this call on every AMReX stream wait
+     * for the work queued before it on the current stream.
      */
     static void streamsWaitCurrent () noexcept;
 
