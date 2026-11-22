@@ -4,6 +4,8 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_OpenMP.H>
 
+#include <algorithm>
+
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
@@ -253,6 +255,7 @@ MFIter::Finalize ()
         // Later work on the stream that was current before the loop waits on
         // the GPU for every stream the loop used.
         Gpu::Device::joinStreams(std::min(endIndex, streams), stream_origin);
+        Gpu::Device::endLoopStreams(fork_streams);
     }
 
     AMREX_GPU_ERROR_CHECK();
@@ -402,18 +405,33 @@ MFIter::Initialize ()
             // launch region: its body still runs on a different stream than
             // the current one (see setStreamIndex below), so async copies or
             // frees queued there must be ordered too.
+            //
+            // Each thread of an active OpenMP team forks: a worksharing
+            // construct here could be reached a different number of times by
+            // the team's threads (e.g., a nested MFIter outside the launch
+            // region) and hang. forkStreams is thread-safe, and the extra
+            // waits only order the streams after work they already follow.
             device_join.flag = true;
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-            Gpu::Device::forkStreams(std::min(static_cast<int>(index_map->size()), streams),
-                                     stream_origin);
+            fork_streams = std::min({static_cast<int>(index_map->size()), streams,
+                                     Gpu::numGpuStreams()});
+            Gpu::Device::forkStreams(fork_streams, stream_origin);
+            Gpu::Device::beginLoopStreams(fork_streams);
         }
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
         typ = fabArray->boxArray().ixType();
     }
+}
+
+void
+MFIter::forkStreamsFromCurrent ()
+{
+#ifdef AMREX_USE_GPU
+    if (device_join) {
+        Gpu::Device::forkStreams(fork_streams, Gpu::Device::streamIndex());
+    }
+#endif
 }
 
 Box

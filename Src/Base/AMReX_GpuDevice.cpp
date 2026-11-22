@@ -14,6 +14,7 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdlib>
 #include <exception>
 #include <iterator>
@@ -94,6 +95,14 @@ namespace {
 // again later does not affect it.
 std::mutex g_stream_event_mutex;
 std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_events;
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+namespace {
+// g_loop_streams[n]: number of active loops that forked streams 0 .. n-1
+// (Device::beginLoopStreams). Device::streamsWaitCurrent only orders those.
+std::array<std::atomic<int>, AMREX_GPU_MAX_STREAMS+1> g_loop_streams{};
 }
 #endif
 
@@ -1281,10 +1290,21 @@ void
 Device::streamsWaitCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
-    // All pool streams, not numGpuStreams(): inside a SingleStreamRegion (or
-    // with an external stream) nested in a multi-stream loop, the loop's other
-    // iterations still run on the other pool streams.
-    const int nstreams = max_gpu_streams;
+    // The streams the active loops forked, not numGpuStreams(): inside a
+    // SingleStreamRegion (or with an external stream) nested in a
+    // multi-stream loop, the loop's other iterations still run on the other
+    // pool streams. Streams no active loop forked are left alone: under
+    // graph capture they would join the capture and never be joined back.
+    int nstreams = 0;
+    for (int n = max_gpu_streams; n > 0; --n) {
+        if (g_loop_streams[n].load(std::memory_order_relaxed) > 0) {
+            nstreams = n;
+            break;
+        }
+    }
+    // No forked loop is active (e.g., only synchronizing loops): order all
+    // pool streams.
+    if (nstreams == 0) { nstreams = max_gpu_streams; }
     if (nstreams <= 1) { return; }
     std::array<gpuStream_t, AMREX_GPU_MAX_STREAMS> waiters{};
     for (int i = 0; i < nstreams; ++i) {
@@ -1293,6 +1313,26 @@ Device::streamsWaitCurrent () noexcept
     // Cache the event only for a pool stream, not an external one.
     const gpuStream_t current = gpuStream();
     streams_wait_stream(waiters.data(), nstreams, current, isPoolStream(current));
+#endif
+}
+
+void
+Device::beginLoopStreams (int n) noexcept
+{
+#ifdef AMREX_USE_GPU
+    ++g_loop_streams[std::clamp(n, 0, AMREX_GPU_MAX_STREAMS)];
+#else
+    amrex::ignore_unused(n);
+#endif
+}
+
+void
+Device::endLoopStreams (int n) noexcept
+{
+#ifdef AMREX_USE_GPU
+    --g_loop_streams[std::clamp(n, 0, AMREX_GPU_MAX_STREAMS)];
+#else
+    amrex::ignore_unused(n);
 #endif
 }
 

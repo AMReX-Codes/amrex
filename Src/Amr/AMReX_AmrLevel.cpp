@@ -1109,6 +1109,11 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
+
+    // The MFIter constructor forked the loop's streams before the work above
+    // was queued on the current stream. In a Gpu::StreamOrderedRegion, order
+    // them after it, so that iterations on other streams see filled m_fabs.
+    forkStreamsFromCurrent();
 }
 
 void

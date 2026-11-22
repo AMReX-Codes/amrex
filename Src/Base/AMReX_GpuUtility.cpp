@@ -54,7 +54,7 @@ void
 StreamIter::init () noexcept // NOLINT
 {
     amrex::ignore_unused(m_threadsafe);
-    amrex::ignore_unused(m_sync, m_join, m_origin);
+    amrex::ignore_unused(m_sync, m_join, m_origin, m_nfork);
 #if defined(AMREX_USE_GPU)
     ++s_stream_iter_depth;
     if (Gpu::inStreamOrderedRegion()) {
@@ -67,11 +67,13 @@ StreamIter::init () noexcept // NOLINT
 #endif
         Gpu::streamSynchronize();
     } else if (Gpu::inStreamOrderedRegion()) {
+        // Each thread of an active OpenMP team forks (see MFIter::Initialize):
+        // a worksharing construct could be reached a different number of
+        // times by the team's threads.
         m_join = true;
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-        Gpu::Device::forkStreams(m_n, m_origin);
+        m_nfork = std::min(m_n, Gpu::numGpuStreams());
+        Gpu::Device::forkStreams(m_nfork, m_origin);
+        Gpu::Device::beginLoopStreams(m_nfork);
     }
     Gpu::Device::setStreamIndex(m_i % Gpu::numGpuStreams());
 #elif defined(AMREX_USE_OMP)
@@ -101,6 +103,7 @@ StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
         }
     } else if (m_join) {
         Gpu::Device::joinStreams(m_n, m_origin);
+        Gpu::Device::endLoopStreams(m_nfork);
     }
     AMREX_GPU_ERROR_CHECK();
     // 0 outside a Gpu::StreamOrderedRegion

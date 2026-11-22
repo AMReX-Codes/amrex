@@ -208,6 +208,15 @@ public:
 
 protected:
 
+    /**
+     * In a Gpu::StreamOrderedRegion, makes the GPU work queued after this
+     * call on the loop's streams wait for the work queued before it on the
+     * current stream. For a derived iterator that queues work on the current
+     * stream after the MFIter constructor forked the streams, which the
+     * loop's iterations must see (e.g., FillPatchIterator).
+     */
+    void forkStreamsFromCurrent ();
+
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
     const FabArrayBase* fabArray;
@@ -242,6 +251,8 @@ protected:
     //! Gpu::StreamOrderedRegion: stream index current when the loop started,
     //! restored when it ends.
     int stream_origin = 0;
+    //! Gpu::StreamOrderedRegion: number of streams forked (and joined).
+    int fork_streams = 0;
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
 
     const Vector<int>* index_map;

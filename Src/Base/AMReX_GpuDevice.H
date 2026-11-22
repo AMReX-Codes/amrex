@@ -205,10 +205,21 @@ public:
     static void joinStreams (int n, int origin) noexcept;
 
     /**
-     * Makes the GPU work queued after this call on every stream in AMReX's
-     * pool wait for the work queued before it on the current stream. This
-     * includes all pool streams even inside a SingleStreamRegion, since an
-     * enclosing loop may still be running its other iterations on them.
+     * Records that a loop forked AMReX's streams 0 .. n-1 (forkStreams) and
+     * runs its iterations on them until the matching endLoopStreams(n).
+     */
+    static void beginLoopStreams (int n) noexcept;
+
+    //! Ends a beginLoopStreams(n).
+    static void endLoopStreams (int n) noexcept;
+
+    /**
+     * Makes the GPU work queued after this call on the streams used by the
+     * active forked loops (beginLoopStreams) wait for the work queued before
+     * it on the current stream. This includes those streams even inside a
+     * SingleStreamRegion, since an enclosing loop may still be running its
+     * other iterations on them. With no such loop active, every stream in
+     * AMReX's pool waits.
      */
     static void streamsWaitCurrent () noexcept;
 
