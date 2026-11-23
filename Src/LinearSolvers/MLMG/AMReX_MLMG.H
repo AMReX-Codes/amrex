@@ -1570,23 +1570,22 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     prepareLinOp();
 
 
+    // The rhs with the boundary terms the solve adds; kept for every level
+    // because reflux uses the finer level's
+    Vector<MF> rhstmp(namrlevs);
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
-        const MF* prhs = a_rhs[alev];
-#if (AMREX_SPACEDIM != 3)
         int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
-        MF rhstmp(boxArray(*prhs), DistributionMap(*prhs), ncomp, nghost,
-                  MFInfo(), *linop.Factory(alev));
-        LocalCopy(rhstmp, *prhs, 0, 0, ncomp, IntVect(nghost));
-        linop.applyMetricTerm(alev, 0, rhstmp);
-        linop.unimposeNeumannBC(alev, rhstmp);
-        linop.applyInhomogNeumannTerm(alev, rhstmp);
-        prhs = &rhstmp;
-#endif
-        linop.solutionResidual(alev, *a_res[alev], sol[alev], *prhs, crse_bcdata);
+        rhstmp[alev] = MF(boxArray(*a_rhs[alev]), DistributionMap(*a_rhs[alev]), ncomp, nghost,
+                          MFInfo().SetArena(The_Async_Arena()), *linop.Factory(alev));
+        LocalCopy(rhstmp[alev], *a_rhs[alev], 0, 0, ncomp, IntVect(nghost));
+        linop.applyMetricTerm(alev, 0, rhstmp[alev]);
+        linop.unimposeNeumannBC(alev, rhstmp[alev]);
+        linop.applyInhomogNeumannTerm(alev, rhstmp[alev]);
+        linop.solutionResidual(alev, *a_res[alev], sol[alev], rhstmp[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
-            linop.reflux(alev, *a_res[alev], sol[alev], *prhs,
-                         *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
+            linop.reflux(alev, *a_res[alev], sol[alev], rhstmp[alev],
+                         *a_res[alev+1], sol[alev+1], rhstmp[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
                 // EB operators are double only.
@@ -2335,20 +2334,6 @@ MLMGT<MF>::mgFcycle ()
 {
     BL_PROFILE("MLMG::mgFcycle()");
 
-#ifdef AMREX_USE_EB
-   auto* pf = linop.Factory(0);
-   auto is_all_regular = [pf] () {
-        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(pf);
-        if (f) {
-            return f->isAllRegular();
-        } else {
-            return true;
-        }
-    };
-    amrex::ignore_unused(pf, is_all_regular);
-    AMREX_ASSERT(linop.isCellCentered() || is_all_regular());
-#endif
-
     const int amrlev = 0;
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
     IntVect nghost(0);
@@ -2369,7 +2354,7 @@ MLMGT<MF>::mgFcycle ()
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
-        LocalCopy(res[amrlev][mglev], rescor[amrlev][mglev], 0, 0, ncomp, nghost);
+        std::swap(res[amrlev][mglev], rescor[amrlev][mglev]);
 
         // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
@@ -2613,11 +2598,6 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
-    IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) {
-        nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
-    }
-
     MF&       crse_sol = sol[calev];
     const MF& crse_rhs = rhs[calev];
     MF&       crse_res = res[calev][0];
@@ -2632,7 +2612,7 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
-    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
+    std::swap(fine_res, fine_rescor);
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
@@ -2646,11 +2626,6 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
-    IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) {
-        nghost = IntVect(linop.getNGrow(falev));
-    }
-
     const MF& crse_cor = cor[falev-1][0];
 
     MF& fine_cor    = cor   [falev][0];
@@ -2660,7 +2635,7 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
+    std::swap(fine_res, fine_rescor);
 }
 
 // Interpolate correction from coarse to fine AMR level.
@@ -2681,11 +2656,12 @@ MLMGT<MF>::interpCorrection (int alev)
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
     int ng_src = 0;
-    int ng_dst = linop.isCellCentered() ? 1 : 0;
+    // No ghost cells in the hidden direction: interpolationAmr views cfine as 2D.
+    IntVect ng_dst = linop.isCellCentered() ? ngSol() : IntVect(0);
     if (cf_strategy == CFStrategy::ghostnodes)
     {
         ng_src = linop.getNGrow(alev-1);
-        ng_dst = linop.getNGrow(alev-1);
+        ng_dst = IntVect(linop.getNGrow(alev-1));
         if constexpr (IsMultiFabLike_v<MF>) {
             crse_cor.FillBoundary(0, ncomp, IntVect(ng_src), crse_geom.periodicity());
         } else {
@@ -2693,10 +2669,10 @@ MLMGT<MF>::interpCorrection (int alev)
         }
     }
 
-    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst),
+    MF cfine = linop.makeCoarseAmr(alev, ng_dst,
                                    MFInfo().SetArena(The_Async_Arena()));
     setVal(cfine, RT(0.0));
-    ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), IntVect(ng_dst),
+    ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), ng_dst,
                  crse_geom.periodicity());
 
     linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)

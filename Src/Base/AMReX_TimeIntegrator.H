@@ -242,6 +242,7 @@ public:
         }
     }
 
+    //! Interpolate in time within the last step. Only the RungeKutta integrator with the classic RK4 tableau (integration.rk.type = 4) is supported.
     void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
     {
         integrator_ptr->time_interpolate(S_new, S_old, timestep_fraction, data);
