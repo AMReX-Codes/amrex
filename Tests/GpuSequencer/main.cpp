@@ -25,7 +25,7 @@
 #include <AMReX_GpuSequencer.H>
 #include <AMReX_Print.H>
 
-#include <cstdint>
+#include <deque>
 #include <random>
 #include <string>
 #include <utility>
@@ -85,7 +85,8 @@ public:
     }
 
     void giveFrees (int stream, FreeList&& frees) override {
-        m_frees[stream].insert(m_frees[stream].end(), frees.begin(), frees.end());
+        const FreeList given(std::move(frees));
+        m_frees[stream].insert(m_frees[stream].end(), given.begin(), given.end());
     }
 
     // What the test does to the device.
@@ -94,10 +95,15 @@ public:
     int launch () { return node(m_current); }
 
     void deferFree (int mem) {
-        m_frees[m_current].emplace_back(nullptr, reinterpret_cast<void*>(std::intptr_t(mem)));
+        // The address of the memory's entry stands for the memory.
+        m_frees[m_current].emplace_back(nullptr, &m_ids[mem]);
     }
 
-    int newMemory () { m_users.emplace_back(); return static_cast<int>(m_users.size())-1; }
+    int newMemory () {
+        m_users.emplace_back();
+        m_ids.push_back(static_cast<int>(m_users.size())-1);
+        return m_ids.back();
+    }
     void use (int mem, int op) { m_users[mem].push_back(op); }
 
     //! Operations that are complete when \p n is (including \p n).
@@ -140,7 +146,7 @@ private:
         const auto done = (m_sabotage == Sabotage::FreeOnTake) ? complete()
                                                                : before(m_tail[stream]);
         for (auto const& [arena, p] : m_frees[stream]) {
-            const auto mem = static_cast<int>(reinterpret_cast<std::intptr_t>(p));
+            const int mem = *static_cast<int const*>(p);
             for (int op : m_users[mem]) {
                 if (!done[op]) {
                     throw Violation{"lifetime: memory released while an operation that uses it is pending"};
@@ -157,6 +163,7 @@ private:
     std::vector<int> m_tail = std::vector<int>(nstreams, -1);
     std::vector<FreeList> m_frees = std::vector<FreeList>(nstreams);
     std::vector<std::vector<int>> m_users;
+    std::deque<int> m_ids; //!< m_ids[mem] == mem; a deque keeps the addresses
 };
 
 //! A random program of nested loops, run through the sequencer.
