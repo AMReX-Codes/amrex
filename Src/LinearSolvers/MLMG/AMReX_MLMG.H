@@ -2358,7 +2358,7 @@ MLMGT<MF>::mgFcycle ()
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
-        LocalCopy(res[amrlev][mglev], rescor[amrlev][mglev], 0, 0, ncomp, nghost);
+        std::swap(res[amrlev][mglev], rescor[amrlev][mglev]);
 
         // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
@@ -2602,11 +2602,6 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
-    IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) {
-        nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
-    }
-
     MF&       crse_sol = sol[calev];
     const MF& crse_rhs = rhs[calev];
     MF&       crse_res = res[calev][0];
@@ -2621,7 +2616,7 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
-    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
+    std::swap(fine_res, fine_rescor);
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
@@ -2635,11 +2630,6 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
-    IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) {
-        nghost = IntVect(linop.getNGrow(falev));
-    }
-
     const MF& crse_cor = cor[falev-1][0];
 
     MF& fine_cor    = cor   [falev][0];
@@ -2649,7 +2639,7 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
+    std::swap(fine_res, fine_rescor);
 }
 
 // Interpolate correction from coarse to fine AMR level.
