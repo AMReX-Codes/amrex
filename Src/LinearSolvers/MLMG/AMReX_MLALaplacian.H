@@ -283,8 +283,8 @@ MLALaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a)
         }
         else
         {
-            AMREX_ASSERT(amrlev == 0 || !this->hasHiddenDimension());
             IntVect ratio = (amrlev > 0) ? IntVect(this->mg_coarsen_ratio) : this->mg_coarsen_ratio_vec[mglev-1];
+            if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
             amrex::average_down(a[mglev-1], a[mglev], 0, ncomp, ratio);
         }
     }
@@ -300,8 +300,10 @@ MLALaplacianT<MF>::averageDownCoeffsToCoarseAmrLevel (int flev)
 
     if (m_a_scalar != RT(0.0)) {
         // We coarsen from the back of flev to the front of flev-1.
-        // So we use this->mg_coarsen_ratio.
-        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, ncomp, this->mg_coarsen_ratio);
+        // So we use this->mg_coarsen_ratio (1 in the hidden direction).
+        IntVect ratio(this->mg_coarsen_ratio);
+        if (this->hasHiddenDimension()) { ratio[this->hiddenDirection()] = 1; }
+        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, ncomp, ratio);
     }
 }
 
