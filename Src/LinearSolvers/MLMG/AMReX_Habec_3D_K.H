@@ -1045,13 +1045,16 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<AlgInt> const& ncols,
             // sb*dx^2/(dx*dy*dz), since ebarea is over dx^2
             Real faceb = (fac[0]*dx[0])*(dx[0]/dx[1])*(dx[0]/dx[2]);
             mat_tmp(0   , 0  , 0  ) -= feb(0)*faceb;
-            mat_tmp(ioff, 0  , 0  ) -= feb(1)*faceb;
-            mat_tmp(0   ,joff, 0  ) -= feb(2)*faceb;
-            mat_tmp(0   , 0  ,koff) -= feb(3)*faceb;
-            mat_tmp(ioff,joff, 0  ) -= feb(4)*faceb;
-            mat_tmp(ioff, 0  ,koff) -= feb(5)*faceb;
-            mat_tmp(0   ,joff,koff) -= feb(6)*faceb;
-            mat_tmp(ioff,joff,koff) -= feb(7)*faceb;
+            IntVect const iv(i,j,k);
+            GpuArray<Array4<Real const>,AMREX_SPACEDIM> const ap{apx, apy, apz};
+            IntVect const ebo[7] = {IntVect(ioff,   0,   0), IntVect(   0,joff,   0),
+                                    IntVect(   0,   0,koff), IntVect(ioff,joff,   0),
+                                    IntVect(ioff,   0,koff), IntVect(   0,joff,koff),
+                                    IntVect(ioff,joff,koff)};
+            for (int m = 0; m < 7; ++m) {
+                detail::habec_eb_sub(sten.data(), iv, ebo[m], feb(m+1), faceb,
+                                     vbx, cell_id, ap, bctype, bcl, dx, bho);
+            }
         }
 
         // The row is weighted by the volume fraction, as is the rhs.
