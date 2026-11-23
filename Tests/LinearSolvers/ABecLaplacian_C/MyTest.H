@@ -64,6 +64,8 @@ private:
     // Composite mlhypre Poisson (prob_type 1, max_level 1): periodic in x,
     // with the fine level at the high-x boundary and unit b coefficients
     bool periodic_x = false;
+    // MLPoisson (prob_type 1): hidden direction with n_cell 1 and ref ratio 1 there
+    int hidden_direction = -1;
     amrex::Real max_error = -1.0; // if positive: abort if a level's max-norm error exceeds it
     bool use_hypre_ssamg = false; // this option is for mlhypre only
 

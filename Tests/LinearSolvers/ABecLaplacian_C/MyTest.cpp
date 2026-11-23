@@ -109,6 +109,7 @@ MyTest::solvePoisson ()
     info.setMixedPrecision(mixed_precision);
     info.setDeterministic(deterministic);
     info.setMaxCoarseningLevel(max_coarsening_level);
+    if (hidden_direction >= 0) { info.setHiddenDirection(hidden_direction); }
 
     const auto tol_rel = default_tol_rel();
     const auto tol_abs = Real(0.0);
@@ -664,9 +665,11 @@ MyTest::readParameters ()
         } else if (!nc.empty()) {
             amrex::Abort("n_cell needs 1 or AMREX_SPACEDIM values");
         }
+        pp.query("hidden_direction", hidden_direction);
         // the exact solutions fit the BCs only for sides of length 1 or 1/2
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(n_cell[idim] == n_cell.max() ||
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE((idim == hidden_direction) ||
+                                             n_cell[idim] == n_cell.max() ||
                                              2*n_cell[idim] == n_cell.max(),
                                              "each n_cell must be n_cell.max() or n_cell.max()/2");
         }
@@ -762,12 +765,14 @@ MyTest::initData ()
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(n_cell[0]/lmax,n_cell[1]/lmax,n_cell[2]/lmax)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(int(periodic_x),0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
+    IntVect rr(ref_ratio);
+    if (hidden_direction >= 0) { rr[hidden_direction] = 1; }
     Box domain0(IntVect(0), n_cell-1);
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         geom[ilev].define(domain);
-        domain.refine(ref_ratio);
+        domain.refine(rr);
     }
 
     domain = domain0;
@@ -780,7 +785,7 @@ MyTest::initData ()
             domain.setSmall(0, n_cell[0]/2);
             domain.setBig(0, n_cell[0]-1);
         }
-        domain.refine(ref_ratio);
+        domain.refine(rr);
     }
 
     for (int ilev = 0; ilev < nlevels; ++ilev)

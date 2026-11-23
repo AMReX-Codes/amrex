@@ -2684,11 +2684,12 @@ MLMGT<MF>::interpCorrection (int alev)
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
     int ng_src = 0;
-    int ng_dst = linop.isCellCentered() ? 1 : 0;
+    // No ghost cells in the hidden direction: interpolationAmr views cfine as 2D.
+    IntVect ng_dst = linop.isCellCentered() ? ngSol() : IntVect(0);
     if (cf_strategy == CFStrategy::ghostnodes)
     {
         ng_src = linop.getNGrow(alev-1);
-        ng_dst = linop.getNGrow(alev-1);
+        ng_dst = IntVect(linop.getNGrow(alev-1));
         if constexpr (IsMultiFabLike_v<MF>) {
             crse_cor.FillBoundary(0, ncomp, IntVect(ng_src), crse_geom.periodicity());
         } else {
@@ -2696,10 +2697,10 @@ MLMGT<MF>::interpCorrection (int alev)
         }
     }
 
-    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst),
+    MF cfine = linop.makeCoarseAmr(alev, ng_dst,
                                    MFInfo().SetArena(The_Async_Arena()));
     setVal(cfine, RT(0.0));
-    ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), IntVect(ng_dst),
+    ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), ng_dst,
                  crse_geom.periodicity());
 
     linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)
