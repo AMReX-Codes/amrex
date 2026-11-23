@@ -1,0 +1,10 @@
+# MLABecLapDrift, MLABecLaplacian with the upwind drift term of setDriftCoeffs (see main.cpp).
+# Also run with max_level = 1 and with cscalar = 0.
+n_cell = 32
+max_grid_size = 16
+max_level = 0
+cscalar = -20.0
+
+amrex.fpe_trap_invalid = 1
+amrex.fpe_trap_overflow = 1
+amrex.fpe_trap_zero = 1

@@ -40,7 +40,7 @@ CEXE_headers   += AMReX_Habec_K.H AMReX_Habec_$(DIM)D_K.H
 CEXE_headers   += AMReX_MLCGSolver.H AMReX_PCGSolver.H AMReX_SingleBoxCGSolver.H
 
 CEXE_headers   += AMReX_MLABecLaplacian.H
-CEXE_headers   += AMReX_MLABecLap_K.H AMReX_MLABecLap_$(DIM)D_K.H
+CEXE_headers   += AMReX_MLABecLap_K.H AMReX_MLABecLap_$(DIM)D_K.H AMReX_MLABecLap_Drift_K.H AMReX_MLABecLapDrift.H
 
 CEXE_headers   += AMReX_MLALaplacian.H
 CEXE_headers   += AMReX_MLALap_K.H AMReX_MLALap_$(DIM)D_K.H
