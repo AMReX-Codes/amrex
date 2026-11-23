@@ -49,7 +49,7 @@ struct ParticleTileConfig
  * its configuration.
  */
 template <class T, class Tile>
-class ParticleLevelAllocator
+class ParticleLevelAllocator // NOLINT(cppcoreguidelines-special-member-functions): moves copy on purpose
 {
 public:
     using value_type = T;
@@ -69,7 +69,7 @@ public:
     {}
 
     // Copy the config instead of moving it, so that a map that is moved from can
-    // still create tiles.
+    // still create tiles. The move operations are not declared, so moves use these.
     ParticleLevelAllocator (ParticleLevelAllocator const&) noexcept = default;
     ParticleLevelAllocator& operator= (ParticleLevelAllocator const&) noexcept = default;
     ~ParticleLevelAllocator () = default;
