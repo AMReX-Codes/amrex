@@ -100,6 +100,46 @@ Note, however, that the solver behavior is the same regardless of which function
 use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
+:cpp:`MLABecLapDrift` (header ``AMReX_MLABecLapDrift.H``) is an
+:cpp:`MLABecLaplacian` with an upwind drift term,
+
+.. math::
+
+   (A \alpha - B \nabla \cdot \beta \nabla - C \nabla \cdot \vec{c}) \phi = f,
+
+where :math:`\vec{c}` holds face velocities. This is, for example, the
+drift-diffusion operator of the electrons in a plasma. The flux through a face
+is :math:`\vec{c}` times the cell value upwind of it, with the ghost cells
+of the domain and coarse/fine boundaries for the outside. Set the three scalars
+and the face velocities on every AMR level:
+
+  .. code-block::
+
+      void setScalars (Real a, Real b, Real c) noexcept;
+      void setDriftCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& c);
+      void setDriftRelaxation (Real omega) noexcept; // optional, default 1
+
+The term is stable when :math:`C` has the sign opposite to :math:`B`'s.
+:math:`\vec{c}` must not enter through a Neumann face (of the domain, or the
+coarse/fine boundary of a level 0 that does not cover it), where the ghost cell
+is the cell itself and the inflow would be a source proportional to
+:math:`\phi`; the solver aborts if it does. Use a Dirichlet face or
+:math:`\vec{c} = 0` there. :cpp:`setScalars(a, b)`, called on the
+:cpp:`MLABecLapDrift` (it is not virtual), turns the term off again, which
+gives :cpp:`MLABecLaplacian` back.
+
+The operator is not symmetric: the smoother relaxes the whole operator
+(Gauss-Seidel or Jacobi, damped by :cpp:`setDriftRelaxation`), and the bottom
+solver must be BiCGStab (the default) or the smoother. The CG, hypre, PETSc and
+AlgMG bottom solvers, NSolve, mixed precision, overset masks, semi-coarsening,
+a hidden dimension, and Robin or inhomogeneous Neumann boundary conditions are
+not available with drift. Without Dirichlet boundaries and with :math:`A = 0`,
+the operator is singular when no drift crosses the boundary of the level, and
+MLMG then makes the right-hand side solvable as without drift; with several
+components, the drift of either all or none of them must cross it.
+:cpp:`getFluxes` includes the drift flux, divided by :math:`B` like the
+diffusive flux unless :math:`B = 0`.
+
 For :cpp:`MLNodeLaplacian`,
 one can set the variable :cpp:`sigma` with the member function
 
