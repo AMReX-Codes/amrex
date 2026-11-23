@@ -354,7 +354,8 @@ MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
     BL_PROFILE("MLMG::getFluxes()");
 
     const int ncomp = this->getNComp();
-    const RT betainv = RT(1.0) / getBScalar();
+    // With B = 0 there is nothing to divide by: the flux is not scaled
+    const RT betainv = (getBScalar() != RT(0.0)) ? RT(1.0) / getBScalar() : RT(1.0);
     const int nlevs = this->NAMRLevels();
     // Without b coefficients, the metric factor is in the flux kernels, not in
     // b, so it must be removed before the boundary faces are set using b = 1.
