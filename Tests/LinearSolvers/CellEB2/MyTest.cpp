@@ -140,11 +140,17 @@ MyTest::solve ()
             }
             mlmg.compResidual(amrex::GetVecOfPtrs(res), amrex::GetVecOfPtrs(phi),
                               amrex::GetVecOfConstPtrs(rhs));
-            Real const rmax = res[0].norm0();
-            Real const bmax = rhs[0].norm0();
-            amrex::Print() << "Level 0: max |compResidual| = " << rmax
-                           << " (max |rhs| = " << bmax << ")\n";
-            if (!(rmax <= 1.e-6*bmax)) {
+            // In MLMG's norm (cells covered by a finer level masked out),
+            // compared with the solve's final residual: without the EB term
+            // the residual would be of the size of the rhs
+            Real rmax = 0.0;
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                rmax = std::max(rmax, mleb.normInf(ilev, res[ilev], false));
+            }
+            Real const rfinal = mlmg.getFinalResidual();
+            amrex::Print() << "max |compResidual| = " << rmax
+                           << " (final residual of the solve = " << rfinal << ")\n";
+            if (!(rmax <= 10.0*rfinal)) {
                 amrex::Abort("compResidual does not match the converged solve");
             }
         }
