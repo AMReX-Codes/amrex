@@ -67,6 +67,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLMG_2D_K.H
+          MLMG/AMReX_MLABecLap_2D_K.H
           MLMG/AMReX_MLPoisson_2D_K.H
           MLMG/AMReX_MLALap_2D_K.H
           MLMG/AMReX_MLTerrainPoisson.H
