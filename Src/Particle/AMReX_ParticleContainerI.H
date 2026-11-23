@@ -2145,8 +2145,15 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
 {
     int old_size = m_num_runtime_real;
 
-    m_runtime_comps_defined = (new_size > 0);
     m_num_runtime_real = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
+    // keep the component names in sync with the number of components
+    m_soa_rdata_names.resize(NArrayReal + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(NArrayReal + i));
+    }
+
     int cur_size = h_redistribute_real_comp.size();
     h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
     SetParticleSize();
@@ -2171,8 +2178,15 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
 {
     int old_size = m_num_runtime_int;
 
-    m_runtime_comps_defined = (new_size > 0);
     m_num_runtime_int = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
+    // keep the component names in sync with the number of components
+    m_soa_idata_names.resize(NArrayInt + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(NArrayInt + i));
+    }
+
     int cur_size = h_redistribute_int_comp.size();
     h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);
     SetParticleSize();

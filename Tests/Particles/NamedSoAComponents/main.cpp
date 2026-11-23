@@ -127,6 +127,48 @@ void addParticles ()
                                              "pos attribute expected to be 1.2");
         });
     }
+
+    // The runtime component names must stay in sync with the number of
+    // components when the runtime components are resized.
+    amrex::Print() << "Resize runtime comps. \n";
+    auto check_names = [&] () {
+        AMREX_ALWAYS_ASSERT(int(pc.GetRealSoANames().size()) == pc.NumRealComps());
+        AMREX_ALWAYS_ASSERT(int(pc.GetIntSoANames().size()) == pc.NumIntComps());
+    };
+
+    // grow: new components get default names that can be looked up
+    pc.ResizeRuntimeRealComp(4, true);
+    pc.ResizeRuntimeIntComp(3, true);
+    check_names();
+    AMREX_ALWAYS_ASSERT(pc.GetRealCompIndex("real_comp4") == NArrayReal + 3);
+    AMREX_ALWAYS_ASSERT(pc.GetIntCompIndex("int_comp4") == NArrayInt + 2);
+    for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
+        auto& soa = pti.GetStructOfArrays();
+        const auto np = static_cast<std::size_t>(pti.numParticles());
+        AMREX_ALWAYS_ASSERT(soa.GetRealData("real_comp4").size() == np);
+        AMREX_ALWAYS_ASSERT(soa.GetIntData("int_comp4").size() == np);
+    }
+
+    // shrink: names of removed components are dropped ...
+    pc.ResizeRuntimeRealComp(1, true);
+    pc.ResizeRuntimeIntComp(0, true);
+    check_names();
+    AMREX_ALWAYS_ASSERT(pc.HasRealComp("real_comp1"));
+    AMREX_ALWAYS_ASSERT(!pc.HasRealComp("real_comp2"));
+    AMREX_ALWAYS_ASSERT(!pc.HasIntComp("int_comp2"));
+
+    // ... so adding a component with a default name works again
+    pc.AddRealComp(); // real_comp2
+    pc.AddIntComp();  // int_comp2
+    check_names();
+    AMREX_ALWAYS_ASSERT(pc.GetRealCompIndex("real_comp2") == NArrayReal + 1);
+    AMREX_ALWAYS_ASSERT(pc.GetIntCompIndex("int_comp2") == NArrayInt);
+
+    amrex::Print() << "Final Real SoA component names are: ";
+    for (auto& n : pc.GetRealSoANames()) {
+        amrex::Print() << n << ", ";
+    }
+    amrex::Print() << "\n";
 }
 
 int main (int argc, char* argv[])
