@@ -398,11 +398,18 @@ The new components will be added at the end of the compile-time defined ones.
 
 A tile created with :cpp:`DefineAndReturnParticleTile`, or by indexing the map
 returned by :cpp:`GetParticles` (for example,
-:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`), has storage for all the
-runtime components that have been added to the container, as in the section on
+:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`, or
+:cpp:`GetParticles(lev).try_emplace(key)`), has storage for all the runtime
+components that have been added to the container, as in the section on
 :ref:`initializing particle data <sec:Particles:Initializing>`. A tile added to
-that map in other ways, for example with :cpp:`insert` or :cpp:`emplace`, is
-added as it is given.
+that map from an existing tile, for example with :cpp:`insert` or
+:cpp:`emplace`, is added as it is given.
+
+The map of tiles of a level is a :cpp:`std::map` with an allocator that sets up
+the tiles it creates. Its type is :cpp:`ParticleContainer::ParticleLevel`. Refer
+to it by that name or with :cpp:`auto`, not as
+:cpp:`std::map<std::pair<int,int>, ParticleTileType>`, which is a different
+type.
 
 For a container with a :cpp:`PolymorphicArenaAllocator`, a tile created by
 indexing the map before :cpp:`SetArena` has been called gets its components,

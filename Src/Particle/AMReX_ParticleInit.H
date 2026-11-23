@@ -525,7 +525,7 @@ InitFromBinaryFile (const std::string& file,
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     tmp_particles.resize(finestLevel()+1);
     tileConfig(); // makes sure there is one
-    for (auto& pmap : tmp_particles) { pmap.setConfig(m_tile_config); }
+    for (auto& pmap : tmp_particles) { setParticleLevelConfig(pmap, m_tile_config); }
 
     resizeData();
 

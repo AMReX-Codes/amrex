@@ -10,6 +10,7 @@
 #include <AMReX_Print.H>
 
 #include <array>
+#include <map>
 #include <string>
 #include <utility>
 
@@ -30,6 +31,21 @@ Geometry makeGeom ()
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ParticleReal runtimeReal (Long id) { return ParticleReal(id % 4096); }
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int runtimeInt (Long id) { return int(id % 1000) + 1; }
 
+//! Create a tile in pmap, with a key that no MFIter uses, through code that only knows
+//! it is a std::map, check that it has all the components of pc, and remove it.
+template <class PC, class K, class V, class C, class A>
+void checkNewTileThroughMap (PC const& pc, std::map<K, V, C, A>& pmap, int grid)
+{
+    K const key{grid, -1};
+    AMREX_ALWAYS_ASSERT(pmap.count(key) == 0);
+
+    auto [it, inserted] = pmap.try_emplace(key);
+    AMREX_ALWAYS_ASSERT(inserted);
+    AMREX_ALWAYS_ASSERT(it->second.NumRealComps() == pc.NumRealComps());
+    AMREX_ALWAYS_ASSERT(it->second.NumIntComps() == pc.NumIntComps());
+    pmap.erase(it);
+}
+
 //! Put np particles, spread over the whole domain, into the first tile of this
 //! process, created with GetParticles(0)[index].
 template <class PC>
@@ -44,6 +60,9 @@ void fillFirstTile (PC& pc, int np)
 
     ptile.resize(np);
     AMREX_ALWAYS_ASSERT(ptile.GetStructOfArrays().GetRealData(pc.NumRealComps()-1).size() == std::size_t(np));
+
+    // try_emplace, also through a generic std::map reference, sets up new tiles the same way
+    checkNewTileThroughMap(pc, pc.GetParticles(0), mfi.index());
 
     auto const plo = pc.Geom(0).ProbLoArrayInParticleReal();
     auto const phi = pc.Geom(0).ProbHiArrayInParticleReal();

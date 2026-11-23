@@ -1644,7 +1644,7 @@ private:
     {
         tileConfig(); // makes sure there is one
         m_particles.resize(nlevs);
-        for (auto& pmap : m_particles) { pmap.setConfig(m_tile_config); }
+        for (auto& pmap : m_particles) { setParticleLevelConfig(pmap, m_tile_config); }
     }
 };
 
