@@ -146,6 +146,16 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
     T alpha = T(1.0);
     T beta = T(0.0);
 
+    // The descriptors live for one call only, so use the CSR algorithm that
+    // needs no analysis of the sparsity pattern. The adaptive algorithm
+    // (the default) analyzes the matrix on the host, which costs far more
+    // than one product.
+#if (HIP_VERSION_MAJOR >= 7)
+    const rocsparse_spmv_alg spmv_alg = rocsparse_spmv_alg_csr_rowsplit;
+#else
+    const rocsparse_spmv_alg spmv_alg = rocsparse_spmv_alg_csr_stream;
+#endif
+
 #if (HIP_VERSION_MAJOR >= 7)
 
     rocsparse_spmv_descr spmv_descr;
@@ -154,7 +164,6 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
 
     rocsparse_error p_error[1] = {};
 
-    const rocsparse_spmv_alg spmv_alg = rocsparse_spmv_alg_csr_adaptive;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_alg,
                                  &spmv_alg, sizeof(spmv_alg), p_error));
@@ -213,7 +222,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
     std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &beta, y_descr, data_type, spmv_alg,
                        rocsparse_spmv_stage_buffer_size, // buffer size stage
                        &buffer_size, nullptr));
 
@@ -224,13 +233,13 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &beta, y_descr, data_type, spmv_alg,
                        rocsparse_spmv_stage_preprocess, // preprocess stage
                        &buffer_size, pbuffer));
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &beta, y_descr, data_type, spmv_alg,
                        rocsparse_spmv_stage_compute, // compute stage
                        &buffer_size, pbuffer));
 
@@ -239,7 +248,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
     std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &beta, y_descr, data_type, spmv_alg,
                        &buffer_size, nullptr));
 
     void* pbuffer = nullptr;
@@ -249,7 +258,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &beta, y_descr, data_type, spmv_alg,
                        &buffer_size, pbuffer));
 
 #endif /* HIP_VERSION_MAJOR */
