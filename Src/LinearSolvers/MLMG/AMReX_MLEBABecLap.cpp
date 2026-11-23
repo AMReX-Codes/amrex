@@ -696,10 +696,9 @@ void
 MLEBABecLap::setEBNeumann (int amrlev, const MultiFab& dphidn, Vector<Real> const& hv_beta)
 {
     AMREX_ALWAYS_ASSERT(static_cast<int>(hv_beta.size()) >= getNComp());
-    Gpu::DeviceVector<Real> dv_beta(hv_beta.size());
-    Gpu::copy(Gpu::hostToDevice, hv_beta.begin(), hv_beta.end(), dv_beta.begin());
-    setEBNeumannImpl(amrlev, dphidn, nullptr, dv_beta.data());
-    Gpu::streamSynchronize(); // dv_beta goes out of scope
+    // AsyncArray is freed in stream order, so the host does not wait for the kernel
+    Gpu::AsyncArray<Real> beta_vals(hv_beta.data(), hv_beta.size());
+    setEBNeumannImpl(amrlev, dphidn, nullptr, beta_vals.data());
 }
 
 void
@@ -719,13 +718,16 @@ MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFa
                                                                m_dmap[amrlev][mglev],
                                                                ncomp, 0, MFInfo(),
                                                                *m_factory[amrlev][mglev]);
+        // The EB BC type changed, so the next solve re-checks the BCs in update().
+        // New values alone only change the RHS and need no update.
+        m_needs_update = true;
     }
 
-    m_eb_neumann_flux[amrlev]->setVal(0.0);
-    m_needs_update = true;
-
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    if (factory == nullptr) { return; }
+    if (factory == nullptr) {
+        m_eb_neumann_flux[amrlev]->setVal(0.0);
+        return;
+    }
     const FabArray<EBCellFlagFab>& flags = factory->getMultiEBCellFlagFab();
     const bool beta_all_comps = beta && beta->nComp() == ncomp;
 
@@ -737,9 +739,16 @@ MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFa
     for (MFIter mfi(*m_eb_neumann_flux[amrlev], mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        if (flags[mfi].getType(bx) != FabType::singlevalued) { continue; }
-
         Array4<Real> const& fout = m_eb_neumann_flux[amrlev]->array(mfi);
+        // Only cut cells carry an EB flux; the rest of the stored flux is zero
+        if (flags[mfi].getType(bx) != FabType::singlevalued) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                fout(i,j,k,n) = Real(0.0);
+            });
+            continue;
+        }
+
         Array4<Real const> const& gin = dphidn.const_array(mfi);
         Array4<Real const> const& betain = beta ? beta->const_array(mfi)
                                                 : Array4<Real const>{};
@@ -749,6 +758,8 @@ MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFa
             if (flag(i,j,k).isSingleValued()) {
                 Real b = betain ? betain(i,j,k,beta_all_comps ? n : 0) : beta_vals[n];
                 fout(i,j,k,n) = b * gin(i,j,k,n);
+            } else {
+                fout(i,j,k,n) = Real(0.0);
             }
         });
     }

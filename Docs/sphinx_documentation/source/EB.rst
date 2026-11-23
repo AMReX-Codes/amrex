@@ -803,14 +803,16 @@ To set inhomogeneous Neumann boundary conditions, call
     ml_ebabeclap->setEBNeumann(lev, dphidn_on_eb, coeff);
 
 where dphidn_on_eb is the MultiFab holding the normal derivative
-:math:`\partial\phi/\partial n` at the EB face centroid of every cut cell,
+:math:`\partial\phi/\partial n` at the EB surface centroid of every cut cell,
 with :math:`n` the unit normal pointing out of the fluid and into the body,
-and coeff is as above. Call it on every AMR level; it cannot be combined
-with the Dirichlet calls. The prescribed flux enters the right-hand side,
-so if the problem is singular (no Dirichlet boundary and no :math:`a` term)
-the solver makes it solvable with the EB flux included, as it does for
-inhomogeneous Neumann conditions on the domain boundary.
-:cpp:`getEBFluxes` returns :math:`-\beta\,\partial\phi/\partial n`.
+and coeff is as above. The EB flux is then :math:`-\beta\,\partial\phi/\partial n`.
+Call it on every AMR level; it cannot be combined with
+:cpp:`setEBDirichlet` or :cpp:`setEBHomogDirichlet`.
+The prescribed flux is added to the right-hand side before the solve, so if
+the problem is singular (no Dirichlet boundary and no :math:`a` term) the
+solver makes it solvable with the EB flux included, as it does for
+:cpp:`LinOpBCType::inhomogNeumann` on the domain boundary.
+:cpp:`getEBFluxes` returns :math:`-\beta\,\partial\phi/\partial n` (without the scalar :math:`B`).
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable

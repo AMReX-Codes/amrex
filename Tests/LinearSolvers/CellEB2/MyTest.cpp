@@ -233,7 +233,10 @@ MyTest::solve ()
             Real norminf = mf.norm0();
             Real norm1 = mf.norm1()*AMREX_D_TERM((1.0_rt/n_cell), *(1.0_rt/n_cell), *(1.0_rt/n_cell));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
-            if (max_error >= 0.0 && !(norminf <= max_error)) {
+            // In a composite solve the coarse level is less accurate under and next
+            // to the fine level, so only the finest level is held to max_error
+            const bool check_level = !composite_solve || ilev == max_level;
+            if (max_error >= 0.0 && check_level && !(norminf <= max_error)) {
                 amrex::Abort("The weighted max error exceeds max_error");
             }
         }

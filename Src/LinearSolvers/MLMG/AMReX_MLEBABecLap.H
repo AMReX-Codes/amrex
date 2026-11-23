@@ -324,7 +324,7 @@ public:
                               const Vector<MultiFab*>& a_sol) const override;
 
     //! Add the inhomogeneous Neumann terms (domain and EB) to the RHS \p rhs on AMR level \p amrlev.
-    void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const override;
+    void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const final;
 
     //! Apply Robin BC terms to the stored coefficients when requested.
     void applyRobinBCTermsCoeffs ();

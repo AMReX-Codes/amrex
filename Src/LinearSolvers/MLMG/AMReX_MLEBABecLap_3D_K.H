@@ -506,7 +506,10 @@ void mlebabeclap_eb_neumann_rhs (int i, int j, int k, int n,
         Real dapx = (apx(i,j,k)-apx(i+1,j,k)) * ry*rz;
         Real dapy = (apy(i,j,k)-apy(i,j+1,k)) * rz;
         Real dapz = (apz(i,j,k)-apz(i,j,k+1)) * ry;
-        Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+        Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+        // Defensive: a cut cell with no EB area or a zero normal gets no EB flux, not 1/0
+        if (ba(i,j,k) == Real(0.0) || anorm == Real(0.0)) { return; }
+        Real anorminv = Real(1.0)/anorm;
         Real ebarea = get_eb_area(ba(i,j,k), dapx*anorminv, dapy*anorminv, dapz*anorminv, ry, rz);
         rhs(i,j,k,n) += beta*dxinv[1]*(dxinv[2]/dxinv[0]) * ebarea * bdphidn(i,j,k,n)
             / vfrc(i,j,k);
