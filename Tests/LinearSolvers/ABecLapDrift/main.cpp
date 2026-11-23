@@ -41,7 +41,7 @@ Real exact_phi (RealVect const& x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real velocity (int idim, RealVect const& x)
 {
-    constexpr Real pi = Real(3.141592653589793);
+    constexpr Real pi = Math::pi<Real>();
     if (idim == 0) { return std::cos(Real(2.0)*pi*x[1]) + Real(0.3); }
     // Out through the low y (Neumann) face, where it must not enter
     if (idim == 1) { return std::sin(Real(2.0)*pi*x[0]) - Real(1.2)*(Real(1.0) - x[1]); }
@@ -209,8 +209,9 @@ int main (int argc, char* argv[])
                         == LinOpBCType::Dirichlet;
                     IntVect const in = ori.isLow() ? IntVect::TheDimensionVector(idim)
                                                    : -IntVect::TheDimensionVector(idim);
-                    ParallelFor(amrex::adjCell(vbx, ori), [=] AMREX_GPU_DEVICE (int i, int j, [[maybe_unused]] int k)
+                    ParallelFor(amrex::adjCell(vbx, ori), [=] AMREX_GPU_DEVICE (int i, int j, int k)
                     {
+                        amrex::ignore_unused(k);
                         IntVect const gv(AMREX_D_DECL(i,j,k));
                         p(gv) = dirichlet ? dirichlet_ghost(bd(gv), p(gv+in), p(gv+2*in)) : p(gv+in);
                     });
@@ -222,8 +223,9 @@ int main (int argc, char* argv[])
                     b[idim] = bcoef[0][idim].const_array(mfi);
                     c[idim] = ccoef[0][idim].const_array(mfi);
                 }
-                ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, [[maybe_unused]] int k)
+                ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
+                    amrex::ignore_unused(k);
                     IntVect const iv(AMREX_D_DECL(i,j,k));
                     Real v = ascalar * a(iv) * p(iv);
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

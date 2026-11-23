@@ -376,8 +376,9 @@ MLABecLapDriftT<MF>::FFlux (int amrlev, const MFIter& mfi,
         Box const fbx = face_only ? amrex::bdryLo(box, idim)
                                   : amrex::surroundingNodes(box, idim);
         IntVect const hi_shift = IntVect::TheDimensionVector(idim) * box.length(idim);
-        ParallelFor(fbx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, [[maybe_unused]] int k, int n) noexcept
+        ParallelFor(fbx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
+            amrex::ignore_unused(k);
             IntVect const iv(AMREX_D_DECL(i,j,k));
             mlabeclap_flux_drift(iv, idim, n, f, solarr, c, cscalar);
             if (face_only) {
@@ -510,8 +511,9 @@ MLABecLapDriftT<MF>::boundaryDrift (int amrlev) const
                     == LinOpBCType::Neumann;
                 reduce_op.eval(ori.isLow() ? amrex::bdryLo(vbox, idim) : amrex::bdryHi(vbox, idim),
                                reduce_data,
-                [=] AMREX_GPU_DEVICE (int i, int j, [[maybe_unused]] int k) -> ReduceTuple
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
                 {
+                    amrex::ignore_unused(k);
                     IntVect const iv(AMREX_D_DECL(i,j,k));
                     int const m = mask(iv+out);
                     if (m == BndryData::covered) { return {RT(0.0), RT(0.0), RT(0.0)}; }
@@ -521,7 +523,7 @@ MLABecLapDriftT<MF>::boundaryDrift (int amrlev) const
                 });
                 if (ori.isLow()) {
                     reduce_op.eval(amrex::surroundingNodes(vbox, idim), reduce_data,
-                    [=] AMREX_GPU_DEVICE (int i, int j, [[maybe_unused]] int k) -> ReduceTuple
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
                     {
                         return {RT(0.0), RT(0.0), std::abs(c(i,j,k,n))};
                     });
