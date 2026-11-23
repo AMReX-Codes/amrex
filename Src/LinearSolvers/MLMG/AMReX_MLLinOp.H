@@ -812,6 +812,9 @@ public:
     //! True if makeAlgMG is implemented for this operator.
     [[nodiscard]] virtual bool supportsAlgMG () const { return false; }
 
+    //! Whether the operator is symmetric (the CG bottom solvers need it).
+    [[nodiscard]] virtual bool isSymmetric () const { return true; }
+
     /**
      * \brief True if the operator supports MG levels coarsened in any subset
      * of directions. Then MLMG coarsens stretched cells only in their short

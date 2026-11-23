@@ -969,6 +969,11 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         }
     }
 #endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.isSymmetric()
+                                     || (bottom_solver != BottomSolver::cg
+                                         && bottom_solver != BottomSolver::cgbicg
+                                         && bottom_solver != BottomSolver::bicgcg),
+        "MLMG: this operator is not symmetric, so the bottom solver can't be CG; use bicgstab");
     if (bottom_solver == BottomSolver::algmg || multigrid_type != MultigridType::geometric) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.supportsAlgMG() && ncomp == 1,
             "MLMG: AlgMG is not available for this operator (single-component cell and nodal operators only)");
