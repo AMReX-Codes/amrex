@@ -1991,7 +1991,13 @@ stream.  :cpp:`Gpu::Sequencer` implements the ordering.
 
 The memory rules above still apply: temporaries created and destroyed
 inside the region should come from :cpp:`The_Async_Arena()` or be released
-with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).
+with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).  Such memory
+is released once the GPU work queued before the free has completed.
+Outside the region, a stream with more than 100 pending frees makes the
+host wait for it; inside the region (with CUDA and HIP), the pending frees
+are instead released when an event recorded after their work has completed.
+The host then waits only if more than 16 such groups of frees are still
+pending on one stream, which keeps the memory they hold bounded.
 
 Async output (``amrex.async_out=1``, see :ref:`sec:io:async`) started inside
 any no-sync region, including a :cpp:`Gpu::StreamOrderedRegion`, waits for

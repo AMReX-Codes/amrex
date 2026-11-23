@@ -16,6 +16,7 @@
 #include <array>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <mutex>
 
@@ -67,6 +68,23 @@ class StreamManager {
     gpuStream_t m_stream;
     std::mutex m_mutex;
     Vector<std::pair<Arena*, void*>> m_free_wait_list;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    //! Frees whose work precedes an event recorded on m_stream. They are
+    //! released once the event has completed, without a host wait. Only a
+    //! Gpu::StreamOrderedRegion retires wait lists this way.
+    struct EventFrees {
+        AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event;
+        Vector<std::pair<Arena*, void*>> frees;
+    };
+    std::deque<EventFrees> m_event_frees;
+    //! Moves the wait list behind an event and releases the frees whose
+    //! events have completed.
+    void retire_wait_list ();
+#endif
+    //! Bounds the wait list once it has grown to the given size: inside a
+    //! Gpu::StreamOrderedRegion by retiring it behind an event, elsewhere
+    //! by a host wait.
+    void limit_wait_list (std::size_t size);
 public:
     [[nodiscard]] gpuStream_t& getStream ();
     [[nodiscard]] gpuStream_t const& getStream () const;

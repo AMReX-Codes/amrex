@@ -21,6 +21,7 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -96,6 +97,18 @@ namespace {
 // again later does not affect it.
 std::mutex g_stream_event_mutex;
 std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_events;
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+namespace {
+// A stream's wait list longer than this is released (by event or host wait).
+constexpr std::size_t max_wait_list_size = 100;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+// More retired wait lists than this on one stream make the host wait for
+// the oldest, so that the memory they hold stays bounded.
+constexpr std::size_t max_event_frees = 16;
+#endif
 }
 #endif
 
@@ -175,11 +188,17 @@ StreamManager::getStream () const {
 void
 StreamManager::sync () {
     decltype(m_free_wait_list) new_empty_wait_list{};
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    decltype(m_event_frees) event_frees{};
+#endif
 
     {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
         m_free_wait_list.swap(new_empty_wait_list);
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        m_event_frees.swap(event_frees);
+#endif
     }
     // unlock mutex before stream sync and memory free
     // to avoid deadlocks from the CArena mutex
@@ -207,7 +226,95 @@ StreamManager::sync () {
     for (auto [arena, mem] : new_empty_wait_list) {
         arena->free(mem);
     }
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    // Their events were recorded on this stream, before the sync.
+    for (auto& ef : event_frees) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(ef.event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(ef.event)); )
+        for (auto [arena, mem] : ef.frees) {
+            arena->free(mem);
+        }
+    }
+#endif
 }
+
+void
+StreamManager::limit_wait_list (std::size_t size)
+{
+    // Limit the number of memory allocations in m_free_wait_list
+    // in case the stream is never synchronized
+    if (size <= max_wait_list_size) { return; }
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    // Inside a Gpu::StreamOrderedRegion nothing else waits for the stream,
+    // so a host wait here would be the only one: release the list once an
+    // event recorded after its work has completed instead.
+    if (Gpu::inStreamOrderedRegion()) {
+        // An event recorded during graph capture cannot be queried.
+        AMREX_HIP_OR_CUDA(hipStreamCaptureStatus, cudaStreamCaptureStatus) status{};
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipStreamIsCapturing(m_stream, &status));,
+            AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(m_stream, &status)); )
+        if (status == AMREX_HIP_OR_CUDA(hipStreamCaptureStatusNone,
+                                        cudaStreamCaptureStatusNone)) {
+            retire_wait_list();
+            return;
+        }
+    }
+#endif
+    sync();
+}
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+void
+StreamManager::retire_wait_list ()
+{
+    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
+        AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
+
+    std::deque<EventFrees> released;
+    std::optional<EventFrees> oldest;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // Record and take the list under one lock: every free in it was
+        // deferred after the work that uses it was queued on this stream,
+        // so that work precedes the event.
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventRecord(event, m_stream));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, m_stream)); )
+        EventFrees ef{event, {}};
+        ef.frees.swap(m_free_wait_list);
+        m_event_frees.push_back(std::move(ef));
+
+        // Events on one stream complete in the order they were recorded.
+        while (!m_event_frees.empty()) {
+            auto err = AMREX_HIP_OR_CUDA(hipEventQuery, cudaEventQuery)(m_event_frees.front().event);
+            if (err == AMREX_HIP_OR_CUDA(hipErrorNotReady, cudaErrorNotReady)) { break; }
+            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(err);, AMREX_CUDA_SAFE_CALL(err); )
+            released.push_back(std::move(m_event_frees.front()));
+            m_event_frees.pop_front();
+        }
+        if (m_event_frees.size() > max_event_frees) {
+            oldest = std::move(m_event_frees.front());
+            m_event_frees.pop_front();
+        }
+    }
+    // Unlock before waiting and freeing, to avoid deadlocks from the
+    // CArena mutex.
+    if (oldest) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventSynchronize(oldest->event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventSynchronize(oldest->event)); )
+        released.push_back(std::move(*oldest));
+    }
+    for (auto& ef : released) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(ef.event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(ef.event)); )
+        for (auto [arena, mem] : ef.frees) {
+            arena->free(mem);
+        }
+    }
+}
+#endif
 
 void
 StreamManager::free_async (Arena* arena, void* mem) {
@@ -219,11 +326,7 @@ StreamManager::free_async (Arena* arena, void* mem) {
             m_free_wait_list.emplace_back(arena, mem);
             free_wait_list_size = m_free_wait_list.size();
         }
-        // Limit the number of memory allocations in m_free_wait_list
-        // in case the stream is never synchronized
-        if (free_wait_list_size > 100) {
-            sync();
-        }
+        limit_wait_list(free_wait_list_size);
     } else {
         arena->free(mem);
     }
@@ -246,14 +349,18 @@ StreamManager::add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees) {
         m_free_wait_list.insert(m_free_wait_list.end(), frees.begin(), frees.end());
         free_wait_list_size = m_free_wait_list.size();
     }
-    if (free_wait_list_size > 100) { sync(); }
+    limit_wait_list(free_wait_list_size);
 }
 
 std::size_t
 StreamManager::wait_list_size () {
     // lock mutex before accessing member variables
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_free_wait_list.size();
+    std::size_t n = m_free_wait_list.size();
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    for (auto const& ef : m_event_frees) { n += ef.frees.size(); }
+#endif
+    return n;
 }
 
 #endif
