@@ -1999,16 +1999,23 @@ all GPU streams to finish before handing the data to the output thread.
 
 .. note::
 
-   Reducing the number of synchronization points is generally desirable,
-   but it does not always make a code faster.  A no-sync region with a
-   single stream gives up the concurrency of multiple streams, so it can be
-   slower than the default of implicit synchronizations with multiple
-   streams.  Measure the performance of your application before switching
-   to a no-sync region with a single stream.  When doing so, keep in mind
-   that GPU kernels are launched asynchronously, so an ordinary host timer
-   may finish before the work launched inside it, and the time shows up
-   wherever the next synchronization happens.  Compare total run times, or
-   use synchronized timers (see :ref:`sec:gpu:profiling`).
+   Removing implicit synchronizations does not always make a code faster,
+   so measure the performance of your application with and without the
+   region.  A no-sync region with a single stream gives up the concurrency
+   of multiple streams, so it can be slower than the default of implicit
+   synchronizations with multiple streams.  Try
+   :cpp:`Gpu::StreamOrderedRegion` first: it keeps the concurrency of
+   multiple streams while removing the host synchronizations between
+   loops, and it has been found to be faster than a single-stream
+   :cpp:`Gpu::NoSyncRegion` in many tests.
+
+   When measuring, keep in mind that GPU kernels are launched
+   asynchronously: an ordinary host timer may stop before the work launched
+   inside it has finished, and that work is then charged to whichever timer
+   contains the next synchronization.  Without implicit synchronizations
+   this happens more often, so per-timer numbers from the two
+   configurations are not comparable.  Compare total run times, or use
+   synchronized timers (see :ref:`sec:gpu:profiling`).
 
 .. _sec:gpu:external-streams:
 
