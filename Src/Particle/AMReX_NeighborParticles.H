@@ -20,6 +20,99 @@ namespace amrex {
       IntVect periodic_shift;
   };
 
+namespace detail {
+
+/// Component lists for the same-rank ghost refresh on the CPU
+/// (updateNeighborsCPU). Only the components flagged for ghost communication
+/// are copied, and from a group of per-body "slot" arrays (contact history)
+/// only the occupied slots. A slot is empty when both its keys are -1; the key
+/// arrays and the payload arrays are runtime components, the payload being
+/// nblocks blocks of nslots entries each (block b, slot s at real0 + b*nslots + s).
+struct GhostCopyPlan
+{
+    Vector<int> ct_real;   ///< flagged compile-time array reals (index into rdata)
+    Vector<int> rt_real;   ///< flagged runtime reals outside the slot group
+    Vector<int> ct_int;    ///< flagged compile-time array ints (index into idata)
+    Vector<int> rt_int;    ///< flagged runtime ints outside the slot group
+    int nslots  = 0;       ///< slots per body, 0 = no slot group
+    int key_cpu = 0;       ///< first runtime int of the slot cpu keys
+    int key_id  = 0;       ///< first runtime int of the slot id keys
+    int real0   = 0;       ///< first runtime real of the slot payload
+    int nblocks = 0;       ///< payload blocks of nslots reals
+
+    /// Layout of a ghost record on the MPI path, filled only when the masked MPI
+    /// path is on (setGhostMpiMasked) and a slot group is declared: packing and
+    /// unpacking then skip the payload of the empty slots (the record keeps its
+    /// size and layout; the bytes of an empty slot's payload are neither written
+    /// by the sender nor read by the receiver).
+    bool wire = false;
+    Vector<int> wire_real_slot;     ///< per real component: slot of a payload component, else -1
+    Vector<int> wire_key_cpu_off;   ///< per slot: byte offset of the cpu key inside a record
+    Vector<int> wire_key_id_off;    ///< per slot: byte offset of the id key inside a record
+
+    /// Batched packing and unpacking of the records (setGhostBatched): the byte
+    /// offset of every component inside a record, so that one component at a time
+    /// can be moved for all the ghosts of a message. The records themselves are
+    /// the ones of the masked MPI path. Filled together with the layout above for
+    /// particles stored as an array of structures without extra compile-time
+    /// components, when the record size is the communication size.
+    bool batch = false;
+    int  rec_size = 0;                       ///< bytes of a record
+    int  wire_pos_off[3] = {-1, -1, -1};     ///< array-of-structures position components
+    int  wire_idcpu_off[2] = {-1, -1};       ///< id and cpu parts of the packed id/cpu word
+    Vector<int> wire_real_off;               ///< per real component: byte offset in a record, -1 if not sent
+    Vector<int> wire_int_off;                ///< per int component: byte offset in a record, -1 if not sent
+
+    /// Compact records (setGhostCompact), available when the batched layout above is:
+    /// the head of a ghost holds every component that is not the payload of a slot, in
+    /// the order of the record, and at its end the offset (an int) of the payload of the
+    /// ghost in the payload area at the end of the message. The payload of the occupied
+    /// slots lies there, cpay_bytes (nblocks reals) each, in slot order. A slot is
+    /// occupied when its two keys, which are in the head, are not both -1.
+    bool compact = false;
+    int  chead_size = 0;                     ///< bytes of a head
+    int  cpoff_off  = -1;                    ///< byte offset of the payload offset in a head
+    int  cpay_bytes = 0;                     ///< bytes of the payload of one occupied slot
+    int  cwire_pos_off[3] = {-1, -1, -1};    ///< array-of-structures position components
+    int  cwire_idcpu_off[2] = {-1, -1};      ///< id and cpu parts of the packed id/cpu word
+    Vector<int> cwire_real_off;              ///< per real component: byte offset in a head, -1 if not sent or in the payload
+    Vector<int> cwire_int_off;               ///< per int component: byte offset in a head, -1 if not sent
+    Vector<int> cwire_key_cpu_off;           ///< per slot: byte offset of the cpu key in a head
+    Vector<int> cwire_key_id_off;            ///< per slot: byte offset of the id key in a head
+};
+
+/// Largest slot group handled by the masked MPI path (the occupancy of a record
+/// is kept in a stack array of this size).
+inline constexpr int MaxWireSlots = 1024;
+
+/// Most payload blocks (reals per slot) handled by the compact records.
+inline constexpr int MaxPayloadBlocks = 32;
+
+/// Payload area of the message to one rank (compact records): where it starts
+/// and the bytes of it used by the ghosts packed so far in this update.
+struct GhostSendInfo
+{
+    char* pay = nullptr;
+    std::size_t used = 0;
+};
+
+/// Work arrays of the batched packing and unpacking, kept between calls.
+struct GhostBatchScratch
+{
+    Vector<char*>   rec;     ///< pack: record of each remote ghost of the source tile
+    Vector<int>     si;      ///< pack: its source index
+    Vector<IntVect> shift;   ///< pack: its periodic shift
+    Vector<int>     lists;   ///< per slot, the ghosts of the batch where the slot is occupied (nslots lists of n entries)
+    Vector<int>     cnt;     ///< length of each list
+    // compact records
+    Vector<GhostSendInfo*> sinfo; ///< pack: payload area of the message of each remote ghost
+    Vector<int>     ord;     ///< occupied slots counted so far, per ghost of the batch
+    Vector<int>     kord;    ///< like lists: the place of the slot among the occupied slots of the ghost
+    Vector<int>     poff;    ///< payload offset of each ghost of the batch
+};
+
+} // namespace detail
+
 ///
 /// This is a container for particles that undergo short-range interactions.
 /// In addition to the normal ParticleContainer methods, each tile contains a "neighbor
@@ -323,6 +416,94 @@ public:
     void setRealCommComp (int i, bool value);
     void setIntCommComp (int i, bool value);
 
+    ///
+    /// Declare a group of per-body slot arrays among the runtime components
+    /// (for example contact history): nslots slots per body, the cpu keys at
+    /// runtime int key_cpu + s, the id keys at key_id + s, and nblocks blocks
+    /// of nslots reals from runtime real real0 (block b, slot s at
+    /// real0 + b*nslots + s). A slot is empty when both its keys are -1. With
+    /// the group declared, the masked same-rank ghost refresh on the CPU (see
+    /// setGhostCopyMasked) copies the payload of the occupied slots only. All
+    /// the components of the group must be flagged for ghost communication,
+    /// otherwise the group is ignored.
+    ///
+    void setGhostSlotGroup (int nslots, int key_cpu, int key_id, int real0, int nblocks)
+    {
+        ghost_slot_n       = nslots;
+        ghost_slot_key_cpu = key_cpu;
+        ghost_slot_key_id  = key_id;
+        ghost_slot_real0   = real0;
+        ghost_slot_nblocks = nblocks;
+    }
+
+    ///
+    /// true: the same-rank ghost refresh on the CPU (updateNeighbors) copies
+    /// only the components flagged for ghost communication, as the MPI path
+    /// does, and from a declared slot group only the occupied slots.
+    /// false (default): it copies every component of every ghost.
+    ///
+    void setGhostCopyMasked (bool flag) { ghost_copy_masked = flag; }
+    [[nodiscard]] bool ghostCopyMasked () const { return ghost_copy_masked; }
+
+    ///
+    /// true: with the masked copy on and a slot group declared, the packing and
+    /// unpacking of the ghost records on the MPI path (CPU) skip the payload of
+    /// the empty slots. The records keep their size and layout.
+    /// false (default): every component of a record is packed and unpacked.
+    ///
+    void setGhostMpiMasked (bool flag) { ghost_mpi_masked = flag; }
+    [[nodiscard]] bool ghostMpiMasked () const { return ghost_mpi_masked; }
+
+    ///
+    /// true (CPU): the receive buffer of the ghost exchange is kept between
+    /// updates instead of being allocated and cleared for each one, and the
+    /// component lists of the masked copy are made once per rebuild instead of
+    /// once per update. The ghosts do not change.
+    /// false (default): as before.
+    ///
+    void setGhostPersistentRecv (bool flag) { ghost_persistent_recv = flag; ghost_plan_valid = false; }
+    [[nodiscard]] bool ghostPersistentRecv () const { return ghost_persistent_recv; }
+
+    ///
+    /// true (CPU): an update of the ghosts without rebuild (updateNeighbors)
+    /// writes them straight into the particle tiles, without the staging tiles
+    /// and the final copy. Not with enableInverse(). The ghosts do not change.
+    /// false (default): as before.
+    ///
+    void setGhostDirect (bool flag) { ghost_direct = flag; }
+    [[nodiscard]] bool ghostDirect () const { return ghost_direct; }
+
+    ///
+    /// true (CPU): with the masked MPI path on and a slot group declared, the
+    /// records of a message are packed and unpacked one component at a time for
+    /// all of its ghosts, for particles stored as an array of structures without
+    /// extra compile-time components. The records do not change.
+    /// false (default): one ghost at a time.
+    ///
+    void setGhostBatched (bool flag) { ghost_batched = flag; ghost_plan_valid = false; }
+    [[nodiscard]] bool ghostBatched () const { return ghost_batched; }
+
+    ///
+    /// true (CPU): the sends of the ghost exchange are posted without blocking
+    /// and waited for together with the receives. The data do not change.
+    /// false (default): one blocking send after another.
+    ///
+    void setGhostIsend (bool flag) { ghost_isend = flag; }
+    [[nodiscard]] bool ghostIsend () const { return ghost_isend; }
+
+    ///
+    /// true (CPU): with the masked MPI path and the batched packing on, a slot
+    /// group declared, one thread per rank and no inverse tags, a ghost travels as a
+    /// fixed-size head (every component but the payload of the slots, and the
+    /// place of its payload) and the payload of its occupied slots, which is
+    /// appended to an area at the end of the message; only the used part of a
+    /// message is sent. The ghosts do not change. Takes effect at the next rebuild
+    /// of the neighbor lists.
+    /// false (default): fixed-size records.
+    ///
+    void setGhostCompact (bool flag) { ghost_compact = flag; ghost_plan_valid = false; }
+    [[nodiscard]] bool ghostCompact () const { return ghost_compact; }
+
     ParticleTile& GetNeighbors (int lev, int grid, int tile)
     {
         return neighbors[lev][std::make_pair(grid,tile)];
@@ -404,6 +585,177 @@ protected:
     [[nodiscard]] int numRealCommComps () const { return RealCommCompStart + this->NumRealComps(); }
     [[nodiscard]] int numIntCommComps () const { return IntCommCompStart + this->NumIntComps(); }
 
+    ///
+    /// Lists of the components the same-rank ghost refresh has to copy, from
+    /// the ghost flags and the slot group (see setGhostSlotGroup).
+    ///
+    [[nodiscard]] detail::GhostCopyPlan makeGhostCopyPlan () const
+    {
+        detail::GhostCopyPlan plan;
+        constexpr int rcs = RealCommCompStart;
+        constexpr int ics = IntCommCompStart;
+        const int nrc = this->NumRealComps();
+        const int nic = this->NumIntComps();
+        const int nrt = nrc - T_NArrayReal;   // runtime reals
+        const int nit = nic - T_NArrayInt;    // runtime ints
+
+        // The group is used only if it lies inside the runtime components
+        // with distinct key arrays, and every component of it is flagged.
+        bool grp = (ghost_slot_n > 0) && (ghost_slot_nblocks > 0)
+            && (ghost_slot_real0 >= 0)
+            && (ghost_slot_real0 + ghost_slot_nblocks*ghost_slot_n <= nrt)
+            && (ghost_slot_key_cpu >= 0) && (ghost_slot_key_id >= 0)
+            && (ghost_slot_key_cpu + ghost_slot_n <= nit)
+            && (ghost_slot_key_id  + ghost_slot_n <= nit)
+            && (ghost_slot_key_cpu + ghost_slot_n <= ghost_slot_key_id
+                || ghost_slot_key_id + ghost_slot_n <= ghost_slot_key_cpu);
+        if (grp) {
+            for (int k = 0; grp && k < ghost_slot_nblocks*ghost_slot_n; ++k) {
+                grp = ghost_real_comp[rcs + T_NArrayReal + ghost_slot_real0 + k] != 0;
+            }
+            for (int k = 0; grp && k < ghost_slot_n; ++k) {
+                grp = ghost_int_comp[ics + T_NArrayInt + ghost_slot_key_cpu + k] != 0
+                   && ghost_int_comp[ics + T_NArrayInt + ghost_slot_key_id  + k] != 0;
+            }
+        }
+        if (grp) {
+            plan.nslots  = ghost_slot_n;
+            plan.key_cpu = ghost_slot_key_cpu;
+            plan.key_id  = ghost_slot_key_id;
+            plan.real0   = ghost_slot_real0;
+            plan.nblocks = ghost_slot_nblocks;
+        }
+
+        for (int ii = 0; ii < nrc; ++ii) {
+            if (!ghost_real_comp[rcs + ii]) { continue; }
+            if (ii < T_NArrayReal) {
+                plan.ct_real.push_back(ii);
+            } else {
+                int const jr = ii - T_NArrayReal;
+                if (grp && jr >= plan.real0 && jr < plan.real0 + plan.nblocks*plan.nslots) { continue; }
+                plan.rt_real.push_back(jr);
+            }
+        }
+        for (int ii = 0; ii < nic; ++ii) {
+            if (!ghost_int_comp[ics + ii]) { continue; }
+            if (ii < T_NArrayInt) {
+                plan.ct_int.push_back(ii);
+            } else {
+                int const jr = ii - T_NArrayInt;
+                if (grp && ((jr >= plan.key_cpu && jr < plan.key_cpu + plan.nslots) ||
+                            (jr >= plan.key_id  && jr < plan.key_id  + plan.nslots))) { continue; }
+                plan.rt_int.push_back(jr);
+            }
+        }
+
+        // Record layout for the masked MPI path: byte offsets of the slot keys
+        // and the slot of every payload component, in the order in which
+        // packNeighborParticleData writes the flagged components.
+        if (grp && ghost_mpi_masked && plan.nslots <= detail::MaxWireSlots) {
+            std::size_t off = 0;
+            plan.wire_real_off.assign(nrc, -1);
+            plan.wire_int_off.assign(nic, -1);
+            if constexpr (!ParticleType::is_soa_particle) {
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                    if (ghost_real_comp[dir]) {
+                        plan.wire_pos_off[dir] = int(off);
+                        off += sizeof(typename ParticleType::RealType);
+                    }
+                }
+                for (int ii = 0; ii < ParticleType::NReal; ++ii) {
+                    if (ghost_real_comp[AMREX_SPACEDIM + ii]) { off += sizeof(typename ParticleType::RealType); }
+                }
+            }
+            plan.wire_real_slot.assign(nrc, -1);
+            for (int ii = 0; ii < nrc; ++ii) {
+                if (!ghost_real_comp[rcs + ii]) { continue; }
+                plan.wire_real_off[ii] = int(off);
+                if (ii >= T_NArrayReal) {
+                    int const jr = ii - T_NArrayReal;
+                    if (jr >= plan.real0 && jr < plan.real0 + plan.nblocks*plan.nslots) {
+                        plan.wire_real_slot[ii] = (jr - plan.real0) % plan.nslots;
+                    }
+                }
+                off += sizeof(ParticleReal);
+            }
+            for (int ii = 0; ii < 2; ++ii) {
+                if (ghost_int_comp[ii]) { plan.wire_idcpu_off[ii] = int(off); off += sizeof(int); }
+            }
+            if constexpr (!ParticleType::is_soa_particle) {
+                for (int ii = 0; ii < ParticleType::NInt; ++ii) {
+                    if (ghost_int_comp[2 + ii]) { off += sizeof(int); }
+                }
+            }
+            plan.wire_key_cpu_off.assign(plan.nslots, -1);
+            plan.wire_key_id_off.assign(plan.nslots, -1);
+            for (int ii = 0; ii < nic; ++ii) {
+                if (!ghost_int_comp[ics + ii]) { continue; }
+                plan.wire_int_off[ii] = int(off);
+                if (ii >= T_NArrayInt) {
+                    int const jr = ii - T_NArrayInt;
+                    if (jr >= plan.key_cpu && jr < plan.key_cpu + plan.nslots) {
+                        plan.wire_key_cpu_off[jr - plan.key_cpu] = int(off);
+                    }
+                    if (jr >= plan.key_id && jr < plan.key_id + plan.nslots) {
+                        plan.wire_key_id_off[jr - plan.key_id] = int(off);
+                    }
+                }
+                off += sizeof(int);
+            }
+            plan.rec_size = int(off);
+            plan.wire = true;
+            if constexpr (!ParticleType::is_soa_particle) {
+                // batched records: the layout above has to be the communication layout
+                plan.batch = ghost_batched && (ParticleType::NReal == 0) && (ParticleType::NInt == 0)
+                          && (std::size_t(off) == cdata_size);
+                if (plan.batch && ghost_compact && plan.nblocks <= detail::MaxPayloadBlocks) {
+                    // compact records: the same components in the same order without the
+                    // payload of the slots, then the payload offset of the ghost
+                    std::size_t coff = 0;
+                    plan.cwire_real_off.assign(nrc, -1);
+                    plan.cwire_int_off.assign(nic, -1);
+                    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                        if (ghost_real_comp[dir]) {
+                            plan.cwire_pos_off[dir] = int(coff);
+                            coff += sizeof(typename ParticleType::RealType);
+                        }
+                    }
+                    for (int ii = 0; ii < nrc; ++ii) {
+                        if (!ghost_real_comp[rcs + ii]) { continue; }
+                        if (plan.wire_real_slot[ii] >= 0) { continue; }
+                        plan.cwire_real_off[ii] = int(coff);
+                        coff += sizeof(ParticleReal);
+                    }
+                    for (int ii = 0; ii < 2; ++ii) {
+                        if (ghost_int_comp[ii]) { plan.cwire_idcpu_off[ii] = int(coff); coff += sizeof(int); }
+                    }
+                    plan.cwire_key_cpu_off.assign(plan.nslots, -1);
+                    plan.cwire_key_id_off.assign(plan.nslots, -1);
+                    for (int ii = 0; ii < nic; ++ii) {
+                        if (!ghost_int_comp[ics + ii]) { continue; }
+                        plan.cwire_int_off[ii] = int(coff);
+                        if (ii >= T_NArrayInt) {
+                            int const jr = ii - T_NArrayInt;
+                            if (jr >= plan.key_cpu && jr < plan.key_cpu + plan.nslots) {
+                                plan.cwire_key_cpu_off[jr - plan.key_cpu] = int(coff);
+                            }
+                            if (jr >= plan.key_id && jr < plan.key_id + plan.nslots) {
+                                plan.cwire_key_id_off[jr - plan.key_id] = int(coff);
+                            }
+                        }
+                        coff += sizeof(int);
+                    }
+                    plan.cpoff_off  = int(coff);
+                    coff += sizeof(int);
+                    plan.chead_size = int(coff);
+                    plan.cpay_bytes = plan.nblocks * int(sizeof(ParticleReal));
+                    plan.compact = true;
+                }
+            }
+        }
+        return plan;
+    }
+
     void cacheNeighborInfo (amrex::Real search_radius = amrex::Real(0));
 
     ///
@@ -435,7 +787,8 @@ protected:
     ///
     /// Perform the MPI communication necessary to fill neighbor buffers
     ///
-    void fillNeighborsMPI (bool reuse_rcv_counts);
+    void fillNeighborsMPI (bool reuse_rcv_counts, detail::GhostCopyPlan const& plan,
+                           bool direct = false, bool batched = false);
 
     void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                           int real_start_comp, int real_num_comp,
@@ -483,6 +836,34 @@ protected:
 
     Vector<int> ghost_real_comp;
     Vector<int> ghost_int_comp;
+
+    // Slot group and mode of the same-rank ghost refresh (CPU)
+    int ghost_slot_n       = 0;
+    int ghost_slot_key_cpu = 0;
+    int ghost_slot_key_id  = 0;
+    int ghost_slot_real0   = 0;
+    int ghost_slot_nblocks = 0;
+    bool ghost_copy_masked = false;
+    bool ghost_mpi_masked  = false;
+
+    // Options of the ghost refresh on the MPI path (CPU): persistent receive buffer and plan,
+    // ghosts written straight into the tiles, records packed per component
+    bool ghost_persistent_recv = false;
+    bool ghost_direct          = false;
+    bool ghost_batched         = false;
+    bool ghost_isend           = false;
+    // Compact records (setGhostCompact): switch, whether the layout of the last rebuild is the compact one,
+    // bytes of the head part of the message to each rank (the payload area follows), and the state of the
+    // payload area of each rank in the current update
+    bool ghost_compact         = false;
+    bool ghost_compact_layout  = false;
+    std::map<int, std::size_t> ghost_head_bytes;
+    Vector<detail::GhostSendInfo> ghost_send_info;
+    bool ghost_plan_valid      = false;
+    bool ghost_switches_told   = false;
+    Vector<char> ghost_recv_buf;
+    detail::GhostCopyPlan ghost_plan_cache;
+    detail::GhostBatchScratch ghost_scratch;
 
     static bool use_mask;
 

@@ -558,10 +558,30 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
         std::memcpy(buffer.data(), &tile_counts[kv.first.proc_id], sizeof(int));
     }
 
+    // Compact ghost records (setGhostCompact): the message to a rank holds a head of rec_stride
+    // bytes per ghost (instead of the record of cdata_size bytes) and, after the heads of all its
+    // tiles, an area for the payload of the occupied contact slots, which updateNeighborsCPU fills
+    // and fillNeighborsMPI sends only as far as it is used. The buffer is made as large as the
+    // area can get, since its size is the size the receiver reserves.
+    ghost_compact_layout = false;
+    ghost_head_bytes.clear();
+    size_t rec_stride = cdata_size;
+    size_t pay_cap = 0;   // bytes of payload per ghost, at most
+    if (ghost_compact && ghost_copy_masked && !enableInverse() && num_threads == 1) {
+        const detail::GhostCopyPlan cplan = makeGhostCopyPlan();
+        if (cplan.compact) {
+            ghost_compact_layout = true;
+            rec_stride = size_t(cplan.chead_size);
+            pay_cap = size_t(cplan.nslots) * size_t(cplan.cpay_bytes);
+        }
+    }
+    std::map<int, size_t> np_to;   // ghosts sent to each rank
+
     for (auto& kv : remote_map) {
         if (kv.first.proc_id == MyProc) { continue; }
         int np = kv.second.size();
-        int data_size = np * cdata_size;
+        int data_size = np * rec_stride;
+        np_to[kv.first.proc_id] += np;
         Vector<char>& buffer = send_data[kv.first.proc_id];
         size_t old_size = buffer.size();
         size_t new_size = buffer.size() + 4*sizeof(int) + data_size;
@@ -579,7 +599,17 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             const NeighborIndexMap& nim = kv.second[i];
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[nim.src_level][src_index][nim.thread_num];
-            tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
+            tags[nim.src_index].dst_index = buffer_offset + i*rec_stride;
+        }
+    }
+
+    if (ghost_compact_layout) {
+        for (auto& kv : send_data) {
+            Vector<char>& buffer = kv.second;
+            ghost_head_bytes[kv.first] = buffer.size();
+            buffer.resize(buffer.size() + np_to[kv.first] * pay_cap);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(buffer.size() < Long(std::numeric_limits<int>::max()),
+                                             "compact ghost message too large for an int offset");
         }
     }
 
