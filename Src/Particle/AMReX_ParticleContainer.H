@@ -1341,18 +1341,7 @@ public:
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
         this->resizeData();
-
-        // resize runtime SoA
-        for (int lev = 0; lev < numLevels(); ++lev) {
-            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-                auto& tile = DefineAndReturnParticleTile(lev, pti);
-                auto np = tile.numParticles();
-                if (np > 0) {
-                    auto& soa = tile.GetStructOfArrays();
-                    soa.resize(np);
-                }
-            }
-        }
+        DefineAllTilesForRuntimeComps(true);
     }
 
     void AddRealComp (int communicate=1)
@@ -1374,18 +1363,7 @@ public:
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
         this->resizeData();
-
-        // resize runtime SoA
-        for (int lev = 0; lev < numLevels(); ++lev) {
-            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-                auto& tile = DefineAndReturnParticleTile(lev, pti);
-                auto np = tile.numParticles();
-                if (np > 0) {
-                    auto& soa = tile.GetStructOfArrays();
-                    soa.resize(np);
-                }
-            }
-        }
+        DefineAllTilesForRuntimeComps(true);
     }
 
     void AddIntComp (int communicate=1)
@@ -1399,17 +1377,35 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
-    /** Resize the Real runtime components (SoA)
+    /** \brief Change the number of Real runtime components (SoA)
      *
-     * @param new_size new number of Real runtime components
-     * @param communicate participate this component in redistribute
+     * When the number grows, the new components are added at the end and get
+     * the same default names that AddRealComp() uses ("real_compN"). Growing throws
+     * std::runtime_error if one of those default names is already in use, for
+     * example because it was given to another component; the container is then
+     * left unchanged. When the number shrinks, the last components are removed
+     * along with their names, including names given with AddRealComp(name).
+     * Every particle tile is updated, including empty ones.
+     *
+     * @param new_size new number of Real runtime components; must not be negative
+     * @param communicate whether the newly added components take part in
+     *        Redistribute(); components that already exist keep their setting
      */
     void ResizeRuntimeRealComp (int new_size, bool communicate);
 
-    /** Resize the Int runtime components (SoA)
+    /** \brief Change the number of integer runtime components (SoA)
      *
-     * @param new_size new number of integer runtime components
-     * @param communicate participate this component in redistribute
+     * When the number grows, the new components are added at the end and get
+     * the same default names that AddIntComp() uses ("int_compN"). Growing throws
+     * std::runtime_error if one of those default names is already in use, for
+     * example because it was given to another component; the container is then
+     * left unchanged. When the number shrinks, the last components are removed
+     * along with their names, including names given with AddIntComp(name).
+     * Every particle tile is updated, including empty ones.
+     *
+     * @param new_size new number of integer runtime components; must not be negative
+     * @param communicate whether the newly added components take part in
+     *        Redistribute(); components that already exist keep their setting
      */
     void ResizeRuntimeIntComp (int new_size, bool communicate);
 
@@ -1631,6 +1627,14 @@ private:
                          int lev_min, int lev_max, IntVect nGrow, int local_grid=-1) const;
 
     void Initialize ();
+
+    /**
+     * \brief Update every particle tile, including empty ones, after the
+     *        number of runtime components has changed. If resize_soa is true,
+     *        the components of tiles that hold particles are resized to hold
+     *        one value per particle.
+     */
+    void DefineAllTilesForRuntimeComps (bool resize_soa);
 
     bool m_runtime_comps_defined{false};
     int m_num_runtime_real{0};

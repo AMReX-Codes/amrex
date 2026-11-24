@@ -2141,21 +2141,18 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
-ResizeRuntimeRealComp (int new_size, bool communicate)
+DefineAllTilesForRuntimeComps (bool resize_soa)
 {
-    int old_size = m_num_runtime_real;
-
-    m_runtime_comps_defined = (new_size > 0);
-    m_num_runtime_real = new_size;
-    int cur_size = h_redistribute_real_comp.size();
-    h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
-    SetParticleSize();
-
-    for (int lev = 0; lev < numLevels(); ++lev) {
-        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-            auto& tile = DefineAndReturnParticleTile(lev, pti);
+    // Loop over the tile maps instead of using ParIter, which skips empty
+    // tiles, so that every tile has as many runtime components as there
+    // are component names.
+    for (auto& pmap : m_particles) {
+        for (auto& kv : pmap) {
+            auto& tile = kv.second;
+            tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                        &m_soa_rdata_names, &m_soa_idata_names, arena());
             auto np = tile.numParticles();
-            if (np > 0 && new_size > old_size) {
+            if (resize_soa && np > 0) {
                 auto& soa = tile.GetStructOfArrays();
                 soa.resize(np);
             }
@@ -2167,26 +2164,74 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
+ResizeRuntimeRealComp (int new_size, bool communicate)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
+        "ResizeRuntimeRealComp: the new number of runtime components must not be negative");
+
+    int old_size = m_num_runtime_real;
+    AMREX_ASSERT(int(m_soa_rdata_names.size()) == NArrayReal + old_size);
+
+    // Keep the component names in sync with the number of components. New
+    // components get the same default names that AddRealComp() uses. Build the
+    // list first, so that a name clash leaves the container unchanged.
+    std::vector<std::string> new_names(m_soa_rdata_names.begin(),
+                                       m_soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        auto name = getDefaultCompNameReal<ParticleType>(NArrayReal + i);
+        if (std::ranges::find(new_names, name) != new_names.end()) {
+            throw std::runtime_error("ResizeRuntimeRealComp: the default name '" + name +
+                                     "' of a new component is already present in the SoA.");
+        }
+        new_names.push_back(std::move(name));
+    }
+    m_soa_rdata_names = std::move(new_names);
+
+    m_num_runtime_real = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
+    int cur_size = h_redistribute_real_comp.size();
+    h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
+    SetParticleSize();
+    this->resizeData();
+    DefineAllTilesForRuntimeComps(new_size > old_size);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 ResizeRuntimeIntComp (int new_size, bool communicate)
 {
-    int old_size = m_num_runtime_int;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
+        "ResizeRuntimeIntComp: the new number of runtime components must not be negative");
 
-    m_runtime_comps_defined = (new_size > 0);
+    int old_size = m_num_runtime_int;
+    AMREX_ASSERT(int(m_soa_idata_names.size()) == NArrayInt + old_size);
+
+    // Keep the component names in sync with the number of components. New
+    // components get the same default names that AddIntComp() uses. Build the
+    // list first, so that a name clash leaves the container unchanged.
+    std::vector<std::string> new_names(m_soa_idata_names.begin(),
+                                       m_soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        auto name = getDefaultCompNameInt<ParticleType>(NArrayInt + i);
+        if (std::ranges::find(new_names, name) != new_names.end()) {
+            throw std::runtime_error("ResizeRuntimeIntComp: the default name '" + name +
+                                     "' of a new component is already present in the SoA.");
+        }
+        new_names.push_back(std::move(name));
+    }
+    m_soa_idata_names = std::move(new_names);
+
     m_num_runtime_int = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
     int cur_size = h_redistribute_int_comp.size();
     h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);
     SetParticleSize();
-
-    for (int lev = 0; lev < numLevels(); ++lev) {
-        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-            auto& tile = DefineAndReturnParticleTile(lev, pti);
-            auto np = tile.numParticles();
-            if (np > 0 && new_size > old_size) {
-                auto& soa = tile.GetStructOfArrays();
-                soa.resize(np);
-            }
-        }
-    }
+    this->resizeData();
+    DefineAllTilesForRuntimeComps(new_size > old_size);
 }
 
 }

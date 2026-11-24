@@ -8,6 +8,7 @@
 #include <AMReX_GpuContainers.H>
 
 #include <array>
+#include <stdexcept>
 
 using namespace amrex;
 
@@ -127,6 +128,74 @@ void addParticles ()
                                              "pos attribute expected to be 1.2");
         });
     }
+
+    // The runtime component names must stay in sync with the number of
+    // components when the runtime components are resized.
+    amrex::Print() << "Resize runtime comps. \n";
+    auto check_names = [&] () {
+        AMREX_ALWAYS_ASSERT(int(pc.GetRealSoANames().size()) == pc.NumRealComps());
+        AMREX_ALWAYS_ASSERT(int(pc.GetIntSoANames().size()) == pc.NumIntComps());
+    };
+
+    // an empty tile, which ParIter does not visit, must be resized too
+    auto& empty_tile = pc.DefineAndReturnParticleTile(0, 1, 0);
+    AMREX_ALWAYS_ASSERT(empty_tile.numParticles() == 0);
+    auto check_empty_tile = [&] () {
+        AMREX_ALWAYS_ASSERT(empty_tile.NumRealComps() == pc.NumRealComps());
+        AMREX_ALWAYS_ASSERT(empty_tile.NumIntComps() == pc.NumIntComps());
+    };
+
+    // grow: new components get default names that can be looked up
+    pc.ResizeRuntimeRealComp(4, true);
+    pc.ResizeRuntimeIntComp(3, true);
+    check_names();
+    check_empty_tile();
+    AMREX_ALWAYS_ASSERT(pc.GetRealCompIndex("real_comp4") == NArrayReal + 3);
+    AMREX_ALWAYS_ASSERT(pc.GetIntCompIndex("int_comp4") == NArrayInt + 2);
+    for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
+        auto& soa = pti.GetStructOfArrays();
+        const auto np = static_cast<std::size_t>(pti.numParticles());
+        AMREX_ALWAYS_ASSERT(soa.GetRealData("real_comp4").size() == np);
+        AMREX_ALWAYS_ASSERT(soa.GetIntData("int_comp4").size() == np);
+    }
+
+    // shrink: names of removed components are dropped ...
+    pc.ResizeRuntimeRealComp(1, true);
+    pc.ResizeRuntimeIntComp(0, true);
+    check_names();
+    check_empty_tile();
+    AMREX_ALWAYS_ASSERT(pc.HasRealComp("real_comp1"));
+    AMREX_ALWAYS_ASSERT(!pc.HasRealComp("real_comp2"));
+    AMREX_ALWAYS_ASSERT(!pc.HasIntComp("int_comp2"));
+
+    // ... so adding a component with a default name works again
+    pc.AddRealComp(); // real_comp2
+    pc.AddIntComp();  // int_comp2
+    check_names();
+    AMREX_ALWAYS_ASSERT(pc.GetRealCompIndex("real_comp2") == NArrayReal + 1);
+    AMREX_ALWAYS_ASSERT(pc.GetIntCompIndex("int_comp2") == NArrayInt);
+
+    // grow: a default name that is already in use is an error, and the
+    // container is left unchanged
+    pc.AddRealComp("real_comp4"); // takes the slot whose default name is real_comp3
+    auto const names_before = pc.GetRealSoANames();
+    bool threw = false;
+    try {
+        pc.ResizeRuntimeRealComp(4, true); // would add a second real_comp4
+    } catch (std::runtime_error const&) {
+        threw = true;
+    }
+    AMREX_ALWAYS_ASSERT(threw);
+    AMREX_ALWAYS_ASSERT(pc.NumRuntimeRealComps() == 3);
+    AMREX_ALWAYS_ASSERT(pc.GetRealSoANames() == names_before);
+    check_names();
+    check_empty_tile();
+
+    amrex::Print() << "Final Real SoA component names are: ";
+    for (auto& n : pc.GetRealSoANames()) {
+        amrex::Print() << n << ", ";
+    }
+    amrex::Print() << "\n";
 }
 
 int main (int argc, char* argv[])
