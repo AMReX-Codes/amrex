@@ -1,0 +1,26 @@
+# Inhomogeneous Neumann on the EB (MLEBABecLap::setEBNeumann), in 2D or 3D.
+# The fluid is inside an off-center sphere and the domain walls are covered,
+# so the EB is the only boundary: the problem is singular and the net EB
+# flux must balance the source.  The error is measured up to a constant.
+amrex.fpe_trap_invalid = 1
+
+reltol = 1.e-12
+verbose = 1
+bottom_verbose = 0
+
+prob_type = 2
+eb_neumann_inhomog = 1
+domain_bc = neumann
+
+max_level = 0
+n_cell = 64
+max_grid_size = 32
+
+# The weighted max error is about 3e-5 at n_cell = 64 in 2D and 3D, and
+# second order
+max_error = 4.e-5
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.42 0.47 0.5
+eb2.sphere_radius = 0.33
+eb2.sphere_has_fluid_inside = 1

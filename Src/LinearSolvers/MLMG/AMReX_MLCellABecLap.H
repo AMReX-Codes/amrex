@@ -117,7 +117,7 @@ public:
     virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
     //! Apply stored Neumann data to the RHS \p rhs on AMR level \p amrlev.
-    void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final;
+    void applyInhomogNeumannTerm (int amrlev, MF& rhs) const override;
 
     //! Add inhomogeneous Neumann/Robin flux contributions into \p grad from \p sol (include \p b when \p mult_bcoef is true).
     void addInhomogNeumannFlux (

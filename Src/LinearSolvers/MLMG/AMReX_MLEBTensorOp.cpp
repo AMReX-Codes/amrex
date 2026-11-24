@@ -145,6 +145,9 @@ MLEBTensorOp::prepareForSolve ()
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_has_kappa == m_has_eb_kappa,
         "MLEBTensorOp: must call both setBulkViscosity and setEBBulkViscosity or none.");
+    // Also catches setEBNeumann called through an MLEBABecLap reference
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!isEBInhomogNeumann(),
+        "MLEBTensorOp: inhomogeneous Neumann on the EB (setEBNeumann) is not supported");
 
     if (m_has_kappa) {
         for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {

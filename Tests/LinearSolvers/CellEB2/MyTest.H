@@ -60,9 +60,16 @@ private:
 
     int composite_solve = 0;
     bool eb_neumann = false;    // homogeneous Neumann on the EB instead of Dirichlet
+    // Inhomogeneous Neumann on the EB (setEBNeumann) with the exact normal
+    // derivative instead of Dirichlet; a singular problem's error is
+    // measured up to a constant
+    bool eb_neumann_inhomog = false;
     // b at the face centroids (MLEBABecLap's Location::FaceCentroid and
     // HypreMLABecLap::setBCoeffsOnCentroids) instead of the face centers
     bool beta_on_centroid = false;
+    // Abort if a level's volume-fraction-weighted max error exceeds this
+    // (negative: not checked)
+    amrex::Real max_error = -1.0;
     amrex::Real acoef_value = 0.0;
     amrex::Real ghost_value = 0.0; // in phi's ghost cells off the domain boundary
     amrex::Vector<int> is_periodic{AMREX_D_DECL(0,0,0)};
@@ -117,6 +124,7 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;
     amrex::Vector<amrex::MultiFab> bcoef_eb;
+    amrex::Vector<amrex::MultiFab> dphidn_eb; // exact normal derivative on the EB
     amrex::Vector<amrex::MultiFab> fluxeb_sol;
     amrex::Vector<amrex::MultiFab> fluxeb_exact;
 };

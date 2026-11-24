@@ -102,6 +102,7 @@ MLEBABecLap::define_ab_coeffs ()
     m_cc_mask.resize(m_num_amr_levels);
     m_eb_phi.resize(m_num_amr_levels);
     m_eb_b_coeffs.resize(m_num_amr_levels);
+    m_eb_neumann_flux.resize(m_num_amr_levels);
     m_eb_bc_tags.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -664,6 +665,158 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 }
 
 void
+MLEBABecLap::checkEBBC () const
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(isEBDirichlet() && isEBInhomogNeumann()),
+        "MLEBABecLap: setEBNeumann cannot be combined with setEBDirichlet or setEBHomogDirichlet");
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            (m_eb_neumann_flux[amrlev] != nullptr) == isEBInhomogNeumann(),
+            "MLEBABecLap: setEBNeumann must be called on every AMR level");
+    }
+}
+
+void
+MLEBABecLap::setEBNeumann (int amrlev, const MultiFab& dphidn, const MultiFab& beta)
+{
+    AMREX_ALWAYS_ASSERT(beta.nComp() == 1 || beta.nComp() == getNComp());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(beta.boxArray() == m_grids[amrlev][0] &&
+                                     beta.DistributionMap() == m_dmap[amrlev][0],
+        "MLEBABecLap::setEBNeumann: beta must have the level's BoxArray and DistributionMapping");
+    setEBNeumannImpl(amrlev, dphidn, &beta, nullptr);
+}
+
+void
+MLEBABecLap::setEBNeumann (int amrlev, const MultiFab& dphidn, Real beta)
+{
+    setEBNeumann(amrlev, dphidn, Vector<Real>(getNComp(), beta));
+}
+
+void
+MLEBABecLap::setEBNeumann (int amrlev, const MultiFab& dphidn, Vector<Real> const& hv_beta)
+{
+    AMREX_ALWAYS_ASSERT(static_cast<int>(hv_beta.size()) >= getNComp());
+    // AsyncArray is freed in stream order, so the host does not wait for the kernel
+    Gpu::AsyncArray<Real> beta_vals(hv_beta.data(), hv_beta.size());
+    setEBNeumannImpl(amrlev, dphidn, nullptr, beta_vals.data());
+}
+
+void
+MLEBABecLap::setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFab* beta,
+                               Real const* beta_vals)
+{
+    const int ncomp = getNComp();
+    const int mglev = 0;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dphidn.nComp() >= ncomp,
+        "MLEBABecLap::setEBNeumann: dphidn has too few components");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dphidn.boxArray() == m_grids[amrlev][mglev] &&
+                                     dphidn.DistributionMap() == m_dmap[amrlev][mglev],
+        "MLEBABecLap::setEBNeumann: dphidn must have the level's BoxArray and DistributionMapping");
+
+    if (m_eb_neumann_flux[amrlev] == nullptr) {
+        m_eb_neumann_flux[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+                                                               m_dmap[amrlev][mglev],
+                                                               ncomp, 0, MFInfo(),
+                                                               *m_factory[amrlev][mglev]);
+        // The EB BC type changed, so the next solve re-checks the BCs in update().
+        // New values alone only change the RHS and need no update.
+        m_needs_update = true;
+    }
+
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    if (factory == nullptr) {
+        m_eb_neumann_flux[amrlev]->setVal(0.0);
+        return;
+    }
+    const FabArray<EBCellFlagFab>& flags = factory->getMultiEBCellFlagFab();
+    const bool beta_all_comps = beta && beta->nComp() == ncomp;
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_eb_neumann_flux[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& fout = m_eb_neumann_flux[amrlev]->array(mfi);
+        // Only cut cells carry an EB flux; the rest of the stored flux is zero
+        if (flags[mfi].getType(bx) != FabType::singlevalued) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                fout(i,j,k,n) = Real(0.0);
+            });
+            continue;
+        }
+
+        Array4<Real const> const& gin = dphidn.const_array(mfi);
+        Array4<Real const> const& betain = beta ? beta->const_array(mfi)
+                                                : Array4<Real const>{};
+        const auto& flag = flags.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            if (flag(i,j,k).isSingleValued()) {
+                Real b = betain ? betain(i,j,k,beta_all_comps ? n : 0) : beta_vals[n];
+                fout(i,j,k,n) = b * gin(i,j,k,n);
+            } else {
+                fout(i,j,k,n) = Real(0.0);
+            }
+        });
+    }
+}
+
+void
+MLEBABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+{
+    MLCellABecLap::applyInhomogNeumannTerm(amrlev, rhs);
+
+    // A preconditioner must be linear, so it gets no inhomogeneous terms.
+    if (m_precond_mode || !isEBInhomogNeumann()) { return; }
+
+    const int ncomp = getNComp();
+    const int mglev = 0;
+
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    if (factory == nullptr || factory->isAllRegular()) { return; }
+    const FabArray<EBCellFlagFab>& flags = factory->getMultiEBCellFlagFab();
+    const MultiFab& vfrac = factory->getVolFrac();
+    auto area = factory->getAreaFrac();
+    const MultiCutFab& barea = factory->getBndryArea();
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const Real bscalar = m_b_scalar;
+    const MultiFab& ebflux = *m_eb_neumann_flux[amrlev];
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rhs, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        // Only single-valued fabs have EB data (MultiCutFab); EB2 makes no multi-valued cells
+        if (flags[mfi].getType(bx) != FabType::singlevalued) { continue; }
+
+        Array4<Real> const& rhsfab = rhs.array(mfi);
+        Array4<Real const> const& fluxfab = ebflux.const_array(mfi);
+        Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
+        Array4<Real const> const& vfracfab = vfrac.const_array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                     Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                     Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+        Array4<Real const> const& bafab = barea.const_array(mfi);
+
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            mlebabeclap_eb_neumann_rhs(i,j,k,n, rhsfab, fluxfab, flagfab, vfracfab,
+                                       AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                       bafab, dxinv, bscalar);
+        });
+    }
+}
+
+void
 MLEBABecLap::averageDownCoeffs ()
 {
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -822,6 +975,8 @@ MLEBABecLap::prepareForSolve ()
             m_eb_bc_tags[amrlev][mglev].undefine();
         }
     }
+
+    checkEBBC();
 
     applyRobinBCTermsCoeffs();
 
@@ -1462,6 +1617,8 @@ MLEBABecLap::update ()
 {
     if (MLCellABecLap::needsUpdate()) { MLCellABecLap::update(); }
 
+    checkEBBC();
+
     applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
@@ -1504,8 +1661,14 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
     const int mglev = 0;
     const int namrlevs = NAMRLevels();
     const bool is_eb_dirichlet =  isEBDirichlet();
+    const bool is_eb_inhomog_neumann = isEBInhomogNeumann();
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
-        if (!is_eb_dirichlet) {
+        if (is_eb_inhomog_neumann) {
+            // The flux is -b_EB * dphi/dn, which is given
+            a_flux[amrlev]->setVal(0.0);
+            MultiFab::Saxpy(*a_flux[amrlev], Real(-1.0), *m_eb_neumann_flux[amrlev],
+                            0, 0, ncomp, 0);
+        } else if (!is_eb_dirichlet) {
             a_flux[amrlev]->setVal(0.0); // Homogeneous Neumann
         } else {
             applyBC(amrlev, mglev, *a_sol[amrlev], BCMode::Inhomogeneous,

@@ -186,6 +186,47 @@ public:
      */
     void setEBHomogDirichlet (int amrlev,                      Vector<Real> const& beta);
 
+    /**
+     * \brief Specify inhomogeneous Neumann data on EB faces.
+     *
+     * The EB carries the condition dphi/dn = g, where n is the unit normal
+     * pointing out of the fluid region and into the embedded body.  The flux
+     * through the EB face is then -beta*b_EB*g, which is what getEBFluxes()
+     * returns (without the scalar beta).  Without this call, the EB is
+     * homogeneous Neumann (g = 0).
+     *
+     * Call this on every AMR level.  It cannot be combined with
+     * setEBDirichlet() or setEBHomogDirichlet().  If no other boundary
+     * condition fixes the solution, the problem is singular and the solver
+     * removes the incompatible part of the right-hand side, which now
+     * includes the EB flux, as with inhomogeneous Neumann conditions on the
+     * domain boundary.
+     *
+     * \param amrlev AMR level index.
+     * \param dphidn Normal derivative g at the EB face centroids, one
+     *               component per solution component.  It must have the
+     *               level's BoxArray and DistributionMapping.
+     * \param beta   Coefficient b_EB at the EB face centroids, with
+     *               one or getNComp() components.
+     */
+    void setEBNeumann (int amrlev, const MultiFab& dphidn, const MultiFab& beta);
+    /**
+     * \brief Specify inhomogeneous Neumann data on EB faces.
+     *
+     * \param amrlev AMR level index.
+     * \param dphidn Normal derivative at the EB face centroids (see above).
+     * \param beta   Single scalar coefficient applied to every EB face.
+     */
+    void setEBNeumann (int amrlev, const MultiFab& dphidn, Real beta);
+    /**
+     * \brief Specify inhomogeneous Neumann data on EB faces.
+     *
+     * \param amrlev AMR level index.
+     * \param dphidn Normal derivative at the EB face centroids (see above).
+     * \param beta   Per-component scalar coefficients.
+     */
+    void setEBNeumann (int amrlev, const MultiFab& dphidn, Vector<Real> const& beta);
+
     int getNComp () const override { return m_ncomp; }
 
     bool needsUpdate () const override {
@@ -282,6 +323,9 @@ public:
     void getEBFluxes (const Vector<MultiFab*>& a_flux,
                               const Vector<MultiFab*>& a_sol) const override;
 
+    //! Add the inhomogeneous Neumann terms (domain and EB) to the RHS \p rhs on AMR level \p amrlev.
+    void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const final;
+
     //! Apply Robin BC terms to the stored coefficients when requested.
     void applyRobinBCTermsCoeffs ();
 
@@ -323,6 +367,8 @@ protected:
 
     Vector<std::unique_ptr<MultiFab> > m_eb_phi;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_eb_b_coeffs;
+    //! b_EB times the normal derivative on the EB, for inhomogeneous Neumann.
+    Vector<std::unique_ptr<MultiFab> > m_eb_neumann_flux;
 
     Vector<int> m_is_singular;
 
@@ -332,6 +378,16 @@ protected:
     // functions
     //
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
+    bool isEBInhomogNeumann () const noexcept { return m_eb_neumann_flux[0] != nullptr; }
+
+    //! Abort if the EB boundary conditions are inconsistent (mixed, or missing on a level).
+    void checkEBBC () const;
+
+public: // for cuda
+    //! Store b_EB * dphidn; \p beta, or \p beta_vals (one per component, device memory) if it is null.
+    void setEBNeumannImpl (int amrlev, const MultiFab& dphidn, const MultiFab* beta,
+                           Real const* beta_vals);
+protected:
 
     //! Average coefficients down across all AMR and MG levels.
     void averageDownCoeffs ();
