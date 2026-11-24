@@ -27,6 +27,16 @@ struct IsIndexMapping
     : Conjunction<IsCallableR<Dim3, IndexMap&, const Dim3&>,
                   HasInverseMemFn<const IndexMap&>> {};
 
+//! \brief Type trait for index mappings that are monotone in each component over the whole
+//! index space, and whose inverse is too.
+//!
+//! A permutation of the directions with shifts and reflections is such a mapping. A mapping
+//! that wraps around is not. MultiBlockCommMetaData is built faster for these mappings. The
+//! trait is false unless it is specialized, so specialize it for your own index mapping if it
+//! has this property.
+template <class IndexMap>
+struct IsMonotoneIndexMapping : std::false_type {};
+
 ////////////////////////////////////////////////////////////////////////////////////
 //                                             [IndexMapping.MultiBlockIndexMapping]
 //
@@ -212,6 +222,9 @@ InverseImage (DTOS const& dtos, const Box& box)
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw-keyword-missing)
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
+//! \brief MultiBlockIndexMapping is monotone in each component.
+template <> struct IsMonotoneIndexMapping<MultiBlockIndexMapping> : std::true_type {};
+
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                    [class.MultiBlockCommMetaData]
 //
@@ -245,9 +258,10 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \brief Build global meta data that is being used to identify send and recv
     //! dependencies in communication routines.
     //!
-    //! This call is quadratic in the number of boxes, i.e. it is in
-    //! O(dstba.size() * srcba.size()). Therefore, it might be wise to cache the
-    //! construction of this object to minimize its computation.
+    //! If DTOS satisfies IsMonotoneIndexMapping, each process examines only
+    //! the boxes that overlap its own. Otherwise every process examines all
+    //! destination boxes. It is wise to cache this object instead of
+    //! rebuilding it for every copy.
     //!
     //! \tparam DTOS This parameter needs to satisfy IsIndexMapping and HasInverseImage.
     //!
@@ -333,6 +347,9 @@ static_assert(std::is_trivially_copy_assignable_v<Identity> );
 static_assert(std::is_trivially_copy_constructible_v<Identity> );
 static_assert(IsIndexMapping<Identity>() ); // NOLINT(bugprone-throw-keyword-missing)
 static_assert(IsFabProjection<Identity, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
+
+//! \brief Identity is monotone in each component.
+template <> struct IsMonotoneIndexMapping<Identity> : std::true_type {};
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                     [FabProjection.MapComponents]

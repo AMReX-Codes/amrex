@@ -21,6 +21,21 @@ namespace amrex {
 
 std::unique_ptr<MemProfiler> MemProfiler::the_instance = nullptr;
 
+namespace {
+    std::string memory_log_file;
+    bool memory_log_read = false;
+
+    // Read once per cycle, at the first report or before ParmParse is finalized.
+    void read_memory_log ()
+    {
+        if (memory_log_read) { return; }
+        memory_log_file = "memlog";
+        ParmParse pp("amrex");
+        pp.queryAdd("memory_log", memory_log_file);
+        memory_log_read = true;
+    }
+}
+
 void
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
@@ -52,6 +67,9 @@ MemProfiler::getInstance ()
 {
     if (the_instance == nullptr) {
         the_instance = std::make_unique<MemProfiler>();
+        memory_log_read = false;
+        // Runs before ParmParse::Finalize, which was registered earlier.
+        amrex::ExecOnFinalize(read_memory_log);
     }
     return *the_instance;
 }
@@ -65,14 +83,9 @@ MemProfiler::Finalize ()
 void
 MemProfiler::report (const std::string& prefix)
 {
-    static std::string memory_log_name;
-    if (memory_log_name.empty()) {
-        memory_log_name = "memlog";
-        ParmParse pp("amrex");
-        pp.queryAdd("memory_log", memory_log_name);
-    }
-
-    getInstance().report_(prefix, memory_log_name);
+    MemProfiler& mprofiler = getInstance();
+    read_memory_log();
+    mprofiler.report_(prefix, memory_log_file);
 }
 
 void
@@ -219,12 +232,12 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
                              std::ofstream::out|std::ofstream::app);
         if (!memlog.good()) { return; }
 
-        static int width_name = 0;
-        if (width_name == 0) {
-            for (auto& x: the_names)
-                width_name = std::max(width_name, int(x.size()));
-            for (auto& x: the_names_builds)
-                width_name = std::max(width_name, int(x.size()));
+        int width_name = 0;
+        for (auto& x: the_names) {
+            width_name = std::max(width_name, int(x.size()));
+        }
+        for (auto& x: the_names_builds) {
+            width_name = std::max(width_name, int(x.size()));
         }
         const int width_bytes = 18;
 

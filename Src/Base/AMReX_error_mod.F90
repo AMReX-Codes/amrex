@@ -51,7 +51,7 @@ contains
     integer, intent(in) :: i
     character(len=16) :: imsg
     write(imsg,*) i
-    call amrex_fi_error(amrex_string_f_to_c(message // " " // trim(imsg)) )
+    call amrex_fi_error(amrex_string_f_to_c(message // " " // trim(adjustl(imsg))) )
   end subroutine amrex_error1_i
 
   subroutine amrex_error1_r (message, r)
@@ -60,7 +60,7 @@ contains
     real(amrex_real), intent(in) :: r
     character(len=30) :: rmsg
     write(rmsg,*) r
-    call amrex_fi_error(amrex_string_f_to_c(message) // " " // trim(rmsg) )
+    call amrex_fi_error(amrex_string_f_to_c(message // " " // trim(adjustl(rmsg))) )
   end subroutine amrex_error1_r
 
   subroutine amrex_abort (message)

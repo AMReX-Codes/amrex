@@ -277,10 +277,15 @@ void hypmlabeclap_eb_dirichlet (HypMLABecLapEB const& e, IntVect const& c, Real 
  * In order: the cell's entry in its parent's average-down row; the trivial
  * rows (covered cells); the face fluxes (also into coarse neighbors' rows);
  * the EB flux; the cell's own stencil.
+ *
+ * Returns true when the cell's own row does not depend on the coefficients:
+ * the identity row of a cell covered by the EB or isolated, or the
+ * average-down row of a cell covered by the finer level (whose fine cells'
+ * weights are geometric too).
  */
 template <typename F>
 AMREX_GPU_HOST_DEVICE
-void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& put, Real& bcrhs)
+bool hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& put, Real& bcrhs)
 {
     constexpr int nsten = AMREX_D_TERM(3,*3,*3);
     Long const row = e.cid(c);
@@ -315,7 +320,7 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
 
     if (kappa == Real(0.0) || (e.fine_mask && e.fine_mask(c))) {
         put(row, row, sc*sc);
-        return;
+        return true;
     }
 
     // A row with id and scaling s.  The cell's own row sums its same-level
@@ -467,13 +472,15 @@ void hypmlabeclap_eb_row (HypMLABecLapEB const& e, IntVect const& c, F const& pu
     // isolated cell) has no entries: give it the identity row.  Not a cell
     // whose open faces all border the finer level: its entries are the fine
     // cells' fluxes, added to its row by the fine cells
-    if (!open && !used[nsten/2]) { put(row, row, sc*sc); }
+    bool const isolated = !open && !used[nsten/2];
+    if (isolated) { put(row, row, sc*sc); }
     for (int m = 0; m < nsten; ++m) {
         if (used[m] && (!pinned || m == nsten/2)) {
             IntVect const o(AMREX_D_DECL(m%3-1, (m/3)%3-1, m/9-1));
             put(row, e.cid(c+o), sc*sten[m]*scale(e.scale, c+o));
         }
     }
+    return isolated;
 }
 
 /**

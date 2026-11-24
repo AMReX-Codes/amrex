@@ -14,6 +14,23 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    // One boundary face of one box, for the fused GPU launch in setBndryValues.
+    template <typename T>
+    struct InterpBndryTag {
+        Array4<T> bdry;
+        Array4<T const> src;    // coarse data, or fine data on a physical boundary
+        Array4<int const> mask;
+        Box bx;
+        int dir;                // direction of a coarse/fine face; -1 on a physical boundary
+
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        Box const& box () const noexcept { return bx; }
+    };
+}
+/// \endcond
+
 /**
  * \brief An InterpBndryData object adds to a BndryData object the ability to
         manipulate and set the data stored in the boundary cells.
@@ -188,14 +205,78 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
             "InterpBndryDataT<MF>::setBndryValues: max_order=3 requires refinement ratio <= 4");
     }
 
+#ifdef AMREX_USE_GPU
+    if ((max_order==3 || max_order==1) && Gpu::inLaunchRegion())
+    {
+        // One launch for all faces of all boxes.
+        using Tag = detail::InterpBndryTag<value_type>;
+        Vector<Tag> tags;
+        tags.reserve(std::size_t(fine.local_size())*std::size_t(2*AMREX_SPACEDIM));
+        for (MFIter mfi(fine,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
+        {
+            const Box& fine_bx  = mfi.validbox();
+            for (OrientationIter fi; fi; ++fi) {
+                const Orientation face = fi();
+                const int dir = face.coordDir();
+                if (fine_bx[face] != fine_domain[face] || this->geom.isPeriodic(dir))
+                {
+                    tags.push_back(Tag{.bdry = this->bndry[face].array(mfi),
+                                       .src  = crse[face].const_array(mfi),
+                                       .mask = (max_order == 3) ? this->masks[face].const_array(mfi)
+                                                                : Array4<int const>{},
+                                       .bx   = this->bndry[face][mfi].box(),
+                                       .dir  = dir});
+                }
+                else if (fine.defined(mfi)) {
+                    auto      & bnd_fab = this->bndry[face][mfi];
+                    auto const& src_fab = fine[mfi];
+                    tags.push_back(Tag{.bdry = bnd_fab.array(),
+                                       .src  = src_fab.const_array(),
+                                       .mask = Array4<int const>{},
+                                       .bx   = bnd_fab.box() & src_fab.box(),
+                                       .dir  = -1});
+                }
+            }
+        }
+
+        const auto rr = ratio.dim3();
+        const int is_not_covered = BndryData::not_covered;
+        ParallelFor(tags, num_comp,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Tag const& tag) noexcept
+        {
+            if (tag.dir < 0) {
+                tag.bdry(i,j,k,n+bnd_start) = tag.src(i,j,k,n+f_start);
+            } else if (max_order == 1) {
+                interpbndrydata_o1(i,j,k,n,tag.bdry,bnd_start,tag.src,c_start,rr);
+            } else if (tag.dir == 0) {
+                interpbndrydata_x_o3(i,j,k,n,tag.bdry,bnd_start,tag.src,c_start,rr,
+                                     tag.mask, is_not_covered, max_width);
+            }
+#if (AMREX_SPACEDIM >= 2)
+            else if (tag.dir == 1) {
+                interpbndrydata_y_o3(i,j,k,n,tag.bdry,bnd_start,tag.src,c_start,rr,
+                                     tag.mask, is_not_covered, max_width);
+            }
+#if (AMREX_SPACEDIM == 3)
+            else {
+                interpbndrydata_z_o3(i,j,k,n,tag.bdry,bnd_start,tag.src,c_start,rr,
+                                     tag.mask, is_not_covered, max_width);
+            }
+#endif
+#endif
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    }
+    else
+#endif
     if (max_order==3 || max_order==1)
     {
-        MFItInfo info;
-        if (Gpu::notInLaunchRegion()) { info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for (MFIter mfi(fine,info); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& fine_bx  = mfi.validbox();
             for (OrientationIter fi; fi; ++fi) {
@@ -210,7 +291,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 
                     if (max_order == 1)
                     {
-                        AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
+                        amrex::LoopConcurrentOnCpu(b, num_comp, [&] (int it, int jt, int kt, int n)
                         {
                             interpbndrydata_o1(it,jt,kt,n,bdry_array,bnd_start,
                                                crse_array,c_start,rr);
@@ -223,7 +304,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                         switch (dir) {
                         case 0:
                         {
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
+                            amrex::LoopConcurrentOnCpu(b, num_comp, [&] (int it, int jt, int kt, int n)
                             {
                                 interpbndrydata_x_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
@@ -234,7 +315,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 #if (AMREX_SPACEDIM >= 2)
                         case 1:
                         {
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
+                            amrex::LoopConcurrentOnCpu(b, num_comp, [&] (int it, int jt, int kt, int n)
                             {
                                 interpbndrydata_y_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
@@ -245,7 +326,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 #if (AMREX_SPACEDIM == 3)
                         case 2:
                         {
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
+                            amrex::LoopConcurrentOnCpu(b, num_comp, [&] (int it, int jt, int kt, int n)
                             {
                                 interpbndrydata_z_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
@@ -266,7 +347,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                     auto const& bnd_array = bnd_fab.array();
                     auto const& src_array = src_fab.const_array();
                     const Box& b = bnd_fab.box() & src_fab.box();
-                    AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ii, jj, kk, nn,
+                    amrex::LoopConcurrentOnCpu(b, num_comp, [&] (int ii, int jj, int kk, int nn)
                     {
                         bnd_array(ii,jj,kk,nn+bnd_start) = src_array(ii,jj,kk,nn+f_start);
                     });

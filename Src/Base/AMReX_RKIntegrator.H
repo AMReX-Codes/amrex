@@ -285,9 +285,27 @@ public:
         IntegratorOps<T>::Saxpy(data, timestep_fraction, S_new);
         */
 
-        // currently we only do this for 4th order RK
-        if (number_nodes != 4) {
-            amrex::Error("RKIntegrator::time_interpolate is only supported for 4th order RK.");
+        // The dense-output formula below is for the classic RK4 tableau only,
+        // preset or entered by hand
+        bool classic_rk4 = (tableau_type == ButcherTableauTypes::RK4);
+        if (!classic_rk4 && (number_nodes == 4)) {
+            const amrex::Vector<amrex::Vector<amrex::Real>> a4 {{0.0}, {0.5, 0.0}, {0.0, 0.5, 0.0},
+                                                                {0.0, 0.0, 1.0, 0.0}};
+            const amrex::Vector<amrex::Real> b4 {amrex::Real(1./6.), amrex::Real(1./3.),
+                                                 amrex::Real(1./3.), amrex::Real(1./6.)};
+            const amrex::Vector<amrex::Real> c4 {0.0, 0.5, 0.5, 1.0};
+            constexpr amrex::Real tol = amrex::Real(1.e-3); // allows rounded entries
+            classic_rk4 = true;
+            for (int i = 0; i < 4; ++i) {
+                classic_rk4 = classic_rk4 && (std::abs(weights[i] - b4[i]) <= tol)
+                                          && (std::abs(nodes[i] - c4[i]) <= tol);
+                for (int j = 0; j <= i; ++j) {
+                    classic_rk4 = classic_rk4 && (std::abs(tableau[i][j] - a4[i][j]) <= tol);
+                }
+            }
+        }
+        if (!classic_rk4) {
+            amrex::Error("RKIntegrator::time_interpolate is only supported for the classic RK4 tableau (integration.rk.type = 4).");
         }
 
         // fill data using MC Equation 39 at time + timestep_fraction * dt

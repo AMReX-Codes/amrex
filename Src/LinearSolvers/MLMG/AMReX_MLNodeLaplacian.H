@@ -122,6 +122,33 @@ public :
     }
 
     /**
+     * \brief Second-order nodal divergence at nodes on Neumann and inflow domain faces.
+     *
+     * By default, compRHS is first order at these nodes (walls and inflow faces): it takes the
+     * tangential velocity, and the cell-centered source, of the first layer of cells as constant
+     * over the node's half control volume. After a projection, the normal velocity in the cells
+     * next to the face is then off by (h^2/8) d^2u_n/dn^2. A cell-centered viscous operator
+     * (MLABecLaplacian, MLTensorOp) with a Dirichlet condition on the face turns this into an
+     * O(1) error in the normal component. With this option, both terms are taken a quarter
+     * cell from the face instead, extrapolated linearly from the first two layers of cells, in
+     * each such direction at domain edges and corners. The ghost cells must hold the normal
+     * velocity on the face, as compRHS already assumes.
+     *
+     * Not supported with RZ (compRHS aborts if setRZCorrection(true) is also set). Not applied
+     * at coarse/fine nodes or in the sync residual. With EB, applied only at nodes whose
+     * nearby cells (two layers and the ghost cells, on both sides) are all regular. Without a
+     * source the discrete volume balance is unchanged; with one, the corrected right-hand side
+     * differs from the integral of the source by O(h^2). See
+     * Tests/LinearSolvers/NodalProjectionWall.
+     *
+     * \param on false (the default): the original stencil. true: the correction.
+     */
+    void setBoundaryDivuCorrection (bool on) noexcept {
+        m_bndry_divu_corr = on;
+        this->template spForward<MLNodeLaplacianT>([&] (auto* sp) { sp->setBoundaryDivuCorrection(on); });
+    }
+
+    /**
      * \brief Threshold for normalization (prevents dividing by tiny averages).
      *
      * \param t Minimum average magnitude allowed before rescaling.
@@ -393,6 +420,7 @@ protected:
     {
         MLNodeLinOpT<MF>::spCopySettings();
         if (m_is_rz) { setRZCorrection(true); }
+        setBoundaryDivuCorrection(m_bndry_divu_corr);
         setNormalizationThreshold(m_normalization_threshold);
         setGaussSeidel(m_use_gauss_seidel);
         setHarmonicAverage(m_use_harmonic_average);
@@ -440,6 +468,7 @@ protected:
 private:
 
     int m_is_rz = 0;
+    bool m_bndry_divu_corr = false;
 
     RT m_const_sigma = RT(0.0);
     RT m_sp_sigma_scale = RT(1.0);

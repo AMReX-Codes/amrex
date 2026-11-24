@@ -396,6 +396,22 @@ will be stored in Struct-of-Array style. To add a runtime component, use the
 Runtime-added components can be accessed like regular Struct-of-Array data.
 The new components will be added at the end of the compile-time defined ones.
 
+You can also set the number of runtime components directly with
+:cpp:`ResizeRuntimeRealComp(new_size, communicate)` and
+:cpp:`ResizeRuntimeIntComp(new_size, communicate)`. Components added this way
+get the same default names as :cpp:`AddRealComp()` and :cpp:`AddIntComp()`
+(``real_compN`` and ``int_compN``), and an exception is thrown if one of these
+names is already in use. Shrinking removes the last runtime components together
+with their names.
+
+When you add particles to a container that has runtime components, get each
+tile with :cpp:`DefineAndReturnParticleTile` before adding any particles, as in
+the section on :ref:`initializing particle data <sec:Particles:Initializing>`.
+This makes sure the tile has storage for the runtime components. Do not create
+tiles by indexing the map returned by :cpp:`GetParticles` (for example,
+:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`): a tile created this way
+has no runtime components.
+
 A tile created with :cpp:`DefineAndReturnParticleTile`, or by indexing the map
 returned by :cpp:`GetParticles` (for example,
 :cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`, or

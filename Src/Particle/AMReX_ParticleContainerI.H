@@ -1653,13 +1653,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<ParticleTileType*> ptile_ptrs;
     Vector<int> plevs;
     Vector<int*> new_size_ptrs;
-#ifndef AMREX_USE_GPU
     Vector<Gpu::DeviceVector<int>*> box_ptrs;
     Vector<Gpu::DeviceVector<int>*> level_ptrs;
     Vector<Gpu::DeviceVector<int>*> tile_ptrs;
     Vector<Gpu::DeviceVector<int>*> src_index_ptrs;
     Vector<Gpu::DeviceVector<IntVect>*> periodic_shift_ptrs;
-#endif
     std::size_t num_tiles = 0;
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev) {
         for (auto const& kv : m_particles[lev]) {
@@ -1672,13 +1670,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ptile_ptrs.reserve(num_tiles);
     plevs.reserve(num_tiles);
     new_size_ptrs.reserve(num_tiles);
-#ifndef AMREX_USE_GPU
     box_ptrs.reserve(num_tiles);
     level_ptrs.reserve(num_tiles);
     tile_ptrs.reserve(num_tiles);
     src_index_ptrs.reserve(num_tiles);
     periodic_shift_ptrs.reserve(num_tiles);
-#endif
     for (int lev = lev_min; lev <= finest_lev_particles; lev++) {
         auto& pmap = m_particles[lev];
         for (auto& kv : pmap)
@@ -1693,8 +1689,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto& new_size = new_sizes[lev][index];
             new_size = 0;
             new_size_ptrs.push_back(&new_size);
-#ifndef AMREX_USE_GPU
+            // Create this tile's entries in op's maps here, before the
+            // OpenMP loop below: inserting into a std::map is not
+            // thread-safe. On GPU the loop resizes them to the number of
+            // particles that move.
+#ifdef AMREX_USE_GPU
+            op.resize(kv.first.first, kv.first.second, lev, 0);
+#else
             op.resize(kv.first.first, kv.first.second, lev, static_cast<int>(np));
+#endif
             auto& boxes = op.m_boxes[lev][index];
             auto& levels = op.m_levels[lev][index];
             auto& tiles = op.m_tiles[lev][index];
@@ -1705,7 +1708,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tile_ptrs.push_back(&tiles);
             src_index_ptrs.push_back(&src_indices);
             periodic_shift_ptrs.push_back(&periodic_shift);
-#endif
         }
     }
 #endif
@@ -1723,12 +1725,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         const size_t np = src_tile.numParticles();
         if (np == 0) {continue;}
 
-#ifndef AMREX_USE_GPU
         auto& boxes = *box_ptrs[pmap_it];
         auto& levels = *level_ptrs[pmap_it];
         auto& tiles = *tile_ptrs[pmap_it];
         auto& src_indices = *src_index_ptrs[pmap_it];
         auto& periodic_shift = *periodic_shift_ptrs[pmap_it];
+#ifndef AMREX_USE_GPU
         *new_size_ptrs[pmap_it] = hostPartitionTile(src_tile,
                                                     lev, gid, tid,
                                                     lev_min, lev_max, nGrow, use_mask_lookup,
@@ -1744,14 +1746,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         int num_move = np - num_stay;
         *new_size_ptrs[pmap_it] = num_stay;
-        op.resize(gid, tid, lev, num_move);
+        boxes.resize(num_move);
+        levels.resize(num_move);
+        tiles.resize(num_move);
+        src_indices.resize(num_move);
+        periodic_shift.resize(num_move, IntVect(AMREX_D_DECL(0,0,0)));
 
-        auto index = std::make_pair(gid, tid);
-        auto* p_boxes = op.m_boxes[lev][index].dataPtr();
-        auto* p_levs = op.m_levels[lev][index].dataPtr();
-        auto* p_tiles = op.m_tiles[lev][index].dataPtr();
-        auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
-        auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
+        auto* p_boxes = boxes.dataPtr();
+        auto* p_levs = levels.dataPtr();
+        auto* p_tiles = tiles.dataPtr();
+        auto* p_src_indices = src_indices.dataPtr();
+        auto* p_periodic_shift = periodic_shift.dataPtr();
         auto ptd = src_tile.getParticleTileData();
 
         amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
@@ -2017,7 +2022,8 @@ AssignCellDensitySingleLevel (int rho_index,
       // to make a temporary here and copy into mf_to_be_filled at the end.
       mf_pointer = new MultiFab(ParticleBoxArray(lev),
                                 ParticleDistributionMap(lev),
-                                ncomp, mf_to_be_filled.nGrow());
+                                ncomp, mf_to_be_filled.nGrow(),
+                                MFInfo().SetArena(The_Async_Arena()));
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread
@@ -2135,21 +2141,18 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
-ResizeRuntimeRealComp (int new_size, bool communicate)
+DefineAllTilesForRuntimeComps (bool resize_soa)
 {
-    int old_size = tileConfig().num_runtime_real;
-
-    m_runtime_comps_defined = (new_size > 0);
-    tileConfig().num_runtime_real = new_size;
-    int cur_size = h_redistribute_real_comp.size();
-    h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
-    SetParticleSize();
-
-    for (int lev = 0; lev < numLevels(); ++lev) {
-        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-            auto& tile = DefineAndReturnParticleTile(lev, pti);
+    // Loop over the tile maps instead of using ParIter, which skips empty
+    // tiles, so that every tile has as many runtime components as there
+    // are component names.
+    for (auto& pmap : m_particles) {
+        for (auto& kv : pmap) {
+            auto& tile = kv.second;
+            tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                        &m_soa_rdata_names, &m_soa_idata_names, arena());
             auto np = tile.numParticles();
-            if (np > 0 && new_size > old_size) {
+            if (resize_soa && np > 0) {
                 auto& soa = tile.GetStructOfArrays();
                 soa.resize(np);
             }
@@ -2161,26 +2164,74 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
+ResizeRuntimeRealComp (int new_size, bool communicate)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
+        "ResizeRuntimeRealComp: the new number of runtime components must not be negative");
+
+    int old_size = tileConfig().num_runtime_real;
+    AMREX_ASSERT(int(m_soa_rdata_names.size()) == NArrayReal + old_size);
+
+    // Keep the component names in sync with the number of components. New
+    // components get the same default names that AddRealComp() uses. Build the
+    // list first, so that a name clash leaves the container unchanged.
+    std::vector<std::string> new_names(m_soa_rdata_names.begin(),
+                                       m_soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        auto name = getDefaultCompNameReal<ParticleType>(NArrayReal + i);
+        if (std::ranges::find(new_names, name) != new_names.end()) {
+            throw std::runtime_error("ResizeRuntimeRealComp: the default name '" + name +
+                                     "' of a new component is already present in the SoA.");
+        }
+        new_names.push_back(std::move(name));
+    }
+    m_soa_rdata_names = std::move(new_names);
+
+    tileConfig().num_runtime_real = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
+    int cur_size = h_redistribute_real_comp.size();
+    h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
+    SetParticleSize();
+    this->resizeData();
+    DefineAllTilesForRuntimeComps(new_size > old_size);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 ResizeRuntimeIntComp (int new_size, bool communicate)
 {
-    int old_size = tileConfig().num_runtime_int;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
+        "ResizeRuntimeIntComp: the new number of runtime components must not be negative");
 
-    m_runtime_comps_defined = (new_size > 0);
+    int old_size = tileConfig().num_runtime_int;
+    AMREX_ASSERT(int(m_soa_idata_names.size()) == NArrayInt + old_size);
+
+    // Keep the component names in sync with the number of components. New
+    // components get the same default names that AddIntComp() uses. Build the
+    // list first, so that a name clash leaves the container unchanged.
+    std::vector<std::string> new_names(m_soa_idata_names.begin(),
+                                       m_soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
+    for (int i = old_size; i < new_size; ++i) {
+        auto name = getDefaultCompNameInt<ParticleType>(NArrayInt + i);
+        if (std::ranges::find(new_names, name) != new_names.end()) {
+            throw std::runtime_error("ResizeRuntimeIntComp: the default name '" + name +
+                                     "' of a new component is already present in the SoA.");
+        }
+        new_names.push_back(std::move(name));
+    }
+    m_soa_idata_names = std::move(new_names);
+
     tileConfig().num_runtime_int = new_size;
+    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+
     int cur_size = h_redistribute_int_comp.size();
     h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);
     SetParticleSize();
-
-    for (int lev = 0; lev < numLevels(); ++lev) {
-        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
-            auto& tile = DefineAndReturnParticleTile(lev, pti);
-            auto np = tile.numParticles();
-            if (np > 0 && new_size > old_size) {
-                auto& soa = tile.GetStructOfArrays();
-                soa.resize(np);
-            }
-        }
-    }
+    this->resizeData();
+    DefineAllTilesForRuntimeComps(new_size > old_size);
 }
 
 }

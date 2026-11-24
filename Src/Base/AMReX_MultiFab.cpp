@@ -1747,6 +1747,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
         Real* ptr = tag.dfab.ptr(i,j,k,n);
         Gpu::Atomic::AddNoRet(ptr, Real(1.0));
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 
     return p;
@@ -1767,6 +1768,10 @@ MultiFab::AverageSync (const Periodicity& period)
     auto wgt = this->OverlapMask(period);
     wgt->invert(1.0, 0, 1);
     this->WeightedSync(*wgt, period);
+#ifdef AMREX_USE_GPU
+    // wgt is about to be freed
+    if (Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 void
@@ -1782,7 +1787,8 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
         MultiFab::Multiply(*this, wgt, 0, comp, 1, 0);
     }
 
-    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0,
+                   MFInfo().SetArena(The_Async_Arena()), Factory());
     tmpmf.setVal(Real(0.0));
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 

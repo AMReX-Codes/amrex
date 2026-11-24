@@ -147,7 +147,8 @@ void MLCurlCurl::setAlpha (const Vector<MultiFab const*>& a_acoeffs)
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         AMREX_ALWAYS_ASSERT(a_acoeffs[amrlev]->is_nodal());
         MultiFab nodal_alpha(a_acoeffs[amrlev]->boxArray(),
-                             a_acoeffs[amrlev]->DistributionMap(), 1, 1);
+                             a_acoeffs[amrlev]->DistributionMap(), 1, 1,
+                             MFInfo().SetArena(The_Async_Arena()));
         MultiFab::Copy(nodal_alpha, *a_acoeffs[amrlev], 0, 0, 1, 0);
         nodal_alpha.FillBoundaryAndSync(m_geom[amrlev][0].periodicity());
 
@@ -211,7 +212,8 @@ void MLCurlCurl::setAlpha (const Vector<MultiFab const*>& a_acoeffs)
 
             if (mglev+1 < m_num_mg_levels[amrlev]) {
                 MultiFab tmp(amrex::convert(m_grids[amrlev][mglev+1], IntVect(1)),
-                             m_dmap[amrlev][mglev+1], 1, 1);
+                             m_dmap[amrlev][mglev+1], 1, 1,
+                             MFInfo().SetArena(The_Async_Arena()));
                 IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
                 average_down_nodal(nodal_alpha, tmp, ratio);
                 std::swap(nodal_alpha, tmp);
@@ -291,6 +293,7 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
     {
         tag.dfab(i,j,k) = RT(0.0);
     });
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
 }
 
@@ -1242,6 +1245,9 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
         });
 #endif
     }
+#ifdef AMREX_USE_GPU
+    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+#endif
 }
 
 iMultiFab const& MLCurlCurl::getDotMask (int amrlev, int mglev, int idim) const

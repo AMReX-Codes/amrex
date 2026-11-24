@@ -8,8 +8,10 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <limits>
+#include <locale>
 #include <vector>
 #include <utility>
 
@@ -19,6 +21,30 @@ namespace {
     const char *TheMultiFabHdrFileSuffix = "_H";
     const char *FabFileSuffix = "_D_";
     const char *TheFabOnDiskPrefix = "FabOnDisk:";
+
+    // Read "value," from a header with strtod. Unlike operator>>, it reads inf
+    // and nan, and subnormal numbers with every standard library.
+    Real read_header_real (std::istream& is, const char* errmsg)
+    {
+        std::string tok;
+        is >> std::ws;
+        std::getline(is, tok, ',');
+        char* end = nullptr;
+        double d = std::strtod(tok.c_str(), &end); // double for values beyond float
+        bool ok = !is.eof() && (end != tok.c_str()) && (*end == '\0');
+        if (!ok && !is.eof()) {
+            // strtod uses the decimal point of the C locale, which the program
+            // may have changed. A stream in the classic locale always uses '.'.
+            std::istringstream iss(tok);
+            iss.imbue(std::locale::classic());
+            iss >> d;
+            ok = !iss.fail() && (iss >> std::ws).eof();
+        }
+        if (!ok) {
+            amrex::Error(errmsg);
+        }
+        return static_cast<Real>(d);
+    }
 }
 
 #ifdef AMREX_USE_GPU
@@ -293,9 +319,6 @@ operator>> (std::istream&         is,
 {
     char ch;
     Long i(0), N, M;
-#ifdef BL_USE_FLOAT
-    double dtemp;
-#endif
 
     is >> N >> ch >> M;
 
@@ -315,15 +338,7 @@ operator>> (std::istream&         is,
         ar[i].resize(M);
 
         for(Long j = 0; j < M; ++j) {
-#ifdef BL_USE_FLOAT
-            is >> dtemp >> ch;
-            ar[i][j] = static_cast<Real>(dtemp);
-#else
-            is >> ar[i][j] >> ch;
-#endif
-            if( ch != ',' ) {
-              amrex::Error("Expected a ',' got something else");
-            }
+            ar[i][j] = read_header_real(is, "Expected a number followed by ',' got something else");
         }
     }
 
@@ -452,21 +467,14 @@ operator>> (std::istream  &is,
     }
 
     if(hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1) {
-      char ch;
       AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
       for(auto & famin : hd.m_famin) {
-        is >> famin >> ch;
-        if( ch != ',' ) {
-          amrex::Error("Expected a ',' when reading hd.m_famin");
-        }
+        famin = read_header_real(is, "Expected a number followed by ',' when reading hd.m_famin");
       }
       for(auto & famax : hd.m_famax) {
-        is >> famax >> ch;
-        if( ch != ',' ) {
-          amrex::Error("Expected a ',' when reading hd.m_famax");
-        }
+        famax = read_header_real(is, "Expected a number followed by ',' when reading hd.m_famax");
       }
     }
     if(hd.m_vers == VisMF::Header::NoFabHeader_v1       ||
@@ -897,25 +905,6 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         }
     }
 #endif /*BL_USE_MPI*/
-
-#ifdef BL_FIXHEADERDENORMS
-    if(ParallelDescriptor::MyProc(comm) == procToWrite) {
-        for(int i(0); i < m_min.size(); ++i) {
-            for(int j(0); j < m_min[i].size(); ++j) {
-                if(std::abs(m_min[i][j]) < 1.0e-300) {
-                    m_min[i][j] = 0.0;
-                }
-            }
-        }
-        for(int i(0); i < m_max.size(); ++i) {
-            for(int j(0); j < m_max[i].size(); ++j) {
-                if(std::abs(m_max[i][j]) < 1.0e-300) {
-                    m_max[i][j] = 0.0;
-                }
-            }
-        }
-    }
-#endif
 
     // ---- calculate fabarray min max values
     m_famin.resize(m_ncomp);
@@ -1754,7 +1743,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << '\n';
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow,
+                            MFInfo().SetArena(The_Async_Arena()), mf.Factory());
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;

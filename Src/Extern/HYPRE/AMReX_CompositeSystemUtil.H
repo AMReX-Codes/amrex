@@ -3,28 +3,36 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_AlgMG.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_HypreIJIface.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_Scan.H>
 #include <AMReX_SpMatrix.H>
 #include <AMReX_Vector.H>
+#include <HYPRE_IJ_mv.h>
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 
 /**
  * \file AMReX_CompositeSystemUtil.H
  *
  * Helpers for the composite (all AMR levels) solvers such as
  * HypreMLABecLap: an owned-row CSR built from (row, column, value)
- * triplets, the AlgMG backend options, and Matrix Market output of the
+ * triplets, the in-place update of an assembled matrix from new triplets
+ * (setup reuse), the AlgMG backend options, and Matrix Market output of the
  * assembled systems for analysis outside AMReX.
  */
 
@@ -32,6 +40,251 @@ namespace amrex::composite {
 
 //! (row, column, value) of a matrix entry with global indices
 struct Triplet { Long row; Long col; Real val; };
+
+/**
+ * \brief With setup reuse, the triplets of later assemblies are summed
+ * directly into a matrix's value array, each entry adding its triplets in
+ * increasing triplet order so that the sums do not depend on thread
+ * scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
+ */
+struct EntryGather
+{
+    Gpu::DeviceVector<Long> offset;
+    Gpu::DeviceVector<Long> trip;
+    [[nodiscard]] bool empty () const { return offset.empty(); }
+    [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
+    void clear () { offset.clear(); trip.clear(); }
+};
+
+//! Group the triplets by the matrix entry they add to (entry[n] for triplet
+//! n, in [0, nentries)), keeping increasing triplet order within an entry
+inline void define_gather (EntryGather& g, Vector<Long> const& entry, Long nentries)
+{
+    const auto ntrip = Long(entry.size());
+    Vector<Long> offset(nentries+1, 0);
+    for (Long n = 0; n < ntrip; ++n) { ++offset[entry[n]+1]; }
+    for (Long e = 0; e < nentries; ++e) { offset[e+1] += offset[e]; }
+    Vector<Long> fill(offset.begin(), offset.end()-1);
+    Vector<Long> trip(ntrip);
+    for (Long n = 0; n < ntrip; ++n) { trip[fill[entry[n]]++] = n; }
+    g.offset.resize(nentries+1);
+    g.trip.resize(ntrip);
+    Gpu::copyAsync(Gpu::hostToDevice, offset.begin(), offset.end(), g.offset.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, trip.begin(), trip.end(), g.trip.begin());
+    Gpu::streamSynchronize();
+}
+
+//! The sum of the triplet values of each of the nentries entries of \p g,
+//! into out (on the device)
+inline void gather_sum (EntryGather const& g, Real const* vals, Real* out, Long nentries)
+{
+    AMREX_ALWAYS_ASSERT(Long(g.offset.size()) == nentries+1);
+    auto const* go = g.offset.data();
+    auto const* gt = g.trip.data();
+    amrex::ParallelFor(nentries, [=] AMREX_GPU_DEVICE (Long e) noexcept
+    {
+        Real sum = 0.0;
+        for (Long k = go[e]; k < go[e+1]; ++k) { sum += vals[gt[k]]; }
+        out[e] = sum;
+    });
+    Gpu::streamSynchronize();
+}
+
+/**
+ * \brief The entries of the assembled hypre IJ matrix \p A (its diag values
+ * first, then its offd values) that the triplets (\p rows, \p cols, all in
+ * this rank's rows) were summed into, as an EntryGather for in-place
+ * updates with ij_update_values.  Collective over \p comm: returns false on
+ * all ranks (and \p g empty) if hypre dropped an entry on any rank.
+ */
+bool ij_entry_slots (HYPRE_IJMatrix A, Gpu::DeviceVector<HYPRE_BigInt> const& rows,
+                     Gpu::DeviceVector<HYPRE_BigInt> const& cols, MPI_Comm comm,
+                     EntryGather& g);
+
+//! Overwrite the values of the assembled hypre IJ matrix \p A with the sums
+//! of the new triplet values \p vals, as grouped by ij_entry_slots
+void ij_update_values (HYPRE_IJMatrix A, EntryGather const& g, Gpu::DeviceVector<Real> const& vals);
+
+/**
+ * \brief The state of setup reuse (HypreMLABecLap::setReuseSolverSetup,
+ * HypreMLNodeLap::setReuseSolverSetup).
+ *
+ * A kept solver setup (hypre) or AlgMG hierarchy is for the matrix it was
+ * done with.  A later matrix is scaled to that matrix's 2-norm (of the
+ * triplet values that depend on the coefficients, which fix the ratio) and
+ * the right-hand side with it, so that a uniform change of the coefficients,
+ * by a time step say, leaves the kept setup exact; otherwise its smoother
+ * weights and coarse corrections grow with the change until the
+ * preconditioner diverges.  With a threshold (reuse_setup_max_change), a
+ * copy of the setup matrix's values is kept and the change of the scaled
+ * matrix since the setup is measured against it.
+ */
+struct SetupReuse
+{
+    Real setup_norm2 = 0.0;  //!< squared 2-norm of the setup matrix's values
+    Real scale = 1.0;        //!< the current matrix (and rhs) is scaled by this
+    Real max_change = 0.0;   //!< redo the setup beyond this change (0: never)
+    //! The setup matrix's values (max_change > 0); valid on all ranks or none
+    Gpu::DeviceVector<Real> setup_vals;
+    bool have_vals = false;
+    //! The next matrix becomes the reference: the threshold was set after
+    //! the kept setup, or a solve did the setup for a scaled matrix
+    bool capture = false;
+    //! The setup matrix on record is the current matrix, unscaled (the last
+    //! update made it the setup matrix); otherwise the current matrix is
+    //! scaled to an earlier one
+    bool current = false;
+
+    //! The change threshold (see rescale)
+    void setMaxChange (Real f)
+    {
+        max_change = f;
+        if (f > Real(0.0)) {
+            capture = !have_vals;
+        } else {
+            setup_vals.clear();
+            have_vals = false;
+            capture = false;
+        }
+    }
+
+    //! A solve did the setup for the current matrix.  Done for a matrix
+    //! scaled to an earlier setup's (after resetSolverSetup(),
+    //! reuse_setup_max_iter, or the retry of a solve that did not converge),
+    //! the norm on record still describes it but the kept values do not: the
+    //! next update becomes the reference of the change check.
+    void setupDone ()
+    {
+        if (!current) {
+            capture = (max_change > Real(0.0));
+            current = true;
+        }
+    }
+
+    //! The current matrix, assembled without its triplets held (which the
+    //! callers do only without a threshold), is the setup matrix; \p norm2
+    //! is the global squared 2-norm of its values.  No values are kept.
+    void setSetupMatrix (Real norm2)
+    {
+        setup_norm2 = norm2;
+        scale = Real(1.0);
+        current = true;
+        setup_vals.clear();
+        have_vals = false;
+    }
+
+    /**
+     * \brief Scale the values of \p vals (on the device) for which
+     * \p scaled(i) is true to the setup matrix (the others, a pinned row's
+     * identity entry say, do not depend on the coefficients: they stay and
+     * do not count), or make this matrix the setup matrix (\p new_setup: the
+     * setup is done for it next).  Collective over \p comm.  Returns true
+     * when the scaled matrix has changed by more than max_change since the
+     * setup; this matrix is then the setup matrix and the caller redoes the
+     * setup.
+     */
+    template <class P>
+    bool rescale (Gpu::DeviceVector<Real>& vals, P const& scaled, bool new_setup,
+                  MPI_Comm comm, int verbose, std::string const& prefix)
+    {
+        BL_PROFILE("composite::SetupReuse::rescale");
+        const auto n = Long(vals.size());
+        auto* v = vals.data();
+        Real norm2 = (n > 0) ? Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                                 { return scaled(i) ? v[i]*v[i] : Real(0.0); })
+                             : Real(0.0);
+        ParallelAllReduce::Sum(norm2, comm);
+        // No setup matrix to match: this is it
+        new_setup = new_setup || !(setup_norm2 > Real(0.0)) || !(norm2 > Real(0.0));
+        bool changed = false;
+        // have_vals and capture are the same on all ranks, so that the
+        // reduction below is collective
+        if (!new_setup && max_change > Real(0.0) && have_vals && !capture) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(setup_vals.size(), n),
+                "composite::SetupReuse: the matrix pattern changed since the kept setup");
+            // The change of the scaled matrix since the setup, relative to
+            // the setup matrix
+            const Real s = std::sqrt(setup_norm2 / norm2);
+            auto const* v0 = setup_vals.data();
+            Real d2 = Reduce::Sum<Real>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                                        { Real d = scaled(i) ? s*v[i] - v0[i] : Real(0.0); return d*d; });
+            ParallelAllReduce::Sum(d2, comm);
+            const Real change = std::sqrt(d2 / setup_norm2);
+            if (change > max_change) {
+                if (verbose) {
+                    amrex::Print() << prefix << ": the matrix changed by " << change
+                                   << " since the kept setup; redoing the setup\n";
+                }
+                changed = true;
+            }
+        }
+        if (new_setup || changed) {
+            setup_norm2 = norm2;
+            scale = Real(1.0);
+        } else {
+            scale = std::sqrt(setup_norm2 / norm2);
+            const Real s = scale;
+            amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+            {
+                if (scaled(i)) { v[i] *= s; }
+            });
+            Gpu::streamSynchronize();
+        }
+        current = (new_setup || changed);
+        if (max_change > Real(0.0) && (new_setup || changed || capture)) {
+            // The reference: the (scaled) values the setup is, or was, done for
+            setup_vals.resize(n);
+            Gpu::copyAsync(Gpu::deviceToDevice, vals.begin(), vals.end(), setup_vals.begin());
+            Gpu::streamSynchronize();
+            have_vals = true;
+        }
+        capture = false;
+        return changed;
+    }
+};
+
+//! Iterations (of both attempts, if the setup was redone), final relative
+//! residual norm, and whether the setup was redone
+struct ReusedSolve
+{
+    int num_iters = 0;
+    Real final_res = 0.0;
+    bool redone = false;
+    //! The message of the std::runtime_error a solve threw (with
+    //! setThrowException): the caller does its bookkeeping, then throws it
+    std::string error;
+};
+
+/**
+ * \brief Solve with \p ij.  With a reused setup (\p reused: kept from an
+ * earlier matrix), a solve that blows up (a hypre error on any rank, or a
+ * non-finite residual) or does not converge (\p converged, of the final
+ * relative residual norm) is retried once with the setup redone, from the
+ * current solution or, after a blow-up, from the initial guess
+ * (\p restore_x reloads it); the caller's failure policy
+ * (\p throw_exception) applies to the retry.  Collective over \p comm.
+ */
+ReusedSolve ij_solve_reused (HypreIJIface& ij, bool reused, bool throw_exception,
+                             Real reltol, Real abstol, int maxiter, MPI_Comm comm,
+                             int verbose, std::string const& prefix,
+                             std::function<bool(Real)> const& converged,
+                             std::function<void()> const& restore_x);
+
+/**
+ * \brief Solve with \p mg, whose tolerances and iteration limit are set.
+ * With a kept hierarchy (\p kept: from an earlier matrix), a solve that blows
+ * up or does not converge (\p converged, of the residual norm relative to
+ * \p bnorm) is retried once with the hierarchy rebuilt for \p mat, from the
+ * current solution or, after a blow-up, from the initial guess
+ * (\p restore_x reloads it); the caller's failure policy
+ * (\p throw_exception) applies to the retry.  Collective over \p comm.
+ */
+ReusedSolve algmg_solve_kept (AlgMG<Real>& mg, SpMatrix<Real>& mat, bool kept,
+                              bool throw_exception, AlgVector<Real>& x,
+                              AlgVector<Real> const& b, Real bnorm, MPI_Comm comm,
+                              int verbose, std::string const& prefix,
+                              std::function<bool(Real)> const& converged,
+                              std::function<void()> const& restore_x);
 
 //! Scientific notation for messages (std::to_string prints 0.000000 for 1e-7)
 inline std::string to_sci (double x)
@@ -234,19 +487,21 @@ void localize_triplets (Gpu::DeviceVector<I>& rows, Gpu::DeviceVector<I>& cols,
  * and OwnedCSR::toSpMatrix.
  *
  * Triplets of rows owned by other ranks are sent to their owners
- * (localize_triplets, collective over comm).  The triplets of each row are
- * sorted by (column, triplet index) and duplicates are summed in that order,
- * so the values do not depend on thread scheduling.  The triplet arrays are
- * consumed.
+ * (localize_triplets, collective over comm) unless they already are
+ * (\p localized).  The triplets of each row are sorted by (column, triplet
+ * index) and duplicates are summed in that order, so the values do not
+ * depend on thread scheduling.  The triplet arrays are consumed.
  */
 inline void triplets_to_spmatrix (Gpu::DeviceVector<Long>& rows, Gpu::DeviceVector<Long>& cols,
                                   Gpu::DeviceVector<Real>& vals, Long row_begin, Long nrows,
                                   Vector<Long> const& rank_offset, MPI_Comm comm,
-                                  SpMatrix<Real>& mat)
+                                  SpMatrix<Real>& mat, bool localized = false)
 {
     BL_PROFILE("composite::triplets_to_spmatrix");
     AMREX_ALWAYS_ASSERT(rows.size() == cols.size() && rows.size() == vals.size());
-    localize_triplets(rows, cols, vals, row_begin, nrows, rank_offset, comm);
+    if (!localized) {
+        localize_triplets(rows, cols, vals, row_begin, nrows, rank_offset, comm);
+    }
 
     // Bucket the triplet indices by row
     const auto ntrip = Long(rows.size());

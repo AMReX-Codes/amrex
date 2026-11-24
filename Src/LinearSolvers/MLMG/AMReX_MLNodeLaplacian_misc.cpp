@@ -1175,17 +1175,27 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
             rhcc[ilev] = std::make_unique<MF>(a_rhcc[ilev]->boxArray(),
-                                              a_rhcc[ilev]->DistributionMap(), 1, 1);
+                                              a_rhcc[ilev]->DistributionMap(), 1, 1,
+                                              MFInfo().SetArena(The_Async_Arena()));
             rhcc[ilev]->setVal(0.0);
             amrex::Copy(*rhcc[ilev], *a_rhcc[ilev], 0, 0, 1, 0);
             rhcc[ilev]->FillBoundary(geom.periodicity());
 
             rhs_cc[ilev] = std::make_unique<MF>(rhs[ilev]->boxArray(),
-                                                rhs[ilev]->DistributionMap(), 1, 0);
+                                                rhs[ilev]->DistributionMap(), 1, 0,
+                                                MFInfo().SetArena(The_Async_Arena()));
         }
 
         const auto dxinvarr = this->toRT(geom.InvCellSizeArray());
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
+        // Second-order divergence at wall and inflow nodes (setBoundaryDivuCorrection; see
+        // mlndlap_divu_wall_corr and mlndlap_rhcc_wall_corr), added after the Neumann scaling.
+        // Not supported with RZ (the RZ stencil weights by r).  With EB, only at wall nodes
+        // whose cells are all regular
+        // (mlndlap_wall_corr_regular): mlndlap_divu_eb and mlndlap_rhcc_eb have no correction.
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(m_bndry_divu_corr && m_is_rz),
+            "MLNodeLaplacian: setBoundaryDivuCorrection(true) is not supported with setRZCorrection(true)");
+        const bool wall_corr = m_bndry_divu_corr;
 
         const iMultiFab& dmsk = *this->m_dirichlet_mask[ilev][0];
 
@@ -1199,6 +1209,9 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
         AMREX_ALWAYS_ASSERT(ilev == this->m_num_amr_levels-1 || this->AMRRefRatio(ilev) == 2
                             || factory == nullptr || factory->isAllRegular());
+
+        const bool wall_check_eb = wall_corr && factory && !factory->isAllRegular();
+        AMREX_ALWAYS_ASSERT(!wall_check_eb || flags->nGrow() >= 1);
 #endif
 
         MFItInfo mfi_info;
@@ -1276,6 +1289,26 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
 
             mlndlap_impose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
 
+            // The wall correction, on the wall nodes only.  With EB, only at the wall nodes
+            // whose cells are all regular, in any box that is not covered.
+            bool wall_box = wall_corr;
+#ifdef AMREX_USE_EB
+            wall_box = wall_box && (typ != FabType::covered);
+            Array4<EBCellFlag const> wall_flag{};
+            if (wall_box && wall_check_eb) { wall_flag = flags->const_array(mfi); }
+#endif
+            if (wall_box) {
+                mlndlap_for_each_wall_node(bx, nddom, lobc, hibc,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+#ifdef AMREX_USE_EB
+                    if (wall_check_eb &&
+                        !mlndlap_wall_corr_regular(i,j,k,wall_flag,nddom,lobc,hibc)) { return; }
+#endif
+                    mlndlap_divu_wall_corr(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,nddom,lobc,hibc);
+                });
+            }
+
             if (rhcc[ilev])
             {
                 Array4<RT> const& rhs_cc_a = rhs_cc[ilev]->array(mfi);
@@ -1307,6 +1340,18 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
                 }
 
                 mlndlap_impose_neumann_bc(bx, rhs_cc_a, nddom, lobc, hibc);
+
+                if (wall_box) {
+                    mlndlap_for_each_wall_node(bx, nddom, lobc, hibc,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+#ifdef AMREX_USE_EB
+                        if (wall_check_eb &&
+                            !mlndlap_wall_corr_regular(i,j,k,wall_flag,nddom,lobc,hibc)) { return; }
+#endif
+                        mlndlap_rhcc_wall_corr(i,j,k,rhs_cc_a,rhccarr,dmskarr,nddom,lobc,hibc);
+                    });
+                }
             }
         }
     }
@@ -1320,7 +1365,8 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
         AMREX_ALWAYS_ASSERT(amrrr == 2 || amrrr == 4);
 
         frhs[ilev] = std::make_unique<MF>(amrex::coarsen(rhs[ilev+1]->boxArray(),amrrr),
-                                          rhs[ilev+1]->DistributionMap(), 1, 0);
+                                          rhs[ilev+1]->DistributionMap(), 1, 0,
+                                          MFInfo().SetArena(The_Async_Arena()));
 
         const Box& ccfdom = fgeom.Domain();
         const auto fdxinv = this->toRT(fgeom.InvCellSizeArray());
@@ -1418,7 +1464,8 @@ MLNodeLaplacianT<MF>::compRHS (const Vector<MF*>& rhs, const Vector<MF*>& vel,  
     {
         const Geometry& cgeom = this->m_geom[ilev][0];
 
-        MF crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
+        MF crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0,
+                MFInfo().SetArena(The_Async_Arena()));
         crhs.setVal(0.0);
         crhs.ParallelAdd(*frhs[ilev], cgeom.periodicity());
 

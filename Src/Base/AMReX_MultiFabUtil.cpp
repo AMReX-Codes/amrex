@@ -715,6 +715,7 @@ namespace amrex
         {
             tag.dfab(i,j,k,n) = fine_value;
         });
+        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
 #endif
     }
     }
@@ -1230,7 +1231,7 @@ namespace amrex
                      int const zoff = ratio[2]/2 - 1;)
 
         MultiFab tmp(amrex::coarsen(fmf.boxArray(), ratio), fmf.DistributionMap(),
-                     ncomp, 0);
+                     ncomp, 0, MFInfo().SetArena(The_Async_Arena()));
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

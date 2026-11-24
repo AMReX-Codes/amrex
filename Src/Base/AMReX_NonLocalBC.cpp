@@ -1,5 +1,6 @@
 #include "AMReX_NonLocalBC.H"
 
+#include <algorithm>
 #include <limits>
 
 /// \cond DOXYGEN_IGNORE
@@ -33,6 +34,17 @@ void split_boxes (BoxList& bl, Box const& domain)
         }
         bl.join(bltmp);
         bltmp.clear();
+    }
+}
+
+void sort_tags (FabArrayBase::MapOfCopyComTagContainers& tags)
+{
+    // A pair of boxes has at most one tag.
+    auto const less = [] (FabArrayBase::CopyComTag const& a, FabArrayBase::CopyComTag const& b) {
+        return (a.srcIndex < b.srcIndex) || ((a.srcIndex == b.srcIndex) && (a.dstIndex < b.dstIndex));
+    };
+    for (auto& kv : tags) {
+        std::sort(kv.second.begin(), kv.second.end(), less);
     }
 }
 }

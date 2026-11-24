@@ -64,6 +64,10 @@ using MLNodeLaplacian = MLNodeLaplacianT<MultiFab>;
  * - `<prefix>.eb_scaling` (default 1): in EB builds, scale the unknowns by
  *   1/sqrt(nodal fluid fraction) so that rows next to small cut cells count
  *   in the residual norm.
+ * - `<prefix>.reuse_setup_max_iter`, `<prefix>.reuse_setup_max_change`:
+ *   the setup reuse controls (setReuseSetupMaxIter, setReuseSetupMaxChange).
+ * - `<prefix>.recompute_preconditioner` (default 0): redo the solver setup
+ *   on every solve (hypre backend; off with setup reuse).
  */
 class HypreMLNodeLap
 {
@@ -116,8 +120,61 @@ public:
     //! Number of composite unknowns
     [[nodiscard]] BigInt numUnknowns () const { return m_nglobal; }
 
-    //! Internal: called by the constructor (public only for CUDA extended lambdas)
+    /**
+     * \brief Assemble the matrix again from the operator's current
+     * coefficients, for the following solves: the MLNodeLaplacian of the
+     * constructor with new values of sigma (the same grids, boundary
+     * conditions, masks and EB, so that the matrix pattern is unchanged).
+     * With setReuseSolverSetup(true) the values are updated in place and
+     * the hypre solver setup, or the AlgMG hierarchy, is kept (see
+     * HypreMLABecLap::setReuseSolverSetup); otherwise the setup is redone
+     * at the next solve.  Collective over the operator's communicator.
+     */
+    void updateMatrix ();
+    /**
+     * \brief Keep the solver setup across updateMatrix() calls, as
+     * HypreMLABecLap::setReuseSolverSetup: the kept setup only
+     * approximates the updated operator, and a solve with it that does not
+     * converge redoes the setup and continues once before failing.  Can be
+     * set at any time: turned on after a solve, the next updateMatrix()
+     * keeps that solve's setup (with the hypre backend it assembles the
+     * matrix once more, scaled to the kept setup's; later updates are in
+     * place).  With reuse on, the setup is redone only after
+     * resetSolverSetup() and by the reuse controls below
+     * (`<prefix>.recompute_preconditioner` is off); with reuse off, after
+     * every updateMatrix() (and on every solve if that option is on).
+     */
+    void setReuseSolverSetup (bool v);
+    //! With setup reuse, the matrix of a later updateMatrix() is scaled to
+    //! the 2-norm of the one the kept setup was done for, and the right-hand
+    //! side with it (as for HypreMLABecLap).  The factor of the last update.
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_reuse.scale; }
+    //! With setup reuse: redo the setup at the next solve when a solve with
+    //! a reused setup needs more than \p n iterations (0: never; this is
+    //! also `<prefix>.reuse_setup_max_iter`)
+    void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
+    //! Redo the setup at the next solve when the matrix, scaled to the kept
+    //! setup's, has changed by more than this fraction (2-norm) since that
+    //! setup (0: never; also `<prefix>.reuse_setup_max_change`).  Keeps a
+    //! copy of the values of every matrix built while it is set, reuse on
+    //! or off, so that the matrix of a setup kept later is the reference.
+    //! Set after the matrix was built (before or after its setup), or after
+    //! a solve redid the setup, the reference is the matrix of the next
+    //! updateMatrix().
+    void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
+    //! Redo the solver setup (hypre) or the AlgMG hierarchy at the next solve
+    void resetSolverSetup () {
+        if (m_ij) { m_ij->setNeedSetup(); }
+        m_algmg_reset = true;
+    }
+
+    //! Internal: called by the constructor and updateMatrix (public only
+    //! for CUDA extended lambdas)
     void buildMatrix ();
+    //! Internal: the assembled triplets to the backend's matrix (public
+    //! only for CUDA extended lambdas)
+    void populateMatrix (Gpu::DeviceVector<BigInt>& rows, Gpu::DeviceVector<BigInt>& cols,
+                         Gpu::DeviceVector<Real>& vals);
 
 private:
     using IdFab = BaseFab<Long>;
@@ -182,6 +239,14 @@ private:
     std::string m_dump_prefix;
     Long m_dump_gather_max = 50000000;
 
+    // The hypre matrix assembled (again) from triplets: zeroed
+    // if assembled before, the triplets added, assembled
+    void ijBeginAssembly ();
+    void ijAddTriplets (Gpu::DeviceVector<BigInt> const& rows,
+                        Gpu::DeviceVector<BigInt> const& cols,
+                        Gpu::DeviceVector<Real> const& vals);
+    void ijEndAssembly ();
+
     // Owned rows of the assembled matrix (AlgMG backend and dumps)
     composite::OwnedCSR m_csr;
     std::unique_ptr<SpMatrix<Real>> m_spA;
@@ -199,6 +264,34 @@ private:
     int m_num_iters = 0;
     Real m_final_res = 0.0;
     Real m_bnorm = 0.0;           // 2-norm of the assembled right-hand side
+
+    // Setup reuse (see HypreMLABecLap): in-place updates of the assembled
+    // matrix through the entry slots of the triplets, and whether the
+    // hypre matrix has been assembled once (then zeroed and assembled again)
+    bool m_reuse_setup = false;
+    int m_reuse_max_iter = 0;
+    //! The scaling of a later matrix to the kept setup's (and the change
+    //! check of reuse_setup_max_change)
+    composite::SetupReuse m_reuse;
+    //! `<prefix>.recompute_preconditioner` (hypre backend): redo the setup
+    //! on every solve.  Off by default, like AMReX's other hypre solvers:
+    //! the setup is redone when the matrix changes (updateMatrix), and with
+    //! reuse on, the flag is off regardless
+    bool m_recompute_pp = false;
+    bool m_matrix_assembled = false;
+    bool m_ij_gather_failed = false; // hypre dropped an entry: no in-place updates
+    //! This rank's triplets (without the pinned row), fixed by the grids and
+    //! masks; -1 before the first build
+    Long m_ntrip = -1;
+    composite::EntryGather m_ij_gather;
+    //! AlgMG backend: the pattern of the CSR matrix and the slots of the
+    //! triplets in it; a new hierarchy at the next update or solve; and
+    //! whether the last update kept the hierarchy
+    Gpu::DeviceVector<Long> m_alg_row_offset;
+    Gpu::DeviceVector<Long> m_alg_col_index;
+    composite::EntryGather m_alg_gather;
+    bool m_algmg_reset = false;
+    bool m_algmg_kept = false;
 };
 
 }

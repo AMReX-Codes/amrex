@@ -1616,10 +1616,11 @@ tag,
         tag.dfab(i,j,k,n) = ...;
     });
 
-This copies the tags to the device and synchronizes the stream on every
-call.  When the same tags are used repeatedly, build a :cpp:`TagVector`
-from them once and pass it to :cpp:`ParallelFor` instead.  See the
-`TagParallelFor`_ tutorial.
+This copies the tags to the device on every call.  Like other
+:cpp:`ParallelFor` calls, it is asynchronous: the kernel may still be
+running when the function returns.  When the same tags are used repeatedly,
+build a :cpp:`TagVector` from them once and pass it to :cpp:`ParallelFor`
+instead.  See the `TagParallelFor`_ tutorial.
 
 .. _`TagParallelFor`: https://amrex-codes.github.io/amrex/tutorials_html/Base.html#base-tagparallelfor
 
@@ -1943,12 +1944,27 @@ safe depends on the backend (CUDA and HIP synchronize the whole device
 before releasing memory, SYCL does not), so it must not be relied upon.
 The auxiliary pinned host buffers
 AMReX allocates for a :cpp:`FabArray` are always released in a
-stream-ordered fashion.  Communication functions such as
-:cpp:`FillBoundary` and :cpp:`ParallelCopy` may return with their unpack
-kernels still queued on the stream.  Host code that needs to read the
-results of GPU work must still synchronize explicitly (reductions such as
-:cpp:`MultiFab::sum` do this internally), and so must code that hands GPU
-data to a library that runs on its own stream (e.g., HYPRE).
+stream-ordered fashion.  AMReX functions that launch GPU kernels, including
+communication functions such as :cpp:`FillBoundary` and
+:cpp:`ParallelCopy`, may return with those kernels still queued on the
+stream, reading their sources and writing their destinations.  Host code
+that needs to read the results of GPU work must still synchronize explicitly
+(reductions such as :cpp:`MultiFab::sum` do this internally), and so must
+code that hands GPU data to a library that runs on its own stream (e.g.,
+HYPRE).
+
+.. note::
+
+   Reducing the number of synchronization points is generally desirable,
+   but it does not always make a code faster.  A no-sync region with a
+   single stream gives up the concurrency of multiple streams, so it can be
+   slower than the default of implicit synchronizations with multiple
+   streams.  Measure the performance of your application before switching
+   to a no-sync region with a single stream.  When doing so, keep in mind
+   that GPU kernels are launched asynchronously, so an ordinary host timer
+   may finish before the work launched inside it, and the time shows up
+   wherever the next synchronization happens.  Compare total run times, or
+   use synchronized timers (see :ref:`sec:gpu:profiling`).
 
 .. _sec:gpu:external-streams:
 
@@ -2271,10 +2287,10 @@ As with :cpp:`MultiFab` data, these have been designed to minimize host / device
 take advantage of the GPU-aware MPI implementations available on platforms such as ORNL's Frontier.
 
 
+.. _sec:gpu:profiling:
+
 Profiling with GPUs
 ===================
-
-.. _sec:gpu:profiling:
 
 When profiling for GPUs, AMReX recommends ``nvprof``, NVIDIA's visual
 profiler.  ``nvprof`` returns data on how long each kernel launch lasted on

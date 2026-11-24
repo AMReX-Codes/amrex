@@ -956,4 +956,11 @@ void Arena::ArenaProfiler::profile_free ([[maybe_unused]] void* ptr) {
 }
 /// \endcond
 
+std::pair<std::size_t,std::size_t> detail::arena_bytes () {
+    if (auto* carena = dynamic_cast<CArena*>(The_Arena())) {
+        return {carena->heap_space_actually_used(), carena->heap_space_used()};
+    }
+    return {0, 0};
+}
+
 }

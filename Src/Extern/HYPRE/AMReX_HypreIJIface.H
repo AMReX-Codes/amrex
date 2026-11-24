@@ -187,6 +187,10 @@ private:
     //! Should singular matrix be adjusted to fix solution on a node/cell?
     bool m_adjust_singular_matrix{false};
 
+    //! `<prefix>.atol`: the absolute tolerance a solve falls back to when
+    //! its own is not positive (hypre keeps the last one set otherwise)
+    amrex::Real m_abs_tol_input{0.0};
+
     //! Abort (rather than warn) when hypre flags an error other than non-convergence
     bool m_abort_on_hypre_error{true};
 

@@ -44,21 +44,39 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
             }
         }
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
-        {
-            auto const& fab = m_fa.array(mfi);
-            Box const fbx{fab};
-            AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            // One launch for all boxes.
+            auto const& ma = m_fa.arrays();
+            ParallelFor(m_fa, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                if (domain.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                    fab(i,j,k,n) = bndrydata_not_covered;
-                } else {
-                    fab(i,j,k,n) = bndrydata_outside_domain;
-                }
+                ma[box_no](i,j,k,n) = domain.contains(IntVect(AMREX_D_DECL(i,j,k)))
+                    ? bndrydata_not_covered : bndrydata_outside_domain;
             });
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
+        } else
+#endif
+        {
+            // No tiling: MFIter tile boxes do not follow the face transform of the BoxArray.
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
+            {
+                auto const& fab = m_fa.array(mfi);
+                Box const fbx{fab};
+                AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+                {
+                    if (domain.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        fab(i,j,k,n) = bndrydata_not_covered;
+                    } else {
+                        fab(i,j,k,n) = bndrydata_outside_domain;
+                    }
+                });
+            }
         }
 
         FabArray<Mask> regmf(regba, dm, 1, 0, MFInfo().SetAlloc(false));
@@ -77,17 +95,35 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     const int ncomp = dst.nComp();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(dst.m_fa); mfi.isValid(); ++mfi) {
-        auto const srcfab = src.m_fa.array(mfi);
-        auto       dstfab = dst.m_fa.array(mfi);
-        const Box& bx = dst.m_fa[mfi].box();
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        // One launch for all boxes.
+        auto const& srcma = src.m_fa.const_arrays();
+        auto const& dstma = dst.m_fa.arrays();
+        ParallelFor(dst.m_fa, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            dstfab(i,j,k,n) = srcfab(i,j,k,n);
+            dstma[box_no](i,j,k,n) = srcma[box_no](i,j,k,n);
         });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+        // No tiling, see define.
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(dst.m_fa); mfi.isValid(); ++mfi) {
+            auto const srcfab = src.m_fa.array(mfi);
+            auto       dstfab = dst.m_fa.array(mfi);
+            const Box& bx = dst.m_fa[mfi].box();
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                dstfab(i,j,k,n) = srcfab(i,j,k,n);
+            });
+        }
     }
 }
 

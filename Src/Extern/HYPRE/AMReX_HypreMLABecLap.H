@@ -139,11 +139,36 @@ public:
      * operator (see resetSolverSetup()).  With EB, the boundary condition
      * types and whether setEBDirichlet() was called must not change.
      */
-    void setReuseSolverSetup (bool v) { m_reuse_setup = v; }
+    void setReuseSolverSetup (bool v)
+    {
+        m_reuse_setup = v;
+        if (!v) {
+            // The slots of the in-place updates are of a setup with reuse on
+            // (the hypre solver is made anew anyway); the next setup with
+            // reuse on finds them again
+            m_ij_gather.clear();
+            m_alg_gather.clear();
+            m_alg_row_offset.clear();
+            m_alg_col_index.clear();
+        }
+    }
+    //! With setup reuse, the matrix of a later setup() is scaled to the
+    //! 2-norm of the one the kept setup was done for, and the right-hand side
+    //! with it: a uniform change of the coefficients (by a time step, say)
+    //! leaves the kept setup exact.  The factor of the last setup.
+    [[nodiscard]] Real getMatrixScale () const noexcept { return m_reuse.scale; }
     //! IJ mode with setup reuse (hypre or AlgMG backend): redo the setup at
     //! the next solve when a solve with a reused setup needs more than \p n
     //! iterations (0: never; this is also `<prefix>.reuse_setup_max_iter`)
     void setReuseSetupMaxIter (int n) noexcept { m_reuse_max_iter = n; }
+    //! IJ mode with setup reuse: redo the setup at the next solve when the
+    //! matrix, scaled to the kept setup's, has changed by more than this
+    //! fraction (2-norm) since that setup (0: never; this is also
+    //! `<prefix>.reuse_setup_max_change`).  Keeps a copy of the values of
+    //! every matrix built while it is set.  Set after the matrix was built
+    //! (before or after its solver setup), or after a solve redid the
+    //! setup, the reference is the matrix of the next setup().
+    void setReuseSetupMaxChange (Real f) { m_reuse.setMaxChange(f); }
     //! IJ mode only: redo the solver/preconditioner setup at the next solve
     void resetSolverSetup () {
         if (m_ij_solver) { m_ij_solver->setNeedSetup(); }
@@ -213,14 +238,6 @@ public:
 
     //! Build the device maps of the IJ assembly; public for cuda
     void buildIJMaps ();
-
-    //! Map the assembled triplets to the hypre matrix's value arrays
-    //! (m_ij_gather); public for cuda
-    void buildIJSlots (Gpu::DeviceVector<HYPRE_BigInt> const& rows,
-                       Gpu::DeviceVector<HYPRE_BigInt> const& cols);
-    //! Overwrite the hypre matrix's values with the triplet values
-    //! (m_ij_gather); public for cuda
-    void updateIJValues (Gpu::DeviceVector<Real> const& vals);
 
     //! Solve with the IJ system (see m_use_ij); public for cuda
     void solveIJ (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
@@ -336,6 +353,12 @@ private:
     //! AlgMG backend: the last setup kept the hierarchy
     bool m_algmg_kept = false;
     int m_reuse_max_iter = 0;
+    //! The scaling of a later matrix to the kept setup's (and the change
+    //! check of reuse_setup_max_change)
+    composite::SetupReuse m_reuse;
+    //! EB: this rank's rows that do not depend on the coefficients (1), not
+    //! scaled to a kept setup; empty without EB
+    Gpu::DeviceVector<char> m_fixed_rows;
     Vector<Vector<Long>> m_box_offset;  // first row id of each box, per level
     Long m_ij_lower = 0;
     Long m_ij_upper = -1;
@@ -364,17 +387,8 @@ private:
     Vector<MultiFab> m_eb_beta;
     Vector<MultiFab> m_eb_phi;
     //! With setup reuse, the triplets of later setups are summed directly
-    //! into a matrix's value array, each entry adding its triplets in
-    //! increasing triplet order so that the sums do not depend on thread
-    //! scheduling: the triplets of entry e are trip[offset[e]:offset[e+1]].
-    struct EntryGather
-    {
-        Gpu::DeviceVector<Long> offset;
-        Gpu::DeviceVector<Long> trip;
-        [[nodiscard]] bool empty () const { return offset.empty(); }
-        [[nodiscard]] Long numTriplets () const { return Long(trip.size()); }
-        void clear () { offset.clear(); trip.clear(); }
-    };
+    //! into a matrix's value array (composite::EntryGather)
+    using EntryGather = composite::EntryGather;
     //! Hypre backend: entries of the assembled hypre matrix, diag values
     //! first, then offd values; empty if not built
     EntryGather m_ij_gather;

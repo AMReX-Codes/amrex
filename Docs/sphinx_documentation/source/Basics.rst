@@ -3304,6 +3304,13 @@ to fill the ghost cells on each grid.
         physbcf(mf, 0, mf.nComp(), mf.nGrowVector(), time, 0);
     }
 
+For nodal data, and for face-centered data in 1D, :cpp:`GpuBndryFuncFab` and
+:cpp:`CpuBndryFuncFab` set the ghost values outside the domain to the value on
+the boundary. ``reflect_even``, ``reflect_odd``, ``hoextrap`` and
+``hoextrapcc`` are not applied, and ``reflect_odd`` does not set the boundary
+value to zero. The callable object is called afterwards, so it can still set
+the values for ``ext_dir`` and user-defined boundary types.
+
 
 Masks
 =====

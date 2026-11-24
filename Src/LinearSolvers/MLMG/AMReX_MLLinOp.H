@@ -1686,7 +1686,7 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             if (mg_independent_coarsening) {
                 // A direction that cannot be coarsened gets ratio 1, and one whose
                 // cells are 1.5 times longer than the shortest coarsenable waits.
-                Real hmin = std::numeric_limits<Real>::max();
+                Real hmin = std::numeric_limits<Real>::max() * Real(0.1);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     if (is_coarsenable[idim] && rr_level[idim] > 1) {
                         hmin = std::min(hmin, dx0[idim]*Real(accum_coarsen_ratio.back()[idim]));
@@ -1836,7 +1836,7 @@ MLLinOpT<MF>::defineCoarseMGLevels ()
             if (mg_independent_coarsening) {
                 // A direction that cannot be coarsened gets ratio 1, and one whose
                 // cells are 1.5 times longer than the shortest coarsenable waits.
-                Real hmin = std::numeric_limits<Real>::max();
+                Real hmin = std::numeric_limits<Real>::max() * Real(0.1);
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     if (is_coarsenable[idim] && rr_level[idim] > 1) {
                         hmin = std::min(hmin, dx0[idim]*Real(rr_vec[idim]));
@@ -2403,6 +2403,15 @@ MLLinOpT<MF>::avgDownResMG (int clev, MF& cres, MF const& fres) const
     amrex::ignore_unused(clev, cres, fres);
     if constexpr (amrex::IsFabArray<MF>::value) {
         const int ncomp = this->getNComp();
+        if (!fres.is_cell_centered()) {
+            // Use the operator's restriction, as in the V-cycle. It modifies
+            // the ghost cells of the fine data, so work on a copy.
+            MF tmp(fres.boxArray(), fres.DistributionMap(), ncomp, getNGrowVectRestriction(),
+                   MFInfo().SetArena(The_Async_Arena()), *Factory(0,clev-1));
+            tmp.setBndry(0);
+            amrex::Copy(tmp, fres, 0, 0, ncomp, 0);
+            restriction(0, clev, cres, tmp);
+        } else
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {

@@ -9,6 +9,9 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               bool build_coarse_level_by_coarsening,
                               bool extend_domain_face, int num_coarsen_opt,
                               bool bvh_optimization, bool support_mvmc)
+    : m_stl_file(stl_file), m_stl_scale(stl_scale), m_stl_center(stl_center),
+      m_stl_reverse_normal(stl_reverse_normal), m_bvh_optimization(bvh_optimization),
+      m_extend_domain_face(extend_domain_face), m_num_coarsen_opt(num_coarsen_opt)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
@@ -118,6 +121,30 @@ IndexSpaceSTL::setShift (int direction, int ncells)
     for (int ilev = nlevs-1; ilev >= 0; --ilev) {
         m_stllevel[ilev].setShift(direction, ncells);
         ncells *= 2;
+    }
+}
+
+void
+IndexSpaceSTL::buildAllFCData ()
+{
+    // Do not reread the STL file if there is nothing to build.
+    bool all_tried = true;
+    for (auto const& lev : m_stllevel) {
+        for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+            all_tried = all_tried && lev.triedFCData(face_dir);
+        }
+    }
+    if (all_tried) { return; }
+
+    Gpu::LaunchSafeGuard lsg(true); // Always use GPU
+
+    STLtools stl_tools;
+    stl_tools.setBVHOptimization(m_bvh_optimization);
+    stl_tools.read_stl_file(m_stl_file, m_stl_scale, m_stl_center, m_stl_reverse_normal);
+
+    for (int ilev = 0; ilev < int(m_stllevel.size()); ++ilev) {
+        m_stllevel[ilev].buildFCData(stl_tools, EB2::max_grid_size,
+                                     m_extend_domain_face, m_num_coarsen_opt-ilev);
     }
 }
 

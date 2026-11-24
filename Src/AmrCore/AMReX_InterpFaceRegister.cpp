@@ -156,6 +156,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                                     tag.slope, ncomp, tag.domface, idim);
                 }
             });
+            Gpu::streamSynchronize(); // slopes are temporaries
         } else
 #endif
         {

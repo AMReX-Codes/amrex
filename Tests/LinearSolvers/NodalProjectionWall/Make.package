@@ -1,0 +1,2 @@
+CEXE_sources += main.cpp checks.cpp
+CEXE_headers += NodalProjectionWall.H
