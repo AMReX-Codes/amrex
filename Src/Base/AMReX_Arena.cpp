@@ -56,6 +56,12 @@ namespace {
 #else
     bool the_comms_arena_defragmentation = true;
 #endif
+    // A growing separate comms arena can overflow Cray MPICH's GPU IPC cache on AMD GPUs.
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
+    bool use_separate_comms_arena = false;
+#else
+    bool use_separate_comms_arena = true;
+#endif
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
 
@@ -476,6 +482,7 @@ Arena::Initialize (bool minimal)
     pp.queryAdd("the_managed_arena_defragmentation", the_managed_arena_defragmentation);
     pp.queryAdd( "the_pinned_arena_defragmentation",  the_pinned_arena_defragmentation);
     pp.queryAdd(  "the_comms_arena_defragmentation",   the_comms_arena_defragmentation);
+    pp.queryAdd("use_separate_comms_arena", use_separate_comms_arena);
     pp.queryAdd("the_arena_is_managed", the_arena_is_managed);
     pp.queryAdd("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
@@ -547,7 +554,9 @@ Arena::Initialize (bool minimal)
 
 #ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
-        if (!(the_arena->isDevice()) &&
+        if (!use_separate_comms_arena) {
+            the_comms_arena = the_device_arena;
+        } else if (!(the_arena->isDevice()) &&
             the_device_arena_defragmentation == the_comms_arena_defragmentation)
         {
             the_comms_arena = the_device_arena;
