@@ -828,32 +828,86 @@ MLEBABecLap::prepareForSolve ()
     averageDownCoeffs();
     averageDownEBPhi();
 
+    computeSingular();
+
+    m_needs_update = false;
+}
+
+void
+MLEBABecLap::computeSingular ()
+{
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::ranges::find(m_lobc[0], BCType::Dirichlet);
-    auto ithi = std::ranges::find(m_hibc[0], BCType::Dirichlet);
-    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end() && !isEBDirichlet())
-    {  // No Dirichlet
-        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+    if (isEBDirichlet()) { return; }
+    for (int alev = 0; alev < m_num_amr_levels; ++alev)
+    {
+        // For now this assumes that overset regions are treated as Dirichlet bc's
+        if (m_domain_covered[alev] && !m_overset_mask[alev][0] &&
+            !hasActiveDirichletBoundary(alev))
         {
-            // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
+            if (m_a_scalar == 0.0)
             {
-                if (m_a_scalar == 0.0)
-                {
-                    m_is_singular[alev] = true;
-                }
-                else
-                {
-                    Real asum = m_a_coeffs[alev].back().sum();
-                    Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
-                }
+                m_is_singular[alev] = true;
+            }
+            else
+            {
+                Real asum = m_a_coeffs[alev].back().sum();
+                Real amax = m_a_coeffs[alev].back().norm0();
+                m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
             }
         }
     }
+}
 
-    m_needs_update = false;
+bool
+MLEBABecLap::hasActiveDirichletBoundary (int amrlev) const
+{
+    // The Dirichlet faces of the domain, as (direction, nodal face box)
+    const int mglev = 0;
+    const Box& domain = m_geom[amrlev][mglev].Domain();
+    Vector<std::pair<int,Box>> dirichlet_faces;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_lobc[0][idim] == BCType::Dirichlet) {
+            dirichlet_faces.emplace_back(idim, amrex::bdryLo(domain, idim));
+        }
+        if (m_hibc[0][idim] == BCType::Dirichlet) {
+            dirichlet_faces.emplace_back(idim, amrex::bdryHi(domain, idim));
+        }
+    }
+    if (dirichlet_faces.empty()) { return false; }
+
+    // A Dirichlet face only constrains the solution where it is open to the
+    // fluid: the EB operator couples to it through the face's area fraction
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    if (factory == nullptr || factory->isAllRegular()) { return true; }
+    const FabArray<EBCellFlagFab>& flags = factory->getMultiEBCellFlagFab();
+    const auto area = factory->getAreaFrac();
+
+    int active = 0;
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<int> reduce_data(reduce_op);
+    for (MFIter mfi(flags); mfi.isValid(); ++mfi) {
+        const Box& vbx = mfi.validbox();
+        const FabType t = flags[mfi].getType(vbx);
+        if (t == FabType::covered) { continue; }
+        for (auto const& [idim, face] : dirichlet_faces) {
+            Box const b = amrex::surroundingNodes(vbx, idim) & face;
+            if (!b.ok()) { continue; }
+            if (t == FabType::regular) {
+                active = 1;
+            } else {
+                auto const& ap = area[idim]->const_array(mfi);
+                reduce_op.eval(b, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> GpuTuple<int>
+                {
+                    return {ap(i,j,k) > Real(0.0) ? 1 : 0};
+                });
+            }
+        }
+    }
+    active = std::max(active, amrex::get<0>(reduce_data.value(reduce_op)));
+    ParallelAllReduce::Max(active, ParallelContext::CommunicatorSub());
+    return active != 0;
 }
 
 void
@@ -1467,30 +1521,7 @@ MLEBABecLap::update ()
     averageDownCoeffs();
     averageDownEBPhi();
 
-    m_is_singular.clear();
-    m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::ranges::find(m_lobc[0], BCType::Dirichlet);
-    auto ithi = std::ranges::find(m_hibc[0], BCType::Dirichlet);
-    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end() && !isEBDirichlet())
-    {  // No Dirichlet
-        for (int alev = 0; alev < m_num_amr_levels; ++alev)
-        {
-            // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
-            {
-                if (m_a_scalar == 0.0)
-                {
-                    m_is_singular[alev] = true;
-                }
-                else
-                {
-                    Real asum = m_a_coeffs[alev].back().sum();
-                    Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
-                }
-            }
-        }
-    }
+    computeSingular();
 
     m_needs_update = false;
 }

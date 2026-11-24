@@ -1,0 +1,23 @@
+# Dirichlet domain walls that the EB covers completely: the fluid is inside
+# an off-center sphere, the EB is homogeneous Neumann and a = 0, so the
+# problem is singular although the domain BCs are Dirichlet.  The rhs is
+# not compatible with the boundary conditions, so the solve converges only
+# if MLEBABecLap detects the singularity and makes the problem solvable.
+amrex.fpe_trap_invalid = 1
+
+reltol = 1.e-12
+verbose = 1
+bottom_verbose = 0
+
+prob_type = 1
+eb_neumann = 1
+domain_bc = dirichlet
+
+max_level = 0
+n_cell = 64
+max_grid_size = 32
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.42 0.47 0.5
+eb2.sphere_radius = 0.33
+eb2.sphere_has_fluid_inside = 1
