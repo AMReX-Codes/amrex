@@ -4,7 +4,9 @@
 // Redistribute that moves particles between boxes (and processes, with MPI). It also
 // checks that a container still finds its components by name after it is moved, and
 // that a container with a PolymorphicArenaAllocator can create tiles before its arena
-// is set.
+// is set. Finally, it checks that a level still sets up new tiles after an empty level
+// is swapped or assigned into it, and that components can be added after tiles were
+// created before the arena is set.
 #include <AMReX.H>
 #include <AMReX_Particles.H>
 #include <AMReX_Print.H>
@@ -131,9 +133,55 @@ Long checkRuntimeComps (PC& pc)
     return result[0];
 }
 
+//! Check that a tile created in level 0 of pc has all the components of pc.
+template <class PC>
+void checkIndexedTile (PC& pc)
+{
+    auto& pmap = pc.GetParticles(0);
+    auto const key = std::make_pair(0, -1);
+    auto& ptile = pmap[key];
+    AMREX_ALWAYS_ASSERT(ptile.NumRealComps() == pc.NumRealComps());
+    AMREX_ALWAYS_ASSERT(ptile.NumIntComps() == pc.NumIntComps());
+    pmap.erase(key);
+}
+
+//! Swapping or assigning an empty level into a level of a container must not stop
+//! the level from setting up new tiles. Adding components after tiles were created,
+//! before the arena of a PolymorphicArenaAllocator container is set, must work too.
+template <class PC>
+void checkLevelSetup (Arena* arena)
+{
+    Geometry const geom = makeGeom();
+    BoxArray ba(geom.Domain());
+    ba.maxSize(8);
+    DistributionMapping const dm(ba);
+
+    PC pc(geom, dm, ba);
+    pc.AddRealComp("runtime_real_0");
+
+    // a tile created before the arena is set, then more components
+    auto const key = std::make_pair(0, -1);
+    pc.GetParticles(0)[key].resize(3);
+    pc.AddRealComp("runtime_real_1");
+    pc.AddIntComp("runtime_int_0");
+    AMREX_ALWAYS_ASSERT(pc.GetParticles(0)[key].NumRealComps() == pc.NumRealComps());
+    AMREX_ALWAYS_ASSERT(pc.GetParticles(0)[key].NumIntComps() == pc.NumIntComps());
+    pc.GetParticles(0).clear();
+    if (arena != nullptr) { pc.SetArena(arena); }
+
+    using Level = typename PC::ParticleLevel;
+    Level().swap(pc.GetParticles(0));
+    checkIndexedTile(pc);
+
+    pc.GetParticles(0) = Level{};
+    checkIndexedTile(pc);
+}
+
 template <class PC>
 void run (std::string const& name, Arena* arena = nullptr)
 {
+    checkLevelSetup<PC>(arena);
+
     Geometry const geom = makeGeom();
     BoxArray ba(geom.Domain());
     ba.maxSize(8);

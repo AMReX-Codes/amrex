@@ -2149,8 +2149,9 @@ DefineAllTilesForRuntimeComps (bool resize_soa)
     for (auto& pmap : m_particles) {
         for (auto& kv : pmap) {
             auto& tile = kv.second;
-            tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
-                        &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names, arena());
+            // Like a tile the map creates, a tile with a PolymorphicArenaAllocator
+            // only gets its components until the arena is set.
+            defineParticleTile(tile, tileConfig());
             auto np = tile.numParticles();
             if (resize_soa && np > 0) {
                 auto& soa = tile.GetStructOfArrays();

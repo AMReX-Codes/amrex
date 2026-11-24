@@ -37,6 +37,37 @@ struct ParticleTileConfig
 };
 
 /**
+ * \brief Give tile all the components in a_config, including the ones added at runtime.
+ *
+ * For a tile with a PolymorphicArenaAllocator, the tile also gets the arena in a_config
+ * if it has been set; otherwise only its components are set up. A ParticleTileRT
+ * cannot be defined without an arena, so it is left as it is until the arena is set.
+ */
+template <class Tile>
+void defineParticleTile (Tile& tile, ParticleTileConfig& c)
+{
+    if constexpr (Tile::ParticleType::is_rtsoa_particle) {
+        // a ParticleTileRT needs its arena when it is defined
+        if (c.arena != nullptr) {
+            tile.define(c.num_runtime_real, c.num_runtime_int,
+                        &c.soa_rdata_names, &c.soa_idata_names, c.arena);
+        }
+    } else if constexpr (Tile::has_polymorphic_allocator) {
+        if (c.arena != nullptr) {
+            tile.define(c.num_runtime_real, c.num_runtime_int,
+                        &c.soa_rdata_names, &c.soa_idata_names, c.arena);
+        } else {
+            // add the components now; the arena is set when the tile is defined
+            tile.defineComponents(c.num_runtime_real, c.num_runtime_int,
+                                  &c.soa_rdata_names, &c.soa_idata_names);
+        }
+    } else {
+        tile.define(c.num_runtime_real, c.num_runtime_int,
+                    &c.soa_rdata_names, &c.soa_idata_names);
+    }
+}
+
+/**
  * \brief The allocator of a ParticleLevel. It allocates memory like std::allocator,
  *        and sets up the particle tiles that the map creates without being given one.
  *
@@ -45,8 +76,11 @@ struct ParticleTileConfig
  * components in the ParticleTileConfig the allocator holds, including the ones added
  * at runtime. Tiles that are copied or moved into the map are left as they are.
  *
- * A copy of a ParticleLevel, and a ParticleLevel it is assigned or swapped to, share
- * its configuration.
+ * A copy of a ParticleLevel shares its configuration, and assigning or swapping a
+ * ParticleLevel passes its configuration along. A ParticleLevel without a configuration,
+ * such as a default-constructed one, never removes the configuration of the level it
+ * is assigned or swapped to, so ParticleLevel().swap(pmap) and pmap = ParticleLevel{}
+ * leave pmap able to set up new tiles.
  */
 template <class T, class Tile>
 class ParticleLevelAllocator // NOLINT(cppcoreguidelines-special-member-functions): moves copy on purpose
@@ -71,8 +105,18 @@ public:
     // Copy the config instead of moving it, so that a map that is moved from can
     // still create tiles. The move operations are not declared, so moves use these.
     ParticleLevelAllocator (ParticleLevelAllocator const&) noexcept = default;
-    ParticleLevelAllocator& operator= (ParticleLevelAllocator const&) noexcept = default;
     ~ParticleLevelAllocator () = default;
+
+    // std::map assigns allocators when it is assigned or swapped. Keep the config
+    // if the other allocator has none, so that assigning or swapping in an empty
+    // map does not stop this map from setting up its tiles.
+    ParticleLevelAllocator& operator= (ParticleLevelAllocator const& other) noexcept
+    {
+        if (this != &other && other.m_config) {
+            m_config = other.m_config;
+        }
+        return *this;
+    }
 
     template <class U>
     ParticleLevelAllocator (ParticleLevelAllocator<U, Tile> const& other) noexcept // NOLINT(google-explicit-constructor)
@@ -129,26 +173,7 @@ private:
 
     void defineTile (Tile& tile) const
     {
-        auto& c = *m_config;
-        if constexpr (Tile::ParticleType::is_rtsoa_particle) {
-            // a ParticleTileRT needs its arena when it is defined
-            if (c.arena != nullptr) {
-                tile.define(c.num_runtime_real, c.num_runtime_int,
-                            &c.soa_rdata_names, &c.soa_idata_names, c.arena);
-            }
-        } else if constexpr (Tile::has_polymorphic_allocator) {
-            if (c.arena != nullptr) {
-                tile.define(c.num_runtime_real, c.num_runtime_int,
-                            &c.soa_rdata_names, &c.soa_idata_names, c.arena);
-            } else {
-                // add the components now; the arena is set when the tile is defined
-                tile.defineComponents(c.num_runtime_real, c.num_runtime_int,
-                                      &c.soa_rdata_names, &c.soa_idata_names);
-            }
-        } else {
-            tile.define(c.num_runtime_real, c.num_runtime_int,
-                        &c.soa_rdata_names, &c.soa_idata_names);
-        }
+        defineParticleTile(tile, *m_config);
     }
 
     std::shared_ptr<ParticleTileConfig> m_config;
