@@ -2150,7 +2150,7 @@ DefineAllTilesForRuntimeComps (bool resize_soa)
         for (auto& kv : pmap) {
             auto& tile = kv.second;
             tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
-                        &m_soa_rdata_names, &m_soa_idata_names, arena());
+                        &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names, arena());
             auto np = tile.numParticles();
             if (resize_soa && np > 0) {
                 auto& soa = tile.GetStructOfArrays();
@@ -2170,13 +2170,13 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
         "ResizeRuntimeRealComp: the new number of runtime components must not be negative");
 
     int old_size = tileConfig().num_runtime_real;
-    AMREX_ASSERT(int(m_soa_rdata_names.size()) == NArrayReal + old_size);
+    AMREX_ASSERT(int(tileConfig().soa_rdata_names.size()) == NArrayReal + old_size);
 
     // Keep the component names in sync with the number of components. New
     // components get the same default names that AddRealComp() uses. Build the
     // list first, so that a name clash leaves the container unchanged.
-    std::vector<std::string> new_names(m_soa_rdata_names.begin(),
-                                       m_soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
+    std::vector<std::string> new_names(tileConfig().soa_rdata_names.begin(),
+                                       tileConfig().soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
     for (int i = old_size; i < new_size; ++i) {
         auto name = getDefaultCompNameReal<ParticleType>(NArrayReal + i);
         if (std::ranges::find(new_names, name) != new_names.end()) {
@@ -2185,10 +2185,10 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
         }
         new_names.push_back(std::move(name));
     }
-    m_soa_rdata_names = std::move(new_names);
+    tileConfig().soa_rdata_names = std::move(new_names);
 
     tileConfig().num_runtime_real = new_size;
-    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+    m_runtime_comps_defined = (NumRuntimeRealComps() > 0 || NumRuntimeIntComps() > 0);
 
     int cur_size = h_redistribute_real_comp.size();
     h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
@@ -2207,13 +2207,13 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
         "ResizeRuntimeIntComp: the new number of runtime components must not be negative");
 
     int old_size = tileConfig().num_runtime_int;
-    AMREX_ASSERT(int(m_soa_idata_names.size()) == NArrayInt + old_size);
+    AMREX_ASSERT(int(tileConfig().soa_idata_names.size()) == NArrayInt + old_size);
 
     // Keep the component names in sync with the number of components. New
     // components get the same default names that AddIntComp() uses. Build the
     // list first, so that a name clash leaves the container unchanged.
-    std::vector<std::string> new_names(m_soa_idata_names.begin(),
-                                       m_soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
+    std::vector<std::string> new_names(tileConfig().soa_idata_names.begin(),
+                                       tileConfig().soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
     for (int i = old_size; i < new_size; ++i) {
         auto name = getDefaultCompNameInt<ParticleType>(NArrayInt + i);
         if (std::ranges::find(new_names, name) != new_names.end()) {
@@ -2222,10 +2222,10 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
         }
         new_names.push_back(std::move(name));
     }
-    m_soa_idata_names = std::move(new_names);
+    tileConfig().soa_idata_names = std::move(new_names);
 
     tileConfig().num_runtime_int = new_size;
-    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+    m_runtime_comps_defined = (NumRuntimeRealComps() > 0 || NumRuntimeIntComps() > 0);
 
     int cur_size = h_redistribute_int_comp.size();
     h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);
