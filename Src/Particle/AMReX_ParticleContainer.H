@@ -198,7 +198,7 @@ public:
 
     //! A single level worth of particles is indexed (grid id, tile id)
     //! for both SoA and AoS data.
-    using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    using ParticleLevel = ParticleLevelMap<ParticleTileType>;
     using PTDType = typename ParticleTileType::ParticleTileDataType;
     using ConstPTDType = typename ParticleTileType::ConstParticleTileDataType;
     using AoS = typename ParticleTileType::AoS;
@@ -1202,7 +1202,7 @@ public:
     {
         m_particles[lev][std::make_pair(grid, tile)].define(
             NumRuntimeRealComps(), NumRuntimeIntComps(),
-            &m_soa_rdata_names, &m_soa_idata_names,
+            &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names,
             arena()
         );
         return ParticlesAt(lev, grid, tile);
@@ -1235,7 +1235,7 @@ public:
         auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
         m_particles[lev][index].define(
             NumRuntimeRealComps(), NumRuntimeIntComps(),
-            &m_soa_rdata_names, &m_soa_idata_names,
+            &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names,
             arena()
         );
         return ParticlesAt(lev, iter);
@@ -1330,14 +1330,14 @@ public:
     void AddRealComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::ranges::find(m_soa_rdata_names, name);
-        if (it != m_soa_rdata_names.end()) {
+        auto const it = std::ranges::find(tileConfig().soa_rdata_names, name);
+        if (it != tileConfig().soa_rdata_names.end()) {
             throw std::runtime_error("AddRealComp: name '" + name + "' is already present in the SoA.");
         }
-        m_soa_rdata_names.push_back(name);
+        tileConfig().soa_rdata_names.push_back(name);
 
         m_runtime_comps_defined = true;
-        m_num_runtime_real++;
+        tileConfig().num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
         this->resizeData();
@@ -1346,20 +1346,20 @@ public:
 
     void AddRealComp (int communicate=1)
     {
-        AddRealComp(getDefaultCompNameReal<ParticleType>(NArrayReal+m_num_runtime_real), communicate);
+        AddRealComp(getDefaultCompNameReal<ParticleType>(NArrayReal+tileConfig().num_runtime_real), communicate);
     }
 
     void AddIntComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::ranges::find(m_soa_idata_names, name);
-        if (it != m_soa_idata_names.end()) {
+        auto const it = std::ranges::find(tileConfig().soa_idata_names, name);
+        if (it != tileConfig().soa_idata_names.end()) {
             throw std::runtime_error("AddIntComp: name '" + name + "' is already present in the SoA.");
         }
-        m_soa_idata_names.push_back(name);
+        tileConfig().soa_idata_names.push_back(name);
 
         m_runtime_comps_defined = true;
-        m_num_runtime_int++;
+        tileConfig().num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
         this->resizeData();
@@ -1368,11 +1368,11 @@ public:
 
     void AddIntComp (int communicate=1)
     {
-        AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+m_num_runtime_int), communicate);
+        AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+tileConfig().num_runtime_int), communicate);
     }
 
-    int NumRuntimeRealComps () const { return m_num_runtime_real; }
-    int NumRuntimeIntComps  () const { return m_num_runtime_int;  }
+    int NumRuntimeRealComps () const { return tileConfig().num_runtime_real; }
+    int NumRuntimeIntComps  () const { return tileConfig().num_runtime_int;  }
 
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
@@ -1524,10 +1524,10 @@ public: // NOLINT(readability-redundant-access-specifiers)
     void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
 
     /** Get the names for the real SoA components **/
-    std::vector<std::string> GetRealSoANames () const {return m_soa_rdata_names;}
+    std::vector<std::string> GetRealSoANames () const {return tileConfig().soa_rdata_names;}
 
     /** Get the names for the int SoA components **/
-    std::vector<std::string> GetIntSoANames () const {return m_soa_idata_names;}
+    std::vector<std::string> GetIntSoANames () const {return tileConfig().soa_idata_names;}
 
     /** Check if a container has a ParticleReal component
      *
@@ -1637,16 +1637,19 @@ private:
     void DefineAllTilesForRuntimeComps (bool resize_soa);
 
     bool m_runtime_comps_defined{false};
-    int m_num_runtime_real{0};
-    int m_num_runtime_int{0};
 
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
 
-    // names of both compile-time and runtime Real and Int SoA data
-    std::vector<std::string> m_soa_rdata_names;
-    std::vector<std::string> m_soa_idata_names;
+    //! Resize m_particles to nlevs levels, which create their tiles with all the
+    //! components of this container.
+    void resizeParticleLevels (int nlevs)
+    {
+        tileConfig(); // makes sure there is one
+        m_particles.resize(nlevs);
+        for (auto& pmap : m_particles) { setParticleLevelConfig(pmap, m_tile_config); }
+    }
 };
 
 /// \ingroup amrex_particles

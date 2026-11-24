@@ -306,6 +306,9 @@ conditions for both SoA and AoS data. We loop over all the tiles using
 tile with :cpp:`DefineAndReturnParticleTile`, which creates the tile if it
 does not exist yet and sets it up for every component of the container,
 including any :ref:`components added at runtime <sec:Particles:Runtime>`.
+Indexing the map of tiles returned by :cpp:`GetParticles`, for example
+:cpp:`GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())]`,
+creates and sets up a tile in the same way.
 
 .. highlight:: c++
 
@@ -401,13 +404,28 @@ get the same default names as :cpp:`AddRealComp()` and :cpp:`AddIntComp()`
 names is already in use. Shrinking removes the last runtime components together
 with their names.
 
-When you add particles to a container that has runtime components, get each
-tile with :cpp:`DefineAndReturnParticleTile` before adding any particles, as in
-the section on :ref:`initializing particle data <sec:Particles:Initializing>`.
-This makes sure the tile has storage for the runtime components. Do not create
-tiles by indexing the map returned by :cpp:`GetParticles` (for example,
-:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`): a tile created this way
-has no runtime components.
+A tile created with :cpp:`DefineAndReturnParticleTile`, or by indexing the map
+returned by :cpp:`GetParticles` (for example,
+:cpp:`GetParticles(lev)[std::make_pair(grid, tile)]`, or
+:cpp:`GetParticles(lev).try_emplace(key)`), has storage for all the runtime
+components that have been added to the container, as in the section on
+:ref:`initializing particle data <sec:Particles:Initializing>`. A tile added to
+that map from an existing tile, for example with :cpp:`insert` or
+:cpp:`emplace`, is added as it is given.
+
+The map of tiles of a level is a :cpp:`std::map` with an allocator that sets up
+the tiles it creates. Its type is :cpp:`ParticleContainer::ParticleLevel`. Refer
+to it by that name or with :cpp:`auto`, not as
+:cpp:`std::map<std::pair<int,int>, ParticleTileType>`, which is a different
+type.
+
+For a container with a :cpp:`PolymorphicArenaAllocator`, a tile created by
+indexing the map before :cpp:`SetArena` has been called gets its components,
+but uses the container's arena only once it is defined with it, for example by
+:cpp:`DefineAndReturnParticleTile` or :cpp:`Redistribute`. The exception is a
+:cpp:`ParticleContainerRTSoA`: a tile created by indexing its map before
+:cpp:`SetArena` has been called has no components at all, so call
+:cpp:`SetArena` before creating any tiles.
 
 Every component of a tile must hold one value per particle. :cpp:`push_back(p)`
 and the array overloads of :cpp:`push_back_real` and :cpp:`push_back_int` only

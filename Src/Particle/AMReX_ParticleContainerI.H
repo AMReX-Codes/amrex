@@ -61,15 +61,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     SetParticleSize();
 
     // add default names for SoA Real and Int compile-time arguments
-    m_soa_rdata_names.clear();
+    tileConfig().soa_rdata_names.clear();
     for (int i=0; i<NArrayReal; ++i)
     {
-        m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+        tileConfig().soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
-    m_soa_idata_names.clear();
+    tileConfig().soa_idata_names.clear();
     for (int i=0; i<NArrayInt; ++i)
     {
-        m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+        tileConfig().soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
@@ -110,11 +110,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     for (int i=0; i<NArrayReal; ++i)
     {
-        m_soa_rdata_names.at(i) = rdata_name.at(i);
+        tileConfig().soa_rdata_names.at(i) = rdata_name.at(i);
     }
     for (int i=0; i<NArrayInt; ++i)
     {
-        m_soa_idata_names.at(i) = idata_name.at(i);
+        tileConfig().soa_idata_names.at(i) = idata_name.at(i);
     }
 }
 
@@ -128,7 +128,7 @@ template<
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasRealComp (std::string const & name)
 {
-    return std::ranges::find(m_soa_rdata_names, name) != std::end(m_soa_rdata_names);
+    return std::ranges::find(tileConfig().soa_rdata_names, name) != std::end(tileConfig().soa_rdata_names);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -136,7 +136,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasIntComp (std::string const & name)
 {
-    return std::ranges::find(m_soa_idata_names, name) != std::end(m_soa_idata_names);
+    return std::ranges::find(tileConfig().soa_idata_names, name) != std::end(tileConfig().soa_idata_names);
 }
 
 template<
@@ -149,15 +149,15 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetRealCompIndex (std::string const & name)
 {
-    const auto it = std::ranges::find(m_soa_rdata_names, name);
+    const auto it = std::ranges::find(tileConfig().soa_rdata_names, name);
 
-    if (it == m_soa_rdata_names.end())
+    if (it == tileConfig().soa_rdata_names.end())
     {
         throw std::runtime_error("GetRealCompIndex: Component " + name + " does not exist!");
     }
     else
     {
-        return std::distance(m_soa_rdata_names.begin(), it);
+        return std::distance(tileConfig().soa_rdata_names.begin(), it);
     }
 }
 
@@ -171,15 +171,15 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetIntCompIndex (std::string const & name)
 {
-    const auto it = std::ranges::find(m_soa_idata_names, name);
+    const auto it = std::ranges::find(tileConfig().soa_idata_names, name);
 
-    if (it == m_soa_idata_names.end())
+    if (it == tileConfig().soa_idata_names.end())
     {
         throw std::runtime_error("GetIntCompIndex: Component " + name + " does not exist!");
     }
     else
     {
-        return std::distance(m_soa_idata_names.begin(), it);
+        return std::distance(tileConfig().soa_idata_names.begin(), it);
     }
 }
 
@@ -441,7 +441,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     this->ParticleContainerBase::resizeData();
     int nlevs = std::max(0, finestLevel()+1);
-    m_particles.resize(nlevs);
+    resizeParticleLevels(nlevs);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -784,7 +784,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (!this->m_particles[level].empty())
     {
-        ParticleLevel().swap(this->m_particles[level]);
+        this->m_particles[level].clear();
     }
 }
 
@@ -805,7 +805,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
               const auto& pbx = kv.second;
               cnt += pbx.numParticles();
           }
-          ParticleLevel().swap(pmap);
+          pmap.clear();
       }
   }
 
@@ -1289,8 +1289,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         amrex::ReorderParticles(ptile, permutations);
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
-            &m_soa_rdata_names, &m_soa_idata_names, arena());
+        ptile_tmp.define(tileConfig().num_runtime_real, tileConfig().num_runtime_int,
+            &tileConfig().soa_rdata_names, &tileConfig().soa_idata_names, arena());
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1597,7 +1597,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                            << m_particles.size() << " to "
                            << theEffectiveFinestLevel + 1 << '\n';
         }
-        m_particles.resize(theEffectiveFinestLevel+1);
+        resizeParticleLevels(theEffectiveFinestLevel+1);
         m_dummy_mf.resize(theEffectiveFinestLevel+1);
     }
 
@@ -1856,7 +1856,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
         AMREX_ASSERT(std::ssize(m_particles) >= 2);
 
-        m_particles.resize(theEffectiveFinestLevel + 1);
+        resizeParticleLevels(theEffectiveFinestLevel + 1);
         m_dummy_mf.resize(theEffectiveFinestLevel + 1);
     }
 
@@ -1978,7 +1978,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                            << " to "
                            << level+1 << '\n';
         }
-        m_particles.resize(level+1);
+        resizeParticleLevels(level+1);
         m_dummy_mf.resize(level+1);
         for (int lev = 0; lev < level+1; ++lev) {
             RedefineDummyMF(lev);
@@ -2149,8 +2149,9 @@ DefineAllTilesForRuntimeComps (bool resize_soa)
     for (auto& pmap : m_particles) {
         for (auto& kv : pmap) {
             auto& tile = kv.second;
-            tile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
-                        &m_soa_rdata_names, &m_soa_idata_names, arena());
+            // Like a tile the map creates, a tile with a PolymorphicArenaAllocator
+            // only gets its components until the arena is set.
+            defineParticleTile(tile, tileConfig());
             auto np = tile.numParticles();
             if (resize_soa && np > 0) {
                 auto& soa = tile.GetStructOfArrays();
@@ -2169,14 +2170,14 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
         "ResizeRuntimeRealComp: the new number of runtime components must not be negative");
 
-    int old_size = m_num_runtime_real;
-    AMREX_ASSERT(int(m_soa_rdata_names.size()) == NArrayReal + old_size);
+    int old_size = tileConfig().num_runtime_real;
+    AMREX_ASSERT(int(tileConfig().soa_rdata_names.size()) == NArrayReal + old_size);
 
     // Keep the component names in sync with the number of components. New
     // components get the same default names that AddRealComp() uses. Build the
     // list first, so that a name clash leaves the container unchanged.
-    std::vector<std::string> new_names(m_soa_rdata_names.begin(),
-                                       m_soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
+    std::vector<std::string> new_names(tileConfig().soa_rdata_names.begin(),
+                                       tileConfig().soa_rdata_names.begin() + NArrayReal + std::min(old_size, new_size));
     for (int i = old_size; i < new_size; ++i) {
         auto name = getDefaultCompNameReal<ParticleType>(NArrayReal + i);
         if (std::ranges::find(new_names, name) != new_names.end()) {
@@ -2185,10 +2186,10 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
         }
         new_names.push_back(std::move(name));
     }
-    m_soa_rdata_names = std::move(new_names);
+    tileConfig().soa_rdata_names = std::move(new_names);
 
-    m_num_runtime_real = new_size;
-    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+    tileConfig().num_runtime_real = new_size;
+    m_runtime_comps_defined = (NumRuntimeRealComps() > 0 || NumRuntimeIntComps() > 0);
 
     int cur_size = h_redistribute_real_comp.size();
     h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
@@ -2206,14 +2207,14 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(new_size >= 0,
         "ResizeRuntimeIntComp: the new number of runtime components must not be negative");
 
-    int old_size = m_num_runtime_int;
-    AMREX_ASSERT(int(m_soa_idata_names.size()) == NArrayInt + old_size);
+    int old_size = tileConfig().num_runtime_int;
+    AMREX_ASSERT(int(tileConfig().soa_idata_names.size()) == NArrayInt + old_size);
 
     // Keep the component names in sync with the number of components. New
     // components get the same default names that AddIntComp() uses. Build the
     // list first, so that a name clash leaves the container unchanged.
-    std::vector<std::string> new_names(m_soa_idata_names.begin(),
-                                       m_soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
+    std::vector<std::string> new_names(tileConfig().soa_idata_names.begin(),
+                                       tileConfig().soa_idata_names.begin() + NArrayInt + std::min(old_size, new_size));
     for (int i = old_size; i < new_size; ++i) {
         auto name = getDefaultCompNameInt<ParticleType>(NArrayInt + i);
         if (std::ranges::find(new_names, name) != new_names.end()) {
@@ -2222,10 +2223,10 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
         }
         new_names.push_back(std::move(name));
     }
-    m_soa_idata_names = std::move(new_names);
+    tileConfig().soa_idata_names = std::move(new_names);
 
-    m_num_runtime_int = new_size;
-    m_runtime_comps_defined = (m_num_runtime_real > 0 || m_num_runtime_int > 0);
+    tileConfig().num_runtime_int = new_size;
+    m_runtime_comps_defined = (NumRuntimeRealComps() > 0 || NumRuntimeIntComps() > 0);
 
     int cur_size = h_redistribute_int_comp.size();
     h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);

@@ -807,6 +807,31 @@ struct ParticleTile
     ParticleTile& operator= (ParticleTile &&) noexcept = default;
 #endif
 
+    /**
+     * \brief Give the tile a_num_runtime_real Real and a_num_runtime_int int runtime
+     *        components, and set the names of its SoA components.
+     *
+     * This is what define() does, except that it does not set the memory arena of a
+     * tile with a PolymorphicArenaAllocator. Such a tile must still be defined with
+     * its arena before it is used.
+     */
+    void defineComponents (
+        int a_num_runtime_real,
+        int a_num_runtime_int,
+        std::vector<std::string>* soa_rdata_names=nullptr,
+        std::vector<std::string>* soa_idata_names=nullptr
+    )
+    {
+        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
+
+        m_runtime_r_ptrs.resize(a_num_runtime_real);
+        m_runtime_i_ptrs.resize(a_num_runtime_int);
+        m_runtime_r_cptrs.resize(a_num_runtime_real);
+        m_runtime_i_cptrs.resize(a_num_runtime_int);
+
+        invalidateRuntimePtrCaches();
+    }
+
     void define (
         int a_num_runtime_real,
         int a_num_runtime_int,
@@ -815,7 +840,7 @@ struct ParticleTile
         Arena* a_arena=nullptr
     )
     {
-        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
+        defineComponents(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
 
         if constexpr (has_polymorphic_allocator) {
             if (m_defined) {
@@ -879,13 +904,7 @@ struct ParticleTile
             set_arena(m_runtime_i_cptrs);
         }
 
-        m_runtime_r_ptrs.resize(a_num_runtime_real);
-        m_runtime_i_ptrs.resize(a_num_runtime_int);
-        m_runtime_r_cptrs.resize(a_num_runtime_real);
-        m_runtime_i_cptrs.resize(a_num_runtime_int);
-
         m_defined = true;
-        invalidateRuntimePtrCaches();
     }
 
     // Get id data
