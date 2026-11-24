@@ -1,0 +1,16 @@
+amrex.fpe_trap_invalid = 1
+
+# EB Dirichlet wall crossing the Dirichlet y-lo face; the bottom solves the
+# whole level. Run with use_hypre=1 or use_algmg_bottom=1 on the command line.
+# The bottom matches the operator, so MLMG needs only a few iterations.
+max_iter = 4
+eb_is_dirichlet = 1
+n_cell = 64
+max_grid_size = 32
+max_coarsening_level = 0
+bottom_reltol = 1.e-10
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.5  0.1
+eb2.sphere_radius = 0.25
+eb2.sphere_has_fluid_inside = 0

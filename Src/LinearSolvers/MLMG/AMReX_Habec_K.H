@@ -83,6 +83,77 @@ namespace amrex::detail {
             AMREX_ASSERT_WITH_MESSAGE(false,"hpmat: unsupported boundary type");
         }
     }
+
+#if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
+    // Subtracts f*fb from the entry of cell iv+o in the 3^D EB stencil of cell iv.
+    // A cell off the grids is replaced by its ghost fill in MLEBABecLap::applyBC
+    // (homogeneous); a cell that fill leaves unset is dropped.
+    template <typename AlgInt>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void habec_eb_sub (Real* sten, IntVect const& iv, IntVect const& o, Real f, Real fb,
+                       Box const& vbx, Array4<AlgInt const> const& cell_id,
+                       GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& ap,
+                       GpuArray<int,AMREX_SPACEDIM*2> const& bctype,
+                       GpuArray<Real,AMREX_SPACEDIM*2> const& bcl,
+                       GpuArray<Real,AMREX_SPACEDIM> const& dx, int bho)
+    {
+        IntVect const g = iv + o;
+        if (cell_id(g) >= 0) {
+            sten[AMREX_D_TERM((o[0]+1), +3*(o[1]+1), +9*(o[2]+1))] -= f*fb;
+            return;
+        }
+        // g has no row, so it is taken as off the grids. A cell of a fully covered
+        // box also has no row, but the EB stencil reaches one only from a multi-cut
+        // cell, which EB2::Build rejects.
+        // As in applyBC, the last direction whose inner cell is on the grids fills g.
+        int fd = -1;
+        int n = 0;
+        Real c[3] = {};
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if ((g[d] >= vbx.smallEnd(d)) && (g[d] <= vbx.bigEnd(d))) { continue; }
+            int const s = -o[d]; // into the box
+            IntVect const ed = IntVect::TheDimensionVector(d);
+            if (cell_id(g+s*ed) < 0) { continue; }
+            Orientation const face(d, (s > 0) ? Orientation::low : Orientation::high);
+            fd = d;
+            c[1] = Real(1.0);
+            n = 2;
+            if (bctype[face] == AMREX_LO_REFLECT_ODD) {
+                c[1] = Real(-1.0);
+            } else if (bctype[face] != AMREX_LO_NEUMANN) {
+                // Dirichlet: a covered face along the line lowers the order, a cut one
+                // limits it to 2.
+                int const nx = amrex::min(vbx.length(d)+1, 2+bho);
+                int order = 1;
+                bool cut = false;
+                for (int r = 0; r <= nx-2; ++r) {
+                    IntVect fc = g;
+                    fc[d] += ((s > 0) ? 1 : 0) + s*r;
+                    Real const a = ap[d](fc);
+                    if (a > Real(0.0)) {
+                        ++order;
+                        cut = cut || (a < Real(1.0));
+                    } else {
+                        break;
+                    }
+                }
+                if (cut) { order = amrex::min(order, 2); }
+                // The inner cells of a corner cell may be off the grids.
+                for (int m = 2; m < order; ++m) {
+                    if (cell_id(g+(m*s)*ed) < 0) { order = m; }
+                }
+                Real x[3] = {-bcl[face]/dx[d], Real(0.5), Real(1.5)};
+                poly_interp_coeff(Real(-0.5), x, order, c);
+                n = order;
+            }
+        }
+        for (int m = 1; m < n; ++m) {
+            IntVect t = o;
+            t[fd] -= m*o[fd];
+            sten[AMREX_D_TERM((t[0]+1), +3*(t[1]+1), +9*(t[2]+1))] -= f*(fb*c[m]);
+        }
+    }
+#endif
 }
 /// \endcond
 

@@ -550,9 +550,14 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<AlgInt> const& ncols,
             // sb*dx/(dx*dy), since ebarea is the EB length over dx
             Real faceb = sb/dx[1];
             mat_tmp(0   , 0  ) -= feb(0)*faceb;
-            mat_tmp(ioff, 0  ) -= feb(1)*faceb;
-            mat_tmp(0   ,joff) -= feb(2)*faceb;
-            mat_tmp(ioff,joff) -= feb(3)*faceb;
+            IntVect const iv(i,j);
+            GpuArray<Array4<Real const>,AMREX_SPACEDIM> const ap{apx, apy};
+            detail::habec_eb_sub(sten.data(), iv, IntVect(ioff,   0), feb(1), faceb,
+                                 vbx, cell_id, ap, bctype, bcl, dx, bho);
+            detail::habec_eb_sub(sten.data(), iv, IntVect(   0,joff), feb(2), faceb,
+                                 vbx, cell_id, ap, bctype, bcl, dx, bho);
+            detail::habec_eb_sub(sten.data(), iv, IntVect(ioff,joff), feb(3), faceb,
+                                 vbx, cell_id, ap, bctype, bcl, dx, bho);
         }
 
         // The row is weighted by the volume fraction, as is the rhs.
