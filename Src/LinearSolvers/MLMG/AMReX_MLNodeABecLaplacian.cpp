@@ -112,7 +112,7 @@ MLNodeABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         yarr_ma[box_no](i,j,k) = (dmskarr_ma[box_no](i,j,k)) ? Real(0.0)
             : alpha*acoef_ma[box_no](i,j,k)*xarr_ma[box_no](i,j,k) - beta*lap;
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void
@@ -146,7 +146,7 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                                             dmskarr_ma[box_no], dxinvarr);
             });
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -196,7 +196,7 @@ MLNodeABecLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     {
         mlndlap_restriction(i,j,k,pcrse_ma[box_no],fine_ma[box_no],msk_ma[box_no]);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 
     if (need_parallel_copy) {
         crse.ParallelCopy(cfine);
@@ -228,7 +228,7 @@ MLNodeABecLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, cons
         mlndlap_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no],
                              sig_ma[box_no], msk_ma[box_no]);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void
@@ -283,7 +283,7 @@ MLNodeABecLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
     {
         if (fmsk[bno](i,j,k) == nodelap_detail::crse_fine_node) { rmsk[bno](i,j,k) = 1; }
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void

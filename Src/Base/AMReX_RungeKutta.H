@@ -68,7 +68,7 @@ void rk_update (MF& Unew, MF const& Uold, MF const& dUdt, Real dt)
     {
             snew[bi](i,j,k,n) = sold[bi](i,j,k,n) + dt*sdot[bi](i,j,k,n);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 //! Unew = Uold + (dUdt1 + dUdt2) * dt
@@ -85,7 +85,7 @@ void rk_update (MF& Unew, MF const& Uold, MF const& dUdt1, MF const& dUdt2, Real
             snew[bi](i,j,k,n) = sold[bi](i,j,k,n) + dt*(sdot1[bi](i,j,k,n) +
                                                         sdot2[bi](i,j,k,n));
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 //! Unew = (Uold+Unew)/2 + dUdt * dt/2
@@ -102,7 +102,7 @@ void rk2_update_2 (MF& Unew, MF const& Uold, MF const& dUdt, Real dt)
                                        sold[bi](i,j,k,n) +
                                        sdot[bi](i,j,k,n) * dt);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 //! Unew = Uold + (k1 + k2 + 4*k3) * dt6, where dt6 = dt/6
@@ -121,7 +121,7 @@ void rk3_update_3 (MF& Unew, MF const& Uold, Array<MF,3> const& rkk, Real dt6)
             + dt6 * (k1[bi](i,j,k,n) + k2[bi](i,j,k,n)
                      +      Real(4.) * k3[bi](i,j,k,n));
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 
 //! Unew = Uold + (k1+k4+2*(k2+k3))*dt6, where dt6 = dt/6
@@ -141,7 +141,7 @@ void rk4_update_4 (MF& Unew, MF const& Uold, Array<MF,4> const& rkk, Real dt6)
             + dt6 * (            k1[bi](i,j,k,n) + k4[bi](i,j,k,n)
                      + Real(2.)*(k2[bi](i,j,k,n) + k3[bi](i,j,k,n)));
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 }
 /// \endcond

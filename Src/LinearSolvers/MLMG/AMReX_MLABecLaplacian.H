@@ -1003,7 +1003,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                                 dxinv, ascalar, bscalar);
             });
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1227,7 +1227,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                 });
             }
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1559,7 +1559,7 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
                                 AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
                                 dxinv, ascalar, bscalar);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1691,7 +1691,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
                 ama[box_no](i,j,k,n) = huge_alpha;
             }
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1742,7 +1742,7 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
                 dstma[box_no](i,j,k,n) = RT(0.0);
             }
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {

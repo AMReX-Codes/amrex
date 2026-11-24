@@ -669,7 +669,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
                             vbx, redblack);
             });
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
         return;
     }
 #endif

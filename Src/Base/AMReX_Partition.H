@@ -52,7 +52,7 @@ namespace detail
             {
                 amrex::Swap(p[i], p[n2-1-i]);
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         }
     }
 }

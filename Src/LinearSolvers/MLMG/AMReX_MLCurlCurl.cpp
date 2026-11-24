@@ -293,7 +293,7 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
     {
         tag.dfab(i,j,k) = RT(0.0);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 #endif
 }
 
@@ -330,7 +330,7 @@ void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
         {
             mlcurlcurl_restriction(idim,i,j,k,crsema[bno],finema[bno],dinfo);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
 
         if (need_parallel_copy) {
             crse[idim].ParallelCopy(cfine);
@@ -365,7 +365,7 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
                 mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
             }
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     }
 }
 
@@ -650,7 +650,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                                  b,adxinv,color,dinfo,valid_x,coord);
         });
     }
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 #endif
 
@@ -773,7 +773,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
             });
         }
     }
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 }
 #endif
 
@@ -1238,7 +1238,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
 #endif
     }
 #ifdef AMREX_USE_GPU
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 #endif
 }
 

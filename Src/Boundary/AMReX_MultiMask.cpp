@@ -54,7 +54,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
                 ma[box_no](i,j,k,n) = domain.contains(IntVect(AMREX_D_DECL(i,j,k)))
                     ? bndrydata_not_covered : bndrydata_outside_domain;
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -103,7 +103,7 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
         {
             dstma[box_no](i,j,k,n) = srcma[box_no](i,j,k,n);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {

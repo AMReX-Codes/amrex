@@ -2143,7 +2143,7 @@ MLMGT<MF>::spIter (int iter)
                 {
                     dma[box_no](i,j,k,n) = static_cast<float>(sma[box_no](i,j,k,n) * invs);
                 });
-                Gpu::settle();
+                Gpu::streamSyncUnlessNoSync();
             } else
 #endif
             {
@@ -2179,7 +2179,7 @@ MLMGT<MF>::spIter (int iter)
                 {
                     dma[box_no](i,j,k,n) += ss * static_cast<RT>(sma[box_no](i,j,k,n));
                 });
-                Gpu::settle();
+                Gpu::streamSyncUnlessNoSync();
             } else
 #endif
             {

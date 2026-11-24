@@ -1385,7 +1385,7 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
                 dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
                 srcma[box_no](i,j,k,n+srccomp) = tmp;
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -1432,7 +1432,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             dstfa[box_no](i,j,k,n+dstcomp) -= srcfa[box_no](i,j,k,n+srccomp);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1478,7 +1478,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             dstfa[box_no](i,j,k,n+dstcomp) *= srcfa[box_no](i,j,k,n+srccomp);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1524,7 +1524,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
         {
             dstfa[box_no](i,j,k,n+dstcomp) /= srcfa[box_no](i,j,k,n+srccomp);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1568,7 +1568,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
         {
             fabarr[box_no](i,j,k,n+icomp) = std::abs(fabarr[box_no](i,j,k,n+icomp));
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1673,7 +1673,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
         {
             if (!ifabarr[box_no](i,j,k)) { fabarr[box_no](i,j,k,n) = 0; }
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -2477,7 +2477,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
     {
         Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n), 1);
     });
-    Gpu::settle();
+    Gpu::streamSyncUnlessNoSync();
 #endif
 
     return mask;

@@ -317,7 +317,7 @@ MLPoissonT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) const
                 });
             }
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -415,7 +415,7 @@ MLPoissonT<MF>::normalize (int amrlev, int mglev, MF& mf) const
         {
             mlpoisson_normalize(i,j,k, ma[box_no], AMREX_D_DECL(dhx,dhy,dhz), dx, probxlo);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -657,7 +657,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 });
             }
         }
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {

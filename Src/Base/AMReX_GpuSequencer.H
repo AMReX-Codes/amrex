@@ -260,7 +260,7 @@ void await () noexcept;
  * For functions that return with their GPU work completed by default but
  * leave it queued in a no-sync region.
  */
-inline void settle () noexcept
+inline void streamSyncUnlessNoSync () noexcept
 {
 #ifdef AMREX_USE_GPU
     if (!inNoSyncRegion()) { await(); }

@@ -79,7 +79,7 @@ namespace amrex
             {
                 amrex_avg_nd_to_cc(i, j, k, n, ccma[box_no], ndma[box_no], dcomp, scomp);
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -126,7 +126,7 @@ namespace amrex
                                    AMREX_D_DECL(exma[box_no], eyma[box_no], ezma[box_no]),
                                    dcomp);
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -202,7 +202,7 @@ namespace amrex
 #endif
                                    );
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -310,7 +310,7 @@ namespace amrex
                                    ccma[box_no], use_harmonic_averaging);
 #endif
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -400,7 +400,7 @@ namespace amrex
                 amrex_avgdown_with_vol(i,j,k,n,crsema[box_no],finema[box_no],finevolma[box_no],
                                        0,scomp,ratio);
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -452,7 +452,7 @@ namespace amrex
             {
                 amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
             });
-            Gpu::settle();
+            Gpu::streamSyncUnlessNoSync();
         } else
 #endif
         {
@@ -525,7 +525,7 @@ namespace amrex
                 {
                     amrex_avgdown_edges(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
                 });
-                Gpu::settle();
+                Gpu::streamSyncUnlessNoSync();
             } else
 #endif
             {
@@ -701,7 +701,7 @@ namespace amrex
         {
             tag.dfab(i,j,k,n) = fine_value;
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
 #endif
     }
     }

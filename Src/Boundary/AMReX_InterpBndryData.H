@@ -265,7 +265,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 #endif
 #endif
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
     }
     else
 #endif

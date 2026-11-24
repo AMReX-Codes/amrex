@@ -408,7 +408,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
         {
             tag.dfab(i,j,k,n) = T(0);
         });
-        Gpu::settle();
+        Gpu::streamSyncUnlessNoSync();
 #endif
     }
 }
