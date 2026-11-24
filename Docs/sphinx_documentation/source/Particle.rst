@@ -422,7 +422,10 @@ type.
 For a container with a :cpp:`PolymorphicArenaAllocator`, a tile created by
 indexing the map before :cpp:`SetArena` has been called gets its components,
 but uses the container's arena only once it is defined with it, for example by
-:cpp:`DefineAndReturnParticleTile` or :cpp:`Redistribute`.
+:cpp:`DefineAndReturnParticleTile` or :cpp:`Redistribute`. The exception is a
+:cpp:`ParticleContainerRTSoA`: a tile created by indexing its map before
+:cpp:`SetArena` has been called has no components at all, so call
+:cpp:`SetArena` before creating any tiles.
 
 Every component of a tile must hold one value per particle. :cpp:`push_back(p)`
 and the array overloads of :cpp:`push_back_real` and :cpp:`push_back_int` only
