@@ -7,6 +7,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_Vector.H>
@@ -43,6 +44,22 @@ auto call_f (F const& f,
              const int i) noexcept
 {
     return f(p, i);
+}
+
+// CPU reduction of f over the first np particles of ptd with the partial
+// accumulators of Reduce::detail::reduce_row, so that the loop vectorizes.
+template <typename Op, typename T, typename F, typename PTD>
+AMREX_ATTRIBUTE_FLATTEN_FOR
+T reduce_cpu (PTD const& ptd, int np, T const& init, F const& f) noexcept
+{
+    using Tup = GpuTuple<T>;
+    Tup rem{init};
+    Reduce::detail::Lanes<Tup> acc;
+    Reduce::detail::lanes_set<0>(acc, rem);
+    Reduce::detail::reduce_row<Op>(0, np-1, acc, rem,
+        [&] (int i) { return Tup{static_cast<T>(call_f(f, ptd, i))}; });
+    Reduce::detail::lanes_fold<0,Tup,Op>(acc, rem);
+    return amrex::get<0>(rem);
 }
 }
 /// \endcond
@@ -243,9 +260,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    sm += particle_detail::call_f(f, ptd, i);
-                }
+                sm += particle_detail::reduce_cpu<ReduceOpSum>(ptd, np, value_type(0), f);
             }
         }
     }
@@ -450,9 +465,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = std::max(r, particle_detail::call_f(f, ptd, i));
-                }
+                r = std::max(r, particle_detail::reduce_cpu<ReduceOpMax>(ptd, np, value_lowest, f));
             }
         }
     }
@@ -656,9 +669,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = std::min(r, particle_detail::call_f(f, ptd, i));
-                }
+                r = std::min(r, particle_detail::reduce_cpu<ReduceOpMin>(ptd, np, value_max, f));
             }
         }
     }
@@ -857,9 +868,8 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = r && particle_detail::call_f(f, ptd, i);
-                }
+                int const t = particle_detail::reduce_cpu<ReduceOpLogicalAnd>(ptd, np, 1, f);
+                r = r && t;
             }
         }
     }
@@ -1059,9 +1069,8 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = r || particle_detail::call_f(f, ptd, i);
-                }
+                int const t = particle_detail::reduce_cpu<ReduceOpLogicalOr>(ptd, np, 0, f);
+                r = r || t;
             }
         }
     }

@@ -242,5 +242,39 @@ void testReduce ()
         AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1);
     }
 
+    {
+        // Tiles whose particle counts are not multiples of 8, so that the CPU
+        // reductions also go through their remainder loop.
+        const Box small_domain(IntVect(0), IntVect(4));
+        RealBox small_real_box({AMREX_D_DECL(0., 0., 0.)}, {AMREX_D_DECL(5., 5., 5.)});
+        Geometry small_geom(small_domain, &small_real_box, coord, is_per);
+        BoxArray small_ba(small_domain);
+        small_ba.maxSize(3);
+        DistributionMapping small_dm(small_ba);
+
+        TestParticleContainer small_pc(small_geom, small_dm, small_ba);
+        small_pc.InitParticles(IntVect(1));
+        const auto np = static_cast<ParticleReal>(small_pc.TotalNumberOfParticles());
+
+        // one particle per cell at x = i + 0.5 for i = 0, ..., 4
+        auto xsum = amrex::ReduceSum(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
+        AMREX_ALWAYS_ASSERT(xsum == ParticleReal(2.5)*np);
+
+        auto xmin = amrex::ReduceMin(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
+        AMREX_ALWAYS_ASSERT(xmin == ParticleReal(0.5));
+
+        auto xmax = amrex::ReduceMax(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
+        AMREX_ALWAYS_ASSERT(xmax == ParticleReal(4.5));
+
+        auto any_hi = amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(4.); });
+        AMREX_ALWAYS_ASSERT(any_hi == 1);
+
+        auto all_hi = amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(4.); });
+        AMREX_ALWAYS_ASSERT(all_hi == 0);
+
+        auto all_in = amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(0.); });
+        AMREX_ALWAYS_ASSERT(all_in == 1);
+    }
+
     amrex::Print() << "pass \n";
 }
