@@ -1102,6 +1102,9 @@ Amr::checkInput ()
     if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
     }
+    if (gridding_region.ok()) {
+        amrex::Error("amr.gridding_region_lo/hi requires amr.no_box_split_dir");
+    }
     //
     // Check that blocking_factor is a power of 2.
     //
@@ -1211,15 +1214,19 @@ Amr::checkInputExtended ()
     }
     //
     // Check that domain size is a multiple of blocking_factor[0], except
-    // in no_box_split_dir where the blocking factor and max_grid_size are ignored.
+    // in no_box_split_dir where the blocking factor and max_grid_size are ignored,
+    // and where the gridding region keeps fine grids off the upper boundary.
     //
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (i != no_box_split_dir && len%blocking_factor[0][i] != 0) {
+        bool const region_inside = gridding_region.ok()
+            && gridding_region.bigEnd(i) < domain.bigEnd(i);
+        if (i != no_box_split_dir && !region_inside && len%blocking_factor[0][i] != 0) {
             amrex::Error("domain size not divisible by blocking_factor");
         }
     }
+    checkGriddingRegion();
     //
     // Check that max_grid_size is even, except in no_box_split_dir and in
     // directions with an odd refinement ratio.

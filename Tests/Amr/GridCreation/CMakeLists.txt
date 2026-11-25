@@ -16,7 +16,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
                      inputs-no-box-split-periodic inputs-no-box-split-thin inputs-no-box-split-mgs0
                      inputs-rr2-bf32 inputs-mgs48 inputs-erf-no-box-split
                      inputs-no-box-split-merge-thin inputs-no-box-split-mgs-unit inputs-no-box-split-nesting
-                     inputs-wall-nproper2)
+                     inputs-wall-nproper2 inputs-no-box-split-region)
 
     # In 2D, inputs files with no_box_split_dir = 2 use direction 1 instead, and
     # 2D tag centers so that tagged regions do not share columns.
@@ -33,7 +33,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 3)
         list(APPEND _extra inputs-no-box-split inputs-no-box-split-whole inputs-no-box-split-thin
                            inputs-no-box-split-periodic inputs-no-box-split-mgs0
-                           inputs-no-box-split-merge-thin inputs-no-box-split-nesting)
+                           inputs-no-box-split-merge-thin inputs-no-box-split-nesting
+                           inputs-no-box-split-region)
     endif ()
     set(_exe ${CMAKE_CURRENT_BINARY_DIR}/${D}d/Test_Amr_GridCreation_${D}d)
     foreach(_inp IN LISTS _extra)

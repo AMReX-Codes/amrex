@@ -253,6 +253,10 @@ void test_amr_validation () {
             ref_ratio[0] = IntVect(3);
             ref_ratio[0][AMREX_SPACEDIM-1] = 1;
         }
+        void region (Box const& b) {
+            no_box_split_dir = AMREX_SPACEDIM-1;
+            gridding_region = b;
+        }
     };
     RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Driver driver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
@@ -270,6 +274,18 @@ void test_amr_validation () {
     driver.odd_ratio();
     rejects([&] { driver.checkInput(); }, "max_grid_size is not even");
 #endif
+
+    // The gridding region is checked with the blocking factor set after
+    // the constructor.  x = 30:31 has a block of 2 on level 0, but none
+    // once the blocks are 8 cells.
+    Driver rdriver(&rb, 1, Vector<int>(AMREX_SPACEDIM, 32), 0, &factory);
+    Box region(IntVect(0), IntVect(31));
+    region.setSmall(0, 30);
+    rdriver.region(region);
+    rdriver.SetBlockingFactor(Vector<int>{1, 4});
+    rdriver.checkInput();
+    rdriver.SetBlockingFactor(16);
+    rejects([&] { rdriver.checkInput(); }, "gridding_region_lo/hi is too small");
 }
 #endif
 
@@ -341,6 +357,54 @@ void test_no_box_split () {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ba1[i].length(d) >= 8, "Thin grid");
             }
         }
+    }
+    {
+        // A domain that does not start at 0 gives fine grids that end at
+        // the domain boundary, off the grid unit.
+        AmrInfo info2;
+        info2.max_level = 1;
+        info2.no_box_split_dir = AMREX_SPACEDIM-1;
+        info2.blocking_factor = {IntVect(8)};
+        info2.max_grid_size = {IntVect(256)};
+        info2.refine_grid_layout = false;
+        Geometry const geom(Box(IntVect(1), IntVect(64)),
+                            RealBox(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.)), 0,
+                            Array<int,AMREX_SPACEDIM>{});
+        Mesh mesh(geom, info2);
+        regrid(mesh);
+        AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 1);
+        BoxArray const& ba1 = mesh.boxArray(1);
+        Box const fdom = amrex::refine(geom.Domain(), 2);
+        AMREX_ALWAYS_ASSERT(ba1.minimalBox() == fdom && ba1.numPts() == fdom.numPts());
+
+        // The last block of 4 cells holds only cell 64, so a gridding
+        // region holding only that block is too small.
+        info2.gridding_region = geom.Domain();
+        info2.gridding_region.setSmall(0, 64);
+        rejects([&] { Mesh invalid(geom, info2); }, "gridding_region_lo/hi is too small");
+    }
+    {
+        // A gridding region must not hold only the partial last block,
+        // which is paired with the block before it.
+        AmrInfo info3;
+        info3.max_level = 1;
+        info3.no_box_split_dir = AMREX_SPACEDIM-1;
+        info3.blocking_factor = {IntVect(1), IntVect(8)};
+        info3.max_grid_size = {IntVect(64), IntVect(128)};
+        info3.refine_grid_layout = false;
+        IntVect n_cell(64);
+        n_cell[0] = 145;
+        Box const dom(IntVect(0), n_cell-1);
+        info3.gridding_region = dom;
+        info3.gridding_region.setSmall(0, 144);
+        rejects([&] { Mesh invalid(geometry(n_cell), info3); },
+                "gridding_region_lo/hi is too small");
+        // Two blocks are enough.
+        info3.gridding_region.setSmall(0, 140);
+        Mesh mesh(geometry(n_cell), info3);
+        regrid(mesh);
+        AMREX_ALWAYS_ASSERT(mesh.finestLevel() == 1);
+        AMREX_ALWAYS_ASSERT(mesh.boxArray(1).minimalBox().bigEnd(0) == 2*n_cell[0]-1);
     }
 #endif
 }

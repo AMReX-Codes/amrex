@@ -286,6 +286,26 @@ can be set via :cpp:`ParmParse`.
    See :ref:`sec:grid_creation` for details. A negative value, the
    default, disables this.
 
+.. py:data:: amr.gridding_region_lo
+   :type: int array
+   :value: [none]
+
+   Lower corner, in level 0 index space, of the region where fine grids may
+   be created. Must be given together with :py:data:`amr.gridding_region_hi`.
+   Tags outside the region are ignored, and on each level its sides inside
+   the domain are moved inward to be aligned to the blocking factor, so the
+   fine grids are multiples of the blocking factor even if the domain is
+   not. Requires :py:data:`amr.no_box_split_dir`. See
+   :ref:`sec:grid_creation:region` for details. If not given, the region is
+   the whole domain.
+
+.. py:data:: amr.gridding_region_hi
+   :type: int array
+   :value: [none]
+
+   Upper corner, in level 0 index space, of the region where fine grids may
+   be created. See :py:data:`amr.gridding_region_lo`.
+
 .. py:data:: amr.check_input
    :type: bool
    :value: true
