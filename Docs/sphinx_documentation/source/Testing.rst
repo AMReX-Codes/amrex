@@ -126,3 +126,13 @@ defines a test called :cpp:`MLMG_FI_PoisCom` by specifying the appropriate build
 and a set of configuration options. The above options are the most commonly changed; for a full list
 of options, see the example configuration file at https://github.com/AMReX-Codes/regression_testing/blob/main/example-tests.ini.
 
+
+NCCL GIN GPU test
+----------------
+
+The ``GpuParallelReduce_NCCLGIN_3d`` test requires NCCL 2.30.4 or newer,
+a C++23 host compiler, and full GIN support. Run exactly two MPI ranks,
+each on a distinct GPU and execution node. The test reuses its registered
+windows for two iterations and checks every received value against the
+host reference. All ranks complete their GPU work before the test releases
+the GIN communicator and registered windows.
