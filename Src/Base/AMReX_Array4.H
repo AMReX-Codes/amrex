@@ -340,6 +340,17 @@ namespace amrex {
         constexpr ArrayND (ArrayND<std::remove_const_t<T>, N, last_dim_component> const& rhs) noexcept
             : p(rhs.p), stride(rhs.stride), begin(rhs.begin), end(rhs.end) {}
 
+#ifdef AMREX_USE_LOOM
+        /**
+         * \brief Member-wise constructor (LOOM): rebuilds an accessor whose
+         * layout was stored without its pointer (see MultiArray4).
+         */
+        AMREX_GPU_HOST_DEVICE
+        constexpr ArrayND (T* a_p, typename detail::StrideType<N,last_dim_component>::type const& a_stride,
+                           IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
+            : p(a_p), stride(a_stride), begin(a_begin), end(a_end) {}
+#endif
+
         /**
          * \brief Constructor using a BoxND.
          * \param a_p Pointer to data.

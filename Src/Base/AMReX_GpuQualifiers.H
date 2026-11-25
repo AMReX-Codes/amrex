@@ -2,7 +2,31 @@
 #define AMREX_GPU_QUALIFIERS_H_
 #include <AMReX_Config.H>
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
+#if defined(AMREX_USE_LOOM)
+
+// One parse serves both LOOM passes, so the host/device choice is a C++
+// branch rather than a preprocessor one. The host compiler sees
+// loom::target::is_device() as a constant false and emits only the host arm;
+// the Loom importer folds it to true and imports only the device arm. Both
+// arms must therefore parse in both passes.
+#include <AMReX_LoomDevice.H>
+#define AMREX_IF_ON_DEVICE(CODE) \
+  if (::loom::target::is_device()) { AMREX_IMPL_STRIP_PARENS(CODE) }
+#define AMREX_IF_ON_HOST(CODE) \
+  if (!::loom::target::is_device()) { AMREX_IMPL_STRIP_PARENS(CODE) }
+
+// Loom functions carry no host/device qualifiers: the importer compiles what
+// kernels reach, and the host compiles what host code reaches.
+#define AMREX_GPU_HOST
+#define AMREX_GPU_DEVICE
+#define AMREX_GPU_GLOBAL
+#define AMREX_GPU_HOST_DEVICE
+#define AMREX_GPU_CONSTANT
+// Documented exclusion: the LOOM backend has no managed memory.
+#define AMREX_GPU_MANAGED _Pragma("GCC error \"AMReX LOOM backend: managed variables are not supported\"")
+#define AMREX_GPU_DEVICE_MANAGED AMREX_GPU_MANAGED
+
+#elif defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
 
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
@@ -35,7 +59,14 @@
 
 #endif
 
+// Under LOOM one parse serves host and device, so there is no device-only
+// compilation to detect: AMREX_DEVICE_COMPILE is false in both passes, and
+// code that must differ uses AMREX_IF_ON_DEVICE/AMREX_IF_ON_HOST.
+#if defined(AMREX_USE_LOOM)
+#define AMREX_DEVICE_COMPILE 0
+#else
 #define AMREX_DEVICE_COMPILE (__CUDA_ARCH__ || __HIP_DEVICE_COMPILE__ || __SYCL_DEVICE_ONLY__)
+#endif
 
 // Remove surrounding parentheses if present
 #define AMREX_IMPL_STRIP_PARENS(X) AMREX_IMPL_ESC(AMREX_IMPL_ISH X)
@@ -74,6 +105,10 @@
 #ifdef AMREX_USE_SYCL
 # define AMREX_DGV(type,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type> name
 # define AMREX_DGVARR(type,num,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type[num]> name
+#elif defined(AMREX_USE_LOOM)
+// Documented exclusion: the LOOM backend has no device global variables.
+# define AMREX_DGV(type,name) _Pragma("GCC error \"AMReX LOOM backend: device global variables (AMREX_DEVICE_GLOBAL_VARIABLE) are not supported\"") type name
+# define AMREX_DGVARR(type,num,name) _Pragma("GCC error \"AMReX LOOM backend: device global variables (AMREX_DEVICE_GLOBAL_VARIABLE) are not supported\"") type name[num]
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 # define AMREX_DGV(type,name) __device__ type name
 # define AMREX_DGVARR(type,num,name) __device__ type name[num]

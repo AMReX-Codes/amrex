@@ -43,6 +43,12 @@ StreamIter::init () noexcept // NOLINT
 #pragma omp single
 #endif
         Gpu::streamSynchronize();
+    } else if (Gpu::inStreamOrderedRegion() && m_n > 1 && Gpu::numGpuStreams() > 1) {
+        m_join = true;
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+        Gpu::Device::forkStreams(m_n);
     }
     Gpu::Device::setStreamIndex(m_i);
 #elif defined(AMREX_USE_OMP)
@@ -70,6 +76,8 @@ StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
             Gpu::Device::setStreamIndex(i);
             Gpu::streamSynchronize();
         }
+    } else if (m_join) {
+        Gpu::Device::joinStreams(m_n);
     }
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();

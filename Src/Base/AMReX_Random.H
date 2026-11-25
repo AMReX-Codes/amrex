@@ -93,14 +93,16 @@ namespace amrex
         // collapses every value below 0.5 onto a 2^-24 grid.
 #ifdef BL_USE_FLOAT
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return random_util::one_to_zero(amrex_loom::rand_uniform(random_engine.rand_state)); ,
                         return random_util::one_to_zero(hiprand_uniform(random_engine.rand_state)); ,
                         return random_util::one_to_zero(curand_uniform(random_engine.rand_state));
                 )
         ))
 #else
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return random_util::one_to_zero(amrex_loom::rand_uniform_double(random_engine.rand_state)); ,
                         return random_util::one_to_zero(hiprand_uniform_double(random_engine.rand_state)); ,
                         return random_util::one_to_zero(curand_uniform_double(random_engine.rand_state));
                 )
@@ -185,14 +187,16 @@ namespace amrex
         // returned exactly as the generator produced it.
 #ifdef BL_USE_FLOAT
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return amrex_loom::rand_uniform(random_engine.rand_state); ,
                         return hiprand_uniform(random_engine.rand_state); ,
                         return curand_uniform(random_engine.rand_state);
                 )
         ))
 #else
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return amrex_loom::rand_uniform_double(random_engine.rand_state); ,
                         return hiprand_uniform_double(random_engine.rand_state); ,
                         return curand_uniform_double(random_engine.rand_state);
                 )
@@ -225,14 +229,16 @@ namespace amrex
 #else
 #ifdef BL_USE_FLOAT
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return stddev * amrex_loom::rand_normal(random_engine.rand_state) + mean; ,
                         return stddev * hiprand_normal(random_engine.rand_state) + mean; ,
                         return stddev * curand_normal(random_engine.rand_state) + mean;
                 )
         ))
 #else
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return stddev * amrex_loom::rand_normal_double(random_engine.rand_state) + mean; ,
                         return stddev * hiprand_normal_double(random_engine.rand_state) + mean; ,
                         return stddev * curand_normal_double(random_engine.rand_state) + mean;
                 )
@@ -266,7 +272,8 @@ namespace amrex
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
         AMREX_IF_ON_DEVICE((
-                AMREX_HIP_OR_CUDA(
+                AMREX_LOOM_OR_HIP_OR_CUDA(
+                        return amrex_loom::rand_poisson(random_engine.rand_state, lambda); ,
                         return hiprand_poisson(random_engine.rand_state, lambda); ,
                         return curand_poisson(random_engine.rand_state, lambda);
                 )
@@ -381,7 +388,7 @@ namespace amrex
                 unsigned int rand;
                 constexpr unsigned int RAND_M = 4294967295; // 2**32-1
                 do {
-                AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
+                AMREX_LOOM_OR_HIP_OR_CUDA( rand = amrex_loom::rand_uint(random_engine.rand_state); , rand = hiprand(random_engine.rand_state);,
                                 rand =  curand(random_engine.rand_state) );
                 } while (rand >= (RAND_M - RAND_M % n));
                 return rand % n;
