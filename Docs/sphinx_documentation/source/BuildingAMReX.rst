@@ -145,6 +145,8 @@ hints at runtime.
 
 Unless ``USE_MATH_ERRNO`` is ``TRUE``, non-debug GCC and Clang builds use
 ``-fno-math-errno`` for AMReX and the application, making math functions faster.
+Unless ``TEST`` is ``TRUE``, non-debug GCC builds also use ``-fno-trapping-math``,
+see :ref:`sec:basics:debugging`.
 
 For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
 also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.

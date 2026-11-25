@@ -92,6 +92,11 @@ else
     CXXFLAGS += -fno-math-errno
     CFLAGS   += -fno-math-errno
   endif
+  ifneq ($(TEST),TRUE)
+    # Assume FP exceptions are not trapped, as clang does by default.
+    CXXFLAGS += -fno-trapping-math
+    CFLAGS   += -fno-trapping-math
+  endif
   ifneq ($(USE_COMPILER_DEFAULT_INLINE),TRUE)
     CXXFLAGS += -finline-limit=$(INLINE_LIMIT)
   endif

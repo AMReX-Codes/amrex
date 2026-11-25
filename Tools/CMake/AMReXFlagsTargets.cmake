@@ -6,6 +6,7 @@
 #   Flags_Fortran             --> Optional flags for Fortran code
 #   Flags_FASTMATH            --> Optional flags for fast-math (floating-point)
 #   Flags_NO_MATH_ERRNO       --> -fno-math-errno for non-Debug builds
+#   Flags_NO_TRAPPING_MATH    --> -fno-trapping-math for non-Debug GCC builds
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #   Flags_INLINE              --> Optional flags for inlining
 #
@@ -155,6 +156,21 @@ if (NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
          $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,Clang>,$<NOT:$<CONFIG:Debug>>>:-fno-math-errno>
    )
 endif ()
+
+
+#
+# GCC assumes by default that FP exceptions may be trapped, which keeps it
+# from vectorizing, e.g., guarded divisions. Clang does not assume that.
+# Not used for FPE and testing builds, which trap FP exceptions.
+#
+add_library(Flags_NO_TRAPPING_MATH INTERFACE)
+add_library(AMReX::Flags_NO_TRAPPING_MATH ALIAS Flags_NO_TRAPPING_MATH)
+
+target_compile_options( Flags_NO_TRAPPING_MATH
+   INTERFACE
+      $<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU>,$<NOT:$<CONFIG:Debug>>>:-fno-trapping-math>
+      $<$<AND:$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>,$<CXX_COMPILER_ID:GNU>,$<NOT:$<CONFIG:Debug>>>:-Xcompiler=-fno-trapping-math>
+)
 
 
 #
