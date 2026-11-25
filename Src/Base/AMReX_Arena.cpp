@@ -51,17 +51,9 @@ namespace {
     bool the_device_arena_defragmentation = true;
     bool the_managed_arena_defragmentation = true;
     bool the_pinned_arena_defragmentation = true;
-#ifdef AMREX_USE_HIP
-    bool the_comms_arena_defragmentation = false;
-#else
     bool the_comms_arena_defragmentation = true;
-#endif
     // A growing separate comms arena can overflow Cray MPICH's GPU IPC cache on AMD GPUs.
-#if defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
     bool use_separate_comms_arena = false;
-#else
-    bool use_separate_comms_arena = true;
-#endif
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
 

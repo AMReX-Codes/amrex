@@ -1169,25 +1169,31 @@ Memory
 
 .. py:data:: amrex.the_comms_arena_defragmentation
    :type: bool
-   :value: [build dependent]
+   :value: true
 
-   This controls the defragmentation behavior of the communication arena. The default is
-   false for HIP builds and true for others.
+   This controls the defragmentation behavior of the communication arena.
 
 .. py:data:: amrex.use_separate_comms_arena
    :type: bool
-   :value: [build dependent]
+   :value: false
 
    This is only relevant for GPU runs with GPU-aware MPI. When true, AMReX
    keeps MPI communication buffers in a separate device memory arena. When
    false, the buffers come from the main arena, or from the device arena if
-   :py:data:`amrex.the_arena_is_managed` is true. The default is false for HIP
-   and SYCL builds and true for CUDA builds.
+   :py:data:`amrex.the_arena_is_managed` is true.
 
-   With HPE Cray MPICH on AMD GPUs, a separate arena may lead to GPU memory
-   access faults inside MPI calls in long runs. If you set this to true there,
-   consider also setting :py:data:`amrex.the_comms_arena_init_size` large
-   enough that the arena does not need to grow.
+   A separate arena is not recommended. With HPE Cray MPICH on AMD GPUs, it
+   may lead to GPU memory access faults inside MPI calls in long runs. If you
+   use it in HIP builds, consider also setting
+   :py:data:`amrex.the_comms_arena_init_size` to a relatively large value
+   (e.g., ``1e9``) so that the arena rarely needs to grow.
+
+   Without a separate arena, CUDA runs may pay a one-time cost of up to a
+   few seconds the first time MPI communicates between GPUs on the same
+   node, so the first time step can be much slower than later ones. Codes
+   with particles already pay this cost, because particle communication
+   uses the main arena by default. When you measure performance, exclude
+   this one-time cost, for example by timing later steps separately.
 
 .. py:data:: amrex.the_arena_is_managed
    :type: bool
