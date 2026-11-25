@@ -48,6 +48,7 @@ struct CrossProj::Level
     BoxArray ba;
     DistributionMapping dm;
     BoxArray cba;      // parent BoxArray coarsened, if ba was regridded
+    bool overlap = false; // cba boxes overlap (parent boxes not coarsenable by 2)
     Array<Array<Real,3>,AMREX_SPACEDIM> K, M;  // [dir][offset+1]
     GpuArray<Real,9> sten{};  // [(b+1)*3+(a+1)] for offset (a,b)
     GpuArray<Real,9> rw{};    // restriction weights from the parent, same layout
@@ -220,11 +221,19 @@ void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
     F.r.FillBoundary(F.period);
     MultiFab* dst = C.cba.empty() ? &C.b : &C.t;
     auto const w = C.rw;
+    int const ng = F.r.nGrow();
     auto const& fa = F.r.const_arrays();
     auto const& ca = dst->arrays();
     ParallelFor(*dst, IntVect(0), C.ncomp, [=] AMREX_GPU_DEVICE (int bno, int I, int J, int k, int n) noexcept
     {
         auto const& f = fa[bno];
+        // Overlapping cba: only the box holding fine node 2I computes the
+        // node; the others add zero below.
+        auto const flo = amrex::lbound(f);
+        if ((2*I < flo.x+ng) || (2*J < flo.y+ng)) {
+            ca[bno](I,J,k,n) = Real(0.0);
+            return;
+        }
         Real s = Real(0.0);
         for (int b = -1; b <= 1; ++b) {
         for (int a = -1; a <= 1; ++a) {
@@ -232,7 +241,10 @@ void restrict_to (CrossProj::Level& F, CrossProj::Level& C)
         }}
         ca[bno](I,J,k,n) = s;
     });
-    if (dst != &C.b) {
+    if (C.overlap) {
+        C.b.setVal(Real(0.0));
+        C.b.ParallelAdd(C.t, 0, 0, C.ncomp);
+    } else if (dst != &C.b) {
         C.b.ParallelCopy(C.t, 0, 0, C.ncomp);
     }
 }
@@ -495,7 +507,9 @@ make_coarse (CrossProj::Level const& P, bool modulate)
     // parent's boxes unless they got too small to coarsen again.
     bool const bottom = !coarsenable(C->domain);
     BoxArray const cba = amrex::coarsen(P.ba, 2);
-    bool ok = true;
+    // The reduced level can have boxes at odd indices: then regrid.
+    bool const overlap = !P.ba.coarsenable(2);
+    bool ok = !overlap;
     for (int i = 0, N = int(cba.size()); i < N && ok; ++i) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int const len = cba[i].length(idim);
@@ -511,6 +525,7 @@ make_coarse (CrossProj::Level const& P, bool modulate)
         if (!bottom) { C->ba.maxSize(regrid_max_size); }
         C->dm = DistributionMapping(C->ba);
         C->cba = cba;
+        C->overlap = overlap;
         C->t.define(C->cba, P.dm, C->ncomp, 1);
         C->t.setVal(Real(0.0));
     }
