@@ -291,6 +291,22 @@ int main (int argc, char* argv[])
             gmsolver.setMaxIters(max_iter);
             gmsolver.solve(phi, rhs, reltol, Real(0.0));
             amrex::Print() << "GMRES iterations: " << gmsolver.getNumIters() << "\n";
+
+            // MLMG's own solution must now be the GMRES solution.
+            Array<MultiFab,AMREX_SPACEDIM> flux, flux_phi;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                flux[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 0);
+                flux_phi[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 0);
+            }
+            mlmg.getFluxes({GetArrOfPtrs(flux)}, MLMG::Location::FaceCenter);
+            mlmg.getFluxes({GetArrOfPtrs(flux_phi)}, {&phi}, MLMG::Location::FaceCenter);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                MultiFab::Subtract(flux[idim], flux_phi[idim], 0, 0, 1, 0);
+                if (flux[idim].norminf(0) != Real(0.)) {
+                    amrex::Abort("GMRESMLMG: getFluxes differs from getFluxes of phi");
+                }
+            }
+
             check(phi, "GMRESMLMG");
         }
     }
