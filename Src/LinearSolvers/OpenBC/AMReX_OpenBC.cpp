@@ -49,6 +49,10 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_ba_all.resize(nlevels);
     m_dm_all.resize(nlevels);
     m_geom_all.resize(nlevels);
+    m_ba_support.clear();
+    m_ba_support.resize(nlevels);
+    m_dm_support.clear();
+    m_dm_support.resize(nlevels);
 
     Box const domain0 = m_geom[0].Domain();
     m_coarsen_ratio = 8;
@@ -196,6 +200,57 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
         m_ba_all[ilev].shift(offset);
         m_dm_all[ilev] = a_dmap[ilev];
     }
+
+    // The grown level-0 domain turns the original physical boundary into a
+    // coarse/fine boundary, so a fine level that touches it would no longer
+    // be properly nested in its parent level. Fix this by extruding every
+    // grid that touches the original boundary outward by m_coarsen_ratio
+    // cells, on every level that has a finer level above it. These
+    // source-free support grids are extended only in the direction normal to
+    // the boundary (and into the exterior edges and corners for grids that
+    // touch more than one face). Their footprint on the boundary is therefore
+    // the same as that of the user's grids, and they inherit the user's
+    // proper nesting in the tangential directions. In the normal direction,
+    // m_coarsen_ratio fine cells are nested in m_coarsen_ratio coarse cells.
+    // Growing the support grids tangentially instead would make them wider
+    // than the grids inside the domain that they abut, which breaks proper
+    // nesting there.
+    for (int ilev = 1; ilev < nlevels-1; ++ilev) {
+        Box const original_domain = amrex::shift(m_geom[ilev].Domain(),
+                                                 m_box_offset[ilev]);
+        BoxList support(IndexType::TheCellType());
+        for (int ibox = 0, nboxes = static_cast<int>(m_ba_all[ilev].size());
+             ibox < nboxes; ++ibox)
+        {
+            Box const& bx = m_ba_all[ilev][ibox];
+            Box extruded = bx;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (bx.smallEnd(idim) == original_domain.smallEnd(idim)) {
+                    extruded.growLo(idim, m_coarsen_ratio);
+                }
+                if (bx.bigEnd(idim) == original_domain.bigEnd(idim)) {
+                    extruded.growHi(idim, m_coarsen_ratio);
+                }
+            }
+            if (extruded != bx) {
+                // The extrusions of disjoint grids are themselves disjoint.
+                support.join(amrex::boxDiff(extruded, original_domain));
+            }
+        }
+
+        if (support.isNotEmpty()) {
+            m_ba_support[ilev] = BoxArray(std::move(support));
+            m_dm_support[ilev] = DistributionMapping(m_ba_support[ilev]);
+
+            BoxList all_boxes = m_ba_all[ilev].boxList();
+            all_boxes.join(m_ba_support[ilev].boxList());
+            Vector<int> pmap = m_dm_all[ilev].ProcessorMap();
+            Vector<int> const& support_pmap = m_dm_support[ilev].ProcessorMap();
+            pmap.insert(pmap.end(), support_pmap.begin(), support_pmap.end());
+            m_ba_all[ilev] = BoxArray(std::move(all_boxes));
+            m_dm_all[ilev] = DistributionMapping(std::move(pmap));
+        }
+    }
 }
 
 void OpenBCSolver::setVerbose (int v) noexcept
@@ -299,6 +354,8 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     const int nboxes0 = static_cast<int>(m_grids[0].size());
     Vector<MultiFab> sol_all(nlevels);
     Vector<MultiFab> rhs_all(nlevels);
+    Vector<MultiFab> sol_support(nlevels);
+    Vector<MultiFab> rhs_support(nlevels);
 
     sol_all[0].define(m_ba_all[0], m_dm_all[0], 1, solg.nGrowVect(),
                       MFInfo().SetAlloc(false));
@@ -330,18 +387,35 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     }
 
     for (int ilev = 1; ilev < nlevels; ++ilev) {
+        int const nboxes = static_cast<int>(m_grids[ilev].size());
+        if (!m_ba_support[ilev].empty()) {
+            sol_support[ilev].define(m_ba_support[ilev], m_dm_support[ilev], 1,
+                                      a_sol[ilev]->nGrowVect());
+            rhs_support[ilev].define(m_ba_support[ilev], m_dm_support[ilev], 1,
+                                      a_rhs[ilev]->nGrowVect());
+            sol_support[ilev].setVal(0._rt);
+            rhs_support[ilev].setVal(0._rt);
+        }
+
         sol_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
                              a_sol[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
         rhs_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
                              a_rhs[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
         for (MFIter mfi(sol_all[ilev]); mfi.isValid(); ++mfi) {
             const int index = mfi.index();
-            auto const& a_sol_fab = (*a_sol[ilev])[index];
-            auto const& a_rhs_fab = (*a_rhs[ilev])[index];
-            FArrayBox solfab(a_sol_fab, amrex::make_alias, 0, 1);
-            FArrayBox rhsfab(a_rhs_fab, amrex::make_alias, 0, 1);
-            solfab.shift(m_box_offset[ilev]);
-            rhsfab.shift(m_box_offset[ilev]);
+            FArrayBox solfab, rhsfab;
+            if (index < nboxes) {
+                solfab = FArrayBox((*a_sol[ilev])[index], amrex::make_alias, 0, 1);
+                rhsfab = FArrayBox((*a_rhs[ilev])[index], amrex::make_alias, 0, 1);
+                solfab.shift(m_box_offset[ilev]);
+                rhsfab.shift(m_box_offset[ilev]);
+            } else {
+                int const support_index = index-nboxes;
+                solfab = FArrayBox(sol_support[ilev][support_index],
+                                   amrex::make_alias, 0, 1);
+                rhsfab = FArrayBox(rhs_support[ilev][support_index],
+                                   amrex::make_alias, 0, 1);
+            }
             sol_all[ilev].setFab(mfi, std::move(solfab));
             rhs_all[ilev].setFab(mfi, std::move(rhsfab));
         }
