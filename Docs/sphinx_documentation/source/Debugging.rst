@@ -29,7 +29,10 @@ trap floating-point exceptions in an optimized clang build, also compile with
 ``-ffp-exception-behavior=maytrap``. The CMake options ``AMReX_FPE=ON`` and
 ``AMReX_TESTING=ON`` and the GNU Make options ``DEBUG=TRUE`` and ``TEST=TRUE``
 add it for clang. Because the flag limits optimizations, these builds are
-meant for debugging, not production runs. GCC does not need this. To trap the
+meant for debugging, not production runs. Optimized GCC builds make the same
+assumption with ``-fno-trapping-math``, so that, e.g., guarded divisions
+vectorize. The same options leave it out, so use one of them to trap
+floating-point exceptions in an optimized GCC build. To trap the
 use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 ``MultiFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.

@@ -99,6 +99,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           PUBLIC
           $<BUILD_INTERFACE:Flags_FP_EXCEPTIONS>
           )
+    else ()
+       target_link_libraries(amrex_${D}d PUBLIC AMReX::Flags_NO_TRAPPING_MATH)
     endif ()
 
     if (NOT AMReX_COMPILER_DEFAULT_INLINE)
