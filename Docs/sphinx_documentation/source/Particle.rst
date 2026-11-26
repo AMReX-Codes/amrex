@@ -594,6 +594,11 @@ which reads the particle components directly from the underlying (SoA) arrays:
                  return {a, b, c};
              }, reduce_ops);
 
+On CPUs, the particles of a tile are reduced into several partial results, so
+that the loop over the particles vectorizes. Floating-point sums can therefore
+differ in the last bits from a sequential sum. The logical reductions may not
+call the callable for all particles once their result is known.
+
 Note that no MPI reduction is performed at the end of these operations. Call
 the reductions in :cpp:`ParallelDescriptor` manually if you want that behavior.
 

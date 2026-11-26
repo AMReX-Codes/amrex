@@ -2,11 +2,13 @@
 #define AMREX_PARTICLEREDUCE_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
+#include <AMReX_Reduce.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_Vector.H>
@@ -43,6 +45,22 @@ auto call_f (F const& f,
              const int i) noexcept
 {
     return f(p, i);
+}
+
+// CPU reduction of value(i) over the np particles of a tile with the partial
+// accumulators of Reduce::detail::reduce_row, so that the loop vectorizes.
+template <typename Op, typename T, typename F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
+T reduce_cpu (int np, T const& init, F const& value) noexcept
+{
+    using Tup = GpuTuple<T>;
+    Tup rem{init};
+    Reduce::detail::Lanes<Tup> acc;
+    Reduce::detail::lanes_set<0>(acc, rem);
+    Reduce::detail::reduce_row<Op>(0, np-1, acc, rem,
+        [&] (int i) { return Tup{value(i)}; });
+    Reduce::detail::lanes_fold<0,Tup,Op>(acc, rem);
+    return amrex::get<0>(rem);
 }
 }
 /// \endcond
@@ -243,9 +261,8 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    sm += particle_detail::call_f(f, ptd, i);
-                }
+                sm += particle_detail::reduce_cpu<ReduceOpSum>(np, value_type(0),
+                    [&] (int i) -> value_type { return particle_detail::call_f(f, ptd, i); });
             }
         }
     }
@@ -450,9 +467,8 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = std::max(r, particle_detail::call_f(f, ptd, i));
-                }
+                r = amrex::max(r, particle_detail::reduce_cpu<ReduceOpMax>(np, value_lowest,
+                    [&] (int i) -> value_type { return particle_detail::call_f(f, ptd, i); }));
             }
         }
     }
@@ -656,9 +672,8 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = std::min(r, particle_detail::call_f(f, ptd, i));
-                }
+                r = amrex::min(r, particle_detail::reduce_cpu<ReduceOpMin>(np, value_max,
+                    [&] (int i) -> value_type { return particle_detail::call_f(f, ptd, i); }));
             }
         }
     }
@@ -826,7 +841,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
-                                   return particle_detail::call_f(f, ptd, i);
+                                   return static_cast<int>(static_cast<bool>(particle_detail::call_f(f, ptd, i)));
                                });
             }
         }
@@ -857,9 +872,9 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = r && particle_detail::call_f(f, ptd, i);
-                }
+                // skips the tile once the result is known
+                r = r && particle_detail::reduce_cpu<ReduceOpLogicalAnd>(np, 1,
+                    [&] (int i) -> int { return static_cast<bool>(particle_detail::call_f(f, ptd, i)); });
             }
         }
     }
@@ -1028,7 +1043,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
                                {
-                                   return particle_detail::call_f(f, ptd, i);
+                                   return static_cast<int>(static_cast<bool>(particle_detail::call_f(f, ptd, i)));
                                });
             }
         }
@@ -1059,9 +1074,9 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto& ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i) {
-                    r = r || particle_detail::call_f(f, ptd, i);
-                }
+                // skips the tile once the result is known
+                r = r || particle_detail::reduce_cpu<ReduceOpLogicalOr>(np, 0,
+                    [&] (int i) -> int { return static_cast<bool>(particle_detail::call_f(f, ptd, i)); });
             }
         }
     }
