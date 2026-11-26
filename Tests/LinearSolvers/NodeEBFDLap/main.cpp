@@ -9,7 +9,8 @@
 //     test of the matrix assembled by MLEBNodeFDLaplacian.  The hypre part is
 //     skipped when hypre is not available;
 //   * multigrid must stop coarsening before a level that can no longer see
-//     part of the EB, even when another part of the EB is still visible.
+//     part of the EB, even when another part of the EB is still visible;
+//   * the Helmholtz term of setACoeffs, in Cartesian and (2D) RZ coordinates.
 //
 
 #include <AMReX.H>
@@ -25,6 +26,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace amrex;
 
@@ -343,6 +347,146 @@ void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
         "MG level 1 should be coarsened in the short directions only");
 }
 
+// The Helmholtz term of setACoeffs.  With phi = c on the EB and on the
+// Dirichlet domain boundaries, del dot (grad phi) - a phi = -a c has the exact
+// discrete solution phi = c for any a: the Laplacian of a constant vanishes in
+// every row, including rows cut by the EB (whose row scale must then multiply
+// a as it multiplies the right-hand side), rows on a Neumann boundary and, in
+// RZ, the axis.  A wrong sign or a missing scale gives phi != c.  The problem
+// is solved with multigrid (the coarse levels use the restricted a), without
+// coarsening, and with the AlgMG and hypre bottom solvers (the assembled
+// matrix).  A second, non-constant right-hand side checks that the matrix
+// solvers and multigrid agree when the answer is not trivial.
+void test_helmholtz (Geometry const& geom, BoxArray const& grids,
+                     DistributionMapping const& dmap,
+                     EBFArrayBoxFactory const& factory,
+                     Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                     Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                     int max_coarsening_level, Real reltol, int verbose, bool rz)
+{
+    Real const c = 2.0;
+    Real const tol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-9);
+    if constexpr (std::is_same_v<Real,double>) {
+        reltol = std::min(reltol, Real(1.e-12));
+    }
+
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+    auto const dx = geom.CellSizeArray();
+    auto const problo = geom.ProbLoArray();
+    Real const twopi = Real(2.0)*Math::pi<Real>();
+    // a h^2 from 0.01 to 10: from a weak shift to a diagonally dominant row
+    Real const a0 = Real(1.0)/(dx[0]*dx[0]);
+
+    MultiFab acoef(nba, dmap, 1, 0);
+    MultiFab rhs_const(nba, dmap, 1, 0);
+    MultiFab rhs_wave(nba, dmap, 1, 0);
+    for (MFIter mfi(acoef); mfi.isValid(); ++mfi) {
+        Array4<Real> const& a = acoef.array(mfi);
+        Array4<Real> const& r1 = rhs_const.array(mfi);
+        Array4<Real> const& r2 = rhs_wave.array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            AMREX_D_TERM(Real const x = problo[0] + i*dx[0];,
+                         Real const y = problo[1] + j*dx[1];,
+                         Real const z = problo[2] + k*dx[2];)
+            Real const s = Real(0.5)*(Real(1.0) + std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(twopi*y), *std::cos(twopi*z)));
+            a(i,j,k) = a0 * (Real(0.01) + Real(10.0)*s);
+            r1(i,j,k) = -a(i,j,k) * c;
+            r2(i,j,k) = std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(Real(3.0)*twopi*y), *std::cos(Real(2.0)*twopi*z));
+        });
+    }
+
+    auto do_solve = [&] (MultiFab const& rhs, int max_coarsening, BottomSolver bottom_solver,
+                         MultiFab& sol) -> int
+    {
+        LPInfo info;
+        info.setMaxCoarseningLevel(max_coarsening);
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+        linop.setDomainBC(lobc, hibc);
+        linop.setRZ(rz);
+        linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+        linop.setEBDirichlet(c);
+        linop.setACoeffs(0, acoef);
+
+        MLMG mlmg(linop);
+        mlmg.setVerbose(verbose);
+        mlmg.setBottomSolver(bottom_solver);
+        mlmg.setBottomTolerance(std::is_same_v<Real,float> ? Real(1.e-6) : Real(1.e-12));
+        mlmg.setBottomMaxIter(2000);
+        mlmg.setMaxIter(100);
+
+        MultiFab rhs_copy(nba, dmap, 1, 0);
+        MultiFab::Copy(rhs_copy, rhs, 0, 0, 1, 0);
+        // The domain Dirichlet nodes take their value from the initial guess.
+        // Start from 0 elsewhere, so that the solver has to find phi = c.
+        sol.define(nba, dmap, 1, 1);
+        sol.setVal(c);
+        Box const ndomain = amrex::surroundingNodes(geom.Domain());
+        for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+            Array4<Real> const& s = sol.array(mfi);
+            Box const inner = mfi.validbox() & amrex::grow(ndomain, -1);
+            amrex::ParallelFor(inner, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                s(i,j,k) = Real(0.0);
+            });
+        }
+        mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+        return mlmg.getNumIters();
+    };
+
+    auto max_diff = [&] (MultiFab const& x, MultiFab const& y) {
+        MultiFab d(nba, dmap, 1, 0);
+        MultiFab::Copy(d, x, 0, 0, 1, 0);
+        MultiFab::Subtract(d, y, 0, 0, 1, 0);
+        return d.norminf();
+    };
+
+    MultiFab exact(nba, dmap, 1, 0);
+    exact.setVal(c);
+
+    std::vector<std::pair<std::string,BottomSolver>> bottoms{
+        {"bicgstab", BottomSolver::bicgstab}, {"algmg", BottomSolver::algmg}};
+#ifdef AMREX_USE_HYPRE
+    bottoms.emplace_back("hypre", BottomSolver::hypre);
+#endif
+
+    // constant solution, with and without coarsening
+    for (auto const& [name, bottom] : bottoms) {
+        for (int mc : {max_coarsening_level, 0}) {
+            MultiFab sol;
+            int const niters = do_solve(rhs_const, mc, bottom, sol);
+            Real const err = max_diff(sol, exact);
+            amrex::Print() << (rz ? "RZ, " : "") << "bottom " << name
+                           << (mc > 0 ? ", multigrid" : ", no coarsening")
+                           << ": max |phi - c| / c = " << err/c
+                           << " after " << niters << " iterations\n";
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(niters > 0,
+                "The Helmholtz test started from its solution");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err <= tol*c,
+                "The Helmholtz solve did not reproduce the constant solution");
+        }
+    }
+
+    // non-constant solution: multigrid and the matrix-based bottom solvers agree
+    MultiFab sol_mg;
+    int const niters = do_solve(rhs_wave, max_coarsening_level, BottomSolver::bicgstab, sol_mg);
+    Real const smax = sol_mg.norminf(0, 0);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(niters <= 30,
+        "Multigrid with the Helmholtz term converged too slowly");
+    for (auto const& [name, bottom] : bottoms) {
+        MultiFab sol;
+        do_solve(rhs_wave, 0, bottom, sol);
+        Real const d = max_diff(sol, sol_mg);
+        amrex::Print() << (rz ? "RZ, " : "") << "wave, bottom " << name
+                       << " vs. multigrid (" << niters << " iterations): rel. diff. = "
+                       << d/smax << "\n";
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*smax,
+            "The " + name + " bottom solver and multigrid disagree with a Helmholtz term");
+    }
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -400,6 +544,17 @@ int main (int argc, char* argv[])
 
         test_bottom_solvers(geom, grids, dmap, ebfactory,
                             lobc, hibc, reltol, verbose);
+
+        amrex::Print() << "\n==== Helmholtz term ====\n";
+        test_helmholtz(geom, grids, dmap, ebfactory, lobc, hibc,
+                       max_coarsening_level, reltol, verbose, false);
+#if (AMREX_SPACEDIM == 2)
+        if (!geom.isPeriodic(0)) {
+            amrex::Print() << "\n==== Helmholtz term, RZ ====\n";
+            test_helmholtz(geom, grids, dmap, ebfactory, lobc, hibc,
+                           max_coarsening_level, reltol, verbose, true);
+        }
+#endif
 
         amrex::Print() << "\n==== hidden EB feature ====\n";
         test_hidden_feature(geom, grids, dmap, lobc, hibc, n_cell, reltol, verbose);

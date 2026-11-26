@@ -31,6 +31,11 @@ namespace amrex {
 //
 // New feature: sigma can also be a single-component cell-centered multifab.
 //
+// Optionally, a Helmholtz term - a phi is added to the left-hand side, where a
+// is a non-negative nodal multifab (setACoeffs).  This is, e.g., the Jacobian of
+// a Newton iteration for a nonlinear Poisson equation with a Boltzmann-like
+// charge density.
+//
 // The EB information needed on the coarse MG levels (covered nodes and open
 // EB positions on edges) is built here from the level-0 factory, so multigrid
 // coarsening is not limited by the EB index space.  Coarsening stops at the
@@ -92,6 +97,18 @@ public:
 
     //! Set the radial `alpha/r^2` term used when RZ is enabled.
     void setAlpha (Real a_alpha);
+
+    /**
+     * \brief Set the nodal coefficient `a` of an optional Helmholtz term.
+     *
+     * The operator becomes del dot (sigma grad phi) - a phi (minus alpha/r^2 phi
+     * in RZ).  \p a_acoef is a single-component nodal MultiFab on the grids of
+     * AMR level \p amrlev; its values should be non-negative.  It is restricted
+     * to the coarse multigrid levels by full weighting.  It can be set again
+     * between solves, e.g., in every step of a Newton iteration.  When it is
+     * set, the single-Box GPU bottom solver is replaced by MLMG's BiCGStab.
+     */
+    void setACoeffs (int amrlev, MultiFab const& a_acoef);
 
 #ifdef AMREX_USE_EB
 
@@ -263,6 +280,9 @@ private:
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
+    //! Nodal coefficient of the Helmholtz term on every MG level
+    Vector<Vector<MultiFab>> m_acoef;
+    bool m_has_acoef = false;
 
 #ifdef AMREX_USE_EB
     //! Nodal level set on every MG level.  A node is covered if it's >= 0.
@@ -294,6 +314,7 @@ public:
     void limit_coarsening ();
 #endif
     void update_sigma ();
+    void update_acoef ();
 };
 
 #ifdef AMREX_USE_EB
