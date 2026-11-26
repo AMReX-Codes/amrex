@@ -149,6 +149,24 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("num_ppc", params.num_ppc);
 }
 
+// A value that is different for every particle of a test with at most 5 cells
+// per direction and one particle per cell.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ParticleReal weighted_pos (const TestParticleContainer::ParticleType& p) noexcept
+{
+    return AMREX_D_TERM(p.pos(0), + ParticleReal(5.)*p.pos(1), + ParticleReal(25.)*p.pos(2));
+}
+
+// Squared distance to (2.5, 2.5, 2.5)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ParticleReal dist2_center (const TestParticleContainer::ParticleType& p) noexcept
+{
+    const ParticleReal c = 2.5;
+    return AMREX_D_TERM(  (p.pos(0)-c)*(p.pos(0)-c),
+                        + (p.pos(1)-c)*(p.pos(1)-c),
+                        + (p.pos(2)-c)*(p.pos(2)-c));
+}
+
 void testReduce ()
 {
     BL_PROFILE("testReduce");
@@ -244,7 +262,8 @@ void testReduce ()
 
     {
         // Tiles whose particle counts are not multiples of 8, so that the CPU
-        // reductions also go through their remainder loop.
+        // reductions also go through their remainder loop: one particle per
+        // cell, at (i+0.5, j+0.5, k+0.5), in boxes of 2 or 3 cells per direction.
         const Box small_domain(IntVect(0), IntVect(4));
         RealBox small_real_box({AMREX_D_DECL(0., 0., 0.)}, {AMREX_D_DECL(5., 5., 5.)});
         Geometry small_geom(small_domain, &small_real_box, coord, is_per);
@@ -256,24 +275,42 @@ void testReduce ()
         small_pc.InitParticles(IntVect(1));
         const auto np = static_cast<ParticleReal>(small_pc.TotalNumberOfParticles());
 
-        // one particle per cell at x = i + 0.5 for i = 0, ..., 4
-        auto xsum = amrex::ReduceSum(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
-        AMREX_ALWAYS_ASSERT(xsum == ParticleReal(2.5)*np);
+        // The extrema of weighted_pos are the first and the last particle of
+        // the domain and dist2_center is zero for the particle in its center:
+        // these are in the first lane, the last lane and the remainder.
+        const ParticleReal wsum = AMREX_D_TERM(ParticleReal(1.), + ParticleReal(5.), + ParticleReal(25.));
+        const ParticleReal vmin = ParticleReal(0.5)*wsum;
+        const ParticleReal vmax = ParticleReal(4.5)*wsum;
 
-        auto xmin = amrex::ReduceMin(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
-        AMREX_ALWAYS_ASSERT(xmin == ParticleReal(0.5));
+        auto vsum = amrex::ReduceSum(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return weighted_pos(p); });
+        AMREX_ALWAYS_ASSERT(vsum == ParticleReal(2.5)*wsum*np);
 
-        auto xmax = amrex::ReduceMax(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return p.pos(0); });
-        AMREX_ALWAYS_ASSERT(xmax == ParticleReal(4.5));
+        auto rmin = amrex::ReduceMin(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return weighted_pos(p); });
+        AMREX_ALWAYS_ASSERT(rmin == vmin);
 
-        auto any_hi = amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(4.); });
-        AMREX_ALWAYS_ASSERT(any_hi == 1);
+        auto rmax = amrex::ReduceMax(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal { return weighted_pos(ptd.m_aos[i]); });
+        AMREX_ALWAYS_ASSERT(rmax == vmax);
 
-        auto all_hi = amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(4.); });
-        AMREX_ALWAYS_ASSERT(all_hi == 0);
+        auto dmin = amrex::ReduceMin(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return dist2_center(p); });
+        AMREX_ALWAYS_ASSERT(dmin == ParticleReal(0.));
 
-        auto all_in = amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.pos(0) > ParticleReal(0.); });
-        AMREX_ALWAYS_ASSERT(all_in == 1);
+        auto dmax = amrex::ReduceMax(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal { return -dist2_center(p); });
+        AMREX_ALWAYS_ASSERT(dmax == ParticleReal(0.));
+
+        // predicates that hold for exactly one particle
+        AMREX_ALWAYS_ASSERT(amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) == vmin; }));
+        AMREX_ALWAYS_ASSERT(amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) == vmax; }));
+        AMREX_ALWAYS_ASSERT(amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return dist2_center(p) == ParticleReal(0.); }));
+        AMREX_ALWAYS_ASSERT(!amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) > vmax; }));
+
+        // predicates that fail for exactly one particle
+        AMREX_ALWAYS_ASSERT(!amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) != vmin; }));
+        AMREX_ALWAYS_ASSERT(!amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) != vmax; }));
+        AMREX_ALWAYS_ASSERT(!amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return dist2_center(p) != ParticleReal(0.); }));
+        AMREX_ALWAYS_ASSERT(amrex::ReduceLogicalAnd(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return weighted_pos(p) <= vmax; }));
+
+        // a predicate that is not an int or bool: a bit above the range of int
+        AMREX_ALWAYS_ASSERT(amrex::ReduceLogicalOr(small_pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Long { return (weighted_pos(p) == vmax) ? (Long(1) << 40) : Long(0); }));
     }
 
     amrex::Print() << "pass \n";
