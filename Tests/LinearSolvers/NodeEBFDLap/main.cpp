@@ -586,6 +586,79 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
             "The Helmholtz term was lost after a define() on the same grids");
     }
 
+    // Defined again on the same grids without a new setACoeffs, but with
+    // (1) a sigma that coarsens the MG levels differently (without
+    // agglomeration, the coarse BoxArrays are coarsened views of the same
+    // grids: the same reference and DistributionMapping, other boxes), and
+    // (2) a Dirichlet domain face turned Neumann, whose nodes now need a:
+    // either must give the solution of a new operator.
+    {
+        int dir_n = -1;  // a Dirichlet face that can become Neumann
+        for (int idim = AMREX_SPACEDIM-1; idim >= 0; --idim) {
+            if (hibc[idim] == LinOpBCType::Dirichlet) { dir_n = idim; }
+        }
+        Array<Real,AMREX_SPACEDIM> sigma_aniso{AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))};
+        sigma_aniso[AMREX_SPACEDIM-1] = Real(1.0)/Real(64.0);
+        for (int variant : {0, 1}) {
+            if (variant == 1 && dir_n < 0) { continue; }
+            auto hi2 = hibc;
+            if (variant == 1) { hi2[dir_n] = LinOpBCType::Neumann; }
+            auto setup2 = [&] (MLEBNodeFDLaplacian& linop, bool set_a)
+            {
+                Options opt;
+                opt.set_a = set_a;
+                setup_linop(linop, acoef, opt);
+                linop.setDomainBC(lobc, hi2);
+                if (variant == 0) { linop.setSigma(sigma_aniso); }
+            };
+
+            LPInfo info;
+            info.setMaxCoarseningLevel(max_coarsening_level);
+            info.setAgglomeration(false);
+            info.setConsolidation(false);
+            MultiFab sol_new;
+            {
+                MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+                setup2(linop, true);
+                MLMG mlmg(linop);
+                setup_mlmg(mlmg, BottomSolver::bicgstab);
+                solve(mlmg, rhs_wave, sol_new);
+            }
+
+            MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+            setup_linop(linop, acoef);
+            Real dx1_first = 0;
+            {
+                MLMG mlmg0(linop);
+                setup_mlmg(mlmg0, BottomSolver::bicgstab);
+                MultiFab sol0;
+                solve(mlmg0, rhs_wave, sol0);
+                AMREX_ALWAYS_ASSERT(linop.NMGLevels(0) > 1);
+                dx1_first = linop.Geom(0, 1).CellSize(AMREX_SPACEDIM-1);
+            }
+            linop.define({geom}, {grids}, {dmap}, info, {&factory});
+            setup2(linop, false);
+            MLMG mlmg(linop);
+            setup_mlmg(mlmg, BottomSolver::bicgstab);
+            MultiFab sol;
+            int const niters = solve(mlmg, rhs_wave, sol);
+            if (variant == 0) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    linop.Geom(0, 1).CellSize(AMREX_SPACEDIM-1) != dx1_first,
+                    "The anisotropic sigma does not change the coarsening: the test is void");
+            }
+            Real const s2 = sol_new.norminf(0, 0);
+            Real const d = max_diff(sol, sol_new);
+            amrex::Print() << (rz ? "RZ, " : "") << "defined again on the same grids with "
+                           << (variant == 0 ? "another coarsening" : "a Neumann face")
+                           << ", a kept: rel. diff. to a new operator = " << d/s2
+                           << " after " << niters << " iterations\n";
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*s2,
+                "A define() on the same grids with other coarse levels or boundaries "
+                "lost part of the Helmholtz term");
+        }
+    }
+
     // a single Box, the default bottom solver and no coarsening
     {
         BoxArray const ba1(geom.Domain());

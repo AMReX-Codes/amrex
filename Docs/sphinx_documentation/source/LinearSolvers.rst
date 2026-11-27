@@ -767,8 +767,9 @@ solve; its values at covered and Dirichlet nodes are not used.  It can be set
 again between solves, and the MLMG object that solves with the operator picks
 up the new values; with the AlgMG or hypre bottom solver, or algebraic or
 hybrid multigrid, use one MLMG object per operator.  Once set, the term stays
-part of the operator (after a ``define`` on other grids, set :cpp:`a` again),
-and the custom bottom solver is replaced by the standard BiCGStab solver.  The
+part of the operator, also after a new ``define`` on the same grids with
+another EB or other boundary conditions (after a ``define`` on other grids,
+set :cpp:`a` again), and the custom bottom solver is replaced by the standard BiCGStab solver.  The
 AlgMG and hypre bottom solvers include the term.
 
 External Solvers

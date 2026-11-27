@@ -115,8 +115,8 @@ public:
      * hybrid multigrid, a second MLMG object on the same operator may keep the
      * old values, so use one MLMG per operator.
      * Once set, the Helmholtz term stays part of this operator, also after a new
-     * define() on the same grids; after a define() on other grids, call
-     * setACoeffs again.  Setting \p a_acoef to zero gives the plain operator,
+     * define() on the same grids with another EB or other boundary conditions;
+     * after a define() on other grids, call setACoeffs again.  Setting \p a_acoef to zero gives the plain operator,
      * but the single-Box GPU bottom solver, which has no Helmholtz term, stays
      * replaced by MLMG's BiCGStab.
      */
@@ -294,7 +294,9 @@ private:
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
-    //! Nodal coefficient of the Helmholtz term on every MG level
+    //! Nodal coefficient of the Helmholtz term as set, per AMR level
+    Vector<MultiFab> m_acoef_in;
+    //! The same, zero at covered and Dirichlet nodes, on every MG level
     Vector<Vector<MultiFab>> m_acoef;
     bool m_has_acoef = false;
 
