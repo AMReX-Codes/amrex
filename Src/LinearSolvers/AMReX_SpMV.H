@@ -46,9 +46,7 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
 
 #if defined(AMREX_USE_CUDA)
 
-    cusparseHandle_t handle;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(handle, Gpu::gpuStream()));
+    cusparseHandle_t handle = Gpu::getCusparseHandle();
 
     cudaDataType data_type;
     if constexpr (std::is_same_v<T,float>) {
@@ -100,17 +98,14 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
 
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroySpMat(mat_descr));
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroyDnVec(x_descr));
-    // No sync needed: the descriptors are host objects, cusparseDestroy defers
-    // the release of GPU resources, and the buffer is freed in stream order.
+    // No sync needed: the descriptors are host objects, the handle is cached
+    // (Gpu::getCusparseHandle), and the buffer is freed in stream order.
     AMREX_CUSPARSE_SAFE_CALL(cusparseDestroyDnVec(y_descr));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
     The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_HIP)
 
-    rocsparse_handle handle;
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
+    rocsparse_handle handle = Gpu::getRocsparseHandle();
 
     rocsparse_datatype data_type;
     if constexpr (std::is_same_v<T,float>) {
@@ -263,7 +258,6 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(x_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(y_descr));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
     if (pbuffer) {
         The_Arena()->free(pbuffer);
     }
