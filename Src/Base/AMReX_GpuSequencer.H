@@ -122,9 +122,9 @@ private:
  *   all GPU work that precedes this point in program order has completed,
  *   except for the other iterations of the loops that are still open.
  *
- * Therefore waiting for the current stream (await()) is always enough before
- * the host reads results, whatever the number of streams and whether or not
- * loops synchronize the host.
+ * Therefore waiting for the current stream (Gpu::streamSynchronize()) is
+ * always enough before the host reads results, whatever the number of
+ * streams and whether or not loops synchronize the host.
  *
  * The transitions are
  *  - fork:    opens a Fan. Its lanes are ordered after the origin stream.
@@ -242,30 +242,6 @@ private:
 [[nodiscard]] Sequencer& theSequencer () noexcept;
 
 #endif
-
-/**
- * \brief The host waits until the GPU work that precedes this call in
- * program order has completed.
- *
- * Use this before the host, or a library that does not use AMReX's streams,
- * reads data that GPU work writes. It is equivalent to
- * Gpu::streamSynchronize(): because loops are kept in program order
- * (Gpu::Sequencer), waiting for the current stream is enough.
- */
-void await () noexcept;
-
-/**
- * \brief Gpu::await() unless in a Gpu::NoSyncRegion.
- *
- * For functions that return with their GPU work completed by default but
- * leave it queued in a no-sync region.
- */
-inline void streamSyncUnlessNoSync () noexcept
-{
-#ifdef AMREX_USE_GPU
-    if (!inNoSyncRegion()) { await(); }
-#endif
-}
 
 /**
  * \brief Makes the GPU work queued so far on the current stream visible to

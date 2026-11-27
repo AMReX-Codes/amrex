@@ -382,6 +382,20 @@ streamSynchronize () noexcept
     Device::streamSynchronize();
 }
 
+/**
+ * \brief Gpu::streamSynchronize() unless in a Gpu::NoSyncRegion.
+ *
+ * For functions that return with their GPU work completed by default but
+ * leave it queued in a no-sync region.
+ */
+inline void
+streamSyncUnlessNoSync () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (!inNoSyncRegion()) { Device::streamSynchronize(); }
+#endif
+}
+
 #ifdef AMREX_USE_GPU
 inline void
 streamSynchronize (gpuStream_t s) noexcept

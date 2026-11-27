@@ -1964,10 +1964,9 @@ SYCL, the host synchronizes instead).  Work queued after the loop is
 therefore ordered after the whole loop, and the host waits only where it
 reads results or synchronizes explicitly.
 
-Inside the region, :cpp:`Gpu::streamSynchronize()` (or its synonym
-:cpp:`Gpu::await()`) on the current stream waits for all the GPU work that
-AMReX queued before it in the program, whatever the number of streams.  Only
-the iterations of one loop have no order among them.  If an iteration queues
+Inside the region, :cpp:`Gpu::streamSynchronize()` on the current stream
+waits for all the GPU work that AMReX queued before it in the program,
+whatever the number of streams.  Only the iterations of one loop have no order among them.  If an iteration queues
 GPU work that the other iterations depend on (e.g., it fills a cache they
 share), call :cpp:`Gpu::publish()` after queuing it.  Code that selects
 streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order them

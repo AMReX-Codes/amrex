@@ -254,7 +254,7 @@ MFIter::Finalize ()
         // An iterator with local boxes that was never iterated (e.g., one
         // used only to index a FabArray, or a FillPatchIterator used only for
         // its data) still returns with the GPU work queued so far completed.
-        Gpu::await();
+        Gpu::streamSynchronize();
     }
     m_fan_tried.flag = true; // isValid() does not open the fan from now on
     AMREX_GPU_ERROR_CHECK();

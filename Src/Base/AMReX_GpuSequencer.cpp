@@ -122,12 +122,6 @@ Sequencer::openLanes () const noexcept
 }
 
 void
-await () noexcept
-{
-    Device::streamSynchronize();
-}
-
-void
 publish () noexcept
 {
 #ifdef AMREX_USE_GPU
