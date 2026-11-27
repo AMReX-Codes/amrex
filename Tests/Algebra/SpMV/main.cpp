@@ -333,6 +333,18 @@ int main(int argc, char *argv[]) {
           Gpu::Device::resetStreamIndex();
           AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getCusparseHandle() == h);
       }
+      // all external streams share one handle, also new ones
+      cusparseHandle_t h_ext[2]{};
+      for (auto& he : h_ext) {
+          cudaStream_t s{};
+          AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&s));
+          {
+              Gpu::ExternalGpuStreamRegion region(s);
+              he = Gpu::getCusparseHandle();
+          }
+          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(s));
+      }
+      AMREX_ALWAYS_ASSERT(h_ext[0] == h_ext[1] && h_ext[0] != h);
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #elif defined(AMREX_USE_HIP)
@@ -370,6 +382,18 @@ int main(int argc, char *argv[]) {
           Gpu::Device::resetStreamIndex();
           AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getRocsparseHandle() == h);
       }
+      // all external streams share one handle, also new ones
+      rocsparse_handle h_ext[2]{};
+      for (auto& he : h_ext) {
+          hipStream_t s{};
+          AMREX_HIP_SAFE_CALL(hipStreamCreate(&s));
+          {
+              Gpu::ExternalGpuStreamRegion region(s);
+              he = Gpu::getRocsparseHandle();
+          }
+          AMREX_HIP_SAFE_CALL(hipStreamDestroy(s));
+      }
+      AMREX_ALWAYS_ASSERT(h_ext[0] == h_ext[1] && h_ext[0] != h);
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #endif

@@ -1490,10 +1490,13 @@ setup of a matrix, in serial builds too: afterwards its entries can no longer be
 changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
-With CUDA and HIP, these operations use one cuSPARSE or rocSPARSE handle per
-host thread and GPU stream. AMReX creates it on first use. When a thread
-exits, its handles pass to the next threads that need one for the same
-stream, and :cpp:`amrex::Finalize` releases them all. For your own library
+With CUDA and HIP, :cpp:`SpMV`, :cpp:`SpGEMM` and :cpp:`transpose` use one
+cuSPARSE or rocSPARSE handle per host thread and stream of AMReX's pool, and
+one per host thread for all external streams. AMReX creates it on first use.
+When a thread exits, its handles pass to the next threads that need one for
+the same stream, and :cpp:`amrex::Finalize` releases them all. A handle found
+bound to another stream (a new external stream, or one you bound it to) makes
+the call synchronize the device first. For your own library
 calls, :cpp:`amrex::Gpu::getCusparseHandle()` and
 :cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return the
 handle for the current stream, bound to it and with the host pointer mode.

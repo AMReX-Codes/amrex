@@ -15,8 +15,11 @@
 // Creating a cuSPARSE or rocSPARSE handle allocates device resources and costs
 // of the order of a millisecond, far more than a sparse matrix-vector product
 // on a coarse multigrid level.  The handles are therefore kept, one per host
-// thread and stream, and created on first use.  A handle is only used on its
-// stream, so the work queued with it stays in order.  When a thread exits,
+// thread and stream of AMReX's pool, which live until amrex::Finalize, plus
+// one per host thread for all external streams; they are created on first
+// use.  A handle stays on its stream, so the work queued with it stays in
+// order; when it is found bound to another stream (a new external stream, or
+// a caller bound it), the device is synchronized first.  When a thread exits,
 // its handles become spares for the next thread that needs one for the same
 // stream; amrex::Finalize releases all.
 //
@@ -40,13 +43,19 @@ namespace {
     using Stream = hipStream_t;
 #endif
 
-    // A handle for one stream
+    // A handle for one stream of AMReX's pool, or for the external streams
     struct Handle
     {
         SparseHandle handle{};  // none after amrex::Finalize released it
-        Stream stream{};
+        Stream stream{};  // the pool stream, unless external
+        bool external = false;
         Handle* prev = nullptr;
         Handle* next = nullptr;
+
+        [[nodiscard]] bool isFor (Stream s, bool ext) const noexcept
+        {
+            return external == ext && (ext || stream == s);
+        }
     };
 
     // with sparse_handles_mutex held
@@ -69,10 +78,10 @@ namespace {
             h->prev = h->next = nullptr;
         }
 
-        Handle* take (Stream stream) noexcept
+        Handle* take (Stream stream, bool external) noexcept
         {
             for (Handle* h = head; h; h = h->next) {
-                if (h->stream == stream) {
+                if (h->isFor(stream, external)) {
                     remove(h);
                     return h;
                 }
@@ -123,7 +132,8 @@ namespace {
         return ok;
     }
 
-    // The handles of a host thread, one per stream it used.
+    // The handles of a host thread, one per pool stream it used, and one for
+    // the external streams.
     struct ThreadHandles
     {
         std::vector<Handle*> handles;
@@ -223,13 +233,24 @@ namespace {
 
         static thread_local ThreadHandles t;
         Stream const stream = Gpu::gpuStream();
+        bool const external = Gpu::Device::usingExternalStream();
         Handle* h = nullptr;
-        for (Handle* c : t.handles) {
-            if (c->stream == stream) { h = c; }
+        for (auto it = t.handles.begin(); it != t.handles.end();) {
+            Handle* c = *it;
+            if (c->isFor(stream, external)) {
+                h = c;
+            } else if (!c->handle) {
+                // released by an earlier amrex::Finalize, in no list
+                delete c;
+                it = t.handles.erase(it);
+                continue;
+            }
+            ++it;
         }
         if (!h) {
             auto node = std::make_unique<Handle>();
-            node->stream = stream;
+            node->stream = external ? Stream{} : stream;
+            node->external = external;
             t.handles.push_back(node.get());
             h = node.release();
         }
@@ -245,7 +266,7 @@ namespace {
                     amrex::ExecOnFinalize(destroy_sparse_handles);
                     finalize_registered = true;
                 }
-                reused = spare.take(stream);
+                reused = spare.take(stream, external);
             }
             SparseHandle handle{};
             if (reused) {
@@ -264,9 +285,9 @@ namespace {
             live.push(h);
         }
 
-        // A caller may have bound the handle to another stream (see the
-        // header) and queued work there: wait for it before using the handle
-        // on its own stream again.
+        // The handle may be bound to another stream, with work queued there:
+        // the external stream before, or one a caller bound it to (see the
+        // header).  Wait for that work before using the handle here.
         if (!created) {
             Stream bound{};
 #if defined(AMREX_USE_CUDA)
