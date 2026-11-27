@@ -6,6 +6,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuError.H>
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -49,6 +50,8 @@ namespace {
         SparseHandle handle{};  // none after amrex::Finalize released it
         Stream stream{};  // the pool stream, unless external
         bool external = false;
+        // the external stream override it was last used in
+        std::uint64_t external_id = 0;
         Handle* prev = nullptr;
         Handle* next = nullptr;
 
@@ -190,12 +193,15 @@ namespace {
                 ok = ok && (hipDeviceSynchronize() == hipSuccess);
 #endif
                 // No other thread may make sparse calls during amrex::Finalize.
-                // Their threads keep the nodes of live handles.
+                // Their threads keep the nodes of live handles.  Without the
+                // sync, work may still use the handles: leave them.
+                bool const synced = ok;
                 while (Handle* h = live.head) {
                     live.remove(h);
-                    ok = release(std::exchange(h->handle, SparseHandle{})) && ok;
+                    SparseHandle const hh = std::exchange(h->handle, SparseHandle{});
+                    if (synced) { ok = release(hh) && ok; }
                 }
-                for (Handle* h = spares; h; h = h->next) {
+                for (Handle* h = spares; synced && h; h = h->next) {
                     ok = release(h->handle) && ok;
                 }
 #if defined(AMREX_USE_CUDA)
@@ -210,8 +216,8 @@ namespace {
         }
         // a warning, so that the rest of amrex::Finalize still runs
         if (!ok) {
-            amrex::Warning("Gpu::destroy_sparse_handles: releasing the sparse library "
-                           "handles failed");
+            amrex::Warning("Gpu::destroy_sparse_handles: synchronizing the device or "
+                           "releasing the sparse library handles failed");
         }
     }
 
@@ -285,9 +291,11 @@ namespace {
             live.push(h);
         }
 
-        // The handle may be bound to another stream, with work queued there:
-        // the external stream before, or one a caller bound it to (see the
-        // header).  Wait for that work before using the handle here.
+        // The handle may have work queued on another stream: one a caller
+        // bound it to (see the header), or the external stream of another
+        // override, which is told by its id since a stream address can be
+        // reused.  Wait for that work before using the handle here.
+        std::uint64_t const external_id = Gpu::Device::externalStreamId();
         if (!created) {
             Stream bound{};
 #if defined(AMREX_USE_CUDA)
@@ -295,8 +303,11 @@ namespace {
 #else
             AMREX_ROCSPARSE_SAFE_CALL(rocsparse_get_stream(h->handle, &bound));
 #endif
-            if (bound != stream) { Gpu::Device::synchronize(); }
+            if (bound != stream || h->external_id != external_id) {
+                Gpu::Device::synchronize();
+            }
         }
+        h->external_id = external_id;
         // Bind it to its stream, and reset the pointer mode that AMReX's calls
         // rely on (alpha and beta on the host), in case a caller changed it.
 #if defined(AMREX_USE_CUDA)

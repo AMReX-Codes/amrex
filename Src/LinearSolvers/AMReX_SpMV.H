@@ -19,7 +19,10 @@ template <typename T, typename Index = Long>
 /**
  * \brief Perform y = A * x using CSR data (GPU/CPU aware).
  *
- * With CUDA the product is asynchronous with respect to the host.
+ * With CUDA the product is asynchronous with respect to the host, except
+ * that the call synchronizes the device when the sparse library handle for
+ * the current stream was bound to another stream before (see
+ * Gpu::getCusparseHandle).
  *
  * \param nrows Number of matrix rows.
  * \param ncols Number of matrix columns.

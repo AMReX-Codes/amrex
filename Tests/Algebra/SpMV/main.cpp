@@ -333,7 +333,8 @@ int main(int argc, char *argv[]) {
           Gpu::Device::resetStreamIndex();
           AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getCusparseHandle() == h);
       }
-      // all external streams share one handle, also new ones
+      // all external streams share one handle, also new ones, even when a
+      // new stream gets the address of a destroyed one
       cusparseHandle_t h_ext[2]{};
       for (auto& he : h_ext) {
           cudaStream_t s{};
@@ -382,7 +383,8 @@ int main(int argc, char *argv[]) {
           Gpu::Device::resetStreamIndex();
           AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getRocsparseHandle() == h);
       }
-      // all external streams share one handle, also new ones
+      // all external streams share one handle, also new ones, even when a
+      // new stream gets the address of a destroyed one
       rocsparse_handle h_ext[2]{};
       for (auto& he : h_ext) {
           hipStream_t s{};

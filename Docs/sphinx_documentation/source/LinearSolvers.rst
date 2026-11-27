@@ -1490,21 +1490,22 @@ setup of a matrix, in serial builds too: afterwards its entries can no longer be
 changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
-With CUDA and HIP, :cpp:`SpMV`, :cpp:`SpGEMM` and :cpp:`transpose` use one
-cuSPARSE or rocSPARSE handle per host thread and stream of AMReX's pool, and
-one per host thread for all external streams. AMReX creates it on first use.
-When a thread exits, its handles pass to the next threads that need one for
-the same stream, and :cpp:`amrex::Finalize` releases them all. A handle found
-bound to another stream (a new external stream, or one you bound it to) makes
-the call synchronize the device first. For your own library
-calls, :cpp:`amrex::Gpu::getCusparseHandle()` and
+With CUDA and HIP, :cpp:`SpMV`, :cpp:`SpGEMM` and :cpp:`transpose` use
+cuSPARSE or rocSPARSE handles that AMReX keeps, one per host thread and GPU
+stream, until :cpp:`amrex::Finalize`. These calls no longer synchronize the
+device as a side effect: if your code relied on that to wait for work on other
+streams, synchronize explicitly. A call may synchronize the device when a
+handle was bound to another stream before, for example for another external
+stream; so do not make sparse calls while a stream is captured into a graph.
+For your own library calls, :cpp:`amrex::Gpu::getCusparseHandle()` and
 :cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return the
 handle for the current stream, bound to it and with the host pointer mode.
 AMReX owns the handle: do not destroy it, and restore any other setting you
 change. AMReX's sparse operations rebind it the same way, so set your own
 stream or pointer mode again after each of them. A thread that makes sparse
-calls must use AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`, and no
-other thread may make sparse calls while :cpp:`amrex::Finalize` runs.
+calls must use AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`. No other
+thread may make sparse calls while :cpp:`amrex::Finalize` runs or while a
+thread sets or resets an external stream, which applies to all threads.
 
 Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See

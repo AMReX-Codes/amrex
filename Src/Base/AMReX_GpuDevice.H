@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -125,6 +126,9 @@ public:
     /** Pop the current external stream and optionally synchronize it. */
     static void resetExternalStream (ExternalStreamSync sync_stream = ExternalStreamSync::Yes) noexcept;
     static bool usingExternalStream () noexcept;
+    /** An id of the current external stream override that no other override
+     *  has (also not one with a reused stream address); 0 without one. */
+    static std::uint64_t externalStreamId () noexcept;
 #endif
 
     static int deviceId () noexcept;
@@ -274,8 +278,10 @@ private:
     {
         std::unique_ptr<StreamManager> manager;
         int saved_stream_index = 0;
+        std::uint64_t id = 0;
     };
     static AMREX_EXPORT Vector<ExternalStream> external_stream_stack;
+    static AMREX_EXPORT std::uint64_t external_stream_count;
 
 #ifdef AMREX_USE_SYCL
     static AMREX_EXPORT std::unique_ptr<sycl::context> sycl_context;
