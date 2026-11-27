@@ -369,7 +369,11 @@ void
 MLEBNodeFDLaplacian::setRZ (bool flag) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
-    m_needs_update = true;
+    if (m_rz != int(flag)) {
+        // the AlgMG/hypre matrices and the edge sigma depend on it
+        m_needs_update = true;
+        m_sigma_needs_update = true;
+    }
     m_rz = flag;
 #else
     amrex::ignore_unused(flag, m_rz);
@@ -380,7 +384,7 @@ void
 MLEBNodeFDLaplacian::setAlpha (Real a_alpha) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
-    m_needs_update = true;
+    if (m_rz_alpha != a_alpha) { m_needs_update = true; }  // the AlgMG/hypre matrices
     m_rz_alpha = a_alpha;
 #else
     amrex::ignore_unused(a_alpha);
@@ -401,7 +405,7 @@ MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
     m_has_acoef = true;
     auto& a0 = m_acoef[amrlev];
     if (a0.empty()) { a0.resize(1); }
-    if (a0[0].empty() || a0[0].boxArray() != nba ||
+    if (a0[0].empty() || !BoxArray::SameRefs(a0[0].boxArray(), nba) ||
         a0[0].DistributionMap() != m_dmap[amrlev][0])
     {
         a0[0] = MultiFab(nba, m_dmap[amrlev][0], 1, 1);
@@ -1979,11 +1983,22 @@ MLEBNodeFDLaplacian::update_acoef ()
             });
         };
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            acoef[0].boxArray() == amrex::convert(this->m_grids[amrlev][0],
-                                                  IntVect::TheNodeVector()) &&
-            acoef[0].DistributionMap() == this->m_dmap[amrlev][0],
-            "MLEBNodeFDLaplacian: call setACoeffs again after define() on other grids");
+        {
+            // after a define(): the same grids keep a (also a BoxArray that is equal
+            // but a new object), other grids need a new setACoeffs
+            BoxArray const nba0 = amrex::convert(this->m_grids[amrlev][0],
+                                                 IntVect::TheNodeVector());
+            if (!BoxArray::SameRefs(acoef[0].boxArray(), nba0) ||
+                acoef[0].DistributionMap() != this->m_dmap[amrlev][0])
+            {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(acoef[0].boxArray() == nba0,
+                    "MLEBNodeFDLaplacian: call setACoeffs again after define() on other grids");
+                MultiFab a(nba0, this->m_dmap[amrlev][0], 1, 1);
+                a.setVal(Real(0.0));
+                a.ParallelCopy(acoef[0], 0, 0, 1);
+                acoef[0] = std::move(a);
+            }
+        }
         zero_masked(acoef[0], 0);
         {
             // finite and non-negative at the unmasked nodes, in one reduction
@@ -1995,10 +2010,11 @@ MLEBNodeFDLaplacian::update_acoef ()
                 Real const v = ma[b](i,j,k);
                 return {v, int(!amrex::Math::isfinite(v))};
             });
-            Real amin = amrex::get<0>(r);
-            int notfinite = amrex::get<1>(r);
-            ParallelDescriptor::ReduceRealMin(amin);
-            ParallelDescriptor::ReduceIntMax(notfinite);
+            // one allreduce over the operator's communicator
+            Real buf[2] = {-amrex::get<0>(r), Real(amrex::get<1>(r))};
+            ParallelAllReduce::Max(buf, 2, ParallelContext::CommunicatorSub());
+            Real const amin = -buf[0];
+            bool const notfinite = buf[1] > Real(0.0);
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!notfinite,
                 "MLEBNodeFDLaplacian::setACoeffs: a must be finite at the nodes "
                 "that are neither covered nor Dirichlet");
@@ -2015,7 +2031,7 @@ MLEBNodeFDLaplacian::update_acoef ()
             BoxArray const cba = amrex::convert(this->m_grids[amrlev][mglev],
                                                 IntVect::TheNodeVector());
             auto& ca = acoef[mglev];
-            if (ca.empty() || ca.boxArray() != cba ||
+            if (ca.empty() || !BoxArray::SameRefs(ca.boxArray(), cba) ||
                 ca.DistributionMap() != this->m_dmap[amrlev][mglev])
             {
                 ca.define(cba, this->m_dmap[amrlev][mglev], 1, 1);

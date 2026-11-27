@@ -437,6 +437,7 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
     struct Options {
         bool sigma_mf = false;
         Real alpha = 0;    // RZ only, with Dirichlet on the axis
+        bool set_a = true;
     };
 
     auto setup_linop = [&] (MLEBNodeFDLaplacian& linop, MultiFab const& a, Options opt = {})
@@ -454,7 +455,7 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
         if (opt.alpha != Real(0.0)) { linop.setAlpha(opt.alpha); }
 #endif
         linop.setEBDirichlet(c);
-        linop.setACoeffs(0, a);
+        if (opt.set_a) { linop.setACoeffs(0, a); }
     };
 
     auto setup_mlmg = [&] (MLMG& mlmg, BottomSolver bottom_solver)
@@ -554,6 +555,35 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
                     "The Helmholtz solve did not reproduce the constant solution");
             }
         }
+    }
+
+    // defined again on the same grids, with multigrid (whose coarse levels are
+    // rebuilt) and without a new setACoeffs: the Helmholtz term stays
+    {
+        LPInfo info;
+        info.setMaxCoarseningLevel(max_coarsening_level);
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+        setup_linop(linop, acoef);
+        {
+            MLMG mlmg0(linop);
+            setup_mlmg(mlmg0, BottomSolver::bicgstab);
+            MultiFab sol0;
+            solve(mlmg0, rhs_const, sol0);
+        }
+        linop.define({geom}, {grids}, {dmap}, info, {&factory});
+        Options keep_a;
+        keep_a.set_a = false;
+        setup_linop(linop, acoef, keep_a);
+        MLMG mlmg(linop);
+        setup_mlmg(mlmg, BottomSolver::bicgstab);
+        MultiFab sol;
+        int const niters = solve(mlmg, rhs_const, sol);
+        Real const err = max_diff(sol, exact);
+        amrex::Print() << (rz ? "RZ, " : "") << "defined again on the same grids, a kept: "
+                       << "max |phi - c| / c = " << err/c << " after " << niters
+                       << " iterations\n";
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err <= tol*c,
+            "The Helmholtz term was lost after a define() on the same grids");
     }
 
     // a single Box, the default bottom solver and no coarsening
