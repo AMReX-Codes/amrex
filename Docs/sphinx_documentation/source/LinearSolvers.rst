@@ -1491,16 +1491,17 @@ changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
 With CUDA and HIP, these operations use one cuSPARSE or rocSPARSE handle per
-host thread. AMReX creates it on first use. When a thread exits, its handle
-passes to the next thread that needs one, and :cpp:`amrex::Finalize` releases
-them all. For your own library calls,
-:cpp:`amrex::Gpu::getCusparseHandle()` and
-:cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return this
-handle, bound to the current stream and with the host pointer mode. AMReX's
-sparse operations rebind it the same way, so set your own stream or pointer
-mode again after each of them. A thread that makes sparse calls must use
-AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`, and no other thread may
-make sparse calls while :cpp:`amrex::Finalize` runs.
+host thread and GPU stream. AMReX creates it on first use. When a thread
+exits, its handles pass to the next threads that need one for the same
+stream, and :cpp:`amrex::Finalize` releases them all. For your own library
+calls, :cpp:`amrex::Gpu::getCusparseHandle()` and
+:cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return the
+handle for the current stream, bound to it and with the host pointer mode.
+AMReX owns the handle: do not destroy it, and restore any other setting you
+change. AMReX's sparse operations rebind it the same way, so set your own
+stream or pointer mode again after each of them. A thread that makes sparse
+calls must use AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`, and no
+other thread may make sparse calls while :cpp:`amrex::Finalize` runs.
 
 Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See

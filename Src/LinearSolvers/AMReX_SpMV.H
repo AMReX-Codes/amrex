@@ -184,7 +184,8 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const,Index> 
                           buffer_size, pbuffer, p_error));
 
     if (pbuffer) {
-        The_Arena()->free(pbuffer);
+        // in stream order: the analysis may still run
+        Gpu::freeAsync(The_Arena(), pbuffer);
     }
 
     AMREX_ROCSPARSE_SAFE_CALL(

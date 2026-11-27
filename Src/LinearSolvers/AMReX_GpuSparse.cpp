@@ -6,19 +6,23 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuError.H>
 
+#include <memory>
 #include <mutex>
-#include <new>
 #include <string>
 #include <utility>
+#include <vector>
 
 // Creating a cuSPARSE or rocSPARSE handle allocates device resources and costs
 // of the order of a millisecond, far more than a sparse matrix-vector product
 // on a coarse multigrid level.  The handles are therefore kept, one per host
-// thread, and created on first use.  When a thread exits, its handle becomes
-// a spare for the next thread that needs one; amrex::Finalize releases all.
+// thread and stream, and created on first use.  A handle is only used on its
+// stream, so the work queued with it stays in order.  When a thread exits,
+// its handles become spares for the next thread that needs one for the same
+// stream; amrex::Finalize releases all.
 //
 // A thread that exits makes no calls into the GPU runtime or library, which
-// may have torn down their own per-thread state by then.  Nothing that can
+// may have torn down their own per-thread state by then.  The lists of
+// handles hold heap nodes only, never storage of a thread.  Nothing that can
 // throw or abort runs while sparse_handles_mutex is held, except the
 // registration with amrex::ExecOnFinalize, and a thread that exits while it
 // holds the mutex (exit() from an abort or a signal handler) does not take it
@@ -36,23 +40,52 @@ namespace {
     using Stream = hipStream_t;
 #endif
 
-    struct ThreadHandle;
-
-    // The handle of a thread that exited, for the next thread that needs one.
-    struct SpareHandle
+    // A handle for one stream
+    struct Handle
     {
-        SparseHandle handle{};
-        Stream stream{};  // the stream it was last bound to
-        SpareHandle* next = nullptr;
+        SparseHandle handle{};  // none after amrex::Finalize released it
+        Stream stream{};
+        Handle* prev = nullptr;
+        Handle* next = nullptr;
     };
 
-    // Guards the two lists and finalize_registered, and makes thread exit and
+    // with sparse_handles_mutex held
+    struct HandleList
+    {
+        Handle* head = nullptr;
+
+        void push (Handle* h) noexcept
+        {
+            h->prev = nullptr;
+            h->next = head;
+            if (head) { head->prev = h; }
+            head = h;
+        }
+
+        void remove (Handle* h) noexcept
+        {
+            if (h->prev) { h->prev->next = h->next; } else { head = h->next; }
+            if (h->next) { h->next->prev = h->prev; }
+            h->prev = h->next = nullptr;
+        }
+
+        Handle* take (Stream stream) noexcept
+        {
+            for (Handle* h = head; h; h = h->next) {
+                if (h->stream == stream) {
+                    remove(h);
+                    return h;
+                }
+            }
+            return nullptr;
+        }
+    };
+
+    // Guards the lists and finalize_registered, and makes thread exit and
     // amrex::Finalize hand over or release each handle exactly once.
     std::mutex sparse_handles_mutex;
-    // the threads that hold a handle
-    ThreadHandle* live_head = nullptr;
-    // the handles of the threads that exited
-    SpareHandle* spare_head = nullptr;
+    HandleList live;   // the handles of running threads
+    HandleList spare;  // the handles of threads that exited
     bool finalize_registered = false;
 
     // True while this thread holds or takes sparse_handles_mutex.
@@ -90,74 +123,46 @@ namespace {
         return ok;
     }
 
-    struct ThreadHandle
+    // The handles of a host thread, one per stream it used.
+    struct ThreadHandles
     {
-        SparseHandle handle{};
-        Stream stream{};  // the stream it was last bound to
-        // in the list of live handles if handle is set
-        ThreadHandle* prev = nullptr;
-        ThreadHandle* next = nullptr;
+        std::vector<Handle*> handles;
 
-        ThreadHandle () = default;
-        ThreadHandle (ThreadHandle const&) = delete;
-        ThreadHandle (ThreadHandle&&) = delete;
-        ThreadHandle& operator= (ThreadHandle const&) = delete;
-        ThreadHandle& operator= (ThreadHandle&&) = delete;
+        ThreadHandles () = default;
+        ThreadHandles (ThreadHandles const&) = delete;
+        ThreadHandles (ThreadHandles&&) = delete;
+        ThreadHandles& operator= (ThreadHandles const&) = delete;
+        ThreadHandles& operator= (ThreadHandles&&) = delete;
 
-        // with sparse_handles_mutex held
-        void link (SparseHandle h) noexcept
-        {
-            handle = h;
-            prev = nullptr;
-            next = live_head;
-            if (live_head) { live_head->prev = this; }
-            live_head = this;
-        }
-
-        // with sparse_handles_mutex held; returns the handle
-        SparseHandle unlink () noexcept
-        {
-            if (prev) { prev->next = next; } else { live_head = next; }
-            if (next) { next->prev = prev; }
-            prev = next = nullptr;
-            return std::exchange(handle, SparseHandle{});
-        }
-
-        // The thread exits: its handle becomes a spare, unless amrex::Finalize
-        // has released it.  No GPU runtime or library calls here.
-        ~ThreadHandle ()
+        // The thread exits: its handles become spares, unless amrex::Finalize
+        // has released them.  No GPU runtime or library calls here.
+        ~ThreadHandles ()
         {
             // exit() while this thread holds the mutex: the process ends
             if (this_thread_in_registry) { return; }
-            // allocated outside the lock; without it, the handle is left to
-            // the process teardown
-            auto* spare = new (std::nothrow) SpareHandle;
-            {
-                RegistryLock lock;
-                if (handle && spare) {
-                    spare->stream = stream;
-                    spare->handle = unlink();
-                    spare->next = spare_head;
-                    spare_head = std::exchange(spare, nullptr);
-                } else if (handle) {
-                    (void) unlink();
+            RegistryLock lock;
+            for (Handle* h : handles) {
+                if (h->handle) {
+                    live.remove(h);
+                    spare.push(h);
+                } else {
+                    delete h;
                 }
             }
-            delete spare;  // if not used
         }
     };
 
     void destroy_sparse_handles ()
     {
         bool ok = true;
-        SpareHandle* spares = nullptr;
+        Handle* spares = nullptr;
         {
             // Held while releasing, so that a thread exiting meanwhile waits
-            // and then finds its handle released.  Nothing here aborts.
+            // and then finds its handles released.  Nothing here aborts.
             RegistryLock lock;
             finalize_registered = false;
-            spares = std::exchange(spare_head, nullptr);
-            if (live_head || spares) {
+            spares = std::exchange(spare.head, nullptr);
+            if (live.head || spares) {
                 // All handles were made on AMReX's device.  Work queued with
                 // them may still run, also on streams that AMReX does not
                 // know: synchronize the whole device.
@@ -174,13 +179,14 @@ namespace {
                 if (other) { ok = hipSetDevice(device) == hipSuccess; }
                 ok = ok && (hipDeviceSynchronize() == hipSuccess);
 #endif
-                // No other thread may make sparse calls during amrex::Finalize,
-                // so the owners of live handles do not use them now.
-                while (live_head) {
-                    ok = release(live_head->unlink()) && ok;
+                // No other thread may make sparse calls during amrex::Finalize.
+                // Their threads keep the nodes of live handles.
+                while (Handle* h = live.head) {
+                    live.remove(h);
+                    ok = release(std::exchange(h->handle, SparseHandle{})) && ok;
                 }
-                for (auto* s = spares; s; s = s->next) {
-                    ok = release(s->handle) && ok;
+                for (Handle* h = spares; h; h = h->next) {
+                    ok = release(h->handle) && ok;
                 }
 #if defined(AMREX_USE_CUDA)
                 if (other) { ok = (cudaSetDevice(current) == cudaSuccess) && ok; }
@@ -192,13 +198,15 @@ namespace {
         while (spares) {
             delete std::exchange(spares, spares->next);
         }
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ok, "Gpu::destroy_sparse_handles failed");
+        // a warning, so that the rest of amrex::Finalize still runs
+        if (!ok) {
+            amrex::Warning("Gpu::destroy_sparse_handles: releasing the sparse library "
+                           "handles failed");
+        }
     }
 
     SparseHandle get_sparse_handle ()
     {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrex::Initialized(),
-            "Gpu::getCusparseHandle/getRocsparseHandle: AMReX is not initialized");
         // The handles belong to AMReX's device.
         int device = -1;
 #if defined(AMREX_USE_CUDA)
@@ -213,52 +221,72 @@ namespace {
                          " of the thread to amrex::Gpu::Device::deviceId() first.");
         }
 
-        static thread_local ThreadHandle t;
+        static thread_local ThreadHandles t;
         Stream const stream = Gpu::gpuStream();
-        if (!t.handle) {
-            SpareHandle* spare = nullptr;
+        Handle* h = nullptr;
+        for (Handle* c : t.handles) {
+            if (c->stream == stream) { h = c; }
+        }
+        if (!h) {
+            auto node = std::make_unique<Handle>();
+            node->stream = stream;
+            t.handles.push_back(node.get());
+            h = node.release();
+        }
+
+        bool created = false;
+        if (!h->handle) {
+            Handle* reused = nullptr;
             {
                 RegistryLock lock;
                 if (!finalize_registered) {
                     // If this throws, nothing has changed.  If it aborts, the
-                    // exit() skips the lock, see ~ThreadHandle.
+                    // exit() skips the lock, see ~ThreadHandles.
                     amrex::ExecOnFinalize(destroy_sparse_handles);
                     finalize_registered = true;
                 }
-                spare = spare_head;
-                if (spare) { spare_head = spare->next; }
+                reused = spare.take(stream);
             }
             SparseHandle handle{};
-            if (spare) {
-                handle = spare->handle;
-                bool const same_stream = spare->stream == stream;
-                delete spare;
-                // Work that the thread before queued with it on another
-                // stream may still be running.
-                if (!same_stream) { Gpu::Device::synchronize(); }
+            if (reused) {
+                handle = reused->handle;
+                delete reused;
             } else {
 #if defined(AMREX_USE_CUDA)
                 AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
 #else
                 AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
 #endif
+                created = true;
             }
             RegistryLock lock;
-            t.link(handle);
+            h->handle = handle;
+            live.push(h);
         }
-        // The handle is used by this host thread only.  Bind it to the current
-        // stream, and reset the pointer mode that AMReX's calls rely on (alpha
-        // and beta on the host), in case a caller changed it.
-        t.stream = stream;
+
+        // A caller may have bound the handle to another stream (see the
+        // header) and queued work there: wait for it before using the handle
+        // on its own stream again.
+        if (!created) {
+            Stream bound{};
 #if defined(AMREX_USE_CUDA)
-        AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(t.handle, stream));
-        AMREX_CUSPARSE_SAFE_CALL(cusparseSetPointerMode(t.handle, CUSPARSE_POINTER_MODE_HOST));
+            AMREX_CUSPARSE_SAFE_CALL(cusparseGetStream(h->handle, &bound));
 #else
-        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(t.handle, stream));
-        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_pointer_mode(t.handle,
+            AMREX_ROCSPARSE_SAFE_CALL(rocsparse_get_stream(h->handle, &bound));
+#endif
+            if (bound != stream) { Gpu::Device::synchronize(); }
+        }
+        // Bind it to its stream, and reset the pointer mode that AMReX's calls
+        // rely on (alpha and beta on the host), in case a caller changed it.
+#if defined(AMREX_USE_CUDA)
+        AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(h->handle, stream));
+        AMREX_CUSPARSE_SAFE_CALL(cusparseSetPointerMode(h->handle, CUSPARSE_POINTER_MODE_HOST));
+#else
+        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(h->handle, stream));
+        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_pointer_mode(h->handle,
                                                              rocsparse_pointer_mode_host));
 #endif
-        return t.handle;
+        return h->handle;
     }
 }
 

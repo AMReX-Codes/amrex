@@ -326,6 +326,13 @@ int main(int argc, char *argv[]) {
           }).join();
       }
       AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
+      // another stream has its own handle
+      if (Gpu::numGpuStreams() > 1) {
+          Gpu::Device::setStreamIndex(1);
+          cusparseHandle_t h_other = Gpu::getCusparseHandle();
+          Gpu::Device::resetStreamIndex();
+          AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getCusparseHandle() == h);
+      }
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #elif defined(AMREX_USE_HIP)
@@ -356,6 +363,13 @@ int main(int argc, char *argv[]) {
           }).join();
       }
       AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
+      // another stream has its own handle
+      if (Gpu::numGpuStreams() > 1) {
+          Gpu::Device::setStreamIndex(1);
+          rocsparse_handle h_other = Gpu::getRocsparseHandle();
+          Gpu::Device::resetStreamIndex();
+          AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getRocsparseHandle() == h);
+      }
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #endif
