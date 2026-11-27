@@ -315,13 +315,17 @@ int main(int argc, char *argv[]) {
       AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(other));
       AMREX_ALWAYS_ASSERT(h2 == h && mode == CUSPARSE_POINTER_MODE_HOST &&
                           stream == Gpu::gpuStream());
-      // another host thread, on AMReX's GPU, gets its own handle
+      // Another host thread, on AMReX's GPU, gets its own handle, and the
+      // next thread gets that one when the first has exited.
       cusparseHandle_t h_thread{};
-      std::thread([&] () {
-          AMREX_CUDA_SAFE_CALL(cudaSetDevice(Gpu::Device::deviceId()));
-          h_thread = Gpu::getCusparseHandle();
-      }).join();
-      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h);
+      cusparseHandle_t h_next{};
+      for (auto* ht : {&h_thread, &h_next}) {
+          std::thread([&] () {
+              AMREX_CUDA_SAFE_CALL(cudaSetDevice(Gpu::Device::deviceId()));
+              *ht = Gpu::getCusparseHandle();
+          }).join();
+      }
+      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #elif defined(AMREX_USE_HIP)
@@ -341,13 +345,17 @@ int main(int argc, char *argv[]) {
       AMREX_HIP_SAFE_CALL(hipStreamDestroy(other));
       AMREX_ALWAYS_ASSERT(h2 == h && mode == rocsparse_pointer_mode_host &&
                           stream == Gpu::gpuStream());
-      // another host thread, on AMReX's GPU, gets its own handle
+      // Another host thread, on AMReX's GPU, gets its own handle, and the
+      // next thread gets that one when the first has exited.
       rocsparse_handle h_thread{};
-      std::thread([&] () {
-          AMREX_HIP_SAFE_CALL(hipSetDevice(Gpu::Device::deviceId()));
-          h_thread = Gpu::getRocsparseHandle();
-      }).join();
-      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h);
+      rocsparse_handle h_next{};
+      for (auto* ht : {&h_thread, &h_next}) {
+          std::thread([&] () {
+              AMREX_HIP_SAFE_CALL(hipSetDevice(Gpu::Device::deviceId()));
+              *ht = Gpu::getRocsparseHandle();
+          }).join();
+      }
+      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
       amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
   }
 #endif

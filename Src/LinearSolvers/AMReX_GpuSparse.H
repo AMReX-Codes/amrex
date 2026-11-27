@@ -12,9 +12,9 @@
  * \file AMReX_GpuSparse.H
  *
  * Handles of the vendor sparse-matrix libraries that AMReX's sparse linear
- * algebra uses: one per host thread, created on first use and released when
- * the thread exits or in amrex::Finalize (that of the main thread, which
- * loaded AMReX, in amrex::Finalize only).
+ * algebra uses: one per host thread, created on first use.  When a thread
+ * exits, its handle passes to the next thread that needs one, and
+ * amrex::Finalize releases them all.
  */
 
 namespace amrex::Gpu {

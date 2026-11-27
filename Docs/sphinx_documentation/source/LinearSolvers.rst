@@ -1491,8 +1491,9 @@ changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
 With CUDA and HIP, these operations use one cuSPARSE or rocSPARSE handle per
-host thread. AMReX creates it on first use and releases it when the thread
-exits or in :cpp:`amrex::Finalize`. For your own library calls,
+host thread. AMReX creates it on first use. When a thread exits, its handle
+passes to the next thread that needs one, and :cpp:`amrex::Finalize` releases
+them all. For your own library calls,
 :cpp:`amrex::Gpu::getCusparseHandle()` and
 :cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return this
 handle, bound to the current stream and with the host pointer mode. AMReX's
