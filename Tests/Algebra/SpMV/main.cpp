@@ -6,7 +6,7 @@
 #include <cmath>
 #include <thread>
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 #include <AMReX_GpuSparse.H>
 #endif
 

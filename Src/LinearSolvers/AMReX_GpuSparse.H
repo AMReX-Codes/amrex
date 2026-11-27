@@ -23,9 +23,10 @@ namespace amrex::Gpu {
  * \brief The cuSPARSE handle of the calling host thread.
  *
  * Each call binds the handle to the current GPU stream (Gpu::gpuStream()) and
- * sets the host pointer mode; call it again after switching streams.  The
- * handle is owned by AMReX: do not destroy it, and restore any other setting
- * you change.
+ * sets the host pointer mode; call it again after switching streams.  AMReX's
+ * sparse operations (SpMV, SpGEMM, transpose) call it too, so set your own
+ * stream or pointer mode again after each of them.  The handle is owned by
+ * AMReX: do not destroy it, and restore any other setting you change.
  *
  * The calling thread must use AMReX's GPU (Gpu::Device::deviceId()).
  * amrex::Finalize releases the handles of all threads, so no other thread may
@@ -37,9 +38,10 @@ cusparseHandle_t getCusparseHandle ();
  * \brief The rocSPARSE handle of the calling host thread.
  *
  * Each call binds the handle to the current GPU stream (Gpu::gpuStream()) and
- * sets the host pointer mode; call it again after switching streams.  The
- * handle is owned by AMReX: do not destroy it, and restore any other setting
- * you change.
+ * sets the host pointer mode; call it again after switching streams.  AMReX's
+ * sparse operations (SpMV, SpGEMM, transpose) call it too, so set your own
+ * stream or pointer mode again after each of them.  The handle is owned by
+ * AMReX: do not destroy it, and restore any other setting you change.
  *
  * The calling thread must use AMReX's GPU (Gpu::Device::deviceId()).
  * amrex::Finalize releases the handles of all threads, so no other thread may

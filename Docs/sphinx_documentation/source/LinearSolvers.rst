@@ -1495,7 +1495,9 @@ host thread. AMReX creates it on first use and releases it when the thread
 exits or in :cpp:`amrex::Finalize`. For your own library calls,
 :cpp:`amrex::Gpu::getCusparseHandle()` and
 :cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return this
-handle, bound to the current stream. A thread that makes sparse calls must use
+handle, bound to the current stream and with the host pointer mode. AMReX's
+sparse operations rebind it the same way, so set your own stream or pointer
+mode again after each of them. A thread that makes sparse calls must use
 AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`, and no other thread may
 make sparse calls while :cpp:`amrex::Finalize` runs.
 
