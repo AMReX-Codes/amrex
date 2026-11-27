@@ -19,10 +19,22 @@
 
 #include <algorithm>
 #include <cmath>
+#include <type_traits>
+#include <utility>
 
 namespace amrex {
 
 namespace {
+
+// True if mf has exactly the layout (ba, dm): the same boxes, and MFIter-safe
+// with the operator's other data on ba.  Neither test alone is enough: a
+// coarsened BoxArray keeps the reference of the original, and an equal
+// BoxArray built separately has another one.
+bool same_layout (MultiFab const& mf, BoxArray const& ba, DistributionMapping const& dm)
+{
+    return BoxArray::SameRefs(mf.boxArray(), ba) && mf.boxArray() == ba
+        && mf.DistributionMap() == dm;
+}
 
 #if defined(AMREX_USE_EB) && (AMREX_SPACEDIM > 1)
 // The scale of the operator's row at each open node: its smallest open edge
@@ -218,6 +230,18 @@ struct EBNodeFDEdgeSigmaAll
     }
 };
 
+// Sigma of box b plus the nodal Helmholtz coefficient a.
+template <typename SA>
+struct EBNodeFDSigmaACoefAll
+{
+    SA siga;
+    MultiArray4<Real const> a;
+    using S = std::decay_t<decltype(std::declval<SA>()(0))>;
+    AMREX_GPU_DEVICE EBNodeFDSigmaACoef<S> operator() (int b) const noexcept {
+        return EBNodeFDSigmaACoef<S>{siga(b), a[b]};
+    }
+};
+
 // One color of a red-black sweep over all boxes in one launch.  has_eb is
 // a device array of the per-box EB flags, or null if no box has EB.
 template <typename SA>
@@ -314,6 +338,7 @@ void
 MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept
 {
     m_needs_update = true;
+    m_sigma_needs_update = true;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         m_sigma[i] = a_sigma[i];
     }
@@ -339,6 +364,7 @@ void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)
 {
     m_needs_update = true;
+    m_sigma_needs_update = true;
     m_has_sigma_mf = true;
     m_sigma_mf[amrlev] = std::make_unique<MultiFab>
         (this->m_grids[amrlev][0], this->m_dmap[amrlev][0], 1, 1, MFInfo{},
@@ -353,6 +379,11 @@ void
 MLEBNodeFDLaplacian::setRZ (bool flag) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
+    if (m_rz != int(flag)) {
+        // the AlgMG/hypre matrices and the edge sigma depend on it
+        m_needs_update = true;
+        m_sigma_needs_update = true;
+    }
     m_rz = flag;
 #else
     amrex::ignore_unused(flag, m_rz);
@@ -363,10 +394,41 @@ void
 MLEBNodeFDLaplacian::setAlpha (Real a_alpha) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
+    if (m_rz_alpha != a_alpha) { m_needs_update = true; }  // the AlgMG/hypre matrices
     m_rz_alpha = a_alpha;
 #else
     amrex::ignore_unused(a_alpha);
 #endif
+}
+
+void
+MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrlev >= 0 && amrlev < this->m_num_amr_levels,
+        "MLEBNodeFDLaplacian::setACoeffs: amrlev out of range (or operator not defined)");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.ixType().nodeCentered() && a_acoef.nComp() == 1,
+        "MLEBNodeFDLaplacian::setACoeffs: a must be a nodal MultiFab with one component");
+    BoxArray const nba = amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        a_acoef.boxArray() == nba || a_acoef.boxArray().contains(nba),
+        "MLEBNodeFDLaplacian::setACoeffs: a must cover the grids of the AMR level");
+    m_has_acoef = true;
+    // Kept as given: the masked copies for the solve are made in update_acoef,
+    // so a new define() with another EB or other boundaries still has all of a.
+    auto& a0 = m_acoef_in[amrlev];
+    if (a0.empty() || !same_layout(a0, nba, m_dmap[amrlev][0])) {
+        a0.define(nba, m_dmap[amrlev][0], 1, 1);
+    }
+    a0.setVal(Real(0.0));
+    a0.ParallelCopy(a_acoef, 0, 0, 1);
+    // one value per node, also where boxes (or periodic images) share it
+    if (amrlev == 0 && m_owner_mask_top) {
+        a0.OverrideSync(*m_owner_mask_top, m_geom[amrlev][0].periodicity());
+    } else {
+        a0.OverrideSync(m_geom[amrlev][0].periodicity());
+    }
+    m_needs_update = true;
+    m_acoef_needs_update = true;
 }
 
 #ifdef AMREX_USE_EB
@@ -426,6 +488,8 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     }
 
     m_sigma_mf.resize(this->m_num_amr_levels);
+    m_acoef_in.resize(this->m_num_amr_levels);
+    m_acoef.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -832,6 +896,8 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
 
     m_sigma_mf.resize(this->m_num_amr_levels);
+    m_acoef_in.resize(this->m_num_amr_levels);
+    m_acoef.resize(this->m_num_amr_levels);
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -1133,8 +1199,13 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     if (m_has_sigma_mf) {
         update_sigma();
     }
+    if (m_has_acoef) {
+        update_acoef();
+    }
 
     m_needs_update = false;
+    m_sigma_needs_update = false;
+    m_acoef_needs_update = false;
 }
 
 #ifdef AMREX_USE_EB
@@ -1229,36 +1300,36 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         }
 #endif
 
+        auto apply = [&] (auto const& sig) {
+            if (phiebarr) {
+                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phiebarr,
+                           b, rz, dx0, dx1, xlo, alpha);
+            } else {
+                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phieb,
+                           b, rz, dx0, dx1, xlo, alpha);
+            }
+        };
+        // With a Helmholtz term the sigma functor also carries the nodal a.
+        auto apply_with_acoef = [&] (auto const& sig) {
+            if (m_has_acoef) {
+                using S = std::decay_t<decltype(sig)>;
+                EBNodeFDSigmaACoef<S> const siga{sig, m_acoef[amrlev][mglev].const_array(mfi)};
+                apply(siga);
+            } else {
+                apply(sig);
+            }
+        };
+
         if (m_has_sigma_mf) {
             EBNodeFDEdgeSigma sig;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 sig.s[idim] = m_sigma_edge[amrlev][mglev][idim].const_array(mfi);
             }
-            if (phiebarr) {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phiebarr,
-                           b, rz, dx0, dx1, xlo, alpha);
-            } else {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phieb,
-                           b, rz, dx0, dx1, xlo, alpha);
-            }
+            apply_with_acoef(sig);
         } else if (rz) {
-            EBNodeFDRZConstSigma const sig{sig0};
-            if (phiebarr) {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phiebarr,
-                           b, rz, dx0, dx1, xlo, alpha);
-            } else {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phieb,
-                           b, rz, dx0, dx1, xlo, alpha);
-            }
+            apply_with_acoef(EBNodeFDRZConstSigma{sig0});
         } else {
-            EBNodeFDConstSigma const sig{};
-            if (phiebarr) {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phiebarr,
-                           b, rz, dx0, dx1, xlo, alpha);
-            } else {
-                fapply_box(box, yarr, xarr, dmarr, sig, has_eb, levset, ebp, phieb,
-                           b, rz, dx0, dx1, xlo, alpha);
-            }
+            apply_with_acoef(EBNodeFDConstSigma{});
         }
     }
 }
@@ -1311,21 +1382,28 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             if (redblack > 0) {
                 applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
             }
+            auto smooth = [&] (auto const& siga) {
+                if (m_has_acoef) {
+                    using SA = std::decay_t<decltype(siga)>;
+                    EBNodeFDSigmaACoefAll<SA> const sigaa{siga,
+                        m_acoef[amrlev][mglev].const_arrays()};
+                    fsmooth_fused(sol, rhs, dmask, sigaa, has_eb, levset, ebp,
+                                  b, rz, dx0, dx1, xlo, alpha, redblack);
+                } else {
+                    fsmooth_fused(sol, rhs, dmask, siga, has_eb, levset, ebp,
+                                  b, rz, dx0, dx1, xlo, alpha, redblack);
+                }
+            };
             if (m_has_sigma_mf) {
                 EBNodeFDEdgeSigmaAll siga;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     siga.s[idim] = m_sigma_edge[amrlev][mglev][idim].const_arrays();
                 }
-                fsmooth_fused(sol, rhs, dmask, siga, has_eb, levset, ebp,
-                              b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(siga);
             } else if (rz) {
-                EBNodeFDSigmaAll<EBNodeFDRZConstSigma> const siga{{sig0}};
-                fsmooth_fused(sol, rhs, dmask, siga, has_eb, levset, ebp,
-                              b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(EBNodeFDSigmaAll<EBNodeFDRZConstSigma>{{sig0}});
             } else {
-                EBNodeFDSigmaAll<EBNodeFDConstSigma> const siga{};
-                fsmooth_fused(sol, rhs, dmask, siga, has_eb, levset, ebp,
-                              b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(EBNodeFDSigmaAll<EBNodeFDConstSigma>{});
             }
         }
         nodalSync(amrlev, mglev, sol);
@@ -1361,21 +1439,28 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             }
 #endif
 
+            auto smooth = [&] (auto const& sig) {
+                if (m_has_acoef) {
+                    using S = std::decay_t<decltype(sig)>;
+                    EBNodeFDSigmaACoef<S> const siga{sig,
+                        m_acoef[amrlev][mglev].const_array(mfi)};
+                    fsmooth_box(box, solarr, rhsarr, dmskarr, siga, has_eb, levset, ebp,
+                                b, rz, dx0, dx1, xlo, alpha, redblack);
+                } else {
+                    fsmooth_box(box, solarr, rhsarr, dmskarr, sig, has_eb, levset, ebp,
+                                b, rz, dx0, dx1, xlo, alpha, redblack);
+                }
+            };
             if (m_has_sigma_mf) {
                 EBNodeFDEdgeSigma sig;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     sig.s[idim] = m_sigma_edge[amrlev][mglev][idim].const_array(mfi);
                 }
-                fsmooth_box(box, solarr, rhsarr, dmskarr, sig, has_eb, levset, ebp,
-                            b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(sig);
             } else if (rz) {
-                EBNodeFDRZConstSigma const sig{sig0};
-                fsmooth_box(box, solarr, rhsarr, dmskarr, sig, has_eb, levset, ebp,
-                            b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(EBNodeFDRZConstSigma{sig0});
             } else {
-                EBNodeFDConstSigma const sig{};
-                fsmooth_box(box, solarr, rhsarr, dmskarr, sig, has_eb, levset, ebp,
-                            b, rz, dx0, dx1, xlo, alpha, redblack);
+                smooth(EBNodeFDConstSigma{});
             }
         }
     }
@@ -1580,6 +1665,11 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
         }
     }
 
+    Array4<Real const> acoef{};
+    if (m_has_acoef) {
+        acoef = m_acoef[amrlev][mglev].const_array(mfi);
+    }
+
     bool has_eb = false;
     Array4<Real const> levset{};
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> ebp{};
@@ -1606,12 +1696,12 @@ MLEBNodeFDLaplacian::fillMatrix_doit (int mglev, MFIter const& mfi,
 #if (AMREX_SPACEDIM == 2)
         if (rz) {
             return mlebndfdlap_ijmat_row_rz(i, j, k, gid, has_eb, has_sig, sig0, sig,
-                                            levset, ebp, dx0, dx1, xlo, alpha,
+                                            levset, ebp, acoef, dx0, dx1, xlo, alpha,
                                             ndlo, ndhi, reflect_lo, reflect_hi);
         }
 #endif
         return mlebndfdlap_ijmat_row(i, j, k, gid, has_eb, has_sig, bcoef, sig,
-                                     levset, ebp, ndlo, ndhi, reflect_lo, reflect_hi);
+                                     levset, ebp, acoef, ndlo, ndhi, reflect_lo, reflect_hi);
     };
 
 #ifdef AMREX_USE_GPU
@@ -1738,10 +1828,16 @@ MLEBNodeFDLaplacian::update ()
         MLNodeLinOp::update();
     }
 
-    if (m_needs_update && m_has_sigma_mf) {
+    // a new a in every Newton step does not recompute the edge sigma, and vice versa
+    if (m_sigma_needs_update && m_has_sigma_mf) {
         update_sigma();
     }
+    if (m_acoef_needs_update && m_has_acoef) {
+        update_acoef();
+    }
     m_needs_update = false;
+    m_sigma_needs_update = false;
+    m_acoef_needs_update = false;
 }
 
 void
@@ -1866,6 +1962,124 @@ MLEBNodeFDLaplacian::update_sigma ()
                 }
                 fill_domain_ghost(cse[idim], m_geom[amrlev][mglev], -1);
             }
+        }
+    }
+}
+
+void
+MLEBNodeFDLaplacian::update_acoef ()
+{
+    BL_PROFILE("MLEBNodeFDLaplacian::update_acoef()");
+
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
+    {
+        auto& ain = m_acoef_in[amrlev];
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!ain.empty(),
+            "MLEBNodeFDLaplacian: setACoeffs must be called on every AMR level");
+        int const nmglevs = this->m_num_mg_levels[amrlev];
+        auto& acoef = m_acoef[amrlev];
+        acoef.resize(nmglevs);
+
+        // The kernels skip covered and Dirichlet nodes, so a may hold anything
+        // there (e.g., inf).  Zero it there, so that the restriction to the
+        // coarse levels takes only the nodes where the operator applies it.
+        auto zero_masked = [&] (MultiFab& a, int mglev)
+        {
+            auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
+            AMREX_ALWAYS_ASSERT(same_layout(a, dmsk.boxArray(), dmsk.DistributionMap()));
+            auto const& ma = a.arrays();
+            auto const& mm = dmsk.const_arrays();
+            amrex::ParallelFor(a, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+            {
+                if (mm[b](i,j,k)) { ma[b](i,j,k) = Real(0.0); }
+            });
+        };
+
+        BoxArray const nba0 = amrex::convert(this->m_grids[amrlev][0],
+                                             IntVect::TheNodeVector());
+        DistributionMapping const& dm0 = this->m_dmap[amrlev][0];
+        // after a define(): the same grids keep a (also a BoxArray that is equal
+        // but a new object, or another DistributionMapping), other grids need a
+        // new setACoeffs
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ain.boxArray() == nba0,
+            "MLEBNodeFDLaplacian: call setACoeffs again after define() on other grids");
+        if (!same_layout(ain, nba0, dm0)) {
+            MultiFab a(nba0, dm0, 1, ain.nGrowVect());
+            a.setVal(Real(0.0));
+            a.ParallelCopy(ain, 0, 0, 1);
+            ain = std::move(a);
+        }
+        if (acoef[0].empty() || !same_layout(acoef[0], nba0, dm0)) {
+            acoef[0].define(nba0, dm0, 1, ain.nGrowVect());
+        }
+        MultiFab::Copy(acoef[0], ain, 0, 0, 1, ain.nGrowVect());
+        zero_masked(acoef[0], 0);
+        {
+            // finite and non-negative at the unmasked nodes, in one reduction
+            auto const& ma = acoef[0].const_arrays();
+            auto const r = amrex::ParReduce(TypeList<ReduceOpMin,ReduceOpLogicalOr>{},
+                                            TypeList<Real,int>{}, acoef[0], IntVect(0),
+            [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept -> GpuTuple<Real,int>
+            {
+                Real const v = ma[b](i,j,k);
+                return {v, int(!amrex::Math::isfinite(v))};
+            });
+            // one allreduce over the operator's communicator
+            Real buf[2] = {-amrex::get<0>(r), Real(amrex::get<1>(r))};
+            ParallelAllReduce::Max(buf, 2, ParallelContext::CommunicatorSub());
+            Real const amin = -buf[0];
+            bool const notfinite = buf[1] > Real(0.0);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!notfinite,
+                "MLEBNodeFDLaplacian::setACoeffs: a must be finite at the nodes "
+                "that are neither covered nor Dirichlet");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amin >= Real(0.0),
+                "MLEBNodeFDLaplacian::setACoeffs: a must be non-negative at the nodes "
+                "that are neither covered nor Dirichlet");
+        }
+        fill_domain_ghost(acoef[0], this->m_geom[amrlev][0], -1);
+
+        for (int mglev = 1; mglev < nmglevs; ++mglev)
+        {
+            IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+            Dim3 const rr = ratio.dim3(1);
+            BoxArray const cba = amrex::convert(this->m_grids[amrlev][mglev],
+                                                IntVect::TheNodeVector());
+            auto& ca = acoef[mglev];
+            if (ca.empty() || !same_layout(ca, cba, this->m_dmap[amrlev][mglev]))
+            {
+                ca.define(cba, this->m_dmap[amrlev][mglev], 1, 1);
+            }
+            // ghost nodes inside the domain but outside all grids stay zero
+            ca.setVal(Real(0.0));
+            auto const& fa = acoef[mglev-1];
+
+            bool const need_parallel_copy = !amrex::isMFIterSafe(ca, fa);
+            MultiFab ca_tmp;
+            MultiFab* pca = &ca;
+            if (need_parallel_copy) {
+                BoxArray const& cfba = amrex::coarsen(this->m_grids[amrlev][mglev-1], ratio);
+                ca_tmp.define(amrex::convert(cfba, IntVect::TheNodeVector()),
+                              fa.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
+                pca = &ca_tmp;
+            }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*pca, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                Array4<Real> const& c = pca->array(mfi);
+                Array4<Real const> const& f = fa.const_array(mfi);
+                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                {
+                    mlebndfdlap_restrict_acoef(i,j,k,c,f,rr);
+                });
+            }
+            if (need_parallel_copy) {
+                ca.ParallelCopy(ca_tmp);
+            }
+            zero_masked(ca, mglev);
+            fill_domain_ghost(ca, this->m_geom[amrlev][mglev], -1);
         }
     }
 }
@@ -2157,7 +2371,8 @@ MLEBNodeFDLaplacian::customBottomSolve (MLMGT<MultiFab>* mlmg, MultiFab& x, cons
     amrex::ignore_unused(maxiter, eps_rel, eps_abs);
 
 #if (defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)) && (AMREX_SPACEDIM > 1)
-    bool use_custom_solver = (x.size() == 1);
+    // The single-Box solver has no Helmholtz term; MLMG's BiCGStab uses Fapply.
+    bool use_custom_solver = (x.size() == 1) && !m_has_acoef;
     if (use_custom_solver)
     {
         int const amrlev = 0;

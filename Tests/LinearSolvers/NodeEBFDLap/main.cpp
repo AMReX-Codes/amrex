@@ -1,5 +1,5 @@
 //
-// Three checks on MLEBNodeFDLaplacian:
+// Checks on MLEBNodeFDLaplacian:
 //
 //   * reusing an operator must not lose the EB Dirichlet values supplied by
 //     the callable setEBDirichlet;
@@ -9,7 +9,9 @@
 //     test of the matrix assembled by MLEBNodeFDLaplacian.  The hypre part is
 //     skipped when hypre is not available;
 //   * multigrid must stop coarsening before a level that can no longer see
-//     part of the EB, even when another part of the EB is still visible.
+//     part of the EB, even when another part of the EB is still visible;
+//   * the Helmholtz term of setACoeffs, in Cartesian and (2D) RZ coordinates,
+//     including a new coefficient on an existing operator.
 //
 
 #include <AMReX.H>
@@ -25,6 +27,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace amrex;
 
@@ -343,6 +349,428 @@ void test_stretched_cells (Array<int,AMREX_SPACEDIM> const& is_periodic,
         "MG level 1 should be coarsened in the short directions only");
 }
 
+// The Helmholtz term of setACoeffs.  With phi = c on the EB and on the
+// Dirichlet domain boundaries, del dot (grad phi) - a phi = -a c has the exact
+// discrete solution phi = c for any a: the Laplacian of a constant vanishes in
+// every row, including rows cut by the EB (whose row scale must then multiply
+// a as it multiplies the right-hand side), rows on a Neumann boundary and, in
+// RZ, the axis.  A wrong sign or a missing scale gives phi != c.  The problem
+// is solved with multigrid (the coarse levels use the restricted a), without
+// coarsening, and with the default, AlgMG and hypre bottom solvers (the
+// latter two use the assembled matrix).  Also checked:
+//   * a = inf at the covered nodes, which the operator does not use, must not
+//     reach the coarse levels;
+//   * a variable sigma (MultiFab), and in RZ a non-zero alpha (with the
+//     solution 0 on the axis, compared between the solvers);
+//   * a single Box with the default bottom solver and no coarsening, so that
+//     the bottom solve does all of the work: on GPUs, the default is a
+//     single-Box solver without a Helmholtz term, which must not be used;
+//   * a second, non-constant right-hand side, for which the matrix solvers
+//     and multigrid must agree;
+//   * a new a on an existing operator and MLMG, as in a Newton iteration,
+//     must give the solution of a new operator, and so must an operator that
+//     is defined again on other grids.
+void test_helmholtz (Geometry const& geom, BoxArray const& grids,
+                     DistributionMapping const& dmap,
+                     EBFArrayBoxFactory const& factory,
+                     Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                     Array<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                     int max_coarsening_level, Real reltol, int verbose, bool rz)
+{
+    Real const c = 2.0;
+    Real const tol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-9);
+    // Where a dominates, the error can be a few times the relative residual.
+    if constexpr (std::is_same_v<Real,double>) {
+        reltol = std::min(reltol, Real(1.e-12));
+    } else {
+        reltol = std::min(reltol, Real(1.e-6));
+    }
+
+    BoxArray const& nba = amrex::convert(grids, IntVect(1));
+    auto const dx = geom.CellSizeArray();
+    auto const problo = geom.ProbLoArray();
+    Real const twopi = Real(2.0)*Math::pi<Real>();
+    // a h^2 from 0.01 to 10: from a weak shift to a diagonally dominant row
+    Real const a0 = Real(1.0)/(dx[0]*dx[0]);
+
+    MultiFab acoef(nba, dmap, 1, 0);
+    MultiFab acoef_inf(nba, dmap, 1, 0);
+    MultiFab rhs_const(nba, dmap, 1, 0);
+    MultiFab rhs_wave(nba, dmap, 1, 0);
+    auto const& levset = factory.getLevelSet();
+    for (MFIter mfi(acoef); mfi.isValid(); ++mfi) {
+        Array4<Real> const& a = acoef.array(mfi);
+        Array4<Real> const& ainf = acoef_inf.array(mfi);
+        Array4<Real const> const& ls = levset.const_array(mfi);
+        Array4<Real> const& r1 = rhs_const.array(mfi);
+        Array4<Real> const& r2 = rhs_wave.array(mfi);
+        amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            AMREX_D_TERM(Real const x = problo[0] + i*dx[0];,
+                         Real const y = problo[1] + j*dx[1];,
+                         Real const z = problo[2] + k*dx[2];)
+            Real const s = Real(0.5)*(Real(1.0) + std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(twopi*y), *std::cos(twopi*z)));
+            a(i,j,k) = a0 * (Real(0.01) + Real(10.0)*s);
+            ainf(i,j,k) = (ls(i,j,k) >= Real(0.0)) ? std::numeric_limits<Real>::infinity()
+                                                  : a(i,j,k);
+            r1(i,j,k) = -a(i,j,k) * c;
+            r2(i,j,k) = std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(Real(3.0)*twopi*y), *std::cos(Real(2.0)*twopi*z));
+        });
+    }
+
+    // a smooth, strictly positive cell-centered sigma
+    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
+    for (MFIter mfi(sigma); mfi.isValid(); ++mfi) {
+        Array4<Real> const& sg = sigma.array(mfi);
+        amrex::ParallelFor(mfi.fabbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            AMREX_D_TERM(Real const x = problo[0] + (i+Real(0.5))*dx[0];,
+                         Real const y = problo[1] + (j+Real(0.5))*dx[1];,
+                         Real const z = problo[2] + (k+Real(0.5))*dx[2];)
+            sg(i,j,k) = Real(1.0) + Real(0.5) * std::sin(twopi*x)
+                * AMREX_D_TERM(Real(1.0), *std::cos(twopi*y), *std::cos(twopi*z));
+        });
+    }
+
+    struct Options {
+        bool sigma_mf = false;
+        Real alpha = 0;    // RZ only, with Dirichlet on the axis
+        bool set_a = true;
+    };
+
+    auto setup_linop = [&] (MLEBNodeFDLaplacian& linop, MultiFab const& a, Options opt = {})
+    {
+        auto lo = lobc;
+        if (opt.alpha != Real(0.0)) { lo[0] = LinOpBCType::Dirichlet; }
+        linop.setDomainBC(lo, hibc);
+        linop.setRZ(rz);
+        if (opt.sigma_mf) {
+            linop.setSigma(0, sigma);
+        } else {
+            linop.setSigma({AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))});
+        }
+#if (AMREX_SPACEDIM == 2)
+        if (opt.alpha != Real(0.0)) { linop.setAlpha(opt.alpha); }
+#endif
+        linop.setEBDirichlet(c);
+        if (opt.set_a) { linop.setACoeffs(0, a); }
+    };
+
+    auto setup_mlmg = [&] (MLMG& mlmg, BottomSolver bottom_solver)
+    {
+        mlmg.setVerbose(verbose);
+        mlmg.setBottomSolver(bottom_solver);
+        mlmg.setBottomTolerance(std::is_same_v<Real,float> ? Real(1.e-6) : Real(1.e-12));
+        mlmg.setBottomMaxIter(2000);
+        mlmg.setMaxIter(100);
+    };
+
+    // The domain Dirichlet nodes take their value from the initial guess.
+    // Start from 0 elsewhere, so that the solver has to find phi = c.
+    auto init_sol = [&] (MultiFab& sol, BoxArray const& ba, DistributionMapping const& dm,
+                         bool zero_on_axis = false)
+    {
+        sol.define(ba, dm, 1, 1);
+        sol.setVal(c);
+        Box const ndomain = amrex::surroundingNodes(geom.Domain());
+        int const ilo = ndomain.smallEnd(0);
+        for (MFIter mfi(sol); mfi.isValid(); ++mfi) {
+            Array4<Real> const& s = sol.array(mfi);
+            Box const inner = mfi.validbox() & amrex::grow(ndomain, -1);
+            amrex::ParallelFor(inner, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                s(i,j,k) = Real(0.0);
+            });
+            if (zero_on_axis) {
+                amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    if (i == ilo) { s(i,j,k) = Real(0.0); }
+                });
+            }
+        }
+    };
+
+    auto solve = [&] (MLMG& mlmg, MultiFab const& rhs, MultiFab& sol,
+                      bool zero_on_axis = false) -> int
+    {
+        MultiFab rhs_copy(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+        MultiFab::Copy(rhs_copy, rhs, 0, 0, 1, 0);
+        init_sol(sol, rhs.boxArray(), rhs.DistributionMap(), zero_on_axis);
+        mlmg.solve({&sol}, {&rhs_copy}, reltol, Real(0.0));
+        return mlmg.getNumIters();
+    };
+
+    auto do_solve = [&] (MultiFab const& rhs, int max_coarsening, BottomSolver bottom_solver,
+                         MultiFab& sol, MultiFab const& a, Options opt = {}) -> int
+    {
+        LPInfo info;
+        info.setMaxCoarseningLevel(max_coarsening);
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+        setup_linop(linop, a, opt);
+        MLMG mlmg(linop);
+        setup_mlmg(mlmg, bottom_solver);
+        return solve(mlmg, rhs, sol, opt.alpha != Real(0.0));
+    };
+
+    auto max_diff = [&] (MultiFab const& x, MultiFab const& y) {
+        MultiFab d(x.boxArray(), x.DistributionMap(), 1, 0);
+        MultiFab::Copy(d, x, 0, 0, 1, 0);
+        MultiFab::Subtract(d, y, 0, 0, 1, 0);
+        return d.norminf();
+    };
+
+    MultiFab exact(nba, dmap, 1, 0);
+    exact.setVal(c);
+
+    std::vector<std::pair<std::string,BottomSolver>> bottoms{
+        {"default", BottomSolver::Default}, {"bicgstab", BottomSolver::bicgstab},
+        {"algmg", BottomSolver::algmg}};
+#ifdef AMREX_USE_HYPRE
+    bottoms.emplace_back("hypre", BottomSolver::hypre);
+#endif
+
+    // constant solution, with and without coarsening, with a = inf at the
+    // covered nodes, and with a variable sigma
+    for (auto const& [name, bottom] : bottoms) {
+        for (int mc : {max_coarsening_level, 0}) {
+            for (int variant : {0, 1, 2}) {
+                bool const inf_covered = variant == 1;
+                Options opt;
+                opt.sigma_mf = variant == 2;
+                MultiFab sol;
+                int const niters = do_solve(rhs_const, mc, bottom, sol,
+                                            inf_covered ? acoef_inf : acoef, opt);
+                Real const err = max_diff(sol, exact);
+                amrex::Print() << (rz ? "RZ, " : "") << "bottom " << name
+                               << (mc > 0 ? ", multigrid" : ", no coarsening")
+                               << (inf_covered ? ", a = inf where covered" : "")
+                               << (opt.sigma_mf ? ", sigma MultiFab" : "")
+                               << ": max |phi - c| / c = " << err/c
+                               << " after " << niters << " iterations\n";
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(niters > 0,
+                    "The Helmholtz test started from its solution");
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err <= tol*c,
+                    "The Helmholtz solve did not reproduce the constant solution");
+            }
+        }
+    }
+
+    // defined again on the same grids, with multigrid (whose coarse levels are
+    // rebuilt) and without a new setACoeffs: the Helmholtz term stays
+    {
+        LPInfo info;
+        info.setMaxCoarseningLevel(max_coarsening_level);
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+        setup_linop(linop, acoef);
+        {
+            MLMG mlmg0(linop);
+            setup_mlmg(mlmg0, BottomSolver::bicgstab);
+            MultiFab sol0;
+            solve(mlmg0, rhs_const, sol0);
+        }
+        linop.define({geom}, {grids}, {dmap}, info, {&factory});
+        Options keep_a;
+        keep_a.set_a = false;
+        setup_linop(linop, acoef, keep_a);
+        MLMG mlmg(linop);
+        setup_mlmg(mlmg, BottomSolver::bicgstab);
+        MultiFab sol;
+        int const niters = solve(mlmg, rhs_const, sol);
+        Real const err = max_diff(sol, exact);
+        amrex::Print() << (rz ? "RZ, " : "") << "defined again on the same grids, a kept: "
+                       << "max |phi - c| / c = " << err/c << " after " << niters
+                       << " iterations\n";
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err <= tol*c,
+            "The Helmholtz term was lost after a define() on the same grids");
+    }
+
+    // Defined again on the same grids without a new setACoeffs, but with
+    // (1) a sigma that coarsens the MG levels differently (without
+    // agglomeration, the coarse BoxArrays are coarsened views of the same
+    // grids: the same reference and DistributionMapping, other boxes), and
+    // (2) a Dirichlet domain face turned Neumann, whose nodes now need a:
+    // either must give the solution of a new operator.
+    {
+        int dir_n = -1;  // a Dirichlet face that can become Neumann
+        for (int idim = AMREX_SPACEDIM-1; idim >= 0; --idim) {
+            if (hibc[idim] == LinOpBCType::Dirichlet) { dir_n = idim; }
+        }
+        Array<Real,AMREX_SPACEDIM> sigma_aniso{AMREX_D_DECL(Real(1.0), Real(1.0), Real(1.0))};
+        sigma_aniso[AMREX_SPACEDIM-1] = Real(1.0)/Real(64.0);
+        for (int variant : {0, 1}) {
+            if (variant == 1 && dir_n < 0) { continue; }
+            auto hi2 = hibc;
+            if (variant == 1) { hi2[dir_n] = LinOpBCType::Neumann; }
+            auto setup2 = [&] (MLEBNodeFDLaplacian& linop, bool set_a)
+            {
+                Options opt;
+                opt.set_a = set_a;
+                setup_linop(linop, acoef, opt);
+                linop.setDomainBC(lobc, hi2);
+                if (variant == 0) { linop.setSigma(sigma_aniso); }
+            };
+
+            LPInfo info;
+            info.setMaxCoarseningLevel(max_coarsening_level);
+            info.setAgglomeration(false);
+            info.setConsolidation(false);
+            MultiFab sol_new;
+            {
+                MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+                setup2(linop, true);
+                MLMG mlmg(linop);
+                setup_mlmg(mlmg, BottomSolver::bicgstab);
+                solve(mlmg, rhs_wave, sol_new);
+            }
+
+            MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+            setup_linop(linop, acoef);
+            Real dx1_first = 0;
+            {
+                MLMG mlmg0(linop);
+                setup_mlmg(mlmg0, BottomSolver::bicgstab);
+                MultiFab sol0;
+                solve(mlmg0, rhs_wave, sol0);
+                AMREX_ALWAYS_ASSERT(linop.NMGLevels(0) > 1);
+                dx1_first = linop.Geom(0, 1).CellSize(AMREX_SPACEDIM-1);
+            }
+            linop.define({geom}, {grids}, {dmap}, info, {&factory});
+            setup2(linop, false);
+            MLMG mlmg(linop);
+            setup_mlmg(mlmg, BottomSolver::bicgstab);
+            MultiFab sol;
+            int const niters = solve(mlmg, rhs_wave, sol);
+            if (variant == 0) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    linop.Geom(0, 1).CellSize(AMREX_SPACEDIM-1) != dx1_first,
+                    "The anisotropic sigma does not change the coarsening: the test is void");
+            }
+            Real const s2 = sol_new.norminf(0, 0);
+            Real const d = max_diff(sol, sol_new);
+            amrex::Print() << (rz ? "RZ, " : "") << "defined again on the same grids with "
+                           << (variant == 0 ? "another coarsening" : "a Neumann face")
+                           << ", a kept: rel. diff. to a new operator = " << d/s2
+                           << " after " << niters << " iterations\n";
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*s2,
+                "A define() on the same grids with other coarse levels or boundaries "
+                "lost part of the Helmholtz term");
+        }
+    }
+
+    // a single Box, the default bottom solver and no coarsening
+    {
+        BoxArray const ba1(geom.Domain());
+        DistributionMapping const dm1(ba1);
+        auto factory1 = makeEBFabFactory(geom, ba1, dm1, {2,2,2}, EBSupport::full);
+        BoxArray const nba1 = amrex::convert(ba1, IntVect(1));
+        MultiFab a1(nba1, dm1, 1, 0);
+        MultiFab rhs1(nba1, dm1, 1, 0);
+        MultiFab exact1(nba1, dm1, 1, 0);
+        a1.ParallelCopy(acoef);
+        rhs1.ParallelCopy(rhs_const);
+        exact1.setVal(c);
+        LPInfo info;
+        info.setMaxCoarseningLevel(0);
+        // first defined on the grids of the other tests, then again on the single Box
+        MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+        setup_linop(linop, acoef);
+        {
+            MLMG mlmg0(linop);
+            setup_mlmg(mlmg0, BottomSolver::Default);
+            MultiFab sol0;
+            solve(mlmg0, rhs_const, sol0);
+        }
+        linop.define({geom}, {ba1}, {dm1}, info, {factory1.get()});
+        setup_linop(linop, a1);
+        MLMG mlmg(linop);
+        setup_mlmg(mlmg, BottomSolver::Default);
+        MultiFab sol;
+        int const niters = solve(mlmg, rhs1, sol);
+        Real const err = max_diff(sol, exact1);
+        amrex::Print() << (rz ? "RZ, " : "") << "defined again on a single Box, default bottom, "
+                       << "no coarsening"
+                       << ": max |phi - c| / c = " << err/c
+                       << " after " << niters << " iterations\n";
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(err <= tol*c,
+            "The single-Box Helmholtz solve did not reproduce the constant solution");
+    }
+
+    // non-constant solution: multigrid and the matrix-based bottom solvers agree
+    MultiFab sol_mg;
+    int const niters = do_solve(rhs_wave, max_coarsening_level, BottomSolver::bicgstab,
+                                sol_mg, acoef);
+    Real const smax = sol_mg.norminf(0, 0);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(niters <= 30,
+        "Multigrid with the Helmholtz term converged too slowly");
+    for (auto const& [name, bottom] : bottoms) {
+        MultiFab sol;
+        do_solve(rhs_wave, 0, bottom, sol, acoef);
+        Real const d = max_diff(sol, sol_mg);
+        amrex::Print() << (rz ? "RZ, " : "") << "wave, bottom " << name
+                       << " vs. multigrid (" << niters << " iterations): rel. diff. = "
+                       << d/smax << "\n";
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*smax,
+            "The " + name + " bottom solver and multigrid disagree with a Helmholtz term");
+    }
+
+    // RZ with a non-zero alpha (Dirichlet, 0, on the axis): the same comparison
+    if (rz) {
+        Options opt;
+        opt.alpha = Real(1.0);
+        MultiFab sol_mg_alpha;
+        int const niters_alpha = do_solve(rhs_wave, max_coarsening_level, BottomSolver::bicgstab,
+                                          sol_mg_alpha, acoef, opt);
+        Real const smax_alpha = sol_mg_alpha.norminf(0, 0);
+        for (auto const& [name, bottom] : bottoms) {
+            MultiFab sol;
+            do_solve(rhs_wave, 0, bottom, sol, acoef, opt);
+            Real const d = max_diff(sol, sol_mg_alpha);
+            amrex::Print() << "RZ, alpha = 1, wave, bottom " << name << " vs. multigrid ("
+                           << niters_alpha << " iterations): rel. diff. = " << d/smax_alpha
+                           << "\n";
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*smax_alpha,
+                "The " + name + " bottom solver and multigrid disagree with alpha and a");
+        }
+    }
+
+    // a new a on an existing operator and MLMG
+    MultiFab acoef2(nba, dmap, 1, 0);
+    MultiFab::Copy(acoef2, acoef, 0, 0, 1, 0);
+    acoef2.mult(Real(3.0));
+    for (auto const& [name, bottom] : bottoms) {
+        for (int mc : {max_coarsening_level, 0}) {
+            MultiFab sol_new;
+            do_solve(rhs_wave, mc, bottom, sol_new, acoef2);
+
+            LPInfo info;
+            info.setMaxCoarseningLevel(mc);
+            MLEBNodeFDLaplacian linop({geom}, {grids}, {dmap}, info, {&factory});
+            setup_linop(linop, acoef);
+            MLMG mlmg(linop);
+            setup_mlmg(mlmg, bottom);
+            MultiFab sol_first;
+            solve(mlmg, rhs_wave, sol_first);
+            linop.setACoeffs(0, acoef2);
+            MultiFab sol_reused;
+            solve(mlmg, rhs_wave, sol_reused);
+
+            Real const s2 = sol_new.norminf(0, 0);
+            Real const d = max_diff(sol_reused, sol_new);
+            Real const d_first = max_diff(sol_first, sol_new);
+            amrex::Print() << (rz ? "RZ, " : "") << "new a on an existing operator, bottom "
+                           << name << (mc > 0 ? ", multigrid" : ", no coarsening")
+                           << ": rel. diff. to a new operator = " << d/s2
+                           << " (before the new a: " << d_first/s2 << ")\n";
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d_first > Real(0.05)*s2,
+                "The new a does not change the solution: the reuse test is void");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*s2,
+                "A new a on an existing operator and MLMG gives a wrong solution");
+        }
+    }
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -400,6 +828,17 @@ int main (int argc, char* argv[])
 
         test_bottom_solvers(geom, grids, dmap, ebfactory,
                             lobc, hibc, reltol, verbose);
+
+        amrex::Print() << "\n==== Helmholtz term ====\n";
+        test_helmholtz(geom, grids, dmap, ebfactory, lobc, hibc,
+                       max_coarsening_level, reltol, verbose, false);
+#if (AMREX_SPACEDIM == 2)
+        if (!geom.isPeriodic(0)) {
+            amrex::Print() << "\n==== Helmholtz term, RZ ====\n";
+            test_helmholtz(geom, grids, dmap, ebfactory, lobc, hibc,
+                           max_coarsening_level, reltol, verbose, true);
+        }
+#endif
 
         amrex::Print() << "\n==== hidden EB feature ====\n";
         test_hidden_feature(geom, grids, dmap, lobc, hibc, n_cell, reltol, verbose);

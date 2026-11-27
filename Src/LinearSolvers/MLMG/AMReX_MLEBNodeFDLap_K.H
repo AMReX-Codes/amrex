@@ -130,8 +130,13 @@ void mlebndfdlap_line_interpadd (int i, int j, int k, Array4<Real> const& fine,
 namespace amrex {
 
 //! Constant sigma, already folded into the stencil coefficients.
+//!
+//! Every sigma functor also provides a(i,j,k), the nodal coefficient of the
+//! Helmholtz term; it is zero unless wrapped by EBNodeFDSigmaACoef.
 struct EBNodeFDConstSigma
 {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr Real a (int, int, int) noexcept { return Real(0.0); }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr Real x (int, int, int) noexcept { return Real(1.0); }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -145,6 +150,8 @@ struct EBNodeFDRZConstSigma
 {
     Real sr = Real(1.0);
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr Real a (int, int, int) noexcept { return Real(0.0); }
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real x (int, int, int) const noexcept { return sr; }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr Real y (int, int, int) noexcept { return Real(1.0); }
@@ -156,6 +163,8 @@ struct EBNodeFDRZConstSigma
 struct EBNodeFDEdgeSigma
 {
     GpuArray<Array4<Real const>,AMREX_SPACEDIM> s;
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr Real a (int, int, int) noexcept { return Real(0.0); }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real x (int i, int j, int k) const noexcept { return s[0](i,j,k); }
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -175,6 +184,54 @@ struct EBNodeFDEdgeSigma
 #endif
     }
 };
+
+/**
+ * \brief Sigma functor S plus the nodal coefficient `a` of the Helmholtz term.
+ *
+ * With it the kernels apply del dot (sigma grad phi) - a phi.  Like the RZ
+ * alpha/r^2 term, `a` is multiplied by the row scale in rows cut by the EB.
+ */
+template <typename S>
+struct EBNodeFDSigmaACoef
+    : public S
+{
+    Array4<Real const> acoef;
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real a (int i, int j, int k) const noexcept { return acoef(i,j,k); }
+};
+
+/**
+ * \brief Full-weighting restriction of the nodal Helmholtz coefficient.
+ *
+ * Weights 1/4, 1/2, 1/4 in each direction coarsened by 2 (\p ratio 1 means
+ * not coarsened).  \p fine needs one ghost node.  It is zero at the covered
+ * and Dirichlet nodes, where the fine operator has no Helmholtz term, so a
+ * coarse node next to them only collects the term of the nodes that have it
+ * (and a constant is preserved away from them).
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_restrict_acoef (int ic, int jc, int kc, Array4<Real> const& crse,
+                                 Array4<Real const> const& fine, Dim3 const& ratio) noexcept
+{
+    int const i = ic*ratio.x;
+    int const j = jc*ratio.y;
+    int const k = kc*ratio.z;
+    int const ni = (ratio.x == 2) ? 1 : 0;
+    int const nj = (ratio.y == 2) ? 1 : 0;
+    int const nk = (ratio.z == 2) ? 1 : 0;
+    auto w = [] (int n, int d) -> Real {
+        return (n == 0) ? Real(1.0) : ((d == 0) ? Real(0.5) : Real(0.25));
+    };
+    Real s = Real(0.0);
+    for (int dk = -nk; dk <= nk; ++dk) {
+        for (int dj = -nj; dj <= nj; ++dj) {
+            for (int di = -ni; di <= ni; ++di) {
+                s += w(ni,di) * w(nj,dj) * w(nk,dk) * fine(i+di,j+dj,k+dk);
+            }
+        }
+    }
+    crse(ic,jc,kc) = s;
+}
 
 /**
  * \brief Convert an EB edge centroid into the EB position used by the kernels.
@@ -659,6 +716,7 @@ Real edge_sigma (int i, int j, int k, int idim, int side, bool has_sig,
  * \param bcoef       sigma_d / dx_d^2 per direction
  * \param sig         edge sigma per direction
  * \param ebp          EB positions on the edges per direction
+ * \param acoef       nodal coefficient of the Helmholtz term, or empty
  * \param ndlo, ndhi  bounds of the nodal domain
  * \param reflect_lo  whether the low-side domain BC mirrors ghost nodes
  * \param reflect_hi  whether the high-side domain BC mirrors ghost nodes
@@ -673,6 +731,7 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
                        GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& sig,
                        Array4<Real const> const& levset,
                        GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& ebp,
+                       Array4<Real const> const& acoef,
                        Dim3 const& ndlo, Dim3 const& ndhi,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_lo,
                        GpuArray<bool,AMREX_SPACEDIM> const& reflect_hi) noexcept
@@ -748,6 +807,8 @@ mlebndfdlap_ijmat_row (int i, int j, int k,
         }
     }
 
+    if (acoef) { diag -= scale * acoef(i,j,k); }
+
     ebnodefdlap_detail::Row row;
     row.val[0] = diag;
     row.node[0] = Dim3{.x=i, .y=j, .z=k};
@@ -792,6 +853,7 @@ mlebndfdlap_ijmat_row_rz (int i, int j, int k,
                           GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& sig,
                           Array4<Real const> const& levset,
                           GpuArray<Array4<Real const>,AMREX_SPACEDIM> const& ebp,
+                          Array4<Real const> const& acoef,
                           Real dr, Real dz, Real rlo, Real alpha,
                           Dim3 const& ndlo, Dim3 const& ndhi,
                           GpuArray<bool,AMREX_SPACEDIM> const& reflect_lo,
@@ -867,6 +929,7 @@ mlebndfdlap_ijmat_row_rz (int i, int j, int k,
         }
     }
     if (!axis) { diag -= scale * alpha / (r*r); }
+    if (acoef) { diag -= scale * acoef(i,j,k); }
 
     Real const w = mlebndfdlap_rz_row_weight(i, dr, rlo);
     ebnodefdlap_detail::Row row;

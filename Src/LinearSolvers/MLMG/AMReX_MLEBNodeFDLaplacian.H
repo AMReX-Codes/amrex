@@ -31,6 +31,11 @@ namespace amrex {
 //
 // New feature: sigma can also be a single-component cell-centered multifab.
 //
+// Optionally, a Helmholtz term - a phi is added to the left-hand side, where a
+// is a non-negative nodal multifab (setACoeffs).  This is, e.g., the Jacobian of
+// a Newton iteration for a nonlinear Poisson equation with a Boltzmann-like
+// charge density.
+//
 // The EB information needed on the coarse MG levels (covered nodes and open
 // EB positions on edges) is built here from the level-0 factory, so multigrid
 // coarsening is not limited by the EB index space.  Coarsening stops at the
@@ -92,6 +97,30 @@ public:
 
     //! Set the radial `alpha/r^2` term used when RZ is enabled.
     void setAlpha (Real a_alpha);
+
+    /**
+     * \brief Set the nodal coefficient `a` of an optional Helmholtz term.
+     *
+     * The operator becomes del dot (sigma grad phi) - a phi (minus alpha/r^2 phi
+     * in RZ).  \p a_acoef is a single-component nodal MultiFab that covers the
+     * grids of AMR level \p amrlev.  Its values must be finite and non-negative
+     * at the nodes that are neither covered by the EB nor Dirichlet nodes; this
+     * is checked at the next solve.  The values at covered and Dirichlet nodes
+     * are not used and may be anything, e.g., infinite.  A node shared by
+     * several boxes takes the value of one of them.
+     *
+     * It can be set again between solves, e.g., in every step of a Newton
+     * iteration; the MLMG object that solves with this operator picks the new
+     * values up.  With the AlgMG or hypre bottom solver, or with algebraic or
+     * hybrid multigrid, a second MLMG object on the same operator may keep the
+     * old values, so use one MLMG per operator.
+     * Once set, the Helmholtz term stays part of this operator, also after a new
+     * define() on the same grids with another EB or other boundary conditions;
+     * after a define() on other grids, call setACoeffs again.  Setting \p a_acoef to zero gives the plain operator,
+     * but the single-Box GPU bottom solver, which has no Helmholtz term, stays
+     * replaced by MLMG's BiCGStab.
+     */
+    void setACoeffs (int amrlev, MultiFab const& a_acoef);
 
 #ifdef AMREX_USE_EB
 
@@ -259,10 +288,17 @@ private:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_sigma_edge;
     bool m_has_sigma_mf = false;
     bool m_needs_update = true;
+    bool m_sigma_needs_update = false;  //!< setSigma since the last update
+    bool m_acoef_needs_update = false;  //!< setACoeffs since the last update
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
+    //! Nodal coefficient of the Helmholtz term as set, per AMR level
+    Vector<MultiFab> m_acoef_in;
+    //! The same, zero at covered and Dirichlet nodes, on every MG level
+    Vector<Vector<MultiFab>> m_acoef;
+    bool m_has_acoef = false;
 
 #ifdef AMREX_USE_EB
     //! Nodal level set on every MG level.  A node is covered if it's >= 0.
@@ -294,6 +330,7 @@ public:
     void limit_coarsening ();
 #endif
     void update_sigma ();
+    void update_acoef ();
 };
 
 #ifdef AMREX_USE_EB

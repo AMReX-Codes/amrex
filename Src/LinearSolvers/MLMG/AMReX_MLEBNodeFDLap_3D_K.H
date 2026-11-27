@@ -42,7 +42,7 @@ void mlebndfdlap_adotx (int i, int j, int k, Array4<Real> const& y,
         y(i,j,k) = bx * (sigxm*x(i-1,j,k) + sigxp*x(i+1,j,k))
             +      by * (sigym*x(i,j-1,k) + sigyp*x(i,j+1,k))
             +      bz * (sigzm*x(i,j,k-1) + sigzp*x(i,j,k+1))
-            - (bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp)) * x(i,j,k);
+            - (bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp) + sig.a(i,j,k)) * x(i,j,k);
     }
 }
 
@@ -62,7 +62,8 @@ void mlebndfdlap_gsrb (int i, int j, int k, Array4<Real> const& x,
             Real const sigyp = sig.y(i,j  ,k);
             Real const sigzm = sig.z(i,j,k-1);
             Real const sigzp = sig.z(i,j,k  );
-            Real const gamma = -(bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp));
+            Real const gamma = -(bx*(sigxm+sigxp) + by*(sigym+sigyp) + bz*(sigzm+sigzp)
+                                 + sig.a(i,j,k));
             Real const Ax = bx * (sigxm*x(i-1,j,k) + sigxp*x(i+1,j,k))
                 +           by * (sigym*x(i,j-1,k) + sigyp*x(i,j+1,k))
                 +           bz * (sigzm*x(i,j,k-1) + sigzp*x(i,j,k+1))
@@ -136,6 +137,8 @@ void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
         } else {
             out += sigma * fac * mlebndfdlap_scaled_hinv(scale, hmz) * (xeb(i,j,k-1) - xc);
         }
+
+        out -= scale * sig.a(i,j,k) * xc;
 
         y(i,j,k) = out;
     }
@@ -249,6 +252,7 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
                 gamma -= sigma * fac * mlebndfdlap_scaled_hinv(scale, hmz);
             }
 
+            gamma -= scale * sig.a(i,j,k);
             Real const Ax = rho + gamma*x(i,j,k);
             // Over-relaxing rows cut by the EB can make MG diverge.
             Real const omega = cut ? Real(1.0) : Real(1.25);
