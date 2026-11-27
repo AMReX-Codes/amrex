@@ -761,12 +761,14 @@ density:
 
     linop.setACoeffs(0, a);  // nodal MultiFab with one component
 
-The coefficient :cpp:`a` must be non-negative at the nodes that are neither
-covered by the EB nor Dirichlet nodes, which is checked at the next solve; its
-values at covered and Dirichlet nodes are not used.  It can be set again
-between solves.  Once set, the term stays part of the operator, and the custom
-bottom solver is replaced by the standard BiCGStab solver.  The AlgMG and
-hypre bottom solvers include the term.
+The coefficient :cpp:`a` must be finite and non-negative at the nodes that are
+neither covered by the EB nor Dirichlet nodes, which is checked at the next
+solve; its values at covered and Dirichlet nodes are not used.  It can be set
+again between solves, and the MLMG object that solves with the operator picks
+up the new values; with the AlgMG or hypre bottom solver, use one MLMG object
+per operator.  Once set, the term stays part of the operator until it is
+defined again, and the custom bottom solver is replaced by the standard
+BiCGStab solver.  The AlgMG and hypre bottom solvers include the term.
 
 External Solvers
 ================

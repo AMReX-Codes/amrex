@@ -390,15 +390,21 @@ MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
         "MLEBNodeFDLaplacian::setACoeffs: amrlev out of range (or operator not defined)");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.ixType().nodeCentered() && a_acoef.nComp() == 1,
         "MLEBNodeFDLaplacian::setACoeffs: a must be a nodal MultiFab with one component");
+    BoxArray const nba = amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.boxArray().contains(nba),
+        "MLEBNodeFDLaplacian::setACoeffs: a must cover the grids of the AMR level");
     m_has_acoef = true;
     auto& a0 = m_acoef[amrlev];
     if (a0.empty()) { a0.resize(1); }
-    if (a0[0].empty()) {
-        a0[0].define(amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector()),
-                     m_dmap[amrlev][0], 1, 1);
+    if (a0[0].empty() || a0[0].boxArray() != nba ||
+        a0[0].DistributionMap() != m_dmap[amrlev][0])
+    {
+        a0[0] = MultiFab(nba, m_dmap[amrlev][0], 1, 1);
     }
     a0[0].setVal(Real(0.0));
     a0[0].ParallelCopy(a_acoef, 0, 0, 1);
+    // one value per node, also where boxes (or periodic images) share it
+    a0[0].OverrideSync(m_geom[amrlev][0].periodicity());
     m_needs_update = true;
 }
 
@@ -459,7 +465,10 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     }
 
     m_sigma_mf.resize(this->m_num_amr_levels);
+    // a new define removes the Helmholtz term; setACoeffs sets it again
+    m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
+    m_has_acoef = false;
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -866,7 +875,10 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
 
     m_sigma_mf.resize(this->m_num_amr_levels);
+    // a new define removes the Helmholtz term; setACoeffs sets it again
+    m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
+    m_has_acoef = false;
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -1959,6 +1971,10 @@ MLEBNodeFDLaplacian::update_acoef ()
         };
 
         zero_masked(acoef[0], 0);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !acoef[0].contains_nan(0, 1, 0) && !acoef[0].contains_inf(0, 1, 0),
+            "MLEBNodeFDLaplacian::setACoeffs: a must be finite at the nodes "
+            "that are neither covered nor Dirichlet");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(acoef[0].min(0) >= Real(0.0),
             "MLEBNodeFDLaplacian::setACoeffs: a must be non-negative at the nodes "
             "that are neither covered nor Dirichlet");

@@ -102,16 +102,21 @@ public:
      * \brief Set the nodal coefficient `a` of an optional Helmholtz term.
      *
      * The operator becomes del dot (sigma grad phi) - a phi (minus alpha/r^2 phi
-     * in RZ).  \p a_acoef is a single-component nodal MultiFab on the grids of
-     * AMR level \p amrlev.  Its values must be non-negative at the nodes that
-     * are neither covered by the EB nor Dirichlet nodes; this is checked at the
-     * next solve.  The values at covered and Dirichlet nodes are not used and
-     * may be anything, e.g., infinite.  \p a_acoef is restricted to the coarse
-     * multigrid levels by full weighting.  It can be set again between solves,
-     * e.g., in every step of a Newton iteration.  Once set, the Helmholtz term
-     * stays part of this operator: setting \p a_acoef to zero gives the plain
-     * operator, but the single-Box GPU bottom solver, which has no Helmholtz
-     * term, stays replaced by MLMG's BiCGStab.
+     * in RZ).  \p a_acoef is a single-component nodal MultiFab that covers the
+     * grids of AMR level \p amrlev.  Its values must be finite and non-negative
+     * at the nodes that are neither covered by the EB nor Dirichlet nodes; this
+     * is checked at the next solve.  The values at covered and Dirichlet nodes
+     * are not used and may be anything, e.g., infinite.  A node shared by
+     * several boxes takes the value of one of them.
+     *
+     * It can be set again between solves, e.g., in every step of a Newton
+     * iteration; the MLMG object that solves with this operator picks the new
+     * values up.  With the AlgMG or hypre bottom solver, a second MLMG object on
+     * the same operator may keep the old values, so use one MLMG per operator.
+     * Once set, the Helmholtz term stays part of this operator until a new
+     * define(): setting \p a_acoef to zero gives the plain operator, but the
+     * single-Box GPU bottom solver, which has no Helmholtz term, stays replaced
+     * by MLMG's BiCGStab.
      */
     void setACoeffs (int amrlev, MultiFab const& a_acoef);
 

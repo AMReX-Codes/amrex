@@ -204,7 +204,10 @@ struct EBNodeFDSigmaACoef
  * \brief Full-weighting restriction of the nodal Helmholtz coefficient.
  *
  * Weights 1/4, 1/2, 1/4 in each direction coarsened by 2 (\p ratio 1 means
- * not coarsened), so a constant is preserved.  \p fine needs one ghost node.
+ * not coarsened).  \p fine needs one ghost node.  It is zero at the covered
+ * and Dirichlet nodes, where the fine operator has no Helmholtz term, so a
+ * coarse node next to them only collects the term of the nodes that have it
+ * (and a constant is preserved away from them).
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_restrict_acoef (int ic, int jc, int kc, Array4<Real> const& crse,
