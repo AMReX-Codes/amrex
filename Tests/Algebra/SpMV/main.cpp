@@ -4,6 +4,11 @@
 #include <AMReX.H>
 
 #include <cmath>
+#include <thread>
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#include <AMReX_GpuSparse.H>
+#endif
 
 using namespace amrex;
 
@@ -292,6 +297,108 @@ int main(int argc, char *argv[]) {
       auto eps = (sizeof(T) == 4) ? T(1.e-5) : T(1.e-14);
       AMREX_ALWAYS_ASSERT(error < eps);
   }
+
+#if defined(AMREX_USE_CUDA)
+  {
+      // The cached handle comes back bound to the current stream and with the
+      // host pointer mode, also after a caller changed both.
+      cusparseHandle_t h = Gpu::getCusparseHandle();
+      cudaStream_t other{};
+      AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&other));
+      AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(h, other));
+      AMREX_CUSPARSE_SAFE_CALL(cusparseSetPointerMode(h, CUSPARSE_POINTER_MODE_DEVICE));
+      cusparseHandle_t h2 = Gpu::getCusparseHandle();
+      cusparsePointerMode_t mode{};
+      AMREX_CUSPARSE_SAFE_CALL(cusparseGetPointerMode(h2, &mode));
+      cudaStream_t stream{};
+      AMREX_CUSPARSE_SAFE_CALL(cusparseGetStream(h2, &stream));
+      AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(other));
+      AMREX_ALWAYS_ASSERT(h2 == h && mode == CUSPARSE_POINTER_MODE_HOST &&
+                          stream == Gpu::gpuStream());
+      // Another host thread, on AMReX's GPU, gets its own handle, and the
+      // next thread gets that one when the first has exited.
+      cusparseHandle_t h_thread{};
+      cusparseHandle_t h_next{};
+      for (auto* ht : {&h_thread, &h_next}) {
+          std::thread([&] () {
+              AMREX_CUDA_SAFE_CALL(cudaSetDevice(Gpu::Device::deviceId()));
+              *ht = Gpu::getCusparseHandle();
+          }).join();
+      }
+      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
+      // another stream has its own handle
+      if (Gpu::numGpuStreams() > 1) {
+          Gpu::Device::setStreamIndex(1);
+          cusparseHandle_t h_other = Gpu::getCusparseHandle();
+          Gpu::Device::resetStreamIndex();
+          AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getCusparseHandle() == h);
+      }
+      // all external streams share one handle, also new ones, even when a
+      // new stream gets the address of a destroyed one
+      cusparseHandle_t h_ext[2]{};
+      for (auto& he : h_ext) {
+          cudaStream_t s{};
+          AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&s));
+          {
+              Gpu::ExternalGpuStreamRegion region(s);
+              he = Gpu::getCusparseHandle();
+          }
+          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(s));
+      }
+      AMREX_ALWAYS_ASSERT(h_ext[0] == h_ext[1] && h_ext[0] != h);
+      amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
+  }
+#elif defined(AMREX_USE_HIP)
+  {
+      // The cached handle comes back bound to the current stream and with the
+      // host pointer mode, also after a caller changed both.
+      rocsparse_handle h = Gpu::getRocsparseHandle();
+      hipStream_t other{};
+      AMREX_HIP_SAFE_CALL(hipStreamCreate(&other));
+      AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(h, other));
+      AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_pointer_mode(h, rocsparse_pointer_mode_device));
+      rocsparse_handle h2 = Gpu::getRocsparseHandle();
+      rocsparse_pointer_mode mode{};
+      AMREX_ROCSPARSE_SAFE_CALL(rocsparse_get_pointer_mode(h2, &mode));
+      hipStream_t stream{};
+      AMREX_ROCSPARSE_SAFE_CALL(rocsparse_get_stream(h2, &stream));
+      AMREX_HIP_SAFE_CALL(hipStreamDestroy(other));
+      AMREX_ALWAYS_ASSERT(h2 == h && mode == rocsparse_pointer_mode_host &&
+                          stream == Gpu::gpuStream());
+      // Another host thread, on AMReX's GPU, gets its own handle, and the
+      // next thread gets that one when the first has exited.
+      rocsparse_handle h_thread{};
+      rocsparse_handle h_next{};
+      for (auto* ht : {&h_thread, &h_next}) {
+          std::thread([&] () {
+              AMREX_HIP_SAFE_CALL(hipSetDevice(Gpu::Device::deviceId()));
+              *ht = Gpu::getRocsparseHandle();
+          }).join();
+      }
+      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h && h_next == h_thread);
+      // another stream has its own handle
+      if (Gpu::numGpuStreams() > 1) {
+          Gpu::Device::setStreamIndex(1);
+          rocsparse_handle h_other = Gpu::getRocsparseHandle();
+          Gpu::Device::resetStreamIndex();
+          AMREX_ALWAYS_ASSERT(h_other != h && Gpu::getRocsparseHandle() == h);
+      }
+      // all external streams share one handle, also new ones, even when a
+      // new stream gets the address of a destroyed one
+      rocsparse_handle h_ext[2]{};
+      for (auto& he : h_ext) {
+          hipStream_t s{};
+          AMREX_HIP_SAFE_CALL(hipStreamCreate(&s));
+          {
+              Gpu::ExternalGpuStreamRegion region(s);
+              he = Gpu::getRocsparseHandle();
+          }
+          AMREX_HIP_SAFE_CALL(hipStreamDestroy(s));
+      }
+      AMREX_ALWAYS_ASSERT(h_ext[0] == h_ext[1] && h_ext[0] != h);
+      amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
+  }
+#endif
 
   amrex::Finalize();
 }

@@ -57,6 +57,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_AlgVector.H
        AMReX_AlgVecUtil.H
        AMReX_CSR.H
+       AMReX_GpuSparse.H
+       AMReX_GpuSparse.cpp
        AMReX_SpGEMM.H
        AMReX_SpMatrix.H
        AMReX_SpMatUtil.H

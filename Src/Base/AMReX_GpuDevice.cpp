@@ -109,6 +109,7 @@ gpuDeviceProp_t         Device::device_prop;
 int                     Device::memory_pools_supported = 0;
 #ifdef AMREX_USE_GPU
 Vector<Device::ExternalStream> Device::external_stream_stack;
+std::uint64_t Device::external_stream_count = 0;
 #endif
 
 constexpr int Device::warp_size;
@@ -942,7 +943,8 @@ Device::setExternalStream (gpuStream_t s)
     // these regions.
     external_stream_stack.emplace_back(
         ExternalStream{std::make_unique<StreamManager>(),
-                       gpu_stream_index[OpenMP::get_thread_num()]});
+                       gpu_stream_index[OpenMP::get_thread_num()],
+                       ++external_stream_count});
     external_stream_stack.back().manager->getStream() = s;
 }
 
@@ -973,6 +975,12 @@ bool
 Device::usingExternalStream () noexcept
 {
     return !external_stream_stack.empty();
+}
+
+std::uint64_t
+Device::externalStreamId () noexcept
+{
+    return external_stream_stack.empty() ? 0 : external_stream_stack.back().id;
 }
 #endif
 

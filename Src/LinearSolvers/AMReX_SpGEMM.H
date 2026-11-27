@@ -610,7 +610,7 @@ CSR<T,V,Index> spgemm_local_cusparse (Long nrows, Long ncols,
 
     // Releases everything, also when an OutOfMemoryError is thrown.
     struct Resources {
-        cusparseHandle_t handle = nullptr;
+        cusparseHandle_t handle = nullptr;  // cached, not owned
         cusparseSpMatDescr_t mat_A = nullptr, mat_B = nullptr, mat_C = nullptr;
         cusparseSpGEMMDescr_t descr = nullptr;
         void* buffer1 = nullptr;
@@ -624,14 +624,12 @@ CSR<T,V,Index> spgemm_local_cusparse (Long nrows, Long ncols,
             if (mat_A) { cusparseDestroySpMat(mat_A); }
             if (mat_B) { cusparseDestroySpMat(mat_B); }
             if (mat_C) { cusparseDestroySpMat(mat_C); }
-            if (handle) { cusparseDestroy(handle); }
             if (buffer1) { The_Arena()->free(buffer1); }
             if (buffer2) { The_Arena()->free(buffer2); }
         }
     } r;
 
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&r.handle));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(r.handle, Gpu::gpuStream()));
+    r.handle = Gpu::getCusparseHandle();
 
     constexpr cusparseIndexType_t index_type = CUSPARSE_INDEX_32I;
     void* rowA = (void*)A.row_offset;
@@ -739,7 +737,7 @@ CSR<T,V,Index> spgemm_local_rocsparse (Long nrows, Long ncols,
 
     // Releases everything, also when an OutOfMemoryError is thrown.
     struct Resources {
-        rocsparse_handle handle = nullptr;
+        rocsparse_handle handle = nullptr;  // cached, not owned
         rocsparse_spmat_descr mat_A = nullptr, mat_B = nullptr, mat_C = nullptr,
             mat_D = nullptr;
         void* buffer = nullptr;
@@ -751,13 +749,11 @@ CSR<T,V,Index> spgemm_local_rocsparse (Long nrows, Long ncols,
             for (auto m : {mat_A, mat_B, mat_C, mat_D}) {
                 if (m) { rocsparse_destroy_spmat_descr(m); }
             }
-            if (handle) { rocsparse_destroy_handle(handle); }
             if (buffer) { The_Arena()->free(buffer); }
         }
     } r;
 
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&r.handle));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(r.handle, Gpu::gpuStream()));
+    r.handle = Gpu::getRocsparseHandle();
 
     AMREX_ROCSPARSE_SAFE_CALL
         (rocsparse_create_csr_descr(&r.mat_A, nrows, B.nrows, A.nnz,

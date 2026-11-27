@@ -7,13 +7,10 @@
 #include <AMReX_CSR.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_GpuSparse.H>
 #include <AMReX_Scan.H>
 
-#if defined(AMREX_USE_CUDA)
-#  include <cusparse.h>
-#elif defined(AMREX_USE_HIP)
-#  include <rocsparse/rocsparse.h>
-#elif defined(AMREX_USE_SYCL)
+#if defined(AMREX_USE_SYCL)
 #  include <mkl_version.h>
 #  include <oneapi/mkl/spblas.hpp>
 #endif
@@ -618,9 +615,7 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
 
 #if defined(AMREX_USE_CUDA)
 
-    cusparseHandle_t handle;
-    AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
-    AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(handle, Gpu::gpuStream()));
+    cusparseHandle_t handle = Gpu::getCusparseHandle();
 
     cudaDataType data_type;
     if constexpr (std::is_same_v<T,float>) {
@@ -690,16 +685,13 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
         cit.copyTo(csrt);
     }
 
-    // No sync needed: the descriptors are host objects, cusparseDestroy defers
-    // the release of GPU resources, and the buffer is freed in stream order.
-    AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
+    // No sync needed: the handle is cached (Gpu::getCusparseHandle), and the
+    // buffer is freed in stream order.
     The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_HIP)
 
-    rocsparse_handle handle;
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
+    rocsparse_handle handle = Gpu::getRocsparseHandle();
 
     constexpr bool same_int = (sizeof(rocsparse_int) == sizeof(II)) &&
                               (sizeof(rocsparse_int) == sizeof(IO));
@@ -780,7 +772,6 @@ void transpose (CsrView<T,IO> const& csrt, CsrView<T const,II> const& csr)
     }
 
     Gpu::streamSynchronize();
-    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
     The_Async_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_SYCL)
