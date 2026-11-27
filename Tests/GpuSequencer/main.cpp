@@ -1,4 +1,4 @@
-// Tests Gpu::Sequencer on a mock backend, so it also runs in CPU builds.
+// Tests Gpu::StreamSequencer on a mock backend, so it also runs in CPU builds.
 //
 // The mock records every queued operation and every order between streams,
 // which makes the order the GPU would be allowed to use an explicit graph.
@@ -47,7 +47,7 @@ enum class Mode { Ordered, Default, NoSync };
 struct Violation { std::string what; };
 
 class MockBackend final
-    : public Gpu::SequencerBackend
+    : public Gpu::StreamSequencerBackend
 {
 public:
     explicit MockBackend (Sabotage a_sabotage) : m_sabotage(a_sabotage) {}
@@ -213,10 +213,11 @@ private:
         m_ops.push_back({n, m_path, published});
         for (int m : mems) { m_backend.use(m, n); }
         if (published) {
-            m_sequencer.publish(m_mode == Mode::Ordered ? (pick(2) ? Gpu::StreamEdge::Gpu
-                                                                   : Gpu::StreamEdge::Host)
-                                : (m_mode == Mode::Default ? Gpu::StreamEdge::Host
-                                                           : Gpu::StreamEdge::None));
+            m_sequencer.orderLoopStreamsAfterCurrent(
+                m_mode == Mode::Ordered ? (pick(2) ? Gpu::StreamEdge::Gpu
+                                                   : Gpu::StreamEdge::Host)
+                : (m_mode == Mode::Default ? Gpu::StreamEdge::Host
+                                           : Gpu::StreamEdge::None));
         }
     }
 
@@ -228,7 +229,7 @@ private:
     void loop (int depth, std::vector<int> const& mems) {
         const int niter = pick(7);
         Gpu::Fan fan;
-        Gpu::Sequencer::ForkInfo info{
+        Gpu::StreamSequencer::ForkInfo info{
             .nitems = niter,
             .max_width = std::vector<int>{1,2,4,8}[pick(4)],
             .fork = pick(3) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host,
@@ -295,7 +296,7 @@ private:
 
     std::mt19937 m_rng;
     MockBackend m_backend;
-    Gpu::Sequencer m_sequencer;
+    Gpu::StreamSequencer m_sequencer;
     Mode m_mode;
     std::vector<Op> m_ops;
     Path m_path;
@@ -332,7 +333,7 @@ int main (int argc, char* argv[])
         for (auto const& [mode, name] : kept) {
             std::string first;
             const int n = count_violations(nprograms, Sabotage::None, mode, &first);
-            amrex::Print() << "Sequencer (" << name << "): " << n << " of " << nprograms
+            amrex::Print() << "StreamSequencer (" << name << "): " << n << " of " << nprograms
                            << " random programs violate an invariant\n";
             if (n > 0) {
                 amrex::Print() << "  " << first << "\n";
@@ -342,7 +343,7 @@ int main (int argc, char* argv[])
         {
             // Not ordered by design: the checks must see that.
             const int n = count_violations(nprograms/10, Sabotage::None, Mode::NoSync);
-            amrex::Print() << "Sequencer (outside it, loops do not synchronize): unordered in "
+            amrex::Print() << "StreamSequencer (outside it, loops do not synchronize): unordered in "
                            << n << " of " << nprograms/10 << " programs\n";
             if (n == 0) { ++nfail; }
         }

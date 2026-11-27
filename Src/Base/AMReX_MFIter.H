@@ -251,7 +251,7 @@ protected:
     DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
 
 #ifdef AMREX_USE_GPU
-    //! The loop on its GPU streams (Gpu::Sequencer), opened by isValid().
+    //! The loop on its GPU streams (Gpu::StreamSequencer), opened by isValid().
     mutable Gpu::Fan m_fan;
     //! Whether isValid() has opened m_fan, or Finalize() has run.
     mutable DeviceSync m_fan_tried{false};

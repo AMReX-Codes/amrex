@@ -2185,7 +2185,7 @@ FabArray<FAB>::build_arrays () const
         // host sync. If we are inside a multi-stream MFIter or StreamIter
         // loop, later iterations may use the arrays on a different stream,
         // which has to be ordered after the copy.
-        Gpu::publish();
+        Gpu::orderLoopStreamsAfterCurrent();
 #endif
     }
 }

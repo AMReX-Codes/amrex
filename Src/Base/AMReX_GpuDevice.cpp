@@ -1351,10 +1351,10 @@ Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
 #endif
 
 #ifdef AMREX_USE_GPU
-//! Gpu::Sequencer on AMReX's streams: 0 .. max_gpu_streams-1 are the pool
+//! Gpu::StreamSequencer on AMReX's streams: 0 .. max_gpu_streams-1 are the pool
 //! streams, max_gpu_streams+k is entry k of the external stream stack.
-class DeviceSequencerBackend final
-    : public SequencerBackend
+class DeviceStreamSequencerBackend final
+    : public StreamSequencerBackend
 {
 public:
     [[nodiscard]] int numPoolStreams () const override { return Device::max_gpu_streams; }
@@ -1373,8 +1373,8 @@ public:
     }
 
     void order (int const* waiters, int n, int waited) override {
-        std::array<gpuStream_t, Sequencer::max_lanes> w{};
-        AMREX_ASSERT(n <= Sequencer::max_lanes);
+        std::array<gpuStream_t, StreamSequencer::max_lanes> w{};
+        AMREX_ASSERT(n <= StreamSequencer::max_lanes);
         for (int i = 0; i < n; ++i) { w[i] = manager(waiters[i]).getStream(); }
         // Cache the event only for a pool stream, not an external one.
         streams_wait_stream(w.data(), n, manager(waited).getStream(),
@@ -1403,11 +1403,11 @@ private:
     }
 };
 
-Sequencer&
-theSequencer () noexcept
+StreamSequencer&
+theStreamSequencer () noexcept
 {
-    static DeviceSequencerBackend backend;
-    static Sequencer sequencer(backend);
+    static DeviceStreamSequencerBackend backend;
+    static StreamSequencer sequencer(backend);
     return sequencer;
 }
 #endif

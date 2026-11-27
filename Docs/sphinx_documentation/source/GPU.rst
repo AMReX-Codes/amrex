@@ -1966,12 +1966,13 @@ reads results or synchronizes explicitly.
 
 Inside the region, :cpp:`Gpu::streamSynchronize()` on the current stream
 waits for all the GPU work that AMReX queued before it in the program,
-whatever the number of streams.  Only the iterations of one loop have no order among them.  If an iteration queues
-GPU work that the other iterations depend on (e.g., it fills a cache they
-share), call :cpp:`Gpu::publish()` after queuing it.  Code that selects
-streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order them
-itself, and so does code that hands data to a library that runs on its own
-stream.  :cpp:`Gpu::Sequencer` implements the ordering.
+whatever the number of streams.  Only the iterations of one loop have no
+order among them.  If an iteration queues GPU work that the other iterations
+depend on (e.g., it fills a cache they share), call
+:cpp:`Gpu::orderLoopStreamsAfterCurrent()` after queuing it.  Code that
+selects streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order
+them itself, and so does code that hands data to a library that runs on its
+own stream.  :cpp:`Gpu::StreamSequencer` implements the ordering.
 
 .. highlight:: c++
 

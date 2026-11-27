@@ -249,7 +249,7 @@ MFIter::Finalize ()
     // host if the loop synchronizes), and makes the stream that was current
     // before the loop current again.
     if (m_fan.isOpen()) {
-        Gpu::theSequencer().join(m_fan);
+        Gpu::theStreamSequencer().join(m_fan);
     } else if (!m_fan_tried && device_sync && device_sync_post && beginIndex < endIndex) {
         // An iterator with local boxes that was never iterated (e.g., one
         // used only to index a FabArray, or a FillPatchIterator used only for
@@ -398,7 +398,7 @@ MFIter::openFan () const
     const bool in_team = false;
 #endif
 
-    Gpu::Sequencer::ForkInfo info{.nitems = nitems, .shared = in_team};
+    Gpu::StreamSequencer::ForkInfo info{.nitems = nitems, .shared = in_team};
     info.ordered = Gpu::inStreamOrderedRegion();
     if (info.ordered) {
         // The loop is kept in program order. If it does not synchronize the
@@ -418,11 +418,11 @@ MFIter::openFan () const
                      streams > 1 && nitems > 1) ? Edge::Host : Edge::None;
         info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::None;
     }
-    Gpu::theSequencer().fork(m_fan, info);
+    Gpu::theStreamSequencer().fork(m_fan, info);
     // Outside a Gpu::StreamOrderedRegion, an AllBoxes loop starts on the
     // current stream.
     if (info.ordered || !all_boxes) {
-        Gpu::theSequencer().lane(m_fan, currentIndex);
+        Gpu::theStreamSequencer().lane(m_fan, currentIndex);
     }
 }
 #endif
@@ -568,7 +568,7 @@ MFIter::operator++ () noexcept
         // first stream.)
         if (m_fan.isOpen() && currentIndex < endIndex &&
             (Gpu::inLaunchRegion() || m_fan.width() == 1)) {
-            Gpu::theSequencer().lane(m_fan, currentIndex);
+            Gpu::theStreamSequencer().lane(m_fan, currentIndex);
         }
 #endif
     }

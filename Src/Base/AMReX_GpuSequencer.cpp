@@ -7,7 +7,7 @@
 namespace amrex::Gpu {
 
 void
-Sequencer::fork (Fan& fan, ForkInfo const& info)
+StreamSequencer::fork (Fan& fan, ForkInfo const& info)
 {
     AMREX_ASSERT(!fan.isOpen());
     auto& be = *m_backend;
@@ -27,8 +27,9 @@ Sequencer::fork (Fan& fan, ForkInfo const& info)
 
     if (width == 1 && fan.m_ordered) { return; } // The only lane is the origin.
 
-    // Count the lanes before ordering them, so that a publish() on another
-    // thread from now on includes them.
+    // Count the lanes before ordering them, so that an
+    // orderLoopStreamsAfterCurrent() on another thread from now on includes
+    // them.
     if (width > 1) {
         for (int s = 0; s < width; ++s) { ++m_lane_users[s]; }
     }
@@ -47,14 +48,14 @@ Sequencer::fork (Fan& fan, ForkInfo const& info)
 }
 
 void
-Sequencer::lane (Fan const& fan, int i)
+StreamSequencer::lane (Fan const& fan, int i)
 {
     AMREX_ASSERT(fan.isOpen());
     m_backend->setCurrent((fan.m_width > 1 || !fan.m_ordered) ? i % fan.m_width : fan.m_origin);
 }
 
 void
-Sequencer::join (Fan& fan)
+StreamSequencer::join (Fan& fan)
 {
     if (!fan.isOpen()) { return; }
     auto& be = *m_backend;
@@ -86,7 +87,7 @@ Sequencer::join (Fan& fan)
 }
 
 void
-Sequencer::publish (StreamEdge edge)
+StreamSequencer::orderLoopStreamsAfterCurrent (StreamEdge edge)
 {
     auto& be = *m_backend;
     const int npool = std::min(be.numPoolStreams(), max_lanes);
@@ -107,13 +108,13 @@ Sequencer::publish (StreamEdge edge)
 }
 
 void
-Sequencer::await ()
+StreamSequencer::await ()
 {
     m_backend->wait(m_backend->current());
 }
 
 int
-Sequencer::openLanes () const noexcept
+StreamSequencer::openLanes () const noexcept
 {
     for (int s = max_lanes; s > 0; --s) {
         if (m_lane_users[s-1].load(std::memory_order_relaxed) > 0) { return s; }
@@ -122,12 +123,13 @@ Sequencer::openLanes () const noexcept
 }
 
 void
-publish () noexcept
+orderLoopStreamsAfterCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
     // In a plain no-sync region the caller orders the streams, as always.
-    theSequencer().publish(inStreamOrderedRegion() ? StreamEdge::Gpu
-                           : (inNoSyncRegion() ? StreamEdge::None : StreamEdge::Host));
+    theStreamSequencer().orderLoopStreamsAfterCurrent(
+        inStreamOrderedRegion() ? StreamEdge::Gpu
+        : (inNoSyncRegion() ? StreamEdge::None : StreamEdge::Host));
 #endif
 }
 

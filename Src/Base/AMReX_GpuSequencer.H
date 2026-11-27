@@ -16,23 +16,23 @@ namespace amrex {
 namespace amrex::Gpu {
 
 /**
- * \brief What Gpu::Sequencer needs from the GPU runtime.
+ * \brief What Gpu::StreamSequencer needs from the GPU runtime.
  *
  * Streams are numbered from 0. Streams 0 .. numPoolStreams()-1 are the ones
  * loops may run their iterations on; larger numbers are other streams work
  * can be queued on (e.g., a stream set with Gpu::setExternalGpuStream).
  */
-class SequencerBackend
+class StreamSequencerBackend
 {
 public:
     using FreeList = Vector<std::pair<Arena*, void*>>;
 
-    SequencerBackend () = default;
-    virtual ~SequencerBackend () = default;
-    SequencerBackend (SequencerBackend const&) = delete;
-    SequencerBackend (SequencerBackend&&) = delete;
-    SequencerBackend& operator= (SequencerBackend const&) = delete;
-    SequencerBackend& operator= (SequencerBackend&&) = delete;
+    StreamSequencerBackend () = default;
+    virtual ~StreamSequencerBackend () = default;
+    StreamSequencerBackend (StreamSequencerBackend const&) = delete;
+    StreamSequencerBackend (StreamSequencerBackend&&) = delete;
+    StreamSequencerBackend& operator= (StreamSequencerBackend const&) = delete;
+    StreamSequencerBackend& operator= (StreamSequencerBackend&&) = delete;
 
     //! Number of streams loops may run their iterations on.
     [[nodiscard]] virtual int numPoolStreams () const = 0;
@@ -76,9 +76,9 @@ enum class StreamEdge {
 /**
  * \brief A loop whose iterations may run on different streams.
  *
- * A Fan is opened with Sequencer::fork and closed with Sequencer::join. While
- * it is open, Sequencer::lane selects the stream of an iteration. A Fan that
- * is moved from is no longer open.
+ * A Fan is opened with StreamSequencer::fork and closed with
+ * StreamSequencer::join. While it is open, StreamSequencer::lane selects the
+ * stream of an iteration. A Fan that is moved from is no longer open.
  */
 class Fan
 {
@@ -103,7 +103,7 @@ public:
     [[nodiscard]] int origin () const noexcept { return m_origin; }
 
 private:
-    friend class Sequencer;
+    friend class StreamSequencer;
     int m_origin = 0;
     int m_width = 0;
     StreamEdge m_join = StreamEdge::Host;
@@ -131,7 +131,8 @@ private:
  *  - lane:    makes the lane of iteration i the current stream.
  *  - join:    closes a Fan. The origin stream is ordered after its lanes
  *             and is the current stream again.
- *  - publish: orders the lanes of all open fans after the current stream,
+ *  - orderLoopStreamsAfterCurrent:
+ *             orders the lanes of all open fans after the current stream,
  *             for work that other iterations depend on.
  *  - await:   the host waits for the current stream.
  *
@@ -148,12 +149,12 @@ private:
  * All functions are thread-safe. Every thread has its own current stream,
  * which is kept by the backend.
  */
-class Sequencer
+class StreamSequencer
 {
 public:
     static constexpr int max_lanes = 64;
 
-    explicit Sequencer (SequencerBackend& backend) : m_backend(&backend) {}
+    explicit StreamSequencer (StreamSequencerBackend& backend) : m_backend(&backend) {}
 
     /**
      * \brief Options of a fork.
@@ -218,7 +219,7 @@ public:
      * as filling a cache that is shared by the iterations. Does nothing if no
      * open fan has more than one lane, or if \p edge is StreamEdge::None.
      */
-    void publish (StreamEdge edge);
+    void orderLoopStreamsAfterCurrent (StreamEdge edge);
 
     //! The host waits for the current stream.
     void await ();
@@ -227,10 +228,10 @@ public:
     //! more than one lane, or 0 if there is none.
     [[nodiscard]] int openLanes () const noexcept;
 
-    [[nodiscard]] SequencerBackend& backend () noexcept { return *m_backend; }
+    [[nodiscard]] StreamSequencerBackend& backend () noexcept { return *m_backend; }
 
 private:
-    SequencerBackend* m_backend;
+    StreamSequencerBackend* m_backend;
     //! m_lane_users[s]: number of open fans with more than one lane that
     //! have pool stream s as a lane.
     std::array<std::atomic<int>, max_lanes> m_lane_users{};
@@ -239,7 +240,7 @@ private:
 #ifdef AMREX_USE_GPU
 
 //! The sequencer of AMReX's GPU streams.
-[[nodiscard]] Sequencer& theSequencer () noexcept;
+[[nodiscard]] StreamSequencer& theStreamSequencer () noexcept;
 
 #endif
 
@@ -255,7 +256,7 @@ private:
  * In a plain Gpu::NoSyncRegion nothing is ordered. Does nothing outside such
  * loops.
  */
-void publish () noexcept;
+void orderLoopStreamsAfterCurrent () noexcept;
 
 }
 
