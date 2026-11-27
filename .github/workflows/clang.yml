@@ -159,9 +159,10 @@ jobs:
       with:
         job-status: ${{ job.status }}
 
-  tests_cxx20:
-    name: Clang [tests]
-    runs-on: ubuntu-22.04
+  # Native arm64 (AArch64) build and test run.  The other Clang jobs cover x64.
+  tests_arm64:
+    name: Clang@15 arm64 [tests]
+    runs-on: ubuntu-22.04-arm
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -181,6 +182,9 @@ jobs:
     - name: Build & Install
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -DAMREX_PARSER_THREADED_DISPATCH=0"}
       run: |
+        # Fail early if this ever stops being a native arm64 runner.
+        test "$(uname -m)" = aarch64
+
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=100M
