@@ -328,6 +328,7 @@ void
 MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept
 {
     m_needs_update = true;
+    m_sigma_needs_update = true;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         m_sigma[i] = a_sigma[i];
     }
@@ -353,6 +354,7 @@ void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)
 {
     m_needs_update = true;
+    m_sigma_needs_update = true;
     m_has_sigma_mf = true;
     m_sigma_mf[amrlev] = std::make_unique<MultiFab>
         (this->m_grids[amrlev][0], this->m_dmap[amrlev][0], 1, 1, MFInfo{},
@@ -406,6 +408,7 @@ MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
     // one value per node, also where boxes (or periodic images) share it
     a0[0].OverrideSync(m_geom[amrlev][0].periodicity());
     m_needs_update = true;
+    m_acoef_needs_update = true;
 }
 
 #ifdef AMREX_USE_EB
@@ -464,11 +467,16 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
+    // A new define removes the data that lives on the grids: sigma and a as
+    // MultiFabs and the EB values of a callable.  They have to be set again.
+    m_sigma_mf.clear();
     m_sigma_mf.resize(this->m_num_amr_levels);
-    // a new define removes the Helmholtz term; setACoeffs sets it again
+    m_has_sigma_mf = false;
+    m_sigma_edge.clear();
     m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
     m_has_acoef = false;
+    m_phi_eb.clear();
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -874,11 +882,16 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_has_eb.resize(this->m_num_amr_levels);
 #endif
 
+    // A new define removes the data that lives on the grids: sigma and a as
+    // MultiFabs and the EB values of a callable.  They have to be set again.
+    m_sigma_mf.clear();
     m_sigma_mf.resize(this->m_num_amr_levels);
-    // a new define removes the Helmholtz term; setACoeffs sets it again
+    m_has_sigma_mf = false;
+    m_sigma_edge.clear();
     m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
     m_has_acoef = false;
+    m_phi_eb.clear();
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -1185,6 +1198,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     }
 
     m_needs_update = false;
+    m_sigma_needs_update = false;
+    m_acoef_needs_update = false;
 }
 
 #ifdef AMREX_USE_EB
@@ -1807,13 +1822,16 @@ MLEBNodeFDLaplacian::update ()
         MLNodeLinOp::update();
     }
 
-    if (m_needs_update && m_has_sigma_mf) {
+    // a new a in every Newton step does not recompute the edge sigma, and vice versa
+    if (m_sigma_needs_update && m_has_sigma_mf) {
         update_sigma();
     }
-    if (m_needs_update && m_has_acoef) {
+    if (m_acoef_needs_update && m_has_acoef) {
         update_acoef();
     }
     m_needs_update = false;
+    m_sigma_needs_update = false;
+    m_acoef_needs_update = false;
 }
 
 void

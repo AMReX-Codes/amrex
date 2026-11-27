@@ -89,6 +89,7 @@ public:
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
+    //! A new define() removes it; set it again after that.
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
     //! Enable/disable RZ corrections (radial metrics).  The matrix built for
@@ -286,6 +287,8 @@ private:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM>>> m_sigma_edge;
     bool m_has_sigma_mf = false;
     bool m_needs_update = true;
+    bool m_sigma_needs_update = false;  //!< setSigma since the last update
+    bool m_acoef_needs_update = false;  //!< setACoeffs since the last update
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;

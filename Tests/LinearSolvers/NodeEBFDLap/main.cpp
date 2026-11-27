@@ -379,8 +379,11 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
 {
     Real const c = 2.0;
     Real const tol = std::is_same_v<Real,float> ? Real(1.e-4) : Real(1.e-9);
+    // Where a dominates, the error can be a few times the relative residual.
     if constexpr (std::is_same_v<Real,double>) {
         reltol = std::min(reltol, Real(1.e-12));
+    } else {
+        reltol = std::min(reltol, Real(1.e-6));
     }
 
     BoxArray const& nba = amrex::convert(grids, IntVect(1));
@@ -657,7 +660,7 @@ void test_helmholtz (Geometry const& geom, BoxArray const& grids,
                            << name << (mc > 0 ? ", multigrid" : ", no coarsening")
                            << ": rel. diff. to a new operator = " << d/s2
                            << " (before the new a: " << d_first/s2 << ")\n";
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d_first > Real(1.e3)*tol*s2,
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d_first > Real(0.05)*s2,
                 "The new a does not change the solution: the reuse test is void");
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d <= Real(100.0)*tol*s2,
                 "A new a on an existing operator and MLMG gives a wrong solution");
