@@ -369,6 +369,7 @@ void
 MLEBNodeFDLaplacian::setRZ (bool flag) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
+    m_needs_update = true;
     m_rz = flag;
 #else
     amrex::ignore_unused(flag, m_rz);
@@ -379,6 +380,7 @@ void
 MLEBNodeFDLaplacian::setAlpha (Real a_alpha) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
+    m_needs_update = true;
     m_rz_alpha = a_alpha;
 #else
     amrex::ignore_unused(a_alpha);
@@ -393,7 +395,8 @@ MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.ixType().nodeCentered() && a_acoef.nComp() == 1,
         "MLEBNodeFDLaplacian::setACoeffs: a must be a nodal MultiFab with one component");
     BoxArray const nba = amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector());
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.boxArray().contains(nba),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        a_acoef.boxArray() == nba || a_acoef.boxArray().contains(nba),
         "MLEBNodeFDLaplacian::setACoeffs: a must cover the grids of the AMR level");
     m_has_acoef = true;
     auto& a0 = m_acoef[amrlev];
@@ -406,7 +409,11 @@ MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
     a0[0].setVal(Real(0.0));
     a0[0].ParallelCopy(a_acoef, 0, 0, 1);
     // one value per node, also where boxes (or periodic images) share it
-    a0[0].OverrideSync(m_geom[amrlev][0].periodicity());
+    if (amrlev == 0 && m_owner_mask_top) {
+        a0[0].OverrideSync(*m_owner_mask_top, m_geom[amrlev][0].periodicity());
+    } else {
+        a0[0].OverrideSync(m_geom[amrlev][0].periodicity());
+    }
     m_needs_update = true;
     m_acoef_needs_update = true;
 }
@@ -467,16 +474,8 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
-    // A new define removes the data that lives on the grids: sigma and a as
-    // MultiFabs and the EB values of a callable.  They have to be set again.
-    m_sigma_mf.clear();
     m_sigma_mf.resize(this->m_num_amr_levels);
-    m_has_sigma_mf = false;
-    m_sigma_edge.clear();
-    m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
-    m_has_acoef = false;
-    m_phi_eb.clear();
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -882,16 +881,8 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     m_has_eb.resize(this->m_num_amr_levels);
 #endif
 
-    // A new define removes the data that lives on the grids: sigma and a as
-    // MultiFabs and the EB values of a callable.  They have to be set again.
-    m_sigma_mf.clear();
     m_sigma_mf.resize(this->m_num_amr_levels);
-    m_has_sigma_mf = false;
-    m_sigma_edge.clear();
-    m_acoef.clear();
     m_acoef.resize(this->m_num_amr_levels);
-    m_has_acoef = false;
-    m_phi_eb.clear();
     m_sigma_edge.resize(this->m_num_amr_levels);
     for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
         m_sigma_edge[ilev].resize(this->m_num_mg_levels[ilev]);
@@ -1988,14 +1979,33 @@ MLEBNodeFDLaplacian::update_acoef ()
             });
         };
 
-        zero_masked(acoef[0], 0);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            !acoef[0].contains_nan(0, 1, 0) && !acoef[0].contains_inf(0, 1, 0),
-            "MLEBNodeFDLaplacian::setACoeffs: a must be finite at the nodes "
-            "that are neither covered nor Dirichlet");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(acoef[0].min(0) >= Real(0.0),
-            "MLEBNodeFDLaplacian::setACoeffs: a must be non-negative at the nodes "
-            "that are neither covered nor Dirichlet");
+            acoef[0].boxArray() == amrex::convert(this->m_grids[amrlev][0],
+                                                  IntVect::TheNodeVector()) &&
+            acoef[0].DistributionMap() == this->m_dmap[amrlev][0],
+            "MLEBNodeFDLaplacian: call setACoeffs again after define() on other grids");
+        zero_masked(acoef[0], 0);
+        {
+            // finite and non-negative at the unmasked nodes, in one reduction
+            auto const& ma = acoef[0].const_arrays();
+            auto const r = amrex::ParReduce(TypeList<ReduceOpMin,ReduceOpLogicalOr>{},
+                                            TypeList<Real,int>{}, acoef[0], IntVect(0),
+            [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept -> GpuTuple<Real,int>
+            {
+                Real const v = ma[b](i,j,k);
+                return {v, int(!amrex::Math::isfinite(v))};
+            });
+            Real amin = amrex::get<0>(r);
+            int notfinite = amrex::get<1>(r);
+            ParallelDescriptor::ReduceRealMin(amin);
+            ParallelDescriptor::ReduceIntMax(notfinite);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!notfinite,
+                "MLEBNodeFDLaplacian::setACoeffs: a must be finite at the nodes "
+                "that are neither covered nor Dirichlet");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amin >= Real(0.0),
+                "MLEBNodeFDLaplacian::setACoeffs: a must be non-negative at the nodes "
+                "that are neither covered nor Dirichlet");
+        }
         fill_domain_ghost(acoef[0], this->m_geom[amrlev][0], -1);
 
         for (int mglev = 1; mglev < nmglevs; ++mglev)

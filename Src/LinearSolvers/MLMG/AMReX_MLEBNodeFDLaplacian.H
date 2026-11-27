@@ -89,7 +89,6 @@ public:
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
     //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
-    //! A new define() removes it; set it again after that.
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
     //! Enable/disable RZ corrections (radial metrics).  The matrix built for
@@ -112,12 +111,14 @@ public:
      *
      * It can be set again between solves, e.g., in every step of a Newton
      * iteration; the MLMG object that solves with this operator picks the new
-     * values up.  With the AlgMG or hypre bottom solver, a second MLMG object on
-     * the same operator may keep the old values, so use one MLMG per operator.
-     * Once set, the Helmholtz term stays part of this operator until a new
-     * define(): setting \p a_acoef to zero gives the plain operator, but the
-     * single-Box GPU bottom solver, which has no Helmholtz term, stays replaced
-     * by MLMG's BiCGStab.
+     * values up.  With the AlgMG or hypre bottom solver, or with algebraic or
+     * hybrid multigrid, a second MLMG object on the same operator may keep the
+     * old values, so use one MLMG per operator.
+     * Once set, the Helmholtz term stays part of this operator, also after a new
+     * define() on the same grids; after a define() on other grids, call
+     * setACoeffs again.  Setting \p a_acoef to zero gives the plain operator,
+     * but the single-Box GPU bottom solver, which has no Helmholtz term, stays
+     * replaced by MLMG's BiCGStab.
      */
     void setACoeffs (int amrlev, MultiFab const& a_acoef);
 
