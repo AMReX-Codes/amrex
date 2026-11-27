@@ -90,6 +90,7 @@
 #include <thread>
 #include <utility>
 #include <limits>
+#include <mutex>
 #include <vector>
 #include <algorithm>
 
@@ -321,6 +322,9 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg,
 
 namespace
 {
+    // ExecOnFinalize may be called from any host thread, e.g., on first use of
+    // a lazily created resource.
+    std::mutex The_Finalize_Function_Mutex;
     std::stack<std::function<void()>> The_Finalize_Function_Stack;
     std::stack<std::function<void()>> The_Initialize_Function_Stack;
 }
@@ -328,6 +332,7 @@ namespace
 void
 amrex::ExecOnFinalize (std::function<void()> f)
 {
+    std::lock_guard<std::mutex> lock(The_Finalize_Function_Mutex);
     The_Finalize_Function_Stack.push(std::move(f));
 }
 
@@ -844,15 +849,20 @@ amrex::Finalize (amrex::AMReX* pamrex)
     Lazy::Finalize();
 #endif
 
-    while (!The_Finalize_Function_Stack.empty())
+    while (true)
     {
         //
         // Remove the function from the stack before calling it, so that a function
         // that calls ExecOnFinalize itself neither runs twice nor drops the newly
-        // registered function.
+        // registered function.  It is called outside the lock for the same reason.
         //
-        auto f = std::move(The_Finalize_Function_Stack.top());
-        The_Finalize_Function_Stack.pop();
+        std::function<void()> f;
+        {
+            std::lock_guard<std::mutex> lock(The_Finalize_Function_Mutex);
+            if (The_Finalize_Function_Stack.empty()) { break; }
+            f = std::move(The_Finalize_Function_Stack.top());
+            The_Finalize_Function_Stack.pop();
+        }
         f();
     }
 

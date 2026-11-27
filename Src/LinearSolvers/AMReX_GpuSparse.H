@@ -11,30 +11,31 @@
 /**
  * \file AMReX_GpuSparse.H
  *
- * Cached handles of the vendor sparse-matrix libraries.
- *
- * Creating a cuSPARSE or rocSPARSE handle allocates device resources and
- * costs of the order of a millisecond, far more than a sparse matrix-vector
- * product on a coarse multigrid level.  The handles are therefore created
- * once per host thread, on first use, and destroyed in amrex::Finalize.
+ * Handles of the vendor sparse-matrix libraries that AMReX's sparse linear
+ * algebra uses: one per host thread, created on first use and released when
+ * the thread exits or in amrex::Finalize.
  */
 
 namespace amrex::Gpu {
 
 #if defined(AMREX_USE_CUDA)
 /**
- * \brief The cuSPARSE handle of the calling host thread, bound to the
- *        current GPU stream (Gpu::gpuStream()).
+ * \brief The cuSPARSE handle of the calling host thread.
  *
- * The handle is owned by AMReX: do not destroy it.
+ * Each call binds the handle to the current GPU stream (Gpu::gpuStream()) and
+ * sets the host pointer mode; call it again after switching streams.  The
+ * handle is owned by AMReX: do not destroy it, and restore any other setting
+ * you change.
  */
 cusparseHandle_t getCusparseHandle ();
 #elif defined(AMREX_USE_HIP)
 /**
- * \brief The rocSPARSE handle of the calling host thread, bound to the
- *        current GPU stream (Gpu::gpuStream()).
+ * \brief The rocSPARSE handle of the calling host thread.
  *
- * The handle is owned by AMReX: do not destroy it.
+ * Each call binds the handle to the current GPU stream (Gpu::gpuStream()) and
+ * sets the host pointer mode; call it again after switching streams.  The
+ * handle is owned by AMReX: do not destroy it, and restore any other setting
+ * you change.
  */
 rocsparse_handle getRocsparseHandle ();
 #endif

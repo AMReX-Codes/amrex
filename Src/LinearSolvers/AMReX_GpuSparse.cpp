@@ -6,9 +6,15 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuError.H>
 
-#include <map>
 #include <mutex>
-#include <thread>
+#include <set>
+#include <utility>
+
+// Creating a cuSPARSE or rocSPARSE handle allocates device resources and costs
+// of the order of a millisecond, far more than a sparse matrix-vector product
+// on a coarse multigrid level.  The handles are therefore kept, one per host
+// thread: created on first use, released when the thread exits or in
+// amrex::Finalize, whichever comes first.
 
 namespace amrex::Gpu {
 
@@ -20,55 +26,109 @@ namespace {
     using SparseHandle = rocsparse_handle;
 #endif
 
+    struct ThreadHandle;
+
+    // Guards live_handles and finalize_registered, and makes thread exit and
+    // amrex::Finalize release each handle exactly once.
     std::mutex sparse_handles_mutex;
-    std::map<std::thread::id, SparseHandle> sparse_handles;
-    bool sparse_handles_finalize_registered = false;
+    // The handles created since amrex::Initialize that are not released yet.
+    std::set<ThreadHandle*> live_handles;
+    bool finalize_registered = false;
+
+    // Release a handle.  It may still be bound to a stream that no longer
+    // exists (e.g., an external stream), so it is bound to the default stream
+    // first; the caller has synchronized the device.  Errors are returned, not
+    // aborted on, so that this can run when a thread exits.
+    bool release (SparseHandle handle) noexcept
+    {
+#if defined(AMREX_USE_CUDA)
+        bool ok = cusparseSetStream(handle, nullptr) == CUSPARSE_STATUS_SUCCESS;
+        ok = (cusparseDestroy(handle) == CUSPARSE_STATUS_SUCCESS) && ok;
+#else
+        bool ok = rocsparse_set_stream(handle, nullptr) == rocsparse_status_success;
+        ok = (rocsparse_destroy_handle(handle) == rocsparse_status_success) && ok;
+#endif
+        return ok;
+    }
+
+    struct ThreadHandle
+    {
+        SparseHandle handle{};
+
+        ThreadHandle () = default;
+        ThreadHandle (ThreadHandle const&) = delete;
+        ThreadHandle (ThreadHandle&&) = delete;
+        ThreadHandle& operator= (ThreadHandle const&) = delete;
+        ThreadHandle& operator= (ThreadHandle&&) = delete;
+
+        // The thread exits: release its handle, unless amrex::Finalize did.
+        ~ThreadHandle ()
+        {
+            std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+            if (live_handles.erase(this) > 0) {
+                // work queued with the handle may still be running
+#if defined(AMREX_USE_CUDA)
+                (void) cudaDeviceSynchronize();
+#else
+                (void) hipDeviceSynchronize();
+#endif
+                (void) release(std::exchange(handle, SparseHandle{}));
+            }
+        }
+    };
+
+    thread_local ThreadHandle this_thread_handle;
 
     void destroy_sparse_handles ()
     {
         std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-        // Work queued with a handle may still be running.
-        Gpu::streamSynchronizeAll();
-        for (auto const& [tid, handle] : sparse_handles) {
-#if defined(AMREX_USE_CUDA)
-            AMREX_CUSPARSE_SAFE_CALL(cusparseDestroy(handle));
-#else
-            AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
-#endif
+        // Take the handles out first, so that nothing is released twice and
+        // amrex::Initialize can start afresh even if a release fails below.
+        auto handles = std::exchange(live_handles, {});
+        finalize_registered = false;
+        if (handles.empty()) { return; }
+        // Work queued with a handle may still be running, also on streams that
+        // AMReX does not know, so synchronize the whole device.
+        Gpu::Device::synchronize();
+        bool ok = true;
+        for (auto* t : handles) {
+            ok = release(std::exchange(t->handle, SparseHandle{})) && ok;
         }
-        sparse_handles.clear();
-        // amrex::Initialize may be called again.
-        sparse_handles_finalize_registered = false;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ok, "Gpu::destroy_sparse_handles failed");
     }
 
     SparseHandle get_sparse_handle ()
     {
-        SparseHandle handle;
+        auto& t = this_thread_handle;
         {
             std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-            auto it = sparse_handles.find(std::this_thread::get_id());
-            if (it == sparse_handles.end()) {
+            if (live_handles.count(&t) == 0) {
+                SparseHandle handle{};
 #if defined(AMREX_USE_CUDA)
                 AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
 #else
                 AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
 #endif
-                sparse_handles.emplace(std::this_thread::get_id(), handle);
-                if (!sparse_handles_finalize_registered) {
+                t.handle = handle;
+                live_handles.insert(&t);
+                if (!finalize_registered) {
                     amrex::ExecOnFinalize(destroy_sparse_handles);
-                    sparse_handles_finalize_registered = true;
+                    finalize_registered = true;
                 }
-            } else {
-                handle = it->second;
             }
         }
-        // The handle is used by this host thread only.
+        // The handle is used by this host thread only.  Bind it to the current
+        // stream, and reset the pointer mode that AMReX's calls rely on (alpha
+        // and beta on the host), in case a caller changed it.
 #if defined(AMREX_USE_CUDA)
-        AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(handle, Gpu::gpuStream()));
+        AMREX_CUSPARSE_SAFE_CALL(cusparseSetStream(t.handle, Gpu::gpuStream()));
+        AMREX_CUSPARSE_SAFE_CALL(cusparseSetPointerMode(t.handle, CUSPARSE_POINTER_MODE_HOST));
 #else
-        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(handle, Gpu::gpuStream()));
+        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_stream(t.handle, Gpu::gpuStream()));
+        AMREX_ROCSPARSE_SAFE_CALL(rocsparse_set_pointer_mode(t.handle,
+                                                             rocsparse_pointer_mode_host));
 #endif
-        return handle;
+        return t.handle;
     }
 }
 

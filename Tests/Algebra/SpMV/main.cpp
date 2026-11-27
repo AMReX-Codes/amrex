@@ -4,6 +4,11 @@
 #include <AMReX.H>
 
 #include <cmath>
+#include <thread>
+
+#if defined(AMREX_USE_CUDA)
+#include <AMReX_GpuSparse.H>
+#endif
 
 using namespace amrex;
 
@@ -292,6 +297,27 @@ int main(int argc, char *argv[]) {
       auto eps = (sizeof(T) == 4) ? T(1.e-5) : T(1.e-14);
       AMREX_ALWAYS_ASSERT(error < eps);
   }
+
+#if defined(AMREX_USE_CUDA)
+  {
+      // The cached handle comes back bound to the current stream and with the
+      // host pointer mode, even after a caller changed it.
+      cusparseHandle_t h = Gpu::getCusparseHandle();
+      AMREX_CUSPARSE_SAFE_CALL(cusparseSetPointerMode(h, CUSPARSE_POINTER_MODE_DEVICE));
+      cusparseHandle_t h2 = Gpu::getCusparseHandle();
+      cusparsePointerMode_t mode{};
+      AMREX_CUSPARSE_SAFE_CALL(cusparseGetPointerMode(h2, &mode));
+      cudaStream_t stream{};
+      AMREX_CUSPARSE_SAFE_CALL(cusparseGetStream(h2, &stream));
+      AMREX_ALWAYS_ASSERT(h2 == h && mode == CUSPARSE_POINTER_MODE_HOST &&
+                          stream == Gpu::gpuStream());
+      // another host thread gets its own handle, released when the thread exits
+      cusparseHandle_t h_thread{};
+      std::thread([&] () { h_thread = Gpu::getCusparseHandle(); }).join();
+      AMREX_ALWAYS_ASSERT(h_thread != nullptr && h_thread != h);
+      amrex::Print() << " Sparse library handle: cached per thread, stream and pointer mode set\n";
+  }
+#endif
 
   amrex::Finalize();
 }
