@@ -1490,6 +1490,15 @@ setup of a matrix, in serial builds too: afterwards its entries can no longer be
 changed with :cpp:`setVal`, :cpp:`sortCSR` or the pointers from
 :cpp:`data`, :cpp:`columnIndex` and :cpp:`rowOffset`.
 
+With CUDA and HIP, these operations use one cuSPARSE or rocSPARSE handle per
+host thread. AMReX creates it on first use and releases it when the thread
+exits or in :cpp:`amrex::Finalize`. For your own library calls,
+:cpp:`amrex::Gpu::getCusparseHandle()` and
+:cpp:`amrex::Gpu::getRocsparseHandle()` in ``AMReX_GpuSparse.H`` return this
+handle, bound to the current stream. A thread that makes sparse calls must use
+AMReX's GPU, :cpp:`amrex::Gpu::Device::deviceId()`, and no other thread may
+make sparse calls while :cpp:`amrex::Finalize` runs.
+
 Utilities in ``AMReX_SpMatUtil.H`` include :cpp:`IdentityMatrix`,
 :cpp:`RandomMatrix` and :cpp:`almostEqual` for tests. See
 ``Tests/Algebra`` for examples.

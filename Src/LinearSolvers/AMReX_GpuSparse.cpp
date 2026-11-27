@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <set>
+#include <string>
 #include <utility>
 
 // Creating a cuSPARSE or rocSPARSE handle allocates device resources and costs
@@ -15,6 +16,10 @@
 // on a coarse multigrid level.  The handles are therefore kept, one per host
 // thread: created on first use, released when the thread exits or in
 // amrex::Finalize, whichever comes first.
+//
+// Nothing that can abort runs while sparse_handles_mutex is held: an abort
+// can end in exit(), which runs this thread's ThreadHandle destructor, and
+// that locks the mutex too.
 
 namespace amrex::Gpu {
 
@@ -64,34 +69,43 @@ namespace {
         // The thread exits: release its handle, unless amrex::Finalize did.
         ~ThreadHandle ()
         {
-            std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-            if (live_handles.erase(this) > 0) {
+            SparseHandle h{};
+            {
+                std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+                if (live_handles.erase(this) > 0) {
+                    h = std::exchange(handle, SparseHandle{});
+                }
+            }
+            if (h) {
                 // work queued with the handle may still be running
 #if defined(AMREX_USE_CUDA)
                 (void) cudaDeviceSynchronize();
 #else
                 (void) hipDeviceSynchronize();
 #endif
-                (void) release(std::exchange(handle, SparseHandle{}));
+                (void) release(h);
             }
         }
     };
 
-    thread_local ThreadHandle this_thread_handle;
-
     void destroy_sparse_handles ()
     {
-        std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-        // Take the handles out first, so that nothing is released twice and
-        // amrex::Initialize can start afresh even if a release fails below.
-        auto handles = std::exchange(live_handles, {});
-        finalize_registered = false;
+        std::set<ThreadHandle*> handles;
+        {
+            std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+            // Take the handles out first, so that nothing is released twice
+            // and amrex::Initialize can start afresh even if a release fails.
+            handles = std::exchange(live_handles, {});
+            finalize_registered = false;
+        }
         if (handles.empty()) { return; }
         // Work queued with a handle may still be running, also on streams that
         // AMReX does not know, so synchronize the whole device.
         Gpu::Device::synchronize();
         bool ok = true;
         for (auto* t : handles) {
+            // No other thread may make sparse calls during amrex::Finalize,
+            // so the owners do not touch t->handle now.
             ok = release(std::exchange(t->handle, SparseHandle{})) && ok;
         }
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ok, "Gpu::destroy_sparse_handles failed");
@@ -99,22 +113,42 @@ namespace {
 
     SparseHandle get_sparse_handle ()
     {
-        auto& t = this_thread_handle;
-        {
-            std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-            if (live_handles.count(&t) == 0) {
-                SparseHandle handle{};
+        // The handle belongs to the current device: check that it is AMReX's.
+        // This first runtime call also sets up the runtime's own per-thread
+        // state before the ThreadHandle below exists.  Thread-local objects
+        // are destroyed in the reverse order of their construction, so the
+        // ThreadHandle destructor runs while the runtime still works on this
+        // thread.
+        int device = -1;
 #if defined(AMREX_USE_CUDA)
-                AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
+        AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device));
 #else
-                AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
+        AMREX_HIP_SAFE_CALL(hipGetDevice(&device));
 #endif
+        if (device != Gpu::Device::deviceId()) {
+            amrex::Abort("Gpu::getCusparseHandle/getRocsparseHandle: this host thread uses"
+                         " GPU " + std::to_string(device) + ", but AMReX uses GPU "
+                         + std::to_string(Gpu::Device::deviceId()) + ". Set the device"
+                         " of the thread to amrex::Gpu::Device::deviceId() first.");
+        }
+
+        static thread_local ThreadHandle t;
+        if (!t.handle) {
+            SparseHandle handle{};
+#if defined(AMREX_USE_CUDA)
+            AMREX_CUSPARSE_SAFE_CALL(cusparseCreate(&handle));
+#else
+            AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_handle(&handle));
+#endif
+            bool register_finalize = false;
+            {
+                std::lock_guard<std::mutex> lock(sparse_handles_mutex);
                 t.handle = handle;
                 live_handles.insert(&t);
-                if (!finalize_registered) {
-                    amrex::ExecOnFinalize(destroy_sparse_handles);
-                    finalize_registered = true;
-                }
+                register_finalize = !std::exchange(finalize_registered, true);
+            }
+            if (register_finalize) {
+                amrex::ExecOnFinalize(destroy_sparse_handles);
             }
         }
         // The handle is used by this host thread only.  Bind it to the current

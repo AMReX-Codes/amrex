@@ -26,6 +26,10 @@ namespace amrex::Gpu {
  * sets the host pointer mode; call it again after switching streams.  The
  * handle is owned by AMReX: do not destroy it, and restore any other setting
  * you change.
+ *
+ * The calling thread must use AMReX's GPU (Gpu::Device::deviceId()).
+ * amrex::Finalize releases the handles of all threads, so no other thread may
+ * make sparse calls while it runs.
  */
 cusparseHandle_t getCusparseHandle ();
 #elif defined(AMREX_USE_HIP)
@@ -36,6 +40,10 @@ cusparseHandle_t getCusparseHandle ();
  * sets the host pointer mode; call it again after switching streams.  The
  * handle is owned by AMReX: do not destroy it, and restore any other setting
  * you change.
+ *
+ * The calling thread must use AMReX's GPU (Gpu::Device::deviceId()).
+ * amrex::Finalize releases the handles of all threads, so no other thread may
+ * make sparse calls while it runs.
  */
 rocsparse_handle getRocsparseHandle ();
 #endif
