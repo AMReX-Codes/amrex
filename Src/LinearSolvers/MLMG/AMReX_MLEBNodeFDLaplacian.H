@@ -103,10 +103,15 @@ public:
      *
      * The operator becomes del dot (sigma grad phi) - a phi (minus alpha/r^2 phi
      * in RZ).  \p a_acoef is a single-component nodal MultiFab on the grids of
-     * AMR level \p amrlev; its values should be non-negative.  It is restricted
-     * to the coarse multigrid levels by full weighting.  It can be set again
-     * between solves, e.g., in every step of a Newton iteration.  When it is
-     * set, the single-Box GPU bottom solver is replaced by MLMG's BiCGStab.
+     * AMR level \p amrlev.  Its values must be non-negative at the nodes that
+     * are neither covered by the EB nor Dirichlet nodes; this is checked at the
+     * next solve.  The values at covered and Dirichlet nodes are not used and
+     * may be anything, e.g., infinite.  \p a_acoef is restricted to the coarse
+     * multigrid levels by full weighting.  It can be set again between solves,
+     * e.g., in every step of a Newton iteration.  Once set, the Helmholtz term
+     * stays part of this operator: setting \p a_acoef to zero gives the plain
+     * operator, but the single-Box GPU bottom solver, which has no Helmholtz
+     * term, stays replaced by MLMG's BiCGStab.
      */
     void setACoeffs (int amrlev, MultiFab const& a_acoef);
 

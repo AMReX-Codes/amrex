@@ -436,7 +436,8 @@ Available choices of the bottom solver are
   the only such operator, and it uses this by default.  Its custom solver is a
   BiCGStab that runs entirely on the GPU when the bottom level has a single
   Box.  This is currently available for CUDA and HIP only; other builds fall
-  back to the standard BiCGStab solver.
+  back to the standard BiCGStab solver.  It has no Helmholtz term, so an
+  operator with :cpp:`setACoeffs` uses the standard BiCGStab solver instead.
 
 The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.
@@ -750,6 +751,22 @@ cubic.  No setting is needed, and a direction fixed with
 for: a direction with smaller :cpp:`sigma` counts as having longer cells.
 The coarse multigrid levels are built at the first solve, so their number is
 known only after it.
+
+:cpp:`MLEBNodeFDLaplacian` can solve with an optional Helmholtz term,
+:math:`\nabla \cdot (\sigma \nabla \phi) - a \phi = f`, e.g., for the Newton
+iteration of a nonlinear Poisson equation with a Boltzmann-like charge
+density:
+
+::
+
+    linop.setACoeffs(0, a);  // nodal MultiFab with one component
+
+The coefficient :cpp:`a` must be non-negative at the nodes that are neither
+covered by the EB nor Dirichlet nodes, which is checked at the next solve; its
+values at covered and Dirichlet nodes are not used.  It can be set again
+between solves.  Once set, the term stays part of the operator, and the custom
+bottom solver is replaced by the standard BiCGStab solver.  The AlgMG and
+hypre bottom solvers include the term.
 
 External Solvers
 ================

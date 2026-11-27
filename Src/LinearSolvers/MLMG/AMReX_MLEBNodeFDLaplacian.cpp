@@ -386,6 +386,8 @@ MLEBNodeFDLaplacian::setAlpha (Real a_alpha) // NOLINT
 void
 MLEBNodeFDLaplacian::setACoeffs (int amrlev, MultiFab const& a_acoef)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrlev >= 0 && amrlev < this->m_num_amr_levels,
+        "MLEBNodeFDLaplacian::setACoeffs: amrlev out of range (or operator not defined)");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_acoef.ixType().nodeCentered() && a_acoef.nComp() == 1,
         "MLEBNodeFDLaplacian::setACoeffs: a must be a nodal MultiFab with one component");
     m_has_acoef = true;
@@ -1940,6 +1942,26 @@ MLEBNodeFDLaplacian::update_acoef ()
             "MLEBNodeFDLaplacian: setACoeffs must be called on every AMR level");
         int const nmglevs = this->m_num_mg_levels[amrlev];
         acoef.resize(nmglevs);
+
+        // The kernels skip covered and Dirichlet nodes, so a may hold anything
+        // there (e.g., inf).  Zero it there, so that the restriction to the
+        // coarse levels takes only the nodes where the operator applies it.
+        auto zero_masked = [&] (MultiFab& a, int mglev)
+        {
+            auto const& dmsk = *m_dirichlet_mask[amrlev][mglev];
+            AMREX_ALWAYS_ASSERT(amrex::isMFIterSafe(a, dmsk));
+            auto const& ma = a.arrays();
+            auto const& mm = dmsk.const_arrays();
+            amrex::ParallelFor(a, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+            {
+                if (mm[b](i,j,k)) { ma[b](i,j,k) = Real(0.0); }
+            });
+        };
+
+        zero_masked(acoef[0], 0);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(acoef[0].min(0) >= Real(0.0),
+            "MLEBNodeFDLaplacian::setACoeffs: a must be non-negative at the nodes "
+            "that are neither covered nor Dirichlet");
         fill_domain_ghost(acoef[0], this->m_geom[amrlev][0], -1);
 
         for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -1954,6 +1976,8 @@ MLEBNodeFDLaplacian::update_acoef ()
             {
                 ca.define(cba, this->m_dmap[amrlev][mglev], 1, 1);
             }
+            // ghost nodes inside the domain but outside all grids stay zero
+            ca.setVal(Real(0.0));
             auto const& fa = acoef[mglev-1];
 
             bool const need_parallel_copy = !amrex::isMFIterSafe(ca, fa);
@@ -1981,6 +2005,7 @@ MLEBNodeFDLaplacian::update_acoef ()
             if (need_parallel_copy) {
                 ca.ParallelCopy(ca_tmp);
             }
+            zero_masked(ca, mglev);
             fill_domain_ghost(ca, this->m_geom[amrlev][mglev], -1);
         }
     }
