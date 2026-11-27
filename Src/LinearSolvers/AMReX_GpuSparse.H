@@ -13,7 +13,8 @@
  *
  * Handles of the vendor sparse-matrix libraries that AMReX's sparse linear
  * algebra uses: one per host thread, created on first use and released when
- * the thread exits or in amrex::Finalize.
+ * the thread exits or in amrex::Finalize (that of the main thread, which
+ * loaded AMReX, in amrex::Finalize only).
  */
 
 namespace amrex::Gpu {

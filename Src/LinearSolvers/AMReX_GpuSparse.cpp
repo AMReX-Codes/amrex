@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 
 // Creating a cuSPARSE or rocSPARSE handle allocates device resources and costs
@@ -16,11 +17,10 @@
 // thread: created on first use, released when the thread exits or in
 // amrex::Finalize, whichever comes first.
 //
-// Nothing that can abort or allocate runs while sparse_handles_mutex is held:
-// an abort (also from a failed allocation) can end in exit(), which runs this
-// thread's ThreadHandle destructor, and that locks the mutex too.  The live
-// handles are therefore kept in an intrusive list, and runtime calls under the
-// lock only return their errors.
+// Nothing that can abort or allocate runs while sparse_handles_mutex is held,
+// and a thread that exits while it holds the mutex (exit() from a signal
+// handler) does not take it again.  The live handles are therefore kept in an
+// intrusive list, and runtime calls under the lock only return their errors.
 
 namespace amrex::Gpu {
 
@@ -42,31 +42,56 @@ namespace {
     ThreadHandle* live_head = nullptr;
     bool finalize_registered = false;
 
-    // Work queued with a handle may still be running, also on streams that
-    // AMReX does not know: synchronize the whole device.  Errors are returned.
-    bool synchronize_device (int device) noexcept
+    // The thread that loaded AMReX, normally the main thread.  It exits only
+    // with the process, also after an abort, and leaves its handle to the
+    // process teardown instead of calling into the GPU runtime then.
+    std::thread::id const loading_thread = std::this_thread::get_id();
+
+    // True while this thread holds or takes sparse_handles_mutex.
+    thread_local bool this_thread_in_registry = false;
+
+    class RegistryLock
     {
-        // the device the handle was created on, in case the current one differs
+    public:
+        RegistryLock () {
+            this_thread_in_registry = true;
+            sparse_handles_mutex.lock();
+        }
+        ~RegistryLock () {
+            sparse_handles_mutex.unlock();
+            this_thread_in_registry = false;
+        }
+        RegistryLock (RegistryLock const&) = delete;
+        RegistryLock (RegistryLock&&) = delete;
+        RegistryLock& operator= (RegistryLock const&) = delete;
+        RegistryLock& operator= (RegistryLock&&) = delete;
+    };
+
+    // Run f() with device current, then make the previous device current
+    // again.  Errors are returned.
+    template <typename F>
+    bool on_device (int device, F const& f) noexcept
+    {
         int current = -1;
 #if defined(AMREX_USE_CUDA)
         bool ok = cudaGetDevice(&current) == cudaSuccess;
         bool const other = ok && current != device;
         if (other) { ok = cudaSetDevice(device) == cudaSuccess; }
-        ok = ok && (cudaDeviceSynchronize() == cudaSuccess);
+        ok = ok && f();
         if (other) { ok = (cudaSetDevice(current) == cudaSuccess) && ok; }
 #else
         bool ok = hipGetDevice(&current) == hipSuccess;
         bool const other = ok && current != device;
         if (other) { ok = hipSetDevice(device) == hipSuccess; }
-        ok = ok && (hipDeviceSynchronize() == hipSuccess);
+        ok = ok && f();
         if (other) { ok = (hipSetDevice(current) == hipSuccess) && ok; }
 #endif
         return ok;
     }
 
-    // Release a handle.  It may still be bound to a stream that no longer
-    // exists (e.g., an external stream), so it is bound to the default stream
-    // first; the caller has synchronized the device.  Errors are returned.
+    // Release a handle, with its device current.  It may still be bound to a
+    // stream that no longer exists (e.g., an external stream), so it is bound
+    // to the default stream first.  Errors are returned.
     bool release (SparseHandle handle) noexcept
     {
 #if defined(AMREX_USE_CUDA)
@@ -82,7 +107,7 @@ namespace {
     struct ThreadHandle
     {
         SparseHandle handle{};
-        int device = -1;
+        int device = -1;  // the device it was created on
         // in the list of live handles if handle is set
         ThreadHandle* prev = nullptr;
         ThreadHandle* next = nullptr;
@@ -116,14 +141,27 @@ namespace {
         // The thread exits: release its handle, unless amrex::Finalize did.
         ~ThreadHandle ()
         {
+            // exit() while this thread holds the mutex: the process ends
+            if (this_thread_in_registry) { return; }
             SparseHandle h{};
             {
-                std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+                RegistryLock lock;
                 if (handle) { h = unlink(); }
             }
-            if (h) {
-                (void) synchronize_device(device);
-                (void) release(h);
+            if (h && std::this_thread::get_id() != loading_thread) {
+                (void) on_device(device, [&] () noexcept {
+#if defined(AMREX_USE_CUDA)
+                    // Work queued with the handle may still run: cuSPARSE
+                    // defers the release of a handle's device resources (as
+                    // SpMV already relies on), so the device need not wait.
+                    return release(h);
+#else
+                    // rocSPARSE may free the device memory of a handle
+                    // right away, so wait for the work queued with it.
+                    bool const ok = hipDeviceSynchronize() == hipSuccess;
+                    return release(h) && ok;
+#endif
+                });
             }
         }
     };
@@ -134,15 +172,25 @@ namespace {
         {
             // Held while releasing, so that a thread exiting meanwhile waits
             // and then finds its handle released.  Nothing here aborts.
-            std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+            RegistryLock lock;
             finalize_registered = false;
             if (live_head) {
-                ok = synchronize_device(Gpu::Device::deviceId());
-            }
-            while (live_head) {
-                // No other thread may make sparse calls during amrex::Finalize,
-                // so the owners do not use their handles now.
-                ok = release(live_head->unlink()) && ok;
+                // All handles were made on AMReX's device.  Work queued with
+                // them may still run, also on streams that AMReX does not
+                // know: synchronize the whole device.
+                ok = on_device(Gpu::Device::deviceId(), [&] () noexcept {
+#if defined(AMREX_USE_CUDA)
+                    bool all = cudaDeviceSynchronize() == cudaSuccess;
+#else
+                    bool all = hipDeviceSynchronize() == hipSuccess;
+#endif
+                    while (live_head) {
+                        // No other thread may make sparse calls during
+                        // amrex::Finalize, so the owners do not use them now.
+                        all = release(live_head->unlink()) && all;
+                    }
+                    return all;
+                });
             }
         }
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ok, "Gpu::destroy_sparse_handles failed");
@@ -150,6 +198,8 @@ namespace {
 
     SparseHandle get_sparse_handle ()
     {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrex::Initialized(),
+            "Gpu::getCusparseHandle/getRocsparseHandle: AMReX is not initialized");
         // The handle belongs to the current device: check that it is AMReX's.
         // This first runtime call also sets up the runtime's own per-thread
         // state before the ThreadHandle below exists.  Thread-local objects
@@ -179,7 +229,7 @@ namespace {
 #endif
             bool register_finalize = false;
             {
-                std::lock_guard<std::mutex> lock(sparse_handles_mutex);
+                RegistryLock lock;
                 t.link(handle, device);
                 register_finalize = !std::exchange(finalize_registered, true);
             }
@@ -187,8 +237,14 @@ namespace {
                 try {
                     amrex::ExecOnFinalize(destroy_sparse_handles);
                 } catch (...) {
-                    std::lock_guard<std::mutex> lock(sparse_handles_mutex);
-                    finalize_registered = false;
+                    // nothing would release the handle: do it now
+                    SparseHandle h{};
+                    {
+                        RegistryLock lock;
+                        finalize_registered = false;
+                        h = t.unlink();
+                    }
+                    (void) release(h);
                     throw;
                 }
             }

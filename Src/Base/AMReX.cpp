@@ -332,7 +332,7 @@ namespace
 void
 amrex::ExecOnFinalize (std::function<void()> f)
 {
-    std::lock_guard<std::mutex> lock(The_Finalize_Function_Mutex);
+    std::scoped_lock lock(The_Finalize_Function_Mutex);
     The_Finalize_Function_Stack.push(std::move(f));
 }
 
@@ -858,7 +858,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
         //
         std::function<void()> f;
         {
-            std::lock_guard<std::mutex> lock(The_Finalize_Function_Mutex);
+            std::scoped_lock lock(The_Finalize_Function_Mutex);
             if (The_Finalize_Function_Stack.empty()) { break; }
             f = std::move(The_Finalize_Function_Stack.top());
             The_Finalize_Function_Stack.pop();
