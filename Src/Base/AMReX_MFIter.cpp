@@ -4,6 +4,8 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_OpenMP.H>
 
+#include <algorithm>
+
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
@@ -243,16 +245,19 @@ MFIter::Finalize ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync && device_sync_post) {
-        const int nstreams = std::min(endIndex, streams);
-        for (int i = 0; i < nstreams; ++i) {
-            Gpu::Device::setStreamIndex(i);
-            Gpu::streamSynchronize();
-        }
+    // Orders the work queued after the loop after the loop's work (on the
+    // host if the loop synchronizes), and makes the stream that was current
+    // before the loop current again.
+    if (m_loop_streams.isOpen()) {
+        Gpu::detail::theStreamSequencer().join(m_loop_streams);
+    } else if (!m_loop_streams_tried && device_sync && device_sync_post && beginIndex < endIndex) {
+        // An iterator with local boxes that was never iterated (e.g., one
+        // used only to index a FabArray, or a FillPatchIterator used only for
+        // its data) still returns with the GPU work queued so far completed.
+        Gpu::streamSynchronize();
     }
-
+    m_loop_streams_tried.flag = true; // isValid() does not open the streams from now on
     AMREX_GPU_ERROR_CHECK();
-    Gpu::Device::resetStreamIndex();
 #endif
 
     if (m_fa) {
@@ -266,11 +271,12 @@ MFIter::Finalize ()
         m_fa.reset(nullptr);
     }
 
+    if (depth_counted) {  // only on the master thread
+        depth_counted.flag = false;
 #ifdef AMREX_USE_OMP
-#pragma omp master
+#pragma omp atomic update
 #endif
-    {
-        depth = 0;
+        --depth;
     }
 }
 
@@ -281,11 +287,15 @@ MFIter::Initialize ()
 #pragma omp master
 #endif
     {
-        ++depth;
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
+        int d;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic capture
+#endif
+        d = ++depth;
+        depth_counted.flag = true;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(d == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
-
     if (flags & AllBoxes)  // a very special case
     {
         index_map    = &(fabArray->IndexArray());
@@ -368,22 +378,54 @@ MFIter::Initialize ()
 
         currentIndex = beginIndex;
 
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && device_sync && device_sync_pre &&
-            streams > 1 && (index_map->size() > 1)) {
-            // No need to call streamSynchronize when there is only single
-            // stream or only one box/tile.
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-            Gpu::streamSynchronize();
-        }
-        Gpu::Device::setStreamIndex(currentIndex%streams);
-#endif
-
         typ = fabArray->boxArray().ixType();
     }
 }
+
+#ifdef AMREX_USE_GPU
+void
+MFIter::openLoopStreams () const
+{
+    m_loop_streams_tried.flag = true;
+
+    using Edge = Gpu::detail::StreamEdge;
+    const bool launch = Gpu::inLaunchRegion();
+    const bool all_boxes = (flags & AllBoxes) != 0;
+    const int nitems = static_cast<int>(index_map->size());
+#ifdef AMREX_USE_OMP
+    const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
+#else
+    const bool in_team = false;
+#endif
+
+    Gpu::detail::StreamSequencer::ForkInfo info{.nitems = nitems, .shared = in_team};
+    info.ordered = Gpu::inStreamOrderedRegion();
+    if (info.ordered) {
+        // The loop is kept in program order. If it does not synchronize the
+        // host, its streams wait on the GPU for the work queued before the
+        // loop, and the work queued after it waits for them. Outside the
+        // launch region the body queues no kernels, so the loop stays on the
+        // current stream.
+        info.max_width = launch ? streams : 1;
+        info.fork = (device_sync && device_sync_pre) ? Edge::Host : Edge::Gpu;
+        info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::Gpu;
+    } else {
+        // Outside a Gpu::StreamOrderedRegion, a loop that synchronizes waits
+        // on the host before (if it uses more than one stream) and after. A
+        // loop that does not synchronize is not ordered.
+        info.max_width = streams;
+        info.fork = (launch && device_sync && device_sync_pre && !all_boxes &&
+                     streams > 1 && nitems > 1) ? Edge::Host : Edge::None;
+        info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::None;
+    }
+    Gpu::detail::theStreamSequencer().fork(m_loop_streams, info);
+    // Outside a Gpu::StreamOrderedRegion, an AllBoxes loop starts on the
+    // current stream.
+    if (info.ordered || !all_boxes) {
+        Gpu::detail::theStreamSequencer().lane(m_loop_streams, currentIndex);
+    }
+}
+#endif
 
 Box
 MFIter::tilebox () const noexcept
@@ -518,11 +560,15 @@ MFIter::operator++ () noexcept
         ++currentIndex;
 
 #ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            Gpu::Device::setStreamIndex(currentIndex%streams);
-#ifdef AMREX_DEBUG
-//            Gpu::synchronize();
-#endif
+        // A loop that advances without having called isValid() (e.g., a
+        // derived iterator with its own validity check) starts here.
+        if (!m_loop_streams_tried) { openLoopStreams(); }
+        // (With more than one lane outside the launch region, which only
+        // happens outside a Gpu::StreamOrderedRegion, the loop stays on its
+        // first stream.)
+        if (m_loop_streams.isOpen() && currentIndex < endIndex &&
+            (Gpu::inLaunchRegion() || m_loop_streams.width() == 1)) {
+            Gpu::detail::theStreamSequencer().lane(m_loop_streams, currentIndex);
         }
 #endif
     }

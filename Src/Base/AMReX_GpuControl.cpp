@@ -8,6 +8,7 @@ bool in_launch_region = true;
 bool in_graph_region = false;
 bool in_single_stream_region = false;
 bool in_nosync_region = false;
+bool in_stream_ordered_region = false;
 #endif
 
 }

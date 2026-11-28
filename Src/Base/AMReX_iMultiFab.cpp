@@ -774,7 +774,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
     {
         tag.dfab(i,j,k,n) = nonowner;
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 #endif
 
     return p;

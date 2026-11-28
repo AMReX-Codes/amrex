@@ -401,9 +401,7 @@ MLNodeLaplacianT<MF>::fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
                             rhs_ma[box_no](i,j,k) -= offset * scale;
                         });
         }
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSyncUnlessNoSync();
     } else {
         rhs.plus(-offset, 0, 1);
     }
@@ -633,9 +631,7 @@ MLNodeLaplacianT<MF>::restriction (int amrlev, int cmglev, MF& crse, MF& fine) c
                 mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
         }
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -770,9 +766,7 @@ MLNodeLaplacianT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF&
                 mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
             });
         }
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {
@@ -1034,9 +1028,7 @@ MLNodeLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
                 mlndlap_normalize_aa(i,j,k,ma[box_no],sx_ma[box_no],dmsk_ma[box_no],dxinv);
             });
         }
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSyncUnlessNoSync();
     } else
 #endif
     {

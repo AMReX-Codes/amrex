@@ -232,6 +232,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_GpuError.H
        AMReX_GpuDevice.H
        AMReX_GpuDevice.cpp
+       AMReX_GpuSequencer.H
+       AMReX_GpuSequencer.cpp
        AMReX_GpuBuffer.H
        AMReX_GpuAtomic.H
        AMReX_GpuUtility.H

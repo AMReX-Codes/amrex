@@ -1,6 +1,7 @@
 
 #include <AMReX_Arena.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_Machine.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -14,6 +15,7 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdlib>
 #include <exception>
 #include <iterator>
@@ -86,6 +88,28 @@ namespace {
 #endif
 
 namespace amrex::Gpu {
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+namespace {
+// One reusable event per waited stream (Device::streamWaitStream): a wait
+// captures the event's state when it is enqueued, so recording the event
+// again later does not affect it.
+std::mutex g_stream_event_mutex;
+std::map<gpuStream_t, AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t)> g_stream_events;
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+namespace {
+// A stream's wait list longer than this is released (by event or host wait).
+constexpr std::size_t max_wait_list_size = 100;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+// More retired wait lists than this on one stream make the host wait for
+// the oldest, so that the memory they hold stays bounded.
+constexpr std::size_t max_event_frees = 16;
+#endif
+}
+#endif
 
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
@@ -163,11 +187,17 @@ StreamManager::getStream () const {
 void
 StreamManager::sync () {
     decltype(m_free_wait_list) new_empty_wait_list{};
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    decltype(m_event_frees) event_frees{};
+#endif
 
     {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
         m_free_wait_list.swap(new_empty_wait_list);
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        m_event_frees.swap(event_frees);
+#endif
     }
     // unlock mutex before stream sync and memory free
     // to avoid deadlocks from the CArena mutex
@@ -195,7 +225,107 @@ StreamManager::sync () {
     for (auto [arena, mem] : new_empty_wait_list) {
         arena->free(mem);
     }
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    // Their events were recorded on this stream, before the sync.
+    for (auto& ef : event_frees) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(ef.event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(ef.event)); )
+        for (auto [arena, mem] : ef.frees) {
+            arena->free(mem);
+        }
+    }
+#endif
 }
+
+void
+StreamManager::limit_wait_list (std::size_t size)
+{
+    // Limit the number of memory allocations in m_free_wait_list
+    // in case the stream is never synchronized
+    if (size <= max_wait_list_size) { return; }
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    // Inside a Gpu::StreamOrderedRegion nothing else waits for the stream,
+    // so a host wait here would be the only one: release the list once an
+    // event recorded after its work has completed instead.
+    if (Gpu::inStreamOrderedRegion()) {
+        // An event recorded during graph capture cannot be queried.
+        AMREX_HIP_OR_CUDA(hipStreamCaptureStatus, cudaStreamCaptureStatus) status{};
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipStreamIsCapturing(m_stream, &status));,
+            AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(m_stream, &status)); )
+        if (status == AMREX_HIP_OR_CUDA(hipStreamCaptureStatusNone,
+                                        cudaStreamCaptureStatusNone)) {
+            retire_wait_list();
+            return;
+        }
+    }
+#endif
+    sync();
+}
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+void
+StreamManager::retire_wait_list ()
+{
+    // Only take the lists under the lock. The GPU runtime calls below are
+    // made without it, so that they do not hold up free_async on other
+    // threads: none of them is guaranteed to return quickly.
+    EventFrees ef{};
+    std::deque<EventFrees> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        ef.frees.swap(m_free_wait_list);
+        pending.swap(m_event_frees);
+    }
+
+    if (!ef.frees.empty()) {
+        // Every free in the list was deferred after the work that uses it
+        // was queued on this stream, so an event recorded now follows that
+        // work.
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&ef.event, hipEventDisableTiming));
+            AMREX_HIP_SAFE_CALL(hipEventRecord(ef.event, m_stream));,
+            AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&ef.event, cudaEventDisableTiming));
+            AMREX_CUDA_SAFE_CALL(cudaEventRecord(ef.event, m_stream)); )
+        pending.push_back(std::move(ef));
+    }
+
+    // Events on one stream complete in the order they were recorded. (Lists
+    // that two threads retire at the same time can be put back out of that
+    // order, which only delays their release.)
+    std::deque<EventFrees> released;
+    while (!pending.empty()) {
+        auto err = AMREX_HIP_OR_CUDA(hipEventQuery, cudaEventQuery)(pending.front().event);
+        if (err == AMREX_HIP_OR_CUDA(hipErrorNotReady, cudaErrorNotReady)) { break; }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(err);, AMREX_CUDA_SAFE_CALL(err); )
+        released.push_back(std::move(pending.front()));
+        pending.pop_front();
+    }
+    if (pending.size() > max_event_frees) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventSynchronize(pending.front().event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventSynchronize(pending.front().event)); )
+        released.push_back(std::move(pending.front()));
+        pending.pop_front();
+    }
+
+    if (!pending.empty()) {
+        // Put back the lists that are still pending, ahead of any that
+        // another thread retired in the meantime.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (auto& e : m_event_frees) { pending.push_back(std::move(e)); }
+        m_event_frees.swap(pending);
+    }
+
+    // Free without the lock, to avoid deadlocks from the CArena mutex.
+    for (auto& r : released) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(r.event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(r.event)); )
+        for (auto [arena, mem] : r.frees) {
+            arena->free(mem);
+        }
+    }
+}
+#endif
 
 void
 StreamManager::free_async (Arena* arena, void* mem) {
@@ -207,21 +337,41 @@ StreamManager::free_async (Arena* arena, void* mem) {
             m_free_wait_list.emplace_back(arena, mem);
             free_wait_list_size = m_free_wait_list.size();
         }
-        // Limit the number of memory allocations in m_free_wait_list
-        // in case the stream is never synchronized
-        if (free_wait_list_size > 100) {
-            sync();
-        }
+        limit_wait_list(free_wait_list_size);
     } else {
         arena->free(mem);
     }
+}
+
+Vector<std::pair<Arena*, void*>>
+StreamManager::take_wait_list () {
+    decltype(m_free_wait_list) taken{};
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_free_wait_list.swap(taken);
+    return taken;
+}
+
+void
+StreamManager::add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees) {
+    if (frees.empty()) { return; }
+    std::size_t free_wait_list_size = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_free_wait_list.insert(m_free_wait_list.end(), frees.begin(), frees.end());
+        free_wait_list_size = m_free_wait_list.size();
+    }
+    limit_wait_list(free_wait_list_size);
 }
 
 std::size_t
 StreamManager::wait_list_size () {
     // lock mutex before accessing member variables
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_free_wait_list.size();
+    std::size_t n = m_free_wait_list.size();
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    for (auto const& ef : m_event_frees) { n += ef.frees.size(); }
+#endif
+    return n;
 }
 
 #endif
@@ -595,6 +745,17 @@ Device::Finalize ()
 #ifdef AMREX_USE_GPU
     streamSynchronizeAll();
     Device::profilerStop();
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    {
+        std::lock_guard<std::mutex> lock(g_stream_event_mutex);
+        for (auto& [stream, event] : g_stream_events) {
+            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(event));,
+                               AMREX_CUDA_SAFE_CALL(cudaEventDestroy(event)); )
+        }
+        g_stream_events.clear();
+    }
+#endif
 
 #ifdef AMREX_USE_SYCL
     for (auto& s : gpu_stream_pool) {
@@ -1111,6 +1272,155 @@ Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noe
     amrex::Abort("Gpu::Device::streamOrderedFreeAsync: stream is not managed by AMReX. "
                  "If this is an external stream, it must still be active when stream-ordered "
                  "memory is freed.");
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+bool
+Device::isPoolStream (gpuStream_t s) noexcept
+{
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == s) { return true; }
+    }
+    return false;
+}
+
+namespace {
+// Makes work queued on each of the \p nwaiters streams \p waiters after this
+// call wait for the work queued on \p waited before it, with one event
+// record for all of them. The host does not wait (except on SYCL). The event
+// is cached only if \p waited is one of AMReX's pool streams (\p cache), so
+// that streams created and destroyed by the application do not accumulate
+// events. It is also not cached while \p waited is being captured into a
+// graph: an event recorded during capture must not be waited on later from a
+// stream that is not capturing.
+void streams_wait_stream (gpuStream_t const* waiters, int nwaiters, gpuStream_t waited,
+                          bool cache) noexcept
+{
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    bool recorded = false;
+    bool temporary = false;
+    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
+    std::lock_guard<std::mutex> lock(g_stream_event_mutex);
+    for (int i = 0; i < nwaiters; ++i) {
+        if (waiters[i] == waited) { continue; }
+        if (!recorded) {
+            if (cache) {
+                AMREX_HIP_OR_CUDA(hipStreamCaptureStatus, cudaStreamCaptureStatus) status{};
+                AMREX_HIP_OR_CUDA(
+                    AMREX_HIP_SAFE_CALL(hipStreamIsCapturing(waited, &status));,
+                    AMREX_CUDA_SAFE_CALL(cudaStreamIsCapturing(waited, &status)); )
+                if (status != AMREX_HIP_OR_CUDA(hipStreamCaptureStatusNone,
+                                                cudaStreamCaptureStatusNone)) {
+                    cache = false;
+                }
+            }
+            auto it = cache ? g_stream_events.find(waited) : g_stream_events.end();
+            if (it == g_stream_events.end()) {
+                AMREX_HIP_OR_CUDA(
+                    AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
+                    AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
+                if (cache) {
+                    g_stream_events.emplace(waited, event);
+                } else {
+                    temporary = true;
+                }
+            } else {
+                event = it->second;
+            }
+            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventRecord(event, waited));,
+                               AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, waited)); )
+            recorded = true;
+        }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamWaitEvent(waiters[i], event, 0));,
+                           AMREX_CUDA_SAFE_CALL(cudaStreamWaitEvent(waiters[i], event, 0)); )
+    }
+    if (temporary) {
+        // The waits already queued still hold; the event's resources are
+        // released once it completes.
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(event)); )
+    }
+#else
+    // SYCL: order on the host.
+    amrex::ignore_unused(cache);
+    for (int i = 0; i < nwaiters; ++i) {
+        if (!(waiters[i] == waited)) {
+            Device::streamSynchronize(waited);
+            return;
+        }
+    }
+#endif
+}
+}
+
+void
+Device::streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept
+{
+    streams_wait_stream(&waiter, 1, waited, isPoolStream(waited));
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+//! Gpu::detail::StreamSequencer on AMReX's streams: 0 .. max_gpu_streams-1
+//! are the pool streams, max_gpu_streams+k is entry k of the external stream
+//! stack.
+class DeviceStreamSequencerBackend final
+    : public detail::StreamSequencerBackend
+{
+public:
+    [[nodiscard]] int numPoolStreams () const override { return Device::max_gpu_streams; }
+
+    [[nodiscard]] int current () const override {
+        if (!Device::external_stream_stack.empty()) {
+            return Device::max_gpu_streams + static_cast<int>(Device::external_stream_stack.size()) - 1;
+        } else {
+            return Device::gpu_stream_index[OpenMP::get_thread_num()];
+        }
+    }
+
+    void setCurrent (int stream) override {
+        // An external stream stays current until it is popped.
+        if (stream < Device::max_gpu_streams) { Device::setStreamIndex(stream); }
+    }
+
+    void order (int const* waiters, int n, int waited) override {
+        std::array<gpuStream_t, detail::StreamSequencer::max_lanes> w{};
+        AMREX_ASSERT(n <= detail::StreamSequencer::max_lanes);
+        for (int i = 0; i < n; ++i) { w[i] = manager(waiters[i]).getStream(); }
+        // Cache the event only for a pool stream, not an external one.
+        streams_wait_stream(w.data(), n, manager(waited).getStream(),
+                            waited < Device::max_gpu_streams);
+    }
+
+    void wait (int stream) override { manager(stream).sync(); }
+
+    void waitAll () override { Device::synchronize(); }
+
+    [[nodiscard]] FreeList takeFrees (int stream) override {
+        return manager(stream).take_wait_list();
+    }
+
+    void giveFrees (int stream, FreeList&& frees) override {
+        manager(stream).add_to_wait_list(std::move(frees));
+    }
+
+private:
+    [[nodiscard]] static StreamManager& manager (int stream) {
+        if (stream < Device::max_gpu_streams) {
+            return Device::gpu_stream_pool[stream];
+        } else {
+            return *Device::external_stream_stack[stream-Device::max_gpu_streams].manager;
+        }
+    }
+};
+
+detail::StreamSequencer&
+detail::theStreamSequencer () noexcept
+{
+    static DeviceStreamSequencerBackend backend;
+    static StreamSequencer sequencer(backend);
+    return sequencer;
 }
 #endif
 

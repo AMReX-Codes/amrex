@@ -2410,6 +2410,16 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     bool run_on_device = data_on_device && Gpu::inLaunchRegion();
     amrex::ignore_unused(run_on_device);
 
+#ifdef AMREX_USE_GPU
+    // In a no-sync region, GPU work queued earlier may still be writing mf.
+    // Below, the host reads it (min/max, copies) unless the work runs on the
+    // device; and the device copies are ordered after that work only in a
+    // Gpu::StreamOrderedRegion.
+    if (Gpu::inNoSyncRegion() && (!run_on_device || !Gpu::inStreamOrderedRegion())) {
+        Gpu::streamSynchronizeAll();
+    }
+#endif
+
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     // Note that AsyncWrite always writes in the native format, ignoring fab.format.

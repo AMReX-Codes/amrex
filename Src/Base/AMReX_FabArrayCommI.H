@@ -80,9 +80,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     }
                 } else {
                     FB_local_copy_gpu(TheFB, scomp, ncomp);
-                    if (!Gpu::inNoSyncRegion()) {
-                        Gpu::streamSynchronize();
-                    }
+                    Gpu::streamSyncUnlessNoSync();
                 }
             }
         }
@@ -494,9 +492,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
                                 da(i,j,k,n) = sa(i,j,k,n);
                             });
-                    if (!Gpu::inNoSyncRegion()) {
-                        Gpu::streamSynchronize();
-                    }
+                    Gpu::streamSyncUnlessNoSync();
                 } else
 #endif
                 {
@@ -520,9 +516,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
                                 da(i,j,k,n) += sa(i,j,k,n);
                             });
-                    if (!Gpu::inNoSyncRegion()) {
-                        Gpu::streamSynchronize();
-                    }
+                    Gpu::streamSyncUnlessNoSync();
                 } else
 #endif
                 {
@@ -581,9 +575,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
             PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op,
                          deterministic && (op == FabArrayBase::ADD));
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
+            Gpu::streamSyncUnlessNoSync();
         }
         else
 #endif
@@ -1316,9 +1308,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 
     if (ParallelContext::NProcsSub() == 1) {
         detail::fbv_copy(local_tags);
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSyncUnlessNoSync();
         return;
     }
 

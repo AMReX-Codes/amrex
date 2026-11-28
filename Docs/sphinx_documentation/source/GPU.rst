@@ -1953,18 +1953,75 @@ that needs to read the results of GPU work must still synchronize explicitly
 code that hands GPU data to a library that runs on its own stream (e.g.,
 HYPRE).
 
+:cpp:`Gpu::StreamOrderedRegion` is a no-sync region that keeps the
+concurrency of multiple streams.  Inside it, every :cpp:`MFIter` or
+:cpp:`Gpu::StreamIter` loop, whatever its number of streams, orders its
+streams on the GPU instead of synchronizing the host: before the loop, the
+streams it uses wait for the work already queued on the current stream
+(stream 0, or the stream of an enclosing :cpp:`MFIter` iteration), and after
+the loop, that stream waits for all of them and is current again (with
+SYCL, the host synchronizes instead).  Work queued after the loop is
+therefore ordered after the whole loop, and the host waits only where it
+reads results or synchronizes explicitly.
+
+Inside the region, :cpp:`Gpu::streamSynchronize()` on the current stream
+waits for all the GPU work that AMReX queued before it in the program,
+whatever the number of streams.  Only the iterations of one loop have no
+order among them.  If an iteration queues GPU work that the other iterations
+depend on (e.g., it fills a cache they share), call
+:cpp:`Gpu::orderLoopStreamsAfterCurrent()` after queuing it.  Code that
+selects streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order
+them itself, and so does code that hands data to a library that runs on its
+own stream.
+
+.. highlight:: c++
+
+::
+
+   {
+     Gpu::StreamOrderedRegion ordered{}; // No implicit host synchronization,
+                                         // multiple streams ordered on the GPU
+
+     for (MFIter mfi(mf); mfi.isValid(); ++mfi) { ... } // several streams
+
+     mf2.FillBoundary(geom.periodicity()); // ordered after the loop
+
+     Real s = mf2.sum(0); // the host waits here, for the reduction's result
+   }
+
+The memory rules above still apply: temporaries created and destroyed
+inside the region should come from :cpp:`The_Async_Arena()` or be released
+with :cpp:`Gpu::freeAsync` (e.g., through an :cpp:`Elixir`).  Such memory
+is released once the GPU work queued before the free has completed.
+Outside the region, a stream with more than 100 pending frees makes the
+host wait for it; inside the region (with CUDA and HIP), the pending frees
+are instead released when an event recorded after their work has completed.
+The host then waits only if more than 16 such groups of frees are still
+pending on one stream, which keeps the memory they hold bounded.
+
+Async output (``amrex.async_out=1``, see :ref:`sec:io:async`) started inside
+any no-sync region, including a :cpp:`Gpu::StreamOrderedRegion`, waits for
+all GPU streams to finish before handing the data to the output thread.
+
 .. note::
 
-   Reducing the number of synchronization points is generally desirable,
-   but it does not always make a code faster.  A no-sync region with a
-   single stream gives up the concurrency of multiple streams, so it can be
-   slower than the default of implicit synchronizations with multiple
-   streams.  Measure the performance of your application before switching
-   to a no-sync region with a single stream.  When doing so, keep in mind
-   that GPU kernels are launched asynchronously, so an ordinary host timer
-   may finish before the work launched inside it, and the time shows up
-   wherever the next synchronization happens.  Compare total run times, or
-   use synchronized timers (see :ref:`sec:gpu:profiling`).
+   Removing implicit synchronizations does not always make a code faster,
+   so measure the performance of your application with and without the
+   region.  A no-sync region with a single stream gives up the concurrency
+   of multiple streams, so it can be slower than the default of implicit
+   synchronizations with multiple streams.  Try
+   :cpp:`Gpu::StreamOrderedRegion` first: it keeps the concurrency of
+   multiple streams while removing the host synchronizations between
+   loops, and it has been found to be faster than a single-stream
+   :cpp:`Gpu::NoSyncRegion` in many tests.
+
+   When measuring, keep in mind that GPU kernels are launched
+   asynchronously: an ordinary host timer may stop before the work launched
+   inside it has finished, and that work is then charged to whichever timer
+   contains the next synchronization.  Without implicit synchronizations
+   this happens more often, so per-timer numbers from the two
+   configurations are not comparable.  Compare total run times, or use
+   synchronized timers (see :ref:`sec:gpu:profiling`).
 
 .. _sec:gpu:external-streams:
 

@@ -790,7 +790,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
     {
         tag.dfab(i,j,k) = val;
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 #endif
 }
 

@@ -94,6 +94,12 @@ MyTest::configureMLMG (MLMG& mlmg) const
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     mlmg.setMultigridType(multigrid_type);
+    {   // no_gpu_sync = 1: MLMG's single-stream mode without host syncs
+        bool no_gpu_sync = false;
+        ParmParse pp;
+        pp.query("no_gpu_sync", no_gpu_sync);
+        mlmg.setNoGpuSync(no_gpu_sync);
+    }
     if (hybrid_stall_rate >= 0) { mlmg.setHybridStallCriterion(4, hybrid_stall_rate); }
     if (use_algmg_bottom && multigrid_type == MultigridType::hybrid) {
         mlmg.setBottomSolver(MLMG::BottomSolver::algmg);

@@ -584,7 +584,7 @@ MLTerrainPoisson::applyBC (int amrlev, int mglev, MultiFab& in, BCMode /*bc_mode
             a(iv) = Real(sign) * a(im);
         });
     }
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void
@@ -610,7 +610,7 @@ MLTerrainPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& 
         y[b](i,j,k) = mlterrain::adotx(i, j, k, x[b], met, ax[b], ay[b], az[b],
                                        dxinv[0], dxinv[1], dxinv[2], bci);
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void
@@ -664,7 +664,7 @@ MLTerrainPoisson::interpolation (int amrlev, int fmglev, MultiFab& fine, const M
         }
         fa[b](i,j,k) += v;
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 }
 
 void

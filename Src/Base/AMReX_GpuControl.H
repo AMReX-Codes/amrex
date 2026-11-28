@@ -143,9 +143,11 @@ namespace Gpu {
 
     extern bool in_single_stream_region;
     extern bool in_nosync_region;
+    extern bool in_stream_ordered_region;
 
     [[nodiscard]] inline bool inSingleStreamRegion () noexcept { return in_single_stream_region; }
     [[nodiscard]] inline bool inNoSyncRegion () noexcept { return in_nosync_region; }
+    [[nodiscard]] inline bool inStreamOrderedRegion () noexcept { return in_stream_ordered_region; }
 
     inline bool setSingleStreamRegion (bool b) noexcept {
         return std::exchange(in_single_stream_region, b);
@@ -190,6 +192,37 @@ namespace Gpu {
         bool m_prev_flag;
     };
 
+    /**
+     * RAII region in which MFIter and StreamIter loops still use multiple
+     * streams but do not synchronize the host. Like a NoSyncRegion, the host
+     * does not wait for the GPU at the start and end of each loop. Unlike a
+     * plain NoSyncRegion, the GPU work stays in program order: a loop's
+     * kernels run after the GPU work queued before the loop, and the GPU work
+     * queued after the loop runs after all of the loop's kernels, also when
+     * the loop is nested in an iteration of another loop. The host waits only
+     * where it needs device results (e.g., reductions, device-to-host copies,
+     * Gpu::streamSynchronize).
+     */
+    struct [[nodiscard]] StreamOrderedRegion
+    {
+        StreamOrderedRegion () noexcept
+            : m_prev_nosync(std::exchange(in_nosync_region, true)),
+              m_prev_ordered(std::exchange(in_stream_ordered_region, true))
+        {}
+
+        ~StreamOrderedRegion () {
+            in_nosync_region = m_prev_nosync;
+            in_stream_ordered_region = m_prev_ordered;
+        }
+
+        StreamOrderedRegion (StreamOrderedRegion const&) = delete;
+        StreamOrderedRegion& operator= (StreamOrderedRegion const&) = delete;
+
+    private:
+        bool m_prev_nosync;
+        bool m_prev_ordered;
+    };
+
 #else
 
     [[nodiscard]] constexpr bool inLaunchRegion () { return false; }
@@ -212,11 +245,18 @@ namespace Gpu {
 
     [[nodiscard]] constexpr bool inSingleStreamRegion () { return false; }
     [[nodiscard]] constexpr bool inNoSyncRegion () { return true; }
+    [[nodiscard]] constexpr bool inStreamOrderedRegion () { return false; }
     [[nodiscard]] constexpr bool setSingleStreamRegion (bool) { return false; }
     [[nodiscard]] constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
     struct [[nodiscard]] NoSyncRegion {
         static constexpr bool inNoSyncRegionPreviously () { return true; }
+    };
+    struct [[nodiscard]] StreamOrderedRegion {
+        StreamOrderedRegion () = default;
+        ~StreamOrderedRegion () = default;
+        StreamOrderedRegion (StreamOrderedRegion const&) = delete;
+        StreamOrderedRegion& operator= (StreamOrderedRegion const&) = delete;
     };
 
 #endif

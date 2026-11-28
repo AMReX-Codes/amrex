@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FabArrayBase.H>
+#include <AMReX_GpuSequencer.H>
 
 #include <memory>
 
@@ -173,7 +174,17 @@ public:
     void operator++ () noexcept;
 
     //! Is the iterator valid i.e. is it associated with a FAB?
-    [[nodiscard]] bool isValid () const noexcept { return currentIndex < endIndex; }
+    /**
+     * Is the iterator valid? In GPU builds, the first call that returns true
+     * starts the loop on its GPU streams: GPU work queued before it, also
+     * after the iterator was constructed, precedes the iterations.
+     */
+    [[nodiscard]] bool isValid () const noexcept {
+#ifdef AMREX_USE_GPU
+        if (!m_loop_streams_tried && currentIndex < endIndex) { openLoopStreams(); }
+#endif
+        return currentIndex < endIndex;
+    }
 
     //! The index into the underlying BoxArray of the current FAB.
     [[nodiscard]] int index () const noexcept { return (*index_map)[currentIndex]; }
@@ -237,6 +248,16 @@ protected:
     DeviceSync device_sync;
     DeviceSync device_sync_pre{true};
     DeviceSync device_sync_post{true};
+    DeviceSync depth_counted{false}; //!< whether this MFIter incremented depth
+
+#ifdef AMREX_USE_GPU
+    //! The loop on its GPU streams (Gpu::detail::StreamSequencer), opened by
+    //! isValid().
+    mutable Gpu::detail::LoopStreams m_loop_streams;
+    //! Whether isValid() has opened m_loop_streams, or Finalize() has run.
+    mutable DeviceSync m_loop_streams_tried{false};
+    void openLoopStreams () const;
+#endif
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;

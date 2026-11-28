@@ -6,6 +6,7 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -197,6 +198,10 @@ namespace amrex::Gpu {
         int m_i;
         bool m_threadsafe;
         bool m_sync;
+#ifdef AMREX_USE_GPU
+        //! The loop on its GPU streams (Gpu::detail::StreamSequencer).
+        detail::LoopStreams m_loop_streams;
+#endif
     };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

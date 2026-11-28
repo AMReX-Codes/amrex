@@ -313,7 +313,7 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         auto const si = dtos(di);
         tag.dfab(i,j,k,dcomp+n) = detail::call_projection(proj, tag.sfab, si, scomp+n, di);
     });
-    if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    Gpu::streamSyncUnlessNoSync();
 }
 
 template <BaseFabType FAB, class DTOS, class Proj>

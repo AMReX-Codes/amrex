@@ -8,6 +8,7 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuSequencer.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
 
@@ -15,6 +16,7 @@
 #include <array>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <mutex>
 
@@ -66,12 +68,33 @@ class StreamManager {
     gpuStream_t m_stream;
     std::mutex m_mutex;
     Vector<std::pair<Arena*, void*>> m_free_wait_list;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    //! Frees whose work precedes an event recorded on m_stream. They are
+    //! released once the event has completed, without a host wait. Only a
+    //! Gpu::StreamOrderedRegion retires wait lists this way.
+    struct EventFrees {
+        AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event;
+        Vector<std::pair<Arena*, void*>> frees;
+    };
+    std::deque<EventFrees> m_event_frees;
+    //! Moves the wait list behind an event and releases the frees whose
+    //! events have completed.
+    void retire_wait_list ();
+#endif
+    //! Bounds the wait list once it has grown to the given size: inside a
+    //! Gpu::StreamOrderedRegion by retiring it behind an event, elsewhere
+    //! by a host wait.
+    void limit_wait_list (std::size_t size);
 public:
     [[nodiscard]] gpuStream_t& getStream ();
     [[nodiscard]] gpuStream_t const& getStream () const;
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
+    //! Removes and returns this stream's pending frees (Gpu::detail::StreamSequencer::join).
+    [[nodiscard]] Vector<std::pair<Arena*, void*>> take_wait_list ();
+    //! Adds frees whose memory this stream's queued work is ordered after.
+    void add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees);
 };
 #endif
 
@@ -111,6 +134,23 @@ public:
 #endif
     }
 
+    //! Number of streams in AMReX's pool, whether or not a SingleStreamRegion
+    //! or an external stream is active (unlike numGpuStreams()).
+    static int streamPoolSize () noexcept {
+#ifdef AMREX_USE_GPU
+        return max_gpu_streams;
+#else
+        return 1;
+#endif
+    }
+
+    /**
+     * Makes stream \p idx of AMReX's pool the calling thread's current
+     * stream. MFIter and Gpu::StreamIter loops select their streams
+     * themselves (Gpu::detail::StreamSequencer). Code that calls this
+     * directly has to order the work on the streams it uses itself, e.g., with
+     * Gpu::streamSynchronize or Device::streamWaitStream.
+     */
     static void setStreamIndex (int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
@@ -165,6 +205,14 @@ public:
 #endif
 
     static bool clearFreeAsyncBuffer () noexcept;
+
+#ifdef AMREX_USE_GPU
+    /**
+     * Makes work queued on \p waiter after this call wait, on the GPU, for all
+     * work queued on \p waited before it. The host does not wait.
+     */
+    static void streamWaitStream (gpuStream_t waiter, gpuStream_t waited) noexcept;
+#endif
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
@@ -263,6 +311,8 @@ private:
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
     static AMREX_EXPORT Vector<StreamManager> gpu_stream_pool; // The size of this is max_gpu_stream
+    //! Whether \p s is one of the streams in gpu_stream_pool.
+    static bool isPoolStream (gpuStream_t s) noexcept;
     // The non-owning gpu_stream_index is used to store the current stream index that will be used.
     // gpu_stream_index is a vector so that it's thread safe to write to it.
     static AMREX_EXPORT Vector<int> gpu_stream_index; // The size of this is omp_max_threads
@@ -283,6 +333,7 @@ private:
 #endif
 
     friend StreamManager;
+    friend class DeviceStreamSequencerBackend;
     friend struct ExternalGpuStreamRegion;
 #endif
 };
@@ -329,6 +380,20 @@ inline void
 streamSynchronize () noexcept
 {
     Device::streamSynchronize();
+}
+
+/**
+ * \brief Gpu::streamSynchronize() unless in a Gpu::NoSyncRegion.
+ *
+ * For functions that return with their GPU work completed by default but
+ * leave it queued in a no-sync region.
+ */
+inline void
+streamSyncUnlessNoSync () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (!inNoSyncRegion()) { Device::streamSynchronize(); }
+#endif
 }
 
 #ifdef AMREX_USE_GPU

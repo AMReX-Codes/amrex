@@ -21,7 +21,10 @@ operator<< (std::ostream& os, const dim3& d)
 namespace Gpu {
 
 StreamIter::StreamIter (int n, bool is_thread_safe) noexcept
-    : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(true)
+    // Synchronizes unless in a Gpu::StreamOrderedRegion whose no-sync mode
+    // is still on (Gpu::setNoSyncRegion(false) turns host syncs back on).
+    : m_n(n), m_i(0), m_threadsafe(is_thread_safe),
+      m_sync(!(Gpu::inStreamOrderedRegion() && Gpu::inNoSyncRegion()))
 {
     init();
 }
@@ -35,16 +38,24 @@ StreamIter::StreamIter (int n, const StreamItInfo& info, bool is_thread_safe) no
 void
 StreamIter::init () noexcept // NOLINT
 {
-    amrex::ignore_unused(m_threadsafe);
-    amrex::ignore_unused(m_sync);
+    amrex::ignore_unused(m_threadsafe, m_sync);
 #if defined(AMREX_USE_GPU)
-    if (m_sync) {
+    // In a Gpu::StreamOrderedRegion, a loop that does not synchronize is
+    // ordered on the GPU instead. Outside it, such a loop is not ordered. A
+    // loop that is not thread-safe uses one stream.
+    const bool ordered = Gpu::inStreamOrderedRegion();
+    const auto edge = m_sync ? detail::StreamEdge::Host
+                             : (ordered ? detail::StreamEdge::Gpu : detail::StreamEdge::None);
 #ifdef AMREX_USE_OMP
-#pragma omp single
+    const bool in_team = omp_in_parallel() && omp_get_num_threads() > 1;
+#else
+    const bool in_team = false;
 #endif
-        Gpu::streamSynchronize();
-    }
-    Gpu::Device::setStreamIndex(m_i);
+    detail::theStreamSequencer().fork(m_loop_streams, {.nitems = m_n,
+                                        .max_width = m_threadsafe ? Gpu::numGpuStreams() : 1,
+                                        .fork = edge, .join = edge, .shared = in_team,
+                                        .ordered = ordered});
+    if (m_n > 0) { detail::theStreamSequencer().lane(m_loop_streams, m_i); }
 #elif defined(AMREX_USE_OMP)
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
@@ -64,15 +75,8 @@ StreamIter::init () noexcept // NOLINT
 
 StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
 #ifdef AMREX_USE_GPU
-    if (m_sync) {
-        const int nstreams = std::min(m_n, Gpu::numGpuStreams());
-        for (int i = 0; i < nstreams; ++i) {
-            Gpu::Device::setStreamIndex(i);
-            Gpu::streamSynchronize();
-        }
-    }
+    detail::theStreamSequencer().join(m_loop_streams);
     AMREX_GPU_ERROR_CHECK();
-    Gpu::Device::resetStreamIndex();
 #endif
 }
 
@@ -81,10 +85,8 @@ void
 StreamIter::operator++ ()
 {
     ++m_i;
-    if (m_threadsafe) {
-        Gpu::Device::setStreamIndex(m_i);
-        AMREX_GPU_ERROR_CHECK();
-    }
+    if (m_i < m_n) { detail::theStreamSequencer().lane(m_loop_streams, m_i); }
+    if (m_threadsafe) { AMREX_GPU_ERROR_CHECK(); }
 }
 #endif
 

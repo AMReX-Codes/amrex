@@ -680,7 +680,17 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_leveldata(&leveldata),
     m_ncomp(0)
 {
-    MFIter::depth = 0;
+    // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
+    // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
+    // increment from the MFIter constructor, so the count stays balanced
+    // when MFIter::Finalize runs.
+    if (depth_counted) {
+        depth_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+        --MFIter::depth;
+    }
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
@@ -722,7 +732,17 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(AmrLevel::desc_lst[idx].inRange(scomp,ncomp));
     BL_ASSERT(0 <= idx && idx < AmrLevel::desc_lst.size());
 
-    MFIter::depth = 0;
+    // A FillPatchIterator does not count in MFIter::depth, so MFIters nested
+    // in its loop do not need MFIter::allowMultipleMFIters: undo the depth
+    // increment from the MFIter constructor, so the count stays balanced
+    // when MFIter::Finalize runs.
+    if (depth_counted) {
+        depth_counted.flag = false;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+        --MFIter::depth;
+    }
     Initialize(boxGrow,time,idx,scomp,ncomp);
 
 #ifdef BL_USE_TEAM
