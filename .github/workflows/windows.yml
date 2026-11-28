@@ -108,7 +108,8 @@ jobs:
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
-              -DAMReX_MPI=OFF
+              -DAMReX_MPI=OFF               `
+              -DAMReX_PARTICLES=ON
         # PowerShell does not stop when a native command fails, and GitHub
         # Actions only checks the exit code of the last one.
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
