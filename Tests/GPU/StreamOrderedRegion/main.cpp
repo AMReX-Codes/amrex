@@ -68,6 +68,12 @@ using namespace amrex;
  *    that loop's other streams.
  *
  * 8. An MFIter with no local items keeps the current stream.
+ *
+ * 9. In a Gpu::StreamOrderedRegion, a stream's long wait list of
+ *    Gpu::freeAsync frees is released by event, not by a host wait. With
+ *    OpenMP, two threads queue kernels and free their memory on the same
+ *    stream, so that they release its wait list concurrently. Memory must
+ *    not be freed before its kernel finishes, and none may be lost.
  */
 
 namespace {
@@ -799,6 +805,63 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
 }
 #endif
 
+// Queues many short kernels on stream 0 from nthreads threads, each followed
+// by a Gpu::freeAsync of the memory it writes, so that the stream's wait list
+// is released by event many times over (and with more than one thread,
+// concurrently), also while the oldest events are still pending.
+int test_retire_wait_list (Long iters_per_ms, int nthreads)
+{
+    constexpr int nper = 1500;    // frees per thread: many wait lists of 100
+    const int nbufs = nper * nthreads;
+    WatchingArena arena;
+    auto* done = static_cast<int*>(The_Pinned_Arena()->alloc(nbufs * sizeof(int)));
+    std::vector<void*> bufs(nbufs);
+    for (int k = 0; k < nbufs; ++k) {
+        done[k] = 0;
+        bufs[k] = arena.alloc(sizeof(unsigned));
+        arena.watch(bufs[k], done + k);
+    }
+    Gpu::synchronize();
+
+    const Long wait = std::max(Long(1), iters_per_ms / 50);  // ~20 us each
+    {
+        Gpu::StreamOrderedRegion stream_ordered;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel num_threads(nthreads)
+#endif
+        {
+            Gpu::Device::setStreamIndex(0);
+            const int t = OpenMP::get_thread_num();
+            for (int i = 0; i < nper; ++i) {
+                const int k = t * nper + i;
+                auto* p = static_cast<unsigned*>(bufs[k]);
+                volatile int* d = done + k;
+                amrex::single_task([=] AMREX_GPU_DEVICE () {
+                    *p = spin(wait);
+                    *d = 1;
+                });
+                Gpu::freeAsync(&arena, bufs[k]);
+            }
+        }
+        Gpu::Device::setStreamIndex(0);
+        Gpu::streamSynchronize();  // releases what is still pending
+    }
+    Gpu::synchronize();
+    The_Pinned_Arena()->free(done);
+
+    const int early = arena.early();
+    const int freed = arena.freed();
+    if (early > 0 || freed != nbufs) {
+        amrex::Print() << "FAIL retire wait list (" << nthreads << " threads): " << early
+                       << " buffers freed while their kernel was still running, "
+                       << freed << " of " << nbufs << " freed\n";
+        return 1;
+    }
+    amrex::Print() << "PASS retire wait list (" << nthreads << " threads, "
+                   << nbufs << " frees)\n";
+    return 0;
+}
+
 }
 
 int main (int argc, char* argv[])
@@ -865,6 +928,14 @@ int main (int argc, char* argv[])
             }
 #else
             amrex::Print() << "SKIP join with concurrent freeAsync: needs OpenMP\n";
+#endif
+            nfail += test_retire_wait_list(iters_per_ms, 1);
+#ifdef AMREX_USE_OMP
+            if (OpenMP::get_max_threads() < 2) {
+                amrex::Print() << "SKIP retire wait list with 2 threads: needs 2 OpenMP threads\n";
+            } else {
+                nfail += test_retire_wait_list(iters_per_ms, 2);
+            }
 #endif
 #ifdef AMREX_USE_OMP
             nfail += test_nested_host_mfiter_omp();

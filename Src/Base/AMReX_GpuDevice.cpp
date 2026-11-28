@@ -21,7 +21,6 @@
 #include <iterator>
 #include <limits>
 #include <map>
-#include <optional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -268,53 +267,65 @@ StreamManager::limit_wait_list (std::size_t size)
 void
 StreamManager::retire_wait_list ()
 {
-    AMREX_HIP_OR_CUDA(hipEvent_t, cudaEvent_t) event{};
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&event, hipEventDisableTiming));,
-        AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&event, cudaEventDisableTiming)); )
-
-    std::deque<EventFrees> released;
-    std::optional<EventFrees> oldest;
+    // Only take the lists under the lock. The GPU runtime calls below are
+    // made without it, so that they do not hold up free_async on other
+    // threads: none of them is guaranteed to return quickly.
+    EventFrees ef{};
+    std::deque<EventFrees> pending;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        // Record and take the list under one lock: every free in it was
-        // deferred after the work that uses it was queued on this stream,
-        // so that work precedes the event.
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventRecord(event, m_stream));,
-                           AMREX_CUDA_SAFE_CALL(cudaEventRecord(event, m_stream)); )
-        EventFrees ef{event, {}};
         ef.frees.swap(m_free_wait_list);
-        m_event_frees.push_back(std::move(ef));
+        pending.swap(m_event_frees);
+    }
 
-        // Events on one stream complete in the order they were recorded.
-        while (!m_event_frees.empty()) {
-            auto err = AMREX_HIP_OR_CUDA(hipEventQuery, cudaEventQuery)(m_event_frees.front().event);
-            if (err == AMREX_HIP_OR_CUDA(hipErrorNotReady, cudaErrorNotReady)) { break; }
-            AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(err);, AMREX_CUDA_SAFE_CALL(err); )
-            released.push_back(std::move(m_event_frees.front()));
-            m_event_frees.pop_front();
-        }
-        if (m_event_frees.size() > max_event_frees) {
-            oldest = std::move(m_event_frees.front());
-            m_event_frees.pop_front();
-        }
+    if (!ef.frees.empty()) {
+        // Every free in the list was deferred after the work that uses it
+        // was queued on this stream, so an event recorded now follows that
+        // work.
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipEventCreateWithFlags(&ef.event, hipEventDisableTiming));
+            AMREX_HIP_SAFE_CALL(hipEventRecord(ef.event, m_stream));,
+            AMREX_CUDA_SAFE_CALL(cudaEventCreateWithFlags(&ef.event, cudaEventDisableTiming));
+            AMREX_CUDA_SAFE_CALL(cudaEventRecord(ef.event, m_stream)); )
+        pending.push_back(std::move(ef));
     }
-    // Unlock before waiting and freeing, to avoid deadlocks from the
-    // CArena mutex.
-    if (oldest) {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventSynchronize(oldest->event));,
-                           AMREX_CUDA_SAFE_CALL(cudaEventSynchronize(oldest->event)); )
-        released.push_back(std::move(*oldest));
+
+    // Events on one stream complete in the order they were recorded. (Lists
+    // that two threads retire at the same time can be put back out of that
+    // order, which only delays their release.)
+    std::deque<EventFrees> released;
+    while (!pending.empty()) {
+        auto err = AMREX_HIP_OR_CUDA(hipEventQuery, cudaEventQuery)(pending.front().event);
+        if (err == AMREX_HIP_OR_CUDA(hipErrorNotReady, cudaErrorNotReady)) { break; }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(err);, AMREX_CUDA_SAFE_CALL(err); )
+        released.push_back(std::move(pending.front()));
+        pending.pop_front();
     }
-    for (auto& ef : released) {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(ef.event));,
-                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(ef.event)); )
-        for (auto [arena, mem] : ef.frees) {
+    if (pending.size() > max_event_frees) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventSynchronize(pending.front().event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventSynchronize(pending.front().event)); )
+        released.push_back(std::move(pending.front()));
+        pending.pop_front();
+    }
+
+    if (!pending.empty()) {
+        // Put back the lists that are still pending, ahead of any that
+        // another thread retired in the meantime.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (auto& e : m_event_frees) { pending.push_back(std::move(e)); }
+        m_event_frees.swap(pending);
+    }
+
+    // Free without the lock, to avoid deadlocks from the CArena mutex.
+    for (auto& r : released) {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipEventDestroy(r.event));,
+                           AMREX_CUDA_SAFE_CALL(cudaEventDestroy(r.event)); )
+        for (auto [arena, mem] : r.frees) {
             arena->free(mem);
         }
     }
 }
-#endif
+#endif#endif
 
 void
 StreamManager::free_async (Arena* arena, void* mem) {
