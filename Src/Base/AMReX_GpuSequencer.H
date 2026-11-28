@@ -178,7 +178,9 @@ public:
          * current stream need not be the one the work before the team was
          * queued on, so a StreamEdge::Gpu is replaced by waiting on the host:
          * for all work on the device at the fork, and for the lanes at the
-         * join.
+         * join. With one pool stream, every thread's current stream is the
+         * same (the pool stream or the external stream), so nothing is
+         * replaced.
          */
         bool shared = false;
         /**

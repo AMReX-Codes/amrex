@@ -17,6 +17,10 @@
 // Backends that break one of the functions the sequencer relies on must be
 // detected, which shows that the checks can fail.
 //
+// The programs run with several pool streams and with one. With one pool
+// stream, a loop shared by an OpenMP team must not wait on the host at its
+// join; with several, it must.
+//
 // The properties are checked for loops in a Gpu::StreamOrderedRegion (any mix
 // of host and GPU edges, nested), and for loops outside it that synchronize
 // the host (not nested). Loops outside it that do not synchronize are not
@@ -36,8 +40,7 @@ using namespace amrex;
 
 namespace {
 
-constexpr int npool = 4;
-constexpr int nstreams = npool + 1; // one stream outside the pool
+constexpr int default_npool = 4;
 
 enum class Sabotage { None, DropOrder, DropWait, FreeOnTake };
 
@@ -51,9 +54,12 @@ class MockBackend final
     : public Gpu::detail::StreamSequencerBackend
 {
 public:
-    explicit MockBackend (Sabotage a_sabotage) : m_sabotage(a_sabotage) {}
+    //! \p a_npool pool streams, and one stream outside the pool.
+    MockBackend (Sabotage a_sabotage, int a_npool)
+        : m_sabotage(a_sabotage), m_npool(a_npool),
+          m_tail(a_npool+1, -1), m_frees(a_npool+1) {}
 
-    [[nodiscard]] int numPoolStreams () const override { return npool; }
+    [[nodiscard]] int numPoolStreams () const override { return m_npool; }
     [[nodiscard]] int current () const override { return m_current; }
     void setCurrent (int stream) override { m_current = stream; }
 
@@ -66,15 +72,17 @@ public:
     }
 
     void wait (int stream) override {
+        ++m_nwaits;
         if (m_sabotage == Sabotage::DropWait) { return; }
         m_barrier = node(stream);
         release(stream);
     }
 
     void waitAll () override {
+        ++m_nwaits;
         if (m_sabotage == Sabotage::DropWait) { return; }
         int n = node(0);
-        for (int s = 1; s < nstreams; ++s) {
+        for (int s = 1; s < nstreams(); ++s) {
             if (m_tail[s] >= 0) { m_deps[n].push_back(m_tail[s]); }
         }
         m_barrier = n;
@@ -122,17 +130,22 @@ public:
         return seen;
     }
 
+    //! Number of host waits so far.
+    [[nodiscard]] int nwaits () const { return m_nwaits; }
+
     //! Operations the host knows to be complete.
     [[nodiscard]] std::vector<char> complete () const { return before(m_barrier); }
 
     void finalize () {
-        for (int s = 0; s < nstreams; ++s) {
+        for (int s = 0; s < nstreams(); ++s) {
             m_barrier = node(s);
             release(s);
         }
     }
 
 private:
+    [[nodiscard]] int nstreams () const { return m_npool + 1; }
+
     int node (int stream, int extra = -1) {
         const int n = static_cast<int>(m_deps.size());
         m_deps.emplace_back();
@@ -158,11 +171,13 @@ private:
     }
 
     Sabotage m_sabotage;
+    int m_npool;
     int m_current = 0;
     int m_barrier = -1;
+    int m_nwaits = 0;
     std::vector<std::vector<int>> m_deps;
-    std::vector<int> m_tail = std::vector<int>(nstreams, -1);
-    std::vector<FreeList> m_frees = std::vector<FreeList>(nstreams);
+    std::vector<int> m_tail;
+    std::vector<FreeList> m_frees;
     std::vector<std::vector<int>> m_users;
     std::deque<int> m_ids; //!< m_ids[mem] == mem; a deque keeps the addresses
 };
@@ -171,12 +186,12 @@ private:
 class Program
 {
 public:
-    Program (unsigned seed, Sabotage sabotage, Mode mode)
-        : m_rng(seed), m_backend(sabotage), m_sequencer(m_backend), m_mode(mode) {}
+    Program (unsigned seed, Sabotage sabotage, Mode mode, int npool)
+        : m_rng(seed), m_backend(sabotage, npool), m_sequencer(m_backend), m_mode(mode) {}
 
     void run () {
         if (m_mode == Mode::Ordered && pick(4) == 0) {
-            m_backend.setCurrent(npool); // start outside the pool
+            m_backend.setCurrent(m_backend.numPoolStreams()); // start outside the pool
         }
         block(0, {});
         await();
@@ -305,12 +320,12 @@ private:
 };
 
 int count_violations (int nprograms, Sabotage sabotage, Mode mode = Mode::Ordered,
-                      std::string* first = nullptr)
+                      std::string* first = nullptr, int npool = default_npool)
 {
     int nviolations = 0;
     for (int seed = 0; seed < nprograms; ++seed) {
         try {
-            Program(static_cast<unsigned>(seed), sabotage, mode).run();
+            Program(static_cast<unsigned>(seed), sabotage, mode, npool).run();
         } catch (Violation const& v) {
             if (nviolations++ == 0 && first) {
                 *first = "seed " + std::to_string(seed) + ": " + v.what;
@@ -318,6 +333,27 @@ int count_violations (int nprograms, Sabotage sabotage, Mode mode = Mode::Ordere
         }
     }
     return nviolations;
+}
+
+//! Host waits at the join of a loop with GPU edges shared by an OpenMP team,
+//! with \p npool pool streams. (The mock runs one thread, so the random
+//! programs cannot tell whether the join of such a loop has to wait.)
+int shared_join_waits (int npool)
+{
+    MockBackend backend(Sabotage::None, npool);
+    Gpu::detail::StreamSequencer sequencer(backend);
+    Gpu::detail::LoopStreams streams;
+    sequencer.fork(streams, {.nitems = 4, .max_width = 4,
+                             .fork = Gpu::detail::StreamEdge::Gpu,
+                             .join = Gpu::detail::StreamEdge::Gpu,
+                             .shared = true, .ordered = true});
+    for (int i = 0; i < 4; ++i) {
+        sequencer.lane(streams, i);
+        backend.launch();
+    }
+    const int before_join = backend.nwaits();
+    sequencer.join(streams);
+    return backend.nwaits() - before_join;
 }
 
 }
@@ -340,6 +376,24 @@ int main (int argc, char* argv[])
                 amrex::Print() << "  " << first << "\n";
                 ++nfail;
             }
+        }
+        {
+            std::string first;
+            const int n = count_violations(nprograms, Sabotage::None, Mode::Ordered, &first, 1);
+            amrex::Print() << "StreamSequencer (in a StreamOrderedRegion, one pool stream): " << n
+                           << " of " << nprograms << " random programs violate an invariant\n";
+            if (n > 0) {
+                amrex::Print() << "  " << first << "\n";
+                ++nfail;
+            }
+        }
+        {
+            const int one = shared_join_waits(1);
+            const int several = shared_join_waits(default_npool);
+            amrex::Print() << "Join of a loop shared by an OpenMP team: " << one
+                           << " host waits with one pool stream, " << several << " with "
+                           << default_npool << "\n";
+            if (one != 0 || several == 0) { ++nfail; }
         }
         {
             // Not ordered by design: the checks must see that.

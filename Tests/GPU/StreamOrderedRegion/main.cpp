@@ -873,16 +873,27 @@ int main (int argc, char* argv[])
         pp.queryAdd("async_out", async_out);
     });
     {
+        const Long iters_per_ms = spin_iters_per_ms();
+        MFIter::allowMultipleMFIters(true);
+
+        // These also run with one GPU stream.
+        nfail += test_retire_wait_list(iters_per_ms, 1);
+#ifdef AMREX_USE_OMP
+        if (OpenMP::get_max_threads() < 2) {
+            amrex::Print() << "SKIP retire wait list with 2 threads: needs 2 OpenMP threads\n";
+        } else {
+            nfail += test_retire_wait_list(iters_per_ms, 2);
+        }
+        nfail += test_nested_host_mfiter_omp();
+#endif
+
         if (Gpu::Device::numGpuStreams() < 2) {
-            amrex::Print() << "SKIP: needs at least 2 GPU streams\n";
+            amrex::Print() << "SKIP the other tests: they need at least 2 GPU streams\n";
         } else {
             int ntrials = 100;
             ParmParse pp;
             pp.query("ntrials", ntrials);
 
-            const Long iters_per_ms = spin_iters_per_ms();
-
-            MFIter::allowMultipleMFIters(true);
             BoxArray ba(Box(IntVect(0), IntVect(15)));
             ba.maxSize(4);  // at least four boxes in any dimension
             MultiFab mf(ba, DistributionMapping(ba), 1, 0);
@@ -928,17 +939,6 @@ int main (int argc, char* argv[])
             }
 #else
             amrex::Print() << "SKIP join with concurrent freeAsync: needs OpenMP\n";
-#endif
-            nfail += test_retire_wait_list(iters_per_ms, 1);
-#ifdef AMREX_USE_OMP
-            if (OpenMP::get_max_threads() < 2) {
-                amrex::Print() << "SKIP retire wait list with 2 threads: needs 2 OpenMP threads\n";
-            } else {
-                nfail += test_retire_wait_list(iters_per_ms, 2);
-            }
-#endif
-#ifdef AMREX_USE_OMP
-            nfail += test_nested_host_mfiter_omp();
 #endif
             // Before the graph capture tests: a loop-stream count leaked by
             // one of them would hide a failure here.

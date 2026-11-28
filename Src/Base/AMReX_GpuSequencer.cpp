@@ -25,7 +25,10 @@ StreamSequencer::fork (LoopStreams& streams, ForkInfo const& info)
     streams.m_ordered = info.ordered || origin >= npool;
     // A thread that shares the loop joins on the host: the stream it would
     // join into is its own, not the one the work after the team is queued on.
-    streams.m_join = (info.shared && info.join == StreamEdge::Gpu) ? StreamEdge::Host : info.join;
+    // With one pool stream, every thread's stream is that one. (The fork
+    // needs no such check: with one lane, an ordered loop returns below.)
+    streams.m_join = (info.shared && info.join == StreamEdge::Gpu && npool > 1)
+                   ? StreamEdge::Host : info.join;
 
     if (width == 1 && streams.m_ordered) { return; } // The only lane is the origin.
 
