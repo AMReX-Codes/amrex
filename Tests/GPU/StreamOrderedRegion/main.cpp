@@ -775,11 +775,11 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
             const auto t0 = std::chrono::steady_clock::now();
             const auto delay = std::chrono::microseconds(5 * (trial % 40));
             while (std::chrono::steady_clock::now() - t0 < delay) {}
-            Gpu::detail::LoopStreams fan;
-            Gpu::detail::theStreamSequencer().fork(fan, {.nitems = 2, .max_width = 2,
+            Gpu::detail::LoopStreams streams;
+            Gpu::detail::theStreamSequencer().fork(streams, {.nitems = 2, .max_width = 2,
                                                    .fork = Gpu::detail::StreamEdge::Gpu,
                                                    .join = Gpu::detail::StreamEdge::Gpu});
-            Gpu::detail::theStreamSequencer().join(fan);
+            Gpu::detail::theStreamSequencer().join(streams);
         }
 
         Gpu::Device::setStreamIndex(0);

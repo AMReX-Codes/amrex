@@ -200,7 +200,7 @@ namespace amrex::Gpu {
         bool m_sync;
 #ifdef AMREX_USE_GPU
         //! The loop on its GPU streams (Gpu::detail::StreamSequencer).
-        detail::LoopStreams m_fan;
+        detail::LoopStreams m_loop_streams;
 #endif
     };
 

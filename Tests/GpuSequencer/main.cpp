@@ -229,7 +229,7 @@ private:
 
     void loop (int depth, std::vector<int> const& mems) {
         const int niter = pick(7);
-        Gpu::detail::LoopStreams fan;
+        Gpu::detail::LoopStreams streams;
         Gpu::detail::StreamSequencer::ForkInfo info{
             .nitems = niter,
             .max_width = std::vector<int>{1,2,4,8}[pick(4)],
@@ -252,14 +252,14 @@ private:
         const int after = (m_mode == Mode::Ordered || niter == 0) ? m_backend.current() : 0;
         for (int i = 0; i < niter; ++i) {
             // Like MFIter, the loop opens at its first iteration.
-            if (!fan.isOpen()) { m_sequencer.fork(fan, info); }
-            m_sequencer.lane(fan, i);
+            if (!streams.isOpen()) { m_sequencer.fork(streams, info); }
+            m_sequencer.lane(streams, i);
             m_path = outer;
             m_path.emplace_back(id, i);
             block(depth+1, mems);
         }
         m_path = outer;
-        m_sequencer.join(fan);
+        m_sequencer.join(streams);
         if (m_backend.current() != after) {
             throw Violation{"join: wrong current stream after the loop"};
         }

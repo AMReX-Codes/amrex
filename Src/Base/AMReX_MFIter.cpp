@@ -248,15 +248,15 @@ MFIter::Finalize ()
     // Orders the work queued after the loop after the loop's work (on the
     // host if the loop synchronizes), and makes the stream that was current
     // before the loop current again.
-    if (m_fan.isOpen()) {
-        Gpu::detail::theStreamSequencer().join(m_fan);
-    } else if (!m_fan_tried && device_sync && device_sync_post && beginIndex < endIndex) {
+    if (m_loop_streams.isOpen()) {
+        Gpu::detail::theStreamSequencer().join(m_loop_streams);
+    } else if (!m_loop_streams_tried && device_sync && device_sync_post && beginIndex < endIndex) {
         // An iterator with local boxes that was never iterated (e.g., one
         // used only to index a FabArray, or a FillPatchIterator used only for
         // its data) still returns with the GPU work queued so far completed.
         Gpu::streamSynchronize();
     }
-    m_fan_tried.flag = true; // isValid() does not open the fan from now on
+    m_loop_streams_tried.flag = true; // isValid() does not open the streams from now on
     AMREX_GPU_ERROR_CHECK();
 #endif
 
@@ -384,9 +384,9 @@ MFIter::Initialize ()
 
 #ifdef AMREX_USE_GPU
 void
-MFIter::openFan () const
+MFIter::openLoopStreams () const
 {
-    m_fan_tried.flag = true;
+    m_loop_streams_tried.flag = true;
 
     using Edge = Gpu::detail::StreamEdge;
     const bool launch = Gpu::inLaunchRegion();
@@ -418,11 +418,11 @@ MFIter::openFan () const
                      streams > 1 && nitems > 1) ? Edge::Host : Edge::None;
         info.join = (device_sync && device_sync_post) ? Edge::Host : Edge::None;
     }
-    Gpu::detail::theStreamSequencer().fork(m_fan, info);
+    Gpu::detail::theStreamSequencer().fork(m_loop_streams, info);
     // Outside a Gpu::StreamOrderedRegion, an AllBoxes loop starts on the
     // current stream.
     if (info.ordered || !all_boxes) {
-        Gpu::detail::theStreamSequencer().lane(m_fan, currentIndex);
+        Gpu::detail::theStreamSequencer().lane(m_loop_streams, currentIndex);
     }
 }
 #endif
@@ -562,13 +562,13 @@ MFIter::operator++ () noexcept
 #ifdef AMREX_USE_GPU
         // A loop that advances without having called isValid() (e.g., a
         // derived iterator with its own validity check) starts here.
-        if (!m_fan_tried) { openFan(); }
+        if (!m_loop_streams_tried) { openLoopStreams(); }
         // (With more than one lane outside the launch region, which only
         // happens outside a Gpu::StreamOrderedRegion, the loop stays on its
         // first stream.)
-        if (m_fan.isOpen() && currentIndex < endIndex &&
-            (Gpu::inLaunchRegion() || m_fan.width() == 1)) {
-            Gpu::detail::theStreamSequencer().lane(m_fan, currentIndex);
+        if (m_loop_streams.isOpen() && currentIndex < endIndex &&
+            (Gpu::inLaunchRegion() || m_loop_streams.width() == 1)) {
+            Gpu::detail::theStreamSequencer().lane(m_loop_streams, currentIndex);
         }
 #endif
     }

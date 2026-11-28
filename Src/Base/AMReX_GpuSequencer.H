@@ -99,13 +99,13 @@ public:
           m_join(rhs.m_join), m_ordered(rhs.m_ordered)
     {}
 
-    //! Whether the fan is open (forked and not yet joined).
+    //! Whether the streams are open (forked and not yet joined).
     [[nodiscard]] bool isOpen () const noexcept { return m_width > 0; }
 
-    //! Number of streams the iterations run on (0 if the fan is not open).
+    //! Number of streams the iterations run on (0 if they are not open).
     [[nodiscard]] int width () const noexcept { return m_width; }
 
-    //! The stream that was current when the fan was opened.
+    //! The stream that was current when they were opened.
     [[nodiscard]] int origin () const noexcept { return m_origin; }
 
 private:
@@ -182,9 +182,9 @@ public:
          */
         bool shared = false;
         /**
-         * Whether the loop is in a Gpu::StreamOrderedRegion. An ordered fan
+         * Whether the loop is in a Gpu::StreamOrderedRegion. An ordered loop
          * with one lane stays on the origin, and join makes the origin the
-         * current stream again. A fan that is not ordered always uses pool
+         * current stream again. A loop that is not ordered always uses pool
          * streams 0 .. width-1 as its lanes (unless the origin is not a pool
          * stream), and join makes stream 0 the current stream.
          */
@@ -192,46 +192,46 @@ public:
     };
 
     /**
-     * \brief Opens \p fan from the current stream (the origin).
+     * \brief Opens \p streams from the current stream (the origin).
      *
-     * The fan has min(nitems, max_width, numPoolStreams()) lanes, at least
-     * one. With one lane, the lane of an ordered fan is the origin itself
+     * The loop has min(nitems, max_width, numPoolStreams()) lanes, at least
+     * one. With one lane, the lane of an ordered loop is the origin itself
      * and nothing has to be ordered. Otherwise the lanes are the pool streams
      * 0 .. width-1 and are ordered after the work queued so far on the origin
      * (unless the fork edge is StreamEdge::None). The current stream does not
      * change until lane() is called.
      */
-    void fork (LoopStreams& fan, ForkInfo const& info);
+    void fork (LoopStreams& streams, ForkInfo const& info);
 
-    //! Makes the lane of iteration \p i of the open \p fan the current stream.
-    void lane (LoopStreams const& fan, int i);
+    //! Makes the lane of iteration \p i of the open \p streams the current stream.
+    void lane (LoopStreams const& streams, int i);
 
     /**
-     * \brief Closes \p fan and makes its origin the current stream (stream
-     * 0 for a fan that is not ordered).
+     * \brief Closes \p streams and makes its origin the current stream (stream
+     * 0 for a loop that is not ordered).
      *
      * The origin is ordered after the lanes. With StreamEdge::Host, the host
-     * waits for every lane (also for a fan with one lane). With
+     * waits for every lane (also for a loop with one lane). With
      * StreamEdge::Gpu, frees deferred to the lanes are handed to the origin.
-     * With StreamEdge::None, nothing is ordered. Does nothing if the fan is
+     * With StreamEdge::None, nothing is ordered. Does nothing if \p streams is
      * not open.
      */
-    void join (LoopStreams& fan);
+    void join (LoopStreams& streams);
 
     /**
-     * \brief Orders the lanes of all open fans (of all threads) after the
+     * \brief Orders the lanes of all open loops (of all threads) after the
      * work queued so far on the current stream.
      *
      * For work queued in one iteration that other iterations depend on, such
      * as filling a cache that is shared by the iterations. Does nothing if no
-     * open fan has more than one lane, or if \p edge is StreamEdge::None.
+     * open loop has more than one lane, or if \p edge is StreamEdge::None.
      */
     void orderLoopStreamsAfterCurrent (StreamEdge edge);
 
     //! The host waits for the current stream.
     void await ();
 
-    //! Largest number of lanes of the open fans (of all threads) that have
+    //! Largest number of lanes of the open loops (of all threads) that have
     //! more than one lane, or 0 if there is none.
     [[nodiscard]] int openLanes () const noexcept;
 
@@ -239,7 +239,7 @@ public:
 
 private:
     StreamSequencerBackend* m_backend;
-    //! m_lane_users[s]: number of open fans with more than one lane that
+    //! m_lane_users[s]: number of open loops with more than one lane that
     //! have pool stream s as a lane.
     std::array<std::atomic<int>, max_lanes> m_lane_users{};
 };

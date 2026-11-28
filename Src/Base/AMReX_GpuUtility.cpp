@@ -52,11 +52,11 @@ StreamIter::init () noexcept // NOLINT
 #else
     const bool in_team = false;
 #endif
-    detail::theStreamSequencer().fork(m_fan, {.nitems = m_n,
+    detail::theStreamSequencer().fork(m_loop_streams, {.nitems = m_n,
                                         .max_width = m_threadsafe ? Gpu::numGpuStreams() : 1,
                                         .fork = edge, .join = edge, .shared = in_team,
                                         .ordered = ordered});
-    if (m_n > 0) { detail::theStreamSequencer().lane(m_fan, m_i); }
+    if (m_n > 0) { detail::theStreamSequencer().lane(m_loop_streams, m_i); }
 #elif defined(AMREX_USE_OMP)
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
@@ -76,7 +76,7 @@ StreamIter::init () noexcept // NOLINT
 
 StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
 #ifdef AMREX_USE_GPU
-    detail::theStreamSequencer().join(m_fan);
+    detail::theStreamSequencer().join(m_loop_streams);
     AMREX_GPU_ERROR_CHECK();
 #endif
 }
@@ -86,7 +86,7 @@ void
 StreamIter::operator++ ()
 {
     ++m_i;
-    if (m_i < m_n) { detail::theStreamSequencer().lane(m_fan, m_i); }
+    if (m_i < m_n) { detail::theStreamSequencer().lane(m_loop_streams, m_i); }
     if (m_threadsafe) { AMREX_GPU_ERROR_CHECK(); }
 }
 #endif

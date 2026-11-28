@@ -181,7 +181,7 @@ public:
      */
     [[nodiscard]] bool isValid () const noexcept {
 #ifdef AMREX_USE_GPU
-        if (!m_fan_tried && currentIndex < endIndex) { openFan(); }
+        if (!m_loop_streams_tried && currentIndex < endIndex) { openLoopStreams(); }
 #endif
         return currentIndex < endIndex;
     }
@@ -253,10 +253,10 @@ protected:
 #ifdef AMREX_USE_GPU
     //! The loop on its GPU streams (Gpu::detail::StreamSequencer), opened by
     //! isValid().
-    mutable Gpu::detail::LoopStreams m_fan;
-    //! Whether isValid() has opened m_fan, or Finalize() has run.
-    mutable DeviceSync m_fan_tried{false};
-    void openFan () const;
+    mutable Gpu::detail::LoopStreams m_loop_streams;
+    //! Whether isValid() has opened m_loop_streams, or Finalize() has run.
+    mutable DeviceSync m_loop_streams_tried{false};
+    void openLoopStreams () const;
 #endif
 
     const Vector<int>* index_map;

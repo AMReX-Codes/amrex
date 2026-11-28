@@ -9,25 +9,25 @@ namespace amrex::Gpu {
 namespace detail {
 
 void
-StreamSequencer::fork (LoopStreams& fan, ForkInfo const& info)
+StreamSequencer::fork (LoopStreams& streams, ForkInfo const& info)
 {
-    AMREX_ASSERT(!fan.isOpen());
+    AMREX_ASSERT(!streams.isOpen());
     auto& be = *m_backend;
     const int npool = std::min(be.numPoolStreams(), max_lanes);
     const int origin = be.current();
     const int width = std::max(1, std::min({info.nitems, info.max_width, npool}));
 
-    fan.m_origin = origin;
-    fan.m_width = width;
-    // A fan that is not ordered runs on the pool streams and ends on stream
+    streams.m_origin = origin;
+    streams.m_width = width;
+    // A loop that is not ordered runs on the pool streams and ends on stream
     // 0, unless it started on a stream that is not in the pool: that one
     // stays current until whoever set it removes it.
-    fan.m_ordered = info.ordered || origin >= npool;
+    streams.m_ordered = info.ordered || origin >= npool;
     // A thread that shares the loop joins on the host: the stream it would
     // join into is its own, not the one the work after the team is queued on.
-    fan.m_join = (info.shared && info.join == StreamEdge::Gpu) ? StreamEdge::Host : info.join;
+    streams.m_join = (info.shared && info.join == StreamEdge::Gpu) ? StreamEdge::Host : info.join;
 
-    if (width == 1 && fan.m_ordered) { return; } // The only lane is the origin.
+    if (width == 1 && streams.m_ordered) { return; } // The only lane is the origin.
 
     // Count the lanes before ordering them, so that an
     // orderLoopStreamsAfterCurrent() on another thread from now on includes
@@ -50,27 +50,27 @@ StreamSequencer::fork (LoopStreams& fan, ForkInfo const& info)
 }
 
 void
-StreamSequencer::lane (LoopStreams const& fan, int i)
+StreamSequencer::lane (LoopStreams const& streams, int i)
 {
-    AMREX_ASSERT(fan.isOpen());
-    m_backend->setCurrent((fan.m_width > 1 || !fan.m_ordered) ? i % fan.m_width : fan.m_origin);
+    AMREX_ASSERT(streams.isOpen());
+    m_backend->setCurrent((streams.m_width > 1 || !streams.m_ordered) ? i % streams.m_width : streams.m_origin);
 }
 
 void
-StreamSequencer::join (LoopStreams& fan)
+StreamSequencer::join (LoopStreams& streams)
 {
-    if (!fan.isOpen()) { return; }
+    if (!streams.isOpen()) { return; }
     auto& be = *m_backend;
-    const int origin = fan.m_origin;
-    const int width = std::exchange(fan.m_width, 0);
+    const int origin = streams.m_origin;
+    const int width = std::exchange(streams.m_width, 0);
 
-    if (width == 1 && fan.m_ordered) {
-        if (fan.m_join == StreamEdge::Host) { be.wait(origin); }
+    if (width == 1 && streams.m_ordered) {
+        if (streams.m_join == StreamEdge::Host) { be.wait(origin); }
     } else {
         for (int s = 0; s < width; ++s) {
-            if (fan.m_join == StreamEdge::Host) {
+            if (streams.m_join == StreamEdge::Host) {
                 be.wait(s);
-            } else if (fan.m_join == StreamEdge::Gpu && s != origin) {
+            } else if (streams.m_join == StreamEdge::Gpu && s != origin) {
                 // Take the frees before the origin is ordered after the lane:
                 // a free deferred to the lane later (by another thread) can
                 // belong to work the origin does not wait for, so it stays
@@ -85,7 +85,7 @@ StreamSequencer::join (LoopStreams& fan)
         }
     }
 
-    be.setCurrent(fan.m_ordered ? origin : 0);
+    be.setCurrent(streams.m_ordered ? origin : 0);
 }
 
 void
