@@ -325,7 +325,7 @@ StreamManager::retire_wait_list ()
         }
     }
 }
-#endif#endif
+#endif
 
 void
 StreamManager::free_async (Arena* arena, void* mem) {

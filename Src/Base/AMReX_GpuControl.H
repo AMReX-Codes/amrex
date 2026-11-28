@@ -252,7 +252,12 @@ namespace Gpu {
     struct [[nodiscard]] NoSyncRegion {
         static constexpr bool inNoSyncRegionPreviously () { return true; }
     };
-    struct [[nodiscard]] StreamOrderedRegion {};
+    struct [[nodiscard]] StreamOrderedRegion {
+        StreamOrderedRegion () = default;
+        ~StreamOrderedRegion () = default;
+        StreamOrderedRegion (StreamOrderedRegion const&) = delete;
+        StreamOrderedRegion& operator= (StreamOrderedRegion const&) = delete;
+    };
 
 #endif
 

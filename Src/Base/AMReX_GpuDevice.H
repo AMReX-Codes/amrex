@@ -91,7 +91,7 @@ public:
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
-    //! Removes and returns this stream's pending frees (Device::joinStreams).
+    //! Removes and returns this stream's pending frees (Gpu::detail::StreamSequencer::join).
     [[nodiscard]] Vector<std::pair<Arena*, void*>> take_wait_list ();
     //! Adds frees whose memory this stream's queued work is ordered after.
     void add_to_wait_list (Vector<std::pair<Arena*, void*>>&& frees);
