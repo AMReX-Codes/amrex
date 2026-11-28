@@ -1084,6 +1084,7 @@ jobs:
             -DAMReX_FORTRAN_INTERFACES=ON           \
             -DAMReX_MPI=ON                          \
             -DAMReX_OMP=ON                          \
+            -DAMReX_PARTICLES=ON                    \
             -DAMReX_ENABLE_TESTS=ON                 \
             -DCMAKE_C_COMPILER=$(which gcc-14)      \
             -DCMAKE_CXX_COMPILER=$(which g++-14)    \
