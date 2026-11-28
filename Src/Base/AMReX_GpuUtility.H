@@ -199,7 +199,8 @@ namespace amrex::Gpu {
         bool m_threadsafe;
         bool m_sync;
 #ifdef AMREX_USE_GPU
-        Fan m_fan; //!< the loop on its GPU streams (Gpu::StreamSequencer)
+        //! The loop on its GPU streams (Gpu::detail::StreamSequencer).
+        detail::LoopStreams m_fan;
 #endif
     };
 

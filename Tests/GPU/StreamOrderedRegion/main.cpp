@@ -47,10 +47,10 @@ using namespace amrex;
  *    that the GPU work queued before it produces (smoke test).
  *
  * 4. (With OpenMP.) Memory released with Gpu::freeAsync on a stream while
- *    another thread joins that stream (Gpu::StreamSequencer::join) must not
- *    be freed before the kernels queued ahead of it on that stream finish.
- *    This is a stress test: the window it probes is narrow, and on CUDA it
- *    is usually shorter than a kernel launch, so it mainly catches
+ *    another thread joins that stream (Gpu::detail::StreamSequencer::join)
+ *    must not be freed before the kernels queued ahead of it on that stream
+ *    finish. This is a stress test: the window it probes is narrow, and on
+ *    CUDA it is usually shorter than a kernel launch, so it mainly catches
  *    regressions on HIP.
  *
  * 5. With OpenMP, an MFIter nested in each iteration of an MFIter run by an
@@ -775,11 +775,11 @@ int test_join_concurrent_free (Long iters_per_ms, int ntrials)
             const auto t0 = std::chrono::steady_clock::now();
             const auto delay = std::chrono::microseconds(5 * (trial % 40));
             while (std::chrono::steady_clock::now() - t0 < delay) {}
-            Gpu::Fan fan;
-            Gpu::theStreamSequencer().fork(fan, {.nitems = 2, .max_width = 2,
-                                           .fork = Gpu::StreamEdge::Gpu,
-                                           .join = Gpu::StreamEdge::Gpu});
-            Gpu::theStreamSequencer().join(fan);
+            Gpu::detail::LoopStreams fan;
+            Gpu::detail::theStreamSequencer().fork(fan, {.nitems = 2, .max_width = 2,
+                                                   .fork = Gpu::detail::StreamEdge::Gpu,
+                                                   .join = Gpu::detail::StreamEdge::Gpu});
+            Gpu::detail::theStreamSequencer().join(fan);
         }
 
         Gpu::Device::setStreamIndex(0);

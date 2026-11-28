@@ -1,4 +1,5 @@
-// Tests Gpu::StreamSequencer on a mock backend, so it also runs in CPU builds.
+// Tests Gpu::detail::StreamSequencer on a mock backend, so it also runs in
+// CPU builds.
 //
 // The mock records every queued operation and every order between streams,
 // which makes the order the GPU would be allowed to use an explicit graph.
@@ -47,7 +48,7 @@ enum class Mode { Ordered, Default, NoSync };
 struct Violation { std::string what; };
 
 class MockBackend final
-    : public Gpu::StreamSequencerBackend
+    : public Gpu::detail::StreamSequencerBackend
 {
 public:
     explicit MockBackend (Sabotage a_sabotage) : m_sabotage(a_sabotage) {}
@@ -214,10 +215,10 @@ private:
         for (int m : mems) { m_backend.use(m, n); }
         if (published) {
             m_sequencer.orderLoopStreamsAfterCurrent(
-                m_mode == Mode::Ordered ? (pick(2) ? Gpu::StreamEdge::Gpu
-                                                   : Gpu::StreamEdge::Host)
-                : (m_mode == Mode::Default ? Gpu::StreamEdge::Host
-                                           : Gpu::StreamEdge::None));
+                m_mode == Mode::Ordered ? (pick(2) ? Gpu::detail::StreamEdge::Gpu
+                                                   : Gpu::detail::StreamEdge::Host)
+                : (m_mode == Mode::Default ? Gpu::detail::StreamEdge::Host
+                                           : Gpu::detail::StreamEdge::None));
         }
     }
 
@@ -228,12 +229,12 @@ private:
 
     void loop (int depth, std::vector<int> const& mems) {
         const int niter = pick(7);
-        Gpu::Fan fan;
-        Gpu::StreamSequencer::ForkInfo info{
+        Gpu::detail::LoopStreams fan;
+        Gpu::detail::StreamSequencer::ForkInfo info{
             .nitems = niter,
             .max_width = std::vector<int>{1,2,4,8}[pick(4)],
-            .fork = pick(3) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host,
-            .join = pick(3) ? Gpu::StreamEdge::Gpu : Gpu::StreamEdge::Host,
+            .fork = pick(3) ? Gpu::detail::StreamEdge::Gpu : Gpu::detail::StreamEdge::Host,
+            .join = pick(3) ? Gpu::detail::StreamEdge::Gpu : Gpu::detail::StreamEdge::Host,
             .shared = (pick(8) == 0)};
         if (m_mode != Mode::Ordered) {
             // Like an MFIter outside a Gpu::StreamOrderedRegion: it waits on
@@ -241,10 +242,10 @@ private:
             const bool multi = std::min(niter, info.max_width) > 1;
             info.ordered = false;
             info.shared = false;
-            info.fork = (m_mode == Mode::Default && multi) ? Gpu::StreamEdge::Host
-                                                           : Gpu::StreamEdge::None;
-            info.join = (m_mode == Mode::Default) ? Gpu::StreamEdge::Host
-                                                  : Gpu::StreamEdge::None;
+            info.fork = (m_mode == Mode::Default && multi) ? Gpu::detail::StreamEdge::Host
+                                                           : Gpu::detail::StreamEdge::None;
+            info.join = (m_mode == Mode::Default) ? Gpu::detail::StreamEdge::Host
+                                                  : Gpu::detail::StreamEdge::None;
         }
         const int id = ++m_nloops;
         const Path outer = m_path;
@@ -296,7 +297,7 @@ private:
 
     std::mt19937 m_rng;
     MockBackend m_backend;
-    Gpu::StreamSequencer m_sequencer;
+    Gpu::detail::StreamSequencer m_sequencer;
     Mode m_mode;
     std::vector<Op> m_ops;
     Path m_path;

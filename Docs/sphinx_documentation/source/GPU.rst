@@ -1972,7 +1972,7 @@ depend on (e.g., it fills a cache they share), call
 :cpp:`Gpu::orderLoopStreamsAfterCurrent()` after queuing it.  Code that
 selects streams itself with :cpp:`Gpu::Device::setStreamIndex` has to order
 them itself, and so does code that hands data to a library that runs on its
-own stream.  :cpp:`Gpu::StreamSequencer` implements the ordering.
+own stream.
 
 .. highlight:: c++
 

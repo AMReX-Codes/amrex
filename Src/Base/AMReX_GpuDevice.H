@@ -147,8 +147,8 @@ public:
     /**
      * Makes stream \p idx of AMReX's pool the calling thread's current
      * stream. MFIter and Gpu::StreamIter loops select their streams
-     * themselves (Gpu::StreamSequencer). Code that calls this directly has to
-     * order the work on the streams it uses itself, e.g., with
+     * themselves (Gpu::detail::StreamSequencer). Code that calls this
+     * directly has to order the work on the streams it uses itself, e.g., with
      * Gpu::streamSynchronize or Device::streamWaitStream.
      */
     static void setStreamIndex (int idx) noexcept;

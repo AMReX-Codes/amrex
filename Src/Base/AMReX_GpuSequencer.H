@@ -15,8 +15,13 @@ namespace amrex {
 
 namespace amrex::Gpu {
 
+// The machinery that keeps GPU loops in program order. Applications use
+// Gpu::StreamOrderedRegion, Gpu::orderLoopStreamsAfterCurrent and
+// Gpu::streamSynchronize instead.
+namespace detail {
+
 /**
- * \brief What Gpu::StreamSequencer needs from the GPU runtime.
+ * \brief What Gpu::detail::StreamSequencer needs from the GPU runtime.
  *
  * Streams are numbered from 0. Streams 0 .. numPoolStreams()-1 are the ones
  * loops may run their iterations on; larger numbers are other streams work
@@ -74,21 +79,22 @@ enum class StreamEdge {
 };
 
 /**
- * \brief A loop whose iterations may run on different streams.
+ * \brief The streams of a loop whose iterations may run on different
+ * streams.
  *
- * A Fan is opened with StreamSequencer::fork and closed with
- * StreamSequencer::join. While it is open, StreamSequencer::lane selects the
- * stream of an iteration. A Fan that is moved from is no longer open.
+ * StreamSequencer::fork opens them and StreamSequencer::join closes them.
+ * While they are open, StreamSequencer::lane selects the stream of an
+ * iteration. A LoopStreams that is moved from is no longer open.
  */
-class Fan
+class LoopStreams
 {
 public:
-    Fan () = default;
-    ~Fan () = default;
-    Fan (Fan const&) = delete;
-    Fan& operator= (Fan const&) = delete;
-    Fan& operator= (Fan&&) = delete;
-    Fan (Fan&& rhs) noexcept
+    LoopStreams () = default;
+    ~LoopStreams () = default;
+    LoopStreams (LoopStreams const&) = delete;
+    LoopStreams& operator= (LoopStreams const&) = delete;
+    LoopStreams& operator= (LoopStreams&&) = delete;
+    LoopStreams (LoopStreams&& rhs) noexcept
         : m_origin(rhs.m_origin), m_width(std::exchange(rhs.m_width, 0)),
           m_join(rhs.m_join), m_ordered(rhs.m_ordered)
     {}
@@ -127,12 +133,13 @@ private:
  * streams and whether or not loops synchronize the host.
  *
  * The transitions are
- *  - fork:    opens a Fan. Its lanes are ordered after the origin stream.
+ *  - fork:    opens the LoopStreams of a loop. Its lanes are ordered after
+ *             the origin stream.
  *  - lane:    makes the lane of iteration i the current stream.
- *  - join:    closes a Fan. The origin stream is ordered after its lanes
- *             and is the current stream again.
+ *  - join:    closes the LoopStreams of a loop. The origin stream is ordered
+ *             after its lanes and is the current stream again.
  *  - orderLoopStreamsAfterCurrent:
- *             orders the lanes of all open fans after the current stream,
+ *             orders the lanes of all open loops after the current stream,
  *             for work that other iterations depend on.
  *  - await:   the host waits for the current stream.
  *
@@ -194,10 +201,10 @@ public:
      * (unless the fork edge is StreamEdge::None). The current stream does not
      * change until lane() is called.
      */
-    void fork (Fan& fan, ForkInfo const& info);
+    void fork (LoopStreams& fan, ForkInfo const& info);
 
     //! Makes the lane of iteration \p i of the open \p fan the current stream.
-    void lane (Fan const& fan, int i);
+    void lane (LoopStreams const& fan, int i);
 
     /**
      * \brief Closes \p fan and makes its origin the current stream (stream
@@ -209,7 +216,7 @@ public:
      * With StreamEdge::None, nothing is ordered. Does nothing if the fan is
      * not open.
      */
-    void join (Fan& fan);
+    void join (LoopStreams& fan);
 
     /**
      * \brief Orders the lanes of all open fans (of all threads) after the
@@ -243,6 +250,8 @@ private:
 [[nodiscard]] StreamSequencer& theStreamSequencer () noexcept;
 
 #endif
+
+} // namespace detail
 
 /**
  * \brief Makes the GPU work queued so far on the current stream visible to

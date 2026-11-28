@@ -6,8 +6,10 @@
 
 namespace amrex::Gpu {
 
+namespace detail {
+
 void
-StreamSequencer::fork (Fan& fan, ForkInfo const& info)
+StreamSequencer::fork (LoopStreams& fan, ForkInfo const& info)
 {
     AMREX_ASSERT(!fan.isOpen());
     auto& be = *m_backend;
@@ -48,14 +50,14 @@ StreamSequencer::fork (Fan& fan, ForkInfo const& info)
 }
 
 void
-StreamSequencer::lane (Fan const& fan, int i)
+StreamSequencer::lane (LoopStreams const& fan, int i)
 {
     AMREX_ASSERT(fan.isOpen());
     m_backend->setCurrent((fan.m_width > 1 || !fan.m_ordered) ? i % fan.m_width : fan.m_origin);
 }
 
 void
-StreamSequencer::join (Fan& fan)
+StreamSequencer::join (LoopStreams& fan)
 {
     if (!fan.isOpen()) { return; }
     auto& be = *m_backend;
@@ -122,12 +124,15 @@ StreamSequencer::openLanes () const noexcept
     return 0;
 }
 
+} // namespace detail
+
 void
 orderLoopStreamsAfterCurrent () noexcept
 {
 #ifdef AMREX_USE_GPU
     // In a plain no-sync region the caller orders the streams, as always.
-    theStreamSequencer().orderLoopStreamsAfterCurrent(
+    using detail::StreamEdge;
+    detail::theStreamSequencer().orderLoopStreamsAfterCurrent(
         inStreamOrderedRegion() ? StreamEdge::Gpu
         : (inNoSyncRegion() ? StreamEdge::None : StreamEdge::Host));
 #endif
