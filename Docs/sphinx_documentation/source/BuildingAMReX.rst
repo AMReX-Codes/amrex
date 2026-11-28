@@ -845,7 +845,8 @@ We do not officially support AMReX on Windows, and many of us do not have access
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
 (1) AMReX mostly uses standard C++20.
-We run continuous integration tests on Windows with MSVC and Clang compilers.
+We run continuous integration tests on Windows with MSVC and Clang compilers on x64,
+and with MSVC on ARM64.
 
 (2) We use POSIX signal handling when floating-point exceptions, segmentation faults, etc. happen.
 This capability is not supported on Windows.

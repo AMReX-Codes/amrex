@@ -1037,3 +1037,62 @@ jobs:
         mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
         h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
         h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5
+
+  # Native arm64 (AArch64) build and test run.  The other Linux jobs only run
+  # on x86-64, which differs from AArch64 in ways that compile and run fine
+  # there: plain `char` is unsigned, `long double` is 128 bits wide, GCC
+  # contracts a*b+c into FMA instructions by default, and the memory model is
+  # weaker, which matters for OpenMP and atomics.
+  tests_arm64:
+    name: GNU@14 arm64 [tests]
+    runs-on: ubuntu-24.04-arm
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_gcc.sh 14
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Test
+      # -Wno-array-bounds: GCC 14 false positives, see the GNU@14 OMP SIMD job.
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wno-array-bounds -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      run: |
+        # Fail early if this ever stops being a native arm64 runner.
+        test "$(uname -m)" = aarch64
+
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=100M
+        ccache -z
+
+        cmake -S . -B build                         \
+            -DCMAKE_CXX_STANDARD=20                 \
+            -DCMAKE_BUILD_TYPE=Release              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON             \
+            -DAMReX_ASSERTIONS=ON                   \
+            -DAMReX_EB=ON                           \
+            -DAMReX_FFT=ON                          \
+            -DAMReX_FORTRAN=ON                      \
+            -DAMReX_FORTRAN_INTERFACES=ON           \
+            -DAMReX_MPI=ON                          \
+            -DAMReX_OMP=ON                          \
+            -DAMReX_PARTICLES=ON                    \
+            -DAMReX_ENABLE_TESTS=ON                 \
+            -DCMAKE_C_COMPILER=$(which gcc-14)      \
+            -DCMAKE_CXX_COMPILER=$(which g++-14)    \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-14) \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 4
+
+        ctest --test-dir build --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache

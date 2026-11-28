@@ -7,7 +7,9 @@ Continuous Compilation Testing
 As a first line of testing, on every pull request and every commit to the repository, we
 verify that AMReX compiles and that its test suite passes for a common set of configuration
 options. This runs through GitHub Actions, covering GCC, Clang, Intel, CUDA, HIP, SYCL,
-macOS and Windows, and through HPSF GitLab CI on NVIDIA, AMD and Intel GPU hardware. This
+macOS and Windows, and through HPSF GitLab CI on NVIDIA, AMD and Intel GPU hardware.
+Besides x86-64, GitHub Actions also builds and tests AMReX natively on Arm64 (AArch64)
+CPUs: with GCC and Clang on Linux, with MSVC on Windows and with AppleClang on macOS. This
 layer of testing is deliberately limited, so that it can be run quickly on every commit.
 For more extensive testing, we rely on the nightly regression results.
 
